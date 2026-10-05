@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Perseida" width="320">
+</p>
+
 # Perseida
 
 [English](README.md) | [Català](README.ca.md) | **Español**
@@ -8,10 +12,10 @@
 
 ## Qué ofrece la app
 
-- **Mapa** interactivo y **lista** filtrable de eventos astronómicos activos y próximos; suscripción, detalles y exportación al calendario (`.ics`).
+- **Mapa** interactivo y **lista** filtrable de eventos astronómicos activos y próximos; eventos creados por los usuarios, suscripción, detalles y exportación al calendario (`.ics`).
 - **APOD**: imagen astronómica del día de la NASA.
-- **Gamificación**: racha diaria, logros desbloqueables, quiz diario de astrofísica.
-- **Comunidad**: seguimiento de usuarios, salas de chat de evento, chats 1-a-1, compartición y votación de fotografías, publicaciones efímeras de 24 h.
+- **Gamificación**: racha diaria, logros desbloqueables, quiz diario de astrofísica, minijuego de astronomía para retar a amigos.
+- **Comunidad**: seguimiento de usuarios, salas de chat de evento, chats 1-a-1, feed social y perfil de explorador (nivel, trofeos); *opcional:* votación de fotografías y publicaciones efímeras de 24 h.
 - **Zonas de observación** recomendadas a partir de meteorología, contaminación lumínica y ubicación del evento.
 - **Notificaciones** (FCM), **modo offline**, **multilingüe** (catalán, castellano, inglés) y **panel de administración**.
 
@@ -32,22 +36,33 @@ Todo se ejecuta en **un único servidor de Virtech** orquestado con **Docker Com
 
 ```mermaid
 flowchart LR
-    PHONE[App Android] -- HTTPS / WSS --> NPM
-    ADMIN[Panel admin] -- HTTPS --> NPM
+    PHONE[App Android<br/>SQLite outbox + cache] -- REST / WSS 443 --> NPM
+    ADMIN[Navegador admin<br/>admin SPA] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Servidor Virtech - Docker Compose]
-        NPM[nginx-proxy-manager]
-        API[api<br/>FastAPI]
+        NPM[nginx-proxy-manager<br/>TLS, sirve media + SPA admin]
+        API[api<br/>FastAPI: REST + WebSocket + APScheduler]
         MOD[moderation<br/>Kev-4B]
-        REDIS[(Redis)]
-        PG[(PostgreSQL<br/>+ PostGIS)]
-        NPM --> API
-        API --> MOD
+        REDIS[(Redis 8<br/>cache + pub/sub)]
+        PG[(PostgreSQL 18<br/>+ PostGIS)]
+        VOL[(volumen media)]
+        NPM -- proxy_pass --> API
+        API -- HTTP síncrono --> MOD
         API --> REDIS
         API --> PG
+        API --- VOL
+        NPM --- VOL
     end
-    API --> EXT[NASA Open APIs,<br/>meteo, FCM]
+    API --> NASA[NASA Open APIs<br/>APOD, NeoWs]
+    API --> OTHER[APIs de meteo y<br/>contaminación lumínica]
+    API --> FCM[Firebase Cloud Messaging]
     PHONE -- OAuth2 + PKCE --> GOOGLE[Google Identity]
+    API -- JWKS --> GOOGLE
+    GHA[GitHub Actions] -- push imagen --> GHCR[GHCR]
+    GHA -- SSH: render .env + compose up --> VIRTECH
+    VIRTECH -- pull imagen --> GHCR
 ```
+
+Limitaciones conocidas (asumidas en un proyecto académico): un único servidor es un punto único de fallo, sin escalado horizontal ni copias de seguridad automáticas. iOS es compatible (React Native) pero no se despliega, ya que requeriría un Mac, una cuenta de Apple Developer y una clave APNs.
 
 Detalles: [infraestructura](infra/README.es.md) · [arquitectura del backend](backend/README.es.md#arquitectura-hexagonal) · [arquitectura del frontend](frontend/README.es.md#arquitectura).
 
@@ -65,10 +80,18 @@ Detalles: [infraestructura](infra/README.es.md) · [arquitectura del backend](ba
 
 ## Flujo de trabajo y convenciones
 
+- Scrum: 3 sprints de unas 3 semanas, un Scrum Master que rota cada sprint y el profesorado de la asignatura como Product Owner (el cliente). El backlog está en Taiga.
+- Releases: una por sprint, SemVer a partir de `0.1.0`. El Scrum Master del sprint crea `release/*` antes de la sprint review; al fusionar en `main` se despliega el backend y se publica el APK en una release de GitHub.
 - GitFlow: `main` (producción, dispara el CD), `develop` (integración, CI), `feature/*`, `release/*`, `hotfix/*`. Sin push directo a `main`/`develop`.
 - Toda PR hacia `develop` necesita CI en verde y la aprobación de alguien que no sea el autor.
 - El código generado con asistentes de IA pasa por la misma revisión y los mismos quality gates; el autor de la PR es responsable de él.
 - No hagas nunca commit de secretos ni de ficheros `.env`.
+
+## Contrato de servicio con Spotwise (grupo 21B)
+
+- **Proporcionado:** `GET /api/events/active` y `GET /api/events/upcoming` devuelven eventos astronómicos relevantes (título, descripción corta, categoría como `lunar`, `solar`, `meteor_shower`).
+- **Consumido:** la búsqueda de espacios de Spotwise (bibliotecas y cafeterías de Barcelona) para sugerir puntos de encuentro en los eventos.
+- El contrato se acordó en el Sprint 1; los cambios en los Sprints 2-3 deben notificarse y justificarse, ya que afectan a ambos equipos.
 
 ## Enlaces del proyecto
 

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Perseida" width="320">
+</p>
+
 # Perseida
 
 **English** | [Català](README.ca.md) | [Español](README.es.md)
@@ -8,10 +12,10 @@
 
 ## What the app offers
 
-- Interactive **map** and filterable **list** of active and upcoming astronomical events; subscription, details and calendar export (`.ics`).
+- Interactive **map** and filterable **list** of active and upcoming astronomical events; user-created events, subscription, details and calendar export (`.ics`).
 - **APOD**: NASA Astronomy Picture of the Day.
-- **Gamification**: daily streak, unlockable achievements, daily astrophysics quiz.
-- **Community**: follow users, event chat rooms, 1-to-1 chats, photo sharing and voting, 24 h ephemeral posts.
+- **Gamification**: daily streak, unlockable achievements, daily astrophysics quiz, astronomy minigame to challenge friends.
+- **Community**: follow users, event chat rooms, 1-to-1 chats, social feed and explorer profile (level, trophies); *optional:* photo voting and 24 h ephemeral posts.
 - **Observation zones** recommended from weather, light pollution and event location.
 - **Notifications** (FCM), **offline mode**, **multi-language** (Catalan, Spanish, English) and an **admin panel**.
 
@@ -32,22 +36,33 @@ Everything runs on **a single Virtech server** orchestrated with **Docker Compos
 
 ```mermaid
 flowchart LR
-    PHONE[Android app] -- HTTPS / WSS --> NPM
-    ADMIN[Admin panel] -- HTTPS --> NPM
+    PHONE[Android app<br/>SQLite outbox + cache] -- REST / WSS 443 --> NPM
+    ADMIN[Admin browser<br/>admin SPA] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Virtech server - Docker Compose]
-        NPM[nginx-proxy-manager]
-        API[api<br/>FastAPI]
+        NPM[nginx-proxy-manager<br/>TLS, serves media + admin SPA]
+        API[api<br/>FastAPI: REST + WebSocket + APScheduler]
         MOD[moderation<br/>Kev-4B]
-        REDIS[(Redis)]
-        PG[(PostgreSQL<br/>+ PostGIS)]
-        NPM --> API
-        API --> MOD
+        REDIS[(Redis 8<br/>cache + pub/sub)]
+        PG[(PostgreSQL 18<br/>+ PostGIS)]
+        VOL[(media volume)]
+        NPM -- proxy_pass --> API
+        API -- sync HTTP --> MOD
         API --> REDIS
         API --> PG
+        API --- VOL
+        NPM --- VOL
     end
-    API --> EXT[NASA Open APIs,<br/>weather, FCM]
+    API --> NASA[NASA Open APIs<br/>APOD, NeoWs]
+    API --> OTHER[Weather and<br/>light-pollution APIs]
+    API --> FCM[Firebase Cloud Messaging]
     PHONE -- OAuth2 + PKCE --> GOOGLE[Google Identity]
+    API -- JWKS --> GOOGLE
+    GHA[GitHub Actions] -- push image --> GHCR[GHCR]
+    GHA -- SSH: render .env + compose up --> VIRTECH
+    VIRTECH -- pull image --> GHCR
 ```
+
+Known limitations (accepted in an academic project): a single server is a single point of failure, with no horizontal scaling and no automatic backups. iOS is compatible (React Native) but not deployed, as it would require a Mac, an Apple Developer account and an APNs key.
 
 Details: [infrastructure](infra/README.md) · [backend architecture](backend/README.md#architecture-hexagonal) · [frontend architecture](frontend/README.md#architecture).
 
@@ -65,10 +80,18 @@ Details: [infrastructure](infra/README.md) · [backend architecture](backend/REA
 
 ## Workflow and conventions
 
+- Scrum: 3 sprints of about 3 weeks, a Scrum Master that rotates every sprint, and the course teaching staff acting as Product Owner (the client). The backlog lives in Taiga.
+- Releases: one per sprint, SemVer starting at `0.1.0`. The sprint's Scrum Master cuts `release/*` before the sprint review; merging into `main` deploys the backend and publishes the APK as a GitHub release.
 - GitFlow: `main` (production, triggers CD), `develop` (integration, CI), `feature/*`, `release/*`, `hotfix/*`. No direct push to `main`/`develop`.
 - Every PR to `develop` needs green CI and approval from someone other than the author.
 - Code generated with AI assistants goes through the same review and quality gates; the PR author is responsible for it.
 - Never commit secrets or `.env` files.
+
+## Service contract with Spotwise (group 21B)
+
+- **Provided:** `GET /api/events/active` and `GET /api/events/upcoming` return relevant astronomical events (title, short description, category such as `lunar`, `solar`, `meteor_shower`).
+- **Consumed:** Spotwise's space search (libraries and cafés in Barcelona) to suggest meeting points for events.
+- The contract was agreed in Sprint 1; changes in Sprints 2-3 must be notified and justified, as they affect both teams.
 
 ## Project links
 
