@@ -1,0 +1,37 @@
+name: Taiga unblock
+
+# Desmarca les US bloquejades de Taiga quan les US que les bloquegen ja estan tancades.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Només mostra què es desbloquejaria"
+        type: boolean
+        default: false
+
+concurrency:
+  group: taiga-unblock
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  unblock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Desbloquejar US resoltes
+        env:
+          TAIGA_USERNAME: ${{ secrets.TAIGA_USERNAME }}
+          TAIGA_PASSWORD: ${{ secrets.TAIGA_PASSWORD }}
+          TAIGA_PROJECT_SLUG: ${{ vars.TAIGA_PROJECT_SLUG }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: python .github/scripts/taiga_unblock.py
