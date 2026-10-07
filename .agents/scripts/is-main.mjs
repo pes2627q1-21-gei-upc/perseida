@@ -1,6 +1,6 @@
 // Determina si un mòdul s'executa directament (CLI) i no s'importa.
-// Compara realpaths, de manera que funciona amb enllaços simbòlics i
-// amb rutes que difereixen per majúscules/minúscules.
+// Compara realpaths: resol enllaços simbòlics i rutes relatives. Retorna false
+// si process.argv[1] falta o no es pot llegir.
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
