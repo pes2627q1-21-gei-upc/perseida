@@ -2,12 +2,13 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isMain } from './is-main.mjs';
 
 const HEADER =
   'Context del vault de Perseida (autogenerat). Abans de treballar, segueix AGENTS.md i la skill vault-context.';
 
 function stripFrontmatter(text) {
-  return text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+  return text.replace(/^---\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/, '');
 }
 
 export function buildContext(vaultDir, { maxChars = 6000 } = {}) {
@@ -27,7 +28,7 @@ export function buildContext(vaultDir, { maxChars = 6000 } = {}) {
   return full.length > maxChars ? full.slice(0, maxChars) + '\n… (truncat)' : full;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMain(import.meta.url)) {
   let additionalContext;
   try {
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
