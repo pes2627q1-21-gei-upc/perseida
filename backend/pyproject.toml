@@ -16,7 +16,6 @@ dev = [
     "ruff==0.16.10",
 ]
 
-
 [tool.ruff]
 target-version = "py314"
 line-length = 88
@@ -30,3 +29,8 @@ select = ["E", "W", "F", "I", "B", "UP", "N", "SIM", "C90"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+exclude = ["^\\.venv/"]
