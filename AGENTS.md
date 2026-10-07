@@ -1,0 +1,56 @@
+# AGENTS.md
+
+Instruccions per als agents d'IA que treballen en aquest repositori (estàndard AGENTS.md; Claude Code el llegeix via `CLAUDE.md`).
+
+## Projecte
+
+Perseida és una app mòbil multiplataforma de divulgació i seguiment d'esdeveniments astronòmics (projecte PES, UPC-FIB).
+Monorepo amb app i panell d'administració, backend, infraestructura i documentació del projecte.
+Més context: [README.md](README.md) i [obsidian_vault/00-index.md](obsidian_vault/00-index.md).
+
+## Regles obligatòries
+
+1. Abans de qualsevol canvi, llegeix el vault amb la skill `vault-context`.
+2. Tot fitxer de `obsidian_vault/` es crea/edita **amb** la skill `obsidian-markdown`; `.base` amb `obsidian-bases`; `.canvas` amb `json-canvas`. Per llegir pàgines web, `defuddle`.
+3. Si la US canvia l'arquitectura o pren una decisió rellevant, actualitza el vault **abans de fusionar la PR** (DoD).
+4. Al final de cada sessió: entrada a `estat/sessions/` i `estat/estat-actual.md`.
+5. Treballa només en branques `feature/*`; no facis push, merge ni PR sense que ho demani la persona; la persona és responsable de tot el codi.
+6. Cap secret, `.env`, token o dada personal als fitxers ni al vault.
+7. Verifica que les llibreries/APIs existeixen; dependències amb `uv`/`pnpm` i versió fixada.
+
+Detall dels punts 1, 3 i 4:
+- Protocol de lectura/escriptura: skill `vault-context` i [guia](obsidian_vault/guies/llegir-el-vault-com-a-agent.md).
+- Definition of Done: [definition-of-done](obsidian_vault/convencions/definition-of-done.md).
+- Quan i com actualitzar el vault: [actualització del vault](obsidian_vault/convencions/actualitzacio-del-vault.md).
+- Estat i sessions: `obsidian_vault/estat/estat-actual.md` i `obsidian_vault/estat/sessions/`.
+
+## Configuració inicial (un cop per clon)
+
+```bash
+node .agents/scripts/sync-skills.mjs
+```
+
+Les skills es mantenen a `.agents/skills/` (font de veritat, per a tots els agents). Claude Code llegeix `.claude/skills/`, una còpia generada per aquest script; no l'editis a mà.
+
+## Mapa del repo
+
+| Directori | Contingut |
+|---|---|
+| `backend/` | Servei FastAPI: API REST, xat en temps real (WebSocket) i scheduler. Arquitectura hexagonal. |
+| `frontend/` | App mòbil React Native + Expo i panell d'administració (React Native Web). |
+| `infra/` | Docker Compose, desplegament i CI/CD (GitHub Actions). |
+| `obsidian_vault/` | Documentació del projecte com a vault d'Obsidian; context compartit de l'equip i dels agents. |
+| `.agents/` | Skills (`.agents/skills/`) i scripts (`.agents/scripts/`) per als agents d'IA. |
+
+## Comandes
+
+```bash
+node --test .agents/scripts/*.test.mjs     # tests dels scripts
+node .agents/scripts/sync-skills.mjs --check # verifica que .claude/skills/ està sincronitzat
+```
+
+## Context de Taiga
+
+- Projecte: `alexga03-astronomia-pes` (https://tree.taiga.io/project/alexga03-astronomia-pes).
+- Llegeix la US i els seus criteris d'acceptació abans de començar.
+- Als commits i PR, referencia la US amb la forma `TG-NN` (p. ex. `TG-85`).
