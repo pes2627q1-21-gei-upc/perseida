@@ -63,11 +63,12 @@ Etiquetes tal com apareixen al diagrama:
 - `DailyQuiz` 1 — 0..* `QuizResult` («resultats»); `User` — `QuizResult` («obté»).
 - `User` — `DailyStreak` («registre d'activitat»).
 - `User` 1 — 0..* `DeviceRegistration` («dispositius»); `User` — `User` («segueix»).
-- `User` — `EventSubscription` («subscripcions») — `AstronomicalEvent` («esdeveniment»).
-- `User` — `ContentReport` («crea denúncies»); `User` — `Notification` («rep»); `User` — `NotificationPreference` («preferències»).
+- `User` — `EventSubscription` («subscripcions»); `EventSubscription` 0..* — 1 `AstronomicalEvent` («esdeveniment»).
+- `User` 1 — 0..* `ContentReport` («crea denúncies»); `User` 1 — 0..* `Notification` («rep»); `User` 1 — 0..* `NotificationPreference` («preferències»).
 - `AstronomicalEvent` 1 — 0..1 `EventChatRoom` («sala de xat»).
 - `EventChatRoom` 1 — 0..* `ChatMessage` («historial»); `DirectConversation` 1 — 0..* `ChatMessage` («historial»).
 - `User` — `EventChatRoom` («participa»); `User` — `ChatMessage` («envia»); `User` 2 — 0..* `DirectConversation` («participants»: 2 usuaris per conversa).
+- No s'assigna amb certesa: les tres multiplicitats «1» de la part superior de `User`, l'extrem `User` de les relacions «fites desbloquejades», «obté», «registre d'activitat» i «subscripcions», les de les tres línies llargues de la part inferior (`User` amb `EventChatRoom`, `ChatMessage` i `DirectConversation`, més enllà del «2» ja indicat) i la de l'autorelació «segueix». Es donen sense multiplicitat.
 - `ObservationZone` i `APOD` apareixen al paquet «Usuaris i esdeveniments» sense cap relació dibuixada.
 
 ## Diagrama (transcripció)
@@ -165,10 +166,10 @@ classDiagram
     User "1" --> "0..*" DeviceRegistration : dispositius
     User --> User : segueix
     User --> EventSubscription : subscripcions
-    EventSubscription --> AstronomicalEvent : esdeveniment
-    User --> ContentReport : crea denúncies
-    User --> Notification : rep
-    User --> NotificationPreference : preferències
+    EventSubscription "0..*" --> "1" AstronomicalEvent : esdeveniment
+    User "1" --> "0..*" ContentReport : crea denúncies
+    User "1" --> "0..*" Notification : rep
+    User "1" --> "0..*" NotificationPreference : preferències
     AstronomicalEvent "1" --> "0..1" EventChatRoom : sala de xat
     EventChatRoom "1" --> "0..*" ChatMessage : historial
     DirectConversation "1" --> "0..*" ChatMessage : historial

@@ -17,7 +17,7 @@ Més context: [README.md](README.md) i [obsidian_vault/00-index.md](obsidian_vau
 5. Segueix GitFlow i la política de PR; no facis push, merge ni PR sense que ho demani la persona, que és responsable de tot el codi.
    - Branques: `main` (producció; un push hi dispara el CD), `develop` (integració, CI), `feature/*` (des de `develop`; com a màxim una US), `release/*` (la talla el Scrum Master de l'sprint des de `develop` abans de la review; només bugfixes, documentació i canvis de versió) i `hotfix/*` (des de `main`, errors urgents en producció).
    - Cap push directe a `main` ni a `develop`. PR cap a `develop`: CI verda i aprovació d'una persona que no sigui l'autora; cap a `main`: CI obligatòria, aprovació opcional.
-   - Treballa per defecte en `feature/*`; només en `hotfix/*` o `release/*` si la persona ho demana explícitament. No pots fusionar ni saltar-te les proteccions de les branques.
+   - Treballa sempre en `feature/*` (memòria §2.10.4). `release/*` i `hotfix/*` no els creïs ni hi treballis llevat que la persona ho demani explícitament (criteri d'aquest repo; la memòria no els preveu per als agents). No pots fusionar ni saltar-te les proteccions de les branques.
    - Qui obre la PR és responsable de tot el codi que hi porta i ha de poder explicar-lo (vegeu [assistents-ia](obsidian_vault/convencions/assistents-ia.md)).
 6. Cap secret, `.env`, token o dada personal als fitxers ni al vault.
 7. Verifica que les llibreries/APIs existeixen; dependències amb `uv`/`pnpm` i versió fixada.
