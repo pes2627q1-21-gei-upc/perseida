@@ -1,13 +1,20 @@
 name: Skills sync check
 
-# Verifica que .claude/skills és una còpia exacta de .agents/skills.
+# Verifica que les còpies generades (.claude/skills i els subagents natius de cada eina)
+# coincideixen amb la font de veritat de .agents/.
 on:
   pull_request:
     branches: [develop, main]
     paths:
       - ".agents/skills/**"
-      - ".claude/skills/**"
+      - ".agents/agents/**"
       - ".agents/scripts/**"
+      - ".claude/skills/**"
+      - ".claude/agents/**"
+      - ".codex/agents/**"
+      - ".opencode/agents/**"
+      - ".github/agents/**"
+      - ".gemini/agents/**"
       - ".github/workflows/skills-sync-check.yml"
 
 permissions:
@@ -24,5 +31,7 @@ jobs:
           node-version: "22"
       - name: Proves dels scripts
         run: node --test .agents/scripts/*.test.mjs
-      - name: Comprovar sincronització
+      - name: Comprovar sincronització de skills
         run: node .agents/scripts/sync-skills.mjs --check
+      - name: Comprovar sincronització de subagents
+        run: node .agents/scripts/sync-agents.mjs --check
