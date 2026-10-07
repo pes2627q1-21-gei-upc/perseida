@@ -1,0 +1,41 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Backend de Perseida (API FastAPI)"
+requires-python = "==3.14.*"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "httpx==0.28.1",
+    "mypy==2.4.0",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "pytest-cov==7.1.0",
+    "respx==0.23.1",
+    "ruff==0.16.10",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+# E/W = estil PEP 8 · F = errors (imports i variables sense ús...) · I = ordre d'imports
+# B = males pràctiques habituals · UP = sintaxi moderna · N = convencions de noms
+# SIM = simplificacions · C90 = complexitat ciclomàtica
+select = ["E", "W", "F", "I", "B", "UP", "N", "SIM", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+exclude = ["^\\.venv/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=app --cov-report=term-missing"

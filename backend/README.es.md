@@ -2,7 +2,7 @@
 
 [English](README.md) | [Català](README.ca.md) | **Español**
 
-> 🚧 **En construcción.** El proyecto está en fase de inception/primer sprint. La estructura y los comandos siguientes describen el estado **previsto** según la documentación del proyecto (inception 1 y 2 y memoria) y pueden cambiar.
+> 🚧 **En construcción.** El proyecto está en fase de inception/primer sprint. La estructura sigue siendo la **prevista** según la documentación del proyecto (inception 1 y 2 y memoria) y puede cambiar, pero los comandos de la sección de ejecutar y testear ya están verificados.
 
 Backend de **Perseida**, una aplicación móvil multiplataforma de divulgación, exploración y seguimiento de fenómenos astronómicos, desarrollada como proyecto de PES (UPC-FIB). Expone la API REST y el chat en tiempo real que usan la app móvil y el panel de administración, e integra las NASA Open APIs y otros proveedores externos.
 
@@ -20,7 +20,7 @@ Un único proceso FastAPI integra tres responsabilidades:
 
 | Ámbito | Tecnología |
 |---|---|
-| Lenguaje | Python |
+| Lenguaje | Python 3.14 |
 | Framework | FastAPI (async) |
 | ORM / migraciones | SQLModel (SQLAlchemy) · Alembic (se ejecuta automáticamente en el entrypoint del contenedor) |
 | Base de datos | PostgreSQL 18 + PostGIS (fuente de verdad) |
@@ -28,9 +28,9 @@ Un único proceso FastAPI integra tres responsabilidades:
 | Planificador | APScheduler |
 | Autenticación | Google OAuth2 + PKCE · validación de tokens de Google vía JWKS · sesión propia del backend (JWT) |
 | Moderación | Microservicio Kev-4B (modelo local, llamada síncrona) |
-| Dependencias | `uv` |
+| Dependencias | `uv` (versiones exactas, `uv.lock` versionado) |
 | Calidad | `ruff` (lint + formato, complejidad máx. 10), `mypy` estricto, SonarQube Cloud |
-| Tests | `pytest`, `pytest-asyncio`, `pytest-xdist`, `pytest-cov`, `httpx`, `respx` |
+| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
 
 ## Arquitectura: hexagonal
 
@@ -88,14 +88,23 @@ backend/
 - **Proveemos:** `GET /api/events/active` y `GET /api/events/upcoming` devuelven los eventos astronómicos relevantes (título, descripción breve, categoría como `lunar`, `solar`, `meteor_shower`).
 - **Consumimos:** la búsqueda de espacios de Spotwise (bibliotecas y cafeterías de Barcelona) para sugerir puntos de encuentro en los eventos.
 
-## Ejecutar y testear (previsto)
+## Ejecutar y testear
+
+Prerrequisito: [`uv`](https://docs.astral.sh/uv/). La versión de Python (3.14) la fija `.python-version` y `uv` la instala si hace falta.
 
 ```bash
-uv sync                     # instala dependencias
-uv run ruff check . && uv run ruff format --check .
-uv run mypy .
-uv run pytest               # tests unitarios + integración
+cd backend                    # desde la raíz del repositorio
+uv sync                       # instala las dependencias (entorno virtual en .venv)
+uv lock --check               # verifica que uv.lock está al día con pyproject.toml
+uv run ruff check .           # lint
+uv run ruff format --check .  # comprueba el formato sin modificar archivos
+uv run mypy .                 # tipado estricto
+uv run pytest                 # tests (con cobertura)
 ```
+
+- Las dependencias se añaden con `uv add` / `uv add --dev` y versión exacta (`==`); no se usa `pip`.
+- Toda la configuración (ruff, mypy, pytest, cobertura) está en `pyproject.toml`.
+- Sin tests, `pytest` termina con «no tests ran» (código 5); no es un error.
 
 El stack completo (API, PostgreSQL/PostGIS, Redis, moderación) se levanta con Docker Compose desde [`../infra`](../infra/README.es.md). Copia `.env.example` a `.env`; los secretos reales nunca se versionan.
 

@@ -22,8 +22,8 @@ Instantània a data 2026-10-07. L'estat viu a Taiga; si hi ha diferències, guan
 | Estat | US |
 |---|---|
 | Done | TG-30 (estructura del monorepo i guia d'arrencada) |
-| In progress | TG-85 (aquest vault) |
-| Ready | TG-31, TG-33, TG-38, TG-45, TG-87, TG-88 |
+| In progress | TG-85 (aquest vault), TG-31 (configuració del backend) |
+| Ready | TG-33, TG-38, TG-45, TG-87, TG-88 |
 
 La resta del backlog és a [[epiques-i-us]].
 
@@ -34,6 +34,12 @@ La resta del backlog és a [[epiques-i-us]].
 - Skills agnòstiques a `.agents/skills/` i `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`.
 - Skill `vault-context` i hook `SessionStart` que injecta aquest índex i aquesta nota.
 - Producte, estat i guies ([[llegir-el-vault-com-a-agent]]). Sessió: [[2026-10-07-base-del-vault]].
+
+## Què ha lliurat TG-31 fins ara
+
+- Projecte `backend/` amb `uv` (Python 3.14, `uv.lock` versionat), `ruff`, `mypy` estricte i `pytest` amb cobertura.
+- Estructura `app/` i `tests/` i README del backend amb les ordres verificades. Sessió: [[2026-10-07-configuracio-backend]].
+- Pendent: PR cap a `develop`.
 
 ## Pendent
 
@@ -50,3 +56,4 @@ La resta del backlog és a [[epiques-i-us]].
 - [[definition-of-done]]
 - [[actualitzacio-del-vault]]
 - [[2026-10-07-base-del-vault]]
+- [[2026-10-07-configuracio-backend]]

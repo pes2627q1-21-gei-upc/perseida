@@ -2,7 +2,7 @@
 
 **English** | [Català](README.ca.md) | [Español](README.es.md)
 
-> 🚧 **Under construction.** The project is in its inception/first-sprint phase. Structure and commands below describe the **planned** state defined in the project documentation (inception 1 and 2, and the project report) and may change.
+> 🚧 **Under construction.** The project is in its inception/first-sprint phase. The structure is still the **planned** one defined in the project documentation (inception 1 and 2, and the project report) and may change, but the commands in the run and test section are already verified.
 
 Backend of **Perseida**, a multiplatform mobile app for astronomy outreach, exploration and tracking of astronomical events, built as a PES project (UPC-FIB). It exposes the REST API and real-time chat used by the mobile app and the admin panel, and integrates NASA Open APIs and other external providers.
 
@@ -20,7 +20,7 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 
 | Area | Technology |
 |---|---|
-| Language | Python |
+| Language | Python 3.14 |
 | Framework | FastAPI (async) |
 | ORM / migrations | SQLModel (SQLAlchemy) · Alembic (run automatically at container entrypoint) |
 | Database | PostgreSQL 18 + PostGIS (source of truth) |
@@ -28,9 +28,9 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 | Scheduler | APScheduler |
 | Auth | Google OAuth2 + PKCE · Google token validation via JWKS · own backend session (JWT) |
 | Moderation | Kev-4B microservice (local model, synchronous call) |
-| Dependencies | `uv` |
+| Dependencies | `uv` (exact versions, `uv.lock` committed) |
 | Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud |
-| Tests | `pytest`, `pytest-asyncio`, `pytest-xdist`, `pytest-cov`, `httpx`, `respx` |
+| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
 
 ## Architecture: hexagonal
 
@@ -88,14 +88,23 @@ backend/
 - **Provided:** `GET /api/events/active` and `GET /api/events/upcoming` return relevant astronomical events (title, short description, category such as `lunar`, `solar`, `meteor_shower`).
 - **Consumed:** Spotwise's space search (libraries and cafés in Barcelona) to suggest meeting points for events.
 
-## Run and test (planned)
+## Run and test
+
+Prerequisite: [`uv`](https://docs.astral.sh/uv/). The Python version (3.14) is pinned by `.python-version` and `uv` installs it if needed.
 
 ```bash
-uv sync                     # install dependencies
-uv run ruff check . && uv run ruff format --check .
-uv run mypy .
-uv run pytest               # unit + integration tests
+cd backend                    # from the repository root
+uv sync                       # install dependencies (virtual env in .venv)
+uv lock --check               # verify uv.lock is up to date with pyproject.toml
+uv run ruff check .           # lint
+uv run ruff format --check .  # check formatting without modifying files
+uv run mypy .                 # strict type checking
+uv run pytest                 # tests (with coverage)
 ```
+
+- Dependencies are added with `uv add` / `uv add --dev` and an exact version (`==`); `pip` is not used.
+- All configuration (ruff, mypy, pytest, coverage) lives in `pyproject.toml`.
+- With no tests, `pytest` exits with "no tests ran" (code 5); this is not an error.
 
 The full stack (API, PostgreSQL/PostGIS, Redis, moderation) is started with Docker Compose from [`../infra`](../infra/README.md). Copy `.env.example` to `.env`; real secrets are never committed.
 
