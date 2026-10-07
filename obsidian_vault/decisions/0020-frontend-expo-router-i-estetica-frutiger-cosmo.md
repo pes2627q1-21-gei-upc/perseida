@@ -20,6 +20,7 @@ etiquetes: [adr, frontend, ui, ux, responsive]
 - **Stack**: NativeWind amb *tokens* de tema propis i components base «glossy» (`expo-linear-gradient`, `expo-blur`, `react-native-svg`); `openapi-typescript` + `openapi-fetch` + TanStack Query; *toast* propi; `react-hook-form` + `zod` (validació de comoditat; la vàlida és la del backend).
 - **Estètica «Frutiger Cosmo»**, inspirada en l'iPhone 4 i la Wii: base fosca còsmica i glossy (vidre translúcid, gradients, reflexos, botons de gel, bombolles). La paleta i la tipografia concretes les valida la persona.
 - **Responsive al 100 %, mobile-first**: l'app, pensada per a mòbils actuals; el panell d'admin, per a portàtil; tot s'ha de veure bé a qualsevol resolució.
+- **Accessibilitat WCAG 2.2 AA obligatòria** a tot el frontend: lectors de pantalla amb textos per i18n, text escalable, contrast i no només color, reduce motion, teclat/focus a l'admin web i jocs accessibles; es verifica amb una checklist a les skills, la revisió de `reviewer-arquitectura` i tests per rol/etiqueta (les eines automàtiques noves es consulten abans d'afegir-les).
 - **Frontend «tonto»**: sense regles de negoci ni de seguretat; mai errors crus (vegeu [[0018-errors-rfc-9457-amb-codis-estables]]).
 - Es vendoritzen les skills `ui-ux-pro-max` (MIT) i `frontend-design` (Apache-2.0) per decidir amb criteri.
 
@@ -32,6 +33,7 @@ etiquetes: [adr, frontend, ui, ux, responsive]
 ### Negatives (assumides)
 
 - Els efectes glossy i el blur tenen cost de rendiment que cal vigilar en mòbils modestos.
+- El vidre translúcid i els gradients obliguen a mesurar el contrast sobre el fons real; pot exigir una variant d'alt contrast.
 
 ## Alternatives descartades
 

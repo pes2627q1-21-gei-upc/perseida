@@ -7,7 +7,7 @@ description: Crea formularis amb react-hook-form i zod, errors per camp mapats d
 
 Construeix formularis amb `react-hook-form` + `zod`. La validació del client és de comoditat (feedback < 100 ms sense xarxa); la vàlida és la del backend. Frontend "tonto": cap regla de negoci ni de seguretat.
 
-Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Els errors globals, el toast i la traducció per `code` són a la skill `gestio-errors`; aquí només es lliguen. Per a UX d'errors i accessibilitat de formularis, consulta `ui-ux-pro-max` (`references/pro-rules.md`).
+Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Els errors globals, el toast i la traducció per `code` són a la skill `gestio-errors`; aquí només es lliguen. Per a UX d'errors i accessibilitat de formularis, consulta `ui-ux-pro-max` (`references/pro-rules.md`). **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
 
 ## Quan usar-la / quan NO
 - Usa-la: qualsevol formulari d'entrada d'usuari a `src/features/<mòdul>/components` o pàgina.
@@ -24,6 +24,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 5. Hi ha camps sensibles (contrasenya, dades personals)? Autocompletat/gestor de contrasenyes i política de no registrar-los.
 6. Es manté un esborrany (només si l'humà ho vol i on)? Mode offline/outbox?
 7. Dependències noves (`react-hook-form`, `zod`, resolvers)? Pregunta abans; versió fixada amb pnpm (verifica'n l'existència i compatibilitat).
+8. Accessibilitat (WCAG 2.2 AA): quins límits o decisions cal confirmar per a això (escala de text, anuncis `polite`/`assertive`, variant d'alt contrast, eines de test)? Vegeu les preguntes d'accessibilitat de la guia.
 
 ## Passos
 1. Llegeix el vault i l'OpenAPI de l'operació; deriva el tipus del cos des dels tipus generats.
@@ -82,6 +83,7 @@ export function EventForm({ onSubmit }: { onSubmit: (v: FormValues) => Promise<v
 - [ ] Accessibilitat (teclat, lectors, >=44 pt, no només color); checklist de `ui-ux-pro-max/references/pro-rules.md`.
 - [ ] Dades sensibles tractades sense registrar-les; cap secret.
 - [ ] Tests escrits; cap dependència nova sense permís.
+- [ ] Accessibilitat WCAG 2.2 AA: checklist de `../frontend-component/references/accessibilitat.md` completada (lectors i i18n, text gran i contrast, reduce motion, teclat/focus, tests per rol/etiqueta).
 
 ## Què NO fer
 - No implementis regles de negoci ni de seguretat al client; no confiïs en la validació local.

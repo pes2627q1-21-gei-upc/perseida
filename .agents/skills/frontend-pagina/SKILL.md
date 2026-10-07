@@ -7,7 +7,7 @@ description: Crea pantalles/rutes amb Expo Router a src/app (grups (app) mòbil 
 
 Crea una pantalla fina que compon components i hooks existents. La pàgina només orquestra presentació: la lògica de dades és als hooks de la feature (`frontend-crida-api`) i el negoci és al backend.
 
-Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Per a decisions de disseny (paleta, tipografia, accessibilitat, jerarquia) usa les skills `ui-ux-pro-max` i `frontend-design`; l'estètica és la de `frontend-component/references/frutiger-cosmo.md` i la matriu de dispositius la de `frontend-component/references/responsive.md`. No es copien aquí.
+Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Per a decisions de disseny (paleta, tipografia, accessibilitat, jerarquia) usa les skills `ui-ux-pro-max` i `frontend-design`; l'estètica és la de `frontend-component/references/frutiger-cosmo.md` i la matriu de dispositius la de `frontend-component/references/responsive.md`. No es copien aquí. **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
 
 ## Quan usar-la / quan NO
 - Usa-la: fitxer nou o canvi a `src/app/**` (rutes, `_layout.tsx`, grups `(app)` i `(admin)`).
@@ -25,6 +25,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 6. Quines claus i18n (ca/es/en) calen? Qui valida les traduccions?
 7. Comportament per classe de dispositiu (mòbil/tauleta/escriptori): columnes, navegació lateral vs. pestanyes?
 8. Dependències noves? Pregunta abans; versió fixada amb pnpm.
+9. Accessibilitat (WCAG 2.2 AA): quins límits o decisions cal confirmar per a això (escala de text, anuncis `polite`/`assertive`, variant d'alt contrast, eines de test)? Vegeu les preguntes d'accessibilitat de la guia.
 
 ## Passos
 1. Llegeix el vault i l'estructura actual de `src/app`; reutilitza components i hooks existents.
@@ -72,6 +73,7 @@ Noms de components, claus i hooks són d'exemple: confirma'ls amb el repo i l'hu
 - [ ] Accessibilitat (focus, etiquetes, >=44 pt, reduced motion) i checklist de `ui-ux-pro-max/references/pro-rules.md`.
 - [ ] Provat en mòbil petit, gran, tauleta i escriptori.
 - [ ] Cap regla de negoci/seguretat al client.
+- [ ] Accessibilitat WCAG 2.2 AA: checklist de `../frontend-component/references/accessibilitat.md` completada (lectors i i18n, text gran i contrast, reduce motion, teclat/focus, tests per rol/etiqueta).
 
 ## Què NO fer
 - No facis `fetch` ni contenguis lògica de negoci a la pantalla.

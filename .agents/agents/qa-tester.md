@@ -25,6 +25,7 @@ Els tests s'escriuen DESPRÉS del codi, a totes les capes (decisió de l'humà, 
 - Frontend: hooks i lògica de presentació (loading/error/empty), validació de formularis (feedback < 100 ms sense xarxa), components principals, que tot text UI tingui ca/es/en; API simulada a `frontend/__mocks__/`. Components purament visuals exclosos de cobertura. Sense e2e.
 - Jocs de prova: `backend/tests/fixtures/`, `backend/tests/factories/`, `backend/tests/moderation_dataset/`.
 - NFR mesurables: cache <= 200 ms, proximitat PostGIS <= 150 ms (mediana de diverses peticions), endpoints privats sense sessió 100 % rebutjats.
+- Frontend: tests per **rol i etiqueta** (`getByRole`, `getByLabelText`) per verificar l'accessibilitat (WCAG 2.2 AA); les eines automàtiques d'accessibilitat (`axe`, `eslint-plugin-jsx-a11y`) són una dependència nova: pregunta a la persona abans d'afegir-les.
 
 ## Llindars i qualitat
 

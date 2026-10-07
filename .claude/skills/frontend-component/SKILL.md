@@ -7,7 +7,7 @@ description: Crea o modifica components de UI reutilitzables del frontend (React
 
 Crea components de presentació amb l'estètica "Frutiger Cosmo", només amb tokens de tema i accessibles. El component és "tonto": cap regla de negoci ni de seguretat.
 
-Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Abans de decidir paleta, tipografia o accessibilitat, aplica les skills `ui-ux-pro-max` (inclou `references/pro-rules.md` com a checklist de lliurament) i `frontend-design`; no en copiïs el contingut, referencia-les. La direcció visual la fixa `references/frutiger-cosmo.md`.
+Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Abans de decidir paleta, tipografia o accessibilitat, aplica les skills `ui-ux-pro-max` (inclou `references/pro-rules.md` com a checklist de lliurament) i `frontend-design`; no en copiïs el contingut, referencia-les. La direcció visual la fixa `references/frutiger-cosmo.md`. **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `references/accessibilitat.md`.
 
 ## Quan usar-la / quan NO
 - Usa-la: component base a `src/shared/ui`, component de feature a `src/features/<mòdul>/components`, canvis als tokens de `src/shared/theme`.
@@ -24,6 +24,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 5. Cal mode nocturn amb tint vermell per a aquest component?
 6. Cal alguna **dependència nova** (blur, gradients, svg, so, hàptic)? Pregunta abans d'afegir-la; versió fixada amb pnpm (verifica'n l'existència i la versió).
 7. Hi ha disseny a Figma/mockup o es dissenya amb `frontend-design`?
+8. Accessibilitat (WCAG 2.2 AA): quins límits o decisions cal confirmar per a això (escala de text, anuncis `polite`/`assertive`, variant d'alt contrast, eines de test)? Vegeu les preguntes d'accessibilitat de la guia.
 
 ## Passos
 1. Llegeix el vault (frontend.md, estructura del repo) i comprova si ja existeix un component o token reutilitzable.
@@ -79,6 +80,7 @@ Versions de llibreries: fixades amb pnpm; pregunta/verifica abans d'afegir-ne.
 - [ ] Textos via i18n ca/es/en.
 - [ ] Sense scroll horitzontal; comprovat als 4 dispositius de la matriu.
 - [ ] Tests de lògica escrits; cap dependència nova sense permís.
+- [ ] Accessibilitat WCAG 2.2 AA: checklist de `references/accessibilitat.md` completada (lectors i i18n, text gran i contrast, reduce motion, teclat/focus, tests per rol/etiqueta).
 
 ## Què NO fer
 - No hardcodegis valors de disseny ni inventis hexadecimals.

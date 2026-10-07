@@ -7,7 +7,7 @@ description: Implementa el quiz diari i la gamificació (ratxes, assoliments, re
 
 Implementa la capa de presentació i interacció de la gamificació: quiz diari, ratxes, assoliments, recompenses animades, minijocs 2D, visualitzacions de cel/3D i microinteraccions. La puntuació, els premis i les ratxes VIUEN AL BACKEND: el client només mostra i envia accions (frontend "tonto").
 
-Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Estètica: `frontend-component/references/frutiger-cosmo.md`; criteri de disseny i animació: `ui-ux-pro-max` i `frontend-design`. Errors/toasts: `gestio-errors`.
+Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Estètica: `frontend-component/references/frutiger-cosmo.md`; criteri de disseny i animació: `ui-ux-pro-max` i `frontend-design`. Errors/toasts: `gestio-errors`. **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
 
 ## Quan usar-la / quan NO
 - Usa-la: pantalles de quiz, ratxa, assoliments, minijoc per desafiar amics, visualització del cel/3D, partícules, hàptics.
@@ -25,6 +25,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 6. Alternativa per a **reduced motion** i per a gestos (botons com a alternativa a arrossegar)?
 7. Pressupost de rendiment: dispositius mínims objectiu per a 60 fps?
 8. Mode multijugador/desafiar amics: transport (REST/WebSocket) i qui arbitra? (a backend)
+9. Accessibilitat (WCAG 2.2 AA): quins límits o decisions cal confirmar per a això (escala de text, anuncis `polite`/`assertive`, variant d'alt contrast, eines de test)? Vegeu les preguntes d'accessibilitat de la guia.
 
 ## Passos
 1. Llegeix el vault (gamificació, model de domini, contracte d'API) i reutilitza components i tokens existents.
@@ -70,6 +71,7 @@ Noms i hooks d'exemple; confirma'ls amb el repo. Les llibreries s'han d'haver ac
 - [ ] Textos per i18n ca/es/en; zero valors hardcodejats; estètica Frutiger Cosmo.
 - [ ] Accessibilitat i checklist de `ui-ux-pro-max/references/pro-rules.md`.
 - [ ] Tests de hooks escrits.
+- [ ] Accessibilitat WCAG 2.2 AA: checklist de `../frontend-component/references/accessibilitat.md` completada (lectors i i18n, text gran i contrast, reduce motion, teclat/focus, tests per rol/etiqueta).
 
 ## Què NO fer
 - No calculis puntuació, premis o ratxes al client ni confiïs en el resultat local.

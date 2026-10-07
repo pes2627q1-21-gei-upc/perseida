@@ -29,6 +29,7 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 - Jocs i dinàmiques: quiz diari, gamificació, minijocs 2D (`@shopify/react-native-skia` + `react-native-reanimated` + `react-native-gesture-handler`), visualitzacions cel/3D (skia o `expo-gl`+three: pregunta abans d'afegir dependència), microinteraccions (`expo-haptics`), 60 fps.
 - Dependències noves: pregunta a l'humà abans d'afegir-les; versió fixada amb `pnpm`; verifica que existeixen.
 - Qualitat: ESLint, Prettier, TypeScript strict.
+- **Accessibilitat obligatòria (WCAG 2.2 AA):** lectors de pantalla (TalkBack/VoiceOver) amb textos accessibles per i18n ca/es/en, text escalable, contrast 4.5:1/3:1 sobre el fons real i informació no només amb color, reduce motion i sense parpelleigs >3 Hz, teclat i focus visible a l'admin web i alternatives a l'arrossegament als jocs. Segueix `.agents/skills/frontend-component/references/accessibilitat.md` i pregunta a la persona el que falti (límit d'escala de text, anuncis, alt contrast, eines de test).
 
 ## Skills que has d'usar i quan
 

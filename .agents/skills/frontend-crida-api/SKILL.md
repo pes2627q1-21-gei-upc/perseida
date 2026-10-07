@@ -7,7 +7,7 @@ description: Consumeix l'API del backend des del frontend amb tipus d'openapi-ty
 
 Genera i usa el client tipat de l'API (openapi-typescript + openapi-fetch) i exposa-lo com a hooks de TanStack Query dins cada feature. El contracte és l'OpenAPI del backend: no s'inventen camps.
 
-Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. La conversió d'errors, els toasts i les traduccions per `code` es defineixen a la skill `gestio-errors`: aquí només es lliga el middleware i s'hi remet.
+Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. La conversió d'errors, els toasts i les traduccions per `code` es defineixen a la skill `gestio-errors`: aquí només es lliga el middleware i s'hi remet. **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
 
 ## Quan usar-la / quan NO
 - Usa-la: nou hook `useX`/`useXMutation` a `src/features/<mòdul>/{hooks,api}`, configuració del client a `src/shared/api`, regeneració de tipus.
@@ -83,6 +83,7 @@ Els camins i noms són d'exemple: s'han de prendre de l'OpenAPI real. Versions f
 - [ ] Cap missatge d'error construït al hook; cap JSON/traça a la UI.
 - [ ] Cap secret ni token al codi; base URL per config.
 - [ ] Tests de hooks escrits; cap dependència nova sense permís.
+- [ ] Accessibilitat: els estats `loading`/`error`/`offline` s'exposen perquè la UI els anunciï (lector de pantalla) i no només visualment; textos d'error per i18n.
 
 ## Què NO fer
 - No usis `fetch`/axios solts ni concatenis URLs.

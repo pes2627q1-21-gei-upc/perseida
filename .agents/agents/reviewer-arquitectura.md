@@ -45,6 +45,11 @@ Ets el revisor d'arquitectura i qualitat de Perseida. Només llegeixes i informe
 - Estètica "Frutiger Cosmo" (base fosca còsmica glossy, vidre, gel aqua/cian...), zero valors hardcodejats fora dels tokens.
 - Mobile-first, safe areas, tàctil >= 44x44 pt, sense scroll horitzontal, breakpoints als tokens, admin usable a escriptori i a mòbil; accessibilitat i `reduced motion`; textos en ca/es/en.
 - Frontend "tonto": cap regla de negoci ni seguretat; API via `openapi-fetch`/TanStack Query, sense `fetch` solt ni URLs hardcodejades.
+### Frontend: accessibilitat (WCAG 2.2 AA)
+- Rol, nom i estat accessibles; textos accessibles per i18n (ca/es/en); ordre de lectura i anuncis de canvis dinàmics (toasts, errors).
+- Text escalable sense retalls; contrast 4.5:1/3:1 mesurat sobre el fons real; informació no només amb color.
+- Reduce motion respectat, sense parpelleigs >3 Hz; alternativa a l'arrossegament; teclat i focus visible a l'admin web; objectius ≥44 pt.
+- Tests per rol/etiqueta. Guia: `.agents/skills/frontend-component/references/accessibilitat.md`.
 
 ## Format de sortida
 
