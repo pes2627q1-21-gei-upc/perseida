@@ -10,10 +10,10 @@ Més context: [README.md](README.md) i [obsidian_vault/00-index.md](obsidian_vau
 
 ## Regles obligatòries
 
-1. Abans de qualsevol canvi, llegeix el vault amb la skill `vault-context`.
+1. Abans de qualsevol canvi, llegeix el vault amb la skill `vault-context` (`.agents/skills/vault-context/SKILL.md`).
 2. Tot fitxer de `obsidian_vault/` es crea/edita **amb** la skill `obsidian-markdown`; `.base` amb `obsidian-bases`; `.canvas` amb `json-canvas`. Per llegir pàgines web, `defuddle`.
 3. Si la US canvia l'arquitectura o pren una decisió rellevant, actualitza el vault **abans de fusionar la PR** (DoD).
-4. Al final de cada sessió: entrada a `estat/sessions/` i `estat/estat-actual.md`.
+4. Al final de cada sessió: entrada a `obsidian_vault/estat/sessions/` i actualitza `obsidian_vault/estat/estat-actual.md`.
 5. Treballa només en branques `feature/*`; no facis push, merge ni PR sense que ho demani la persona; la persona és responsable de tot el codi.
 6. Cap secret, `.env`, token o dada personal als fitxers ni al vault.
 7. Verifica que les llibreries/APIs existeixen; dependències amb `uv`/`pnpm` i versió fixada.
@@ -24,13 +24,13 @@ Detall dels punts 1, 3 i 4:
 - Quan i com actualitzar el vault: [actualització del vault](obsidian_vault/convencions/actualitzacio-del-vault.md).
 - Estat i sessions: `obsidian_vault/estat/estat-actual.md` i `obsidian_vault/estat/sessions/`.
 
-## Configuració inicial (un cop per clon)
+## Skills
 
 ```bash
 node .agents/scripts/sync-skills.mjs
 ```
 
-Les skills es mantenen a `.agents/skills/` (font de veritat, per a tots els agents). Claude Code llegeix `.claude/skills/`, una còpia generada per aquest script; no l'editis a mà.
+Les skills es mantenen a `.agents/skills/` (font de veritat, per a tots els agents). Claude Code llegeix `.claude/skills/`, una còpia generada i versionada: no l'editis a mà. Després de canviar `.agents/skills/`, executa `node .agents/scripts/sync-skills.mjs` i fes commit de tots dos directoris; el workflow `skills-sync-check` falla si divergeixen.
 
 ## Mapa del repo
 

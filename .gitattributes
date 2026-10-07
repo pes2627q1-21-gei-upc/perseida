@@ -1,0 +1,3 @@
+# Còpies de skills: es comparen byte a byte (sync-skills.mjs --check); fixem LF.
+.agents/** text eol=lf
+.claude/skills/** text eol=lf

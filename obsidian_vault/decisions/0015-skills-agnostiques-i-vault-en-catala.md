@@ -27,13 +27,13 @@ Per implementar la US TG-85 (vault d'Obsidian com a context per a agents d'IA, v
 ### Positives
 
 - Una única font per a les skills, vàlida per a tots els agents; la divergència amb la còpia de Claude Code es detecta a la CI.
-- Com que `.claude/skills/` és versionada, Claude Code hi troba les skills després del clon amb només executar l'script de sincronització que indica `AGENTS.md`.
+- Com que `.claude/skills/` és versionada, Claude Code hi troba les skills en clonar, sense cap pas addicional.
 - Versió de les skills d'Obsidian fixada per commit.
 - Un sol idioma al vault, amb menys manteniment.
 
 ### Negatives (assumides)
 
-- `.claude/skills/` és una còpia generada que s'ha de regenerar amb l'script un cop per clon i no s'edita a mà.
+- `.claude/skills/` és una còpia generada que cal regenerar amb l'script, i commitejar, cada cop que canvien les skills; no s'edita a mà.
 
 ## Alternatives descartades
 

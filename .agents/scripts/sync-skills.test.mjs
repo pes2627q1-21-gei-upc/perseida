@@ -49,3 +49,30 @@ test('esborra sobrants del destí', () => {
   assert.equal(existsSync(join(dest, 'sobrant.md')), false);
   rmSync(root, { recursive: true });
 });
+
+test('src inexistent llença error i no toca el destí', () => {
+  const { root, src, dest } = fixture();
+  try {
+    syncSkills({ src, dest, check: false });
+    rmSync(src, { recursive: true });
+    assert.throws(() => syncSkills({ src, dest, check: false }), /src no existeix o és buit/);
+    assert.throws(() => syncSkills({ src, dest, check: true }), /src no existeix o és buit/);
+    assert.equal(readFileSync(join(dest, 'a', 'SKILL.md'), 'utf8'), 'hola');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('src buit llença error i no toca el destí', () => {
+  const { root, src, dest } = fixture();
+  try {
+    syncSkills({ src, dest, check: false });
+    rmSync(src, { recursive: true });
+    mkdirSync(join(src, 'buida'), { recursive: true });
+    assert.throws(() => syncSkills({ src, dest, check: false }), /src no existeix o és buit/);
+    assert.throws(() => syncSkills({ src, dest, check: true }), /src no existeix o és buit/);
+    assert.equal(readFileSync(join(dest, 'a', 'references', 'X.md'), 'utf8'), 'x');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

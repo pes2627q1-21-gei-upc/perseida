@@ -7,7 +7,7 @@ on:
     paths:
       - ".agents/skills/**"
       - ".claude/skills/**"
-      - ".agents/scripts/sync-skills.mjs"
+      - ".agents/scripts/**"
       - ".github/workflows/skills-sync-check.yml"
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Proves del script
-        run: node --test .agents/scripts/sync-skills.test.mjs
+      - name: Proves dels scripts
+        run: node --test .agents/scripts/*.test.mjs
       - name: Comprovar sincronització
         run: node .agents/scripts/sync-skills.mjs --check

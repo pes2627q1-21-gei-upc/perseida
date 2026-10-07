@@ -25,10 +25,11 @@ node .agents/scripts/sync-skills.mjs --check  # verifica que les còpies coincid
 | `obsidian-cli` | Interactuar amb vaults d'Obsidian des de la CLI (llegir, crear, cercar notes) i dev de plugins/temes. |
 | `defuddle` | Extreure Markdown net de pàgines HTML amb la CLI Defuddle. |
 | `knap` | Generar Markdown a partir de plantilles i dades estructurades amb la CLI Knap. |
+| `vault-context` | Protocol propi del projecte per llegir/escriure el vault (no prové de kepano). |
 
 ## Procedència
 
-Les 6 skills provenen de [`kepano/obsidian-skills`](https://github.com/kepano/obsidian-skills), commit `3ccff5338ea700537839b21900aa5358a0402c98`, copiades sense modificacions. Llicència MIT, (c) 2026 Steph Ango; el text complet és a [`LICENSE-obsidian-skills`](LICENSE-obsidian-skills).
+Les 6 skills de kepano (totes menys `vault-context`, que és pròpia del projecte) provenen de [`kepano/obsidian-skills`](https://github.com/kepano/obsidian-skills), commit `3ccff5338ea700537839b21900aa5358a0402c98`, copiades sense modificacions. Llicència MIT, (c) 2026 Steph Ango; el text complet és a [`LICENSE-obsidian-skills`](LICENSE-obsidian-skills).
 
 ## Com actualitzar-les
 

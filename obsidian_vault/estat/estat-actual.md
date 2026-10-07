@@ -4,7 +4,7 @@ tipus: estat
 estat: vigent
 data: 2026-10-07
 us: ["TG-85", "TG-30", "TG-31", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88"]
-font: "memòria §2.1; sessió 2026-10-07; Taiga: backlog (llistat de US, 2026-10-07)"
+font: "memòria §2.1; sessió 2026-10-07; Taiga: backlog (llistat de US i sprints, 2026-10-07)"
 etiquetes: [estat, sprint, taiga]
 ---
 
@@ -34,6 +34,10 @@ La resta del backlog és a [[epiques-i-us]].
 - Skills agnòstiques a `.agents/skills/` i `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`.
 - Skill `vault-context` i hook `SessionStart` que injecta aquest índex i aquesta nota.
 - Producte, estat i guies ([[llegir-el-vault-com-a-agent]]). Sessió: [[2026-10-07-base-del-vault]].
+
+## Pendent
+
+- TG-33 ha d'ampliar la plantilla de PR (`.github/pull_request_template.md`) amb la llista de revisió de la memòria §2.4.4: arquitectura hexagonal, tests per al codi nou, claredat i nomenclatura, eficiència de les consultes a PostgreSQL/PostGIS, secrets, avisos de SonarQube Cloud i vault.
 
 ## Dependències
 

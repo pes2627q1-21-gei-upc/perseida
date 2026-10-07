@@ -14,6 +14,7 @@ function listFiles(dir, base = dir) {
 
 export function syncSkills({ src, dest, check }) {
   const srcFiles = listFiles(src);
+  if (srcFiles.length === 0) throw new Error(`src no existeix o és buit: ${src}`);
   const destFiles = listFiles(dest);
   const changed = [];
   for (const f of srcFiles) {
@@ -42,7 +43,7 @@ function pruneEmptyDirs(dir) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     if (e.isDirectory()) pruneEmptyDirs(join(dir, e.name));
   }
-  if (dir !== undefined && existsSync(dir) && statSync(dir).isDirectory() && readdirSync(dir).length === 0) {
+  if (existsSync(dir) && statSync(dir).isDirectory() && readdirSync(dir).length === 0) {
     rmSync(dir, { recursive: true });
   }
 }
@@ -50,11 +51,17 @@ function pruneEmptyDirs(dir) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
   const check = process.argv.includes('--check');
-  const { changed } = syncSkills({
-    src: join(root, '.agents', 'skills'),
-    dest: join(root, '.claude', 'skills'),
-    check,
-  });
+  let changed;
+  try {
+    ({ changed } = syncSkills({
+      src: join(root, '.agents', 'skills'),
+      dest: join(root, '.claude', 'skills'),
+      check,
+    }));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
   if (check && changed.length > 0) {
     console.error('.claude/skills no està sincronitzat amb .agents/skills:');
     for (const f of changed) console.error('  - ' + f);

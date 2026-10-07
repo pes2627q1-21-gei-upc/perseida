@@ -20,13 +20,13 @@ Aquesta guia cobreix només el vault i les skills dels agents. L'arrencada gener
 
 ## Skills dels agents
 
-Un cop per clon:
+Després de modificar `.agents/skills/`:
 
 ```bash
 node .agents/scripts/sync-skills.mjs
 ```
 
-Copia les skills de `.agents/skills/` (font de veritat) a `.claude/skills/` per a Claude Code. No editis la còpia a mà.
+Copia les skills de `.agents/skills/` (font de veritat) a `.claude/skills/` per a Claude Code. No editis la còpia a mà; fes commit de `.agents/skills/` i `.claude/skills/` junts.
 
 Per verificar que està sincronitzada:
 
