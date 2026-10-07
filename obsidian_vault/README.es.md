@@ -2,8 +2,6 @@
 
 [English](README.md) | [Català](README.ca.md) | **Español**
 
-> 🚧 **En construcción.** El vault se crea dentro de la historia del backlog «Obsidian Vault con contexto de arquitectura y decisiones para agentes de IA». El contenido siguiente describe el estado **previsto**.
-
 Documentación del proyecto **Perseida** (proyecto de PES, UPC-FIB), mantenida como un vault de [Obsidian](https://obsidian.md) dentro del monorepo. Es el **contexto compartido** de los seis miembros del equipo y de sus asistentes de código con IA (Claude Code, Claude, Gemini), para que el código generado sea coherente en todo el equipo.
 
 ## Propósito
@@ -14,15 +12,19 @@ Documentación del proyecto **Perseida** (proyecto de PES, UPC-FIB), mantenida c
 
 Un fichero de instrucciones para agentes en la raíz del monorepo indica a los asistentes que deben leer este contexto antes de hacer cualquier cambio.
 
-## Qué contiene el vault (previsto)
+## Qué contiene el vault
 
-| Área | Contenido |
+La nota de entrada es [`00-index.md`](00-index.md): orden de lectura, fuentes de verdad y mapa de todas las carpetas.
+
+| Área (carpeta) | Contenido |
 |---|---|
-| Arquitectura | Arquitectura física (un único servidor Virtech, Docker Compose, cinco servicios), backend hexagonal, cliente móvil con soporte offline, modelos de dominio/UML. |
-| Decisiones | Decisiones técnicas con justificación y alternativas descartadas (p. ej. Docker Compose en lugar de Kubernetes, planificador dentro del proceso, moderación Kev-4B local, Redis solo como caché). |
-| Convenciones | GitFlow, plantilla de PR y lista de revisión, Definition of Ready/Done, reglas de calidad (`ruff`, `mypy`, ESLint, Prettier, Quality Gate de Sonar), estrategia de testing y estructura de los juegos de prueba. |
-| Estado del proyecto | Estado actual y qué se hizo en cada sesión de trabajo. |
-| Producto | Resumen de la inception: NOT list, stakeholders, épicas e historias de usuario, contratos de servicio con Spotwise. |
+| Arquitectura (`arquitectura/`) | Arquitectura física (un único servidor Virtech, Docker Compose, cinco servicios), backend hexagonal, frontend, modelo de dominio, servicios externos, contrato Spotwise y una nota por componente. |
+| Decisiones (`decisions/`) | 15 ADR con justificación y alternativas descartadas (p. ej. Docker Compose en lugar de Kubernetes, moderación Kev-4B local, Redis solo como caché lazy). |
+| Convenciones (`convencions/`) | GitFlow, Definition of Done, reglas de calidad, testing, asistentes de IA, actualización del vault y convenciones de las notas de Obsidian. |
+| Producto (`producte/`) | NOT list, stakeholders, épicas e historias de usuario. |
+| Estado (`estat/`) | Estado actual (`estat-actual`) y las notas de cada sesión de trabajo. |
+| Guías (`guies/`) | Cómo leen y escriben el vault los agentes; arranque. |
+| Plantillas (`plantilles/`) | Plantillas de ADR, componente, convención y sesión. |
 
 ## Trabajar con el vault
 
@@ -30,6 +32,9 @@ Un fichero de instrucciones para agentes en la raíz del monorepo indica a los a
 - Actualízalo **al final de cada sesión de trabajo** y **cada vez que se toma una decisión nueva**. Actualizar el vault cuando un cambio afecta a la documentación forma parte de la lista de revisión de las PR.
 - Prefiere notas pequeñas y enlazadas (`[[wikilinks]]`) a documentos largos.
 - No incluyas nunca secretos, credenciales (`.env`, tokens) ni datos personales de usuarios: los asistentes lo leen.
+- Las notas se escriben en catalán.
+- Cada nota se crea o edita con las skills de Obsidian (`.agents/skills`, véase [`AGENTS.md`](../AGENTS.md)).
+- El hook `SessionStart` de Claude Code inyecta el índice y el estado actual; el resto de agentes leen `AGENTS.md`. Véase [cómo leer el vault como agente](guies/llegir-el-vault-com-a-agent.md).
 
 ## Reglas para los asistentes de IA (resumen)
 
@@ -37,6 +42,8 @@ Un fichero de instrucciones para agentes en la raíz del monorepo indica a los a
 - Los asistentes trabajan en ramas `feature/*`; no pueden fusionar ni saltarse las ramas protegidas.
 - El código generado con IA pasa por la misma CI, Quality Gate y revisión entre compañeros.
 - Se comprueba que las librerías y APIs propuestas existen realmente; las dependencias nuevas se añaden con `uv`/`pnpm` y versión fijada.
+- Las skills de Obsidian son obligatorias para cualquier fichero del vault.
+- Si una historia cambia la arquitectura o toma una decisión relevante, el vault se actualiza antes de fusionar la PR.
 
 ## Relacionado
 
