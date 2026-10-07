@@ -21,20 +21,20 @@ App móvil y panel de administración de **Perseida**, una aplicación multiplat
 
 ## Stack tecnológico
 
-| Ámbito | Tecnología |
-|---|---|
-| Framework | React Native + **Expo** |
-| Lenguaje | TypeScript (`strict`), motor Hermes |
-| Estilos | Tailwind |
-| i18n | i18next |
-| Almacenamiento local | SQLite (cola + caché offline) |
-| Autenticación | Google OAuth2 + PKCE |
-| Push | Firebase Cloud Messaging |
-| Tipos de API | Generados a partir del esquema OpenAPI del backend (`openapi-typescript`) |
-| Web de administración | React Native Web (bundle estático servido por nginx-proxy-manager) |
-| Dependencias | `pnpm` |
-| Calidad | ESLint (TS, React, React Hooks), Prettier, SonarQube Cloud |
-| Tests | Jest + React Native Testing Library |
+| Ámbito                | Tecnología                                                                |
+| --------------------- | ------------------------------------------------------------------------- |
+| Framework             | React Native + **Expo**                                                   |
+| Lenguaje              | TypeScript (`strict`), motor Hermes                                       |
+| Estilos               | Tailwind                                                                  |
+| i18n                  | i18next                                                                   |
+| Almacenamiento local  | SQLite (cola + caché offline)                                             |
+| Autenticación         | Google OAuth2 + PKCE                                                      |
+| Push                  | Firebase Cloud Messaging                                                  |
+| Tipos de API          | Generados a partir del esquema OpenAPI del backend (`openapi-typescript`) |
+| Web de administración | React Native Web (bundle estático servido por nginx-proxy-manager)        |
+| Dependencias          | `pnpm`                                                                    |
+| Calidad               | ESLint (TS, React, React Hooks), Prettier, SonarQube Cloud                |
+| Tests                 | Jest + React Native Testing Library                                       |
 
 ## Arquitectura
 
