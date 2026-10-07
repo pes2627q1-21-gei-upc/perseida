@@ -34,3 +34,8 @@ max-complexity = 10
 python_version = "3.14"
 strict = true
 exclude = ["^\\.venv/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=app --cov-report=term-missing"
