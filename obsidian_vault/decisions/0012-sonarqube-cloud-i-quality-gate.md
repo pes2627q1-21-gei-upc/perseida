@@ -16,7 +16,7 @@ La qualitat s'ha de construir de manera contínua i fer-se complir automàticame
 
 ## Decisió
 
-El repositori es vincula a una organització de SonarQube Cloud. A cada PR cap a `develop` o `main`, el workflow de CI executa per ordre format, linters i tipus, tests amb cobertura, anàlisi de SonarQube Cloud i comprovació del Quality Gate, que fa fallar el workflow si no se supera. Després de cada fusió també s'analitzen `develop` i `main`. El Quality Gate s'aplica al codi nou de cada PR: 0 bugs i 0 vulnerabilitats noves, tots els security hotspots revisats, duplicació ≤ 3 %, cobertura ≥ 70 % i qualificació A en mantenibilitat, fiabilitat i seguretat. El token es guarda com a secret `SONAR_TOKEN`.
+Es decideix vincular el repositori a una organització de SonarQube Cloud (configuració pendent: encara no s'ha creat, segons el README). A cada PR cap a `develop` o `main`, el workflow de CI executa per ordre format, linters i tipus, tests amb cobertura, anàlisi de SonarQube Cloud i comprovació del Quality Gate, que fa fallar el workflow si no se supera. Després de cada fusió també s'analitzen `develop` i `main`. El Quality Gate s'aplica al codi nou de cada PR: 0 bugs i 0 vulnerabilitats noves, tots els security hotspots revisats, duplicació ≤ 3 %, cobertura ≥ 70 % i qualificació A en mantenibilitat, fiabilitat i seguretat. El token es guarda com a secret `SONAR_TOKEN`.
 
 ## Conseqüències
 

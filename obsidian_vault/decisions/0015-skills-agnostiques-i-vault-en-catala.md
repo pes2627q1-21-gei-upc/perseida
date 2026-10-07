@@ -16,7 +16,7 @@ Per implementar la US TG-85 (vault d'Obsidian com a context per a agents d'IA, v
 
 ## Decisió
 
-- Les skills viuen vendoritzades a `.agents/skills/` (font única, estàndard obert) i un script Node (`.agents/scripts/sync-skills.mjs`) les copia a `.claude/skills/`. El workflow de CI `skills-sync-check` falla si divergeixen.
+- Les skills viuen vendoritzades a `.agents/skills/` (font única, estàndard obert) i un script Node (`.agents/scripts/sync-skills.mjs`) les copia a `.claude/skills/`. Aquesta còpia està versionada (committed), és generada (no s'edita a mà) i el workflow de CI `skills-sync-check` (`sync-skills.mjs --check`) falla si diverge de `.agents/skills/`.
 - `AGENTS.md` és el fitxer canònic; `CLAUDE.md` l'importa (`@AGENTS.md`) i `GEMINI.md` hi apunta.
 - Skill `vault-context` i hook `SessionStart` de Claude Code per injectar el context del vault.
 - Les notes del vault s'escriuen només en català.
@@ -27,6 +27,7 @@ Per implementar la US TG-85 (vault d'Obsidian com a context per a agents d'IA, v
 ### Positives
 
 - Una única font per a les skills, vàlida per a tots els agents; la divergència amb la còpia de Claude Code es detecta a la CI.
+- Com que `.claude/skills/` és versionada, Claude Code hi troba les skills després del clon amb només executar l'script de sincronització que indica `AGENTS.md`.
 - Versió de les skills d'Obsidian fixada per commit.
 - Un sol idioma al vault, amb menys manteniment.
 
@@ -37,7 +38,7 @@ Per implementar la US TG-85 (vault d'Obsidian com a context per a agents d'IA, v
 ## Alternatives descartades
 
 - Instal·lació com a plugin o marketplace de Claude Code: versió flotant i acceptació per màquina.
-- Còpies duplicades versionades: divergeixen.
+- Còpies versionades editables a mà, sense generació ni verificació: acaben divergint.
 - Enllaç simbòlic de git (symlink): fràgil a Windows.
 - Només quatre skills d'Obsidian: la persona va triar incloure'n les sis, amb `defuddle` i `knap`.
 - Notes en anglès o trilingües: més manteniment.

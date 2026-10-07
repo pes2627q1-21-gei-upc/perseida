@@ -12,7 +12,7 @@ etiquetes: [adr, dependencies, uv, pnpm]
 
 ## Context
 
-El monorepo conté un backend en Python i un frontend en TypeScript. La memòria §2.6 i §2.10.5 demanen que les dependències noves s'afegeixin amb la versió fixada.
+El monorepo conté un backend en Python i un frontend en TypeScript. §2.6 fixa uv (backend) i pnpm (frontend); §2.10.5 demana que les dependències noves s'afegeixin amb la versió fixada.
 
 ## Decisió
 
