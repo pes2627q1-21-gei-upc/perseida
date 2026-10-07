@@ -22,8 +22,8 @@ Instantània a data 2026-10-07. L'estat viu a Taiga; si hi ha diferències, guan
 | Estat | US |
 |---|---|
 | Done | TG-30 (estructura del monorepo i guia d'arrencada) |
-| In progress | TG-205 (subagents i skills agnòstiques; Sprint 1) |
-| Ready | TG-31, TG-33, TG-38, TG-45, TG-87, TG-88 |
+| In progress | TG-205 (subagents i skills agnòstiques; Sprint 1), TG-85 (aquest vault), TG-31 (configuració del backend) |
+| Ready | TG-33, TG-38, TG-45, TG-87, TG-88 |
 
 La resta del backlog és a [[epiques-i-us]].
 
@@ -39,6 +39,12 @@ La resta del backlog és a [[epiques-i-us]].
 
 - Cinc subagents i skills de backend, frontend i errors, agnòstics de l'eina, amb generador i check a CI. Detall a [[2026-10-07-subagents-i-skills-agnostics]].
 - ADR 0016–0021 en estat `proposada`: l'equip les ha d'acceptar a la PR ([[0019-tests-despres-del-codi]] supera part d'ADR-0004).
+
+## Què ha lliurat TG-31 fins ara
+
+- Projecte `backend/` amb `uv` (Python 3.14, `uv.lock` versionat), `ruff`, `mypy` estricte i `pytest` amb cobertura.
+- Estructura `app/` i `tests/` i README del backend amb les ordres verificades. Sessió: [[2026-10-07-configuracio-backend]].
+- Pendent: PR cap a `develop`.
 
 ## Pendent
 
@@ -56,3 +62,4 @@ La resta del backlog és a [[epiques-i-us]].
 - [[definition-of-done]]
 - [[actualitzacio-del-vault]]
 - [[2026-10-07-base-del-vault]]
+- [[2026-10-07-configuracio-backend]]
