@@ -2,8 +2,6 @@
 
 [English](README.md) | **Català** | [Español](README.es.md)
 
-> 🚧 **En construcció.** El vault es crea dins de la història del backlog «Obsidian Vault amb context d'arquitectura i decisions per a agents d'IA». El contingut següent descriu l'estat **previst**.
-
 Documentació del projecte **Perseida** (projecte de PES, UPC-FIB), mantinguda com un vault d'[Obsidian](https://obsidian.md) dins del monorepo. És el **context compartit** dels sis membres de l'equip i dels seus assistents de codi amb IA (Claude Code, Claude, Gemini), perquè el codi generat sigui coherent a tot l'equip.
 
 ## Propòsit
@@ -14,15 +12,19 @@ Documentació del projecte **Perseida** (projecte de PES, UPC-FIB), mantinguda c
 
 Un fitxer d'instruccions per a agents a l'arrel del monorepo indica als assistents que han de llegir aquest context abans de fer qualsevol canvi.
 
-## Què conté el vault (previst)
+## Què conté el vault
 
-| Àrea | Contingut |
+La nota d'entrada és [`00-index.md`](00-index.md): ordre de lectura, fonts de veritat i mapa de totes les carpetes.
+
+| Àrea (carpeta) | Contingut |
 |---|---|
-| Arquitectura | Arquitectura física (un únic servidor Virtech, Docker Compose, cinc serveis), backend hexagonal, client mòbil amb suport offline, models de domini/UML. |
-| Decisions | Decisions tècniques amb justificació i alternatives descartades (p. ex. Docker Compose en lloc de Kubernetes, planificador dins del procés, moderació Kev-4B local, Redis només com a cache). |
-| Convencions | GitFlow, plantilla de PR i llista de revisió, Definition of Ready/Done, regles de qualitat (`ruff`, `mypy`, ESLint, Prettier, Quality Gate de Sonar), estratègia de testing i estructura dels jocs de prova. |
-| Estat del projecte | Estat actual i què s'ha fet a cada sessió de treball. |
-| Producte | Resum de la incepció: NOT list, stakeholders, èpiques i històries d'usuari, contractes de servei amb Spotwise. |
+| Arquitectura (`arquitectura/`) | Arquitectura física (un únic servidor Virtech, Docker Compose, cinc serveis), backend hexagonal, frontend, model de domini, serveis externs, contracte Spotwise i una nota per component. |
+| Decisions (`decisions/`) | 15 ADR amb justificació i alternatives descartades (p. ex. Docker Compose en lloc de Kubernetes, moderació Kev-4B local, Redis només com a cache lazy). |
+| Convencions (`convencions/`) | GitFlow, Definition of Done, regles de qualitat, testing, assistents d'IA, actualització del vault i convencions de les notes d'Obsidian. |
+| Producte (`producte/`) | NOT list, stakeholders, èpiques i històries d'usuari. |
+| Estat (`estat/`) | Estat actual (`estat-actual`) i les notes de cada sessió de treball. |
+| Guies (`guies/`) | Com llegeixen i escriuen el vault els agents; arrencada. |
+| Plantilles (`plantilles/`) | Plantilles d'ADR, component, convenció i sessió. |
 
 ## Treballar amb el vault
 
@@ -30,6 +32,9 @@ Un fitxer d'instruccions per a agents a l'arrel del monorepo indica als assisten
 - Actualitza'l **al final de cada sessió de treball** i **cada cop que es pren una decisió nova**. Actualitzar el vault quan un canvi afecta la documentació forma part de la llista de revisió de les PR.
 - Prefereix notes petites i enllaçades (`[[wikilinks]]`) a documents llargs.
 - No hi posis mai secrets, credencials (`.env`, tokens) ni dades personals d'usuaris: els assistents el llegeixen.
+- Les notes s'escriuen en català.
+- Cada nota es crea o edita amb les skills d'Obsidian (`.agents/skills`, vegeu [`AGENTS.md`](../AGENTS.md)).
+- El hook `SessionStart` de Claude Code injecta l'índex i l'estat actual; la resta d'agents llegeixen `AGENTS.md`. Vegeu [com llegir el vault com a agent](guies/llegir-el-vault-com-a-agent.md).
 
 ## Regles per als assistents d'IA (resum)
 
@@ -37,6 +42,8 @@ Un fitxer d'instruccions per a agents a l'arrel del monorepo indica als assisten
 - Els assistents treballen en branques `feature/*`; no poden fusionar ni saltar-se les branques protegides.
 - El codi generat amb IA passa per la mateixa CI, Quality Gate i revisió entre companys.
 - Es comprova que les llibreries i APIs proposades existeixen realment; les dependències noves s'afegeixen amb `uv`/`pnpm` i versió fixada.
+- Les skills d'Obsidian són obligatòries per a qualsevol fitxer del vault.
+- Si una història canvia l'arquitectura o pren una decisió rellevant, el vault s'actualitza abans de fusionar la PR.
 
 ## Relacionat
 
