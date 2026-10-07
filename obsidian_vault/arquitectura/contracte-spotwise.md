@@ -1,6 +1,6 @@
 ---
 titol: "Contracte de serveis amb Spotwise"
-tipus: guia
+tipus: arquitectura
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85"]

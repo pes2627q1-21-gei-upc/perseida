@@ -20,7 +20,7 @@ Camps: `titol`, `tipus`, `estat`, `data`, `us`, `font`, `etiquetes`.
 
 | Camp | Valors |
 |---|---|
-| `tipus` | `adr`, `component`, `convencio`, `sessio`, `guia`, `producte`, `estat`, `index` |
+| `tipus` | `adr`, `arquitectura`, `component`, `convencio`, `sessio`, `guia`, `producte`, `estat`, `index` |
 | `estat` | `esborrany`, `vigent`, `obsoleta`; per als ADR, `proposada`, `acceptada`, `substituida` |
 | `data` | `AAAA-MM-DD` |
 | `us` | Referències de Taiga en forma `TG-NN` |

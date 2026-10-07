@@ -14,7 +14,11 @@ Més context: [README.md](README.md) i [obsidian_vault/00-index.md](obsidian_vau
 2. Tot fitxer de `obsidian_vault/` es crea/edita **amb** la skill `obsidian-markdown`; `.base` amb `obsidian-bases`; `.canvas` amb `json-canvas`. Per llegir pàgines web, `defuddle`.
 3. Si la US canvia l'arquitectura o pren una decisió rellevant, actualitza el vault **abans de fusionar la PR** (DoD).
 4. Al final de cada sessió: entrada a `obsidian_vault/estat/sessions/` i actualitza `obsidian_vault/estat/estat-actual.md`.
-5. Treballa només en branques `feature/*`; no facis push, merge ni PR sense que ho demani la persona; la persona és responsable de tot el codi.
+5. Segueix GitFlow i la política de PR; no facis push, merge ni PR sense que ho demani la persona, que és responsable de tot el codi.
+   - Branques: `main` (producció; un push hi dispara el CD), `develop` (integració, CI), `feature/*` (des de `develop`; com a màxim una US), `release/*` (la talla el Scrum Master de l'sprint des de `develop` abans de la review; només bugfixes, documentació i canvis de versió) i `hotfix/*` (des de `main`, errors urgents en producció).
+   - Cap push directe a `main` ni a `develop`. PR cap a `develop`: CI verda i aprovació d'una persona que no sigui l'autora; cap a `main`: CI obligatòria, aprovació opcional.
+   - Treballa per defecte en `feature/*`; només en `hotfix/*` o `release/*` si la persona ho demana explícitament. No pots fusionar ni saltar-te les proteccions de les branques.
+   - Qui obre la PR és responsable de tot el codi que hi porta i ha de poder explicar-lo (vegeu [assistents-ia](obsidian_vault/convencions/assistents-ia.md)).
 6. Cap secret, `.env`, token o dada personal als fitxers ni al vault.
 7. Verifica que les llibreries/APIs existeixen; dependències amb `uv`/`pnpm` i versió fixada.
 

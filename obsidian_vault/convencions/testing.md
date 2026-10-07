@@ -20,9 +20,18 @@ Les proves segueixen la piràmide: base àmplia de proves unitàries, un nombre 
 |---|---|---|
 | Unitàries | ≈ 70 % dels tests | Backend: pytest, pytest-asyncio, pytest-xdist. Frontend: Jest i React Native Testing Library |
 | Integració | ≈ 30 % dels tests | httpx.AsyncClient, respx, PostgreSQL/PostGIS i Redis en contenidors efímers |
-| Acceptació | 100 % dels criteris verificats; ≥ 80 % amb test automatitzat | La resta, amb llista de comprovació manual sobre la branca `release/*` |
+| Acceptació | 100 % dels criteris verificats (automàtic o manual); ≥ 80 % amb test automatitzat | Tests automatitzats; la resta, llista de comprovació manual sobre la branca `release/*` |
 
-No s'automatitzen proves end-to-end sobre l'app mòbil. Cada test d'acceptació es nomena amb la referència de la US que valida.
+No s'automatitzen proves end-to-end sobre l'app mòbil.
+
+## Proves d'acceptació
+
+- **Regla general:** cada criteri d'acceptació d'una US té almenys un test automatitzat, unitari o d'integració, i el test es nomena amb la referència de la US que valida (traçabilitat criteri-prova).
+- **Excepció:** els criteris que depenen de la interfície i no es poden automatitzar a nivell de component es verifiquen manualment, amb una llista de comprovació sobre la branca `release/*` abans de la sprint review.
+- **Objectiu mesurable:** 100 % dels criteris verificats (de manera automàtica o manual) i ≥ 80 % amb test automatitzat.
+
+> [!note] Lectura combinada de la memòria
+> La memòria (§2.5.3) ho expressa en dos llocs: la taula de nivells («100 % verificats; ≥ 80 % amb test automatitzat») i el paràgraf «Proves d'acceptació» («cada criteri té almenys un test automatitzat»). Aquesta nota en recull la lectura combinada: l'automatització és la norma, la verificació manual és l'excepció acotada i els percentatges són l'objectiu mesurable. No cal tornar-ho a debatre.
 
 ## TDD al domini
 

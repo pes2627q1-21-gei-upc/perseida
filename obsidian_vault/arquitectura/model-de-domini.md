@@ -1,6 +1,6 @@
 ---
 titol: "Model de domini"
-tipus: guia
+tipus: arquitectura
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-40", "TG-70"]
@@ -67,7 +67,7 @@ Etiquetes tal com apareixen al diagrama:
 - `User` — `ContentReport` («crea denúncies»); `User` — `Notification` («rep»); `User` — `NotificationPreference` («preferències»).
 - `AstronomicalEvent` 1 — 0..1 `EventChatRoom` («sala de xat»).
 - `EventChatRoom` 1 — 0..* `ChatMessage` («historial»); `DirectConversation` 1 — 0..* `ChatMessage` («historial»).
-- `User` — `EventChatRoom` («participa»); `User` — `ChatMessage` («envia»); `User` — `DirectConversation` («participants», 2 usuaris per conversa).
+- `User` — `EventChatRoom` («participa»); `User` — `ChatMessage` («envia»); `User` 2 — 0..* `DirectConversation` («participants»: 2 usuaris per conversa).
 - `ObservationZone` i `APOD` apareixen al paquet «Usuaris i esdeveniments» sense cap relació dibuixada.
 
 ## Diagrama (transcripció)
@@ -174,7 +174,7 @@ classDiagram
     DirectConversation "1" --> "0..*" ChatMessage : historial
     User --> EventChatRoom : participa
     User --> ChatMessage : envia
-    User --> DirectConversation : participants
+    User "2" --> "0..*" DirectConversation : participants
 ```
 
 ## Enllaços

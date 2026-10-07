@@ -35,10 +35,10 @@ El vault `obsidian_vault/` és la memòria compartida del projecte. Aquest proto
 |---|---|
 | Decisió tècnica nova | Crear `decisions/NNNN-slug.md` amb `plantilles/adr` (NNNN = següent número lliure), `estat: proposada` fins que l'equip l'accepti a la PR |
 | Decisió que en substitueix una altra | Marcar l'antiga `estat: substituida`, i enllaçar-les amb wikilinks als dos sentits |
-| Canvi d'arquitectura | Actualitzar la nota afectada a `arquitectura/` i el seu camp `data` |
+| Canvi d'arquitectura | Actualitzar la nota afectada a `arquitectura/` (`tipus: arquitectura`) i el seu camp `data` |
 | Nou servei o component | Crear nota a `arquitectura/components/` amb `plantilles/component` |
 | Convenció nova | Crear nota a `convencions/` amb `plantilles/convencio` |
-| Cal una guia pas a pas | Crear nota a `guies/` |
+| Nova guia pas a pas o d'onboarding | Crear nota a `guies/` (`tipus: guia`); no hi ha plantilla: copia l'estructura d'una guia existent |
 | Nota nova o modificada | Frontmatter complet: `titol, tipus, estat, data, us, font, etiquetes` |
 
 Estats d'ADR: `proposada` | `acceptada` | `substituida`. El camp `us` porta la referència de Taiga (ex. `TG-85`) i `font` d'on surt la informació (PR, reunió, document).

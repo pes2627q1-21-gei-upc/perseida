@@ -1,6 +1,6 @@
 ---
 titol: "Serveis externs"
-tipus: guia
+tipus: arquitectura
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-44", "TG-46"]
