@@ -4,7 +4,7 @@ tipus: component
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-37", "TG-81", "TG-101"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6"
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [component, moderation, kev-4b]
 ---
 

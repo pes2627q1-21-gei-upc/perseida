@@ -4,7 +4,7 @@ tipus: guia
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-40", "TG-70"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png)"
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 

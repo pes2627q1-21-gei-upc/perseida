@@ -4,7 +4,7 @@ tipus: guia
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-37", "TG-39"]
-font: "README.md (arrel), infra/README.md, memòria §3.4, incepció 2 §6"
+font: "README.md (arrel), infra/README.md, memòria §3.4, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); AGENTS.md (.agents/)"
 etiquetes: [arquitectura, visio-general, monorepo]
 ---
 
@@ -25,7 +25,7 @@ Quatre directoris més `.agents/` ([[0001-monorepo-quatre-directoris]]):
 | `frontend/` | App React Native + Expo (APK Android de moment) i panell d'administració (React Native Web) ([[frontend]]). |
 | `infra/` | Docker Compose, configuració de desplegament i CI/CD (GitHub Actions) ([[arquitectura-fisica]]). |
 | `obsidian_vault/` | Documentació del projecte: context compartit per a l'equip i els assistents d'IA. |
-| `.agents/` | Skills i context per als assistents d'IA ([[assistents-ia]]). |
+| `.agents/` | Skills i context per als assistents d'IA ([[assistents-ia]]). No és a la taula de quatre directoris del README d'arrel; ve d'`AGENTS.md`. |
 
 ## Diagrama del sistema
 

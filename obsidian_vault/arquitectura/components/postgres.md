@@ -4,7 +4,7 @@ tipus: component
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-37", "TG-40", "TG-41", "TG-70"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example"
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [component, postgres, postgis, base-de-dades]
 ---
 

@@ -4,7 +4,7 @@ tipus: guia
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-44", "TG-46"]
-font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1"
+font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, integracions, nasa, google, fcm]
 ---
 

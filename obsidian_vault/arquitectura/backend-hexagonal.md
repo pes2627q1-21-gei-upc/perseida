@@ -4,7 +4,7 @@ tipus: guia
 estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46"]
-font: "backend/README.md, memòria §3.4.1"
+font: "backend/README.md, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, backend, hexagonal, tdd]
 ---
 

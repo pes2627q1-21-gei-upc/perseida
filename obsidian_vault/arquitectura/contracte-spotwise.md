@@ -10,7 +10,7 @@ etiquetes: [arquitectura, integracions, spotwise, contracte]
 
 # Contracte de serveis amb Spotwise (grup 21B)
 
-Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren en les dues direccions. El contracte es va acordar a l'Sprint 1.
+Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren en les dues direccions. El contracte s'ha d'acordar a l'Sprint 1 (definició de contractes, segons la memòria); el README d'arrel afirma que ja es va acordar a l'Sprint 1, cosa que no s'ha verificat en altres fonts.
 
 ## Servei proveït per Perseida
 
