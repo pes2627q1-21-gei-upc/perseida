@@ -5,6 +5,7 @@
   "dependencies": {
     "expo": "~57.0.27",
     "expo-status-bar": "~57.0.1",
+    "nativewind": "^4.2.7",
     "react": "19.2.3",
     "react-native": "0.86.3"
   },
@@ -19,6 +20,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.9",
+    "react-native-css-interop": "^0.1.22",
+    "tailwindcss": "3.4.17",
     "typescript": "~6.0.3"
   },
   "scripts": {
