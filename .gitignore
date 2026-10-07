@@ -38,15 +38,24 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+expo-env.d.ts
 
-# Android build artifacts and signing material
-*.apk
-*.aab
-*.keystore
+# React Native / Expo native
+.kotlin/
+*.orig.*
 *.jks
-android/.gradle/
-android/build/
-android/app/build/
+*.p8
+*.p12
+*.key
+*.mobileprovision
+frontend/ios/
+frontend/android/
+
+# Metro
+.metro-health-check*
+
+# Certificates
+*.pem
 
 # ---------------------------------------------------------------------------
 # Docker / infra (docker-compose.override.yml is shareable, so it is NOT ignored)
