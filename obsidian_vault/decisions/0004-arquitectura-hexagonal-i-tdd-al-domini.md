@@ -10,6 +10,9 @@ etiquetes: [adr, backend, hexagonal, tdd, testing]
 
 # ADR-0004 · Arquitectura hexagonal i TDD a la capa de domini
 
+> [!warning] Parcialment afectada
+> [[0019-tests-despres-del-codi]] (proposada) en substitueix la regla de TDD estricte; [[0016-ports-i-entitats-riques-al-domini]] concreta on viuen els ports. Aquesta ADR continua `acceptada` fins que l'equip accepti les noves.
+
 ## Context
 
 El backend concentra lògica de negoci crítica: càlcul de ràtxes consecutives de consulta diària, motor de fites desbloquejables, algorisme de puntuació i recomanació de zones d'observació, regles de decisió de la moderació i filtrat i ordenació d'esdeveniments (memòria §2.5.2). Aquesta lògica ha de ser provable de manera ràpida i aïllada.

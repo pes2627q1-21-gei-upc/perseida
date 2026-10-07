@@ -3,7 +3,7 @@ titol: "Backend: arquitectura hexagonal"
 tipus: arquitectura
 estat: vigent
 data: "2026-10-07"
-us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46"]
+us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46", "TG-205"]
 font: "backend/README.md, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, backend, hexagonal, tdd]
 ---
@@ -43,9 +43,11 @@ flowchart LR
     FCM -.implements.-> PORTS
 ```
 
-- `domain`: lògica de negoci sense dependència de frameworks, BD ni serveis externs. Es desenvolupa amb **TDD** ([[0004-arquitectura-hexagonal-i-tdd-al-domini]]).
-- `application`: casos d'ús que orquestren el domini a través de ports.
-- `infrastructure`: adaptadors (API, persistència, Redis, clients externs).
+- `domain`: entitats riques (validen invariants i multiplicitats), value objects, errors de domini i **ports**. Sense dependència de frameworks, BD ni serveis externs; l'única llibreria externa permesa és Pydantic ([[0016-ports-i-entitats-riques-al-domini]]). Els tests s'escriuen després del codi ([[0019-tests-despres-del-codi]], proposada; vegeu [[0004-arquitectura-hexagonal-i-tdd-al-domini]]).
+- `application`: casos d'ús com a **services singleton** injectats amb `Depends` ([[0017-injeccio-de-dependencies-i-services-singleton]]); orquestren el domini a través dels ports.
+- `infrastructure`: tot el que toca l'exterior: endpoints, WebSockets, persistència, Redis, clients externs i *exception handlers* ([[0018-errors-rfc-9457-amb-codis-estables]]). Implementa els ports del domini.
+
+Les dependències només van cap endins (`infrastructure` → `application` → `domain`) i cada capa s'organitza per mòduls (`app/<capa>/<mòdul>/`).
 
 ## Patró per a dades externes
 
@@ -60,9 +62,9 @@ Python, FastAPI (async), SQLModel (SQLAlchemy) + Alembic (s'executa a l'entrypoi
 ```
 backend/
 ├── app/
-│   ├── domain/            # entities, value objects, domain services
-│   ├── application/       # use cases and ports
-│   └── infrastructure/    # API routes, persistence, redis, external clients
+│   ├── domain/<module>/        # rich entities, value objects, errors, ports
+│   ├── application/<module>/   # use cases (singleton services)
+│   └── infrastructure/<module>/ # API routes, persistence, redis, external clients
 ├── alembic/               # migrations
 ├── tests/
 │   ├── fixtures/          # recorded NASA/weather responses, geo data

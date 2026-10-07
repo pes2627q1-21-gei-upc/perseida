@@ -36,6 +36,14 @@ node .agents/scripts/sync-skills.mjs
 
 Les skills es mantenen a `.agents/skills/` (font de veritat, per a tots els agents). Claude Code llegeix `.claude/skills/`, una còpia generada i versionada: no l'editis a mà. Després de canviar `.agents/skills/`, executa `node .agents/scripts/sync-skills.mjs` i fes commit de tots dos directoris; el workflow `skills-sync-check` falla si divergeixen.
 
+## Subagents i skills de desenvolupament
+
+Per delegar feina especialitzada hi ha cinc subagents (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`) i skills per crear entitats, services, ports i adaptadors del backend (`backend-*`), components, pàgines, formularis, crides a l'API i jocs del frontend (`frontend-*`) i la gestió d'errors (`gestio-errors`). Per a disseny, `ui-ux-pro-max` i `frontend-design`.
+
+- **No inventis res:** davant qualsevol dubte o dada que falti, atura't abans d'escriure codi i pregunta a la persona. Un subagent que no pot preguntar retorna a l'agent principal un bloc `PREGUNTES PER A L'HUMÀ`.
+- Font única dels subagents: `.agents/agents/`. Els fitxers natius són generats i no s'editen a mà: `.claude/agents`, `.codex/agents`, `.opencode/agents`, `.github/agents` i `.gemini/agents` (Antigravity llegeix `.agents/agents/`; Cursor, `.claude/agents/`). Després de canviar `.agents/agents/`: `node .agents/scripts/sync-agents.mjs` i commit de tot. DeepSeek no té format propi: s'usa dins d'aquestes eines.
+- Arquitectura i convencions: ADR 0016–0021 al vault (estat `proposada` fins que l'equip les accepti). Estètica del frontend: «Frutiger Cosmo»; l'app és mobile-first i l'admin pensat per a portàtil, tot responsive.
+
 ## Mapa del repo
 
 | Directori | Contingut |
@@ -44,13 +52,14 @@ Les skills es mantenen a `.agents/skills/` (font de veritat, per a tots els agen
 | `frontend/` | App mòbil React Native + Expo i panell d'administració (React Native Web). |
 | `infra/` | Docker Compose, desplegament i CI/CD (GitHub Actions). |
 | `obsidian_vault/` | Documentació del projecte com a vault d'Obsidian; context compartit de l'equip i dels agents. |
-| `.agents/` | Skills (`.agents/skills/`) i scripts (`.agents/scripts/`) per als agents d'IA. |
+| `.agents/` | Skills (`.agents/skills/`), subagents (`.agents/agents/`) i scripts (`.agents/scripts/`) per als agents d'IA. |
 
 ## Comandes
 
 ```bash
 node --test .agents/scripts/*.test.mjs     # tests dels scripts
 node .agents/scripts/sync-skills.mjs --check # verifica que .claude/skills/ està sincronitzat
+node .agents/scripts/sync-agents.mjs         # genera els subagents natius de cada eina (--check per verificar)
 ```
 
 ## Context de Taiga
