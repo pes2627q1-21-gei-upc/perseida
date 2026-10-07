@@ -2,5 +2,16 @@
 name = "backend"
 version = "0.1.0"
 description = "Backend de Perseida (API FastAPI)"
-requires-python = ">=3.14"
+requires-python = "==3.14.*"
 dependencies = []
+
+[dependency-groups]
+dev = [
+    "httpx==0.28.1",
+    "mypy==2.4.0",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "pytest-cov==7.1.0",
+    "respx==0.23.1",
+    "ruff==0.16.10",
+]
