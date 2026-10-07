@@ -1,0 +1,28 @@
+name: Skills sync check
+
+# Verifica que .claude/skills és una còpia exacta de .agents/skills.
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - ".agents/skills/**"
+      - ".claude/skills/**"
+      - ".agents/scripts/sync-skills.mjs"
+      - ".github/workflows/skills-sync-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Proves del script
+        run: node --test .agents/scripts/sync-skills.test.mjs
+      - name: Comprovar sincronització
+        run: node .agents/scripts/sync-skills.mjs --check
