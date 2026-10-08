@@ -2,7 +2,7 @@
 
 **English** | [Català](README.ca.md) | [Español](README.es.md)
 
-> 🚧 **Under construction.** The project is in its inception/first-sprint phase. The structure is still the **planned** one defined in the project documentation (inception 1 and 2, and the project report) and may change, but the commands in the run and test section are already verified.
+> 🚧 **Under construction.** The project is in its first sprint. `app/` and `tests/` are real (the `health` module is the reference example), but most modules (persistence, auth, chat, scheduler) are not implemented yet.
 
 Backend of **Perseida**, a multiplatform mobile app for astronomy outreach, exploration and tracking of astronomical events, built as a PES project (UPC-FIB). It exposes the REST API and real-time chat used by the mobile app and the admin panel, and integrates NASA Open APIs and other external providers.
 
@@ -35,53 +35,67 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 ## Architecture: hexagonal
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph Infrastructure
-        API[REST / WebSocket<br/>FastAPI routes]
-        DB[(PostgreSQL<br/>+ PostGIS)]
-        RC[(Redis)]
-        EXT[NASA / weather<br/>clients]
-        MOD[Kev-4B client]
-        FCM[FCM client]
+        CTRL[Controllers<br/>FastAPI routers]
+        REPO[(Repositories and clients<br/>PostgreSQL, Redis, NASA,<br/>Kev-4B, FCM)]
     end
     subgraph Application
-        UC[Use cases]
-        PORTS{{Ports}}
+        SVC["Services<br/>(use cases)"]
     end
     subgraph Domain
-        DOM[Entities and rules<br/>streaks, achievements,<br/>zone scoring, moderation]
+        ENT[Entities and rules<br/>streaks, achievements,<br/>zone scoring, moderation]
+        PORTS{{Ports}}
     end
-    API --> UC --> DOM
-    UC --> PORTS
-    DB -.implements.-> PORTS
-    RC -.implements.-> PORTS
-    EXT -.implements.-> PORTS
-    MOD -.implements.-> PORTS
-    FCM -.implements.-> PORTS
+    CTRL --> SVC
+    SVC --> ENT
+    SVC --> PORTS
+    REPO -.implements.-> PORTS
 ```
 
-- `domain`: business logic with no dependency on frameworks, DB or external services. Developed with **TDD**.
-- `application`: use cases that orchestrate the domain through ports.
-- `infrastructure`: adapters (API, persistence, Redis, external clients).
+- `domain`: business logic with no dependency on frameworks, DB or external services (the only external library allowed is Pydantic). It holds the entities, value objects, domain errors and the **ports** (`Protocol`) describing what the business needs from the outside ([ADR-0016](../obsidian_vault/decisions/0016-ports-i-entitats-riques-al-domini.md)).
+- `application`: **services** (use cases) that orchestrate entities through ports. No business rules of their own and no FastAPI, SQLModel, Redis or httpx.
+- `infrastructure`: everything that touches the outside world: **controllers** (FastAPI routers), **repositories** and external clients that implement the ports, and the composition root (`dependencies.py`, `@lru_cache` + `Depends`, [ADR-0017](../obsidian_vault/decisions/0017-injeccio-de-dependencies-i-services-singleton.md)).
+
+**Dependency rule:** `domain` imports only the standard library, Pydantic and `app.domain`; `application` only those plus `app.application`; `infrastructure` may import any layer. It is enforced by `tests/architecture/test_layer_dependencies.py`.
 
 Pattern for external data (e.g. APOD): the first request calls the external API and stores the result in Redis (and PostgreSQL where needed); later requests are served from cache. If the external API is down, cached data is returned instead of a 500.
 
-## Planned structure
+## Structure
 
 ```
 backend/
 ├── app/
-│   ├── domain/            # entities, value objects, domain services
-│   ├── application/       # use cases and ports
-│   └── infrastructure/    # API routes, persistence, redis, external clients
-├── alembic/               # migrations
+│   ├── main.py            # FastAPI app factory and lifespan
+│   ├── domain/            # entities, value objects, ports
+│   │   └── health/        # models and ports
+│   ├── application/       # services
+│   │   └── health/        # use case
+│   └── infrastructure/    # routers, persistence, redis, clients
+│       └── health/        # adapters, router and wiring
 ├── tests/
+│   ├── unit/              # domain and application, with fakes
+│   ├── integration/       # API with httpx + ASGITransport
+│   ├── architecture/      # layer dependency rules
+│   ├── fakes/             # in-memory ports for the tests
 │   ├── fixtures/          # recorded NASA/weather responses, geo data
 │   ├── factories/         # users, events, messages, achievements
 │   └── moderation_dataset/# labeled Kev-4B evaluation set (ca/es/en)
 ├── pyproject.toml
-└── .env.example
+└── uv.lock
 ```
+
+`alembic/` (migrations) and `.env.example` will arrive with persistence.
+
+### Adding a feature
+
+The `health` module is the reference example. For a new module `<name>`:
+
+1. **Domain** (`app/domain/<name>/`): entities/value objects in `models.py` and the ports in `ports.py` (e.g. `HealthReport` and the `HealthCheck` protocol).
+2. **Application** (`app/application/<name>/`): the service that uses the ports (`HealthService`), with no FastAPI.
+3. **Infrastructure** (`app/infrastructure/<name>/`): the adapters implementing the ports (`checks.py`), the provider `get_<name>_service` with `@lru_cache` and `<Name>ServiceDep` (`dependencies.py`), and the router with its response model (`router.py`).
+4. Register the router in `create_app()` (`app/main.py`).
+5. **Tests**, after the code: unit tests with fakes (`tests/fakes/`), API integration tests with `dependency_overrides`; the architecture test keeps checking the layers.
 
 ## Service contracts (Spotwise, group 21B)
 
@@ -100,11 +114,11 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run pytest                 # tests (with coverage)
+uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/docs)
 ```
 
 - Dependencies are added with `uv add` / `uv add --dev` and an exact version (`==`); `pip` is not used.
 - All configuration (ruff, mypy, pytest, coverage) lives in `pyproject.toml`.
-- With no tests, `pytest` exits with "no tests ran" (code 5); this is not an error.
 
 The full stack (API, PostgreSQL/PostGIS, Redis, moderation) is started with Docker Compose from [`../infra`](../infra/README.md). Copy `.env.example` to `.env`; real secrets are never committed.
 
