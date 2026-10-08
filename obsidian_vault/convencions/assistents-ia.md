@@ -34,7 +34,7 @@ Els assistents parteixen del vault d'Obsidian (arquitectura, decisions, convenci
 ## Procés
 
 1. Inici: l'assistent llegeix el context compartit i la US i els criteris d'acceptació a Taiga.
-2. Desenvolupament: sempre en una branca `feature/*` (`release/*` i `hotfix/*` no es creen ni s'hi treballa llevat que la persona ho demani explícitament: criteri d'aquest repo, la memòria no els preveu per als agents); la persona revisa cada canvi abans del commit i executa tests i linters en local. A la lògica de domini (TDD), el test l'escriu o el valida una persona abans que l'assistent proposi la implementació.
+2. Desenvolupament: sempre en una branca `feature/*` (`release/*` i `hotfix/*` no es creen ni s'hi treballa llevat que la persona ho demani explícitament: criteri d'aquest repo, la memòria no els preveu per als agents); la persona revisa cada canvi abans del commit i executa tests i linters en local. Els tests s'escriuen just després del codi ([[0019-tests-despres-del-codi]]) i la persona revisa que es derivin dels criteris d'acceptació i no de la implementació.
 3. PR: mateixes portes que la resta (CI, Quality Gate, revisió d'una altra persona); la plantilla de PR té una casella per indicar si s'ha usat un assistent i en quines parts.
 4. Tancament: si s'ha pres una decisió nova, s'actualitza el vault.
 5. Retrospectiva: es valora en quines tasques han ajudat, quins errors s'han detectat i com millorar el context.

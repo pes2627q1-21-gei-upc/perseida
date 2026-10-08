@@ -5,7 +5,7 @@ estat: vigent
 data: "2026-10-07"
 us: ["TG-85"]
 font: "memòria §2.5, §2.9.3"
-etiquetes: [convencio, testing, tdd, cobertura, nfr]
+etiquetes: [convencio, testing, cobertura, nfr]
 ---
 
 # Estratègia de proves
