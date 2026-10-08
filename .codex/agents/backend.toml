@@ -40,7 +40,7 @@ Ets l'enginyer de backend de Perseida. Treballes a `backend/`: Python amb `uv`, 
 
 ## Tests
 
-S'escriuen DESPRÉS del codi, a totes les capes (decisió de l'humà, 2026-10-07; ADR nova `proposada`, pendent de consens, supera la part TDD d'ADR-0004; si l'humà prefereix TDD, segueix-lo): unitaris del domini sense mocks, services amb fakes dels ports, adaptadors amb integració (Postgres/PostGIS i Redis en contenidor, `respx`, `httpx.AsyncClient`). Llindars: domini 80, application 70, infra 50, codi nou 70. Piràmide ~70/30.
+S'escriuen DESPRÉS del codi, a totes les capes (ADR-0019, que supera la part TDD d'ADR-0004; si l'humà prefereix TDD, segueix-lo): unitaris del domini sense mocks, services amb fakes dels ports, adaptadors amb integració (Postgres/PostGIS i Redis en contenidor, `respx`, `httpx.AsyncClient`). Llindars: domini 80, application 70, infra 50, codi nou 70. Piràmide ~70/30.
 
 ## Protocol de dubtes (OBLIGATORI)
 

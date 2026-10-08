@@ -135,7 +135,7 @@ L'app és "tonta": no decideix res, només mostra bé l'error.
 - Endpoints privats sense sessió: 401/403.
 - Frontend (Jest + RNTL): middleware -> `AppError`; mapatge `code` -> text per als 3 idiomes; `code` desconegut -> genèric; toast amb `role="alert"`; tots els `code` del catàleg tenen clau ca/es/en.
 
-Nota: tests després del codi (decisió de l'humà, 2026-10-07; ADR nova `proposada`, pendent de consens, supera la part TDD d'ADR-0004). Si l'humà prefereix TDD, segueix-lo.
+Nota: tests després del codi (ADR-0019, que supera la part TDD d'ADR-0004). Si l'humà prefereix TDD, segueix-lo.
 
 ## Checklist final
 

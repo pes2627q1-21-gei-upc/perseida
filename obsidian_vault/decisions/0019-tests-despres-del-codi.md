@@ -1,17 +1,14 @@
 ---
 titol: "Tests després del codi a totes les capes"
 tipus: adr
-estat: proposada
+estat: acceptada
 data: "2026-10-07"
 us: ["TG-205"]
-font: "sessió de treball del 2026-10-07 (TG-205); decisió de la persona responsable, pendent de consens de l'equip"
+font: "sessió de treball del 2026-10-07 (TG-205); decisió de la persona responsable, acceptada per l'equip (TG-39)"
 etiquetes: [adr, testing, tdd, backend]
 ---
 
 # ADR-0019 · Tests després del codi a totes les capes
-
-> [!warning] Pendent de consens de l'equip
-> Aquesta ADR substitueix en part [[0004-arquitectura-hexagonal-i-tdd-al-domini]] (la regla de TDD estricte al domini). No s'ha d'acceptar fins que l'equip hi estigui d'acord a la PR.
 
 ## Context
 

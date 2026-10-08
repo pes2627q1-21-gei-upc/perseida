@@ -1,7 +1,7 @@
 ---
 titol: "Subagents agnòstics amb font única i generador per eina"
 tipus: adr
-estat: proposada
+estat: acceptada
 data: "2026-10-07"
 us: ["TG-205"]
 font: "sessió de treball del 2026-10-07 (TG-205); documentació oficial de cada eina consultada el 2026-10-07"

@@ -8,8 +8,8 @@ description: Defineix un port (interfície Protocol/ABC) a la capa domain del ba
 Un port és una interfície (`typing.Protocol` o ABC) a `backend/app/domain/<mòdul>/` que descriu què necessita el negoci de l'exterior (driven port). La implementa un adaptador d'infrastructure.
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents.
 
-> Les plantilles són orientatives: el repo encara no té codi de backend. Versions de llibreries: versió fixada amb `uv`; pregunta/verifica.
-> Nota: `backend-hexagonal.md` del vault diu «use cases and ports» a application; la decisió de producte (2026-10-07) els situa al domini. Segueix el domini i, si en dubtes, pregunta a l'humà.
+> Les plantilles són orientatives. Versions de llibreries: versió fixada amb `uv`; pregunta/verifica.
+> Exemple de referència: `app/domain/health/ports.py` (`HealthCheck`).
 
 ## Quan usar-la / quan NO
 
