@@ -21,7 +21,7 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 |---|---|
 | Framework | React Native + Expo |
 | Llenguatge | TypeScript (`strict`), motor Hermes |
-| Estils | Tailwind |
+| Estils | NativeWind + *tokens* de tema propis; estètica Frutiger Cosmo ([[0020-frontend-expo-router-i-estetica-frutiger-cosmo]]) |
 | i18n | i18next (català, castellà i anglès; detecció d'idioma del dispositiu + selector) |
 | Emmagatzematge local | SQLite (outbox + cache offline) |
 | Auth | Google OAuth2 + PKCE |

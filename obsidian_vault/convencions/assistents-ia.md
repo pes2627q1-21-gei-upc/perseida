@@ -28,6 +28,7 @@ Els assistents parteixen del vault d'Obsidian (arquitectura, decisions, convenci
 - Skill `vault-context`: protocol de lectura i escriptura del vault.
 - Hook `SessionStart` de Claude Code (`.claude/settings.json`): injecta l'índex i l'estat del vault.
 - Skills d'Obsidian obligatòries: `obsidian-markdown` per a tot fitxer del vault, `obsidian-bases` per a `.base` i `json-canvas` per a `.canvas`. Per llegir pàgines web s'usa `defuddle`.
+- Subagents especialitzats (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`): font única a `.agents/agents/`; `node .agents/scripts/sync-agents.mjs` genera els fitxers de cada eina ([[0021-subagents-agnostics-i-generador]]). Si tenen dubtes, s'aturen i retornen un bloc `PREGUNTES PER A L'HUMÀ`: no inventen res.
 - `.agents/skills/` és la font única de les skills; `.claude/skills/` és una còpia generada amb `node .agents/scripts/sync-skills.mjs` i no s'edita a mà. El workflow `skills-sync-check` verifica la sincronització.
 
 ## Procés

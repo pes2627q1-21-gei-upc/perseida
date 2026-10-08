@@ -3,7 +3,7 @@ titol: Estat actual del projecte
 tipus: estat
 estat: vigent
 data: 2026-10-07
-us: ["TG-85", "TG-30", "TG-31", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88"]
+us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88"]
 font: "memòria §2.1; sessió 2026-10-07; Taiga: backlog (llistat de US i sprints, 2026-10-07)"
 etiquetes: [estat, sprint, taiga]
 ---
@@ -22,7 +22,7 @@ Instantània a data 2026-10-07. L'estat viu a Taiga; si hi ha diferències, guan
 | Estat | US |
 |---|---|
 | Done | TG-30 (estructura del monorepo i guia d'arrencada) |
-| In progress | TG-85 (aquest vault), TG-31 (configuració del backend) |
+| In progress | TG-205 (subagents i skills agnòstiques; Sprint 1), TG-85 (aquest vault), TG-31 (configuració del backend) |
 | Ready | TG-33, TG-38, TG-45, TG-87, TG-88 |
 
 La resta del backlog és a [[epiques-i-us]].
@@ -34,6 +34,11 @@ La resta del backlog és a [[epiques-i-us]].
 - Skills agnòstiques a `.agents/skills/` i `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`.
 - Skill `vault-context` i hook `SessionStart` que injecta aquest índex i aquesta nota.
 - Producte, estat i guies ([[llegir-el-vault-com-a-agent]]). Sessió: [[2026-10-07-base-del-vault]].
+
+## Què ha lliurat TG-205 fins ara
+
+- Cinc subagents i skills de backend, frontend i errors, agnòstics de l'eina, amb generador i check a CI. Detall a [[2026-10-07-subagents-i-skills-agnostics]].
+- ADR 0016–0021 en estat `proposada`: l'equip les ha d'acceptar a la PR ([[0019-tests-despres-del-codi]] supera part d'ADR-0004).
 
 ## Què ha lliurat TG-31 fins ara
 
@@ -52,6 +57,7 @@ La resta del backlog és a [[epiques-i-us]].
 
 ## Enllaços
 
+- [[2026-10-07-subagents-i-skills-agnostics]]
 - [[llegir-el-vault-com-a-agent]]
 - [[definition-of-done]]
 - [[actualitzacio-del-vault]]

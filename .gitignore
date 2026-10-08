@@ -101,10 +101,11 @@ CLAUDE.local.md
 .codex/*.local.*
 .codex/auth.json
 
-# Gemini CLI / Antigravity (keep settings.json, commands, GEMINI.md and .agent/)
+# Gemini CLI / Antigravity (keep settings.json, commands, agents, GEMINI.md and .agent/)
 .gemini/*
 !.gemini/settings.json
 !.gemini/commands/
+!.gemini/agents/
 .gemini/antigravity/
 
 # opencode (keep opencode.json, agents and commands)

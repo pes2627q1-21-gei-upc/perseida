@@ -35,6 +35,9 @@ No s'automatitzen proves end-to-end sobre l'app mòbil.
 
 ## TDD al domini
 
+> [!warning] Canvi proposat
+> [[0019-tests-despres-del-codi]] (proposada, pendent de consens de l'equip) fa que les skills i els subagents escriguin els tests després del codi a totes les capes. Mentre no s'accepti, aquesta secció continua vigent.
+
 Es fa TDD sistemàtic a la capa de domini del backend (cicle red–green–refactor), derivant el test d'un criteri d'acceptació. El test en vermell es puja en un commit propi abans del commit que el fa passar. A la resta de capes no hi ha TDD estricte, però les proves s'escriuen dins la mateixa tasca i abans d'obrir la PR. Davant d'un bug, primer s'escriu un test que el reprodueix i falla; queda a la suite com a test de regressió.
 
 ## Jocs de prova
@@ -80,3 +83,4 @@ En local: `uv run pytest` (backend) i `pnpm test` (frontend), o Docker Compose. 
 - [[qualitat]]: Quality Gate i anàlisi estàtica.
 - [[definition-of-done]]: proves com a part de la DoD.
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]]
+- [[0019-tests-despres-del-codi]]
