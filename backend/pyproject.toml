@@ -3,7 +3,11 @@ name = "backend"
 version = "0.1.0"
 description = "Backend de Perseida (API FastAPI)"
 requires-python = "==3.14.*"
-dependencies = []
+dependencies = [
+    "fastapi==0.136.1",
+    "pydantic==2.14.0",
+    "uvicorn==0.54.0",
+]
 
 [dependency-groups]
 dev = [
@@ -33,6 +37,7 @@ max-complexity = 10
 [tool.mypy]
 python_version = "3.14"
 strict = true
+plugins = ["pydantic.mypy"]
 exclude = ["^\\.venv/"]
 
 [tool.pytest.ini_options]
