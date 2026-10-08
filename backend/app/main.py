@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.infrastructure.health.router import router as health_router
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -11,7 +13,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    return FastAPI(title="Perseida API", lifespan=lifespan)
+    app = FastAPI(title="Perseida API", lifespan=lifespan)
+    app.include_router(health_router)
+    return app
 
 
 app = create_app()
