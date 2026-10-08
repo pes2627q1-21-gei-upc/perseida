@@ -10,8 +10,8 @@ etiquetes: [adr, backend, hexagonal, tdd, testing]
 
 # ADR-0004 · Arquitectura hexagonal i TDD a la capa de domini
 
-> [!warning] Parcialment afectada
-> [[0019-tests-despres-del-codi]] (proposada) en substitueix la regla de TDD estricte; [[0016-ports-i-entitats-riques-al-domini]] concreta on viuen els ports. Aquesta ADR continua `acceptada` fins que l'equip accepti les noves.
+> [!warning] Parcialment substituïda
+> El TDD estricte al domini el substitueix [[0019-tests-despres-del-codi]]; els ports, que passen al domini, els concreta [[0016-ports-i-entitats-riques-al-domini]]. La resta d'aquesta ADR (arquitectura hexagonal en tres capes) continua vigent.
 
 ## Context
 

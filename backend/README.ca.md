@@ -2,7 +2,7 @@
 
 [English](README.md) | **Català** | [Español](README.es.md)
 
-> 🚧 **En construcció.** El projecte és en fase d'incepció/primer sprint. L'estructura continua sent la **prevista** segons la documentació del projecte (incepció 1 i 2 i memòria) i pot canviar, però les ordres de la secció d'executar i testejar ja estan verificades.
+> 🚧 **En construcció.** El projecte és al primer sprint. `app/` i `tests/` ja són reals (el mòdul `health` és l'exemple de referència), però la majoria de mòduls (persistència, autenticació, xat, planificador) encara no estan implementats.
 
 Backend de **Perseida**, una aplicació mòbil multiplataforma de divulgació, exploració i seguiment de fenòmens astronòmics, desenvolupada com a projecte de PES (UPC-FIB). Exposa l'API REST i el xat en temps real que fan servir l'app mòbil i el panell d'administració, i integra les NASA Open APIs i altres proveïdors externs.
 
@@ -35,53 +35,67 @@ Un únic procés FastAPI integra tres responsabilitats:
 ## Arquitectura: hexagonal
 
 ```mermaid
-flowchart LR
-    subgraph Infraestructura
-        API[REST / WebSocket<br/>rutes FastAPI]
-        DB[(PostgreSQL<br/>+ PostGIS)]
-        RC[(Redis)]
-        EXT[Clients NASA /<br/>meteorologia]
-        MOD[Client Kev-4B]
-        FCM[Client FCM]
+flowchart TB
+    subgraph Infrastructure
+        CTRL[Controllers<br/>rutes FastAPI]
+        REPO[(Repositoris i clients<br/>PostgreSQL, Redis, NASA,<br/>Kev-4B, FCM)]
     end
-    subgraph Aplicació
-        UC[Casos d'ús]
+    subgraph Application
+        SVC["Services<br/>(casos d'ús)"]
+    end
+    subgraph Domain
+        ENT[Entitats i regles<br/>ràtxes, fites,<br/>puntuació de zones, moderació]
         PORTS{{Ports}}
     end
-    subgraph Domini
-        DOM[Entitats i regles<br/>ràtxes, fites,<br/>puntuació de zones, moderació]
-    end
-    API --> UC --> DOM
-    UC --> PORTS
-    DB -.implementa.-> PORTS
-    RC -.implementa.-> PORTS
-    EXT -.implementa.-> PORTS
-    MOD -.implementa.-> PORTS
-    FCM -.implementa.-> PORTS
+    CTRL --> SVC
+    SVC --> ENT
+    SVC --> PORTS
+    REPO -.implementa.-> PORTS
 ```
 
-- `domain`: lògica de negoci sense dependència de frameworks, BD ni serveis externs. Desenvolupada amb **TDD**.
-- `application`: casos d'ús que orquestren el domini a través de ports.
-- `infrastructure`: adaptadors (API, persistència, Redis, clients externs).
+- `domain`: lògica de negoci sense dependència de frameworks, BD ni serveis externs (l'única llibreria externa permesa és Pydantic). Conté les entitats, els value objects, els errors de domini i els **ports** (`Protocol`) que descriuen què necessita el negoci de l'exterior ([ADR-0016](../obsidian_vault/decisions/0016-ports-i-entitats-riques-al-domini.md)).
+- `application`: **services** (casos d'ús) que orquestren les entitats a través dels ports. Sense regles de negoci pròpies ni FastAPI, SQLModel, Redis o httpx.
+- `infrastructure`: tot el que toca l'exterior: **controllers** (rutes FastAPI), **repositoris** i clients externs que implementen els ports, i el *composition root* (`dependencies.py`, `@lru_cache` + `Depends`, [ADR-0017](../obsidian_vault/decisions/0017-injeccio-de-dependencies-i-services-singleton.md)).
+
+**Regla de dependències:** `domain` només importa la biblioteca estàndard, Pydantic i `app.domain`; `application` només això i `app.application`; `infrastructure` pot importar qualsevol capa. Ho verifica `tests/architecture/test_layer_dependencies.py`.
 
 Patró per a dades externes (p. ex. APOD): la primera petició crida l'API externa i en desa el resultat a Redis (i a PostgreSQL quan cal); les següents se serveixen des de la cache. Si l'API externa cau, es retornen les dades de la cache en lloc d'un 500.
 
-## Estructura prevista
+## Estructura
 
 ```
 backend/
 ├── app/
-│   ├── domain/            # entitats, value objects, serveis de domini
-│   ├── application/       # casos d'ús i ports
-│   └── infrastructure/    # rutes API, persistència, redis, clients externs
-├── alembic/               # migracions
+│   ├── main.py            # app factory de FastAPI i lifespan
+│   ├── domain/            # entities, value objects, ports
+│   │   └── health/        # models i ports
+│   ├── application/       # services
+│   │   └── health/        # cas d'ús
+│   └── infrastructure/    # routers, persistence, redis, clients
+│       └── health/        # adaptadors, router i cablejat
 ├── tests/
+│   ├── unit/              # domini i application, amb fakes
+│   ├── integration/       # API amb httpx + ASGITransport
+│   ├── architecture/      # regles de dependències entre capes
+│   ├── fakes/             # ports en memòria per als tests
 │   ├── fixtures/          # respostes enregistrades de NASA/meteo, dades geo
 │   ├── factories/         # usuaris, esdeveniments, missatges, fites
 │   └── moderation_dataset/# joc etiquetat d'avaluació de Kev-4B (ca/es/en)
 ├── pyproject.toml
-└── .env.example
+└── uv.lock
 ```
+
+`alembic/` (migracions) i `.env.example` arribaran amb la persistència.
+
+### Afegir una funcionalitat
+
+El mòdul `health` és l'exemple de referència. Per a un mòdul nou `<nom>`:
+
+1. **Domini** (`app/domain/<nom>/`): entitats/value objects a `models.py` i els ports a `ports.py` (p. ex. `HealthReport` i el protocol `HealthCheck`).
+2. **Application** (`app/application/<nom>/`): el service que usa els ports (`HealthService`), sense FastAPI.
+3. **Infrastructure** (`app/infrastructure/<nom>/`): els adaptadors que implementen els ports (`checks.py`), el provider `get_<nom>_service` amb `@lru_cache` i `<Nom>ServiceDep` (`dependencies.py`), i el router amb el seu model de resposta (`router.py`).
+4. Registra el router a `create_app()` (`app/main.py`).
+5. **Tests**, després del codi: unitaris amb fakes (`tests/fakes/`), integració de l'API amb `dependency_overrides`; el test d'arquitectura continua verificant les capes.
 
 ## Contractes de servei (Spotwise, grup 21B)
 
@@ -100,11 +114,11 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # comprova el format sense modificar fitxers
 uv run mypy .                 # tipatge estricte
 uv run pytest                 # tests (amb cobertura)
+uv run uvicorn app.main:app --reload  # arrenca l'API (http://127.0.0.1:8000/docs)
 ```
 
 - Les dependències s'afegeixen amb `uv add` / `uv add --dev` i versió exacta (`==`); no s'usa `pip`.
 - Tota la configuració (ruff, mypy, pytest, cobertura) és a `pyproject.toml`.
-- Sense tests, `pytest` acaba amb «no tests ran» (codi 5); no és un error.
 
 L'stack complet (API, PostgreSQL/PostGIS, Redis, moderació) s'arrenca amb Docker Compose des de [`../infra`](../infra/README.ca.md). Copia `.env.example` a `.env`; els secrets reals mai es versionen.
 

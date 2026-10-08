@@ -5,7 +5,7 @@ estat: vigent
 data: "2026-10-07"
 us: ["TG-85"]
 font: "memòria §2.5, §2.9.3"
-etiquetes: [convencio, testing, tdd, cobertura, nfr]
+etiquetes: [convencio, testing, cobertura, nfr]
 ---
 
 # Estratègia de proves
@@ -33,12 +33,9 @@ No s'automatitzen proves end-to-end sobre l'app mòbil.
 > [!note] Lectura combinada de la memòria
 > La memòria (§2.5.3) ho expressa en dos llocs: la taula de nivells («100 % verificats; ≥ 80 % amb test automatitzat») i el paràgraf «Proves d'acceptació» («cada criteri té almenys un test automatitzat»). Aquesta nota en recull la lectura combinada: l'automatització és la norma, la verificació manual és l'excepció acotada i els percentatges són l'objectiu mesurable. No cal tornar-ho a debatre.
 
-## TDD al domini
+## Quan s'escriuen els tests
 
-> [!warning] Canvi proposat
-> [[0019-tests-despres-del-codi]] (proposada, pendent de consens de l'equip) fa que les skills i els subagents escriguin els tests després del codi a totes les capes. Mentre no s'accepti, aquesta secció continua vigent.
-
-Es fa TDD sistemàtic a la capa de domini del backend (cicle red–green–refactor), derivant el test d'un criteri d'acceptació. El test en vermell es puja en un commit propi abans del commit que el fa passar. A la resta de capes no hi ha TDD estricte, però les proves s'escriuen dins la mateixa tasca i abans d'obrir la PR. Davant d'un bug, primer s'escriu un test que el reprodueix i falla; queda a la suite com a test de regressió.
+Els tests s'escriuen **després del codi**, a totes les capes, dins la mateixa tasca i abans d'obrir la PR ([[0019-tests-despres-del-codi]]). Es deriven dels criteris d'acceptació de la US i una persona els revisa a la PR perquè no s'acomodin al codi. Davant d'un bug, primer s'escriu un test que el reprodueix i falla; queda a la suite com a test de regressió.
 
 ## Jocs de prova
 

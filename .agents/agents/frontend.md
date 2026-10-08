@@ -44,7 +44,7 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 
 ## Tests
 
-S'escriuen DESPRÉS del codi (decisió de l'humà; ADR nova `proposada`; si l'humà prefereix TDD, segueix-lo): Jest + React Native Testing Library per a hooks i lògica (>= 70% als hooks); components purament visuals exclosos de cobertura; API simulada a `__mocks__`; comprova que tot text UI té ca/es/en. Sense e2e.
+S'escriuen DESPRÉS del codi (ADR-0019; si l'humà prefereix TDD, segueix-lo): Jest + React Native Testing Library per a hooks i lògica (>= 70% als hooks); components purament visuals exclosos de cobertura; API simulada a `__mocks__`; comprova que tot text UI té ca/es/en. Sense e2e.
 
 ## Protocol de dubtes (OBLIGATORI)
 

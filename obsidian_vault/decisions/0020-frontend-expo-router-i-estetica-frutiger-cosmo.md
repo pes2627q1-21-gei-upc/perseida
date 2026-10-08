@@ -1,7 +1,7 @@
 ---
 titol: "Frontend: Expo Router, stack d'UI i estètica Frutiger Cosmo"
 tipus: adr
-estat: proposada
+estat: acceptada
 data: "2026-10-07"
 us: ["TG-205"]
 font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable"

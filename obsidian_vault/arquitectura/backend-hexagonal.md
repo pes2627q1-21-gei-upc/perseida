@@ -5,7 +5,7 @@ estat: vigent
 data: "2026-10-07"
 us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46", "TG-205"]
 font: "backend/README.md, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
-etiquetes: [arquitectura, backend, hexagonal, tdd]
+etiquetes: [arquitectura, backend, hexagonal]
 ---
 
 # Backend: arquitectura hexagonal
@@ -20,22 +20,22 @@ Un **únic procés FastAPI** (async) integra tres responsabilitats ([[0003-un-so
 ```mermaid
 flowchart LR
     subgraph Infrastructure
-        API[REST / WebSocket<br/>FastAPI routes]
-        DB[(PostgreSQL<br/>+ PostGIS)]
+        API[Controllers<br/>REST / WebSocket]
+        DB[(Repositories<br/>PostgreSQL + PostGIS)]
         RC[(Redis)]
         EXT[NASA / weather<br/>clients]
         MOD[Kev-4B client]
         FCM[FCM client]
     end
     subgraph Application
-        UC[Use cases]
-        PORTS{{Ports}}
+        SVC[Services<br/>use cases]
     end
     subgraph Domain
         DOM[Entities and rules<br/>streaks, achievements,<br/>zone scoring, moderation]
+        PORTS{{Ports}}
     end
-    API --> UC --> DOM
-    UC --> PORTS
+    API --> SVC --> DOM
+    SVC --> PORTS
     DB -.implements.-> PORTS
     RC -.implements.-> PORTS
     EXT -.implements.-> PORTS
@@ -43,7 +43,7 @@ flowchart LR
     FCM -.implements.-> PORTS
 ```
 
-- `domain`: entitats riques (validen invariants i multiplicitats), value objects, errors de domini i **ports**. Sense dependència de frameworks, BD ni serveis externs; l'única llibreria externa permesa és Pydantic ([[0016-ports-i-entitats-riques-al-domini]]). Els tests s'escriuen després del codi ([[0019-tests-despres-del-codi]], proposada; vegeu [[0004-arquitectura-hexagonal-i-tdd-al-domini]]).
+- `domain`: entitats riques (validen invariants i multiplicitats), value objects, errors de domini i **ports**. Sense dependència de frameworks, BD ni serveis externs; l'única llibreria externa permesa és Pydantic ([[0016-ports-i-entitats-riques-al-domini]]). Els tests s'escriuen després del codi ([[0019-tests-despres-del-codi]]; vegeu [[0004-arquitectura-hexagonal-i-tdd-al-domini]]).
 - `application`: casos d'ús com a **services singleton** injectats amb `Depends` ([[0017-injeccio-de-dependencies-i-services-singleton]]); orquestren el domini a través dels ports.
 - `infrastructure`: tot el que toca l'exterior: endpoints, WebSockets, persistència, Redis, clients externs i *exception handlers* ([[0018-errors-rfc-9457-amb-codis-estables]]). Implementa els ports del domini.
 

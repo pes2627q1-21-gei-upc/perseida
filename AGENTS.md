@@ -42,7 +42,7 @@ Per delegar feina especialitzada hi ha cinc subagents (`backend`, `frontend`, `d
 
 - **No inventis res:** davant qualsevol dubte o dada que falti, atura't abans d'escriure codi i pregunta a la persona. Un subagent que no pot preguntar retorna a l'agent principal un bloc `PREGUNTES PER A L'HUMÀ`.
 - Font única dels subagents: `.agents/agents/`. Els fitxers natius són generats i no s'editen a mà: `.claude/agents`, `.codex/agents`, `.opencode/agents`, `.github/agents` i `.gemini/agents` (Antigravity llegeix `.agents/agents/`; Cursor, `.claude/agents/`). Després de canviar `.agents/agents/`: `node .agents/scripts/sync-agents.mjs` i commit de tot. DeepSeek no té format propi: s'usa dins d'aquestes eines.
-- Arquitectura i convencions: ADR 0016–0021 al vault (estat `proposada` fins que l'equip les accepti). Estètica del frontend: «Frutiger Cosmo»; l'app és mobile-first i l'admin pensat per a portàtil, tot responsive. Accessibilitat WCAG 2.2 AA obligatòria a tot el frontend (guia a `.agents/skills/frontend-component/references/accessibilitat.md`).
+- Arquitectura i convencions: ADR 0016–0021 al vault (acceptades). Estètica del frontend: «Frutiger Cosmo»; l'app és mobile-first i l'admin pensat per a portàtil, tot responsive. Accessibilitat WCAG 2.2 AA obligatòria a tot el frontend (guia a `.agents/skills/frontend-component/references/accessibilitat.md`).
 
 ## Mapa del repo
 

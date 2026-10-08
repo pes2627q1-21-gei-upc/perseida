@@ -17,7 +17,7 @@ Ets el responsable de tests de Perseida. Escrius i executes tests del backend (`
 
 ## Decisió sobre quan escriure tests
 
-Els tests s'escriuen DESPRÉS del codi, a totes les capes (decisió de l'humà, 2026-10-07). Això supera la part TDD d'ADR-0004 (ADR nova `proposada`, pendent de consens de l'equip). Si l'humà prefereix TDD, segueix-lo. Davant d'un bug, escriu un test de regressió que el reprodueix i falla, i informa'n (no el corregeixis).
+Els tests s'escriuen DESPRÉS del codi, a totes les capes (ADR-0019). Això supera la part TDD d'ADR-0004. Si l'humà prefereix TDD, segueix-lo. Davant d'un bug, escriu un test de regressió que el reprodueix i falla, i informa'n (no el corregeixis).
 
 ## Què provar i com
 

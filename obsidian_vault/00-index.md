@@ -47,12 +47,12 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0013-uv-i-pnpm-com-a-gestors-de-dependencies|ADR-0013 uv i pnpm]]
 - [[0014-context-compartit-per-a-assistents-d-ia|ADR-0014 Context compartit IA]]
 - [[0015-skills-agnostiques-i-vault-en-catala|ADR-0015 Skills i vault en català]]
-- [[0016-ports-i-entitats-riques-al-domini|ADR-0016 Ports i entitats riques al domini]] (proposada)
-- [[0017-injeccio-de-dependencies-i-services-singleton|ADR-0017 DI i services singleton]] (proposada)
-- [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018 Errors RFC 9457]] (proposada)
-- [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi]] (proposada)
-- [[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020 Frontend i Frutiger Cosmo]] (proposada)
-- [[0021-subagents-agnostics-i-generador|ADR-0021 Subagents agnòstics]] (proposada)
+- [[0016-ports-i-entitats-riques-al-domini|ADR-0016 Ports i entitats riques al domini]]
+- [[0017-injeccio-de-dependencies-i-services-singleton|ADR-0017 DI i services singleton]]
+- [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018 Errors RFC 9457]]
+- [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi]]
+- [[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020 Frontend i Frutiger Cosmo]]
+- [[0021-subagents-agnostics-i-generador|ADR-0021 Subagents agnòstics]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 
