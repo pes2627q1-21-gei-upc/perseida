@@ -67,3 +67,24 @@ def test_detects_forbidden_imports(tmp_path: Path) -> None:
         "domain/bad.py imports app.infrastructure.health",
         "domain/bad.py imports .",
     ]
+
+
+def test_application_detects_fastapi_and_infrastructure_imports(
+    tmp_path: Path,
+) -> None:
+    application = tmp_path / "application"
+    application.mkdir()
+    (application / "bad.py").write_text(
+        "from fastapi import Depends\n"
+        "from app.infrastructure.health import checks\n"
+        "from app.domain.health import models\n"
+        "from app.application.health import health_service\n",
+        encoding="utf-8",
+    )
+
+    violations = find_violations(tmp_path, "application", ALLOWED["application"])
+
+    assert violations == [
+        "application/bad.py imports fastapi",
+        "application/bad.py imports app.infrastructure.health",
+    ]
