@@ -114,7 +114,7 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run pytest                 # tests (with coverage)
-uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/docs)
+uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api/docs)
 ```
 
 - Dependencies are added with `uv add` / `uv add --dev` and an exact version (`==`); `pip` is not used.

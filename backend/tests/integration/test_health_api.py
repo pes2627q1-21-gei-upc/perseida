@@ -24,7 +24,7 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
 
 
 async def test_health_returns_ok(client: AsyncClient) -> None:
-    response = await client.get("/health")
+    response = await client.get("/api/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "components": {"app": "ok"}}
@@ -37,7 +37,7 @@ async def test_health_reports_down_component_with_override(
         [FakeHealthCheck("app"), FakeHealthCheck("db", up=False)]
     )
 
-    response = await client.get("/health")
+    response = await client.get("/api/health")
 
     assert response.status_code == 200
     assert response.json() == {
@@ -47,16 +47,16 @@ async def test_health_reports_down_component_with_override(
 
 
 async def test_openapi_documents_health(client: AsyncClient) -> None:
-    response = await client.get("/openapi.json")
+    response = await client.get("/api/openapi.json")
 
     assert response.status_code == 200
     schema = response.json()
-    assert "/health" in schema["paths"]
+    assert "/api/health" in schema["paths"]
     assert "HealthResponse" in schema["components"]["schemas"]
 
 
 async def test_docs_are_served(client: AsyncClient) -> None:
-    response = await client.get("/docs")
+    response = await client.get("/api/docs")
 
     assert response.status_code == 200
 
