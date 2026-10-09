@@ -2,7 +2,7 @@
 
 **English** | [Català](README.ca.md) | [Español](README.es.md)
 
-> 🚧 **Under construction.** The project is in its first sprint. `app/` and `tests/` are real (the `health` module is the reference example), but most modules (persistence, auth, chat, scheduler) are not implemented yet.
+> 🚧 **Under construction.** The project is in its first sprint. The `health` module is the reference example, and asynchronous PostgreSQL persistence infrastructure is now implemented. Most other modules (auth, chat, scheduler) are still pending.
 
 Backend of **Perseida**, a multiplatform mobile app for astronomy outreach, exploration and tracking of astronomical events, built as a PES project (UPC-FIB). It exposes the REST API and real-time chat used by the mobile app and the admin panel, and integrates NASA Open APIs and other external providers.
 
@@ -28,7 +28,7 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 | Scheduler | APScheduler |
 | Auth | Google OAuth2 + PKCE · Google token validation via JWKS · own backend session (JWT) |
 | Moderation | Kev-4B microservice (local model, synchronous call) |
-| Dependencies | `uv` (exact versions, `uv.lock` committed) |
+| Dependencies | `uv` (`uv.lock` committed) |
 | Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud |
 | Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
 
@@ -63,7 +63,7 @@ Pattern for external data (e.g. APOD): the first request calls the external API 
 
 ## Structure
 
-```
+```text
 backend/
 ├── app/
 │   ├── main.py            # FastAPI app factory and lifespan
@@ -72,20 +72,22 @@ backend/
 │   ├── application/       # services
 │   │   └── health/        # use case
 │   └── infrastructure/    # routers, persistence, redis, clients
-│       └── health/        # adapters, router and wiring
+│       ├── health/        # adapters, router and wiring
+│       └── persistence/   # database settings, async sessions and metadata
 ├── tests/
-│   ├── unit/              # domain and application, with fakes
-│   ├── integration/       # API with httpx + ASGITransport
+│   ├── unit/              # domain, application and persistence tests
+│   ├── integration/       # API and PostgreSQL integration tests
 │   ├── architecture/      # layer dependency rules
 │   ├── fakes/             # in-memory ports for the tests
 │   ├── fixtures/          # recorded NASA/weather responses, geo data
 │   ├── factories/         # users, events, messages, achievements
 │   └── moderation_dataset/# labeled Kev-4B evaluation set (ca/es/en)
+├── .env.example
 ├── pyproject.toml
 └── uv.lock
 ```
 
-`alembic/` (migrations) and `.env.example` will arrive with persistence.
+Alembic migrations will be added with the database migration implementation.
 
 ### Adding a feature
 
@@ -111,13 +113,13 @@ cd backend                    # from the repository root
 uv sync                       # install dependencies (virtual env in .venv)
 uv lock --check               # verify uv.lock is up to date with pyproject.toml
 uv run ruff check .           # lint
-uv run ruff format --check .  # check formatting without modifying files
+uv run ruff format --check .   # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run pytest                 # tests (with coverage)
 uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api/docs)
 ```
 
-- Dependencies are added with `uv add` / `uv add --dev` and an exact version (`==`); `pip` is not used.
+- Dependencies are managed with `uv add` / `uv add --dev`; `uv.lock` is committed to keep installations reproducible. `pip` is not used.
 - All configuration (ruff, mypy, pytest, coverage) lives in `pyproject.toml`.
 
 The full stack (API, PostgreSQL/PostGIS, Redis, moderation) is started with Docker Compose from [`../infra`](../infra/README.md). Copy `.env.example` to `.env`; real secrets are never committed.
@@ -141,3 +143,19 @@ The full stack (API, PostgreSQL/PostGIS, Redis, moderation) is started with Dock
 ## Team
 
 Manel Alaminos · Simona Duelt · Alex Garcia · Oriol Orbea · Javier Pascual · Raquel Rubio
+
+## PostgreSQL
+
+The asynchronous PostgreSQL connection is configured through environment variables:
+
+- `POSTGRES_DB`: database name.
+- `POSTGRES_USER`: database user.
+- `POSTGRES_PASSWORD`: database password.
+- `POSTGRES_HOST`: database host.
+- `POSTGRES_PORT`: database port.
+
+See `.env.example` for example values. Do not commit real credentials.
+
+Database settings are validated during application startup. The asynchronous engine and session factory are created in FastAPI's lifespan and the engine is disposed when the application shuts down. A session is provided per request; successful requests commit, while exceptions trigger a rollback.
+
+The engine uses lazy connections: creating it does not immediately establish a connection to PostgreSQL. The first database operation opens the connection.

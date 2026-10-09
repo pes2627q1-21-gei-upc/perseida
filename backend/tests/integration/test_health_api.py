@@ -61,6 +61,29 @@ async def test_docs_are_served(client: AsyncClient) -> None:
     assert response.status_code == 200
 
 
-async def test_lifespan_starts_and_stops(app: FastAPI) -> None:
+
+async def test_lifespan_starts_and_stops(
+    app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import AsyncMock, MagicMock
+
+    import app.main as main_module
+
+    monkeypatch.setattr(
+        main_module,
+        "DatabaseSettings",
+        lambda: MagicMock(database_url="postgresql+asyncpg://test:test@localhost/test"),
+    )
+
+    engine = MagicMock()
+    engine.dispose = AsyncMock()
+
+    monkeypatch.setattr(
+        "app.main.create_async_engine",
+        lambda *args, **kwargs: engine,
+    )
+
     async with app.router.lifespan_context(app):
-        pass
+        assert app.state.session_factory is not None
+
+    engine.dispose.assert_awaited_once()

@@ -42,7 +42,7 @@ Variables de `.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 
 ## Estat d'implementació
 
-planificat
+implementat
 
 > [!note]
 > No hi ha còpies de seguretat automàtiques (limitació acceptada, vegeu [[arquitectura-fisica]]).
