@@ -46,7 +46,6 @@ Concrecions de l'ADR-0018 (no en canvien la decisió; vegeu la secció «Concrec
 
 - [ ] Obrir la PR cap a `develop` (la persona) i avisar l'equip de TG-44 (tasca #283) quan es fusioni.
 - [ ] No hi ha workflow de CI del backend a `.github/workflows/`: els linters i els tests s'han executat en local.
-- [ ] Revisar els textos ca/es/en proposats al catàleg de codis.
 - [ ] TG-49: logging estructurat complet i `/health` amb PostgreSQL i Redis.
 
 ## US de Taiga
