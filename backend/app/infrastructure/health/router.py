@@ -60,6 +60,9 @@ class HealthResponse(BaseModel):
                         "status": 503,
                         "detail": "Un o més components del sistema "
                         "no estan disponibles.",
+                        "instance": "/api/health",
+                        "code": "SERVICE_UNAVAILABLE",
+                        "correlation_id": "3f0c2a52-8c1e-4a5e-9d0b-6a1f2f7c9b10",
                     }
                 }
             },
