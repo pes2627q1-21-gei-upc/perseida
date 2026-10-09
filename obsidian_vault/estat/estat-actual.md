@@ -2,15 +2,15 @@
 titol: Estat actual del projecte
 tipus: estat
 estat: vigent
-data: 2026-10-08
-us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88"]
-font: "memòria §2.1; sessions 2026-10-07 i 2026-10-08; Taiga: backlog (llistat de US i sprints, 2026-10-07)"
+data: 2026-10-09
+us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88", "TG-44", "TG-304"]
+font: "memòria §2.1; sessions 2026-10-07, 2026-10-08 i 2026-10-09; Taiga: backlog (llistat de US i sprints, 2026-10-07; tasca TG-304, 2026-10-09)"
 etiquetes: [estat, sprint, taiga]
 ---
 
-# Estat actual (2026-10-08)
+# Estat actual (2026-10-09)
 
-Instantània a data 2026-10-08. L'estat viu a Taiga; si hi ha diferències, guanya Taiga.
+Instantània a data 2026-10-09. L'estat viu a Taiga; si hi ha diferències, guanya Taiga.
 
 ## Sprint
 
@@ -55,8 +55,15 @@ La resta del backlog és a [[epiques-i-us]].
 - ADR 0016–0021 acceptades i vault coherent amb elles. Sessió: [[2026-10-08-esquelet-fastapi]].
 - Pendent: PR cap a `develop` (la fa la persona).
 
+## Què ha lliurat TG-304 (tasca de TG-44)
+
+- Jerarquia d'errors a `domain` i `application`, handlers RFC 9457 i middleware `X-Correlation-ID` a `infrastructure/api` ([[0018-errors-rfc-9457-amb-codis-estables]]).
+- Tests amb cobertura del 100 % del codi nou; README, skill `gestio-errors` i vault actualitzats. Sessió: [[2026-10-09-jerarquia-errors]].
+- Pendent: PR cap a `develop` (la persona); desbloqueja la tasca #283 de TG-44.
+
 ## Pendent
 
+- No hi ha workflow de CI del backend a `.github/workflows/`; fins que n'hi hagi, els linters i tests s'executen en local.
 - TG-33 ha d'ampliar la plantilla de PR (`.github/pull_request_template.md`) amb la llista de revisió de la memòria §2.4.4: arquitectura hexagonal, tests per al codi nou, claredat i nomenclatura, eficiència de les consultes a PostgreSQL/PostGIS, secrets, avisos de SonarQube Cloud i vault.
 
 ## Dependències
@@ -73,3 +80,4 @@ La resta del backlog és a [[epiques-i-us]].
 - [[2026-10-07-base-del-vault]]
 - [[2026-10-07-configuracio-backend]]
 - [[2026-10-08-esquelet-fastapi]]
+- [[2026-10-09-jerarquia-errors]]
