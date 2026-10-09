@@ -114,7 +114,7 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # comprueba el formato sin modificar archivos
 uv run mypy .                 # tipado estricto
 uv run pytest                 # tests (con cobertura)
-uv run uvicorn app.main:app --reload  # arranca la API (http://127.0.0.1:8000/docs)
+uv run uvicorn app.main:app --reload  # arranca la API (http://127.0.0.1:8000/api/docs)
 ```
 
 - Las dependencias se añaden con `uv add` / `uv add --dev` y versión exacta (`==`); no se usa `pip`.

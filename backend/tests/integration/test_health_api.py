@@ -37,7 +37,7 @@ async def test_health_reports_down_component_with_override(
         [FakeHealthCheck("app"), FakeHealthCheck("db", up=False)]
     )
 
-    response = await client.get("/health")
+    response = await client.get("/api/health")
 
     assert response.status_code == 200
     assert response.json() == {

@@ -13,14 +13,17 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Perseida API",
-        description="Backend oficial del projecte Perseida - Arquitectura Hexagonal i API",
+    app = FastAPI(
+        title="Perseida API",
+        description="Backend oficial del projecte Perseida - "
+        "Arquitectura Hexagonal i API",
         version="0.1.0",
-        docs_url="/api/docs",         
-        redoc_url="/api/redoc",      
-        openapi_url="/api/openapi.json", 
-        lifespan=lifespan,)
-    app.include_router(health_router)
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+        openapi_url="/api/openapi.json",
+        lifespan=lifespan,
+    )
+    app.include_router(health_router, prefix="/api")
     return app
 
 
