@@ -4,7 +4,7 @@ Convenció: `SCREAMING_SNAKE`, forma `<ENTITAT>_<MOTIU>` (p. ex. `EVENT_NOT_FOUN
 
 ## Codis transversals (TG-304)
 
-Els genera el handler base, no un `DomainError`. Textos **proposats, pendents de revisió de l'humà**.
+Els genera el handler base, no un `DomainError`. Textos aprovats per la persona responsable (TG-304).
 
 | Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
