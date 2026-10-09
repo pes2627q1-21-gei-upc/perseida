@@ -68,10 +68,13 @@ backend/
 ├── app/
 │   ├── main.py            # app factory de FastAPI y lifespan
 │   ├── domain/            # entities, value objects, ports
+│   │   ├── shared/        # jerarquía DomainError
 │   │   └── health/        # modelos y ports
 │   ├── application/       # services
+│   │   ├── shared/        # jerarquía ApplicationError
 │   │   └── health/        # caso de uso
 │   └── infrastructure/    # routers, persistence, redis, clients
+│       ├── api/           # handlers de errores (RFC 9457) y correlation id
 │       └── health/        # adaptadores, router y cableado
 ├── tests/
 │   ├── unit/              # dominio y application, con fakes
@@ -96,6 +99,49 @@ El módulo `health` es el ejemplo de referencia. Para un módulo nuevo `<nombre>
 3. **Infrastructure** (`app/infrastructure/<nombre>/`): los adaptadores que implementan los ports (`checks.py`), el provider `get_<nombre>_service` con `@lru_cache` y `<Nombre>ServiceDep` (`dependencies.py`), y el router con su modelo de respuesta (`router.py`).
 4. Registra el router en `create_app()` (`app/main.py`).
 5. **Tests**, después del código: unitarios con fakes (`tests/fakes/`), integración de la API con `dependency_overrides`; el test de arquitectura sigue verificando las capas.
+
+## Errores
+
+Contrato de errores único ([ADR-0018](../obsidian_vault/decisions/0018-errors-rfc-9457-amb-codis-estables.md)). El código de dominio y de application lanza errores tipados con un `code` estable (`SCREAMING_SNAKE`, p. ej. `EVENT_NOT_FOUND`); solo `infrastructure` conoce HTTP, así que no hay ninguna `HTTPException` fuera de ella.
+
+| Error | Capa | Status |
+|---|---|---|
+| `NotFoundError` | `domain/shared/errors.py` | 404 |
+| `ConflictError` | `domain/shared/errors.py` | 409 |
+| `ValidationError`, `BusinessRuleViolation` | `domain/shared/errors.py` | 422 |
+| `UnauthorizedError` | `application/shared/errors.py` | 401 |
+| `ForbiddenError` | `application/shared/errors.py` | 403 |
+| `ExternalServiceError` (proveedor externo caído, sin caché) | `application/shared/errors.py` | 503 |
+| Otros `DomainError` / `ApplicationError` | | 400 |
+
+```python
+raise NotFoundError("EVENT_NOT_FOUND", "Event 42 does not exist")
+raise UnauthorizedError("INVALID_SESSION")  # el mensaje por defecto es el code
+```
+
+`DomainError(code, message=None)` y `ApplicationError(code, message=None)` comparten firma; `message` es técnico (logs y `detail`) y nunca se muestra al usuario: el frontend traduce por `code`. El status se resuelve en `infrastructure/api/error_handlers.py` (`STATUS_BY_ERROR`, recorriendo el MRO de la clase), de modo que una subclase nueva hereda el del padre.
+
+Todo error se responde como `application/problem+json` (RFC 9457):
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Event 42 does not exist",
+  "instance": "/api/events/42",
+  "code": "EVENT_NOT_FOUND",
+  "correlation_id": "5c0e0b8e-6d57-4f7b-9d0e-0d6a1f6f4c11"
+}
+```
+
+- `title` es la frase HTTP estándar; `type` siempre es `about:blank`.
+- Errores de validación de la petición: 422, `code` `VALIDATION_ERROR` y `errors[]` con un `{field, message, type}` por campo.
+- Rutas inexistentes y otros errores HTTP conservan su status con `NOT_FOUND`, `METHOD_NOT_ALLOWED` o `HTTP_<status>`.
+- Excepciones inesperadas: 500 `INTERNAL_ERROR` con un `detail` genérico; ninguna traza ni nombre de clase sale del servidor (va al log con el `correlation_id`).
+- **Correlation id:** la cabecera `X-Correlation-ID` se añade a todas las respuestas. Un valor entrante solo se reutiliza si cumple `[A-Za-z0-9._-]{1,128}`; si no, se genera un `uuid4`. El mismo id sale en el cuerpo como `correlation_id`.
+
+Añadir un código: lanza la clase existente con el `code` nuevo desde `domain`/`application`, regístralo en el [catálogo de códigos](../.agents/skills/gestio-errors/references/cataleg-codis.md) y añade sus textos ca/es/en en el frontend. Nunca se renombra un `code` publicado.
 
 ## Contratos de servicio (Spotwise, grupo 21B)
 
