@@ -47,7 +47,7 @@ async def test_health_reports_down_component_with_override(
 
 
 async def test_openapi_documents_health(client: AsyncClient) -> None:
-    response = await client.get("/openapi.json")
+    response = await client.get("/api/openapi.json")
 
     assert response.status_code == 200
     schema = response.json()
@@ -56,7 +56,7 @@ async def test_openapi_documents_health(client: AsyncClient) -> None:
 
 
 async def test_docs_are_served(client: AsyncClient) -> None:
-    response = await client.get("/docs")
+    response = await client.get("/api/docs")
 
     assert response.status_code == 200
 
