@@ -1,0 +1,37 @@
+name: Skills sync check
+
+# Verifica que les còpies generades (.claude/skills i els subagents natius de cada eina)
+# coincideixen amb la font de veritat de .agents/.
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - ".agents/skills/**"
+      - ".agents/agents/**"
+      - ".agents/scripts/**"
+      - ".claude/skills/**"
+      - ".claude/agents/**"
+      - ".codex/agents/**"
+      - ".opencode/agents/**"
+      - ".github/agents/**"
+      - ".gemini/agents/**"
+      - ".github/workflows/skills-sync-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Proves dels scripts
+        run: node --test .agents/scripts/*.test.mjs
+      - name: Comprovar sincronització de skills
+        run: node .agents/scripts/sync-skills.mjs --check
+      - name: Comprovar sincronització de subagents
+        run: node .agents/scripts/sync-agents.mjs --check
