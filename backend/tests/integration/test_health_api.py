@@ -24,7 +24,7 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
 
 
 async def test_health_returns_ok(client: AsyncClient) -> None:
-    response = await client.get("/health")
+    response = await client.get("/api/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "components": {"app": "ok"}}
@@ -51,7 +51,7 @@ async def test_openapi_documents_health(client: AsyncClient) -> None:
 
     assert response.status_code == 200
     schema = response.json()
-    assert "/health" in schema["paths"]
+    assert "/api/health" in schema["paths"]
     assert "HealthResponse" in schema["components"]["schemas"]
 
 
