@@ -1,0 +1,39 @@
+name: CI
+
+# Executa la CI del projecte a cada PR i a cada push cap a develop o main.
+# El job `changes` detecta quines parts del repo han canviat perquè els jobs
+# següents només s'executin quan toca.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detectar canvis al backend
+        id: filter
+        uses: dorny/paths-filter@v4.0.3
+        with:
+          filters: |
+            backend:
+              - "backend/**"
+              - ".github/workflows/ci.yml"
+      - name: Mostrar resultat de la detecció
+        run: echo "backend changed = ${{ steps.filter.outputs.backend }}"
