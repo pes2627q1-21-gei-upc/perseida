@@ -14,7 +14,7 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 ## Abans de començar
 
 1. Llegeix `AGENTS.md` i segueix la skill `vault-context` (`obsidian_vault/arquitectura/frontend.md`, `convencions/{testing,qualitat}.md`, `frontend/README.md`, ADR vigents, p. ex. ADR-0011 offline).
-2. Llegeix la US (Taiga) i els criteris d'acceptació. Referencia-la amb `TG-NN` (US actual: TG-205).
+2. Llegeix la US (Taiga) i els criteris d'acceptació. Referencia-la amb `TG-NN` (la que t'indiqui l'agent principal o la persona; si no la tens, pregunta-la). Si treballes dins del flux d'una US sencera, l'orquestra la skill `implementar-us`.
 3. Si hi ha canvi d'arquitectura o decisió rellevant, actualitza el vault abans de fusionar; al final de sessió, entrada a `obsidian_vault/estat/sessions/` i `estat-actual.md` (amb la skill `obsidian-markdown`).
 
 ## Arquitectura i disseny que has de respectar
@@ -22,7 +22,7 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 - Estructura: `frontend/src/app/` (Expo Router; grups `(app)` mòbil i `(admin)` web/escriptori), `src/features/<mòdul>/{components,hooks,api}`, `src/shared/{ui,theme,api,errors,i18n}`.
 - Frontend "tonto": cap regla de negoci ni de seguretat; només presentació, UX i validació de comoditat (Zod); la vàlida és la del backend. La lògica de puntuació/premis viu al backend.
 - Estils: NativeWind (layout/espaiat) + tokens de tema propis + components base "glossy" (`expo-linear-gradient`, `expo-blur`, `react-native-svg`). Zero valors hardcodejats (colors, espais, radis) fora dels tokens.
-- **Estètica obligatòria "Frutiger Cosmo"** (variant espacial del Frutiger Aero, inspirada en l'iPhone 4/iOS 4 i la Wii): base fosca còsmica glossy (fons nit/nebulosa blau profund -> violeta), panells de vidre translúcid amb vora brillant i reflex superior, botons "gel" aqua/cian, bombolles i estels, ombres suaus de llum, tipografia arrodonnida humanista, icones amables. Mode nocturn amb tint vermell opcional. Paleta/tipografia concretes que no són al vault: pregunta a l'humà.
+- **Estètica obligatòria «Frutiger Cosmo · Cel viu»** (inspirada en els menús de la Wii, Windows 7 i l'iPhone 4): fons de paisatge (prat i llac) sota un cel de dia, posta o nit; vidre translúcid només en capes flotants, botons «gel» només per a accions, aigua, aurora i llum; cap gradient decoratiu; quatre temes (`dia`, `posta`, `nit`, `vermell`) i quatre modes (Clar, Fosc, Seguir sistema, Seguir Sol); so i moviment actius. **Tota la direcció, els tokens, les receptes i la checklist són a la skill `estetica-frutiger-cosmo`: invoca-la abans de decidir qualsevol aspecte.** Valors «proposta a validar», icones i origen dels sons: pregunta a l'humà.
 - **100% responsive, mobile-first**: app per a mòbils actuals (Pixel 10 Pro, iPhone 17 Pro, Galaxy S recents; safe areas, notch/dynamic island, tàctil >= 44x44 pt); admin pensat per a escriptori/portàtil (~1280-1536 px) però funcional a qualsevol resolució. Breakpoints als tokens; sense scroll horitzontal; prova en mòbil petit, mòbil gran, tauleta i escriptori. Accessibilitat i `reduced motion`.
 - API: tipus generats amb `openapi-typescript`, client `openapi-fetch`, hooks `TanStack Query` per feature; mai `fetch` solt ni URLs hardcodejades; no s'inventen camps (contracte = OpenAPI).
 - Formularis: `react-hook-form` + `zod`; errors per camp + toast per als globals; estats loading/disabled.
@@ -35,7 +35,8 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 ## Skills que has d'usar i quan
 
 - `vault-context`: sempre, a l'inici i al final.
-- `ui-ux-pro-max` i `frontend-design`: SEMPRE que decideixis aspecte, paleta, tipografia, layout o accessibilitat; la direcció visual la fixa la guia Frutiger Cosmo.
+- `estetica-frutiger-cosmo`: SEMPRE que decideixis o escriguis aspecte, paleta, tipografia, layout, animació o so; fixa la direcció i orquestra `frontend-design` (dues passades, amb el brief fixat) i `ui-ux-pro-max` (consultes concretes; mai `--design-system --persist`).
+- `ui-ux-pro-max` i `frontend-design`: sempre a través de l'anterior; directament només per a accessibilitat o UX que no sigui d'estètica.
 - `frontend-component`: en crear un component reutilitzable.
 - `frontend-pagina`: en crear una pantalla/ruta.
 - `frontend-crida-api`: en consumir un endpoint (hook amb TanStack Query).
