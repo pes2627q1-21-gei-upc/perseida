@@ -38,4 +38,4 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
 | Altres (meteo, contaminació lumínica, Spotwise, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
-Els comportaments per proveïdor no consten al vault més enllà del patró general (dada de la cache en lloc d'un 500): no n'inventis de nous.
+Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.
