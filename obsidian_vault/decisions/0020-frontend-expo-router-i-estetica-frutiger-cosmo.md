@@ -3,7 +3,7 @@ titol: "Frontend: Expo Router, stack d'UI i estètica Frutiger Cosmo"
 tipus: adr
 estat: acceptada
 data: "2026-10-07"
-us: ["TG-205"]
+us: ["TG-205", "TG-305"]
 font: "sessió de treball del 2026-10-07 (TG-205); decisió estètica revisada el 2026-10-13 (sessió 2026-10-13-skills-estetica-i-implementar-us); decisions de la persona responsable"
 etiquetes: [adr, frontend, ui, ux, responsive]
 ---
