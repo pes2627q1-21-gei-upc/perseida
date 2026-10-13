@@ -81,7 +81,7 @@ Cos, reflex i vora **separats** perquè el reflex no passi per sota del text:
 
 ## Icones
 
-Una **sola família** vectorial (outline o filled, no barrejades; **pregunta quina**). Mai emojis. Les icones d'**acció principal** poden anar en un orbe glossy (cercle/quadrat arrodonit amb reflex curvat i vora de llum, com l'iPhone 4); la resta d'icones d'UI són planes amb un glow suau. Decoratives amagades al lector de pantalla.
+Una **sola família**: **Phosphor** (`phosphor-react-native`; veure `tokens.md`), mai emojis ni altres famílies. Les icones d'**acció principal** poden anar en un orbe glossy (cercle/quadrat arrodonit amb reflex curvat i vora de llum, com l'iPhone 4); la resta d'icones d'UI són planes amb un glow suau. Decoratives amagades al lector de pantalla.
 
 ## Bombolles, estels i aurora (Skia)
 

@@ -22,12 +22,12 @@ Tot el fons de l'app és una **escena** (`SkyScene`): un paisatge fix (turons de
 | **Seguir sistema** | `Appearance.getColorScheme()`: `light` → `dia`, `dark` → `nit` |
 | **Seguir Sol** *(per defecte)* | segons l'altitud solar (vegeu sota); inclou `posta` |
 
-La **posta** només existeix a «Seguir Sol». L'interruptor **mode vermell** *(proposta a validar)* es converteix en el tema `vermell` quan el tema resolt és `nit` o `posta`; **mai de dia** (a «Clar» l'interruptor es mostra desactivat i explica per què). Totes les preferències es desen localment.
+La **posta** només existeix a «Seguir Sol». L'interruptor **mode vermell** (acordat 2026-10-13) converteix el tema en `vermell` quan el tema resolt és `nit` o `posta`; **mai de dia** (a «Clar» l'interruptor es mostra desactivat i explica per què). Totes les preferències es desen localment.
 
 ## Seguir Sol: fase segons l'altitud
 
 - **Altitud solar** calculada **en local**, sense API (fórmula de baixa precisió de l'Almanac, ~0,01° d'error; validada amb el solstici d'estiu a Barcelona: màxim 72,05°, esperat 72,0°).
-- **Font de la ubicació**: *(pregunta a la persona abans d'implementar)* ubicació del dispositiu (`expo-location`, amb permís) o ciutat triada per l'usuari. **Sense ubicació**: franges de rellotge aproximades (alba i ocàs ≈ 6–7 h i 19–21 h → `posta`; 7–19 h `dia`; la resta `nit`).
+- **Font de la ubicació** (acordada 2026-10-13), per ordre: (1) **ubicació aproximada** del dispositiu amb `expo-location` (57.0.21 verificada a npm; permís només en primer pla i precisió baixa, no se'n desa res al servidor); (2) si el permís es denega o no n'hi ha, una **ciutat triada** per l'usuari; (3) si no hi ha cap de les dues, **franges de rellotge** aproximades (alba i ocàs ≈ 6–7 h i 19–21 h → `posta`; 7–19 h `dia`; la resta `nit`). La ubicació es pot reutilitzar per a les zones d'observació, però això és una altra US.
 - Recalcula cada **60 s** i en tornar l'app a primer pla; no cada frame.
 
 | Altitud del Sol | Cel | Tema d'UI |

@@ -8,7 +8,7 @@ La fan servir qui crea UI (skills `frontend-*`) i qui la revisa (`reviewer-arqui
 - [ ] **Un motiu natural** per pantalla (aigua, aurora/llum o prat).
 - [ ] **Cap gradient decoratiu** a la UI (només cel, gel i reflex de vidre).
 - [ ] No hi ha trets de plantilla de `frontend-design` (targetes idèntiques amb la mateixa ombra grisa, etiquetes en majúscules sobre cada títol, numeració sense seqüència real).
-- [ ] Una sola família d'icones, vectorials; cap emoji.
+- [ ] Una sola família d'icones (Phosphor); cap emoji.
 
 ## Tokens i temes
 - [ ] Zero colors, radis, ombres, durades ni espais literals fora de `src/shared/theme`.

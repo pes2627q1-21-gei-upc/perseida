@@ -17,9 +17,9 @@ Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. **Abans de re
 No inventis res. Si falta qualsevol dada o hi ha més d'una opció raonable, ATURA'T abans d'escriure codi i pregunta a l'humà (si ets un subagent que no pot preguntar: retorna a l'agent principal un bloc `PREGUNTES PER A L'HUMÀ` amb les preguntes numerades i les opcions). Mai assumeixis un valor per defecte en silenci.
 
 Preguntes concretes d'aquesta skill (abans d'escriure):
-1. Existeix ja `src/shared/theme` amb tokens? Si no, es crea a partir de `estetica-frutiger-cosmo/references/tokens.md` (paleta i tipografia ja acordades). Els valors marcats «proposta a validar» (escala tipogràfica, radis, ombra de llum, breakpoints) es confirmen amb la persona abans de fixar-los.
+1. Existeix ja `src/shared/theme` amb tokens? Si no, es crea a partir de `estetica-frutiger-cosmo/references/tokens.md` (paleta i tipografia ja acordades). Escala tipogràfica, radis, ombra de llum i breakpoints ja estan acordats; qualsevol valor que encara porti «proposta a validar» (p. ex. els estats al tema `vermell`) es confirma amb la persona abans de fixar-lo.
 2. Com es carrega la tipografia (M PLUS Rounded 1c + Open Sans, `expo-font`) i quines versions dels paquets `@expo-google-fonts/*` es fixen? Verifica'n l'existència abans.
-3. Quin **joc d'icones** (una sola família; vectorial, mai emojis)? Encara no està decidit: pregunta.
+3. Icones: **Phosphor** (`phosphor-react-native`, ja decidit; verifica la versió i que `react-native-svg` hi sigui abans d'afegir-lo). Mai emojis ni altres famílies.
 4. El component és base compartit (`shared/ui`) o de feature? Quines variants i estats necessita (default, pressed, disabled, loading, focus)?
 5. Té algun comportament especial als quatre temes (`dia`, `posta`, `nit`, `vermell`)? Per defecte, no: només llegeix tokens semàntics.
 6. Cal alguna **dependència nova** (blur, gradients, svg, skia, so, hàptic)? Pregunta abans d'afegir-la; versió fixada amb pnpm (verifica'n l'existència i la versió).

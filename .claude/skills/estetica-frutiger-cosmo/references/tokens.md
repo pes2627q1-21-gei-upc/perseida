@@ -35,7 +35,7 @@ Primitius de natura (decoratius, sense text a sobre): prat `#6DBE45` / `#3FA535`
 | `gel.highlight` | `rgba(255,255,255,.40)` a dalt → `.14` al límit | cobreix el 42–48 % superior; vora inferior suau |
 | `gel.rim` | `#1FA8E0` (vora interior d'1 px, 50 %) | és l'«aqua» visible; no porta text |
 | `gel.text` | `#FFFFFF` | |
-| `gel.glow` | `#1FA8E0` a `.45`, radi 16 | ombra de llum, no grisa |
+| `gel.glow` | `#1FA8E0` a `.60`, `0 8 20` | ombra de llum, no grisa |
 
 **Regla de contrast del gel:** el reflex aclareix el cos. El text blanc ha de quedar per sota del reflex: el reflex acaba al ≤48 % de l'alçada i l'alfa a la zona del text és ≤.14. Contrast mesurat: cos `#075F94` 6.83:1; amb reflex del 12 % 5.25:1; amb el del 18 % 4.58:1. Amb el cos `#0B78B5` (l'«aqua» pur) cau a 3.92:1 amb el reflex del 12 %: **no usar-lo com a cos amb text**. Al tema `vermell`, el gel és `#FF6B5E` amb text `#1A0508` (7.03:1). Al tema `nit`/`posta` el cos és el mateix.
 
@@ -64,7 +64,7 @@ Reprodueix-los amb `python .agents/skills/estetica-frutiger-cosmo/scripts/contra
 | `blur.glassStrong` | intensitat 70 (sheets, modals) |
 | Opacitat mínima darrere de text | **≥ .60 en fosc, ≥ .75 en clar** (ja a `surface.glass`) |
 | Vora | 1 px `surface.glassBorder`, més un reflex de 1 px a dalt (`rgba(255,255,255,.5)`) |
-| Ombra | llum, no grisa: `0 8 24` amb `accent.glow` al 18 % *(proposta a validar)* |
+| Ombra | llum, no grisa, **marcada**: `0 10 32` amb `accent.glow` al 30 %. Vigila el cost a Android i que no embruti el cel de dia |
 | Fallback sense blur (`surface.glassSolid`) | `surface.glass` amb l'opacitat +.15 (si «Redueix la transparència» o rendiment) |
 
 ## Tipografia
@@ -74,19 +74,20 @@ Reprodueix-los amb `python .agents/skills/estetica-frutiger-cosmo/scripts/contra
 | Títols, rellotge, xifres | **M PLUS Rounded 1c** (500, 700) | `expo-font` + `@expo-google-fonts/m-plus-rounded-1c` |
 | Cos i etiquetes | **Open Sans** (400, 600) | `expo-font` + `@expo-google-fonts/open-sans` |
 
-Verifica l'existència i fixa la versió amb `pnpm` abans d'afegir els paquets (regla 7 d'AGENTS.md). Escala *(proposta a validar)*: `caption 12 / body 16 / bodyStrong 16-600 / title 20 / headline 28 / display 40–56` (rellotge). Interlineat 1.5 al cos; línies de <80 caràcters. Només pesos 400/500/600/700 (cap pes fi sobre vidre).
+Verifica l'existència i fixa la versió amb `pnpm` abans d'afegir els paquets (regla 7 d'AGENTS.md). Escala acordada: `caption 12 / body 16 / bodyStrong 16-600 / title 20 / headline 26 / display 44` (el rellotge i els comptadors, a `display`) (rellotge). Interlineat 1.5 al cos; línies de <80 caràcters. Només pesos 400/500/600/700 (cap pes fi sobre vidre).
 
 ## Radis, espaiat, tàctil, moviment
 
 | Grup | Valors |
 |---|---|
-| `radii` | `sm 8`, `md 14`, `lg 22`, `pill 999`, `bubble 999` *(proposta a validar)* |
+| `radii` | `sm 8`, `md 12`, `lg 18`, `pill 999`, `bubble 999` (tipus iOS 4) |
 | `spacing` | ritme 4/8: `xs 4, sm 8, md 16, lg 24, xl 32, xxl 48` |
 | `touch.min` | 44 pt (iOS) / 48 dp (Android); `hitSlop` si la icona és més petita |
-| `iconSizes` | `sm 20, md 24, lg 32` (una sola família d'icones; **pregunta quina**) |
+| `iconSizes` | `sm 20, md 24, lg 32` |
+| Icones | **Phosphor** (`phosphor-react-native`, 3.0.6 verificada a npm el 2026-10-13; depèn de `react-native-svg`): pes `regular` a la UI, `duotone` a les icones d'acció principal i `fill` per a l'estat seleccionat. Verifica la versió abans d'afegir-la |
 | `duration` | `fast 120 ms`, `base 220 ms`, `slow 420 ms` |
 | `spring` | rebot suau: `damping 14, stiffness 160, mass 1` (tile que creix: escala 1 → 1.06) |
-| `breakpoints` | `phoneSmall 360`, `phone 390`, `tablet 768`, `desktop 1280`, `wide 1536` *(proposta a validar; vegeu `responsive.md` a `frontend-component`)* |
+| `breakpoints` | `phoneSmall 360`, `phone 390`, `tablet 768`, `desktop 1280`, `wide 1536` (vegeu `responsive.md` a `frontend-component`) |
 | `reducedMotion` | alternativa sense moviment (no només més lenta); l'ambient es congela |
 
 ## Regles

@@ -2,7 +2,7 @@
 
 Requisit: 100% responsive, mobile-first. L'app (grup `(app)`) està pensada per als mòbils actuals; el panell d'admin (grup `(admin)`) per a escriptori/portàtil (aprox. 1280-1536 px) però ha de funcionar a qualsevol resolució mòbil i PC. Els breakpoints viuen als tokens (`src/shared/theme`); no es fixen aquí.
 
-> Les amplades exactes dels breakpoints són una **proposta a validar amb l'humà**. Verifica a la documentació del fabricant les dimensions dels dispositius abans de fixar-les; no s'inventen.
+> Breakpoints acordats el 2026-10-13: 360 / 390 / 768 / 1280 / 1536 (`phoneSmall`, `phone`, `tablet`, `desktop`, `wide`). Les dimensions dels dispositius de prova es verifiquen a la documentació del fabricant; no s'inventen.
 
 ## Matriu de dispositius a provar
 | Classe | Representants | Què comprovar |
