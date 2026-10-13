@@ -52,6 +52,47 @@ def resolve_status(exc: Exception) -> int:
     return int(HTTPStatus.BAD_REQUEST)
 
 
+_ABSENT = object()
+
+
+def _child(container: object, segment: int | str) -> object:
+    if isinstance(container, dict):
+        return container.get(segment, _ABSENT)
+    if isinstance(container, list) and isinstance(segment, int):
+        return container[segment] if 0 <= segment < len(container) else _ABSENT
+    return _ABSENT
+
+
+def _trim_union_segments(
+    loc: tuple[int | str, ...], body: object, error_type: str
+) -> tuple[int | str, ...]:
+    """Drop trailing loc segments that are not part of the request body.
+
+    Pydantic appends the union branch (``int``, ``list[int]``, a model name) to
+    the loc; those segments are not keys of the input, so they are cut. A key
+    that is absent on purpose (``missing``) is kept when it is the last segment.
+    """
+    if not loc or loc[0] != "body":
+        return loc
+    kept: list[int | str] = [loc[0]]
+    current = body
+    for index, segment in enumerate(loc[1:], start=1):
+        child = _child(current, segment)
+        if child is not _ABSENT:
+            current = child
+        elif (
+            error_type == "missing"
+            and index == len(loc) - 1
+            and isinstance(current, dict)
+        ):
+            kept.append(segment)
+            break
+        else:
+            break
+        kept.append(segment)
+    return tuple(kept)
+
+
 def _field_name(loc: tuple[int | str, ...]) -> str:
     parts = list(loc)
     if parts and parts[0] in _LOCATION_PREFIXES:
@@ -83,7 +124,8 @@ async def _handle_validation_error(request: Request, exc: Exception) -> Response
         raise exc
     errors_by_field: dict[str, dict[str, str]] = {}
     for error in exc.errors():
-        field = _field_name(error["loc"])
+        loc = _trim_union_segments(error["loc"], exc.body, str(error["type"]))
+        field = _field_name(loc)
         errors_by_field.setdefault(
             field,
             {"field": field, "message": str(error["msg"]), "type": str(error["type"])},

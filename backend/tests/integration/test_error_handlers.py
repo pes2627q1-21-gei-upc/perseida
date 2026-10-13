@@ -46,6 +46,10 @@ ERROR_CASES: list[tuple[str, type[Exception], int]] = [
 ]
 
 
+async def _union_endpoint(body: dict[str, int | list[int]]) -> None:
+    return None
+
+
 def _build_router() -> APIRouter:
     router = APIRouter(prefix="/_test")
 
@@ -61,6 +65,8 @@ def _build_router() -> APIRouter:
     @router.post("/items")
     async def create_item(name: str, body: dict[str, Any]) -> None:
         return None
+
+    router.add_api_route("/union", _union_endpoint, methods=["POST"])
 
     @router.get("/crash")
     async def crash() -> None:
@@ -249,6 +255,15 @@ async def test_server_error_is_logged_as_warning(
     record = next(r for r in caplog.records if r.message == "Handled error")
     assert record.levelname == "WARNING"
     assert record.status == 503  # type: ignore[attr-defined]
+
+
+async def test_union_validation_errors_collapse_to_one_entry_per_field(
+    client: AsyncClient,
+) -> None:
+    response = await client.post("/_test/union", json={"x": "abc"})
+
+    body = assert_problem(response, 422, "VALIDATION_ERROR", "/_test/union")
+    assert [error["field"] for error in body["errors"]] == ["x"]
 
 
 # --- Correlation id -------------------------------------------------------

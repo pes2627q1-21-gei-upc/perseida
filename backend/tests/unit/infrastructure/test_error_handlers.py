@@ -204,7 +204,8 @@ async def test_validation_errors_are_grouped_by_field_keeping_the_first() -> Non
             {"loc": ("body", "name"), "msg": "first", "type": "a"},
             {"loc": ("body", "age"), "msg": "other", "type": "b"},
             {"loc": ("body", "name"), "msg": "second", "type": "c"},
-        ]
+        ],
+        body={"name": 1, "age": "x"},
     )
 
     response = await error_handlers._handle_validation_error(make_request(), exc)
@@ -214,3 +215,31 @@ async def test_validation_errors_are_grouped_by_field_keeping_the_first() -> Non
         {"field": "name", "message": "first", "type": "a"},
         {"field": "age", "message": "other", "type": "b"},
     ]
+
+
+@pytest.mark.parametrize(
+    ("loc", "body", "error_type", "expected"),
+    [
+        (("body", "x", "int"), {"x": "abc"}, "int_parsing", ("body", "x")),
+        (("body", "x", "list[int]"), {"x": "abc"}, "list_type", ("body", "x")),
+        (("body", "z", "A", "y"), {"z": {}}, "missing", ("body", "z")),
+        (("body", "name"), {}, "missing", ("body", "name")),
+        (
+            ("body", "items", 1, "id"),
+            {"items": [{}, {"id": "q"}]},
+            "x",
+            ("body", "items", 1, "id"),
+        ),
+        (("body", "items", 5), {"items": []}, "x", ("body", "items")),
+        (("body",), ["not", "a", "dict"], "model_attributes_type", ("body",)),
+        (("query", "page"), {"page": 1}, "missing", ("query", "page")),
+        ((), None, "x", ()),
+    ],
+)
+def test_trim_union_segments(
+    loc: tuple[int | str, ...],
+    body: object,
+    error_type: str,
+    expected: tuple[int | str, ...],
+) -> None:
+    assert error_handlers._trim_union_segments(loc, body, error_type) == expected
