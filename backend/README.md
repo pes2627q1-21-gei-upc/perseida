@@ -136,7 +136,7 @@ Every error is answered as `application/problem+json` (RFC 9457):
 ```
 
 - `title` is the standard HTTP phrase; `type` is always `about:blank`.
-- Request validation errors: 422, `code` `VALIDATION_ERROR` and `errors[]` with one `{field, message, type}` per field.
+- Request validation errors: 422, `code` `VALIDATION_ERROR` and `errors[]` with one `{field, message, type}` per field (Pydantic union branches such as `x.int` are trimmed to `x`). 5xx errors are logged at `warning`.
 - Unknown routes and other HTTP errors keep their status with `NOT_FOUND`, `METHOD_NOT_ALLOWED` or `HTTP_<status>`.
 - Unexpected exceptions: 500 `INTERNAL_ERROR` with a generic `detail`; no trace or class name leaves the server (it goes to the log with the `correlation_id`).
 - **Correlation id:** the `X-Correlation-ID` header is added to every response. An incoming value is reused only if it matches `[A-Za-z0-9._-]{1,128}`; otherwise a `uuid4` is generated. The same id is in the body as `correlation_id`.

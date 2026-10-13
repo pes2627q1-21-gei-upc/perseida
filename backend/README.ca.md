@@ -136,7 +136,7 @@ Tot error es respon com a `application/problem+json` (RFC 9457):
 ```
 
 - `title` és la frase HTTP estàndard; `type` sempre és `about:blank`.
-- Errors de validació de la petició: 422, `code` `VALIDATION_ERROR` i `errors[]` amb un `{field, message, type}` per camp.
+- Errors de validació de la petició: 422, `code` `VALIDATION_ERROR` i `errors[]` amb un `{field, message, type}` per camp (les branques d'una unió de Pydantic, com `x.int`, es retallen a `x`). Els errors 5xx es registren amb `warning`.
 - Rutes inexistents i altres errors HTTP conserven el seu status amb `NOT_FOUND`, `METHOD_NOT_ALLOWED` o `HTTP_<status>`.
 - Excepcions inesperades: 500 `INTERNAL_ERROR` amb un `detail` genèric; cap traça ni nom de classe surt del servidor (va al log amb el `correlation_id`).
 - **Correlation id:** la capçalera `X-Correlation-ID` s'afegeix a totes les respostes. Un valor entrant només es reutilitza si compleix `[A-Za-z0-9._-]{1,128}`; si no, es genera un `uuid4`. El mateix id surt al cos com a `correlation_id`.
