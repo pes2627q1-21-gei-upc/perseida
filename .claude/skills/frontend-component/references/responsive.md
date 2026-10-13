@@ -31,6 +31,6 @@ Tot ha de funcionar també en landscape i amb mida de text del sistema màxima (
 - [ ] Gutters i amplada màxima de contingut adaptats per breakpoint.
 - [ ] Tàctil >=44 pt; hover/focus/teclat a escriptori.
 - [ ] Mida de text del sistema màxima i reduced motion sense trencar el layout.
-- [ ] Tema clar/fosc/tint vermell comprovats per separat.
+- [ ] Els quatre temes (`dia`, `posta`, `nit`, `vermell`) i els quatre modes (Clar, Fosc, Seguir sistema, Seguir Sol) comprovats per separat.
 - [ ] Imatges i vidre/blur amb rendiment acceptable (60 fps) en mòbil modest.
 - [ ] Admin usable des de mòbil (no només escriptori).

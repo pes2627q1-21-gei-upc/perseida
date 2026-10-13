@@ -13,9 +13,11 @@ Requisit del projecte: tot el que es fa al frontend (app mòbil i panell d'admin
 
 ## 2. Text gran, contrast i daltonisme
 - Respecta la mida de text del sistema (font scale / Dynamic Type): layouts flexibles, sense alçades fixes que tallin el text. Si cal limitar l'escala (`maxFontSizeMultiplier`): **pregunta a l'humà** el límit.
-- Contrast mínim: text 4.5:1 (3:1 si és gran) i components d'UI i icones 3:1 (WCAG 1.4.3 i 1.4.11), **mesurat sobre el fons real** (vidre translúcid, gradients, blur), no sobre el token aïllat.
+- Contrast mínim: text 4.5:1 (3:1 si és gran) i components d'UI i icones 3:1 (WCAG 1.4.3 i 1.4.11), **mesurat sobre el fons real** (vidre translúcid, cel, blur, fotos), no sobre el token aïllat i **sobre el pitjor fons possible**; usa `../../estetica-frutiger-cosmo/scripts/contrast.py`. El reflex del gel també compta: no pot aclarir el cos sota el text.
 - No transmetre informació només amb el color (WCAG 1.4.1): afegeix icona, text o forma (p. ex. estat d'un esdeveniment, ratxa, error d'un camp).
-- Variant d'alt contrast del tema «Frutiger Cosmo» (menys vidre i més contrast): **proposta a validar amb l'humà** abans d'implementar-la.
+- «Redueix la transparència» (`AccessibilityInfo.isReduceTransparencyEnabled`) fa servir `surface.glassSolid` (sense blur, opacitat +.15), llegible als quatre temes. Una variant d'alt contrast pròpia del tema «Frutiger Cosmo · Cel viu» (menys vidre i més contrast) és una **proposta a validar amb l'humà** abans d'implementar-la.
+- Mode `vermell`: l'estat no es transmet amb color (no hi ha verd/groc): sempre icona + text.
+- So: cada so té equivalent no sonor i un interruptor a ajustos (WCAG 1.4.2 per a so automàtic).
 
 ## 3. Reduce motion i fotosensibilitat
 - Respecta «reduir moviment» del sistema (`AccessibilityInfo.isReduceMotionEnabled` o l'API de reduced motion de `react-native-reanimated`): ofereix una alternativa sense moviment (fade o canvi d'estat), no només una animació més lenta.

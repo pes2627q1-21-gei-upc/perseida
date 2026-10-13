@@ -20,7 +20,7 @@ Usa-la quan:
 - integres una API externa (NASA, FCM, Google JWKS, Spotwise, Kev-4B...) i cal decidir què passa si cau;
 - afegeixes al frontend el tractament d'un `code`, un toast, l'`ErrorBoundary` o el comportament offline.
 
-NO la usis per: la lògica de negoci en si (`backend-entitat-domini`), l'estructura d'un service (`backend-service`) o el disseny visual del toast més enllà de les regles d'aquí (`ui-ux-pro-max`, `frontend-design`).
+NO la usis per: la lògica de negoci en si (`backend-entitat-domini`), l'estructura d'un service (`backend-service`) o el disseny visual del toast més enllà de les regles d'aquí (`estetica-frutiger-cosmo`, que orquestra `ui-ux-pro-max` i `frontend-design`).
 
 ## Protocol de dubtes (OBLIGATORI)
 
@@ -121,7 +121,7 @@ L'app és "tonta": no decideix res, només mostra bé l'error.
 
 1. **Client**: `openapi-fetch` + middleware: si la resposta és `problem+json`, es converteix en `AppError` (`code`, `status`, `correlationId?`, `fieldErrors?`, `retryable`) a `src/shared/errors`. Errors de xarxa/timeout -> `AppError` de tipus xarxa/offline.
 2. **Mapatge `code` -> i18n** amb i18next (ca/es/en): clau per `code` (p. ex. `errors.EVENT_NOT_FOUND`); `code` desconegut -> missatge genèric ("Alguna cosa ha anat malament"). **Mai** JSON, traça ni `detail` cru a la UI.
-3. **Toast** propi, estètica Frutiger Cosmo, animació amb `react-native-reanimated`, accessible (`role="alert"`), amb acció "Reintentar" només si `retryable`. Respecta `reduced motion`.
+3. **Toast** propi de vidre (`GlassPanel`, `estetica-frutiger-cosmo`), animació amb `react-native-reanimated`, accessible (`role="alert"`), amb acció "Reintentar" només si `retryable`. Respecta `reduced motion`. L'error sempre porta **text + icona** (mai només color, sobretot al tema `vermell`) i, si els sons són actius, el so `error` com a reforç, mai com a únic senyal.
 4. **ErrorBoundary** per a errors de renderitzat: pantalla/toast amable amb el missatge genèric i opció de reintentar.
 5. **Formularis**: errors per camp (de `errors[]`) al camp; errors globals al toast.
 6. **Offline/xarxa**: toast d'error de xarxa; la cua/cache SQLite segueix ADR-0011 (outbox, last-write-wins). Quina UX tenen les mutacions encuades fallides: pregunta a l'humà.

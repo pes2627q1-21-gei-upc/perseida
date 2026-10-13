@@ -7,7 +7,7 @@ description: Consumeix l'API del backend des del frontend amb tipus d'openapi-ty
 
 Genera i usa el client tipat de l'API (openapi-typescript + openapi-fetch) i exposa-lo com a hooks de TanStack Query dins cada feature. El contracte és l'OpenAPI del backend: no s'inventen camps.
 
-Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. La conversió d'errors, els toasts i les traduccions per `code` es defineixen a la skill `gestio-errors`: aquí només es lliga el middleware i s'hi remet. **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
+Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. La conversió d'errors, els toasts i les traduccions per `code` es defineixen a la skill `gestio-errors`: aquí només es lliga el middleware i s'hi remet. Els estats de càrrega i d'error que ensenyen aquestes dades a la UI s'ajusten a l'estètica de `estetica-frutiger-cosmo` (es construeixen amb `frontend-pagina`/`frontend-component`, no aquí). **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
 
 ## Quan usar-la / quan NO
 - Usa-la: nou hook `useX`/`useXMutation` a `src/features/<mòdul>/{hooks,api}`, configuració del client a `src/shared/api`, regeneració de tipus.
