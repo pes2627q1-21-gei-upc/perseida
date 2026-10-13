@@ -27,6 +27,7 @@ etiquetes: [sessio, skills, frontend, estetica]
 - Direcció **Cel viu**: paisatge fix (prat i llac) sota un cel de dia, posta o nit; vidre només en capes flotants; gel només en accions; cap gradient decoratiu. Quatre temes (`dia`, `posta`, `nit`, `vermell`) i quatre modes (Clar, Fosc, Seguir sistema, Seguir Sol). El tema i el cel van sempre lligats.
 - Tipografia M PLUS Rounded 1c + Open Sans; motius naturals: aigua, aurora i llum, prat. Moviment i so actius per defecte.
 - Els sons es trien per cas (llibreria CC0, fitxer aportat o script Python); mai de Nintendo, Microsoft o Apple.
+- Decidit després de la primera entrega: icones **Phosphor** (`phosphor-react-native` 3.0.6); radis tipus iOS 4 (8/12/18); escala compacta (cos 16, `display` 44); ombra de llum marcada (`0 10 32` al 30 % al vidre, `0 8 20` al 60 % al gel); breakpoints 360/390/768/1280/1536; mode inicial **Seguir Sol**; ubicació aproximada amb `expo-location` + ciutat de reserva + franges de rellotge; mode vermell com a interruptor només de nit o de posta.
 - S'ha editat l'ADR-0020 (en lloc de crear-ne una de nova), per decisió de la persona.
 - La skill `implementar-us` pot escriure a Taiga (subtasques, comentaris i estats) **sempre amb confirmació**; els punts humans de la DoD surten com a checklist pendent.
 - **Desviació del pla acordat:** el cos del gel és `#075F94`, no `#0B78B5`. Amb `#0B78B5` el reflex superior baixava el contrast del text blanc a 3,9:1 (1,9:1 amb el reflex del 55 % previst). Amb `#075F94` és 6,8:1 (5,3:1 amb el reflex del 12 %).
@@ -35,9 +36,8 @@ etiquetes: [sessio, skills, frontend, estetica]
 
 ## Pendent / següents passos
 
-- [ ] Validar amb la persona els valors marcats «proposta a validar» a `tokens.md`: escala tipogràfica, radis, ombra de llum, breakpoints, comportament del mode vermell i el seu interruptor.
-- [ ] Decidir la família d'icones (una de sola, vectorial).
-- [ ] Decidir la font de la ubicació per a «Seguir Sol» (permís de `expo-location` o ciutat triada).
+- [x] Escala tipogràfica, radis, ombra de llum, breakpoints, mode vermell, icones, ubicació i mode inicial: decidits la mateixa sessió (vegeu sota).
+- [ ] Validar els estats al tema `vermell` (sense verd ni groc, amb icona i text), l'únic valor encara marcat «proposta a validar».
 - [ ] Escoltar i validar els presets de `generar_so.py` (no s'han pogut escoltar durant la sessió).
 - [ ] Quan s'implementi, mesurar el rendiment del blur i de l'escena Skia en un mòbil modest.
 - [ ] Prova real de `implementar-us` amb una US (p. ex. TG-48) fins a la porta del pla.
