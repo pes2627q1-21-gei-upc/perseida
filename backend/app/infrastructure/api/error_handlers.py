@@ -81,14 +81,14 @@ async def _handle_domain_or_application_error(
 async def _handle_validation_error(request: Request, exc: Exception) -> Response:
     if not isinstance(exc, RequestValidationError):
         raise exc
-    errors = [
-        {
-            "field": _field_name(error["loc"]),
-            "message": str(error["msg"]),
-            "type": str(error["type"]),
-        }
-        for error in exc.errors()
-    ]
+    errors_by_field: dict[str, dict[str, str]] = {}
+    for error in exc.errors():
+        field = _field_name(error["loc"])
+        errors_by_field.setdefault(
+            field,
+            {"field": field, "message": str(error["msg"]), "type": str(error["type"])},
+        )
+    errors = list(errors_by_field.values())
     return problem_response(
         request,
         HTTPStatus.UNPROCESSABLE_ENTITY,

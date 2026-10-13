@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import pytest
+from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -195,3 +196,21 @@ async def test_middleware_binds_then_resets_context_var() -> None:
     assert correlation_id_var.get() is None
     assert (b"x-correlation-id", b"abc-1") in sent[0]["headers"]
     assert scope["state"]["correlation_id"] == "abc-1"
+
+
+async def test_validation_errors_are_grouped_by_field_keeping_the_first() -> None:
+    exc = RequestValidationError(
+        [
+            {"loc": ("body", "name"), "msg": "first", "type": "a"},
+            {"loc": ("body", "age"), "msg": "other", "type": "b"},
+            {"loc": ("body", "name"), "msg": "second", "type": "c"},
+        ]
+    )
+
+    response = await error_handlers._handle_validation_error(make_request(), exc)
+    body = json.loads(bytes(response.body))
+
+    assert body["errors"] == [
+        {"field": "name", "message": "first", "type": "a"},
+        {"field": "age", "message": "other", "type": "b"},
+    ]
