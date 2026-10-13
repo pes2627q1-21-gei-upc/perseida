@@ -28,7 +28,8 @@ Detall d'implementació de la decisió anterior, confirmat a la tasca TG-304 (US
 
 - **Signatura:** `DomainError(code, message=None)` i `ApplicationError(code, message=None)`; si falta el missatge, val el `code`. `ApplicationError` no hereta de `DomainError`. El `message` és tècnic (logs i `detail`), mai per a l'usuari.
 - **Status només a `infrastructure`:** mapa `STATUS_BY_ERROR` resolt per MRO. `NotFoundError` 404, `ConflictError` 409, `ValidationError` i `BusinessRuleViolation` 422, `UnauthorizedError` 401, `ForbiddenError` 403, `ExternalServiceError` 503 (classe d'`application` per a proveïdors externs caiguts sense cache); la resta de `DomainError`/`ApplicationError` 400.
-- **Cos:** `type` sempre `about:blank`; `title` és la frase HTTP estàndard; `correlation_id` a tots els errors; `errors[]` només en validació, amb `{field, message, type}` per camp i `code` `VALIDATION_ERROR` (422).
+- **Cos:** `type` sempre `about:blank`; `title` és la frase HTTP estàndard; `correlation_id` a tots els errors; `errors[]` només en validació, amb `{field, message, type}` per camp (un sol element per camp, el primer error; els segments de branca d'unió de Pydantic, com `x.int`, es retallen a `x` recorrent el cos de la petició) i `code` `VALIDATION_ERROR` (422).
+- **Log:** els errors de domini i d'`application` es registren amb `info`, i amb `warning` si el status és 5xx, perquè una caiguda de proveïdor deixi rastre amb el nivell per defecte.
 - **Altres handlers:** errors HTTP de Starlette (`NOT_FOUND`, `METHOD_NOT_ALLOWED`, `HTTP_<status>`) i excepcions inesperades (500 `INTERNAL_ERROR`, `detail` genèric, sense traça ni nom de classe).
 - **Correlació:** capçalera `X-Correlation-ID` a totes les respostes, generada amb `uuid4` per petició; un valor entrant només es respecta si compleix `[A-Za-z0-9._-]{1,128}`, per evitar injecció als logs.
 - **Fora d'abast:** el logging estructurat complet i el *healthcheck* amb PostgreSQL i Redis són de TG-49.
