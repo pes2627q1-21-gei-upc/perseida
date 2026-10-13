@@ -3,8 +3,8 @@ titol: "Sessió 2026-10-13: estètica «Cel viu» a les skills i skill implement
 tipus: sessio
 estat: vigent
 data: 2026-10-13
-us: []
-font: "treball a la branca feature/skills-improvements, sense US de Taiga (decisió de la persona); recerca sobre el Frutiger Aero (CARI, Wikipedia, docs d'Expo) i decisions de la persona responsable"
+us: ["TG-205", "TG-305"]
+font: "treball a la branca feature/skills-improvements, vinculada després a la tasca TG-305 (subtasca de TG-205) de Taiga i a la PR #17; recerca sobre el Frutiger Aero (CARI, Wikipedia, docs d'Expo) i decisions de la persona responsable"
 etiquetes: [sessio, skills, frontend, estetica]
 ---
 
@@ -43,9 +43,11 @@ etiquetes: [sessio, skills, frontend, estetica]
 - [x] Estats al tema `vermell` i variant d'alt contrast: decidits (vegeu sota).
 - [x] Presets de `generar_so.py` escoltats i aprovats per la persona (tres rondes; `error` és la referència d'estètica). Cap WAV és al repo: qui implementi el primer component els genera amb `generar_so.py` i afegeix cada so a `frontend/assets/sounds/LICENSES.md`.
 - [ ] Quan s'implementi, mesurar el rendiment del blur i de l'escena Skia en un mòbil modest.
+- [x] Tests de `contrast.py` i `generar_so.py` (29 proves amb `unittest`, només llibreria estàndard) i pas `setup-python` al workflow `skills-sync-check`.
 - [ ] Prova real de `implementar-us` amb la primera US real (fins ara només s'ha provat la lectura de TG-48 per l'MCP).
 - [ ] Les credencials de l'MCP de Taiga ara són en clar al fitxer d'usuari de l'eina (fora del repo); valorar-ne l'alternativa si l'equip ho demana.
 
 ## US de Taiga
 
-- Cap (feina sense US, per decisió de la persona).
+- TG-305 «Skill d'estètica «Cel viu» i skill implementar-us (PR #17)»: tasca nova sota TG-205, creada a Taiga el 2026-10-13 i en *Ready for test*. La feina es va començar sense US i es va vincular en revisar la PR #17 contra la [[definition-of-done]].
+- TG-205 continua en Done; el seu detall és a [[2026-10-07-subagents-i-skills-agnostics]].

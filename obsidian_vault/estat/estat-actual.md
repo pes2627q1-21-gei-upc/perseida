@@ -62,11 +62,11 @@ La resta del backlog és a [[epiques-i-us]].
 - Sessió: [[2026-10-13-servei-apod-frontend]].
 - Pendent: PR cap a `develop` (la fa la persona); TG-118 a TG-121.
 
-## Millora de skills (sense US de Taiga)
+## Millora de skills (TG-305, subtasca de TG-205)
 
 - Skill `estetica-frutiger-cosmo` («Cel viu»: quatre temes i quatre modes, tokens, receptes, so i moviment) i skill `implementar-us` (de la US de Taiga a la verificació de criteris i DoD). Les skills `frontend-*` i els subagents `frontend` i `reviewer-arquitectura` hi remeten.
 - Paleta, tipografia, escala, radis, ombra, breakpoints, icones (Phosphor), ubicació per a «Seguir Sol» i mode inicial validats; estats al tema `vermell` i alt contrast (només el del sistema) també decidits; els sons generats (`generar_so.py`) estan aprovats. No queda cap valor d'estètica pendent de validar. Sessió: [[2026-10-13-skills-estetica-i-implementar-us]].
-- Pendent: PR cap a `develop` (la fa la persona).
+- Tests Python de `contrast.py` i `generar_so.py` (29 proves) i pas a la CI (`skills-sync-check`). Tasca TG-305 en *Ready for test*; PR #17 pendent d'aprovació d'una altra persona. Pendent: prova real de `implementar-us` amb la primera US real.
 
 ## Pendent
 
