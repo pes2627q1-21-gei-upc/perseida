@@ -46,6 +46,37 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_DB: perseida_ci
+          POSTGRES_USER: perseida
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U perseida -d perseida_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_DB: perseida_ci
+      POSTGRES_USER: perseida
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
     steps:
       - uses: actions/checkout@v4
       - name: Instal·lar uv i Python
