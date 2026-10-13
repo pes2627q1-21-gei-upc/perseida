@@ -41,7 +41,7 @@ etiquetes: [sessio, skills, frontend, estetica]
 
 - [x] Escala tipogràfica, radis, ombra de llum, breakpoints, mode vermell, icones, ubicació i mode inicial: decidits la mateixa sessió (vegeu sota).
 - [x] Estats al tema `vermell` i variant d'alt contrast: decidits (vegeu sota).
-- [ ] Escoltar i validar els presets de `generar_so.py` (l'agent no els pot escoltar). Els 6 WAV de prova estan generats fora del repo; cap so entra al repo fins que la persona els aprovi i s'afegeixi la seva entrada a `frontend/assets/sounds/LICENSES.md`.
+- [x] Presets de `generar_so.py` escoltats i aprovats per la persona (tres rondes; `error` és la referència d'estètica). Cap WAV és al repo: qui implementi el primer component els genera amb `generar_so.py` i afegeix cada so a `frontend/assets/sounds/LICENSES.md`.
 - [ ] Quan s'implementi, mesurar el rendiment del blur i de l'escena Skia en un mòbil modest.
 - [ ] Prova real de `implementar-us` amb la primera US real (fins ara només s'ha provat la lectura de TG-48 per l'MCP).
 - [ ] Les credencials de l'MCP de Taiga ara són en clar al fitxer d'usuari de l'eina (fora del repo); valorar-ne l'alternativa si l'equip ho demana.
