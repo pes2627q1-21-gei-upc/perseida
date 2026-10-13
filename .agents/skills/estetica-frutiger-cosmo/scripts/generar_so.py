@@ -20,7 +20,7 @@ import wave
 
 RATE = 44100
 SUAU = ((1.0, 1.0), (2.0, 0.15), (3.0, 0.03))  # harmònics suaus, sense estridència
-CAMPANA = ((1.0, 1.0), (2.756, 0.40), (5.404, 0.20), (8.933, 0.10))  # parcials de vidre/campana
+CAMPANA_SUAU = ((1.0, 1.0), (2.756, 0.22), (5.404, 0.07))  # vidre amb poca brillantor
 
 
 def veu(freq, inici, dur, decay, amp=1.0, parcials=SUAU, glide_a=None, glide_s=0.06, atac=0.004):
@@ -30,11 +30,10 @@ def veu(freq, inici, dur, decay, amp=1.0, parcials=SUAU, glide_a=None, glide_s=0
 
 # nom -> veus, pic (0-1), passa-baixos (Hz o None), ressonància [(retard_s, guany)]
 PRESETS = {
-    # bombolla que esclata: lliscament cap amunt + un clic suau
+    # bombolla suau: lliscament curt cap amunt, to rodó (mateixa família que error)
     "tap": dict(
-        veus=[veu(700, 0.0, 0.17, 24, 1.0, ((1.0, 1.0), (2.0, 0.25)), glide_a=1150, glide_s=0.05),
-              veu(1800, 0.0, 0.06, 60, 0.25)],
-        pic=0.65, passabaix=6500, ress=[(0.03, 0.18)]),
+        veus=[veu(520, 0.0, 0.20, 20, 1.0, SUAU, glide_a=760, glide_s=0.06, atac=0.008)],
+        pic=0.60, passabaix=3500, ress=[(0.04, 0.15)]),
     # «tic» de vidre, discret però audible
     "hover": dict(
         veus=[veu(1318.5, 0.0, 0.16, 26, 1.0, ((1.0, 1.0), (2.756, 0.22)))],
@@ -47,17 +46,17 @@ PRESETS = {
     "error": dict(
         veus=[veu(311.1, 0.0, 0.24, 7, 1.0), veu(233.1, 0.16, 0.38, 6, 1.0)],
         pic=0.5, passabaix=3500, ress=[(0.04, 0.15)]),
-    # Frutiger Aero: bloop d'aigua + arpegi de vidre (Re major add9) + centelleig, amb aire
+    # Frutiger Aero suau: bloop d'aigua + arpegi de vidre (Re major add9) + centelleig, amb aire
     "notificacio": dict(
-        veus=[veu(420, 0.00, 0.22, 20, 0.55, ((1.0, 1.0), (2.0, 0.2)), glide_a=900, glide_s=0.08),
-              veu(1174.7, 0.10, 1.00, 4.2, 0.80, CAMPANA),
-              veu(1480.0, 0.22, 1.00, 4.2, 0.70, CAMPANA),
-              veu(1760.0, 0.34, 1.00, 4.2, 0.65, CAMPANA),
-              veu(2349.3, 0.50, 1.10, 3.8, 0.45, CAMPANA),
-              veu(3136.0, 0.54, 0.40, 11, 0.12, ((1.0, 1.0),)),
-              veu(3951.1, 0.63, 0.40, 11, 0.09, ((1.0, 1.0),))],
-        pic=0.5, passabaix=8000,
-        ress=[(0.037, 0.30), (0.061, 0.24), (0.089, 0.18), (0.131, 0.12), (0.190, 0.08)]),
+        veus=[veu(380, 0.00, 0.24, 18, 0.50, SUAU, glide_a=720, glide_s=0.09, atac=0.008),
+              veu(587.3, 0.12, 0.95, 4.5, 0.80, CAMPANA_SUAU, atac=0.010),
+              veu(740.0, 0.26, 0.95, 4.5, 0.72, CAMPANA_SUAU, atac=0.010),
+              veu(880.0, 0.40, 0.95, 4.5, 0.68, CAMPANA_SUAU, atac=0.010),
+              veu(1174.7, 0.58, 1.05, 4.0, 0.50, CAMPANA_SUAU, atac=0.010),
+              veu(1568.0, 0.62, 0.45, 10, 0.10, ((1.0, 1.0),), atac=0.010),
+              veu(1975.5, 0.72, 0.45, 10, 0.07, ((1.0, 1.0),), atac=0.010)],
+        pic=0.55, passabaix=4500,
+        ress=[(0.037, 0.28), (0.061, 0.22), (0.089, 0.16), (0.131, 0.10), (0.190, 0.06)]),
     # el mateix to i ritme que ja agradava, amb menys brillantor
     "recompensa": dict(
         veus=[veu(523.3, 0.00, 0.14, 6), veu(659.3, 0.10, 0.14, 6),
