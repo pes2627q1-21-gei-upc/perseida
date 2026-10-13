@@ -50,23 +50,6 @@ class HealthResponse(BaseModel):
                 }
             },
         },
-        503: {
-            "description": "Servei no disponible per fallada d'algun component.",
-            "content": {
-                "application/problem+json": {
-                    "example": {
-                        "type": "about:blank",
-                        "title": "Service Unavailable",
-                        "status": 503,
-                        "detail": "Un o més components del sistema "
-                        "no estan disponibles.",
-                        "instance": "/api/health",
-                        "code": "SERVICE_UNAVAILABLE",
-                        "correlation_id": "3f0c2a52-8c1e-4a5e-9d0b-6a1f2f7c9b10",
-                    }
-                }
-            },
-        },
     },
 )
 async def get_health(service: HealthServiceDep) -> HealthResponse:
