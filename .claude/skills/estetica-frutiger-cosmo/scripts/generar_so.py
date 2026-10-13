@@ -5,9 +5,11 @@
   python .agents/skills/estetica-frutiger-cosmo/scripts/generar_so.py tap  frontend/assets/sounds/tap.wav
   python .agents/skills/estetica-frutiger-cosmo/scripts/generar_so.py --llista
 
-Són sons originals (síntesi additiva amb envolupant exponencial): no deriven de cap so
-de Nintendo, Microsoft ni Apple. Els valors dels presets són un punt de partida: l'oïda
-de la persona és qui valida el resultat. Afegeix el so i la seva «font: generat amb
+Són sons originals (síntesi additiva, lliscaments de to, filtre i ressonància suau): no
+deriven de cap so de Nintendo, Microsoft ni Apple. Després d'escriure el fitxer, l'script
+imprimeix durada, pic i nivell RMS: serveixen per comparar sons entre ells (un so de
+menys de ~100 ms o a més de 8 dB per sota dels altres no se sentirà al mòbil). L'oïda de
+la persona és qui valida el resultat. Afegeix el so i la seva «font: generat amb
 generar_so.py» a frontend/assets/sounds/LICENSES.md.
 """
 import argparse
@@ -17,39 +19,102 @@ import sys
 import wave
 
 RATE = 44100
+SUAU = ((1.0, 1.0), (2.0, 0.15), (3.0, 0.03))  # harmònics suaus, sense estridència
+CAMPANA = ((1.0, 1.0), (2.756, 0.40), (5.404, 0.20), (8.933, 0.10))  # parcials de vidre/campana
 
-# nom -> (notes [(freq_hz, inici_s, durada_s)], volum 0-1, decaïment)
+
+def veu(freq, inici, dur, decay, amp=1.0, parcials=SUAU, glide_a=None, glide_s=0.06, atac=0.004):
+    return dict(freq=freq, inici=inici, dur=dur, decay=decay, amp=amp, parcials=parcials,
+                glide_a=glide_a, glide_s=glide_s, atac=atac)
+
+
+# nom -> veus, pic (0-1), passa-baixos (Hz o None), ressonància [(retard_s, guany)]
 PRESETS = {
-    "tap": ([(880.0, 0.0, 0.09), (1320.0, 0.0, 0.07)], 0.35, 38.0),
-    "hover": ([(1568.0, 0.0, 0.05)], 0.18, 55.0),
-    "exit": ([(659.3, 0.0, 0.16), (880.0, 0.09, 0.16), (1318.5, 0.18, 0.30)], 0.40, 9.0),
-    "error": ([(311.1, 0.0, 0.14), (233.1, 0.12, 0.26)], 0.40, 11.0),
-    "notificacio": ([(1046.5, 0.0, 0.14), (1568.0, 0.14, 0.30)], 0.38, 8.0),
-    "recompensa": ([(523.3, 0.0, 0.14), (659.3, 0.10, 0.14), (784.0, 0.20, 0.14), (1046.5, 0.30, 0.45)], 0.42, 6.0),
+    # bombolla que esclata: lliscament cap amunt + un clic suau
+    "tap": dict(
+        veus=[veu(700, 0.0, 0.17, 24, 1.0, ((1.0, 1.0), (2.0, 0.25)), glide_a=1150, glide_s=0.05),
+              veu(1800, 0.0, 0.06, 60, 0.25)],
+        pic=0.65, passabaix=6500, ress=[(0.03, 0.18)]),
+    # «tic» de vidre, discret però audible
+    "hover": dict(
+        veus=[veu(1318.5, 0.0, 0.16, 26, 1.0, ((1.0, 1.0), (2.756, 0.22)))],
+        pic=0.45, passabaix=7000, ress=[(0.025, 0.2)]),
+    # arpegi ascendent una mica més agut i més llarg
+    "exit": dict(
+        veus=[veu(784.0, 0.00, 0.28, 7, 1.0), veu(1046.5, 0.11, 0.28, 7, 1.0), veu(1568.0, 0.22, 0.48, 6, 1.0)],
+        pic=0.5, passabaix=6000, ress=[(0.04, 0.2)]),
+    # descendent, no estrident, una mica més llarg
+    "error": dict(
+        veus=[veu(311.1, 0.0, 0.24, 7, 1.0), veu(233.1, 0.16, 0.38, 6, 1.0)],
+        pic=0.5, passabaix=3500, ress=[(0.04, 0.15)]),
+    # Frutiger Aero: bloop d'aigua + arpegi de vidre (Re major add9) + centelleig, amb aire
+    "notificacio": dict(
+        veus=[veu(420, 0.00, 0.22, 20, 0.55, ((1.0, 1.0), (2.0, 0.2)), glide_a=900, glide_s=0.08),
+              veu(1174.7, 0.10, 1.00, 4.2, 0.80, CAMPANA),
+              veu(1480.0, 0.22, 1.00, 4.2, 0.70, CAMPANA),
+              veu(1760.0, 0.34, 1.00, 4.2, 0.65, CAMPANA),
+              veu(2349.3, 0.50, 1.10, 3.8, 0.45, CAMPANA),
+              veu(3136.0, 0.54, 0.40, 11, 0.12, ((1.0, 1.0),)),
+              veu(3951.1, 0.63, 0.40, 11, 0.09, ((1.0, 1.0),))],
+        pic=0.5, passabaix=8000,
+        ress=[(0.037, 0.30), (0.061, 0.24), (0.089, 0.18), (0.131, 0.12), (0.190, 0.08)]),
+    # el mateix to i ritme que ja agradava, amb menys brillantor
+    "recompensa": dict(
+        veus=[veu(523.3, 0.00, 0.14, 6), veu(659.3, 0.10, 0.14, 6),
+              veu(784.0, 0.20, 0.14, 6), veu(1046.5, 0.30, 0.45, 6)],
+        pic=0.40, passabaix=3200, ress=[(0.03, 0.15)]),
 }
 
 
-def sintetitza(notes, volum, decay):
-    total = max(inici + dur for _, inici, dur in notes) + 0.05
-    samples = [0.0] * int(total * RATE)
-    for freq, inici, dur in notes:
-        start = int(inici * RATE)
-        for i in range(int(dur * RATE)):
+def sintetitza(p):
+    veus, ress = p["veus"], p["ress"]
+    cua = max((d for d, _ in ress), default=0.0)
+    total = max(v["inici"] + v["dur"] for v in veus) + 0.05 + cua
+    n = int(total * RATE)
+    buf = [0.0] * n
+    for v in veus:
+        i0, fase = int(v["inici"] * RATE), 0.0
+        for i in range(int(v["dur"] * RATE)):
             t = i / RATE
-            env = math.exp(-decay * t) * min(1.0, t / 0.004)  # atac de 4 ms: evita el clic
-            tone = math.sin(2 * math.pi * freq * t) + 0.35 * math.sin(2 * math.pi * 2 * freq * t) + 0.12 * math.sin(2 * math.pi * 3 * freq * t)
-            if start + i < len(samples):
-                samples[start + i] += tone * env
-    peak = max(abs(s) for s in samples) or 1.0
-    return [s / peak * volum for s in samples]
+            f = v["freq"]
+            if v["glide_a"]:
+                f += (v["glide_a"] - v["freq"]) * min(1.0, t / v["glide_s"])
+            fase += 2 * math.pi * f / RATE
+            env = min(1.0, t / v["atac"]) * min(1.0, (v["dur"] - t) / 0.015)  # atac i alliberament sense clic
+            val = sum(a * math.sin(r * fase) * math.exp(-v["decay"] * (1 + 0.5 * k) * t)
+                      for k, (r, a) in enumerate(v["parcials"]))
+            if i0 + i < n:
+                buf[i0 + i] += v["amp"] * env * val
+    if p["passabaix"]:
+        a, y = 1 - math.exp(-2 * math.pi * p["passabaix"] / RATE), 0.0
+        for i in range(n):
+            y += a * (buf[i] - y)
+            buf[i] = y
+    sortida = list(buf)
+    for retard, guany in ress:
+        d = int(retard * RATE)
+        for i in range(n - d):
+            sortida[i + d] += guany * buf[i]
+    pic = max(abs(s) for s in sortida) or 1.0
+    return [s / pic * p["pic"] for s in sortida]
 
 
-def escriu_wav(path, samples):
-    with wave.open(path, "wb") as w:
+def escriu_wav(cami, mostres):
+    with wave.open(cami, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(RATE)
-        w.writeframes(b"".join(struct.pack("<h", int(max(-1.0, min(1.0, s)) * 32767)) for s in samples))
+        w.writeframes(b"".join(struct.pack("<h", int(max(-1.0, min(1.0, s)) * 32767)) for s in mostres))
+
+
+def mesura(mostres):
+    pic = max(abs(s) for s in mostres)
+    rms = math.sqrt(sum(s * s for s in mostres) / len(mostres))
+    finestra, llindar, ultim = int(RATE * 0.005), pic * 0.0316, 0
+    for i in range(0, len(mostres) - finestra, finestra):
+        if max(abs(s) for s in mostres[i:i + finestra]) > llindar:
+            ultim = i + finestra
+    return ultim / RATE, 20 * math.log10(pic), 20 * math.log10(rms)
 
 
 def main():
@@ -64,8 +129,10 @@ def main():
     if a.preset not in PRESETS or not a.sortida:
         print(f"Cal un preset de: {', '.join(PRESETS)} i un camí de sortida .wav", file=sys.stderr)
         return 2
-    escriu_wav(a.sortida, sintetitza(*PRESETS[a.preset]))
-    print(f"Escrit {a.sortida}")
+    mostres = sintetitza(PRESETS[a.preset])
+    escriu_wav(a.sortida, mostres)
+    efectiva, pic, rms = mesura(mostres)
+    print(f"Escrit {a.sortida}: efectiva {efectiva:.2f} s, pic {pic:.1f} dBFS, RMS {rms:.1f} dBFS")
     return 0
 
 

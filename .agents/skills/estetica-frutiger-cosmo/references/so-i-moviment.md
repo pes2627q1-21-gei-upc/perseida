@@ -19,12 +19,14 @@ Actiu per defecte. A ajustos: **interruptor «So»** i, si cal, volum. Es respec
 
 | Esdeveniment | So (preset de `scripts/generar_so.py`) | Notes |
 |---|---|---|
-| Tap en botó/tile | `tap` | curtíssim (~90 ms) |
-| Focus / hover (web, admin) | `hover` | molt baix; mai en mòbil tàctil |
-| Acció completada | `exit` | arpegi ascendent breu |
-| Error | `error` | descendent, no estrident; sempre acompanyat de text/icona |
-| Notificació / xat | `notificacio` | |
-| Recompensa / assoliment / ratxa | `recompensa` | el més «celebratiu»; només a `frontend-jocs-dinamics` |
+| Tap en botó/tile | `tap` | bombolla que esclata (~0,25 s) |
+| Focus / hover (web, admin) | `hover` | «tic» de vidre discret (~0,2 s); mai en mòbil tàctil |
+| Acció completada | `exit` | arpegi ascendent, agut (~0,8 s) |
+| Error | `error` | descendent, no estrident (~0,6 s); sempre acompanyat de text/icona |
+| Notificació / xat | `notificacio` | estètica Aero: bloop d'aigua + arpegi de vidre (Re major add9) amb aire i centelleig (~1,8 s) |
+| Recompensa / assoliment / ratxa | `recompensa` | el més «celebratiu», brillantor suavitzada; només a `frontend-jocs-dinamics` |
+
+Els sons van ser escoltats i ajustats per la persona el 2026-10-13 (`tap` i `hover` sonaven massa curts i baixos; `notificacio` es va refer). L'script imprimeix durada, pic i RMS en generar: un so de menys de ~100 ms o a més de 8 dB per sota dels altres no se sentirà al mòbil.
 
 Cada so té un **equivalent no sonor** (text, icona, vibració lleu opcional amb `expo-haptics`): el so no és mai l'única informació.
 
