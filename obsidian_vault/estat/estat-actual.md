@@ -65,7 +65,7 @@ La resta del backlog és a [[epiques-i-us]].
 ## Millora de skills (sense US de Taiga)
 
 - Skill `estetica-frutiger-cosmo` («Cel viu»: quatre temes i quatre modes, tokens, receptes, so i moviment) i skill `implementar-us` (de la US de Taiga a la verificació de criteris i DoD). Les skills `frontend-*` i els subagents `frontend` i `reviewer-arquitectura` hi remeten.
-- Paleta, tipografia, escala, radis, ombra, breakpoints, icones (Phosphor), ubicació per a «Seguir Sol» i mode inicial validats; només queden per validar els estats al tema `vermell` i escoltar els sons generats. Sessió: [[2026-10-13-skills-estetica-i-implementar-us]].
+- Paleta, tipografia, escala, radis, ombra, breakpoints, icones (Phosphor), ubicació per a «Seguir Sol» i mode inicial validats; estats al tema `vermell` i alt contrast (només el del sistema) també decidits; només queda escoltar i validar els sons generats. Sessió: [[2026-10-13-skills-estetica-i-implementar-us]].
 - Pendent: PR cap a `develop` (la fa la persona).
 
 ## Pendent

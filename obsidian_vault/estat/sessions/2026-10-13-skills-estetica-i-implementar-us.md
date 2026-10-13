@@ -28,6 +28,9 @@ etiquetes: [sessio, skills, frontend, estetica]
 - Tipografia M PLUS Rounded 1c + Open Sans; motius naturals: aigua, aurora i llum, prat. Moviment i so actius per defecte.
 - Els sons es trien per cas (llibreria CC0, fitxer aportat o script Python); mai de Nintendo, Microsoft o Apple.
 - Decidit després de la primera entrega: icones **Phosphor** (`phosphor-react-native` 3.0.6); radis tipus iOS 4 (8/12/18); escala compacta (cos 16, `display` 44); ombra de llum marcada (`0 10 32` al 30 % al vidre, `0 8 20` al 60 % al gel); breakpoints 360/390/768/1280/1536; mode inicial **Seguir Sol**; ubicació aproximada amb `expo-location` + ciutat de reserva + franges de rellotge; mode vermell com a interruptor només de nit o de posta.
+- Estats al tema `vermell` («vermell + pes visual»): un sol vermell; perill amb vora de 2 px i fons, èxit i avís només amb icona i text. Variant d'alt contrast: **només la del sistema** («Redueix la transparència»), sense interruptor propi.
+- Correcció detectada en revisar el fallback: `surface.glassSolid` és un color **opac per tema** (`#F4FBFE`, `#1B2350`, `#22305F`, `#3A141A`, contrast ≥5,5:1), no «més opacitat»: als temes foscos, més blanc empitjora el contrast del text clar.
+- Prova real de `implementar-us` ajornada a la primera US real (decisió de la persona).
 - S'ha editat l'ADR-0020 (en lloc de crear-ne una de nova), per decisió de la persona.
 - La skill `implementar-us` pot escriure a Taiga (subtasques, comentaris i estats) **sempre amb confirmació**; els punts humans de la DoD surten com a checklist pendent.
 - **Desviació del pla acordat:** el cos del gel és `#075F94`, no `#0B78B5`. Amb `#0B78B5` el reflex superior baixava el contrast del text blanc a 3,9:1 (1,9:1 amb el reflex del 55 % previst). Amb `#075F94` és 6,8:1 (5,3:1 amb el reflex del 12 %).
@@ -37,10 +40,10 @@ etiquetes: [sessio, skills, frontend, estetica]
 ## Pendent / següents passos
 
 - [x] Escala tipogràfica, radis, ombra de llum, breakpoints, mode vermell, icones, ubicació i mode inicial: decidits la mateixa sessió (vegeu sota).
-- [ ] Validar els estats al tema `vermell` (sense verd ni groc, amb icona i text), l'únic valor encara marcat «proposta a validar».
-- [ ] Escoltar i validar els presets de `generar_so.py` (no s'han pogut escoltar durant la sessió).
+- [x] Estats al tema `vermell` i variant d'alt contrast: decidits (vegeu sota).
+- [ ] Escoltar i validar els presets de `generar_so.py` (l'agent no els pot escoltar). Els 6 WAV de prova estan generats fora del repo; cap so entra al repo fins que la persona els aprovi i s'afegeixi la seva entrada a `frontend/assets/sounds/LICENSES.md`.
 - [ ] Quan s'implementi, mesurar el rendiment del blur i de l'escena Skia en un mòbil modest.
-- [ ] Prova real de `implementar-us` amb una US (p. ex. TG-48) fins a la porta del pla.
+- [ ] Prova real de `implementar-us` amb la primera US real (fins ara només s'ha provat la lectura de TG-48 per l'MCP).
 - [ ] Les credencials de l'MCP de Taiga ara són en clar al fitxer d'usuari de l'eina (fora del repo); valorar-ne l'alternativa si l'equip ho demana.
 
 ## US de Taiga
