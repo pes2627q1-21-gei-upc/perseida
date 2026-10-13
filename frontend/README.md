@@ -17,7 +17,7 @@ Mobile app and admin panel of **Perseida**, a multiplatform app for astronomy ou
 - **Offline mode**: local SQLite outbox and read cache, synchronized later (last-write-wins).
 - **Multi-language**: Catalan, Spanish and English (device language detection + selector).
 - **Admin panel** (SPA with React Native Web): user management and suspension, published-event supervision, usage metrics, report review queue. Access by role.
-- Dark theme optimized for night-time use.
+- "Living sky" look (Frutiger Cosmo): light, dark and sunset themes that follow the sky, plus a red night mode for stargazing; modes: Light, Dark, Follow system, Follow Sun.
 
 ## Tech stack
 

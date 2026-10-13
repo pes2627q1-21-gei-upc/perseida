@@ -62,6 +62,12 @@ La resta del backlog és a [[epiques-i-us]].
 - Sessió: [[2026-10-13-servei-apod-frontend]].
 - Pendent: PR cap a `develop` (la fa la persona); TG-118 a TG-121.
 
+## Millora de skills (sense US de Taiga)
+
+- Skill `estetica-frutiger-cosmo` («Cel viu»: quatre temes i quatre modes, tokens, receptes, so i moviment) i skill `implementar-us` (de la US de Taiga a la verificació de criteris i DoD). Les skills `frontend-*` i els subagents `frontend` i `reviewer-arquitectura` hi remeten.
+- Paleta i tipografia validades; queden valors «a validar» (escala tipogràfica, radis, icones, ubicació per a «Seguir Sol»). Sessió: [[2026-10-13-skills-estetica-i-implementar-us]].
+- Pendent: PR cap a `develop` (la fa la persona).
+
 ## Pendent
 
 - TG-33 ha d'ampliar la plantilla de PR (`.github/pull_request_template.md`) amb la llista de revisió de la memòria §2.4.4: arquitectura hexagonal, tests per al codi nou, claredat i nomenclatura, eficiència de les consultes a PostgreSQL/PostGIS, secrets, avisos de SonarQube Cloud i vault.
@@ -74,6 +80,7 @@ La resta del backlog és a [[epiques-i-us]].
 
 ## Enllaços
 
+- [[2026-10-13-skills-estetica-i-implementar-us]]
 - [[2026-10-07-subagents-i-skills-agnostics]]
 - [[llegir-el-vault-com-a-agent]]
 - [[definition-of-done]]
