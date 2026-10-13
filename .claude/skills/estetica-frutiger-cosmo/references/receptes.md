@@ -94,6 +94,6 @@ Una **sola família**: **Phosphor** (`phosphor-react-native`; veure `tokens.md`)
 ## Rendiment i fallbacks
 
 - «Redueix la transparència» (`isReduceTransparencyEnabled`) → `surface.glassSolid` sense blur.
-- Dispositius modestos: `blurMethod="none"` amb l'opacitat +.15.
+- Dispositius modestos: sense `BlurView` i amb `surface.glassSolid` (color opac per tema; mai «més opacitat», que als temes foscos empitjora el contrast).
 - Prova l'APOD i les fotos darrere de vidre: el contrast es mesura sobre la imatge més clara possible, no sobre la mitjana.
 - Mesura 60 fps a pantalles amb escena viva abans de donar-les per bones.

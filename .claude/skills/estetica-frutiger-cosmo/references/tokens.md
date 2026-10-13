@@ -11,6 +11,7 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 | `sky.top` | `#5EC8F2` | `#2B2F6B` | `#0A1430` | `#14060A` |
 | `sky.low` (horitzó) | `#BFE9F7` | `#E8885A` | `#13265A` | `#2A0B12` |
 | `surface.glass` (fons de vidre) | `rgba(255,255,255,.78)` | `rgba(10,20,48,.62)` | `rgba(255,255,255,.12)` | `rgba(255,107,94,.10)` |
+| `surface.glassSolid` (fallback opac, sense blur) | `#F4FBFE` | `#1B2350` | `#22305F` | `#3A141A` |
 | `surface.glassBorder` | `rgba(255,255,255,.65)` | `rgba(255,255,255,.28)` | `rgba(255,255,255,.28)` | `rgba(255,140,125,.30)` |
 | `text.primary` | `#10223F` | `#EAF4FF` | `#EAF4FF` | `#FFB3A7` |
 | `text.secondary` | `#3A4F6E` | `#B4C6E6` | `#B4C6E6` | `#E08A7E` |
@@ -19,10 +20,12 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 | `accent.glow` | `#1FA8E0` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
 | `state.success` | `#2A7419` | `#6FD65A` | `#6FD65A` | `#FFB3A7`* |
 | `state.warning` | `#8A5A00` | `#F2B33D` | `#F2B33D` | `#FFB3A7`* |
-| `state.danger` | `#B3261E` | `#FF9A92` | `#FF9A92` | `#FF6B5E` |
+| `state.danger` | `#B3261E` | `#FF9A92` | `#FF9A92` | `#FFB3A7` text · `#FF6B5E` vora i icona* |
 | `focus.ring` | `#0B78B5` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
 
-\* Al mode vermell no hi ha verd ni groc (destrueixen l'adaptació a la foscor): l'estat s'expressa amb **icona + text**, no amb color; l'accent és sempre la família vermella. *(proposta a validar)*
+\* **Estats al tema `vermell`** (acordat el 2026-10-13: «vermell + pes visual»): no hi ha verd ni groc (destrueixen l'adaptació a la foscor) i només hi ha un vermell. L'estat es distingeix per la **jerarquia visual**, sempre amb **icona + text**:
+- `perill`: vora de 2 px `#FF6B5E` i fons `rgba(255,107,94,.18)`, icona de perill i text `#FFB3A7` (6.8:1). `#FF6B5E` és només vora i icona (UI ≥3:1, 4.2:1 sobre aquest fons), **mai text** sobre el fons de perill.
+- `èxit` i `avís`: sense vora ni fons; només icona (check / triangle) i text `#FFB3A7`.
 
 Primitius de natura (decoratius, sense text a sobre): prat `#6DBE45` / `#3FA535`, llac `#3FA9DE`, aurora `#2EE6D6` / `#4CFF9A` / `#7B5CFF`. El verd de prat `#4FB33A` **no** és un color de text (2.3:1 sobre vidre de dia).
 
@@ -52,6 +55,8 @@ Primitius de natura (decoratius, sense text a sobre): prat `#6DBE45` / `#3FA535`
 | `nit` text `#EAF4FF` / secundari `#B4C6E6` sobre vidre sobre `#13265A` | 9.1 / 5.9 |
 | `nit` cian `#2EE6D6`, èxit `#6FD65A`, avís `#F2B33D`, marca `#B3B3FF`, perill `#FF9A92` | 6.5 / 5.5 / 5.4 / 5.2 / 5.0 |
 | `vermell` text `#FFB3A7` / secundari `#E08A7E` / accent `#FF6B5E` | 9.2 / 6.1 / 5.6 |
+| `vermell` perill: text `#FFB3A7` sobre el fons de perill / vora i icona `#FF6B5E` (UI) | 6.8 / 4.2 |
+| `glassSolid` (mínim dels textos i estats de cada tema) | `dia` 5.6 · `posta` 7.3 · `nit` 6.2 · `vermell` 5.8 |
 | gel: blanc sobre `#075F94` (amb reflex 12 %) | 6.8 (5.3) |
 
 Reprodueix-los amb `python .agents/skills/estetica-frutiger-cosmo/scripts/contrast.py FG BG [--glass COLOR ALFA]` (p. ex. `contrast.py "#10223F" "#5EC8F2" --glass "#FFFFFF" 0.78` → 13.81). Recalcula'ls si canvies el fons o l'opacitat del vidre. **Mesura sempre sobre el pitjor fons possible** (la zona més clara o més saturada del cel darrere del vidre).
@@ -65,7 +70,7 @@ Reprodueix-los amb `python .agents/skills/estetica-frutiger-cosmo/scripts/contra
 | Opacitat mínima darrere de text | **≥ .60 en fosc, ≥ .75 en clar** (ja a `surface.glass`) |
 | Vora | 1 px `surface.glassBorder`, més un reflex de 1 px a dalt (`rgba(255,255,255,.5)`) |
 | Ombra | llum, no grisa, **marcada**: `0 10 32` amb `accent.glow` al 30 %. Vigila el cost a Android i que no embruti el cel de dia |
-| Fallback sense blur (`surface.glassSolid`) | `surface.glass` amb l'opacitat +.15 (si «Redueix la transparència» o rendiment) |
+| Fallback sense blur | `surface.glassSolid`: color **opac** per tema (taula), no «més opacitat»: als temes foscos més blanc empitjora el contrast. S'usa amb «Redueix la transparència» del sistema i en dispositius modestos. Contrast verificat ≥5.5:1 a tots els textos i estats dels quatre temes |
 
 ## Tipografia
 
