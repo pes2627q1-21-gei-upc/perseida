@@ -65,7 +65,8 @@ async def _handle_domain_or_application_error(
     if not isinstance(exc, DomainError | ApplicationError):
         raise exc
     status = resolve_status(exc)
-    logger.info(
+    log = logger.warning if status >= HTTPStatus.INTERNAL_SERVER_ERROR else logger.info
+    log(
         "Handled error",
         extra={
             "correlation_id": get_correlation_id(request),

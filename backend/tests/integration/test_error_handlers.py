@@ -239,6 +239,18 @@ async def test_handled_error_is_logged_with_code_status_and_route(
     assert record.route == "/_test/not-found"  # type: ignore[attr-defined]
 
 
+async def test_server_error_is_logged_as_warning(
+    client: AsyncClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level("WARNING")
+
+    await client.get("/_test/external")
+
+    record = next(r for r in caplog.records if r.message == "Handled error")
+    assert record.levelname == "WARNING"
+    assert record.status == 503  # type: ignore[attr-defined]
+
+
 # --- Correlation id -------------------------------------------------------
 
 
