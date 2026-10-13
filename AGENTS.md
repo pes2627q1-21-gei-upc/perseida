@@ -58,6 +58,7 @@ Per delegar feina especialitzada hi ha cinc subagents (`backend`, `frontend`, `d
 
 ```bash
 node --test .agents/scripts/*.test.mjs     # tests dels scripts
+python -m unittest discover -s .agents/skills/estetica-frutiger-cosmo/scripts -p "test_*.py"  # tests dels scripts Python de la skill d'estètica
 node .agents/scripts/sync-skills.mjs --check # verifica que .claude/skills/ està sincronitzat
 node .agents/scripts/sync-agents.mjs         # genera els subagents natius de cada eina (--check per verificar)
 ```
