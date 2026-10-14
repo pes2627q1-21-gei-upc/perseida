@@ -3,8 +3,8 @@ titol: Estat actual del projecte
 tipus: estat
 estat: vigent
 data: 2026-10-14
-us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88", "TG-44", "TG-304", "TG-48", "TG-46", "TG-91", "TG-322", "TG-34"]
-font: "memòria §2.1; sessions 2026-10-07, 2026-10-08, 2026-10-09, 2026-10-13 i 2026-10-14; Taiga: sprint 1 (estats de les US, 2026-10-14); repositori (PR #1–#17); PR #18"
+us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88", "TG-44", "TG-304", "TG-48", "TG-46", "TG-91", "TG-322", "TG-40"]
+font: "memòria §2.1; sessions 2026-10-07, 2026-10-08, 2026-10-09, 2026-10-13 i 2026-10-14; Taiga: sprint 1 (estats de les US, 2026-10-14); repositori (PR #1–#17)"
 etiquetes: [estat, sprint, taiga]
 ---
 
@@ -22,8 +22,8 @@ Instantània a data 2026-10-14. L'estat viu a Taiga; si hi ha diferències, guan
 | Estat | US |
 |---|---|
 | Done | TG-30 (estructura del monorepo i guia d'arrencada), TG-31 (configuració del backend), TG-32 (frontend), TG-39 (esquelet FastAPI), TG-42 (Swagger/OpenAPI), TG-85 (aquest vault), TG-205 (subagents i skills agnòstiques) |
-| In progress | TG-34 (workflow de CI del backend; PR #18 en curs), TG-36, TG-48 (pantalla de l'APOD; TG-117 fusionada) |
-| Ready for test | TG-40 (PR #15 oberta amb canvis demanats) |
+| In progress | TG-34 (CI del backend; la branca `feature/ci-backend-workflow` no té PR), TG-36, TG-48 (pantalla de l'APOD; TG-117 fusionada) |
+| Ready for test | TG-40 (PR #15: revisada, conflictes resolts i correccions aplicades) |
 | Ready | TG-33, TG-35, TG-37, TG-38, TG-41, TG-43, TG-44, TG-45, TG-47, TG-87, TG-88, TG-89, TG-194 |
 | New | TG-46 i TG-91 (redactades i dividides el 2026-10-14) |
 
@@ -78,6 +78,17 @@ La resta del backlog és a [[epiques-i-us]].
 - Workflow `.github/workflows/ci.yml` amb els jobs `changes` i `backend`: lint, format, tipus i tests amb cobertura del backend a cada PR i push cap a `develop`/`main`, amb PostgreSQL/PostGIS i Redis com a *service containers*. Detall a [[arquitectura-fisica]] i [[qualitat]]. Sessió: [[2026-10-14-ci-backend]].
 - README del backend (ca, es, en) amb la secció "Integració contínua".
 - Pendent: fusionar la PR #18 (aprovació d'una persona que no sigui l'autora) i les PR d'acceptació (tasca #253).
+## Què ha lliurat TG-40 fins ara
+
+- Configuració de PostgreSQL amb `pydantic-settings` i construcció de la URL amb `SQLAlchemy URL.create`.
+- Metadades de SQLModel amb convenció de noms per a restriccions i índexs.
+- Sessions asíncrones amb commit en cas d'èxit i rollback en cas d'excepció.
+- Inicialització i tancament de l'engine durant el `lifespan` de FastAPI.
+- Dependències fixades amb versions exactes i `uv.lock` actualitzat.
+- Proves de configuració, metadades, sessions i cicle de vida de l'aplicació.
+- Validació local: `ruff`, format, `mypy` i `pytest` passen; 20 proves passen i 1 s'omet perquè no hi ha configuració de PostgreSQL.
+- Pendent: executar la integració contra PostgreSQL real i resoldre la revisió de la PR #15. La implementació no valida per si sola PostGIS ni les migracions Alembic.
+- Sessió: [[2026-10-14-tg-40-postgresql-async]].
 
 ## Millora de skills (TG-305, subtasca de TG-205)
 
@@ -111,3 +122,4 @@ La resta del backlog és a [[epiques-i-us]].
 - [[2026-10-13-servei-apod-frontend]]
 - [[2026-10-14-planificacio-sprint-1]]
 - [[2026-10-14-ci-backend]]
+- [[2026-10-14-tg-40-postgresql-async]]
