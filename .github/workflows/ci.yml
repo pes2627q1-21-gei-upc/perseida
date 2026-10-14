@@ -130,3 +130,15 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Instal·lar dependències
         run: pnpm install --frozen-lockfile
+      - name: Lint (eslint + prettier)
+        run: pnpm lint
+      - name: Tipus (tsc)
+        run: pnpm tsc
+      - name: Tests (jest amb cobertura)
+        run: pnpm test --coverage --ci
+      - name: Publicar informe de cobertura
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+
