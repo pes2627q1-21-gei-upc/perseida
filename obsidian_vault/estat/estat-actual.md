@@ -3,8 +3,8 @@ titol: Estat actual del projecte
 tipus: estat
 estat: vigent
 data: 2026-10-14
-us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88", "TG-44", "TG-304", "TG-48", "TG-47"]
-font: "memòria §2.1; sessions 2026-10-07, 2026-10-08, 2026-10-09, 2026-10-13 i 2026-10-14; Taiga: backlog (llistat de US i sprints, 2026-10-07; tasca TG-304, 2026-10-09)"
+us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88", "TG-44", "TG-304", "TG-48", "TG-46", "TG-91", "TG-322", "TG-40", "TG-47"]
+font: "memòria §2.1; sessions 2026-10-07, 2026-10-08, 2026-10-09, 2026-10-13 i 2026-10-14; Taiga: sprint 1 (estats de les US, 2026-10-14); repositori (PR #1–#17)"
 etiquetes: [estat, sprint, taiga]
 ---
 
@@ -21,9 +21,13 @@ Instantània a data 2026-10-14. L'estat viu a Taiga; si hi ha diferències, guan
 
 | Estat | US |
 |---|---|
-| Done | TG-30 (estructura del monorepo i guia d'arrencada), TG-31 (configuració del backend), TG-205 (subagents i skills agnòstiques) |
-| In progress | TG-39 (esquelet FastAPI async amb les capes domain, application i infrastructure; Sprint 1), TG-85 (aquest vault), TG-48 (pantalla de l'APOD del dia a l'app mòbil), TG-47 (endpoint de consulta de l'APOD del dia i de l'històric) |
-| Ready | TG-33, TG-38, TG-45, TG-87, TG-88 |
+| Done | TG-30 (estructura del monorepo i guia d'arrencada), TG-31 (configuració del backend), TG-32 (frontend), TG-39 (esquelet FastAPI), TG-42 (Swagger/OpenAPI), TG-85 (aquest vault), TG-205 (subagents i skills agnòstiques) |
+| In progress | TG-34 (CI del backend; la branca `feature/ci-backend-workflow` no té PR), TG-36, TG-47 (endpoint de l'APOD), TG-48 (pantalla de l'APOD; TG-117 fusionada) |
+| Ready for test | TG-40 (PR #15: revisada, conflictes resolts i correccions aplicades) |
+| Ready | TG-33, TG-35, TG-37, TG-38, TG-41, TG-43, TG-44, TG-45, TG-87, TG-88, TG-89, TG-194 |
+| New | TG-46 i TG-91 (redactades i dividides el 2026-10-14) |
+
+Els punts de cada US estan repartits entre les seves tasques i els bloquejos són entre tasques (vegeu [[2026-10-14-planificacio-sprint-1]]).
 
 La resta del backlog és a [[epiques-i-us]].
 
@@ -67,7 +71,7 @@ La resta del backlog és a [[epiques-i-us]].
 - TG-113: domini i application de l'APOD: entitat `Apod`, `MediaType`, port `ApodProvider` (`get_today`, `get_by_date`), regla de dates (del 16/06/1995 fins avui) i `ApodService`, amb `FakeApodProvider` i 19 tests nous.
 - Acord amb TG-46: TG-47 va contra el port amb un fake; l'adaptador real és de TG-46.
 - Sessió: [[2026-10-14-domini-apod]].
-- Pendent: TG-114 a TG-116; textos ca/es/en dels dos codis d'error nous.
+- Pendent: TG-114 a TG-116.
 
 ## Què ha lliurat TG-48 fins ara
 
@@ -75,6 +79,18 @@ La resta del backlog és a [[epiques-i-us]].
 - El contracte OpenAPI és provisional (`frontend/openapi/apod.provisional.json`) fins que arribi TG-47.
 - Sessió: [[2026-10-13-servei-apod-frontend]].
 - Pendent: TG-118 a TG-121.
+
+## Què ha lliurat TG-40 fins ara
+
+- Configuració de PostgreSQL amb `pydantic-settings` i construcció de la URL amb `SQLAlchemy URL.create`.
+- Metadades de SQLModel amb convenció de noms per a restriccions i índexs.
+- Sessions asíncrones amb commit en cas d'èxit i rollback en cas d'excepció.
+- Inicialització i tancament de l'engine durant el `lifespan` de FastAPI.
+- Dependències fixades amb versions exactes i `uv.lock` actualitzat.
+- Proves de configuració, metadades, sessions i cicle de vida de l'aplicació.
+- Validació local: `ruff`, format, `mypy` i `pytest` passen; 20 proves passen i 1 s'omet perquè no hi ha configuració de PostgreSQL.
+- Pendent: executar la integració contra PostgreSQL real i resoldre la revisió de la PR #15. La implementació no valida per si sola PostGIS ni les migracions Alembic.
+- Sessió: [[2026-10-14-tg-40-postgresql-async]].
 
 ## Millora de skills (TG-305, subtasca de TG-205)
 
@@ -84,7 +100,8 @@ La resta del backlog és a [[epiques-i-us]].
 
 ## Pendent
 
-- No hi ha workflow de CI del backend a `.github/workflows/`; fins que n'hi hagi, els linters i tests s'executen en local.
+- No hi ha workflow de CI del backend a `develop`: el `ci.yml` de TG-34 és a la branca `feature/ci-backend-workflow` sense PR; fins que es fusioni, els linters i tests s'executen en local.
+- El script `taiga_unblock.py` només desbloqueja tasques després de fusionar TG-322; mentrestant, els bloquejos de tasca s'han de treure a mà.
 - TG-33 ha d'ampliar la plantilla de PR (`.github/pull_request_template.md`) amb la llista de revisió de la memòria §2.4.4: arquitectura hexagonal, tests per al codi nou, claredat i nomenclatura, eficiència de les consultes a PostgreSQL/PostGIS, secrets, avisos de SonarQube Cloud i vault.
 - TG-47 (endpoint de l'APOD) depèn de TG-46: l'entitat i el port estan acordats (descripció de TG-47 a Taiga); fins que TG-46 tingui l'adaptador real, TG-47 va contra un fake.
 
@@ -106,3 +123,5 @@ La resta del backlog és a [[epiques-i-us]].
 - [[2026-10-09-jerarquia-errors]]
 - [[2026-10-13-servei-apod-frontend]]
 - [[2026-10-14-domini-apod]]
+- [[2026-10-14-planificacio-sprint-1]]
+- [[2026-10-14-tg-40-postgresql-async]]
