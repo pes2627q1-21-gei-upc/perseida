@@ -2,8 +2,8 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88"]
+data: "2026-10-09"
+us: ["TG-85", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88", "TG-304"]
 font: "infra/README.md, backend/README.md, memòria §3.4.1, .env.example; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [component, api, fastapi, backend]
 ---
@@ -22,6 +22,10 @@ Python, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`. Imat
 
 - Qui el crida: [[nginx-proxy-manager]] (`proxy_pass`), que rep REST/WSS de l'app Android i del navegador d'admin; Spotwise, per `GET /api/events/active` i `/upcoming` ([[contracte-spotwise]]).
 - A qui crida: [[postgres]] (font de veritat), [[redis]] (cache i pub/sub), [[moderation]] (HTTP síncron), NASA, APIs de meteorologia i contaminació lumínica, FCM, i Google (JWKS) ([[serveis-externs]]). Comparteix el volum de media amb nginx-proxy-manager.
+
+## Errors i correlació
+
+Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i `correlation_id`; el 500 no exposa detalls interns. Cada resposta porta la capçalera `X-Correlation-ID` (generada amb `uuid4` o reutilitzada si el valor entrant és vàlid). Jerarquia a `app/domain/shared/errors.py` i `app/application/shared/errors.py`; handlers i middleware a `app/infrastructure/api/`. Detall a [[0018-errors-rfc-9457-amb-codis-estables]].
 
 ## Configuració
 
