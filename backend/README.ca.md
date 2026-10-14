@@ -175,6 +175,7 @@ El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) executa el
 Ordres exactes (des de `backend/`, les mateixes que el workflow):
 
 ```bash
+cd backend                                 # des de l'arrel del repositori
 uv sync --locked                           # falla si uv.lock no està al dia
 uv run ruff check .                        # lint
 uv run ruff format --check .               # format
