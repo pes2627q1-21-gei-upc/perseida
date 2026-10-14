@@ -130,14 +130,62 @@ jobs:
             org.opencontainers.image.vendor=UPC-FIB PES
 
 
-      # ── 4. Build i push ──────────────────────────────────────────────────────
-      # Implementat a T222 (docker/build-push-action amb cache GHA).
+      # ── 4. Configura QEMU i Docker Buildx ────────────────────────────────────
+      # QEMU permet emular arquitectures addicionals (arm64) si cal en el futur.
+      # Buildx és el builder modern de Docker que habilita:
+      #   · Builds multi-plataforma (--platform).
+      #   · Cache exportable a backends externs (GHA, registry, S3...).
+      #   · BuildKit per defecte (paral·lelisme de capes, secrets segurs).
+      - name: Configura QEMU
+        uses: docker/setup-qemu-action@v3
 
-      # ── Placeholder de validació ─────────────────────────────────────────────
-      # Verifica que el Dockerfile és sintàcticament correcte (hadolint).
-      # Substituïble pels passos T220–T222 un cop implementats.
-      - name: Lint del Dockerfile (hadolint)
+      - name: Configura Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── 5. Lint del Dockerfile (hadolint) ────────────────────────────────────
+      # Validació estàtica del Dockerfile. S'executa sempre (també en PR)
+      # perquè és una comprovació de qualitat, no de publicació.
+      - name: Lint del Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: backend/Dockerfile
           failure-threshold: warning
+
+      # ── 6. Build i push de la imatge ─────────────────────────────────────────
+      # docker/build-push-action orquestra BuildKit per construir la imatge
+      # i (condicionalment) publicar-la a GHCR.
+      #
+      # Decisions de disseny:
+      #
+      #   push: github.event_name != 'pull_request'
+      #     Només fa push en push/dispatch; en PRs construeix però no publica.
+      #     Coherent amb el condicional del login (T220).
+      #
+      #   cache-from / cache-to amb mode=max:
+      #     GHA (GitHub Actions Cache) és el backend de cache integrat.
+      #     mode=max exporta TOTES les capes intermèdies (incloses les de
+      #     l'etapa builder), no només les de la imatge final. Això maximitza
+      #     la reutilització de la capa `uv sync` quan només canvia el codi
+      #     font (app/) però no les dependències (pyproject.toml/uv.lock).
+      #     Quota de cache GHA: 10 GB per repositori; es purga per LRU.
+      #
+      #   tags / labels: llegits de les sortides de metadata-action (T221).
+      #
+      #   context: backend/
+      #     El context de build és el directori backend/, coherent amb la
+      #     posició del Dockerfile i el .dockerignore.
+      #
+      #   provenance: false
+      #     Desactiva el manifest de proveïtat SLSA per defecte de BuildKit.
+      #     Amb provenance:true es genera un manifest multi-arch que confon
+      #     `docker pull` en alguns clients; `false` genera un manifest simple.
+      - name: Build i push de la imatge Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
