@@ -59,6 +59,49 @@ flowchart TB
 - Rollback: redesplegar la imagen anterior por su `git-sha`.
 - El repositorio también contiene una automatización que desbloquea tareas de Taiga (`.github/workflows/taiga-unblock.yml`).
 
+## GHCR — Permisos y visibilidad del paquete
+
+La imagen del backend se publica en **GitHub Container Registry** (`ghcr.io`) bajo el namespace de la organización:
+
+```
+ghcr.io/pes2627q1-21-gei-upc/perseida-api:<tag>
+```
+
+### Permisos automáticos (GITHUB_TOKEN)
+
+El workflow de CI/CD utiliza el token nativo `GITHUB_TOKEN` — sin necesidad de PAT ni secretos manuales:
+
+| Ámbito | Motivo |
+|---|---|
+| `contents: read` | Clonar el repositorio en el runner |
+| `packages: write` | Publicar la imagen en GHCR y actualizar sus metadatos |
+
+GitHub reduce automáticamente los permisos de `packages` a `read` en pull requests provenientes de forks externos por seguridad.
+
+### Configuración inicial: hacer el paquete público (una sola vez, manual)
+
+Cuando la imagen se sube por primera vez, GitHub crea el paquete como **privado** por defecto. Para un proyecto académico abierto, se recomienda cambiarlo a **público**:
+
+**Opción A — Interfaz web de GitHub** (recomendado):
+1. Ve al repositorio en GitHub.
+2. Haz clic en **Packages** (en la barra lateral derecha) → `perseida-api`.
+3. Haz clic en **Package settings** → **Change visibility** → **Public**.
+
+**Opción B — API REST de GitHub** (automatizable):
+```bash
+# Requiere un PAT con permiso write:packages (ejecución única en local)
+curl -L \
+  -X PATCH \
+  -H "Authorization: Bearer <TU_PAT>" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/orgs/pes2627q1-21-gei-upc/packages/container/perseida-api \
+  -d '{"visibility":"public"}'
+```
+
+### Vinculación del paquete al repositorio
+
+En el primer push, GitHub vincula el paquete automáticamente al repositorio gracias a que el nombre de la imagen coincide con `github.repository_owner`.
+
 ## Configuración y secretos
 
 - Los secretos y variables viven en **Secrets and variables** de GitHub; el job de CD genera el `.env` en el servidor. El `.env` **nunca** se versiona; un `.env.example` sin valores hace de plantilla.
@@ -72,7 +115,21 @@ infra/
 ├── docker-compose.yml        # los cinco servicios (local y producción)
 ├── .env.example
 ├── nginx-proxy-manager/      # configuración del proxy
-└── moderation/               # imagen/configuración del servicio Kev-4B
+├── moderation/               # imagen/configuración del servicio Kev-4B
+└── scripts/
+    └── test-backend-docker.sh # validación local y smoke test de perseida-api
+```
+
+## Validación y pruebas locales (imagen Docker del backend)
+
+Para validar la construcción de la imagen, la seguridad del contenedor y el estado funcional en local antes de subir cambios:
+
+```bash
+# Suite completa: Hadolint + actionlint + build + seguridad + smoke test
+./infra/scripts/test-backend-docker.sh
+
+# O reutilizando una imagen ya construida (ej. perseida-api:local)
+./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
 ## Ejecutar en local (previsto)

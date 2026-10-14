@@ -117,7 +117,21 @@ infra/
 ├── docker-compose.yml        # the five services (local and production)
 ├── .env.example
 ├── nginx-proxy-manager/      # proxy configuration
-└── moderation/               # Kev-4B service image/config
+├── moderation/               # Kev-4B service image/config
+└── scripts/
+    └── test-backend-docker.sh # local validation and smoke test of perseida-api
+```
+
+## Local validation and testing (backend Docker image)
+
+To validate the Docker image build, container security, and runtime health locally before pushing:
+
+```bash
+# Full test suite: Hadolint + actionlint + build + security + smoke test
+./infra/scripts/test-backend-docker.sh
+
+# Or reuse an already-built image (e.g., perseida-api:local)
+./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
 ## Run locally (planned)

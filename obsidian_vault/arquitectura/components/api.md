@@ -2,10 +2,10 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88"]
-font: "infra/README.md, backend/README.md, memòria §3.4.1, .env.example; Taiga: backlog (llistat de US, 2026-10-07)"
-etiquetes: [component, api, fastapi, backend]
+data: "2026-10-15"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1"
+etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
 # api
@@ -16,7 +16,15 @@ Un únic procés FastAPI que fa tres coses: atén l'API REST de l'app i del pane
 
 ## Tecnologia i versió
 
-Python, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`. Imatge `perseida-api:<git-sha>`. Alembic s'executa automàticament a l'entrypoint del contenidor, abans d'arrencar el servidor. Estructura hexagonal: [[backend-hexagonal]]. Les versions de Python i de les llibreries no consten als documents consultats.
+Python 3.14, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`. Imatge `perseida-api:<git-sha>` publicada a GHCR (`ghcr.io/pes2627q1-21-gei-upc/perseida-api`). 
+
+### Contenidorització i empaquetament (TG-36)
+- **Multi-stage build**: etapa `builder` amb `uv sync --frozen --no-dev` creant un entorn virtual aïllat a `/app/.venv`, i etapa `runner` neta basada en `python:3.14-slim` on s'elimina `pip` i no hi ha eines de compilació.
+- **Seguretat**: execució sota usuari no privilegiat `appuser` (UID/GID fix `1001`, shell `/sbin/nologin`, sense home).
+- **Entorn**: `PYTHONUNBUFFERED=1` per a emissió immediata de logs a stdout, `PYTHONDONTWRITEBYTECODE=1` i `PATH="/app/.venv/bin:$PATH"`.
+- **Pipeline CI/CD**: `.github/workflows/backend-docker.yml` amb Buildx, memòria cau GHA (`mode=max`) i generació d'etiquetes immutables (`sha-XXXXXXX`), de branca (`develop`/`main`) i SemVer (`vX.Y.Z`).
+
+Alembic s'executarà a l'entrypoint del contenidor un cop implementat a TG-41. Estructura hexagonal: [[backend-hexagonal]].
 
 ## Interfícies
 
@@ -46,8 +54,10 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - TG-88 (APScheduler)
 
 ## Estat d'implementació
-
-planificat
+- **Codi base FastAPI (TG-39)**: implementat (capes domain, application, infrastructure i mòdul health).
+- **Contenidorització i pipeline GHCR (TG-36)**: implementat (Dockerfile multi-stage, workflow GitHub Actions, proves locals a `infra/scripts/test-backend-docker.sh`).
+- **Persistència i migracions (TG-40, TG-41)**: pendent.
+- **Resta de serveis**: planificat.
 
 ## Enllaços
 
