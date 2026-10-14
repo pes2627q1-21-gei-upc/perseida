@@ -7,7 +7,7 @@ description: Implementa el quiz diari i la gamificació (ratxes, assoliments, re
 
 Implementa la capa de presentació i interacció de la gamificació: quiz diari, ratxes, assoliments, recompenses animades, minijocs 2D, visualitzacions de cel/3D i microinteraccions. La puntuació, els premis i les ratxes VIUEN AL BACKEND: el client només mostra i envia accions (frontend "tonto").
 
-Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Estètica: `frontend-component/references/frutiger-cosmo.md`; criteri de disseny i animació: `ui-ux-pro-max` i `frontend-design`. Errors/toasts: `gestio-errors`. **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
+Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Estètica, escena del cel (Skia: bombolles, estels, aurora), moviment i so: skill `estetica-frutiger-cosmo` (`references/receptes.md`, `cel-viu.md`, `so-i-moviment.md`), que orquestra `frontend-design` i `ui-ux-pro-max`. Errors/toasts: `gestio-errors`. **Accessibilitat obligatòria (WCAG 2.2 AA):** tot el que es fa ha de complir la guia `../frontend-component/references/accessibilitat.md`.
 
 ## Quan usar-la / quan NO
 - Usa-la: pantalles de quiz, ratxa, assoliments, minijoc per desafiar amics, visualització del cel/3D, partícules, hàptics.
@@ -19,7 +19,7 @@ No inventis res. Si falta qualsevol dada o hi ha més d'una opció raonable, ATU
 Preguntes concretes d'aquesta skill (abans d'escriure):
 1. Quina US/criteris (TG-NN) i quina mecànica exacta (regles del joc, durada, condicions de victòria, ratxa, assoliments)? No inventis mecàniques.
 2. Quins endpoints del backend validen respostes, puntuen i atorguen premis (OpenAPI)? Si no existeixen, aturar-se: la lògica no es posa al client.
-3. Quin és el contingut (preguntes del quiz, assets, sons)? Origen i llicència. Qui l'aprova?
+3. Quin és el contingut (preguntes del quiz, assets)? Origen i llicència. Qui l'aprova? **Sons**: per a cada so de recompensa, pregunta si surt d'una llibreria CC0, d'un fitxer de la persona o d'un script Python (`estetica-frutiger-cosmo/references/so-i-moviment.md`); mai sons de Nintendo, Microsoft o Apple.
 4. Tecnologia per a aquest cas: només `@shopify/react-native-skia` + `react-native-reanimated` + `react-native-gesture-handler` (2D) o cal `expo-gl` + three (3D)? **Preguntar abans d'afegir qualsevol dependència**; versió fixada amb pnpm (verifica'n l'existència i compatibilitat amb Expo).
 5. Quins hàptics (`expo-haptics`), sons i partícules són desitjats? Com s'apaguen (configuració de l'usuari)?
 6. Alternativa per a **reduced motion** i per a gestos (botons com a alternativa a arrossegar)?
@@ -34,7 +34,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 4. Quiz diari/gamificació: pantalla amb estats loading/empty/error, resultat i recompensa animats; ratxes i assoliments llegits de l'API (mai calculats al client).
 5. Minijoc 2D: bucle amb `react-native-reanimated` (valors compartits, worklets) i dibuix amb skia; entrada amb `react-native-gesture-handler`; sense `setState` per fotograma; sense assignar objectes al bucle calent.
 6. Visualitzacions de cel/3D: skia per a 2D; `expo-gl` + three només amb permís exprés.
-7. Microinteraccions: hàptic en confirmar/encertar, partícules, brillantors Frutiger; durades i easings dels tokens `motion`.
+7. Microinteraccions: hàptic en confirmar/encertar, partícules, brillantors Frutiger, molles i durades dels tokens `motion`; so de recompensa pel mòdul `sound` (amb interruptor a ajustos). Una sola escena viva per pantalla; sense parpelleig >3 Hz.
 8. **Reduced motion**: consulta la preferència del sistema; substitueix animacions per canvis d'estat estàtics o fundits d'opacitat curts, i desactiva partícules/hàptics si cal. Sempre amb alternativa funcional.
 9. Rendiment 60 fps: només animar `transform`/`opacity`; limita capes de blur; pausa el bucle en segon pla; mesura en un dispositiu modest.
 10. Accessibilitat: el joc ha de tenir alternativa sense gest, etiquetes, contrast, no dependre només del color/so; textos per i18n ca/es/en.
@@ -68,7 +68,7 @@ Noms i hooks d'exemple; confirma'ls amb el repo. Les llibreries s'han d'haver ac
 - [ ] Reduced motion respectat amb alternativa funcional; alternativa als gestos.
 - [ ] 60 fps verificats en dispositiu; només `transform`/`opacity` animats.
 - [ ] Hàptics/sons/partícules desactivables.
-- [ ] Textos per i18n ca/es/en; zero valors hardcodejats; estètica Frutiger Cosmo.
+- [ ] Textos per i18n ca/es/en; zero valors hardcodejats; `estetica-frutiger-cosmo/references/checklist.md` passada (quatre temes, rendiment de blur/Skia, entrada a `frontend/assets/sounds/LICENSES.md` per a cada so).
 - [ ] Accessibilitat i checklist de `ui-ux-pro-max/references/pro-rules.md`.
 - [ ] Tests de hooks escrits.
 - [ ] Accessibilitat WCAG 2.2 AA: checklist de `../frontend-component/references/accessibilitat.md` completada (lectors i i18n, text gran i contrast, reduce motion, teclat/focus, tests per rol/etiqueta).

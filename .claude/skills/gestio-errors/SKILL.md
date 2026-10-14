@@ -10,7 +10,7 @@ Defineix com es llancen, es transporten i es mostren els errors, de domini fins 
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents.
 
 > [!note] Estat
-> El repo encara no té codi: les plantilles són orientatives. Versions de llibreries: versió fixada amb `uv`/`pnpm`; pregunta/verifica abans de fixar-ne cap.
+> La part de backend (jerarquia, handlers RFC 9457 i correlation id) ja és implementada (TG-304): llegeix `backend/app/*/shared/errors.py` i `backend/app/infrastructure/api/`. La part de frontend continua sent orientativa. Versions de llibreries: versió fixada amb `uv`/`pnpm`; pregunta/verifica abans de fixar-ne cap.
 
 ## Quan usar-la / quan NO
 
@@ -20,7 +20,7 @@ Usa-la quan:
 - integres una API externa (NASA, FCM, Google JWKS, Spotwise, Kev-4B...) i cal decidir què passa si cau;
 - afegeixes al frontend el tractament d'un `code`, un toast, l'`ErrorBoundary` o el comportament offline.
 
-NO la usis per: la lògica de negoci en si (`backend-entitat-domini`), l'estructura d'un service (`backend-service`) o el disseny visual del toast més enllà de les regles d'aquí (`ui-ux-pro-max`, `frontend-design`).
+NO la usis per: la lògica de negoci en si (`backend-entitat-domini`), l'estructura d'un service (`backend-service`) o el disseny visual del toast més enllà de les regles d'aquí (`estetica-frutiger-cosmo`, que orquestra `ui-ux-pro-max` i `frontend-design`).
 
 ## Protocol de dubtes (OBLIGATORI)
 
@@ -32,7 +32,7 @@ Preguntes d'aquesta skill (abans d'escriure):
 3. Quins són els **missatges en ca/es/en**? Pregunta els textos a l'humà; no els redactis tu en silenci. Si no te'ls dona, deixa'ls marcats com a pendents.
 4. És **recuperable**? (l'usuari pot reintentar o corregir-ho / només informar). Això decideix el toast (amb acció "Reintentar" o sense) i si el reintent és segur.
 5. Si és un error d'API externa: hi ha **fallback de cache**? Quin TTL i què es mostra si no n'hi ha? (la política de TTL no és a la skill: pregunta.)
-6. El nom i el format de la **capçalera de correlació** i dels camps de log, si el repo encara no els fixa.
+6. Els camps de log (si el repo encara no els fixa). La capçalera (`X-Correlation-ID`), `type` (`about:blank`) i la signatura ja estan decidits (TG-304): no els tornis a preguntar.
 
 ## Passos
 
@@ -51,59 +51,42 @@ Preguntes d'aquesta skill (abans d'escriure):
 
 ### Jerarquia
 
-- `DomainError(code, message)`: `code` estable; `message` tècnic per a logs i `detail`, no per a l'usuari final.
-- `ApplicationError`: `UnauthorizedError` (401), `ForbiddenError` (403).
-- Mapatge orientatiu a status (confirma amb l'humà si hi ha dubte): `NotFoundError` 404; `ValidationError` 422 (o 400); `ConflictError` 409; `BusinessRuleViolation` 409 o 422; `UnauthorizedError` 401; `ForbiddenError` 403.
+- `DomainError(code, message=None)`: `code` estable; `message` tècnic per a logs i `detail`, no per a l'usuari final (si falta, val el `code`). `ApplicationError` té la mateixa signatura i **no** hereta de `DomainError`.
+- `ApplicationError`: `UnauthorizedError` (401), `ForbiddenError` (403), `ExternalServiceError` (503, proveïdor extern caigut sense cache).
+- Status (confirmat, TG-304), a `STATUS_BY_ERROR` d'`infrastructure/api/error_handlers.py`, resolt per MRO: `NotFoundError` 404; `ConflictError` 409; `ValidationError` i `BusinessRuleViolation` 422; `UnauthorizedError` 401; `ForbiddenError` 403; `ExternalServiceError` 503; `DomainError`/`ApplicationError` base 400. Les classes d'error no porten el status: el domini no coneix HTTP.
 
 ### Resposta RFC 9457 (`application/problem+json`)
 
-Camps: `type`, `title`, `status`, `detail`, `instance`, `code` (extensió pròpia, estable) i `errors?` (llista per camp en validació).
+Camps: `type`, `title`, `status`, `detail`, `instance`, `code` (extensió pròpia, estable), `correlation_id` (a tots els errors) i `errors?` (llista per camp en validació).
 
 ```json
 {
   "type": "about:blank",
-  "title": "Event not found",
+  "title": "Not Found",
   "status": 404,
   "detail": "Event 42 does not exist",
   "instance": "/api/events/42",
-  "code": "EVENT_NOT_FOUND"
+  "code": "EVENT_NOT_FOUND",
+  "correlation_id": "5c0e0b8e-6d57-4f7b-9d0e-0d6a1f6f4c11"
 }
 ```
 
-Orientatiu (valor de `type`: pregunta si es vol URI pròpia o `about:blank`).
+`type` sempre és `about:blank`; `title` és la frase HTTP estàndard del status (mai el nom de la classe); `detail` és el `message` de l'error.
 
-### Handler (plantilla orientativa)
+### Handlers (implementats a TG-304)
 
-```python
-# infrastructure/api/error_handlers.py
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+`infrastructure/api/error_handlers.py` exposa `register_error_handlers(app)` (cridat des de `create_app()`) i `problem_response(...)` a `infrastructure/api/problem.py` construeix el cos i fixa `Content-Type: application/problem+json`. Handlers:
 
-STATUS_BY_ERROR = {NotFoundError: 404, ConflictError: 409, ValidationError: 422}  # confirm with human
-
-def register_error_handlers(app: FastAPI) -> None:
-    @app.exception_handler(DomainError)
-    async def handle_domain_error(request: Request, exc: DomainError) -> JSONResponse:
-        return problem(request, status=status_for(exc), title=type(exc).__name__,
-                       detail=exc.message, code=exc.code)
-
-    @app.exception_handler(Exception)
-    async def handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
-        correlation_id = get_correlation_id(request)
-        logger.exception("unhandled_error", extra={"correlation_id": correlation_id})
-        # never leak internals to the client
-        return problem(request, status=500, title="Internal error",
-                       detail="Unexpected error", code="INTERNAL_ERROR",
-                       correlation_id=correlation_id)
-```
-
-`problem(...)` construeix el cos i fixa `Content-Type: application/problem+json`. També cal handler per a `ApplicationError` i per als errors de validació d'entrada de FastAPI (a `errors[]`, un element per camp).
+- `DomainError` / `ApplicationError`: status per MRO (vegeu "Jerarquia"), `detail = message`.
+- Errors de validació de FastAPI: 422 `VALIDATION_ERROR`, `errors[]` amb un `{field, message, type}` per camp (`field` sense el prefix `body`/`query`/`path`/`header`/`cookie`).
+- Errors HTTP de Starlette (ruta inexistent, mètode no permès...): conserven status i capçaleres; `code` `NOT_FOUND`, `METHOD_NOT_ALLOWED` o `HTTP_<status>`.
+- `Exception`: 500 `INTERNAL_ERROR`, `detail` fix «Unexpected error», sense traça ni nom de classe; la traça va al log amb el `correlation_id`.
 
 ### Correlation id i logging
 
-- Un middleware assigna un correlation id per petició i el posa al log, a la resposta d'error (`correlation_id`) i en una capçalera (nom: pregunta a l'humà).
-- Logs estructurats (clau/valor): `correlation_id`, `code`, `status`, ruta. Mai dades personals, tokens ni secrets als logs.
-- **500**: cos genèric amb `code` `INTERNAL_ERROR` (confirma el nom amb l'humà) i `correlation_id`; la traça només al log; mai al client.
+- `CorrelationIdMiddleware` (`infrastructure/api/correlation.py`) assigna un id per petició i el posa a la capçalera `X-Correlation-ID` de **totes** les respostes i al cos de tot error (`correlation_id`). Un valor entrant només es respecta si compleix `[A-Za-z0-9._-]{1,128}`; si no, es genera un `uuid4`.
+- Logs: clau/valor amb `correlation_id`, `code`, `status`, ruta (el logging estructurat complet és de #49). Mai dades personals, tokens ni secrets als logs.
+- **500**: cos genèric amb `code` `INTERNAL_ERROR` i `correlation_id`; la traça només al log; mai al client.
 
 ### APIs externes
 
@@ -121,7 +104,7 @@ L'app és "tonta": no decideix res, només mostra bé l'error.
 
 1. **Client**: `openapi-fetch` + middleware: si la resposta és `problem+json`, es converteix en `AppError` (`code`, `status`, `correlationId?`, `fieldErrors?`, `retryable`) a `src/shared/errors`. Errors de xarxa/timeout -> `AppError` de tipus xarxa/offline.
 2. **Mapatge `code` -> i18n** amb i18next (ca/es/en): clau per `code` (p. ex. `errors.EVENT_NOT_FOUND`); `code` desconegut -> missatge genèric ("Alguna cosa ha anat malament"). **Mai** JSON, traça ni `detail` cru a la UI.
-3. **Toast** propi, estètica Frutiger Cosmo, animació amb `react-native-reanimated`, accessible (`role="alert"`), amb acció "Reintentar" només si `retryable`. Respecta `reduced motion`.
+3. **Toast** propi de vidre (`GlassPanel`, `estetica-frutiger-cosmo`), animació amb `react-native-reanimated`, accessible (`role="alert"`), amb acció "Reintentar" només si `retryable`. Respecta `reduced motion`. L'error sempre porta **text + icona** (mai només color, sobretot al tema `vermell`) i, si els sons són actius, el so `error` com a reforç, mai com a únic senyal.
 4. **ErrorBoundary** per a errors de renderitzat: pantalla/toast amable amb el missatge genèric i opció de reintentar.
 5. **Formularis**: errors per camp (de `errors[]`) al camp; errors globals al toast.
 6. **Offline/xarxa**: toast d'error de xarxa; la cua/cache SQLite segueix ADR-0011 (outbox, last-write-wins). Quina UX tenen les mutacions encuades fallides: pregunta a l'humà.
@@ -140,7 +123,7 @@ Nota: tests després del codi (ADR-0019, que supera la part TDD d'ADR-0004). Si 
 ## Checklist final
 
 - [ ] Codi registrat al catàleg (taula) i sense duplicats.
-- [ ] Status HTTP confirmat per l'humà.
+- [ ] Status HTTP confirmat per l'humà (si la classe ja és a `STATUS_BY_ERROR`, hereta el seu).
 - [ ] Missatges ca/es/en proporcionats per l'humà i afegits als 3 idiomes.
 - [ ] Marcat com a recuperable o no, i coherent amb el toast.
 - [ ] Cap `HTTPException` fora d'infrastructure; el domini no coneix HTTP.

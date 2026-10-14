@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.infrastructure.api.correlation import CorrelationIdMiddleware
+from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.persistence.config import DatabaseSettings
 
@@ -33,6 +35,8 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
+    register_error_handlers(app)
+    app.add_middleware(CorrelationIdMiddleware)
     app.include_router(health_router, prefix="/api")
     return app
 
