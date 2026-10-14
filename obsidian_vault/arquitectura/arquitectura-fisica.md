@@ -2,9 +2,9 @@
 titol: "Arquitectura física i desplegament"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-37", "TG-89"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07)"
+data: "2026-10-14"
+us: ["TG-85", "TG-37", "TG-89", "TG-34"]
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18); Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, infra, docker-compose, desplegament]
 ---
 
@@ -13,7 +13,7 @@ etiquetes: [arquitectura, infra, docker-compose, desplegament]
 Perseida es desplega sobre **un únic servidor de Virtech** on Docker Compose orquestra **cinc contenidors**. Kubernetes es va descartar explícitament: amb un sol host físic només afegeix overhead de control plane i el punt únic de fallada continua sent el servidor ([[0002-docker-compose-en-lloc-de-kubernetes]]).
 
 > [!warning] Estat
-> Descripció de l'estat **planificat**: `infra/docker-compose.yml` encara no existeix (US TG-37).
+> Descripció de l'estat **planificat** tret de la CI del backend, que **ja existeix** (`.github/workflows/ci.yml`, TG-34). `infra/docker-compose.yml` encara no existeix (US TG-37) i la CD tampoc.
 
 ## Diagrama
 
@@ -57,7 +57,11 @@ flowchart TB
 
 ## Flux de desplegament (CI/CD)
 
-- **CI** a cada PR cap a `develop`/`main`: format, linters i tipus, tests amb cobertura, SonarQube Cloud i Quality Gate. Obligatori per fusionar.
+- - **CI del backend (implementada, TG-34)**: el workflow `.github/workflows/ci.yml` s'executa a cada PR i a cada push cap a `develop`/`main`. Té dos jobs:
+  1. `changes` (`dorny/paths-filter`): detecta si ha canviat `backend/**` o el mateix workflow.
+  2. `backend`: només s'executa si hi ha canvis al backend (en un push sempre). Executa `uv sync --locked`, `ruff check`, `ruff format --check`, `mypy` i `pytest` amb cobertura. PostgreSQL (PostGIS 18) i Redis 8 s'aixequen com a *service containers* amb *healthcheck*. Publica l'informe com a artefacte `backend-coverage`. Un push nou a la mateixa PR cancel·la l'execució anterior.
+  - Les ordres per reproduir-ho en local són al README del backend, secció "Integració contínua".
+- **CI pendent**: SonarQube Cloud i comprovació del Quality Gate arribaran amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194); la CI del frontend, amb TG-35. La CI és obligatòria per fusionar quan TG-33 en fixi el check requerit (`backend`).
 - **CD** a cada push a `main` (merge de release o hotfix):
   1. Construeix la imatge del backend, l'etiqueta amb el `git-sha` i la puja a **GHCR**.
   2. Es connecta per **SSH** al servidor de Virtech, renderitza el `.env` des dels secrets de GitHub (`chmod 600`) i executa `docker compose up`.
@@ -82,3 +86,4 @@ Sense escalat horitzontal ni còpies de seguretat automàtiques; el servidor és
 - [[visio-general]], [[backend-hexagonal]], [[serveis-externs]]
 - [[0002-docker-compose-en-lloc-de-kubernetes]], [[0009-nginx-proxy-manager-serveix-media-i-spa-admin]]
 - [[gitflow]], [[qualitat]]
+- [[testing]]
