@@ -57,7 +57,7 @@ flowchart TB
 
 ## Flux de desplegament (CI/CD)
 
-- - **CI del backend (implementada, TG-34)**: el workflow `.github/workflows/ci.yml` s'executa a cada PR i a cada push cap a `develop`/`main`. Té dos jobs:
+- **CI del backend (implementada, TG-34)**: el workflow `.github/workflows/ci.yml` s'executa a cada PR i a cada push cap a `develop`/`main`. Té dos jobs:
   1. `changes` (`dorny/paths-filter`): detecta si ha canviat `backend/**` o el mateix workflow.
   2. `backend`: només s'executa si hi ha canvis al backend (en un push sempre). Executa `uv sync --locked`, `ruff check`, `ruff format --check`, `mypy` i `pytest` amb cobertura. PostgreSQL (PostGIS 18) i Redis 8 s'aixequen com a *service containers* amb *healthcheck*. Publica l'informe com a artefacte `backend-coverage`. Un push nou a la mateixa PR cancel·la l'execució anterior.
   - Les ordres per reproduir-ho en local són al README del backend, secció "Integració contínua".
