@@ -87,7 +87,48 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ── 3. Generació de tags ─────────────────────────────────────────────────
-      # Implementat a T221 (docker/metadata-action).
+      # docker/metadata-action llegeix el context de Git (SHA, branca, tag) i
+      # genera automàticament les etiquetes i labels OCI estàndard.
+      #
+      # Estratègia de tags (per prioritat):
+      #
+      #   a) git-sha curt (sempre): ghcr.io/org/perseida-api:sha-a1b2c3d
+      #      Imatge immutable i traçable → base del rollback (ADR arquitectura-física).
+      #
+      #   b) Branca (push a develop/main): ghcr.io/org/perseida-api:develop
+      #      Permet fer `docker pull perseida-api:develop` sense conèixer el SHA.
+      #
+      #   c) SemVer (quan el push porta un tag vX.Y.Z):
+      #        ghcr.io/org/perseida-api:1.2.3
+      #        ghcr.io/org/perseida-api:1.2
+      #        ghcr.io/org/perseida-api:1
+      #        ghcr.io/org/perseida-api:latest  (només si és el tag més nou)
+      #      Permet referenciar versions estables per sprint (SemVer des de 0.1.0).
+      #
+      # `id: meta` exposa dues sortides que usarà build-push-action (T222):
+      #   · steps.meta.outputs.tags   → llista de tags a publicar
+      #   · steps.meta.outputs.labels → labels OCI (autor, versió, URL repo…)
+      - name: Genera tags i labels de la imatge
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/perseida-api
+          tags: |
+            # a) SHA curt – sempre present, immutable
+            type=sha,prefix=sha-,format=short
+            # b) Nom de branca – per a push a develop i main
+            type=ref,event=branch
+            # c) SemVer complet – quan el push porta un tag vX.Y.Z
+            type=semver,pattern={{version}}
+            # c) SemVer major.minor – per fixar-se a un minor
+            type=semver,pattern={{major}}.{{minor}}
+            # c) SemVer major – per fixar-se a un major
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+          labels: |
+            org.opencontainers.image.title=perseida-api
+            org.opencontainers.image.description=Backend de Perseida (FastAPI, arquitectura hexagonal)
+            org.opencontainers.image.vendor=UPC-FIB PES
+
 
       # ── 4. Build i push ──────────────────────────────────────────────────────
       # Implementat a T222 (docker/build-push-action amb cache GHA).
