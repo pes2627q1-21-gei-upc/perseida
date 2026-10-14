@@ -88,6 +88,7 @@ The [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) workflow runs the 
 Exact commands (from `frontend/`, the same ones as the workflow, each one a separate step so you can see which fails):
 
 ```bash
+cd frontend                       # from the repository root
 pnpm install --frozen-lockfile    # fails if pnpm-lock.yaml is out of date
 pnpm lint                         # ESLint + Prettier
 pnpm tsc                          # strict type check

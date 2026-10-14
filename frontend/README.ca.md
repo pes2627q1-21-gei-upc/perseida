@@ -88,6 +88,7 @@ El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) executa el
 Ordres exactes (des de `frontend/`, les mateixes que el workflow, cada una en un pas separat perquè es vegi quina falla):
 
 ```bash
+cd frontend                       # des de l'arrel del repositori
 pnpm install --frozen-lockfile    # falla si pnpm-lock.yaml no està al dia
 pnpm lint                         # ESLint + Prettier
 pnpm tsc                          # comprovació de tipus estricta
