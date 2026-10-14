@@ -1,0 +1,53 @@
+---
+titol: "Sessió 2026-10-13: estètica «Cel viu» a les skills i skill implementar-us"
+tipus: sessio
+estat: vigent
+data: 2026-10-13
+us: ["TG-205", "TG-305"]
+font: "treball a la branca feature/skills-improvements, vinculada després a la tasca TG-305 (subtasca de TG-205) de Taiga i a la PR #17; recerca sobre el Frutiger Aero (CARI, Wikipedia, docs d'Expo) i decisions de la persona responsable"
+etiquetes: [sessio, skills, frontend, estetica]
+---
+
+# Sessió 2026-10-13 · Estètica «Cel viu» a les skills i skill `implementar-us`
+
+## Objectiu
+
+1. Fer que totes les skills i subagents de frontend i disseny apliquin la mateixa estètica «Frutiger Cosmo», amb un aspecte propi (vidre, natura, cel), i usin `frontend-design` i `ui-ux-pro-max` de manera ordenada.
+2. Tenir una skill que porti una US de Taiga de cap a cap com un enginyer sènior que prefereix la solució simple.
+
+## Què s'ha fet
+
+- Skill nova `estetica-frutiger-cosmo` (`SKILL.md` i referències: principis, tokens, receptes, cel viu, so i moviment, checklist) i dos scripts: `contrast.py` (contrast WCAG) i `generar_so.py` (sons originals amb la llibreria estàndard de Python).
+- Les skills `frontend-*` i `gestio-errors`, els subagents `frontend` i `reviewer-arquitectura` i les guies d'accessibilitat i responsive remeten a la skill nova. S'ha eliminat `frontend-component/references/frutiger-cosmo.md`, que ara viu a la skill nova. Els subagents `backend`, `frontend`, `devops` i `qa-tester` ja no porten «US actual: TG-205» fixat.
+- Skill nova `implementar-us`: llegeix la US per l'MCP de Taiga (o `claude-in-chrome`, o text enganxat), pregunta el que no sap, planifica, espera aprovació, implementa amb les skills i subagents i itera fins que els criteris d'acceptació i la DoD verificable passen. Guia d'instal·lació de l'MCP a nivell d'usuari per a Claude Code, Codex, Gemini CLI, OpenCode i Copilot (cap credencial al repo).
+- ADR-0020 i [[frontend]] actualitzats.
+
+## Decisions preses
+
+- Direcció **Cel viu**: paisatge fix (prat i llac) sota un cel de dia, posta o nit; vidre només en capes flotants; gel només en accions; cap gradient decoratiu. Quatre temes (`dia`, `posta`, `nit`, `vermell`) i quatre modes (Clar, Fosc, Seguir sistema, Seguir Sol). El tema i el cel van sempre lligats.
+- Tipografia M PLUS Rounded 1c + Open Sans; motius naturals: aigua, aurora i llum, prat. Moviment i so actius per defecte.
+- Els sons es trien per cas (llibreria CC0, fitxer aportat o script Python); mai de Nintendo, Microsoft o Apple.
+- Decidit després de la primera entrega: icones **Phosphor** (`phosphor-react-native` 3.0.6); radis tipus iOS 4 (8/12/18); escala compacta (cos 16, `display` 44); ombra de llum marcada (`0 10 32` al 30 % al vidre, `0 8 20` al 60 % al gel); breakpoints 360/390/768/1280/1536; mode inicial **Seguir Sol**; ubicació aproximada amb `expo-location` + ciutat de reserva + franges de rellotge; mode vermell com a interruptor només de nit o de posta.
+- Estats al tema `vermell` («vermell + pes visual»): un sol vermell; perill amb vora de 2 px i fons, èxit i avís només amb icona i text. Variant d'alt contrast: **només la del sistema** («Redueix la transparència»), sense interruptor propi.
+- Correcció detectada en revisar el fallback: `surface.glassSolid` és un color **opac per tema** (`#F4FBFE`, `#1B2350`, `#22305F`, `#3A141A`, contrast ≥5,5:1), no «més opacitat»: als temes foscos, més blanc empitjora el contrast del text clar.
+- Prova real de `implementar-us` ajornada a la primera US real (decisió de la persona).
+- S'ha editat l'ADR-0020 (en lloc de crear-ne una de nova), per decisió de la persona.
+- La skill `implementar-us` pot escriure a Taiga (subtasques, comentaris i estats) **sempre amb confirmació**; els punts humans de la DoD surten com a checklist pendent.
+- **Desviació del pla acordat:** el cos del gel és `#075F94`, no `#0B78B5`. Amb `#0B78B5` el reflex superior baixava el contrast del text blanc a 3,9:1 (1,9:1 amb el reflex del 55 % previst). Amb `#075F94` és 6,8:1 (5,3:1 amb el reflex del 12 %).
+- Decisió afegida per l'agent: la skill no mou mai la US a `Done` (requereix PR aprovada i fusionada); pot proposar fins a `Ready for test`.
+- «Frutiger Cosmo» no és un cànon documentat (només ho és el Frutiger Aero): el definim nosaltres.
+
+## Pendent / següents passos
+
+- [x] Escala tipogràfica, radis, ombra de llum, breakpoints, mode vermell, icones, ubicació i mode inicial: decidits la mateixa sessió (vegeu sota).
+- [x] Estats al tema `vermell` i variant d'alt contrast: decidits (vegeu sota).
+- [x] Presets de `generar_so.py` escoltats i aprovats per la persona (tres rondes; `error` és la referència d'estètica). Cap WAV és al repo: qui implementi el primer component els genera amb `generar_so.py` i afegeix cada so a `frontend/assets/sounds/LICENSES.md`.
+- [ ] Quan s'implementi, mesurar el rendiment del blur i de l'escena Skia en un mòbil modest.
+- [x] Tests de `contrast.py` i `generar_so.py` (29 proves amb `unittest`, només llibreria estàndard) i pas `setup-python` al workflow `skills-sync-check`.
+- [ ] Prova real de `implementar-us` amb la primera US real (fins ara només s'ha provat la lectura de TG-48 per l'MCP).
+- [ ] Les credencials de l'MCP de Taiga ara són en clar al fitxer d'usuari de l'eina (fora del repo); valorar-ne l'alternativa si l'equip ho demana.
+
+## US de Taiga
+
+- TG-305 «Skill d'estètica «Cel viu» i skill implementar-us (PR #17)»: tasca nova sota TG-205, creada a Taiga el 2026-10-13 i en *Ready for test*. La feina es va començar sense US i es va vincular en revisar la PR #17 contra la [[definition-of-done]].
+- TG-205 continua en Done; el seu detall és a [[2026-10-07-subagents-i-skills-agnostics]].

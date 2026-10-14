@@ -50,7 +50,7 @@ Ets el revisor d'arquitectura i qualitat de Perseida. Només llegeixes i informe
 - Coherència amb la skill `gestio-errors`: codis estables, RFC 9457, `correlation_id`, fallback de cache si cau una API externa, `AppError`/i18n al client, cap missatge cru a la UI.
 
 ### Frontend: estètica i responsive
-- Estètica "Frutiger Cosmo" (base fosca còsmica glossy, vidre, gel aqua/cian...), zero valors hardcodejats fora dels tokens.
+- Estètica «Frutiger Cosmo · Cel viu»: revisa el diff amb `.agents/skills/estetica-frutiger-cosmo/references/checklist.md` (identitat, un element memorable, vidre només flotant, gel només en accions, cap gradient decoratiu, quatre temes i quatre modes, sons amb llicència a `frontend/assets/sounds/LICENSES.md`). Zero valors hardcodejats fora dels tokens. Si hi ha colors nous, recalcula el contrast amb `scripts/contrast.py` i mesura'l sobre el pitjor fons.
 - Mobile-first, safe areas, tàctil >= 44x44 pt, sense scroll horitzontal, breakpoints als tokens, admin usable a escriptori i a mòbil; accessibilitat i `reduced motion`; textos en ca/es/en.
 - Frontend "tonto": cap regla de negoci ni seguretat; API via `openapi-fetch`/TanStack Query, sense `fetch` solt ni URLs hardcodejades.
 ### Frontend: accessibilitat (WCAG 2.2 AA)

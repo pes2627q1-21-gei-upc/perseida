@@ -41,7 +41,7 @@ Preparar el desenvolupament àgil amb agents d'IA: subagents especialitzats i sk
 
 - [ ] Posar els story points de TG-205 a Taiga (el MCP no ho permet; proposta: Back 2, Front 2, UX 1) i comprovar-ne l'èpica.
 - [ ] L'equip ha d'acceptar les ADR 0016–0021, sobretot [[0019-tests-despres-del-codi]] (supera part d'ADR-0004).
-- [ ] Validar amb la persona la paleta i la tipografia de «Frutiger Cosmo» abans del primer component.
+- [x] Validar amb la persona la paleta i la tipografia de «Frutiger Cosmo» abans del primer component. Fet el 2026-10-13: [[2026-10-13-skills-estetica-i-implementar-us]].
 - [ ] Revisar els valors orientatius de `gestio-errors` (codi `INTERNAL_ERROR`, capçalera de correlació, mapatge de status).
 - [ ] Provar els subagents en cada eina i revisar les eines de `read-only` de Gemini i Copilot.
 

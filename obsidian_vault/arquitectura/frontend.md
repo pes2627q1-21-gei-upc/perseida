@@ -13,7 +13,7 @@ etiquetes: [arquitectura, frontend, react-native, expo, offline]
 App i panell d'administració de Perseida amb **React Native + Expo** i TypeScript. Pensada per a Android i iOS; de moment només es desplega la versió **Android** (APK).
 
 > [!warning] Estat
-> Descripció de l'estat **planificat**; `frontend/` encara només conté README.
+> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors i el servei de l'APOD (TG-117). Encara no hi ha `src/shared/theme`, components ni rutes (`src/app`).
 
 ## Stack
 
@@ -21,7 +21,8 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 |---|---|
 | Framework | React Native + Expo |
 | Llenguatge | TypeScript (`strict`), motor Hermes |
-| Estils | NativeWind + *tokens* de tema propis; estètica Frutiger Cosmo ([[0020-frontend-expo-router-i-estetica-frutiger-cosmo]]) |
+| Estils | NativeWind + *tokens* de tema propis; estètica «Frutiger Cosmo · Cel viu» amb quatre temes (`dia`, `posta`, `nit`, `vermell`) i quatre modes ([[0020-frontend-expo-router-i-estetica-frutiger-cosmo]]) |
+| Tipografia | M PLUS Rounded 1c (títols i xifres) + Open Sans (cos), amb `expo-font` |
 | i18n | i18next (català, castellà i anglès; detecció d'idioma del dispositiu + selector) |
 | Emmagatzematge local | SQLite (outbox + cache offline) |
 | Auth | Google OAuth2 + PKCE |
@@ -61,8 +62,8 @@ SPA amb React Native Web: gestió i suspensió d'usuaris, supervisió d'esdeveni
 
 ```
 frontend/
-├── app/ or src/       # screens, components, hooks, services (Expo)
-├── assets/
+├── src/               # app/ (Expo Router), features/, shared/{ui,theme,api,errors,i18n} (ADR-0020)
+├── assets/            # includes sounds/ with LICENSES.md
 ├── locales/           # ca / es / en translations
 ├── __mocks__/         # simulated API responses for tests
 ├── app.json           # Expo configuration

@@ -17,7 +17,7 @@ App mòbil i panell d'administració de **Perseida**, una aplicació multiplataf
 - **Mode offline**: cua SQLite local i cache de lectura, sincronitzades més tard (last-write-wins).
 - **Multiidioma**: català, castellà i anglès (detecció de l'idioma del dispositiu + selector).
 - **Panell d'administració** (SPA amb React Native Web): gestió i suspensió d'usuaris, supervisió d'esdeveniments publicats, mètriques d'ús, cua de revisió de denúncies. Accés per rol.
-- Tema fosc optimitzat per a ús nocturn.
+- Aspecte «Cel viu» (Frutiger Cosmo): temes clar, fosc i de posta que segueixen el cel, i un mode vermell nocturn per observar; modes: Clar, Fosc, Seguir sistema, Seguir Sol.
 
 ## Stack tecnològic
 
