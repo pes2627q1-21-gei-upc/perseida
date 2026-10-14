@@ -73,6 +73,11 @@ La resta del backlog és a [[epiques-i-us]].
 - Sessió: [[2026-10-13-servei-apod-frontend]].
 - Pendent: PR cap a `develop` (la fa la persona); TG-118 a TG-121.
 
+## Què ha lliurat TG-34 fins ara
+
+- Workflow `.github/workflows/ci.yml` amb els jobs `changes` i `backend`: lint, format, tipus i tests amb cobertura del backend a cada PR i push cap a `develop`/`main`, amb PostgreSQL/PostGIS i Redis com a *service containers*. Detall a [[arquitectura-fisica]] i [[qualitat]]. Sessió: [[2026-10-14-ci-backend]].
+- README del backend (ca, es, en) amb la secció "Integració contínua".
+- Pendent: fusionar la PR #18 (aprovació d'una persona que no sigui l'autora) i les PR d'acceptació (tasca #253).
 ## Què ha lliurat TG-40 fins ara
 
 - Configuració de PostgreSQL amb `pydantic-settings` i construcció de la URL amb `SQLAlchemy URL.create`.
@@ -93,7 +98,7 @@ La resta del backlog és a [[epiques-i-us]].
 
 ## Pendent
 
-- No hi ha workflow de CI del backend a `develop`: el `ci.yml` de TG-34 és a la branca `feature/ci-backend-workflow` sense PR; fins que es fusioni, els linters i tests s'executen en local.
+- Hi ha CI del backend (TG-34), però no SonarQube Cloud ni Quality Gate (US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194)), ni CI del frontend (TG-35). Fins que TG-33 fixi el check `backend` com a requerit, la CI no bloqueja la fusió.
 - El script `taiga_unblock.py` només desbloqueja tasques després de fusionar TG-322; mentrestant, els bloquejos de tasca s'han de treure a mà.
 - TG-33 ha d'ampliar la plantilla de PR (`.github/pull_request_template.md`) amb la llista de revisió de la memòria §2.4.4: arquitectura hexagonal, tests per al codi nou, claredat i nomenclatura, eficiència de les consultes a PostgreSQL/PostGIS, secrets, avisos de SonarQube Cloud i vault.
 - TG-47 (endpoint de l'APOD) depèn de TG-46; cal acordar amb qui la porta l'entitat i el port de l'APOD.
@@ -116,4 +121,5 @@ La resta del backlog és a [[epiques-i-us]].
 - [[2026-10-09-jerarquia-errors]]
 - [[2026-10-13-servei-apod-frontend]]
 - [[2026-10-14-planificacio-sprint-1]]
+- [[2026-10-14-ci-backend]]
 - [[2026-10-14-tg-40-postgresql-async]]
