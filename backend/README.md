@@ -170,6 +170,23 @@ uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api
 
 The full stack (API, PostgreSQL/PostGIS, Redis, moderation) is started with Docker Compose from [`../infra`](../infra/README.md). Copy `.env.example` to `.env`; real secrets are never committed.
 
+## Continuous integration
+
+The [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) workflow runs the `backend` job on every pull request to `develop` or `main` and on every push to `develop` or `main`. In a PR it only runs if `backend/**` or the workflow itself changed; otherwise the job shows as *skipped* and does not block the PR. A new push to the same PR cancels the previous run.
+
+Exact commands (from `backend/`, the same ones as the workflow):
+
+```bash
+cd backend                                 # from the repository root
+uv sync --locked                           # fails if uv.lock is out of date
+uv run ruff check .                        # lint
+uv run ruff format --check .               # formatting
+uv run mypy .                              # strict type checking
+uv run pytest --cov-report=xml:coverage.xml  # tests + coverage report
+```
+
+- **Coverage:** the report is published as the `backend-coverage` artifact (`coverage.xml`). To download it: GitHub → **Actions** tab → the run → **Artifacts** section at the bottom of the summary page.
+- **Services:** PostgreSQL (PostGIS 18) and Redis 8 start by themselves as service containers in the CI. No Docker Compose or `.env` is needed.
 ## PostgreSQL
 
 The asynchronous PostgreSQL connection is configured through environment variables:

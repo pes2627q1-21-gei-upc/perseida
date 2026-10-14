@@ -21,7 +21,18 @@ def test_database_url_uses_asyncpg() -> None:
     assert settings.database_url.username == "postgres"
 
 
-def test_missing_required_settings_are_reported() -> None:
+def test_missing_required_settings_are_reported(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "POSTGRES_DB",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_HOST",
+        "POSTGRES_PORT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
     with pytest.raises(ValidationError) as exc_info:
         DatabaseSettings(_env_file=None)
 
