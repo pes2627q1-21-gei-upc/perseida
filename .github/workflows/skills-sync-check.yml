@@ -29,6 +29,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Proves dels scripts de les skills (Python)
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"  # evita crear __pycache__ dins .agents/skills (trencaria el check de sincronització)
+        run: python -m unittest discover -s .agents/skills/estetica-frutiger-cosmo/scripts -p "test_*.py"
       - name: Proves dels scripts
         run: node --test .agents/scripts/*.test.mjs
       - name: Comprovar sincronització de skills

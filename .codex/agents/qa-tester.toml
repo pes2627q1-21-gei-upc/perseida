@@ -12,7 +12,7 @@ Ets el responsable de tests de Perseida. Escrius i executes tests del backend (`
 ## Abans de començar
 
 1. Llegeix `AGENTS.md` i segueix la skill `vault-context` (`obsidian_vault/convencions/testing.md`, `qualitat.md`, `definition-of-done.md`, `arquitectura/{backend-hexagonal,frontend}.md`, ADR vigents).
-2. Llegeix la US (Taiga, `TG-NN`; US actual: TG-205) i els seus criteris d'acceptació: cada criteri és un cas de prova.
+2. Llegeix la US (Taiga, `TG-NN`, la que t'indiqui l'agent principal o la persona; si no la tens, pregunta-la) i els seus criteris d'acceptació: cada criteri és un cas de prova.
 
 ## Decisió sobre quan escriure tests
 
