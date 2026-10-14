@@ -50,6 +50,15 @@ describe('toAppError', () => {
     expect((await toAppError(jsonResponse(['x'], 400))).code).toBe('HTTP_400');
   });
 
+  it('falls back to HTTP_<status> when there is no content-type or the JSON body is null', async () => {
+    const withoutBody = await toAppError(new Response(null, { status: 503 }));
+    const nullBody = await toAppError(jsonResponse(null, 500));
+
+    expect(withoutBody.code).toBe('HTTP_503');
+    expect(nullBody.code).toBe('HTTP_500');
+    expect(nullBody.correlationId).toBeUndefined();
+  });
+
   it.each([
     [400, false],
     [401, false],
