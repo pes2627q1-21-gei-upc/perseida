@@ -78,6 +78,25 @@ Detalls: [infraestructura](infra/README.ca.md) · [arquitectura del backend](bac
 | Infraestructura | Docker Compose, nginx-proxy-manager, GitHub Actions, GHCR |
 | Qualitat | `ruff`, `mypy`, ESLint, Prettier, `pytest`, Jest, SonarQube Cloud |
 
+## Desenvolupament amb PostgreSQL
+
+El backend utilitza PostgreSQL 18 amb PostGIS i s'hi connecta de manera asíncrona mitjançant `asyncpg`.
+
+Per iniciar un contenidor local de PostgreSQL per al desenvolupament, utilitza la imatge oficial:
+
+```bash
+docker run --name perseida-postgres \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=change_me \
+  -p 5432:5432 \
+  -d postgres:18
+```
+
+Aquesta ordre inicia només PostgreSQL; no inicia el backend ni instal·la PostGIS. Si necessites les funcionalitats geoespacials del projecte, utilitza una imatge que inclogui PostGIS.
+
+Les dependències de Python es gestionen amb `uv`. Les versions de les dependències s'han de fixar exactament amb `==`, i cal mantenir actualitzat el fitxer `backend/uv.lock`.
+
 ## Flux de treball i convencions
 
 - Scrum: 3 sprints d'unes 3 setmanes, un Scrum Master que rota cada sprint i el professorat de l'assignatura com a Product Owner (el client). El backlog és a Taiga.
@@ -102,25 +121,6 @@ Detalls: [infraestructura](infra/README.ca.md) · [arquitectura del backend](bac
 ## Llicència
 
 Distribuït sota la [GNU Affero General Public License v3.0](LICENSE).
-
-## Desenvolupament amb PostgreSQL
-
-El backend utilitza PostgreSQL 18 amb PostGIS i s'hi connecta de manera asíncrona mitjançant `asyncpg`.
-
-Per iniciar un contenidor local de PostgreSQL per al desenvolupament, utilitza la imatge oficial:
-
-```bash
-docker run --name perseida-postgres \
-  -e POSTGRES_DB=perseida \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=change_me \
-  -p 5432:5432 \
-  -d postgres:18
-```
-
-Aquesta ordre inicia només PostgreSQL; no inicia el backend ni instal·la PostGIS. Si necessites les funcionalitats geoespacials del projecte, utilitza una imatge que inclogui PostGIS.
-
-Les dependències de Python es gestionen amb `uv`. Les versions de les dependències s'han de fixar exactament amb `==`, i cal mantenir actualitzat el fitxer `backend/uv.lock`.
 
 ## Equip
 

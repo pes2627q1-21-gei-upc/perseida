@@ -78,6 +78,25 @@ Details: [infrastructure](infra/README.md) · [backend architecture](backend/REA
 | Infrastructure | Docker Compose, nginx-proxy-manager, GitHub Actions, GHCR |
 | Quality | `ruff`, `mypy`, ESLint, Prettier, `pytest`, Jest, SonarQube Cloud |
 
+## PostgreSQL development
+
+The backend uses PostgreSQL 18 with PostGIS and connects asynchronously through `asyncpg`.
+
+To start a local PostgreSQL container for development, use the official PostgreSQL image:
+
+```bash
+docker run --name perseida-postgres \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=change_me \
+  -p 5432:5432 \
+  -d postgres:18
+```
+
+This command starts PostgreSQL only; it does not start the backend or install PostGIS. Use a PostGIS-enabled image if you need the project's geospatial features.
+
+Python dependencies are managed with `uv`. Dependency versions must be pinned exactly using `==`, and `backend/uv.lock` must be kept up to date.
+
 ## Workflow and conventions
 
 - Scrum: 3 sprints of about 3 weeks, a Scrum Master that rotates every sprint, and the course teaching staff acting as Product Owner (the client). The backlog lives in Taiga.
@@ -102,25 +121,6 @@ Details: [infrastructure](infra/README.md) · [backend architecture](backend/REA
 ## License
 
 Distributed under the [GNU Affero General Public License v3.0](LICENSE).
-
-## PostgreSQL development
-
-The backend uses PostgreSQL 18 with PostGIS and connects asynchronously through `asyncpg`.
-
-To start a local PostgreSQL container for development, use the official PostgreSQL image:
-
-```bash
-docker run --name perseida-postgres \
-  -e POSTGRES_DB=perseida \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=change_me \
-  -p 5432:5432 \
-  -d postgres:18
-```
-
-This command starts PostgreSQL only; it does not start the backend or install PostGIS. Use a PostGIS-enabled image if you need the project's geospatial features.
-
-Python dependencies are managed with `uv`. Dependency versions must be pinned exactly using `==`, and `backend/uv.lock` must be kept up to date.
 
 ## Team
 

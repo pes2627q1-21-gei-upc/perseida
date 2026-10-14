@@ -182,7 +182,17 @@ The asynchronous PostgreSQL connection is configured through environment variabl
 
 See `.env.example` for example values. Do not commit real credentials.
 
+To run a local PostgreSQL:
+
+```bash
+docker run --name perseida-postgres   -e POSTGRES_DB=perseida   -e POSTGRES_USER=postgres   -e POSTGRES_PASSWORD=change_me   -p 5432:5432   -d postgres:18
+```
+
+This starts PostgreSQL only (no PostGIS); use a PostGIS-enabled image for geospatial work. Then copy `.env.example` to `.env` with the same values and `POSTGRES_HOST=localhost`.
+
 Database settings are validated during application startup. The asynchronous engine and session factory are created in FastAPI's lifespan and the engine is disposed when the application shuts down. A session is provided per request; successful requests commit, while exceptions trigger a rollback.
+
+`persistence/models.py` sets the SQLModel naming convention (imported by `app.main`). The `ck` convention uses `%(constraint_name)s`, so every `CheckConstraint` must have an explicit `name`, otherwise Alembic migrations (TG-41) will fail.
 
 The engine uses lazy connections: creating it does not immediately establish a connection to PostgreSQL. The first database operation opens the connection.
 
