@@ -59,6 +59,51 @@ flowchart TB
 - Rollback: redeploy the previous image by its `git-sha`.
 - The repository also contains an automation that unblocks Taiga tasks (`.github/workflows/taiga-unblock.yml`).
 
+## GHCR — Package permissions and visibility
+
+The backend image is published to **GitHub Container Registry** (`ghcr.io`) under the organization's namespace:
+
+```
+ghcr.io/pes2627q1-21-gei-upc/perseida-api:<tag>
+```
+
+### Automatic permissions (GITHUB_TOKEN)
+
+The CI/CD workflow uses the built-in `GITHUB_TOKEN` — no PAT or manual secret needed:
+
+| Scope | Why |
+|---|---|
+| `contents: read` | Clone the repository in the runner |
+| `packages: write` | Push image to GHCR and update package metadata |
+
+GitHub automatically **downgrades** `packages` to `read` on pull requests from external forks, so no unauthorized fork can publish images.
+
+### First-time setup: make the package public (one-time, manual)
+
+When the image is pushed for the first time, GitHub creates the package as **private** by default. For an open academic project, set it to **public**:
+
+**Option A — GitHub UI** (recommended):
+1. Go to the repository on GitHub.
+2. Click **Packages** (right sidebar) → `perseida-api`.
+3. Click **Package settings** → **Change visibility** → **Public**.
+
+**Option B — GitHub REST API** (scriptable):
+```bash
+# Requires a PAT with write:packages scope (one-time, run locally)
+curl -L \
+  -X PATCH \
+  -H "Authorization: Bearer <YOUR_PAT>" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/orgs/pes2627q1-21-gei-upc/packages/container/perseida-api \
+  -d '{"visibility":"public"}'
+```
+
+> **Note:** Never commit a PAT to the repository. Run Option B locally and discard the token.
+
+### Link the package to the repository (one-time, automatic)
+
+The first time the workflow pushes the image, GitHub links the package to the repository automatically because the image is named after `github.repository_owner`. No manual action needed.
+
 ## Configuration and secrets
 
 - Secrets and variables live in GitHub **Secrets and variables**; the CD job generates `.env` on the server. `.env` is **never** committed; a value-free `.env.example` is the template.

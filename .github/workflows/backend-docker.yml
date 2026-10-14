@@ -33,15 +33,11 @@ on:
 
   workflow_dispatch:
 
-# ── Permisos ──────────────────────────────────────────────────────────────────
-# Principi de mínim privilegi: només els permisos estrictament necessaris.
-#   · contents: read   → checkout del codi.
-#   · packages: write  → push de la imatge a GHCR (T220/T221).
-# En PRs des de forks, GitHub redueix automàticament els permisos de `packages`
-# a `read`, de manera que el pas de push queda deshabilitat de forma segura.
-permissions:
-  contents: read
-  packages: write
+# ── Permisos globals (mínim per defecte) ─────────────────────────────────────
+# Es nega tot el que no es declara explícitament a nivell de job.
+# Millora de seguretat: si GitHub Actions afegeix permisos per defecte
+# en el futur, no els heretarem accidentalment.
+permissions: {}
 
 # ── Concurrència ──────────────────────────────────────────────────────────────
 # Si arriba un nou push mentre ja hi ha un build en curs per a la mateixa
@@ -57,6 +53,34 @@ jobs:
     name: Build i publica imatge Docker del backend
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    # ── Permisos del job (principi de mínim privilegi) ──────────────────────
+    # Es declaren a nivell de job (no de workflow) per ser el més granulars
+    # possible. Si afegim jobs futurs (p. ex. scan de vulnerabilitats), cada
+    # un declararà únicament el que necessiti.
+    #
+    # contents: read
+    #   Necessari per a `actions/checkout`. Sense ell, el runner no pot
+    #   clonar el repositori.
+    #
+    # packages: write
+    #   Necessari per a `docker/login-action` + `docker/build-push-action`
+    #   per publicar la imatge a ghcr.io/OWNER/perseida-api.
+    #   GITHUB_TOKEN amb aquest àmbit permet:
+    #     · push de noves versions de la imatge.
+    #     · actualitzar les metadades del paquet (tags, labels).
+    #   GitHub el talla automàticament a `packages: read` en PRs des de forks
+    #   externs, de manera que cap fork no autoritzat pot publicar imatges.
+    #
+    # Visibilitat del paquet GHCR:
+    #   El primer push crea el paquet com a PRIVAT per defecte.
+    #   Per fer-lo públic (recomanat per a un projecte acadèmic obert):
+    #     GitHub → repositori → Packages → perseida-api →
+    #     Package settings → Change visibility → Public.
+    #   Alternativament, es pot fer amb la GitHub API (vegeu infra/README.md).
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       # ── 1. Checkout ──────────────────────────────────────────────────────────
