@@ -1,9 +1,11 @@
 from collections.abc import AsyncIterator
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+import app.main as main_module
 from app.application.health.health_service import HealthService
 from app.infrastructure.health.dependencies import get_health_service
 from app.main import create_app
@@ -61,6 +63,34 @@ async def test_docs_are_served(client: AsyncClient) -> None:
     assert response.status_code == 200
 
 
-async def test_lifespan_starts_and_stops(app: FastAPI) -> None:
+@pytest.fixture
+def db_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key, value in {
+        "POSTGRES_DB": "test",
+        "POSTGRES_USER": "test",
+        "POSTGRES_PASSWORD": "test",
+        "POSTGRES_HOST": "127.0.0.1",
+        "POSTGRES_PORT": "1",
+    }.items():
+        monkeypatch.setenv(key, value)
+
+
+async def test_lifespan_starts_and_stops(
+    app: FastAPI, db_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = MagicMock()
+    engine.dispose = AsyncMock()
+    monkeypatch.setattr(main_module, "create_async_engine", lambda *a, **k: engine)
+
     async with app.router.lifespan_context(app):
-        pass
+        assert app.state.session_factory is not None
+
+    engine.dispose.assert_awaited_once()
+
+
+async def test_app_starts_without_postgres_available(
+    app: FastAPI, db_env: None
+) -> None:
+    # Nothing listens on port 1: the engine is lazy, so startup must not connect.
+    async with app.router.lifespan_context(app):
+        assert app.state.session_factory is not None
