@@ -67,21 +67,40 @@ frontend/
 └── tsconfig.json
 ```
 
-## Run and test (planned)
+## Run and test
 
 ```bash
-pnpm install            # install dependencies
-pnpm expo start         # start the Expo dev server (Android emulator / device)
-pnpm lint               # ESLint + Prettier
-pnpm tsc --noEmit       # type check (strict)
-pnpm test               # Jest + React Native Testing Library
-pnpm test --coverage
+cd frontend                       # from the repository root
+pnpm install --frozen-lockfile    # install dependencies exactly as in pnpm-lock.yaml
+pnpm expo start                   # start the Expo dev server (Android emulator / device)
+pnpm lint                         # ESLint + Prettier (also checks formatting)
+pnpm tsc                          # strict type check (tsc --noEmit)
+pnpm test                         # Jest (jest-expo preset)
+pnpm test --coverage              # tests + coverage report (coverage/lcov.info)
 ```
 
 Releases: on each release merged into `main`, GitHub Actions publishes the **APK** as a GitHub release.
 
+## Continuous integration
+
+The [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) workflow runs the `frontend` job on every pull request to `develop` or `main` and on every push to `develop` or `main`. In a PR it only runs if `frontend/**` or the workflow itself changed; otherwise the job shows as *skipped* and does not block the PR. A new push to the same PR cancels the previous run.
+
+Exact commands (from `frontend/`, the same ones as the workflow, each one a separate step so you can see which fails):
+
+```bash
+pnpm install --frozen-lockfile    # fails if pnpm-lock.yaml is out of date
+pnpm lint                         # ESLint + Prettier
+pnpm tsc                          # strict type check
+pnpm test --coverage --ci         # Jest + coverage report
+```
+
+- **Versions:** the CI uses Node 22.23.3 and pnpm 10.28.0 (pinned in the workflow); use the same locally to reproduce a failure.
+- **Coverage:** the report is published as the `frontend-coverage` artifact (`lcov.info`). To download it: GitHub → **Actions** tab → the run → **Artifacts** section at the bottom of the summary page.
+- **Requirements:** the job needs no secrets and no services.
+
 ## Testing and quality
 
+- Jest runs with the `jest-expo` preset (`jest.config.js`) and there is a smoke test in `__tests__/`. React Native Testing Library is already used for hooks; the component tests and API mocks arrive with US #83.
 - Priority on custom hooks and presentation logic (loading / error / empty states, form validation), main components (event cards, APOD screen, streak, report form, admin screens) and checking that every UI text has ca/es/en translation. The API client is mocked.
 - Form validation feedback must appear in < 100 ms without a network call.
 - New code of each PR: coverage ≥ 70 % and SonarQube Cloud Quality Gate. Purely visual components are excluded from coverage.
