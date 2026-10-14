@@ -1,0 +1,83 @@
+name: Backend Docker build
+
+# =============================================================================
+# T219 – Workflow de construcció i publicació de la imatge Docker del backend.
+# S'activa quan canvia codi rellevant del backend o el propi workflow.
+#
+# Disparadors:
+#   · push a develop o main     → build + push de la imatge a GHCR.
+#   · pull_request cap a develop o main → build sense push (validació).
+#   · workflow_dispatch         → execució manual per a proves o redesplegaments.
+#
+# Filtres de rutes (paths):
+#   Només s'executa si el canvi afecta fitxers del backend o el workflow.
+#   Evita builds innecessaris quan canvien el frontend, la documentació, etc.
+# =============================================================================
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-docker.yml"
+
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-docker.yml"
+
+  workflow_dispatch:
+
+# ── Permisos ──────────────────────────────────────────────────────────────────
+# Principi de mínim privilegi: només els permisos estrictament necessaris.
+#   · contents: read   → checkout del codi.
+#   · packages: write  → push de la imatge a GHCR (T220/T221).
+# En PRs des de forks, GitHub redueix automàticament els permisos de `packages`
+# a `read`, de manera que el pas de push queda deshabilitat de forma segura.
+permissions:
+  contents: read
+  packages: write
+
+# ── Concurrència ──────────────────────────────────────────────────────────────
+# Si arriba un nou push mentre ja hi ha un build en curs per a la mateixa
+# branca/PR, cancel·la l'anterior i comença el nou.
+# Excepció: `main` mai s'ha de cancel·lar (un CD a meitat pot deixar el
+# servidor en estat inconsistent); per això el grup és diferent per a main.
+concurrency:
+  group: backend-docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build i publica imatge Docker del backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout del codi
+        uses: actions/checkout@v4
+
+      # ── 2. Login a GHCR ──────────────────────────────────────────────────────
+      # Implementat a T220. El pas es col·loca aquí per deixar clara
+      # la posició en el flux; s'implementarà en la propera tasca.
+
+      # ── 3. Generació de tags ─────────────────────────────────────────────────
+      # Implementat a T221 (docker/metadata-action).
+
+      # ── 4. Build i push ──────────────────────────────────────────────────────
+      # Implementat a T222 (docker/build-push-action amb cache GHA).
+
+      # ── Placeholder de validació ─────────────────────────────────────────────
+      # Verifica que el Dockerfile és sintàcticament correcte (hadolint).
+      # Substituïble pels passos T220–T222 un cop implementats.
+      - name: Lint del Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: warning

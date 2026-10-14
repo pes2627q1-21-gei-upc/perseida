@@ -91,8 +91,8 @@ USER 1001
 # docker-compose.yml / el CD amb la variable d'entorn PORT.
 EXPOSE 8000
 
-# ── Entrypoint ─────────────────────────────────────────────────────────────────
-# L'entrypoint real (migracions Alembic + uvicorn) s'implementarà a #T2.
-# Ara posem l'inici directe d'uvicorn com a fallback temporal per poder
-# verificar la imatge en local sense l'script.
+# ── CMD ────────────────────────────────────────────────────────────────────────
+# L'entrypoint real (migracions Alembic + uvicorn) s'implementarà a #T218
+# un cop TG-41 (Alembic) estigui disponible.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
