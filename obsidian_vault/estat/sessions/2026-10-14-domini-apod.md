@@ -36,8 +36,9 @@ Deixar el domini i l'application de l'APOD (tasca TG-113 de la US TG-47) sense e
 
 ## Pendent / següents passos
 
-- [ ] Textos ca/es/en i fila al catàleg per a `APOD_DATE_IN_FUTURE` i `APOD_DATE_BEFORE_START`.
+- [x] Textos ca/es/en i fila al catàleg per a `APOD_DATE_IN_FUTURE` i `APOD_DATE_BEFORE_START`.
 - [ ] TG-114 (router i DTOs), TG-115 (gestió d'errors) i TG-116 (proves d'integració).
+- [ ] Provider amb `lru_cache`/`Depends` ([[0017-injeccio-de-dependencies-i-services-singleton]]): s'afegeix a TG-114.
 - [ ] Test de contracte compartit per a l'adaptador real de TG-46.
 - [ ] Obrir la PR cap a `develop` (la persona).
 
