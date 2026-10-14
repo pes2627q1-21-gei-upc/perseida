@@ -103,6 +103,25 @@ Detalles: [infraestructura](infra/README.es.md) · [arquitectura del backend](ba
 
 Distribuido bajo la [GNU Affero General Public License v3.0](LICENSE).
 
+## Desarrollo con PostgreSQL
+
+El backend utiliza PostgreSQL 18 con PostGIS y se conecta de forma asíncrona mediante `asyncpg`.
+
+Para iniciar un contenedor local de PostgreSQL para desarrollo, utiliza la imagen oficial:
+
+```bash
+docker run --name perseida-postgres \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=change_me \
+  -p 5432:5432 \
+  -d postgres:18
+```
+
+Este comando inicia únicamente PostgreSQL; no inicia el backend ni instala PostGIS. Si necesitas las funcionalidades geoespaciales del proyecto, utiliza una imagen que incluya PostGIS.
+
+Las dependencias de Python se gestionan con `uv`. Las versiones de las dependencias deben fijarse exactamente mediante `==`, y hay que mantener actualizado el archivo `backend/uv.lock`.
+
 ## Equipo
 
 Manel Alaminos · Simona Duelt · Alex Garcia · Oriol Orbea · Javier Pascual · Raquel Rubio

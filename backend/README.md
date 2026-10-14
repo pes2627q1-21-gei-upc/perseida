@@ -124,6 +124,22 @@ uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api
 
 The full stack (API, PostgreSQL/PostGIS, Redis, moderation) is started with Docker Compose from [`../infra`](../infra/README.md). Copy `.env.example` to `.env`; real secrets are never committed.
 
+## PostgreSQL
+
+The asynchronous PostgreSQL connection is configured through environment variables:
+
+- `POSTGRES_DB`: database name.
+- `POSTGRES_USER`: database user.
+- `POSTGRES_PASSWORD`: database password.
+- `POSTGRES_HOST`: database host.
+- `POSTGRES_PORT`: database port.
+
+See `.env.example` for example values. Do not commit real credentials.
+
+Database settings are validated during application startup. The asynchronous engine and session factory are created in FastAPI's lifespan and the engine is disposed when the application shuts down. A session is provided per request; successful requests commit, while exceptions trigger a rollback.
+
+The engine uses lazy connections: creating it does not immediately establish a connection to PostgreSQL. The first database operation opens the connection.
+
 ## Testing and quality
 
 - Test pyramid: ~70 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`). No end-to-end tests on the mobile app.
@@ -143,19 +159,3 @@ The full stack (API, PostgreSQL/PostGIS, Redis, moderation) is started with Dock
 ## Team
 
 Manel Alaminos · Simona Duelt · Alex Garcia · Oriol Orbea · Javier Pascual · Raquel Rubio
-
-## PostgreSQL
-
-The asynchronous PostgreSQL connection is configured through environment variables:
-
-- `POSTGRES_DB`: database name.
-- `POSTGRES_USER`: database user.
-- `POSTGRES_PASSWORD`: database password.
-- `POSTGRES_HOST`: database host.
-- `POSTGRES_PORT`: database port.
-
-See `.env.example` for example values. Do not commit real credentials.
-
-Database settings are validated during application startup. The asynchronous engine and session factory are created in FastAPI's lifespan and the engine is disposed when the application shuts down. A session is provided per request; successful requests commit, while exceptions trigger a rollback.
-
-The engine uses lazy connections: creating it does not immediately establish a connection to PostgreSQL. The first database operation opens the connection.

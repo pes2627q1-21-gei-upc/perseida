@@ -61,7 +61,6 @@ async def test_docs_are_served(client: AsyncClient) -> None:
     assert response.status_code == 200
 
 
-
 async def test_lifespan_starts_and_stops(
     app: FastAPI, monkeypatch: pytest.MonkeyPatch
 ) -> None:

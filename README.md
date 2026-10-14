@@ -103,6 +103,25 @@ Details: [infrastructure](infra/README.md) · [backend architecture](backend/REA
 
 Distributed under the [GNU Affero General Public License v3.0](LICENSE).
 
+## PostgreSQL development
+
+The backend uses PostgreSQL 18 with PostGIS and connects asynchronously through `asyncpg`.
+
+To start a local PostgreSQL container for development, use the official PostgreSQL image:
+
+```bash
+docker run --name perseida-postgres \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=change_me \
+  -p 5432:5432 \
+  -d postgres:18
+```
+
+This command starts PostgreSQL only; it does not start the backend or install PostGIS. Use a PostGIS-enabled image if you need the project's geospatial features.
+
+Python dependencies are managed with `uv`. Dependency versions must be pinned exactly using `==`, and `backend/uv.lock` must be kept up to date.
+
 ## Team
 
 Manel Alaminos · Simona Duelt · Alex Garcia · Oriol Orbea · Javier Pascual · Raquel Rubio
