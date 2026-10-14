@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.health.router import router as health_router
+from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
 
 
