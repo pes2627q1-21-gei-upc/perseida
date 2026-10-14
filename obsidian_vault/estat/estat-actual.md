@@ -2,28 +2,32 @@
 titol: Estat actual del projecte
 tipus: estat
 estat: vigent
-data: 2026-10-13
-us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88", "TG-44", "TG-304", "TG-48"]
-font: "memòria §2.1; sessions 2026-10-07, 2026-10-08, 2026-10-09 i 2026-10-13; Taiga: backlog (llistat de US i sprints, 2026-10-07; tasca TG-304, 2026-10-09)"
+data: 2026-10-14
+us: ["TG-205", "TG-85", "TG-30", "TG-31", "TG-39", "TG-33", "TG-38", "TG-45", "TG-87", "TG-88", "TG-44", "TG-304", "TG-48", "TG-46", "TG-91", "TG-322"]
+font: "memòria §2.1; sessions 2026-10-07, 2026-10-08, 2026-10-09, 2026-10-13 i 2026-10-14; Taiga: sprint 1 (estats de les US, 2026-10-14); repositori (PR #1–#17)"
 etiquetes: [estat, sprint, taiga]
 ---
 
-# Estat actual (2026-10-13)
+# Estat actual (2026-10-14)
 
-Instantània a data 2026-10-13. L'estat viu a Taiga; si hi ha diferències, guanya Taiga.
+Instantània a data 2026-10-14. L'estat viu a Taiga; si hi ha diferències, guanya Taiga.
 
 ## Sprint
 
 - **Sprint 1 (5/10/2026-28/10/2026): actiu.**
 - Sprint 2: 29/10-29/11/2026. Sprint 3: 30/11-18/12/2026.
 
-## US a data 2026-10-13
+## US a data 2026-10-14
 
 | Estat | US |
 |---|---|
-| Done | TG-30 (estructura del monorepo i guia d'arrencada), TG-31 (configuració del backend), TG-205 (subagents i skills agnòstiques) |
-| In progress | TG-39 (esquelet FastAPI async amb les capes domain, application i infrastructure; Sprint 1), TG-85 (aquest vault), TG-48 (pantalla de l'APOD del dia a l'app mòbil; TG-117 en PR) |
-| Ready | TG-33, TG-38, TG-45, TG-87, TG-88 |
+| Done | TG-30 (estructura del monorepo i guia d'arrencada), TG-31 (configuració del backend), TG-32 (frontend), TG-39 (esquelet FastAPI), TG-42 (Swagger/OpenAPI), TG-85 (aquest vault), TG-205 (subagents i skills agnòstiques) |
+| In progress | TG-34 (CI del backend; la branca `feature/ci-backend-workflow` no té PR), TG-36, TG-48 (pantalla de l'APOD; TG-117 fusionada) |
+| Ready for test | TG-40 (PR #15 oberta amb canvis demanats) |
+| Ready | TG-33, TG-35, TG-37, TG-38, TG-41, TG-43, TG-44, TG-45, TG-47, TG-87, TG-88, TG-89, TG-194 |
+| New | TG-46 i TG-91 (redactades i dividides el 2026-10-14) |
+
+Els punts de cada US estan repartits entre les seves tasques i els bloquejos són entre tasques (vegeu [[2026-10-14-planificacio-sprint-1]]).
 
 La resta del backlog és a [[epiques-i-us]].
 
@@ -77,7 +81,8 @@ La resta del backlog és a [[epiques-i-us]].
 
 ## Pendent
 
-- No hi ha workflow de CI del backend a `.github/workflows/`; fins que n'hi hagi, els linters i tests s'executen en local.
+- No hi ha workflow de CI del backend a `develop`: el `ci.yml` de TG-34 és a la branca `feature/ci-backend-workflow` sense PR; fins que es fusioni, els linters i tests s'executen en local.
+- El script `taiga_unblock.py` només desbloqueja tasques després de fusionar TG-322; mentrestant, els bloquejos de tasca s'han de treure a mà.
 - TG-33 ha d'ampliar la plantilla de PR (`.github/pull_request_template.md`) amb la llista de revisió de la memòria §2.4.4: arquitectura hexagonal, tests per al codi nou, claredat i nomenclatura, eficiència de les consultes a PostgreSQL/PostGIS, secrets, avisos de SonarQube Cloud i vault.
 - TG-47 (endpoint de l'APOD) depèn de TG-46; cal acordar amb qui la porta l'entitat i el port de l'APOD.
 
@@ -98,3 +103,4 @@ La resta del backlog és a [[epiques-i-us]].
 - [[2026-10-08-esquelet-fastapi]]
 - [[2026-10-09-jerarquia-errors]]
 - [[2026-10-13-servei-apod-frontend]]
+- [[2026-10-14-planificacio-sprint-1]]
