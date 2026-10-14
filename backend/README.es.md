@@ -168,6 +168,23 @@ uv run uvicorn app.main:app --reload  # arranca la API (http://127.0.0.1:8000/ap
 
 El stack completo (API, PostgreSQL/PostGIS, Redis, moderación) se levanta con Docker Compose desde [`../infra`](../infra/README.es.md). Copia `.env.example` a `.env`; los secretos reales nunca se versionan.
 
+## Integración continua
+
+El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) ejecuta el job `backend` en cada pull request hacia `develop` o `main` y en cada push a `develop` o `main`. En una PR solo se ejecuta si han cambiado `backend/**` o el propio workflow; si no, el job queda como omitido (*skipped*) y no bloquea la PR. Un push nuevo a la misma PR cancela la ejecución anterior.
+
+Comandos exactos (desde `backend/`, los mismos que el workflow):
+
+```bash
+uv sync --locked                           # falla si uv.lock no está al día
+uv run ruff check .                        # lint
+uv run ruff format --check .               # formato
+uv run mypy .                              # tipado estricto
+uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
+```
+
+- **Cobertura:** el informe se publica como artefacto `backend-coverage` (`coverage.xml`). Para descargarlo: GitHub → pestaña **Actions** → la ejecución → sección **Artifacts** al final de la página de resumen.
+- **Servicios:** PostgreSQL (PostGIS 18) y Redis 8 se levantan solos como service containers en la CI. No hacen falta Docker Compose ni `.env`.
+
 ## Testing y calidad
 
 - Pirámide de pruebas: ~70 % unitarias, ~30 % de integración (PostgreSQL/PostGIS y Redis efímeros, API con `httpx.AsyncClient`, APIs externas simuladas con `respx`). No hay pruebas end-to-end en la app móvil.
