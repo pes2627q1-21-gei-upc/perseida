@@ -165,7 +165,7 @@ def register_jobs(scheduler: JobScheduler) -> None:
 - `/api/health` informa del component `scheduler` mentre està activat.
 - Se suposa un únic procés d'API; amb diverses rèpliques caldria un bloqueig distribuït.
 
-Els logs s'escriuen a stderr com un objecte JSON per línia (`app/infrastructure/logging.py`).
+Els logs (també els d'uvicorn) s'escriuen a stderr com un objecte JSON per línia, amb `correlation_id` quan n'hi ha (`app/infrastructure/logging.py`). Un `SCHEDULER_TIMEZONE` desconegut falla a l'arrencada amb un error de configuració.
 
 ## Contractes de servei (Spotwise, grup 21B)
 

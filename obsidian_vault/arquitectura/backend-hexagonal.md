@@ -60,7 +60,7 @@ El planificador és un **port** del domini (`JobScheduler`, `app/domain/schedule
 - Cada tasca s'executa amb `max_instances=1` i `coalesce=True`; una excepció es registra (log JSON amb el camp `job`) sense aturar el planificador ni l'API.
 - `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`); l'endpoint de salut informa del component `scheduler` només si està activat.
 - Un únic procés d'API: amb diverses rèpliques caldria un bloqueig distribuït amb Redis.
-- Els logs de l'API s'emeten com a JSON (una línia per registre) des de `app/infrastructure/logging.py`.
+- Els logs de l'API (també els d'uvicorn) s'emeten com a JSON, una línia per registre i amb `correlation_id` quan n'hi ha, des de `app/infrastructure/logging.py`. Un fus horari desconegut falla a l'arrencada.
 
 ## Patró per a dades externes
 

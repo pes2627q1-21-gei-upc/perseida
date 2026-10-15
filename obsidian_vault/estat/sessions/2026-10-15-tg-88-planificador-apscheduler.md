@@ -28,6 +28,7 @@ Proporcionar la infraestructura de tasques periòdiques dins del procés FastAPI
 - Planificador desactivat: el component s'omet del healthcheck (decidit per la persona).
 - Logging JSON global amb stdlib, sense dependència nova (decidit per la persona).
 - Override de mypy per a `apscheduler.*`: APScheduler 3.x no porta tipus.
+- Revisió d'arquitectura: la persona va triar aplicar les tres troballes mitjanes (logging JSON també a uvicorn, `correlation_id` als logs, un sol `get_scheduler_settings()`) i s'hi va afegir la validació del fus horari.
 - Rellotge simulat substituït per intervals curts i esdeveniments asyncio.
 
 ## Canvis al vault

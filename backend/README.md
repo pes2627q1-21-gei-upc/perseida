@@ -167,7 +167,7 @@ def register_jobs(scheduler: JobScheduler) -> None:
 - `/api/health` reports the `scheduler` component while it is enabled.
 - A single API process is assumed; with several replicas a distributed lock would be needed.
 
-Logs are written to stderr as one JSON object per line (`app/infrastructure/logging.py`).
+Logs (including uvicorn's) are written to stderr as one JSON object per line, with `correlation_id` when there is one (`app/infrastructure/logging.py`). An unknown `SCHEDULER_TIMEZONE` fails at startup with a configuration error.
 
 ## Service contracts (Spotwise, group 21B)
 
