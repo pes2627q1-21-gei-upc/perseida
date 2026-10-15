@@ -123,3 +123,29 @@ async def test_registering_same_name_replaces_the_job(
 
     await asyncio.wait_for(replaced.wait(), TIMEOUT)
     assert "first" not in calls
+
+
+async def test_shutdown_cancels_running_job_without_logging_an_error(
+    scheduler: ApschedulerJobScheduler, caplog: pytest.LogCaptureFixture
+) -> None:
+    started = asyncio.Event()
+    cleaned_up = False
+
+    async def long_running() -> None:
+        nonlocal cleaned_up
+        started.set()
+        try:
+            await asyncio.sleep(60)
+        finally:
+            cleaned_up = True
+
+    scheduler.add_interval_job("long", long_running, seconds=0.05)
+    scheduler.start()
+    await asyncio.wait_for(started.wait(), TIMEOUT)
+
+    with caplog.at_level(logging.WARNING):
+        await scheduler.shutdown()
+
+    assert cleaned_up is True
+    assert [t for t in asyncio.all_tasks() if t is not asyncio.current_task()] == []
+    assert [r for r in caplog.records if r.levelno >= logging.ERROR] == []

@@ -13,6 +13,7 @@ class ApschedulerJobScheduler:
 
     def __init__(self, timezone: str = "UTC") -> None:
         self._timezone = timezone
+        self._running_jobs: set[asyncio.Task[object]] = set()
         self._scheduler = AsyncIOScheduler(
             timezone=timezone,
             job_defaults={"max_instances": 1, "coalesce": True},
@@ -30,8 +31,15 @@ class ApschedulerJobScheduler:
         seconds: float,
     ) -> None:
         async def run() -> None:
+            if (task := asyncio.current_task()) is not None:
+                self._running_jobs.add(task)
+                task.add_done_callback(self._running_jobs.discard)
             try:
                 await func()
+            except asyncio.CancelledError:
+                # Shutdown cancels in-flight jobs; end quietly instead of letting
+                # APScheduler log the cancellation as a job error.
+                logger.info("Scheduled job %s cancelled on shutdown", name)
             except Exception:
                 logger.exception("Scheduled job %s failed", name, extra={"job": name})
 
@@ -47,6 +55,8 @@ class ApschedulerJobScheduler:
         self._scheduler.start()
 
     async def shutdown(self) -> None:
-        """Stop the scheduler; APScheduler applies it on the next loop iteration."""
+        """Stop the scheduler, cancelling in-flight jobs and waiting for them to end."""
         self._scheduler.shutdown(wait=False)
         await asyncio.sleep(0)
+        if self._running_jobs:
+            await asyncio.gather(*self._running_jobs, return_exceptions=True)
