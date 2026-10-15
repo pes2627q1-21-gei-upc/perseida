@@ -2,7 +2,7 @@
 
 [English](README.md) | **Català** | [Español](README.es.md)
 
-> 🚧 **En construcció.** El projecte és al primer sprint. `app/` i `tests/` ja són reals (el mòdul `health` és l'exemple de referència), però la majoria de mòduls (persistència, autenticació, xat, planificador) encara no estan implementats.
+> 🚧 **En construcció.** El projecte és al primer sprint. `app/` i `tests/` ja són reals (el mòdul `health` és l'exemple de referència), però la majoria de mòduls (persistència, autenticació, xat) encara no estan implementats.
 
 Backend de **Perseida**, una aplicació mòbil multiplataforma de divulgació, exploració i seguiment de fenòmens astronòmics, desenvolupada com a projecte de PES (UPC-FIB). Exposa l'API REST i el xat en temps real que fan servir l'app mòbil i el panell d'administració, i integra les NASA Open APIs i altres proveïdors externs.
 
@@ -142,6 +142,30 @@ Tot error es respon com a `application/problem+json` (RFC 9457):
 - **Correlation id:** la capçalera `X-Correlation-ID` s'afegeix a totes les respostes. Un valor entrant només es reutilitza si compleix `[A-Za-z0-9._-]{1,128}`; si no, es genera un `uuid4`. El mateix id surt al cos com a `correlation_id`.
 
 Afegir un codi: llença la classe existent amb el `code` nou des de `domain`/`application`, registra'l al [catàleg de codis](../.agents/skills/gestio-errors/references/cataleg-codis.md) i afegeix-ne els textos ca/es/en al frontend. Mai es reanomena un `code` publicat.
+
+## Planificador
+
+APScheduler (`AsyncIOScheduler`) s'executa dins del procés de l'API: s'inicia al *lifespan* de FastAPI i s'atura a l'aturada. No hi ha *job store*: les tasques es registren a l'arrencada.
+
+| Variable | Per defecte | Significat |
+|---|---|---|
+| `SCHEDULER_ENABLED` | `true` | amb `false` no s'inicia el planificador ni apareix a `/api/health` |
+| `SCHEDULER_TIMEZONE` | `UTC` | fus horari IANA del planificador |
+
+**Registrar una tasca** (l'únic lloc): afegeix una línia a `register_jobs` de `app/infrastructure/scheduler/jobs.py`, amb el port `JobScheduler` (`app/domain/scheduler/ports.py`):
+
+```python
+def register_jobs(scheduler: JobScheduler) -> None:
+    scheduler.add_interval_job("purge-expired-posts", purge_service.run, seconds=3600)
+```
+
+- La tasca és una `async def` sense arguments (construeix-ne el service amb els mateixos providers que l'API, [ADR-0017](../obsidian_vault/decisions/0017-injeccio-de-dependencies-i-services-singleton.md)); s'executa al bucle d'esdeveniments, per tant no ha de bloquejar.
+- Cada tasca s'executa amb `max_instances=1` i `coalesce=True`: una tasca lenta no se solapa amb si mateixa i les execucions perdudes es fusionen.
+- Una excepció es registra al log (JSON, camp `job` amb el nom) i no atura ni el planificador ni l'API.
+- `/api/health` informa del component `scheduler` mentre està activat.
+- Se suposa un únic procés d'API; amb diverses rèpliques caldria un bloqueig distribuït.
+
+Els logs s'escriuen a stderr com un objecte JSON per línia (`app/infrastructure/logging.py`).
 
 ## Contractes de servei (Spotwise, grup 21B)
 
