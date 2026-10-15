@@ -22,7 +22,7 @@ La nota d'entrada és [`00-index.md`](00-index.md): ordre de lectura, fonts de v
 | Decisions (`decisions/`) | 21 ADR amb justificació i alternatives descartades (p. ex. Docker Compose en lloc de Kubernetes, moderació Kev-4B local, Redis només com a cache lazy). |
 | Convencions (`convencions/`) | GitFlow, Definition of Done, regles de qualitat, testing, assistents d'IA, actualització del vault i convencions de les notes d'Obsidian. |
 | Producte (`producte/`) | NOT list, stakeholders, èpiques i històries d'usuari. |
-| Estat (`estat/`) | Estat actual (`estat-actual`) i les notes de cada sessió de treball. |
+| Estat (`estat/`) | Les notes de cada sessió de treball. |
 | Guies (`guies/`) | Com llegeixen i escriuen el vault els agents; arrencada. |
 | Plantilles (`plantilles/`) | Plantilles d'ADR, component, convenció i sessió. |
 
@@ -34,7 +34,7 @@ La nota d'entrada és [`00-index.md`](00-index.md): ordre de lectura, fonts de v
 - No hi posis mai secrets, credencials (`.env`, tokens) ni dades personals d'usuaris: els assistents el llegeixen.
 - Les notes s'escriuen en català.
 - Cada nota es crea o edita amb les skills d'Obsidian (`.agents/skills`, vegeu [`AGENTS.md`](../AGENTS.md)).
-- El hook `SessionStart` de Claude Code injecta l'índex i l'estat actual; la resta d'agents llegeixen `AGENTS.md`. Vegeu [com llegir el vault com a agent](guies/llegir-el-vault-com-a-agent.md).
+- El hook `SessionStart` de Claude Code injecta l'índex; la resta d'agents llegeixen `AGENTS.md`. Vegeu [com llegir el vault com a agent](guies/llegir-el-vault-com-a-agent.md).
 
 ## Regles per als assistents d'IA (resum)
 

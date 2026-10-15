@@ -22,7 +22,7 @@ La nota de entrada es [`00-index.md`](00-index.md): orden de lectura, fuentes de
 | Decisiones (`decisions/`) | 21 ADR con justificación y alternativas descartadas (p. ej. Docker Compose en lugar de Kubernetes, moderación Kev-4B local, Redis solo como caché lazy). |
 | Convenciones (`convencions/`) | GitFlow, Definition of Done, reglas de calidad, testing, asistentes de IA, actualización del vault y convenciones de las notas de Obsidian. |
 | Producto (`producte/`) | NOT list, stakeholders, épicas e historias de usuario. |
-| Estado (`estat/`) | Estado actual (`estat-actual`) y las notas de cada sesión de trabajo. |
+| Estado (`estat/`) | Las notas de cada sesión de trabajo. |
 | Guías (`guies/`) | Cómo leen y escriben el vault los agentes; arranque. |
 | Plantillas (`plantilles/`) | Plantillas de ADR, componente, convención y sesión. |
 

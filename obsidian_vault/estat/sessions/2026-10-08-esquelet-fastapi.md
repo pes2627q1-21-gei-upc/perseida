@@ -35,7 +35,6 @@ L'equip accepta les ADR [[0016-ports-i-entitats-riques-al-domini]], [[0017-injec
 - ADR 0016–0021 a `acceptada`; avís de «pendent de consens» retirat de [[0019-tests-despres-del-codi]] i de les referències a «proposada» a [[00-index]], [[backend-hexagonal]], `AGENTS.md`, els subagents i les skills (`gestio-errors`, `backend-port`).
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]]: avís «Parcialment substituïda».
 - [[testing]]: «TDD al domini» passa a «Quan s'escriuen els tests».
-- [[estat-actual]]: TG-31 i TG-205 a Done, TG-39 a In progress.
 
 ## Pendent / següents passos
 

@@ -16,11 +16,10 @@ Guia per als agents d'IA (i les persones) que treballen a Perseida. El protocol 
 
 Ordre de lectura (el mateix de [[00-index]]):
 
-1. [[estat-actual]]: sprint, US en curs i dependències.
-2. [[visio-general]]
-3. [[arquitectura-fisica]] i [[backend-hexagonal]]
-4. [[definition-of-done]] i [[actualitzacio-del-vault]]
-5. Aquesta guia.
+1. [[visio-general]]
+2. [[arquitectura-fisica]] i [[backend-hexagonal]]
+3. [[definition-of-done]] i [[actualitzacio-del-vault]]
+4. Aquesta guia.
 
 Després, llegeix la US a Taiga (descripció i criteris d'acceptació) i obre només les notes de l'àrea afectada. No rellegeixis tot el vault: segueix els wikilinks.
 
@@ -46,13 +45,13 @@ Si hi ha conflicte, guanya el vault i es corregeix el README. No inventis decisi
 
 - En el moment: decisió nova (ADR), canvi d'arquitectura, servei nou, convenció nova.
 - Abans de fusionar la PR si la US canvia l'arquitectura o pren una decisió.
-- Al final de la sessió: nota a `estat/sessions/` i actualització d'[[estat-actual]].
+- Al final de la sessió: nota a `estat/sessions/`.
 
 Detall i taula d'accions a [[actualitzacio-del-vault]].
 
 ## Claude Code i la resta d'agents
 
-- **Claude Code**: el hook `SessionStart` injecta automàticament l'índex i l'estat actual al començament de la sessió.
+- **Claude Code**: el hook `SessionStart` injecta automàticament l'índex al començament de la sessió.
 - **Resta d'agents** (Codex, Gemini...): llegeixen `AGENTS.md`, que els obliga a carregar la skill `vault-context` i a llegir ells mateixos l'índex i l'estat. Vegeu [[assistents-ia]].
 
 ## Com cercar

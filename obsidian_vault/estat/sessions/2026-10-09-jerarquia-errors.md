@@ -40,7 +40,6 @@ Concrecions de l'ADR-0018 (no en canvien la decisió; vegeu la secció «Concrec
 - [[0018-errors-rfc-9457-amb-codis-estables]]: secció «Concreció (TG-304)».
 - [[api]]: secció «Errors i correlació».
 - [[backend-hexagonal]]: mòduls `shared` i `api`.
-- [[estat-actual]].
 
 ## Pendent / següents passos
 

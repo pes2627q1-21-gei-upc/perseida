@@ -53,6 +53,5 @@ Per implementar la US TG-85 (vault d'Obsidian com a context per a agents d'IA, v
 - [[notes-obsidian]]
 - [[actualitzacio-del-vault]]
 - [[llegir-el-vault-com-a-agent]]
-- [[estat-actual]]
 - [[0014-context-compartit-per-a-assistents-d-ia]]
 - [[0021-subagents-agnostics-i-generador]]

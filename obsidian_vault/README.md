@@ -22,7 +22,7 @@ The entry note is [`00-index.md`](00-index.md): reading order, sources of truth 
 | Decisions (`decisions/`) | 21 ADRs with justification and discarded alternatives (e.g. Docker Compose instead of Kubernetes, local Kev-4B moderation, Redis as lazy cache only). |
 | Conventions (`convencions/`) | GitFlow, Definition of Done, quality rules, testing, AI assistants, vault updating and Obsidian note conventions. |
 | Product (`producte/`) | NOT list, stakeholders, epics and user stories. |
-| State (`estat/`) | Current status (`estat-actual`) and the notes of each work session. |
+| State (`estat/`) | The notes of each work session. |
 | Guides (`guies/`) | How agents read and write the vault; getting started. |
 | Templates (`plantilles/`) | ADR, component, convention and session templates. |
 
