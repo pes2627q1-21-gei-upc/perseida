@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -10,6 +10,15 @@ from app.application.health.health_service import HealthService
 from app.infrastructure.health.dependencies import get_health_service
 from app.main import create_app
 from tests.fakes.health import FakeHealthCheck
+
+
+@pytest.fixture(autouse=True)
+def _scheduler_disabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    # The scheduler has its own lifecycle tests; here only the app check is covered.
+    monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+    get_health_service.cache_clear()
+    yield
+    get_health_service.cache_clear()
 
 
 @pytest.fixture
