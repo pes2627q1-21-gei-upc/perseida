@@ -1,0 +1,142 @@
+# ---------------------------------------------------------------------------
+# Secrets and local configuration. Never commit real values.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------------
+# Python (backend)
+# ---------------------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.uv-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# ---------------------------------------------------------------------------
+# Node / Expo (frontend)
+# ---------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+.expo/
+.turbo/
+dist/
+web-build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+expo-env.d.ts
+
+# React Native / Expo native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+frontend/ios/
+frontend/android/
+
+# Metro
+.metro-health-check*
+
+# Certificates
+*.pem
+
+# ---------------------------------------------------------------------------
+# Docker / infra (docker-compose.override.yml is shareable, so it is NOT ignored)
+# ---------------------------------------------------------------------------
+docker-compose.local.yml
+.docker/
+pgdata/
+redisdata/
+media/
+*.pid
+
+# ---------------------------------------------------------------------------
+# Quality tools
+# ---------------------------------------------------------------------------
+.sonar/
+.scannerwork/
+
+# ---------------------------------------------------------------------------
+# Obsidian vault: share settings and plugins, ignore per-user state
+# ---------------------------------------------------------------------------
+obsidian_vault/.obsidian/workspace.json
+obsidian_vault/.obsidian/workspace-mobile.json
+obsidian_vault/.trash/
+
+# ---------------------------------------------------------------------------
+# AI assistants. Policy: personal, local and generated state stays out of the
+# repo; shared config (rules, commands, agents, skills, MCP servers without
+# secrets, AGENTS.md / CLAUDE.md / GEMINI.md) is committed.
+# ---------------------------------------------------------------------------
+
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
+CLAUDE.local.md
+
+# Cursor (keep rules, commands and MCP config)
+.cursor/*
+!.cursor/rules/
+!.cursor/commands/
+!.cursor/mcp.json
+
+# OpenAI Codex (project config.toml and AGENTS.md are shared)
+.codex/*.local.*
+.codex/auth.json
+
+# Gemini CLI / Antigravity (keep settings.json, commands, agents, GEMINI.md and .agent/)
+.gemini/*
+!.gemini/settings.json
+!.gemini/commands/
+!.gemini/agents/
+.gemini/antigravity/
+
+# opencode (keep opencode.json, agents and commands)
+opencode.local.json
+.opencode/node_modules/
+.opencode/package-lock.json
+.opencode/bun.lock
+
+# GitHub Copilot: copilot-instructions.md, instructions/ and prompts/ are shared
+.github/copilot-instructions.local.md
+
+# Aider (keep .aider.conf.yml, ignore history and caches)
+.aider.chat.history.md
+.aider.input.history
+.aider.llm.history
+.aider.tags.cache.v*/
+
+# Continue, Serena, Superpowers and similar tools (keep shared config, ignore cache/state)
+.continue/dev_data/
+.serena/cache/
+.serena/logs/
+.superpowers/
+
+# ---------------------------------------------------------------------------
+# IDE and OS
+# ---------------------------------------------------------------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+.DS_Store
+Thumbs.db
+*.log

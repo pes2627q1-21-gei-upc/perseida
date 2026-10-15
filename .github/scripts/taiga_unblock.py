@@ -1,9 +1,10 @@
-"""Desmarca a Taiga les US "Blocked" quan totes les US que les bloquegen estan tancades.
+"""Desmarca a Taiga les US i tasques "Blocked" quan tots els elements que les bloquegen estan tancats.
 
-Convenció: una US bloquejada té `is_blocked = true` i una `blocked_note` amb el format
-"Bloquejada per: #31, #33". Les US bloquejades amb una nota diferent (bloqueig manual)
-no es toquen. Una US bloquejadora es considera resolta quan el seu estat és tancat
-(`is_closed`: Done i Archived).
+Convenció: un element bloquejat (US o tasca) té `is_blocked = true` i una `blocked_note` amb el format
+"Bloquejada per: #31, #33". Les referències (`#N`) poden ser d'una US o d'una tasca: a Taiga comparteixen
+numeració dins del projecte. Els elements bloquejats amb una nota diferent (bloqueig manual) no es toquen.
+Un element bloquejador es considera resolt quan el seu estat és tancat (`is_closed`: Done i Archived a les
+US; Cerrada a les tasques).
 
 Variables d'entorn:
   TAIGA_USERNAME, TAIGA_PASSWORD  credencials (secrets del repositori)
@@ -44,46 +45,63 @@ def request(method, path, token=None, body=None, headers=None):
 def parse_blockers(note):
     if not note or not note.strip().startswith(NOTE_PREFIX):
         return None
-    return [int(ref) for ref in re.findall(r"#(\d+)", note)]
+    refs = [int(ref) for ref in re.findall(r"#(\d+)", note)]
+    return refs or None  # sense referències no és una nota vàlida: no la toquem
+
+
+def find_unblockable(items, by_ref):
+    """Retorna els elements bloquejats que es poden desbloquejar, i els que tenen referències inexistents.
+
+    `items` són les US i tasques del projecte; `by_ref` els indexa per `ref`.
+    """
+    unblockable = []
+    dangling = []
+    for item in items:
+        if not item["is_blocked"]:
+            continue
+        blockers = parse_blockers(item.get("blocked_note"))
+        if blockers is None:
+            continue  # bloqueig manual, no el toquem
+        missing = [ref for ref in blockers if ref not in by_ref]
+        if missing:
+            dangling.append((item, missing))
+            continue
+        if all(by_ref[ref]["status_extra_info"]["is_closed"] for ref in blockers):
+            unblockable.append((item, blockers))
+    return unblockable, dangling
 
 
 def main():
     username = os.environ["TAIGA_USERNAME"]
     password = os.environ["TAIGA_PASSWORD"]
     slug = os.environ["TAIGA_PROJECT_SLUG"]
+    no_pagination = {"x-disable-pagination": "True"}
 
     token = request("POST", "/auth", body={"type": "normal", "username": username, "password": password})["auth_token"]
     project = request("GET", f"/projects/by_slug?slug={slug}", token)
-    stories = request(
-        "GET", f"/userstories?project={project['id']}", token, headers={"x-disable-pagination": "True"}
-    )
-    by_ref = {story["ref"]: story for story in stories}
+    stories = request("GET", f"/userstories?project={project['id']}", token, headers=no_pagination)
+    tasks = request("GET", f"/tasks?project={project['id']}", token, headers=no_pagination)
 
-    unblocked = 0
-    for story in stories:
-        if not story["is_blocked"]:
-            continue
-        blockers = parse_blockers(story.get("blocked_note"))
-        if blockers is None:
-            continue  # bloqueig manual, no el toquem
-        missing = [ref for ref in blockers if ref not in by_ref]
-        if missing:
-            print(f"#{story['ref']}: referències inexistents {missing}, es manté bloquejada")
-            continue
-        pending = [ref for ref in blockers if not by_ref[ref]["status_extra_info"]["is_closed"]]
-        if pending:
-            continue
-        print(f"#{story['ref']} {story['subject']}: desbloquejada (resolts: {blockers})")
-        unblocked += 1
+    items = [("userstories", story) for story in stories] + [("tasks", task) for task in tasks]
+    by_ref = {item["ref"]: item for _, item in items}
+    endpoint = {item["ref"]: kind for kind, item in items}
+
+    unblockable, dangling = find_unblockable([item for _, item in items], by_ref)
+
+    for item, missing in dangling:
+        print(f"#{item['ref']}: referències inexistents {missing}, es manté bloquejada")
+
+    for item, blockers in unblockable:
+        print(f"#{item['ref']} {item['subject']}: desbloquejada (resolts: {blockers})")
         if not DRY_RUN:
             request(
                 "PATCH",
-                f"/userstories/{story['id']}",
+                f"/{endpoint[item['ref']]}/{item['id']}",
                 token,
-                body={"is_blocked": False, "blocked_note": "", "version": story["version"]},
+                body={"is_blocked": False, "blocked_note": "", "version": item["version"]},
             )
 
-    print(f"Total desbloquejades: {unblocked}{' (dry run)' if DRY_RUN else ''}")
+    print(f"Total desbloquejades: {len(unblockable)}{' (dry run)' if DRY_RUN else ''}")
 
 
 if __name__ == "__main__":
