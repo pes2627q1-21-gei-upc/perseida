@@ -19,10 +19,10 @@ La nota de entrada es [`00-index.md`](00-index.md): orden de lectura, fuentes de
 | Área (carpeta) | Contenido |
 |---|---|
 | Arquitectura (`arquitectura/`) | Arquitectura física (un único servidor Virtech, Docker Compose, cinco servicios), backend hexagonal, frontend, modelo de dominio, servicios externos, contrato Spotwise y una nota por componente. |
-| Decisiones (`decisions/`) | 15 ADR con justificación y alternativas descartadas (p. ej. Docker Compose en lugar de Kubernetes, moderación Kev-4B local, Redis solo como caché lazy). |
+| Decisiones (`decisions/`) | 21 ADR con justificación y alternativas descartadas (p. ej. Docker Compose en lugar de Kubernetes, moderación Kev-4B local, Redis solo como caché lazy). |
 | Convenciones (`convencions/`) | GitFlow, Definition of Done, reglas de calidad, testing, asistentes de IA, actualización del vault y convenciones de las notas de Obsidian. |
 | Producto (`producte/`) | NOT list, stakeholders, épicas e historias de usuario. |
-| Estado (`estat/`) | Estado actual (`estat-actual`) y las notas de cada sesión de trabajo. |
+| Estado (`estat/`) | Las notas de cada sesión de trabajo. |
 | Guías (`guies/`) | Cómo leen y escriben el vault los agentes; arranque. |
 | Plantillas (`plantilles/`) | Plantillas de ADR, componente, convención y sesión. |
 
@@ -34,7 +34,7 @@ La nota de entrada es [`00-index.md`](00-index.md): orden de lectura, fuentes de
 - No incluyas nunca secretos, credenciales (`.env`, tokens) ni datos personales de usuarios: los asistentes lo leen.
 - Las notas se escriben en catalán.
 - Cada nota se crea o edita con las skills de Obsidian (`.agents/skills`, véase [`AGENTS.md`](../AGENTS.md)).
-- El hook `SessionStart` de Claude Code inyecta el índice y el estado actual; el resto de agentes leen `AGENTS.md`. Véase [cómo leer el vault como agente](guies/llegir-el-vault-com-a-agent.md).
+- El hook `SessionStart` de Claude Code inyecta el índice; el resto de agentes leen `AGENTS.md`. Véase [cómo leer el vault como agente](guies/llegir-el-vault-com-a-agent.md).
 
 ## Reglas para los asistentes de IA (resumen)
 

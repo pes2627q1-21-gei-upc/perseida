@@ -12,7 +12,7 @@ router = APIRouter(tags=["health"])
 class HealthResponse(BaseModel):
     status: HealthStatus = Field(
         ...,
-        description="Estat general de salut del sistema (healthy, degraded, unhealthy)",
+        description="Estat general de salut del sistema (ok, down)",
         examples=["ok"],
     )
     components: dict[str, HealthStatus] = Field(

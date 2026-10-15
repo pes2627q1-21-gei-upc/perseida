@@ -27,7 +27,7 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 <criteri → test; quins queden exclosos de cobertura i per què>
 
 ## Vault
-<ADR/arquitectura a actualitzar abans de fusionar, o «cap canvi d'arquitectura»> · Sessió + `estat-actual.md` al final.
+<ADR/arquitectura a actualitzar abans de fusionar, o «cap canvi d'arquitectura»> · Sessió al final.
 
 ## Decisions de disseny (si hi ha UI nova)
 <element memorable · motiu natural · icones · sons (origen) — preguntats i resolts>
@@ -64,7 +64,7 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 | Tests | `<ordre>` | <passats/fallats> |
 | Cobertura codi nou ≥ 70 % | `<ordre>` | <xifra> |
 | Revisió `reviewer-arquitectura` | subagent | <troballes obertes> |
-| Vault + sessió + estat-actual | — | <fitxers> |
+| Vault + sessió | — | <fitxers> |
 | Sync skills/agents (si s'han tocat) | `--check` | <sortida> |
 
 ## Iteracions

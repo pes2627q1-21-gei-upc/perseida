@@ -34,7 +34,6 @@ Afegir un workflow de GitHub Actions que executi lint, format, tipus i tests del
 
 - [[arquitectura-fisica]]: la CI del backend ja existeix.
 - [[qualitat]]: secció "CI del backend".
-- [[estat-actual]].
 
 ## Pendent / següents passos
 
