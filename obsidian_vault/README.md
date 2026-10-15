@@ -34,7 +34,7 @@ The entry note is [`00-index.md`](00-index.md): reading order, sources of truth 
 - Never put secrets, credentials (`.env`, tokens) or users' personal data in the vault: assistants read it.
 - Notes are written in Catalan.
 - Every note is created or edited with the Obsidian skills (`.agents/skills`, see [`AGENTS.md`](../AGENTS.md)).
-- Claude Code's `SessionStart` hook injects the index and the current state; other agents read `AGENTS.md`. See [how to read the vault as an agent](guies/llegir-el-vault-com-a-agent.md).
+- Claude Code's `SessionStart` hook injects the index; other agents read `AGENTS.md`. See [how to read the vault as an agent](guies/llegir-el-vault-com-a-agent.md).
 
 ## Rules for AI assistants (summary)
 

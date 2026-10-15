@@ -34,7 +34,7 @@ La nota de entrada es [`00-index.md`](00-index.md): orden de lectura, fuentes de
 - No incluyas nunca secretos, credenciales (`.env`, tokens) ni datos personales de usuarios: los asistentes lo leen.
 - Las notas se escriben en catalán.
 - Cada nota se crea o edita con las skills de Obsidian (`.agents/skills`, véase [`AGENTS.md`](../AGENTS.md)).
-- El hook `SessionStart` de Claude Code inyecta el índice y el estado actual; el resto de agentes leen `AGENTS.md`. Véase [cómo leer el vault como agente](guies/llegir-el-vault-com-a-agent.md).
+- El hook `SessionStart` de Claude Code inyecta el índice; el resto de agentes leen `AGENTS.md`. Véase [cómo leer el vault como agente](guies/llegir-el-vault-com-a-agent.md).
 
 ## Reglas para los asistentes de IA (resumen)
 
