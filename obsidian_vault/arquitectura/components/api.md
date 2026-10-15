@@ -47,7 +47,7 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - TG-41 (Alembic)
 - TG-44 (JWKS)
 - TG-46 (cache APOD)
-- TG-88 (APScheduler)
+- TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 
 ## Estat d'implementació
 
