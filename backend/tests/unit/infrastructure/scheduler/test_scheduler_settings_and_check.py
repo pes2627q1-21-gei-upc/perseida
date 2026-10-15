@@ -1,6 +1,7 @@
 from collections.abc import Awaitable, Callable
 
 import pytest
+from pydantic import ValidationError
 
 from app.infrastructure.scheduler.checks import SchedulerCheck
 from app.infrastructure.scheduler.config import SchedulerSettings
@@ -46,3 +47,10 @@ async def test_scheduler_check_reflects_running(running: bool) -> None:
 
     assert check.name == "scheduler"
     assert await check.is_up() is running
+
+
+def test_settings_reject_an_unknown_timezone(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SCHEDULER_TIMEZONE", "Mars/Olympus")
+
+    with pytest.raises(ValidationError):
+        SchedulerSettings(_env_file=None)

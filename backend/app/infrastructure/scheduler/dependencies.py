@@ -5,5 +5,10 @@ from app.infrastructure.scheduler.config import SchedulerSettings
 
 
 @lru_cache
+def get_scheduler_settings() -> SchedulerSettings:
+    return SchedulerSettings()
+
+
+@lru_cache
 def get_job_scheduler() -> ApschedulerJobScheduler:
-    return ApschedulerJobScheduler(timezone=SchedulerSettings().scheduler_timezone)
+    return ApschedulerJobScheduler(timezone=get_scheduler_settings().scheduler_timezone)

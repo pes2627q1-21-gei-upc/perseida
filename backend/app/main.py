@@ -10,8 +10,10 @@ from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
-from app.infrastructure.scheduler.config import SchedulerSettings
-from app.infrastructure.scheduler.dependencies import get_job_scheduler
+from app.infrastructure.scheduler.dependencies import (
+    get_job_scheduler,
+    get_scheduler_settings,
+)
 from app.infrastructure.scheduler.jobs import register_jobs
 
 
@@ -23,7 +25,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine,
         expire_on_commit=False,
     )
-    scheduler = get_job_scheduler() if SchedulerSettings().scheduler_enabled else None
+    scheduler = (
+        get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
+    )
     if scheduler:
         register_jobs(scheduler)
         scheduler.start()

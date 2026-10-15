@@ -6,8 +6,17 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.infrastructure.health.dependencies import get_health_service
-from app.infrastructure.scheduler.dependencies import get_job_scheduler
+from app.infrastructure.scheduler.dependencies import (
+    get_job_scheduler,
+    get_scheduler_settings,
+)
 from app.main import create_app
+
+
+def _clear_caches() -> None:
+    get_scheduler_settings.cache_clear()
+    get_job_scheduler.cache_clear()
+    get_health_service.cache_clear()
 
 
 @pytest.fixture(autouse=True)
@@ -21,11 +30,9 @@ def _env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     }.items():
         monkeypatch.setenv(key, value)
     monkeypatch.delenv("SCHEDULER_ENABLED", raising=False)
-    get_job_scheduler.cache_clear()
-    get_health_service.cache_clear()
+    _clear_caches()
     yield
-    get_job_scheduler.cache_clear()
-    get_health_service.cache_clear()
+    _clear_caches()
 
 
 @pytest.fixture
