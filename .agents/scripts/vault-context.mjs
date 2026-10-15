@@ -1,4 +1,4 @@
-// Hook SessionStart: injecta l'índex i l'estat actual del vault.
+// Hook SessionStart: injecta l'índex del vault.
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,12 +18,6 @@ export function buildContext(vaultDir, { maxChars = 6000 } = {}) {
     return `${HEADER}\nEl vault és sense índex (00-index.md no existeix).`;
   }
   parts.push(stripFrontmatter(readFileSync(index, 'utf8')).trim());
-  const estat = join(vaultDir, 'estat', 'estat-actual.md');
-  parts.push(
-    existsSync(estat)
-      ? stripFrontmatter(readFileSync(estat, 'utf8')).trim()
-      : 'estat/estat-actual.md no trobat.',
-  );
   const full = parts.join('\n\n');
   return full.length > maxChars ? full.slice(0, maxChars) + '\n… (truncat)' : full;
 }

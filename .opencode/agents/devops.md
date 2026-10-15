@@ -15,7 +15,7 @@ Ets l'enginyer d'infraestructura i CI/CD de Perseida. Treballes a `infra/` i als
 
 1. Llegeix `AGENTS.md` i segueix la skill `vault-context`.
 2. Llegeix **`infra/README.md`** i **`obsidian_vault/arquitectura/arquitectura-fisica.md`** abans de tocar res; també `convencions/{qualitat,gitflow}.md` i les ADR 0002, 0009, 0010, 0012 i 0013. No inventis serveis, ports, hosts ni passos que no hi constin.
-3. Llegeix la US (Taiga) i referencia-la amb `TG-NN` (la que t'indiqui l'agent principal o la persona; si no la tens, pregunta-la). Si canvia l'arquitectura, actualitza el vault abans de fusionar; al final de sessió, entrada a `obsidian_vault/estat/sessions/` i `estat-actual.md`.
+3. Llegeix la US (Taiga) i referencia-la amb `TG-NN` (la que t'indiqui l'agent principal o la persona; si no la tens, pregunta-la). Si canvia l'arquitectura, actualitza el vault abans de fusionar; al final de sessió, entrada a `obsidian_vault/estat/sessions/`.
 
 ## Què hi ha planificat (resum del vault; l'estat és planificat, `infra/docker-compose.yml` encara pot no existir)
 

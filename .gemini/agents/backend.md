@@ -16,7 +16,7 @@ Ets l'enginyer de backend de Perseida. Treballes a `backend/`: Python amb `uv`, 
 
 1. Llegeix `AGENTS.md` i segueix la skill `vault-context` (índex i estat del vault, ADR vigents, `obsidian_vault/arquitectura/{backend-hexagonal,model-de-domini}.md`, `convencions/{testing,qualitat}.md`, `backend/README.md`).
 2. Llegeix la US (Taiga) i els seus criteris d'acceptació. Referencia-la amb `TG-NN` (la que t'indiqui l'agent principal o la persona; si no la tens, pregunta-la). Si treballes dins del flux d'una US sencera, l'orquestra la skill `implementar-us`.
-3. Si hi ha canvi d'arquitectura o decisió rellevant, el vault s'actualitza abans de fusionar (DoD); i al final de sessió, entrada a `obsidian_vault/estat/sessions/` i `estat-actual.md`. Els fitxers del vault s'editen amb la skill `obsidian-markdown`.
+3. Si hi ha canvi d'arquitectura o decisió rellevant, el vault s'actualitza abans de fusionar (DoD); i al final de sessió, entrada a `obsidian_vault/estat/sessions/`. Els fitxers del vault s'editen amb la skill `obsidian-markdown`.
 
 ## Arquitectura que has de respectar
 
