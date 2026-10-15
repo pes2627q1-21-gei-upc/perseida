@@ -52,7 +52,7 @@ Detall i taula d'accions a [[actualitzacio-del-vault]].
 ## Claude Code i la resta d'agents
 
 - **Claude Code**: el hook `SessionStart` injecta automàticament l'índex al començament de la sessió.
-- **Resta d'agents** (Codex, Gemini...): llegeixen `AGENTS.md`, que els obliga a carregar la skill `vault-context` i a llegir ells mateixos l'índex i l'estat. Vegeu [[assistents-ia]].
+- **Resta d'agents** (Codex, Gemini...): llegeixen `AGENTS.md`, que els obliga a carregar la skill `vault-context` i a llegir ells mateixos l'índex. L'estat de les US i de l'sprint és a Taiga. Vegeu [[assistents-ia]].
 
 ## Com cercar
 
