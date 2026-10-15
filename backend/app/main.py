@@ -7,8 +7,12 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.health.router import router as health_router
+from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
+from app.infrastructure.scheduler.config import SchedulerSettings
+from app.infrastructure.scheduler.dependencies import get_job_scheduler
+from app.infrastructure.scheduler.jobs import register_jobs
 
 
 @asynccontextmanager
@@ -19,13 +23,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine,
         expire_on_commit=False,
     )
+    scheduler = get_job_scheduler() if SchedulerSettings().scheduler_enabled else None
+    if scheduler:
+        register_jobs(scheduler)
+        scheduler.start()
     try:
         yield
     finally:
-        await engine.dispose()
+        try:
+            if scheduler:
+                await scheduler.shutdown()
+        finally:
+            await engine.dispose()
 
 
 def create_app() -> FastAPI:
+    configure_logging()
     app = FastAPI(
         title="Perseida API",
         description="Backend oficial del projecte Perseida - "
