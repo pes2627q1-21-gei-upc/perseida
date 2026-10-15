@@ -32,7 +32,6 @@ Deixar el domini i l'application de l'APOD (tasca TG-113 de la US TG-47) sense e
 ## Canvis al vault
 
 - [[model-de-domini]]: `APOD` amb `mediaType` i `copyright`.
-- [[estat-actual]]: TG-47 a In progress.
 
 ## Pendent / següents passos
 

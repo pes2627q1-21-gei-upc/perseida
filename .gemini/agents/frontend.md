@@ -16,7 +16,7 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 
 1. Llegeix `AGENTS.md` i segueix la skill `vault-context` (`obsidian_vault/arquitectura/frontend.md`, `convencions/{testing,qualitat}.md`, `frontend/README.md`, ADR vigents, p. ex. ADR-0011 offline).
 2. Llegeix la US (Taiga) i els criteris d'acceptació. Referencia-la amb `TG-NN` (la que t'indiqui l'agent principal o la persona; si no la tens, pregunta-la). Si treballes dins del flux d'una US sencera, l'orquestra la skill `implementar-us`.
-3. Si hi ha canvi d'arquitectura o decisió rellevant, actualitza el vault abans de fusionar; al final de sessió, entrada a `obsidian_vault/estat/sessions/` i `estat-actual.md` (amb la skill `obsidian-markdown`).
+3. Si hi ha canvi d'arquitectura o decisió rellevant, actualitza el vault abans de fusionar; al final de sessió, entrada a `obsidian_vault/estat/sessions/` (amb la skill `obsidian-markdown`).
 
 ## Arquitectura i disseny que has de respectar
 

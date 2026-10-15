@@ -27,6 +27,7 @@ class ParseBlockersTest(unittest.TestCase):
 
     def test_ignores_manual_notes_and_empty(self):
         self.assertIsNone(parse_blockers("Esperant el client #5"))
+        self.assertIsNone(parse_blockers("Bloquejada per:"))
         self.assertIsNone(parse_blockers(""))
         self.assertIsNone(parse_blockers(None))
 

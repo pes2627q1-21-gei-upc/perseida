@@ -1,0 +1,102 @@
+name: CI
+
+# Executa la CI del projecte a cada PR i a cada push cap a develop o main.
+# El job `changes` detecta quines parts del repo han canviat perquè els jobs
+# següents només s'executin quan toca.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Detectar canvis al backend
+        id: filter
+        uses: dorny/paths-filter@v4.0.3
+        with:
+          filters: |
+            backend:
+              - "backend/**"
+              - ".github/workflows/ci.yml"
+      - name: Mostrar resultat de la detecció
+        run: echo "backend changed = ${{ steps.filter.outputs.backend }}"
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_DB: perseida_ci
+          POSTGRES_USER: perseida
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U perseida -d perseida_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_DB: perseida_ci
+      POSTGRES_USER: perseida
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Instal·lar uv i Python
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          version: "0.13.0"
+          python-version: "3.14"
+          enable-cache: true
+      - name: Instal·lar dependències
+        run: uv sync --locked
+      - name: Lint (ruff check)
+        run: uv run ruff check .
+      - name: Format (ruff format --check)
+        run: uv run ruff format --check .
+      - name: Tipus (mypy)
+        run: uv run mypy .
+      - name: Tests (pytest amb cobertura)
+        run: uv run pytest --cov-report=xml:coverage.xml
+      - name: Publicar informe de cobertura
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml

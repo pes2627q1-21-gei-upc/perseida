@@ -29,7 +29,7 @@ Cap ADR nova. Les decisions de planificació són a Taiga (comentari a cada US) 
 
 ## Canvis al vault
 
-- [[estat-actual]] actualitzat (estats de Taiga i pendents).
+- Cap canvi més al vault.
 
 ## Pendent / següents passos
 
