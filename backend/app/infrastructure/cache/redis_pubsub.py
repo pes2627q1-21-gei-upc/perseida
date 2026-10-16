@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -7,7 +8,15 @@ from redis.exceptions import RedisError
 
 from app.application.shared.errors import ExternalServiceError
 
+logger = logging.getLogger(__name__)
+
 PUBSUB_UNAVAILABLE = "PUBSUB_UNAVAILABLE"
+
+
+def _unavailable(exc: RedisError) -> ExternalServiceError:
+    # The Redis message may carry internal host and port: log it, do not expose it.
+    logger.warning("Redis pub/sub unavailable", exc_info=exc)
+    return ExternalServiceError(PUBSUB_UNAVAILABLE)
 
 
 class RedisPubSub:
@@ -20,7 +29,7 @@ class RedisPubSub:
         try:
             await self._redis.publish(channel, message)
         except RedisError as exc:
-            raise ExternalServiceError(PUBSUB_UNAVAILABLE, str(exc)) from exc
+            raise _unavailable(exc) from exc
 
     @asynccontextmanager
     async def subscribe(self, channel: str) -> AsyncIterator[AsyncIterator[str]]:
@@ -28,11 +37,14 @@ class RedisPubSub:
             try:
                 await pubsub.subscribe(channel)
             except RedisError as exc:
-                raise ExternalServiceError(PUBSUB_UNAVAILABLE, str(exc)) from exc
+                raise _unavailable(exc) from exc
             yield self._messages(pubsub)
 
     @staticmethod
     async def _messages(pubsub: PubSubClient) -> AsyncIterator[str]:
-        async for item in pubsub.listen():
-            if item["type"] == "message":
-                yield str(item["data"])
+        try:
+            async for item in pubsub.listen():
+                if item["type"] == "message":
+                    yield str(item["data"])
+        except RedisError as exc:
+            raise _unavailable(exc) from exc

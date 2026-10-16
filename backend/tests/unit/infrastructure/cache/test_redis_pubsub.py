@@ -45,6 +45,7 @@ async def test_tg147_publish_failure_is_an_external_service_error() -> None:
         await RedisPubSub(cast(Any, redis)).publish("chat:1", "hola")
 
     assert exc_info.value.code == "PUBSUB_UNAVAILABLE"
+    assert "down" not in exc_info.value.message
 
 
 async def test_tg147_subscribe_yields_only_messages_and_cleans_up() -> None:
@@ -77,3 +78,18 @@ def test_tg147_get_pubsub_builds_the_adapter_from_app_state() -> None:
     conn = HTTPConnection({"type": "http", "app": app, "headers": []})
 
     assert isinstance(get_pubsub(conn), RedisPubSub)
+
+
+async def test_tg147_connection_lost_while_listening_is_an_external_service_error() -> (
+    None
+):
+    async def broken() -> Any:
+        raise RedisConnectionError("down")
+        yield
+
+    redis = _redis()
+    redis.pubsub.return_value.listen = broken
+
+    with pytest.raises(ExternalServiceError):
+        async with RedisPubSub(cast(Any, redis)).subscribe("chat:1") as messages:
+            [message async for message in messages]
