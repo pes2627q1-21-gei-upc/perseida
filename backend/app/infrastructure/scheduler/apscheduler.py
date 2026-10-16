@@ -56,6 +56,8 @@ class ApschedulerJobScheduler:
 
     async def shutdown(self) -> None:
         """Stop the scheduler, cancelling in-flight jobs and waiting for them to end."""
+        if not self._scheduler.running:
+            return
         self._scheduler.shutdown(wait=False)
         await asyncio.sleep(0)
         if self._running_jobs:

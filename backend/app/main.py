@@ -28,10 +28,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     scheduler = (
         get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
     )
-    if scheduler:
-        register_jobs(scheduler)
-        scheduler.start()
     try:
+        if scheduler:
+            register_jobs(scheduler)
+            scheduler.start()
         yield
     finally:
         try:

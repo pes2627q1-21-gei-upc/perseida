@@ -4,6 +4,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.infrastructure.health.dependencies import get_health_service
 from app.infrastructure.scheduler.dependencies import (
@@ -95,3 +96,28 @@ async def test_api_keeps_responding_while_a_job_runs(app: FastAPI) -> None:
         release.set()
 
     assert body["status"] == "ok"
+
+
+async def test_engine_is_disposed_when_job_registration_fails(
+    app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    disposed = False
+    real_dispose = AsyncEngine.dispose
+
+    async def tracking_dispose(self: AsyncEngine, close: bool = True) -> None:
+        nonlocal disposed
+        disposed = True
+        await real_dispose(self, close)
+
+    def failing_register(_scheduler: object) -> None:
+        raise RuntimeError("registration failed")
+
+    monkeypatch.setattr(AsyncEngine, "dispose", tracking_dispose)
+    monkeypatch.setattr("app.main.register_jobs", failing_register)
+
+    with pytest.raises(RuntimeError, match="registration failed"):
+        async with app.router.lifespan_context(app):
+            pass
+
+    assert disposed is True
+    assert get_job_scheduler().running is False
