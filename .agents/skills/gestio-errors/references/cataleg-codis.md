@@ -14,6 +14,13 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 | `METHOD_NOT_ALLOWED` | 405 | Mètode HTTP no permès | No | Aquesta acció no està permesa. | Esta acción no está permitida. | This action is not allowed. | infrastructure/api |
 | `HTTP_<status>` | `<status>` | Altres errors HTTP de Starlette | Segons status | (missatge genèric) | (mensaje genérico) | (generic message) | infrastructure/api |
 
+## Codis de l'APOD (TG-113)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `APOD_DATE_IN_FUTURE` | 422 | `ValidationError` | Sí | Aquesta data encara no ha arribat. Tria la d'avui o una d'anterior. | Esta fecha aún no ha llegado. Elige la de hoy o una anterior. | This date hasn't arrived yet. Choose today or an earlier date. | domain/apod |
+| `APOD_DATE_BEFORE_START` | 422 | `ValidationError` | Sí | L'APOD només està disponible a partir del 16 de juny de 1995. | El APOD solo está disponible a partir del 16 de junio de 1995. | APOD is only available from June 16, 1995 onwards. | domain/apod |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
