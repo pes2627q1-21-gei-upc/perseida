@@ -132,7 +132,7 @@ Quan la imatge es puja per primer cop, GitHub crea el paquet com a **privat** pe
 
 ### Vinculació del paquet al repositori
 
-En el primer push, GitHub vincula el paquet automàticament al repositori gràcies al fet que el nom de la imatge coincideix amb `github.repository_owner`.
+En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta `org.opencontainers.image.source`, que `docker/metadata-action` fixa automàticament a la URL del repositori. `github.repository_owner` només decideix quin compte és propietari del paquet.
 
 ## Configuració i secrets
 

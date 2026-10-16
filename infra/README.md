@@ -132,7 +132,7 @@ When the image is pushed for the first time, GitHub creates the package as **pri
 
 ### Link the package to the repository (one-time, automatic)
 
-The first time the workflow pushes the image, GitHub links the package to the repository automatically because the image is named after `github.repository_owner`. No manual action needed.
+The first time the workflow pushes the image, GitHub links the package to the repository through the `org.opencontainers.image.source` label, which `docker/metadata-action` sets automatically to the repository URL. `github.repository_owner` only decides which account owns the package. No manual action needed.
 
 ## Configuration and secrets
 
