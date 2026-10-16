@@ -59,6 +59,81 @@ flowchart TB
 - Rollback: redeploy the previous image by its `git-sha`.
 - The repository also contains an automation that unblocks Taiga tasks (`.github/workflows/taiga-unblock.yml`).
 
+## GHCR — Package permissions and visibility
+
+The backend image is published to **GitHub Container Registry** (`ghcr.io`) under the organization's namespace:
+
+```
+ghcr.io/pes2627q1-21-gei-upc/perseida-api:<tag>
+```
+
+### Automatic permissions (GITHUB_TOKEN)
+
+The CI/CD workflow uses the built-in `GITHUB_TOKEN` — no PAT or manual secret needed:
+
+| Scope | Why |
+|---|---|
+| `contents: read` | Clone the repository in the runner |
+| `packages: write` | Push image to GHCR and update package metadata |
+
+GitHub automatically **downgrades** `packages` to `read` on pull requests from external forks, so no unauthorized fork can publish images.
+
+### Pulling and running the image (docker pull and run)
+
+To pull the image from GHCR:
+
+```bash
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+# or by commit SHA or branch tag:
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:sha-a1b2c3d
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:develop
+```
+
+To run the API container standalone (outside Docker Compose), pass the required environment variables:
+
+```bash
+docker run -d \
+  --name perseida-api \
+  -p 8000:8000 \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=perseida \
+  -e POSTGRES_PASSWORD=secret \
+  -e POSTGRES_HOST=localhost \
+  -e POSTGRES_PORT=5432 \
+  -e REDIS_HOST=localhost \
+  -e REDIS_PORT=6379 \
+  ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+```
+
+### Backend environment variables
+
+The FastAPI backend service (`perseida-api`) uses the following environment variables:
+
+| Variable | Required | Description | Example |
+|---|---|---|---|
+| `POSTGRES_DB` | Yes | PostgreSQL database name | `perseida` |
+| `POSTGRES_USER` | Yes | Database user | `perseida` |
+| `POSTGRES_PASSWORD` | Yes | Database password | `secret` |
+| `POSTGRES_HOST` | Yes | PostgreSQL host or service name | `postgres` or `localhost` |
+| `POSTGRES_PORT` | Yes | PostgreSQL port | `5432` |
+| `REDIS_HOST` | No | Redis host or service name | `redis` or `localhost` |
+| `REDIS_PORT` | No | Redis port | `6379` |
+| `APP_ENV` | No | Runtime environment (`local`, `production`) | `production` |
+| `JWT_SECRET` | No | Secret for session JWT signing | `secret-token` |
+
+### First-time setup: make the package public (one-time, manual)
+
+When the image is pushed for the first time, GitHub creates the package as **private** by default. For an open academic project, make it **public** using the GitHub web UI:
+
+1. Go to the repository on GitHub: `https://github.com/pes2627q1-21-gei-upc/perseida`.
+2. Click **Packages** (right sidebar) → `perseida-api`.
+3. Click **Package settings** (package settings sidebar).
+4. Under the **Danger Zone** section, click **Change visibility** and select **Public**.
+
+### Link the package to the repository (one-time, automatic)
+
+The first time the workflow pushes the image, GitHub links the package to the repository through the `org.opencontainers.image.source` label, which `docker/metadata-action` sets automatically to the repository URL. `github.repository_owner` only decides which account owns the package. No manual action needed.
+
 ## Configuration and secrets
 
 - Secrets and variables live in GitHub **Secrets and variables**; the CD job generates `.env` on the server. `.env` is **never** committed; a value-free `.env.example` is the template.
@@ -72,7 +147,21 @@ infra/
 ├── docker-compose.yml        # the five services (local and production)
 ├── .env.example
 ├── nginx-proxy-manager/      # proxy configuration
-└── moderation/               # Kev-4B service image/config
+├── moderation/               # Kev-4B service image/config
+└── scripts/
+    └── test-backend-docker.sh # local validation and smoke test of perseida-api
+```
+
+## Local validation and testing (backend Docker image)
+
+To validate the Docker image build, container security, and runtime health locally before pushing:
+
+```bash
+# Full test suite: Hadolint + actionlint + build + security + smoke test
+./infra/scripts/test-backend-docker.sh
+
+# Or reuse an already-built image (e.g., perseida-api:local)
+./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
 ## Run locally (planned)
