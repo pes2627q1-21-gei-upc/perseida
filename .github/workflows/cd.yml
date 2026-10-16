@@ -1,0 +1,61 @@
+name: CD
+
+# Desplegament continu al servidor de Virtech per SSH (US TG-38).
+# S'executa a cada push a `main` (fusió d'una release o d'un hotfix) o a mà
+# des de `main`. Un push o PR a `develop` o a una `feature/*` no el dispara.
+#
+# Pendent (depèn de TG-36 i TG-37): imatge per git-sha, pull i `docker compose
+# up` (TG-130), healthcheck (TG-131) i rollback automàtic (TG-132).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Dos desplegaments mai en paral·lel, i mai se'n cancel·la un a mitges: deixaria
+# el servidor en un estat inconsistent.
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  deploy:
+    # També limita el `workflow_dispatch` manual a `main`.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      # La clau privada només viu al runner durant el job. La verificació de la
+      # clau del servidor usa `SSH_KNOWN_HOSTS`; mai `StrictHostKeyChecking=no`.
+      - name: Configurar SSH
+        shell: bash
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host virtech
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+          EOF
+
+      - name: Comprovar la connexió amb el servidor
+        shell: bash
+        run: ssh virtech 'echo "Connectat com $(whoami) a $(hostname)"'
