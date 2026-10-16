@@ -1,7 +1,10 @@
+import logging
 from typing import Any, cast
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi import FastAPI
+from redis.exceptions import ConnectionError as RedisConnectionError
 from starlette.requests import HTTPConnection
 
 from app.infrastructure.cache.dependencies import get_cache
@@ -47,3 +50,29 @@ def test_tg145_get_cache_builds_the_adapter_from_app_state() -> None:
     conn = HTTPConnection({"type": "http", "app": app, "headers": []})
 
     assert isinstance(get_cache(conn), RedisCache)
+
+
+async def test_tg146_unavailable_redis_reads_as_a_miss_and_logs(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    redis = _redis()
+    redis.get.side_effect = RedisConnectionError("down")
+    cache = RedisCache(cast(Any, redis), default_ttl_seconds=60)
+
+    with caplog.at_level(logging.WARNING):
+        assert await cache.get("apod:today") is None
+
+    assert "Redis unavailable reading apod:today" in caplog.text
+
+
+async def test_tg146_unavailable_redis_does_not_fail_writes(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    redis = _redis()
+    redis.set.side_effect = RedisConnectionError("down")
+    cache = RedisCache(cast(Any, redis), default_ttl_seconds=60)
+
+    with caplog.at_level(logging.WARNING):
+        await cache.set("apod:today", "value")
+
+    assert "Redis unavailable writing apod:today" in caplog.text
