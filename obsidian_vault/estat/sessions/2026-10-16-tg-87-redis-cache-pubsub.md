@@ -35,7 +35,7 @@ Implementar TG-87: Redis com a cache amb TTL (patró lazy) i com a bus pub/sub p
 
 ## Pendent / següents passos
 
-- [ ] Servei `cache` (Redis 8, healthcheck) al Docker Compose, de TG-37; el `.env.example` de l'arrel diu `REDIS_HOST=redis` i TG-37 anomena el servei `cache`.
+- [ ] Servei `redis` (Redis 8, healthcheck) al Docker Compose, de TG-37; `REDIS_HOST=redis` al `.env.example` de l'arrel ja hi coincideix.
 - [ ] TG-143: verificar el servei de Compose quan es fusioni TG-37.
 - [ ] Claus i18n ca/es/en de `PUBSUB_UNAVAILABLE` al frontend (el catàleg ho exigeix) quan hi hagi la feina del xat (TG-63).
 

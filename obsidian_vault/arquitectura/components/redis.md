@@ -51,7 +51,7 @@ Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<
 
 ## Estat d'implementació
 
-Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Pendent: el servei `cache` al Docker Compose (TG-37).
+Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Pendent: el servei `redis` al Docker Compose (TG-37).
 
 ## Enllaços
 
