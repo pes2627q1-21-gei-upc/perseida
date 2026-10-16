@@ -29,12 +29,16 @@ Proporcionar la infraestructura de tasques periòdiques dins del procés FastAPI
 - Logging JSON global amb stdlib, sense dependència nova (decidit per la persona).
 - Override de mypy per a `apscheduler.*`: APScheduler 3.x no porta tipus.
 - Revisió d'arquitectura: la persona va triar aplicar les tres troballes mitjanes (logging JSON també a uvicorn, `correlation_id` als logs, un sol `get_scheduler_settings()`) i s'hi va afegir la validació del fus horari.
-- Rellotge simulat substituït per intervals curts i esdeveniments asyncio.
+- Criteri 9 (rellotge simulat): a més dels tests amb intervals curts i esdeveniments asyncio, hi ha proves unitàries amb un rellotge simulat que avança el temps sobre APScheduler (revisió de la PR 27).
+- Logging JSON global: ADR [[0022-logging-json-global-amb-stdlib]] (revisió de la PR 27).
+- Lifespan: l'arrencada del planificador és dins del `try/finally`, de manera que `engine.dispose()` s'executa encara que falli el registre de tasques; `shutdown()` és inofensiu si el planificador no ha arrencat.
 
 ## Canvis al vault
 
 - [[backend-hexagonal]]: secció «Planificador».
-- [[api]]: referència a TG-88 implementat.
+- [[api]]: referència a TG-88 implementat, variables `SCHEDULER_*`, data i estat d'implementació.
+- [[0022-logging-json-global-amb-stdlib]]: ADR nova.
+- [[00-index]]: enllaç a l'ADR.
 
 ## Pendent / següents passos
 
