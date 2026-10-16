@@ -1,8 +1,12 @@
 import asyncio
 import logging
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta, tzinfo
 
 import pytest
+from apscheduler.executors import base as executor_base
+from apscheduler.schedulers import base as scheduler_base
+from apscheduler.triggers import interval as interval_trigger
 
 from app.infrastructure.scheduler.apscheduler import ApschedulerJobScheduler
 
@@ -149,3 +153,95 @@ async def test_shutdown_cancels_running_job_without_logging_an_error(
     assert cleaned_up is True
     assert [t for t in asyncio.all_tasks() if t is not asyncio.current_task()] == []
     assert [r for r in caplog.records if r.levelno >= logging.ERROR] == []
+
+
+async def settle() -> None:
+    """Yield to the loop so submitted jobs and their completion callbacks run."""
+    for _ in range(3):
+        await asyncio.sleep(0)
+
+
+class FakeClock:
+    """Simulated wall clock injected where APScheduler reads ``datetime.now``."""
+
+    def __init__(self, start: datetime) -> None:
+        self.current = start
+
+    def advance(self, **delta: float) -> None:
+        self.current += timedelta(**delta)
+
+    def datetime_class(self) -> type[datetime]:
+        clock = self
+
+        class _FakeDatetime(datetime):
+            @classmethod
+            def now(cls, tz: tzinfo | None = None) -> _FakeDatetime:
+                return cls.fromtimestamp(clock.current.timestamp(), tz)
+
+        return _FakeDatetime
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> FakeClock:
+    fake = FakeClock(datetime(2026, 1, 1, tzinfo=UTC))
+    fake_datetime = fake.datetime_class()
+    for module in (scheduler_base, executor_base, interval_trigger):
+        monkeypatch.setattr(module, "datetime", fake_datetime)
+    return fake
+
+
+async def test_interval_job_fires_when_simulated_clock_reaches_interval(
+    clock: FakeClock,
+) -> None:
+    runs = 0
+
+    async def tick() -> None:
+        nonlocal runs
+        runs += 1
+
+    instance = ApschedulerJobScheduler()
+    instance.add_interval_job("tick", tick, seconds=60)
+    instance.start()
+    try:
+        instance._scheduler._process_jobs()  # noqa: SLF001
+        await settle()
+        assert runs == 0
+
+        clock.advance(seconds=61)
+        instance._scheduler._process_jobs()  # noqa: SLF001
+        await settle()
+        assert runs == 1
+
+        clock.advance(seconds=60)
+        instance._scheduler._process_jobs()  # noqa: SLF001
+        await settle()
+        assert runs == 2
+    finally:
+        await instance.shutdown()
+
+
+async def test_missed_runs_are_coalesced_when_clock_jumps(clock: FakeClock) -> None:
+    runs = 0
+
+    async def tick() -> None:
+        nonlocal runs
+        runs += 1
+
+    instance = ApschedulerJobScheduler()
+    instance.add_interval_job("tick", tick, seconds=60)
+    instance.start()
+    try:
+        clock.advance(minutes=10)
+        instance._scheduler._process_jobs()  # noqa: SLF001
+        await settle()
+        assert runs == 1
+    finally:
+        await instance.shutdown()
+
+
+async def test_shutdown_before_start_is_a_noop(
+    scheduler: ApschedulerJobScheduler,
+) -> None:
+    await scheduler.shutdown()
+
+    assert scheduler.running is False
