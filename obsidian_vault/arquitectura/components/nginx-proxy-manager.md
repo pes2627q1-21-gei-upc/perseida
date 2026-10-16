@@ -2,8 +2,8 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-37", "TG-89", "TG-96"]
+data: "2026-10-16"
+us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38"]
 font: "infra/README.md, memòria §3.4.1, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
 ---
@@ -22,6 +22,9 @@ Nginx Proxy Manager. La versió concreta no consta als documents consultats. La 
 
 - Qui el crida: l'app Android (HTTPS 443 / WSS) i el navegador d'administració (SPA + REST).
 - A qui crida: [[api]] (`proxy_pass`). Comparteix el volum de media amb l'API.
+
+> [!warning] Port 443 a Virtech
+> A Virtech només hi ha ports públics NAT (`40430`–`40439`, dels quals el `40439` és SSH); no hi ha 80/443 públics. Com s'exposa aquest servei i com s'obté el certificat TLS és encara una decisió pendent; vegeu [[arquitectura-fisica]].
 
 ## Configuració
 
