@@ -27,7 +27,7 @@ Implementar TG-87: Redis com a cache amb TTL (patró lazy) i com a bus pub/sub p
 
 - Cap ADR nova: tot encaixa a [[0005-redis-nomes-com-a-cache-lazy]], [[0016-ports-i-entitats-riques-al-domini]] i [[0017-injeccio-de-dependencies-i-services-singleton]].
 - Variables `REDIS_HOST` + `REDIS_PORT` (no una `REDIS_URL`), TTL per defecte de 3600 s, i `redis==8.1.0` ja era a les dependències.
-- Codi d'error nou `PUBSUB_UNAVAILABLE` (503), segons [[0018-errors-rfc-9457-amb-codis-estables]]; cal confirmar-lo al catàleg de codis.
+- Codi d'error nou `PUBSUB_UNAVAILABLE` (503), segons [[0018-errors-rfc-9457-amb-codis-estables]]; aprovat per la persona i registrat al catàleg de `gestio-errors` amb textos ca/es/en.
 
 ## Canvis al vault
 
@@ -37,7 +37,7 @@ Implementar TG-87: Redis com a cache amb TTL (patró lazy) i com a bus pub/sub p
 
 - [ ] Servei `cache` (Redis 8, healthcheck) al Docker Compose, de TG-37; el `.env.example` de l'arrel diu `REDIS_HOST=redis` i TG-37 anomena el servei `cache`.
 - [ ] TG-143: verificar el servei de Compose quan es fusioni TG-37.
-- [ ] Confirmar el codi `PUBSUB_UNAVAILABLE`.
+- [ ] Claus i18n ca/es/en de `PUBSUB_UNAVAILABLE` al frontend (el catàleg ho exigeix) quan hi hagi la feina del xat (TG-63).
 
 ## US de Taiga
 
