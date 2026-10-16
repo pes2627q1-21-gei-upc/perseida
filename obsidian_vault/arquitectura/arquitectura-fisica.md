@@ -81,11 +81,14 @@ El «servidor» és una màquina virtual creada a mà al portal de cloud privat 
 | Ports públics sense VPN | `40430`–`40439`, que apunten als ports `8080`–`8089` de la VM |
 
 > [!warning] SSH des de fora de la UPC
-> El port SSH oficial (`22043`) **no és accessible des d'Internet** sense VPN (comprovat: *timeout*). GitHub Actions s'hi connecta per un port públic NAT: `sshd` escolta també al `8089` de la VM (`/etc/ssh/sshd_config.d/10-perseida.conf`, amb `ssh.socket` desactivat) i s'hi arriba per `nattech.fib.upc.edu:40439`. Només amb clau; la clau de desplegament és el secret `SSH_PRIVATE_KEY`.
+> El port SSH oficial (`22043`) **no és accessible des d'Internet** sense VPN (comprovat: *timeout*). GitHub Actions s'hi connecta per un port públic NAT: `sshd` escolta també al `8089` de la VM (`/etc/ssh/sshd_config.d/10-perseida.conf`, amb `ssh.socket` desactivat) i s'hi arriba per `nattech.fib.upc.edu:40439`. Només amb clau (`PasswordAuthentication no`); la clau de desplegament és el secret `SSH_PRIVATE_KEY`. Cada membre de l'equip hi entra amb la seva clau pública, que s'afegeix amb `infra/scripts/add-team-key.sh`.
 
 Conseqüències:
 
 - El `8089` queda reservat a SSH; per a [[nginx-proxy-manager]] i la resta de serveis només es poden publicar els ports `8080`–`8088`. No hi ha ports 80/443 públics.
+
+> [!warning] Pendent de decidir: HTTPS al port 443
+> Els diagrames d'aquesta nota i de [[visio-general]], i [[nginx-proxy-manager]], parlen de «HTTPS 443», però a Virtech l'únic accés públic és per ports NAT (`40430`–`40439`). Cal decidir com s'exposa nginx-proxy-manager (port NAT amb la URL de l'API a l'app) i com s'obté el certificat TLS, ja que el repte HTTP-01 de Let's Encrypt necessita el port 80 i el TLS-ALPN-01 el 443; amb ports NAT caldria un repte DNS-01 o un altre mètode. Encara no hi ha decisió presa.
 - La VM s'esborra al final del quadrimestre i no té còpia de seguretat (guia del servei Virtech).
 - Secrets SSH al repositori: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS`. La resta de configuració del `.env` de producció (només el que usa el backend) va com a secrets i variables de GitHub.
 
