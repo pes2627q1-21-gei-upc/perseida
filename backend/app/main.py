@@ -15,21 +15,21 @@ from app.infrastructure.persistence.config import DatabaseSettings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    redis_settings = RedisSettings()
+    redis = Redis.from_url(redis_settings.redis_url, decode_responses=True)
+    app.state.redis = redis
+    app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
     settings = DatabaseSettings()
     engine = create_async_engine(settings.database_url)
     app.state.session_factory = async_sessionmaker(
         engine,
         expire_on_commit=False,
     )
-    redis_settings = RedisSettings()
-    redis = Redis.from_url(redis_settings.redis_url, decode_responses=True)
-    app.state.redis = redis
-    app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
     try:
         yield
     finally:
-        await redis.aclose()
         await engine.dispose()
+        await redis.aclose()
 
 
 def create_app() -> FastAPI:
