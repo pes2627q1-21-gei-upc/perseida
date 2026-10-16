@@ -46,7 +46,6 @@ Implementar la construcció optimitzada de la imatge de contenidor del backend (
 ## Canvis al vault
 
 - [[api]]: afegida traçabilitat de TG-36, detalls tècnics del contenidor i actualitzat l'estat d'implementació.
-- [[estat-actual]]: incorporada la US TG-36 al registre d'estat de l'Sprint 1.
 - Aquesta nota de sessió (`2026-10-15-imatge-docker-backend-ghcr`).
 
 ## Pendent / següents passos

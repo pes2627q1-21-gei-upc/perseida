@@ -78,25 +78,57 @@ El workflow de CI/CD utilitza el token natiu `GITHUB_TOKEN` — sense necessitat
 
 GitHub redueix automàticament els permisos de `packages` a `read` en pull requests provinents de forks externs per seguretat.
 
+### Descarregar i executar la imatge (docker pull i run)
+
+Per descarregar la imatge des de GHCR:
+
+```bash
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+# o per tag de commit o branca:
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:sha-a1b2c3d
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:develop
+```
+
+Per arrencar el contenidor de l'API de forma independent (fora de Docker Compose), cal injectar les variables d'entorn requerides pel backend:
+
+```bash
+docker run -d \
+  --name perseida-api \
+  -p 8000:8000 \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=perseida \
+  -e POSTGRES_PASSWORD=secret \
+  -e POSTGRES_HOST=localhost \
+  -e POSTGRES_PORT=5432 \
+  -e REDIS_HOST=localhost \
+  -e REDIS_PORT=6379 \
+  ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+```
+
+### Variables d'entorn del backend
+
+El servei FastAPI (`perseida-api`) utilitza les següents variables d'entorn per a la connexió i configuració:
+
+| Variable | Requerida | Descripció | Exemple |
+|---|---|---|---|
+| `POSTGRES_DB` | Sí | Nom de la base de dades PostgreSQL | `perseida` |
+| `POSTGRES_USER` | Sí | Usuari de la base de dades | `perseida` |
+| `POSTGRES_PASSWORD` | Sí | Contrasenya de la base de dades | `secret` |
+| `POSTGRES_HOST` | Sí | Host o nom de servei de PostgreSQL | `postgres` o `localhost` |
+| `POSTGRES_PORT` | Sí | Port de PostgreSQL | `5432` |
+| `REDIS_HOST` | No | Host o nom de servei de Redis | `redis` o `localhost` |
+| `REDIS_PORT` | No | Port del servei Redis | `6379` |
+| `APP_ENV` | No | Entorn d'execució (`local`, `production`) | `production` |
+| `JWT_SECRET` | No | Secret per a signatures JWT de sessió | `secret-token` |
+
 ### Configuració inicial: fer el paquet públic (un sol cop, manual)
 
-Quan la imatge es puja per primer cop, GitHub crea el paquet com a **privat** per defecte. Per a un projecte acadèmic obert, es recomana canviar-lo a **públic**:
+Quan la imatge es puja per primer cop, GitHub crea el paquet com a **privat** per defecte. Per a un projecte acadèmic obert, es recomana canviar-lo a **públic** a través de la interfície web de GitHub:
 
-**Opció A — Interfície web de GitHub** (recomanat):
-1. Vés al repositori a GitHub.
+1. Vés al repositori a GitHub: `https://github.com/pes2627q1-21-gei-upc/perseida`.
 2. Fes clic a **Packages** (a la barra lateral dreta) → `perseida-api`.
-3. Fes clic a **Package settings** → **Change visibility** → **Public**.
-
-**Opció B — API REST de GitHub** (automatitzable):
-```bash
-# Requereix un PAT amb permís write:packages (execució única en local)
-curl -L \
-  -X PATCH \
-  -H "Authorization: Bearer <EL_TEU_PAT>" \
-  -H "Content-Type: application/json" \
-  https://api.github.com/orgs/pes2627q1-21-gei-upc/packages/container/perseida-api \
-  -d '{"visibility":"public"}'
-```
+3. Fes clic a **Package settings** (a la barra lateral de configuració del paquet).
+4. A la secció **Danger Zone**, fes clic a **Change visibility** i selecciona **Public**.
 
 ### Vinculació del paquet al repositori
 

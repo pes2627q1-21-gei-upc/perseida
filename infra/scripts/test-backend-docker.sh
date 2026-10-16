@@ -137,9 +137,17 @@ cleanup() {
         docker rm "$CONTAINER_ID" >/dev/null 2>&1 || true
     fi
 }
-trap cleanup EXIT
-
-CONTAINER_ID=$(docker run -d "$IMAGE_NAME")
+# El codi actual del backend requereix les variables POSTGRES_* (i opcionalment REDIS_*)
+# definides per al cicle de vida (DatabaseSettings a lifespan).
+CONTAINER_ID=$(docker run -d \
+    -e POSTGRES_DB="${POSTGRES_DB:-perseida_test}" \
+    -e POSTGRES_USER="${POSTGRES_USER:-perseida}" \
+    -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-test-password}" \
+    -e POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}" \
+    -e POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
+    -e REDIS_HOST="${REDIS_HOST:-127.0.0.1}" \
+    -e REDIS_PORT="${REDIS_PORT:-6379}" \
+    "$IMAGE_NAME")
 sleep 2
 
 # Verificació de GET /api/health

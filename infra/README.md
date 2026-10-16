@@ -78,27 +78,57 @@ The CI/CD workflow uses the built-in `GITHUB_TOKEN` — no PAT or manual secret 
 
 GitHub automatically **downgrades** `packages` to `read` on pull requests from external forks, so no unauthorized fork can publish images.
 
-### First-time setup: make the package public (one-time, manual)
+### Pulling and running the image (docker pull and run)
 
-When the image is pushed for the first time, GitHub creates the package as **private** by default. For an open academic project, set it to **public**:
+To pull the image from GHCR:
 
-**Option A — GitHub UI** (recommended):
-1. Go to the repository on GitHub.
-2. Click **Packages** (right sidebar) → `perseida-api`.
-3. Click **Package settings** → **Change visibility** → **Public**.
-
-**Option B — GitHub REST API** (scriptable):
 ```bash
-# Requires a PAT with write:packages scope (one-time, run locally)
-curl -L \
-  -X PATCH \
-  -H "Authorization: Bearer <YOUR_PAT>" \
-  -H "Content-Type: application/json" \
-  https://api.github.com/orgs/pes2627q1-21-gei-upc/packages/container/perseida-api \
-  -d '{"visibility":"public"}'
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+# or by commit SHA or branch tag:
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:sha-a1b2c3d
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:develop
 ```
 
-> **Note:** Never commit a PAT to the repository. Run Option B locally and discard the token.
+To run the API container standalone (outside Docker Compose), pass the required environment variables:
+
+```bash
+docker run -d \
+  --name perseida-api \
+  -p 8000:8000 \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=perseida \
+  -e POSTGRES_PASSWORD=secret \
+  -e POSTGRES_HOST=localhost \
+  -e POSTGRES_PORT=5432 \
+  -e REDIS_HOST=localhost \
+  -e REDIS_PORT=6379 \
+  ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+```
+
+### Backend environment variables
+
+The FastAPI backend service (`perseida-api`) uses the following environment variables:
+
+| Variable | Required | Description | Example |
+|---|---|---|---|
+| `POSTGRES_DB` | Yes | PostgreSQL database name | `perseida` |
+| `POSTGRES_USER` | Yes | Database user | `perseida` |
+| `POSTGRES_PASSWORD` | Yes | Database password | `secret` |
+| `POSTGRES_HOST` | Yes | PostgreSQL host or service name | `postgres` or `localhost` |
+| `POSTGRES_PORT` | Yes | PostgreSQL port | `5432` |
+| `REDIS_HOST` | No | Redis host or service name | `redis` or `localhost` |
+| `REDIS_PORT` | No | Redis port | `6379` |
+| `APP_ENV` | No | Runtime environment (`local`, `production`) | `production` |
+| `JWT_SECRET` | No | Secret for session JWT signing | `secret-token` |
+
+### First-time setup: make the package public (one-time, manual)
+
+When the image is pushed for the first time, GitHub creates the package as **private** by default. For an open academic project, make it **public** using the GitHub web UI:
+
+1. Go to the repository on GitHub: `https://github.com/pes2627q1-21-gei-upc/perseida`.
+2. Click **Packages** (right sidebar) → `perseida-api`.
+3. Click **Package settings** (package settings sidebar).
+4. Under the **Danger Zone** section, click **Change visibility** and select **Public**.
 
 ### Link the package to the repository (one-time, automatic)
 

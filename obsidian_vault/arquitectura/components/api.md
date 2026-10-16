@@ -3,8 +3,8 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-10-15"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88", "TG-304"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -16,13 +16,13 @@ Un únic procés FastAPI que fa tres coses: atén l'API REST de l'app i del pane
 
 ## Tecnologia i versió
 
-Python 3.14, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`. Imatge `perseida-api:<git-sha>` publicada a GHCR (`ghcr.io/pes2627q1-21-gei-upc/perseida-api`). 
+Python 3.14, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`. Imatge `perseida-api:<git-sha>` publicada a GHCR (`ghcr.io/pes2627q1-21-gei-upc/perseida-api`).
 
 ### Contenidorització i empaquetament (TG-36)
 - **Multi-stage build**: etapa `builder` amb `uv sync --frozen --no-dev` creant un entorn virtual aïllat a `/app/.venv`, i etapa `runner` neta basada en `python:3.14-slim` on s'elimina `pip` i no hi ha eines de compilació.
 - **Seguretat**: execució sota usuari no privilegiat `appuser` (UID/GID fix `1001`, shell `/sbin/nologin`, sense home).
 - **Entorn**: `PYTHONUNBUFFERED=1` per a emissió immediata de logs a stdout, `PYTHONDONTWRITEBYTECODE=1` i `PATH="/app/.venv/bin:$PATH"`.
-- **Pipeline CI/CD**: `.github/workflows/backend-docker.yml` amb Buildx, memòria cau GHA (`mode=max`) i generació d'etiquetes immutables (`sha-XXXXXXX`), de branca (`develop`/`main`) i SemVer (`vX.Y.Z`).
+- **Pipeline CI/CD**: `.github/workflows/backend-docker.yml` amb Buildx, memòria cau GHA (`mode=max`) i generació d'etiquetes immutables (`sha-XXXXXXX`), de branca (`develop`/`main`/`release/*`) i SemVer (`vX.Y.Z`).
 
 Alembic s'executarà a l'entrypoint del contenidor un cop implementat a TG-41. Estructura hexagonal: [[backend-hexagonal]].
 
@@ -30,6 +30,10 @@ Alembic s'executarà a l'entrypoint del contenidor un cop implementat a TG-41. E
 
 - Qui el crida: [[nginx-proxy-manager]] (`proxy_pass`), que rep REST/WSS de l'app Android i del navegador d'admin; Spotwise, per `GET /api/events/active` i `/upcoming` ([[contracte-spotwise]]).
 - A qui crida: [[postgres]] (font de veritat), [[redis]] (cache i pub/sub), [[moderation]] (HTTP síncron), NASA, APIs de meteorologia i contaminació lumínica, FCM, i Google (JWKS) ([[serveis-externs]]). Comparteix el volum de media amb nginx-proxy-manager.
+
+## Errors i correlació
+
+Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i `correlation_id`; el 500 no exposa detalls interns. Cada resposta porta la capçalera `X-Correlation-ID` (generada amb `uuid4` o reutilitzada si el valor entrant és vàlid). Jerarquia a `app/domain/shared/errors.py` i `app/application/shared/errors.py`; handlers i middleware a `app/infrastructure/api/`. Detall a [[0018-errors-rfc-9457-amb-codis-estables]].
 
 ## Configuració
 
@@ -42,9 +46,11 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - [[0005-redis-nomes-com-a-cache-lazy]]
 - [[0007-moderacio-local-kev-4b-sincrona]]
 - [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]
+- [[0018-errors-rfc-9457-amb-codis-estables]]
 
 ## US de Taiga relacionades
 
+- TG-36 (Imatge Docker del backend i publicació a GHCR)
 - TG-37 (Docker Compose amb cinc serveis)
 - TG-39 (esquelet FastAPI hexagonal)
 - TG-40 (PostgreSQL async amb SQLModel)
@@ -52,11 +58,14 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - TG-44 (JWKS)
 - TG-46 (cache APOD)
 - TG-88 (APScheduler)
+- TG-304 (Jerarquia d'errors i handler RFC 9457)
 
 ## Estat d'implementació
 - **Codi base FastAPI (TG-39)**: implementat (capes domain, application, infrastructure i mòdul health).
+- **Gestió d'errors i correlació (TG-304)**: implementat (RFC 9457, X-Correlation-ID).
+- **Persistència PostgreSQL (TG-40)**: implementat.
 - **Contenidorització i pipeline GHCR (TG-36)**: implementat (Dockerfile multi-stage, workflow GitHub Actions, proves locals a `infra/scripts/test-backend-docker.sh`).
-- **Persistència i migracions (TG-40, TG-41)**: pendent.
+- **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis**: planificat.
 
 ## Enllaços

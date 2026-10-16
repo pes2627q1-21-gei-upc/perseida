@@ -19,6 +19,9 @@ on:
     branches:
       - main
       - develop
+      - "release/*"
+    tags:
+      - "v*"
     paths:
       - "backend/**"
       - ".github/workflows/backend-docker.yml"
@@ -27,6 +30,7 @@ on:
     branches:
       - main
       - develop
+      - "release/*"
     paths:
       - "backend/**"
       - ".github/workflows/backend-docker.yml"
@@ -137,16 +141,20 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/perseida-api
+          flavor: |
+            latest=auto
           tags: |
             # a) SHA curt – sempre present, immutable
             type=sha,prefix=sha-,format=short
-            # b) Nom de branca – per a push a develop i main
+            # b) Nom de branca – per a push a develop, main i release/*
             type=ref,event=branch
-            # c) SemVer complet – quan el push porta un tag vX.Y.Z
+            # c) Tag latest explícit quan es fa push a main
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # d) SemVer complet (vX.Y.Z -> X.Y.Z)
             type=semver,pattern={{version}}
-            # c) SemVer major.minor – per fixar-se a un minor
+            # e) SemVer major.minor (vX.Y.Z -> X.Y)
             type=semver,pattern={{major}}.{{minor}}
-            # c) SemVer major – per fixar-se a un major
+            # f) SemVer major (vX.Y.Z -> X)
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
           labels: |
             org.opencontainers.image.title=perseida-api
