@@ -19,8 +19,32 @@ concurrency:
 
 permissions: {}
 
+# Les variables de `.env.example` que no van al servidor: són només del workflow
+# de Taiga (`taiga-unblock.yml`). Es pot treure quan hi hagi `infra/.env.example`
+# (TG-37), que només tindrà les del Compose.
+env:
+  ENV_EXCLUDE: TAIGA_USERNAME TAIGA_PASSWORD TAIGA_PROJECT_SLUG TAIGA_URL DRY_RUN
+
 jobs:
+  # Falla abans de tocar el servidor si falta algun secret o variable requerit.
+  verify-config:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          sparse-checkout: infra/scripts
+      - name: Comprovar secrets i variables requerits
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: python3 infra/scripts/render_env.py check
+
   deploy:
+    needs: verify-config
     # També limita el `workflow_dispatch` manual a `main`.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -59,3 +83,21 @@ jobs:
       - name: Comprovar la connexió amb el servidor
         shell: bash
         run: ssh virtech 'echo "Connectat com $(whoami) a $(hostname)"'
+
+      # El `.env` es genera al runner i viatja per stdin: mai és un argument de
+      # comanda, ni queda a disc al runner, ni surt als logs. Al servidor s'escriu
+      # amb permisos 600 en un fitxer temporal i es mou de cop al seu lloc.
+      - name: Renderitzar el .env al servidor
+        shell: bash
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: |
+          python3 infra/scripts/render_env.py mask
+          python3 infra/scripts/render_env.py render | ssh virtech '
+            umask 077
+            mkdir -p /opt/perseida
+            cat > /opt/perseida/.env.tmp
+            chmod 600 /opt/perseida/.env.tmp
+            mv /opt/perseida/.env.tmp /opt/perseida/.env
+          '
