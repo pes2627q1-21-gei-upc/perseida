@@ -2,9 +2,9 @@
 titol: "Arquitectura física i desplegament"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-14"
-us: ["TG-85", "TG-37", "TG-89", "TG-34"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18); Taiga: backlog (llistat de US, 2026-10-07)"
+data: "2026-10-16"
+us: ["TG-85", "TG-37", "TG-89", "TG-34", "TG-38"]
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18); Taiga: backlog (llistat de US, 2026-10-07); guia del servei Virtech i configuració de la VM (tasca #128, 2026-10-16)"
 etiquetes: [arquitectura, infra, docker-compose, desplegament]
 ---
 
@@ -68,6 +68,26 @@ flowchart TB
   3. Publica l'**APK** del frontend en una release de GitHub.
 - **Rollback**: tornar a desplegar la imatge anterior pel seu `git-sha`.
 - Versionat SemVer des de `0.1.0`, una release per sprint.
+
+## Servidor de Virtech (VM)
+
+El «servidor» és una màquina virtual creada a mà al portal de cloud privat de la FIB (`virtech.fib.upc.edu`), no un servidor dedicat.
+
+| Aspecte | Valor |
+|---|---|
+| Plantilla | Ubuntu 24.04 PES 1CPU 4GB sense VPN |
+| Disc | 30 GB (`vda`), imatge no persistent; Docker Engine i Compose instal·lats; carpeta de desplegament `/opt/perseida` |
+| Host públic | `nattech.fib.upc.edu` (NAT compartit; la VM és `172.16.4.43`) |
+| Ports públics sense VPN | `40430`–`40439`, que apunten als ports `8080`–`8089` de la VM |
+
+> [!warning] SSH des de fora de la UPC
+> El port SSH oficial (`22043`) **no és accessible des d'Internet** sense VPN (comprovat: *timeout*). GitHub Actions s'hi connecta per un port públic NAT: `sshd` escolta també al `8089` de la VM (`/etc/ssh/sshd_config.d/10-perseida.conf`, amb `ssh.socket` desactivat) i s'hi arriba per `nattech.fib.upc.edu:40439`. Només amb clau; la clau de desplegament és el secret `SSH_PRIVATE_KEY`.
+
+Conseqüències:
+
+- El `8089` queda reservat a SSH; per a [[nginx-proxy-manager]] i la resta de serveis només es poden publicar els ports `8080`–`8088`. No hi ha ports 80/443 públics.
+- La VM s'esborra al final del quadrimestre i no té còpia de seguretat (guia del servei Virtech).
+- Secrets SSH al repositori: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS`. La resta de configuració del `.env` de producció (només el que usa el backend) va com a secrets i variables de GitHub.
 
 ## Entorns
 
