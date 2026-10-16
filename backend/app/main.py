@@ -2,10 +2,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
+from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
@@ -19,9 +21,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine,
         expire_on_commit=False,
     )
+    redis_settings = RedisSettings()
+    redis = Redis.from_url(redis_settings.redis_url, decode_responses=True)
+    app.state.redis = redis
+    app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
     try:
         yield
     finally:
+        await redis.aclose()
         await engine.dispose()
 
 
