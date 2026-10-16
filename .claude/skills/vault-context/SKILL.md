@@ -14,7 +14,7 @@ El vault `obsidian_vault/` és la memòria compartida del projecte. Aquest proto
 
 ## 2. Llegir (abans de treballar)
 
-1. Llegeix `obsidian_vault/00-index.md` i `obsidian_vault/estat/estat-actual.md`. A Claude Code el hook `SessionStart` (`.agents/scripts/vault-context.mjs`, configurat a `.claude/settings.json`) ja els injecta; la resta d'agents els ha de llegir ells mateixos.
+1. Llegeix `obsidian_vault/00-index.md`. A Claude Code el hook `SessionStart` (`.agents/scripts/vault-context.mjs`, configurat a `.claude/settings.json`) ja l'injecta; la resta d'agents l'ha de llegir ells mateixos. L'estat de les US i de l'sprint és a Taiga.
 2. Llegeix la US a Taiga (projecte `alexga03-astronomia-pes`): descripció i criteris d'acceptació.
 3. Cerca només les notes de l'àrea afectada:
 
@@ -46,8 +46,7 @@ Estats d'ADR: `proposada` | `acceptada` | `substituida`. El camp `us` porta la r
 ## 4. Al final de la sessió
 
 1. Crea `estat/sessions/AAAA-MM-DD-<tema>.md` amb `plantilles/sessio`: què s'ha fet, decisions preses (enllaç als ADR), pendents i US.
-2. Actualitza `estat/estat-actual.md`: sprint, US en curs, bloquejos.
-3. Enllaça des de la sessió cada nota creada o canviada.
+2. Enllaça des de la sessió cada nota creada o canviada.
 
 ## 5. Eficiència
 

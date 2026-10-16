@@ -2,8 +2,8 @@
 titol: "Backend: arquitectura hexagonal"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46", "TG-205"]
+data: "2026-10-14"
+us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46", "TG-205", "TG-304"]
 font: "backend/README.md, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, backend, hexagonal]
 ---
@@ -12,8 +12,8 @@ etiquetes: [arquitectura, backend, hexagonal]
 
 Un **únic procés FastAPI** (async) integra tres responsabilitats ([[0003-un-sol-proces-fastapi]]): API REST per a l'app i el panell d'admin, WebSocket per al xat en temps real (amb pub/sub de Redis) i planificador APScheduler in-process (notificacions programades, reinici de ràtxes diàries i purga de contingut caducat).
 
-> [!warning] Estat
-> Descripció de l'estat **planificat**; `backend/` encara només conté README.
+> [!note] Estat d'implementació
+> El backend ja disposa d'una aplicació FastAPI asíncrona amb les capes de domini, aplicació i infraestructura, un mòdul de salut i una infraestructura inicial de persistència PostgreSQL asíncrona. TG-40 està en revisió a la PR #15. La integració amb una instància real de PostgreSQL, PostGIS i les migracions Alembic s'han de validar en els passos corresponents.
 
 ## Capes
 
@@ -48,6 +48,8 @@ flowchart LR
 - `infrastructure`: tot el que toca l'exterior: endpoints, WebSockets, persistència, Redis, clients externs i *exception handlers* ([[0018-errors-rfc-9457-amb-codis-estables]]). Implementa els ports del domini.
 
 Les dependències només van cap endins (`infrastructure` → `application` → `domain`) i cada capa s'organitza per mòduls (`app/<capa>/<mòdul>/`).
+
+Errors: la jerarquia viu als mòduls `shared` de cada capa (`DomainError` i subclasses a `app/domain/shared/`; `ApplicationError`, `UnauthorizedError`, `ForbiddenError` i `ExternalServiceError` a `app/application/shared/`). Només `infrastructure` coneix HTTP: `app/infrastructure/api/` té el middleware `X-Correlation-ID` i els *exception handlers* que els tradueixen a RFC 9457 (vegeu [[0018-errors-rfc-9457-amb-codis-estables]]).
 
 ## Patró per a dades externes
 

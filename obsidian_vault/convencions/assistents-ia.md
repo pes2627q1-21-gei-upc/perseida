@@ -22,13 +22,14 @@ Els assistents són un suport: la persona que obre la PR és responsable de tot 
 
 ## Context compartit
 
-Els assistents parteixen del vault d'Obsidian (arquitectura, decisions, convencions, estat i sessions), que s'actualitza al final de cada sessió i en cada decisió nova (vegeu [[actualitzacio-del-vault]]).
+Els assistents parteixen del vault d'Obsidian (arquitectura, decisions, convencions i sessions; l'estat de les US és a Taiga), que s'actualitza al final de cada sessió i en cada decisió nova (vegeu [[actualitzacio-del-vault]]).
 
 - `AGENTS.md` és el fitxer canònic d'instruccions; `CLAUDE.md` l'importa i `GEMINI.md` hi apunta.
 - Skill `vault-context`: protocol de lectura i escriptura del vault.
-- Hook `SessionStart` de Claude Code (`.claude/settings.json`): injecta l'índex i l'estat del vault.
+- Hook `SessionStart` de Claude Code (`.claude/settings.json`): injecta l'índex del vault.
 - Skills d'Obsidian obligatòries: `obsidian-markdown` per a tot fitxer del vault, `obsidian-bases` per a `.base` i `json-canvas` per a `.canvas`. Per llegir pàgines web s'usa `defuddle`.
 - Subagents especialitzats (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`): font única a `.agents/agents/`; `node .agents/scripts/sync-agents.mjs` genera els fitxers de cada eina ([[0021-subagents-agnostics-i-generador]]). Si tenen dubtes, s'aturen i retornen un bloc `PREGUNTES PER A L'HUMÀ`: no inventen res.
+- Skills de procés i disseny: `estetica-frutiger-cosmo` (tot el que sigui visual; orquestra `frontend-design` i `ui-ux-pro-max`) i `implementar-us` (porta una US de Taiga de cap a cap: llegeix per l'MCP de Taiga, pregunta, planifica en simple, espera aprovació, implementa i verifica criteris i DoD). Mai es posen credencials de Taiga al repo.
 - `.agents/skills/` és la font única de les skills; `.claude/skills/` és una còpia generada amb `node .agents/scripts/sync-skills.mjs` i no s'edita a mà. El workflow `skills-sync-check` verifica la sincronització.
 
 ## Procés

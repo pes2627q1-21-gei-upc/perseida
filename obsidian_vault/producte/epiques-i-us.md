@@ -13,7 +13,7 @@ etiquetes: [producte, epiques, us, taiga]
 El backlog es gestiona a Taiga: <https://tree.taiga.io/project/alexga03-astronomia-pes>. Aquesta nota només en deixa una còpia de referència; no la mantinguis en paral·lel.
 
 > [!warning] L'estat i l'agrupació viuen a Taiga
-> L'estat de cada US (New, Ready, In progress, Done) i la seva pertinença a una èpica són a Taiga, no al vault. La taula d'èpiques i US de la incepció 2 no és fiable per deduir quina US va a quina èpica, així que aquí no s'assigna. Per a l'estat en una data, vegeu [[estat-actual]].
+> L'estat de cada US (New, Ready, In progress, Done) i la seva pertinença a una èpica són a Taiga, no al vault. La taula d'èpiques i US de la incepció 2 no és fiable per deduir quina US va a quina èpica, així que aquí no s'assigna.
 
 ## Èpiques
 
@@ -124,5 +124,4 @@ Etiquetes de Taiga per filtrar el tauler: `backend`, `devops`, `documentation`, 
 
 - [[not-list]]
 - [[stakeholders]]
-- [[estat-actual]]
 - [[definition-of-done]]

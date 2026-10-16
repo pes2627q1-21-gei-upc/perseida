@@ -68,10 +68,13 @@ backend/
 ├── app/
 │   ├── main.py            # app factory de FastAPI i lifespan
 │   ├── domain/            # entities, value objects, ports
+│   │   ├── shared/        # jerarquia DomainError
 │   │   └── health/        # models i ports
 │   ├── application/       # services
+│   │   ├── shared/        # jerarquia ApplicationError
 │   │   └── health/        # cas d'ús
 │   └── infrastructure/    # routers, persistence, redis, clients
+│       ├── api/           # handlers d'errors (RFC 9457) i correlation id
 │       └── health/        # adaptadors, router i cablejat
 ├── tests/
 │   ├── unit/              # domini i application, amb fakes
@@ -97,6 +100,49 @@ El mòdul `health` és l'exemple de referència. Per a un mòdul nou `<nom>`:
 4. Registra el router a `create_app()` (`app/main.py`).
 5. **Tests**, després del codi: unitaris amb fakes (`tests/fakes/`), integració de l'API amb `dependency_overrides`; el test d'arquitectura continua verificant les capes.
 
+## Errors
+
+Contracte d'errors únic ([ADR-0018](../obsidian_vault/decisions/0018-errors-rfc-9457-amb-codis-estables.md)). El codi de domini i d'application llença errors tipats amb un `code` estable (`SCREAMING_SNAKE`, p. ex. `EVENT_NOT_FOUND`); només `infrastructure` coneix HTTP, així que no hi ha cap `HTTPException` fora d'ella.
+
+| Error | Capa | Status |
+|---|---|---|
+| `NotFoundError` | `domain/shared/errors.py` | 404 |
+| `ConflictError` | `domain/shared/errors.py` | 409 |
+| `ValidationError`, `BusinessRuleViolation` | `domain/shared/errors.py` | 422 |
+| `UnauthorizedError` | `application/shared/errors.py` | 401 |
+| `ForbiddenError` | `application/shared/errors.py` | 403 |
+| `ExternalServiceError` (proveïdor extern caigut, sense cache) | `application/shared/errors.py` | 503 |
+| Altres `DomainError` / `ApplicationError` | | 400 |
+
+```python
+raise NotFoundError("EVENT_NOT_FOUND", "Event 42 does not exist")
+raise UnauthorizedError("INVALID_SESSION")  # el missatge per defecte és el code
+```
+
+`DomainError(code, message=None)` i `ApplicationError(code, message=None)` comparteixen signatura; `message` és tècnic (logs i `detail`) i mai es mostra a l'usuari: el frontend tradueix pel `code`. El status es resol a `infrastructure/api/error_handlers.py` (`STATUS_BY_ERROR`, recorrent l'MRO de la classe), de manera que una subclasse nova hereta el del pare.
+
+Tot error es respon com a `application/problem+json` (RFC 9457):
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Event 42 does not exist",
+  "instance": "/api/events/42",
+  "code": "EVENT_NOT_FOUND",
+  "correlation_id": "5c0e0b8e-6d57-4f7b-9d0e-0d6a1f6f4c11"
+}
+```
+
+- `title` és la frase HTTP estàndard; `type` sempre és `about:blank`.
+- Errors de validació de la petició: 422, `code` `VALIDATION_ERROR` i `errors[]` amb un `{field, message, type}` per camp (les branques d'una unió de Pydantic, com `x.int`, es retallen a `x`). Els errors 5xx es registren amb `warning`.
+- Rutes inexistents i altres errors HTTP conserven el seu status amb `NOT_FOUND`, `METHOD_NOT_ALLOWED` o `HTTP_<status>`.
+- Excepcions inesperades: 500 `INTERNAL_ERROR` amb un `detail` genèric; cap traça ni nom de classe surt del servidor (va al log amb el `correlation_id`).
+- **Correlation id:** la capçalera `X-Correlation-ID` s'afegeix a totes les respostes. Un valor entrant només es reutilitza si compleix `[A-Za-z0-9._-]{1,128}`; si no, es genera un `uuid4`. El mateix id surt al cos com a `correlation_id`.
+
+Afegir un codi: llença la classe existent amb el `code` nou des de `domain`/`application`, registra'l al [catàleg de codis](../.agents/skills/gestio-errors/references/cataleg-codis.md) i afegeix-ne els textos ca/es/en al frontend. Mai es reanomena un `code` publicat.
+
 ## Contractes de servei (Spotwise, grup 21B)
 
 - **Proveïm:** `GET /api/events/active` i `GET /api/events/upcoming` retornen els esdeveniments astronòmics rellevants (títol, descripció breu, categoria com `lunar`, `solar`, `meteor_shower`).
@@ -121,6 +167,24 @@ uv run uvicorn app.main:app --reload  # arrenca l'API (http://127.0.0.1:8000/api
 - Tota la configuració (ruff, mypy, pytest, cobertura) és a `pyproject.toml`.
 
 L'stack complet (API, PostgreSQL/PostGIS, Redis, moderació) s'arrenca amb Docker Compose des de [`../infra`](../infra/README.ca.md). Copia `.env.example` a `.env`; els secrets reals mai es versionen.
+
+## Integració contínua
+
+El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) executa el job `backend` a cada pull request cap a `develop` o `main` i a cada push a `develop` o `main`. En una PR només s'executa si han canviat `backend/**` o el propi workflow; si no, el job queda com a omès (*skipped*) i no bloqueja la PR. Un push nou a la mateixa PR cancel·la l'execució anterior.
+
+Ordres exactes (des de `backend/`, les mateixes que el workflow):
+
+```bash
+cd backend                                 # des de l'arrel del repositori
+uv sync --locked                           # falla si uv.lock no està al dia
+uv run ruff check .                        # lint
+uv run ruff format --check .               # format
+uv run mypy .                              # tipatge estricte
+uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
+```
+
+- **Cobertura:** l'informe es publica com a artefacte `backend-coverage` (`coverage.xml`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
+- **Serveis:** PostgreSQL (PostGIS 18) i Redis 8 s'aixequen sols com a service containers a la CI. No cal Docker Compose ni `.env`.
 
 ## Testing i qualitat
 

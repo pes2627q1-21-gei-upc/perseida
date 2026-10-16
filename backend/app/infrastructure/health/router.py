@@ -12,7 +12,7 @@ router = APIRouter(tags=["health"])
 class HealthResponse(BaseModel):
     status: HealthStatus = Field(
         ...,
-        description="Estat general de salut del sistema (healthy, degraded, unhealthy)",
+        description="Estat general de salut del sistema (ok, down)",
         examples=["ok"],
     )
     components: dict[str, HealthStatus] = Field(
@@ -46,20 +46,6 @@ class HealthResponse(BaseModel):
                     "example": {
                         "status": "ok",
                         "components": {"app": "ok"},
-                    }
-                }
-            },
-        },
-        503: {
-            "description": "Servei no disponible per fallada d'algun component.",
-            "content": {
-                "application/problem+json": {
-                    "example": {
-                        "type": "about:blank",
-                        "title": "Service Unavailable",
-                        "status": 503,
-                        "detail": "Un o més components del sistema "
-                        "no estan disponibles.",
                     }
                 }
             },

@@ -23,7 +23,7 @@ Deixar el vault `obsidian_vault/` com a context compartit de l'equip i dels agen
 - Convencions: [[gitflow]], [[definition-of-done]], [[qualitat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]].
 - Arquitectura i components (carpeta `arquitectura/`, vegeu [[visio-general]]).
 - 15 ADR de les decisions ja preses.
-- Producte ([[not-list]], [[stakeholders]], [[epiques-i-us]]), [[estat-actual]] i guies ([[llegir-el-vault-com-a-agent]], [[arrencada]]).
+- Producte ([[not-list]], [[stakeholders]], [[epiques-i-us]]) i guies ([[llegir-el-vault-com-a-agent]], [[arrencada]]).
 
 ## Decisions preses
 
@@ -47,6 +47,5 @@ Tot el vault és nou en aquesta US; el mapa és a [[00-index]].
 
 ## Enllaços
 
-- [[estat-actual]]
 - [[0015-skills-agnostiques-i-vault-en-catala]]
 - [[0014-context-compartit-per-a-assistents-d-ia]]

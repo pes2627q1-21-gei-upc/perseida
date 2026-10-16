@@ -13,7 +13,7 @@ Més context: [README.md](README.md) i [obsidian_vault/00-index.md](obsidian_vau
 1. Abans de qualsevol canvi, llegeix el vault amb la skill `vault-context` (`.agents/skills/vault-context/SKILL.md`).
 2. Tot fitxer de `obsidian_vault/` es crea/edita **amb** la skill `obsidian-markdown`; `.base` amb `obsidian-bases`; `.canvas` amb `json-canvas`. Per llegir pàgines web, `defuddle`.
 3. Si la US canvia l'arquitectura o pren una decisió rellevant, actualitza el vault **abans de fusionar la PR** (DoD).
-4. Al final de cada sessió: entrada a `obsidian_vault/estat/sessions/` i actualitza `obsidian_vault/estat/estat-actual.md`.
+4. Al final de cada sessió: entrada a `obsidian_vault/estat/sessions/`.
 5. Segueix GitFlow i la política de PR; no facis push, merge ni PR sense que ho demani la persona, que és responsable de tot el codi.
    - Branques: `main` (producció; un push hi dispara el CD), `develop` (integració, CI), `feature/*` (des de `develop`; com a màxim una US), `release/*` (la talla el Scrum Master de l'sprint des de `develop` abans de la review; només bugfixes, documentació i canvis de versió) i `hotfix/*` (des de `main`, errors urgents en producció).
    - Cap push directe a `main` ni a `develop`. PR cap a `develop`: CI verda i aprovació d'una persona que no sigui l'autora; cap a `main`: CI obligatòria, aprovació opcional.
@@ -26,7 +26,7 @@ Detall dels punts 1, 3 i 4:
 - Protocol de lectura/escriptura: skill `vault-context` i [guia](obsidian_vault/guies/llegir-el-vault-com-a-agent.md).
 - Definition of Done: [definition-of-done](obsidian_vault/convencions/definition-of-done.md).
 - Quan i com actualitzar el vault: [actualització del vault](obsidian_vault/convencions/actualitzacio-del-vault.md).
-- Estat i sessions: `obsidian_vault/estat/estat-actual.md` i `obsidian_vault/estat/sessions/`.
+- Sessions: `obsidian_vault/estat/sessions/`. L'estat de les US i de l'sprint és a Taiga.
 
 ## Skills
 
@@ -38,11 +38,11 @@ Les skills es mantenen a `.agents/skills/` (font de veritat, per a tots els agen
 
 ## Subagents i skills de desenvolupament
 
-Per delegar feina especialitzada hi ha cinc subagents (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`) i skills per crear entitats, services, ports i adaptadors del backend (`backend-*`), components, pàgines, formularis, crides a l'API i jocs del frontend (`frontend-*`) i la gestió d'errors (`gestio-errors`). Per a disseny, `ui-ux-pro-max` i `frontend-design`.
+Per delegar feina especialitzada hi ha cinc subagents (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`) i skills per crear entitats, services, ports i adaptadors del backend (`backend-*`), components, pàgines, formularis, crides a l'API i jocs del frontend (`frontend-*`) i la gestió d'errors (`gestio-errors`). **Tot el que sigui visual passa per `estetica-frutiger-cosmo`**, que orquestra `ui-ux-pro-max` i `frontend-design`. Per portar una US de Taiga de cap a cap (llegir-la, planificar-la, implementar-la i verificar criteris i DoD), `implementar-us`.
 
 - **No inventis res:** davant qualsevol dubte o dada que falti, atura't abans d'escriure codi i pregunta a la persona. Un subagent que no pot preguntar retorna a l'agent principal un bloc `PREGUNTES PER A L'HUMÀ`.
 - Font única dels subagents: `.agents/agents/`. Els fitxers natius són generats i no s'editen a mà: `.claude/agents`, `.codex/agents`, `.opencode/agents`, `.github/agents` i `.gemini/agents` (Antigravity llegeix `.agents/agents/`; Cursor, `.claude/agents/`). Després de canviar `.agents/agents/`: `node .agents/scripts/sync-agents.mjs` i commit de tot. DeepSeek no té format propi: s'usa dins d'aquestes eines.
-- Arquitectura i convencions: ADR 0016–0021 al vault (acceptades). Estètica del frontend: «Frutiger Cosmo»; l'app és mobile-first i l'admin pensat per a portàtil, tot responsive. Accessibilitat WCAG 2.2 AA obligatòria a tot el frontend (guia a `.agents/skills/frontend-component/references/accessibilitat.md`).
+- Arquitectura i convencions: ADR 0016–0021 al vault (acceptades). Estètica del frontend: «Frutiger Cosmo · Cel viu» (skill `estetica-frutiger-cosmo`); l'app és mobile-first i l'admin pensat per a portàtil, tot responsive. Accessibilitat WCAG 2.2 AA obligatòria a tot el frontend (guia a `.agents/skills/frontend-component/references/accessibilitat.md`).
 
 ## Mapa del repo
 
@@ -58,6 +58,7 @@ Per delegar feina especialitzada hi ha cinc subagents (`backend`, `frontend`, `d
 
 ```bash
 node --test .agents/scripts/*.test.mjs     # tests dels scripts
+python -m unittest discover -s .agents/skills/estetica-frutiger-cosmo/scripts -p "test_*.py"  # tests dels scripts Python de la skill d'estètica
 node .agents/scripts/sync-skills.mjs --check # verifica que .claude/skills/ està sincronitzat
 node .agents/scripts/sync-agents.mjs         # genera els subagents natius de cada eina (--check per verificar)
 ```

@@ -15,11 +15,10 @@ Cada nota té frontmatter (`tipus`, `estat`, `us`, `font`); llegeix-lo abans del
 
 ## Per on començar (agents i persones)
 
-1. [[estat-actual]]
-2. [[visio-general]]
-3. [[arquitectura-fisica]] i [[backend-hexagonal]]
-4. [[definition-of-done]] i [[actualitzacio-del-vault]]
-5. [[llegir-el-vault-com-a-agent]]
+1. [[visio-general]]
+2. [[arquitectura-fisica]] i [[backend-hexagonal]]
+3. [[definition-of-done]] i [[actualitzacio-del-vault]]
+4. [[llegir-el-vault-com-a-agent]]
 
 ## Fonts de veritat
 
@@ -58,7 +57,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 
 **producte/**: [[not-list]], [[stakeholders]], [[epiques-i-us]]
 
-**estat/**: [[estat-actual]] (les sessions són a `estat/sessions/`)
+**estat/**: les sessions de treball són a `estat/sessions/` (l'estat de les US és a Taiga)
 
 **guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]]
 
