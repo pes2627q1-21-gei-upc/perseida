@@ -148,18 +148,23 @@ CONTAINER_ID=$(docker run -d \
     -e REDIS_HOST="${REDIS_HOST:-127.0.0.1}" \
     -e REDIS_PORT="${REDIS_PORT:-6379}" \
     "$IMAGE_NAME")
-sleep 2
 
-# Verificació de GET /api/health
-HEALTH_RESPONSE=$(docker exec "$CONTAINER_ID" python -c "
+# Espera amb reintents (fins a 30 s) que l'API respongui a /api/health
+HEALTH_RESPONSE=""
+for _ in $(seq 1 30); do
+    HEALTH_RESPONSE=$(docker exec "$CONTAINER_ID" python -c "
 import urllib.request
 try:
-    with urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5) as res:
+    with urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2) as res:
         print(res.read().decode())
 except Exception as e:
     print('ERROR:', e)
-")
+" 2>&1 || true)
+    [[ "$HEALTH_RESPONSE" == *"\"status\":\"ok\""* ]] && break
+    sleep 1
+done
 
+# Verificació de GET /api/health
 if [[ "$HEALTH_RESPONSE" == *"\"status\":\"ok\""* ]]; then
     log_pass "Endpoint /api/health respon correctament: $HEALTH_RESPONSE"
 else
