@@ -2,8 +2,8 @@
 titol: "Backend: arquitectura hexagonal"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-14"
-us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46", "TG-205", "TG-304"]
+data: "2026-10-16"
+us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46", "TG-88", "TG-205", "TG-304"]
 font: "backend/README.md, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, backend, hexagonal]
 ---
@@ -50,6 +50,17 @@ flowchart LR
 Les dependències només van cap endins (`infrastructure` → `application` → `domain`) i cada capa s'organitza per mòduls (`app/<capa>/<mòdul>/`).
 
 Errors: la jerarquia viu als mòduls `shared` de cada capa (`DomainError` i subclasses a `app/domain/shared/`; `ApplicationError`, `UnauthorizedError`, `ForbiddenError` i `ExternalServiceError` a `app/application/shared/`). Només `infrastructure` coneix HTTP: `app/infrastructure/api/` té el middleware `X-Correlation-ID` i els *exception handlers* que els tradueixen a RFC 9457 (vegeu [[0018-errors-rfc-9457-amb-codis-estables]]).
+
+## Planificador
+
+El planificador és un **port** del domini (`JobScheduler`, `app/domain/scheduler/ports.py`) i APScheduler (`AsyncIOScheduler`) un **adaptador** d'infraestructura (`app/infrastructure/scheduler/`), d'acord amb [[0003-un-sol-proces-fastapi]] i [[0016-ports-i-entitats-riques-al-domini]]:
+
+- S'inicia i s'atura al *lifespan* de FastAPI; sense *job store* persistent (les tasques es registren a l'arrencada).
+- **Punt únic de registre:** `register_jobs` (`app/infrastructure/scheduler/jobs.py`); les US de cada funcionalitat (purga de 24 h, notificacions) només hi afegeixen línies.
+- Cada tasca s'executa amb `max_instances=1` i `coalesce=True`; una excepció es registra (log JSON amb el camp `job`) sense aturar el planificador ni l'API.
+- `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`); l'endpoint de salut informa del component `scheduler` només si està activat.
+- Un únic procés d'API: amb diverses rèpliques caldria un bloqueig distribuït amb Redis.
+- Els logs de l'API (també els d'uvicorn) s'emeten com a JSON, una línia per registre i amb `correlation_id` quan n'hi ha, des de `app/infrastructure/logging.py` (vegeu [[0022-logging-json-global-amb-stdlib]]). Un fus horari desconegut falla a l'arrencada.
 
 ## Patró per a dades externes
 

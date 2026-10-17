@@ -2,8 +2,8 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-40", "TG-70"]
+data: "2026-10-14"
+us: ["TG-85", "TG-40", "TG-70", "TG-113"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
@@ -37,7 +37,7 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 | `EventSubscription` | `subscriptionId: ID`, `createdAt: DateTime` |
 | `AstronomicalEvent` | `eventId: ID`, `type: String`, `dateTime: DateTime`, `latitude: Decimal`, `longitude: Decimal` |
 | `ObservationZone` | `zoneId: ID`, `latitude: Decimal`, `longitude: Decimal`, `cloudCoverage: Decimal`, `lightPollution: Decimal`, `recommendationScore: Decimal` |
-| `APOD` | `apodDate: Date`, `title: String`, `explanation: String`, `mediaUrl: String` |
+| `APOD` | `apodDate: Date`, `title: String`, `explanation: String`, `mediaType: String` (`image`/`video`), `mediaUrl: String`, `copyright: String` (opcional) |
 
 ## Notificacions i moderació
 
@@ -129,7 +129,9 @@ classDiagram
         apodDate: Date
         title: String
         explanation: String
+        mediaType: String
         mediaUrl: String
+        copyright: String
     }
     class ContentReport {
         reportId: ID

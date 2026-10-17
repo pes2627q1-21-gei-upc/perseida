@@ -26,3 +26,14 @@ async def test_check_without_checks_is_ok() -> None:
 
     assert report.status is HealthStatus.OK
     assert report.components == {}
+
+
+async def test_check_reports_a_raising_check_as_down() -> None:
+    broken = FakeHealthCheck("db", raises=True)
+    service = HealthService([FakeHealthCheck("app"), broken])
+
+    report = await service.check()
+
+    assert report.status is HealthStatus.DOWN
+    assert report.components["db"] is HealthStatus.DOWN
+    assert report.components["app"] is HealthStatus.OK

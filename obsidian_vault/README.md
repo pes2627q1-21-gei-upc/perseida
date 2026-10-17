@@ -19,10 +19,10 @@ The entry note is [`00-index.md`](00-index.md): reading order, sources of truth 
 | Area (folder) | Content |
 |---|---|
 | Architecture (`arquitectura/`) | Physical architecture (single Virtech server, Docker Compose, five services), hexagonal backend, frontend, domain model, external services, Spotwise contract and one note per component. |
-| Decisions (`decisions/`) | 15 ADRs with justification and discarded alternatives (e.g. Docker Compose instead of Kubernetes, local Kev-4B moderation, Redis as lazy cache only). |
+| Decisions (`decisions/`) | 22 ADRs with justification and discarded alternatives (e.g. Docker Compose instead of Kubernetes, local Kev-4B moderation, Redis as lazy cache only). |
 | Conventions (`convencions/`) | GitFlow, Definition of Done, quality rules, testing, AI assistants, vault updating and Obsidian note conventions. |
 | Product (`producte/`) | NOT list, stakeholders, epics and user stories. |
-| State (`estat/`) | Current status (`estat-actual`) and the notes of each work session. |
+| State (`estat/`) | The notes of each work session. |
 | Guides (`guies/`) | How agents read and write the vault; getting started. |
 | Templates (`plantilles/`) | ADR, component, convention and session templates. |
 
@@ -34,7 +34,7 @@ The entry note is [`00-index.md`](00-index.md): reading order, sources of truth 
 - Never put secrets, credentials (`.env`, tokens) or users' personal data in the vault: assistants read it.
 - Notes are written in Catalan.
 - Every note is created or edited with the Obsidian skills (`.agents/skills`, see [`AGENTS.md`](../AGENTS.md)).
-- Claude Code's `SessionStart` hook injects the index and the current state; other agents read `AGENTS.md`. See [how to read the vault as an agent](guies/llegir-el-vault-com-a-agent.md).
+- Claude Code's `SessionStart` hook injects the index; other agents read `AGENTS.md`. See [how to read the vault as an agent](guies/llegir-el-vault-com-a-agent.md).
 
 ## Rules for AI assistants (summary)
 

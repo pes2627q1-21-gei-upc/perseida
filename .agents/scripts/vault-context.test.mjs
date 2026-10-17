@@ -43,22 +43,17 @@ function cli(script) {
   return JSON.parse(r.stdout);
 }
 
-test('inclou índex i estat sense frontmatter', () =>
+test('inclou índex sense frontmatter', () =>
   withTmp((root) => {
     write(root, {
       '00-index.md': '---\ntitol: x\n---\n# Índex\nhola',
-      'estat/estat-actual.md': '---\ntitol: y\n---\n# Estat\nsprint 1',
+      'estat/estat-actual.md': '# Estat\nSENTINELLA-ESTAT',
     });
     const out = buildContext(root);
     assert.match(out, /# Índex/);
-    assert.match(out, /sprint 1/);
+    assert.match(out, /hola/);
+    assert.doesNotMatch(out, /SENTINELLA-ESTAT/);
     assert.doesNotMatch(out, /titol:/);
-  }));
-
-test("indica quan falta l'estat", () =>
-  withTmp((root) => {
-    write(root, { '00-index.md': '# Índex' });
-    assert.match(buildContext(root), /estat-actual\.md no trobat/);
   }));
 
 test('vault sense índex', () =>
@@ -114,14 +109,12 @@ test("CLI: JSON SessionStart amb l'índex i exit 0", () =>
   withTmp((root) => {
     const script = repo(root, {
       '00-index.md': '---\ntitol: x\n---\n# Índex únic\nhola',
-      'estat/estat-actual.md': '# Estat\nsprint 7',
     });
     const json = cli(script);
     assert.equal(json.hookSpecificOutput.hookEventName, 'SessionStart');
     const ctx = json.hookSpecificOutput.additionalContext;
     assert.ok(ctx.startsWith(HEADER));
     assert.match(ctx, /# Índex únic/);
-    assert.match(ctx, /sprint 7/);
   }));
 
 test('CLI: vault inexistent -> exit 0 i «sense índex»', () =>

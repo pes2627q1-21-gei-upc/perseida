@@ -31,7 +31,7 @@ Cap decisió nova; s'apliquen [[0013-uv-i-pnpm-com-a-gestors-de-dependencies]] i
 
 ## Canvis al vault
 
-- Aquesta nota i l'actualització de [[estat-actual]].
+- Aquesta nota.
 
 ## Pendent / següents passos
 
@@ -43,6 +43,5 @@ Cap decisió nova; s'apliquen [[0013-uv-i-pnpm-com-a-gestors-de-dependencies]] i
 
 ## Enllaços
 
-- [[estat-actual]]
 - [[0013-uv-i-pnpm-com-a-gestors-de-dependencies]]
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]]

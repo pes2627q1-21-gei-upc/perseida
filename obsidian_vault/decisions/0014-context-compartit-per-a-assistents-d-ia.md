@@ -16,7 +16,7 @@ Els assistents de codi basats en IA formen part de la manera de treballar de l'e
 
 ## Decisió
 
-El context compartit es manté al vault d'Obsidian del monorepo (`obsidian_vault/`): l'arquitectura (física i hexagonal) i les decisions amb la seva justificació, les convencions de l'equip (model de branques, Definition of Done, qualitat i proves) i l'estat actual i les sessions de treball. A l'arrel hi ha un fitxer d'instruccions per als agents (`AGENTS.md`) que els obliga a llegir aquest context abans de fer qualsevol canvi. El vault s'actualitza al final de cada sessió i en cada decisió nova, i abans de fusionar la PR si la US canvia l'arquitectura o pren una decisió rellevant (Definition of Done).
+El context compartit es manté al vault d'Obsidian del monorepo (`obsidian_vault/`): l'arquitectura (física i hexagonal) i les decisions amb la seva justificació, les convencions de l'equip (model de branques, Definition of Done, qualitat i proves) i les sessions de treball. A l'arrel hi ha un fitxer d'instruccions per als agents (`AGENTS.md`) que els obliga a llegir aquest context abans de fer qualsevol canvi. El vault s'actualitza al final de cada sessió i en cada decisió nova, i abans de fusionar la PR si la US canvia l'arquitectura o pren una decisió rellevant (Definition of Done).
 
 ## Conseqüències
 
@@ -43,5 +43,4 @@ El context compartit es manté al vault d'Obsidian del monorepo (`obsidian_vault
 - [[actualitzacio-del-vault]]
 - [[definition-of-done]]
 - [[llegir-el-vault-com-a-agent]]
-- [[estat-actual]]
 - [[0015-skills-agnostiques-i-vault-en-catala]]

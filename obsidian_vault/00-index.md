@@ -15,11 +15,10 @@ Cada nota té frontmatter (`tipus`, `estat`, `us`, `font`); llegeix-lo abans del
 
 ## Per on començar (agents i persones)
 
-1. [[estat-actual]]
-2. [[visio-general]]
-3. [[arquitectura-fisica]] i [[backend-hexagonal]]
-4. [[definition-of-done]] i [[actualitzacio-del-vault]]
-5. [[llegir-el-vault-com-a-agent]]
+1. [[visio-general]]
+2. [[arquitectura-fisica]] i [[backend-hexagonal]]
+3. [[definition-of-done]] i [[actualitzacio-del-vault]]
+4. [[llegir-el-vault-com-a-agent]]
 
 ## Fonts de veritat
 
@@ -53,12 +52,13 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi]]
 - [[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020 Frontend i Frutiger Cosmo]]
 - [[0021-subagents-agnostics-i-generador|ADR-0021 Subagents agnòstics]]
+- [[0022-logging-json-global-amb-stdlib|ADR-0022 Logging JSON global]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 
 **producte/**: [[not-list]], [[stakeholders]], [[epiques-i-us]]
 
-**estat/**: [[estat-actual]] (les sessions són a `estat/sessions/`)
+**estat/**: les sessions de treball són a `estat/sessions/` (l'estat de les US és a Taiga)
 
 **guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]]
 

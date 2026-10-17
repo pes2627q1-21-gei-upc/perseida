@@ -33,7 +33,6 @@ Implementar la infraestructura asíncrona de persistència PostgreSQL del backen
 
 ## Canvis al vault
 
-- Actualitzar [[estat-actual]] amb el progrés de TG-40.
 - Actualitzar [[backend-hexagonal]] per reflectir la implementació existent.
 - Revisar la nota [[postgres]] perquè diferenciï PostgreSQL implementat de PostGIS i Alembic, que no queden validats per aquesta feina.
 

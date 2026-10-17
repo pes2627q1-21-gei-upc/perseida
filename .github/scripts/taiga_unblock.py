@@ -45,7 +45,8 @@ def request(method, path, token=None, body=None, headers=None):
 def parse_blockers(note):
     if not note or not note.strip().startswith(NOTE_PREFIX):
         return None
-    return [int(ref) for ref in re.findall(r"#(\d+)", note)]
+    refs = [int(ref) for ref in re.findall(r"#(\d+)", note)]
+    return refs or None  # sense referències no és una nota vàlida: no la toquem
 
 
 def find_unblockable(items, by_ref):

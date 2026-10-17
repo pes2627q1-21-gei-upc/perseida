@@ -40,7 +40,7 @@ Projecte: `alexga03-astronomia-pes` (https://tree.taiga.io/project/alexga03-astr
 
 ### 2. Context
 
-Skill `vault-context`: `obsidian_vault/estat/estat-actual.md`, ADR vigents que toquin l'àrea, `arquitectura/` (backend hexagonal, frontend), `convencions/` (testing, qualitat, DoD). Després, el **codi existent** (cerca, no suposis): què ja fa part de la US, què es pot reutilitzar. Les ordres de lint, tipus i tests són als README de `backend/` i `frontend/`; no les suposis.
+Skill `vault-context`: `obsidian_vault/00-index.md`, ADR vigents que toquin l'àrea, `arquitectura/` (backend hexagonal, frontend), `convencions/` (testing, qualitat, DoD). Després, el **codi existent** (cerca, no suposis): què ja fa part de la US, què es pot reutilitzar. Les ordres de lint, tipus i tests són als README de `backend/` i `frontend/`; no les suposis.
 
 ### 3. DoR
 
@@ -102,7 +102,7 @@ Dos portes, les dues han de passar:
 - Lint, tipus i tests als directoris tocats (ordres dels README); cap test en vermell.
 - Cobertura del codi nou ≥ 70 % i Quality Gate local raonable: 0 bugs/vulnerabilitats, duplicació ≤ 3 % (`convencions/qualitat.md`).
 - `reviewer-arquitectura` sobre el diff: cap troballa CRÍTICA ni ALTA oberta.
-- Vault actualitzat si cal; entrada a `obsidian_vault/estat/sessions/` i `estat-actual.md` (regla 4).
+- Vault actualitzat si cal; entrada a `obsidian_vault/estat/sessions/` (regla 4).
 - Si tens tocat skills o subagents: `node .agents/scripts/sync-skills.mjs` i `node .agents/scripts/sync-agents.mjs` (i els `--check`).
 
 **Itera:** si alguna porta falla, corregeix la causa (no el símptoma) i repeteix **les dues**. Si el mateix punt falla tres cops, **atura't i pregunta**: no martellegis. No afebleixis un test ni un criteri per fer-lo passar.
