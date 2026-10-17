@@ -1,20 +1,34 @@
 import datetime as dt
+import re
 from typing import Annotated, Any, Self
 
 from fastapi import APIRouter, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
+from app.application.apod.errors import APOD_UNAVAILABLE
 from app.domain.apod.models import Apod, MediaType
 from app.infrastructure.api.schemas import ProblemDetails
 from app.infrastructure.apod.dependencies import ApodServiceDep
 
 router = APIRouter(tags=["apod"])
 
+_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+
 _PROBLEM_CONTENT: dict[str, Any] = {
     "application/problem+json": {
         "schema": {"$ref": "#/components/schemas/ProblemDetails"}
     }
 }
+
+
+def _require_iso_format(value: object) -> object:
+    """Reject anything but YYYY-MM-DD; Pydantic's lax mode also takes more."""
+    if not isinstance(value, str) or not _ISO_DATE.fullmatch(value):
+        raise ValueError("Date must use the YYYY-MM-DD format")
+    return value
+
+
+IsoDate = Annotated[dt.date, BeforeValidator(_require_iso_format)]
 
 
 class ApodResponse(BaseModel):
@@ -64,7 +78,8 @@ class ApodResponse(BaseModel):
         },
         503: {
             "model": ProblemDetails,
-            "description": "La NASA no respon i no hi ha dada a la cache.",
+            "description": "La NASA no respon i no hi ha dada a la cache "
+            f"(code `{APOD_UNAVAILABLE}`).",
             "content": _PROBLEM_CONTENT,
         },
     },
@@ -72,7 +87,7 @@ class ApodResponse(BaseModel):
 async def get_apod(
     service: ApodServiceDep,
     day: Annotated[
-        dt.date | None,
+        IsoDate | None,
         Query(
             alias="date",
             description="Data de l'APOD (YYYY-MM-DD). Per defecte, avui.",

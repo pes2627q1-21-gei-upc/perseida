@@ -17,6 +17,7 @@ class ProblemDetails(BaseModel):
     instance: str = Field(..., description="Ruta de la petició")
     code: str = Field(..., description="Codi d'error estable que tradueix el frontend")
     correlation_id: str
-    errors: list[FieldError] | None = Field(
-        default=None, description="Només en errors de validació de la petició"
+    errors: list[FieldError] = Field(
+        default_factory=list,
+        description="Només en errors de validació; en la resta, la clau no hi és",
     )
