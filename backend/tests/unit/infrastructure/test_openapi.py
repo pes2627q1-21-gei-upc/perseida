@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from app.application.apod.errors import APOD_UNAVAILABLE
 from app.main import create_app
 
 
@@ -31,3 +32,9 @@ def test_health_schema_is_unchanged_by_the_cleanup() -> None:
 
     assert cleaned["paths"]["/api/health"] == raw["paths"]["/api/health"]
     assert "ProblemDetails" in cleaned["components"]["schemas"]
+
+
+def test_apod_503_description_cites_its_code() -> None:
+    operation = create_app().openapi()["paths"]["/api/apod"]["get"]
+
+    assert APOD_UNAVAILABLE in operation["responses"]["503"]["description"]
