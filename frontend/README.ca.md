@@ -67,21 +67,41 @@ frontend/
 └── tsconfig.json
 ```
 
-## Executar i testejar (previst)
+## Executar i testejar
 
 ```bash
-pnpm install            # instal·la dependències
-pnpm expo start         # arrenca el servidor de desenvolupament d'Expo (emulador Android / dispositiu)
-pnpm lint               # ESLint + Prettier
-pnpm tsc --noEmit       # comprovació de tipus (strict)
-pnpm test               # Jest + React Native Testing Library
-pnpm test --coverage
+cd frontend                       # des de l'arrel del repositori
+pnpm install --frozen-lockfile    # instal·la les dependències exactament com a pnpm-lock.yaml
+pnpm expo start                   # arrenca el servidor de desenvolupament d'Expo (emulador Android / dispositiu)
+pnpm lint                         # ESLint + Prettier (també comprova el format)
+pnpm tsc                          # comprovació de tipus estricta (tsc --noEmit)
+pnpm test                         # Jest (preset jest-expo)
+pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.info)
 ```
 
 Releases: a cada release fusionada a `main`, GitHub Actions publica l'**APK** en una release de GitHub.
 
+## Integració contínua
+
+El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) executa el job `frontend` a cada pull request cap a `develop` o `main` i a cada push a `develop` o `main`. En una PR només s'executa si han canviat `frontend/**` o el propi workflow; si no, el job queda com a omès (*skipped*) i no bloqueja la PR. Un push nou a la mateixa PR cancel·la l'execució anterior.
+
+Ordres exactes (des de `frontend/`, les mateixes que el workflow, cada una en un pas separat perquè es vegi quina falla):
+
+```bash
+cd frontend                       # des de l'arrel del repositori
+pnpm install --frozen-lockfile    # falla si pnpm-lock.yaml no està al dia
+pnpm lint                         # ESLint + Prettier
+pnpm tsc                          # comprovació de tipus estricta
+pnpm test --coverage --ci         # Jest + informe de cobertura
+```
+
+- **Versions:** la CI fa servir Node 22.23.3 i pnpm 10.28.0 (fixats al workflow); fes servir les mateixes en local per reproduir un error.
+- **Cobertura:** l'informe es publica com a artefacte `frontend-coverage` (`lcov.info`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
+- **Requisits:** el job no necessita secrets ni serveis.
+
 ## Testing i qualitat
 
+- Jest s'executa amb el preset `jest-expo` (`jest.config.js`) i hi ha un test de fum a `__tests__/`. React Native Testing Library ja s'usa per als hooks; els tests de components i els mocks de l'API arriben amb la US #83.
 - Prioritat per als custom hooks i la lògica de presentació (estats de càrrega / error / llista buida, validació de formularis), components principals (targetes d'esdeveniment, pantalla APOD, ràtxa, formulari de denúncia, pantalles d'admin) i la comprovació que tots els textos de la UI tenen traducció en ca/es/en. El client de l'API se simula.
 - El feedback de validació dels formularis ha d'aparèixer en < 100 ms sense crida a la xarxa.
 - Codi nou de cada PR: cobertura ≥ 70 % i Quality Gate de SonarQube Cloud. Els components purament visuals queden exclosos de la cobertura.
