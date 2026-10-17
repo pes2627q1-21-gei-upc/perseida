@@ -4,7 +4,7 @@ tipus: sessio
 estat: vigent
 data: "2026-10-16"
 us: ["TG-47"]
-font: "treball de la tasca TG-114 de la US TG-47 (branca feature/TG-114-controlador-rest-dtos-apod); decisions de la persona responsable; backend/app/infrastructure/apod"
+font: "treball de la tasca TG-114 de la US TG-47 (branca feature/TG-47-endpoint-apod-dia-i-historic); decisions de la persona responsable; backend/app/infrastructure/apod"
 etiquetes: [sessio, backend, tg-47, apod]
 ---
 
@@ -40,11 +40,11 @@ Exposar `GET /api/apod?date=YYYY-MM-DD` sobre l'`ApodService` de TG-113 (vegeu [
 ## Pendent / següents passos
 
 - [ ] **TG-48 (frontend):** regenerar `frontend/openapi/apod.provisional.json`, `frontend/src/shared/api/schema.d.ts`, `frontend/src/features/apod/api/getApodToday.ts` i els mocks, amb `apod_date` -> `date` i `media_url` -> `url`. El frontend no s'ha tocat a TG-114.
-- [ ] TG-46 (Xavi): substituir `get_apod_provider()` per l'adaptador real i fixar el codi propi del 503 `ExternalServiceError`.
-- [ ] TG-115: proves i gestió dels errors HTTP de l'APOD.
+- [ ] TG-46 (Xavi): substituir `get_apod_provider()` per l'adaptador real i usar la constant `APOD_UNAVAILABLE` (`app/application/apod/errors.py`) quan la NASA falli sense cache. El codi propi del 503 ja és fixat a TG-115.
+- [x] TG-115: proves i gestió dels errors HTTP de l'APOD. Vegeu [[2026-10-17-tg-115-errors-apod]].
 - [ ] TG-116: proves d'integració.
-- [ ] TG-115: `ProblemDetails.errors` documenta `anyOf [array, null]`, però les respostes reals ometen la clau quan no és un error de validació i mai envien `null`. Imprecisió menor, pendent.
-- [ ] TG-115: afegir un test que comprovi que `ProblemDetails` valida el cos que construeix `problem_response`, perquè `problem.py` i `schemas.py` no es desincronitzin (les dues llistes de camps es mantenen a mà).
+- [x] TG-115: `ProblemDetails.errors` documenta `anyOf [array, null]`, però les respostes reals ometen la clau quan no és un error de validació i mai envien `null`. Corregit a [[2026-10-17-tg-115-errors-apod]].
+- [x] TG-115: afegir un test que comprovi que `ProblemDetails` valida el cos que construeix `problem_response`, perquè `problem.py` i `schemas.py` no es desincronitzin (les dues llistes de camps es mantenen a mà). Fet a [[2026-10-17-tg-115-errors-apod]].
 - [ ] Obrir la PR cap a `develop` (la persona).
 
 ## US de Taiga
