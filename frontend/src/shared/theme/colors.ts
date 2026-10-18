@@ -13,6 +13,14 @@ export interface ThemeColors {
   accentGlow: string;
   state: { success: string; warning: string; danger: string };
   focusRing: string;
+  /** Gel (main action button). The highlight must stay above the text: see tokens.md. */
+  gel: {
+    body: [string, string];
+    bodyPressed: string;
+    highlight: [string, string];
+    rim: string;
+    text: string;
+  };
 }
 
 export const colors: Record<ThemeName, ThemeColors> = {
@@ -29,6 +37,13 @@ export const colors: Record<ThemeName, ThemeColors> = {
     accentGlow: '#1FA8E0',
     state: { success: '#2A7419', warning: '#8A5A00', danger: '#B3261E' },
     focusRing: '#0B78B5',
+    gel: {
+      body: ['#096AA3', '#075F94'],
+      bodyPressed: '#054B73',
+      highlight: ['rgba(255,255,255,0.40)', 'rgba(255,255,255,0.14)'],
+      rim: '#1FA8E0',
+      text: '#FFFFFF',
+    },
   },
   posta: {
     sky: { top: '#2B2F6B', low: '#E8885A' },
@@ -43,6 +58,13 @@ export const colors: Record<ThemeName, ThemeColors> = {
     accentGlow: '#2EE6D6',
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
+    gel: {
+      body: ['#096AA3', '#075F94'],
+      bodyPressed: '#054B73',
+      highlight: ['rgba(255,255,255,0.40)', 'rgba(255,255,255,0.14)'],
+      rim: '#1FA8E0',
+      text: '#FFFFFF',
+    },
   },
   nit: {
     sky: { top: '#0A1430', low: '#13265A' },
@@ -57,6 +79,13 @@ export const colors: Record<ThemeName, ThemeColors> = {
     accentGlow: '#2EE6D6',
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
+    gel: {
+      body: ['#096AA3', '#075F94'],
+      bodyPressed: '#054B73',
+      highlight: ['rgba(255,255,255,0.40)', 'rgba(255,255,255,0.14)'],
+      rim: '#1FA8E0',
+      text: '#FFFFFF',
+    },
   },
   // No blues or greens: states are told apart by icon + text, not by colour.
   vermell: {
@@ -72,5 +101,13 @@ export const colors: Record<ThemeName, ThemeColors> = {
     accentGlow: '#FF8A7A',
     state: { success: '#FFB3A7', warning: '#FFB3A7', danger: '#FFB3A7' },
     focusRing: '#FF8A7A',
+    gel: {
+      body: ['#FF6B5E', '#FF6B5E'],
+      // tokens.md only fixes body and text for vermell; pressed and rim reuse existing vermell values (to confirm).
+      bodyPressed: '#FF6B5E',
+      highlight: ['rgba(255,255,255,0.40)', 'rgba(255,255,255,0.14)'],
+      rim: '#FF8A7A',
+      text: '#1A0508',
+    },
   },
 };
