@@ -9,8 +9,14 @@ from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.health.router import router as health_router
+from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
+from app.infrastructure.scheduler.dependencies import (
+    get_job_scheduler,
+    get_scheduler_settings,
+)
+from app.infrastructure.scheduler.jobs import register_jobs
 
 
 @asynccontextmanager
@@ -25,14 +31,27 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine,
         expire_on_commit=False,
     )
+    scheduler = (
+        get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
+    )
     try:
+        if scheduler:
+            register_jobs(scheduler)
+            scheduler.start()
         yield
     finally:
-        await engine.dispose()
-        await redis.aclose()
+        try:
+            try:
+                if scheduler:
+                    await scheduler.shutdown()
+            finally:
+                await engine.dispose()
+        finally:
+            await redis.aclose()
 
 
 def create_app() -> FastAPI:
+    configure_logging()
     app = FastAPI(
         title="Perseida API",
         description="Backend oficial del projecte Perseida - "

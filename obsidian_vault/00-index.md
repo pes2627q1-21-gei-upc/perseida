@@ -52,6 +52,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi]]
 - [[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020 Frontend i Frutiger Cosmo]]
 - [[0021-subagents-agnostics-i-generador|ADR-0021 Subagents agnòstics]]
+- [[0022-logging-json-global-amb-stdlib|ADR-0022 Logging JSON global]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 

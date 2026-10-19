@@ -2,7 +2,7 @@
 
 **English** | [Català](README.ca.md) | [Español](README.es.md)
 
-> 🚧 **Under construction.** The project is in its first sprint. The `health` module is the reference example, and asynchronous PostgreSQL persistence infrastructure is now implemented. Most other modules (auth, chat, scheduler) are still pending.
+> 🚧 **Under construction.** The project is in its first sprint. The `health` module is the reference example, and asynchronous PostgreSQL persistence infrastructure is now implemented. Most other modules (auth, chat) are still pending.
 
 Backend of **Perseida**, a multiplatform mobile app for astronomy outreach, exploration and tracking of astronomical events, built as a PES project (UPC-FIB). It exposes the REST API and real-time chat used by the mobile app and the admin panel, and integrates NASA Open APIs and other external providers.
 
@@ -144,6 +144,30 @@ Every error is answered as `application/problem+json` (RFC 9457):
 - **Correlation id:** the `X-Correlation-ID` header is added to every response. An incoming value is reused only if it matches `[A-Za-z0-9._-]{1,128}`; otherwise a `uuid4` is generated. The same id is in the body as `correlation_id`.
 
 Adding a code: raise the existing class with the new `code` from `domain`/`application`, register it in the [error code catalogue](../.agents/skills/gestio-errors/references/cataleg-codis.md) and add its ca/es/en texts in the frontend. Never rename a published `code`.
+
+## Scheduler
+
+APScheduler (`AsyncIOScheduler`) runs inside the API process: it starts in the FastAPI lifespan and is stopped on shutdown. There is no job store: jobs are registered at startup.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SCHEDULER_ENABLED` | `true` | `false` neither starts the scheduler nor reports it in `/api/health` |
+| `SCHEDULER_TIMEZONE` | `UTC` | IANA time zone of the scheduler |
+
+**Registering a job** (the only place): add a line to `register_jobs` in `app/infrastructure/scheduler/jobs.py`, using the `JobScheduler` port (`app/domain/scheduler/ports.py`):
+
+```python
+def register_jobs(scheduler: JobScheduler) -> None:
+    scheduler.add_interval_job("purge-expired-posts", purge_service.run, seconds=3600)
+```
+
+- The job is an `async def` without arguments (build its service with the same providers as the API, [ADR-0017](../obsidian_vault/decisions/0017-injeccio-de-dependencies-i-services-singleton.md)); it runs on the event loop, so it must not block.
+- Each job runs with `max_instances=1` and `coalesce=True`: a slow job never overlaps itself and missed runs are merged.
+- An exception is logged (JSON, `job` field with the name) and does not stop the scheduler or the API.
+- `/api/health` reports the `scheduler` component while it is enabled.
+- A single API process is assumed; with several replicas a distributed lock would be needed.
+
+Logs (including uvicorn's) are written to stderr as one JSON object per line, with `correlation_id` when there is one (`app/infrastructure/logging.py`). An unknown `SCHEDULER_TIMEZONE` fails at startup with a configuration error.
 
 ## Service contracts (Spotwise, group 21B)
 
