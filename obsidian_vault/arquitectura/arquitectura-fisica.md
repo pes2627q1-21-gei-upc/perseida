@@ -103,7 +103,7 @@ Els secrets i variables viuen a GitHub *Secrets and variables*; el `.env` mai es
 > [!warning] Cada variable nova s'ha de donar d'alta a dos llocs
 > Si el backend o el Compose necessiten una variable o un secret nous, cal afegir-lo **tant a `.env.example` com a GitHub Actions** (*Settings → Secrets and variables → Actions*; secret si és sensible, variable si no). Si falta a un dels dos, no funcionarà en producció:
 >
-> - Si és a `.env.example` però no a GitHub, el job `verify-config` del workflow `cd.yml` falla abans de tocar el servidor i llista les que falten.
+> - Si és a `.env.example` però no a GitHub, el job `verify-config` del workflow `cd.yml` falla abans de tocar el servidor i llista les que falten. També hi comprova els `SSH_*` (`ENV_EXTRA_REQUIRED`) i que cap valor tingui un salt de línia o una cometa simple, que no es poden renderitzar.
 > - Si és a GitHub però no a `.env.example`, el `.env` renderitzat no la porta, perquè `render_env.py` només escriu els noms que consten a la plantilla; la variable no arriba al servidor.
 >
 > Les variables que només usa un workflow (com les de Taiga) no van al servidor: es deixen fora amb `ENV_EXCLUDE` a `cd.yml`. Versions fixades: PostgreSQL 18 (+PostGIS), Redis 8 i la imatge de Kev-4B.

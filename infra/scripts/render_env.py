@@ -13,6 +13,8 @@ Entrada (variables d'entorn):
     VARS_JSON      `toJSON(vars)` del workflow
     ENV_TEMPLATE   plantilla amb els noms requerits (per defecte `.env.example`)
     ENV_EXCLUDE    noms de la plantilla que no van al servidor, separats per espais
+    ENV_EXTRA_REQUIRED  noms que han d'existir però no van al `.env` (p. ex. els
+                   `SSH_*` de la connexió), separats per espais
 
 Mai s'imprimeix el valor d'una variable als missatges d'error.
 """
@@ -33,6 +35,10 @@ def required_names() -> list[str]:
     return [n for n in dict.fromkeys(names) if n not in excluded]
 
 
+def extra_required_names() -> list[str]:
+    return os.environ.get("ENV_EXTRA_REQUIRED", "").split()
+
+
 def load_context() -> tuple[dict[str, str], dict[str, str]]:
     return (
         json.loads(os.environ.get("SECRETS_JSON") or "{}"),
@@ -40,13 +46,36 @@ def load_context() -> tuple[dict[str, str], dict[str, str]]:
     )
 
 
+def is_renderable(value: str) -> bool:
+    # Entre cometes simples el valor és literal; no es pot escapar una cometa
+    # simple ni representar un salt de línia, així que es rebutgen.
+    return not ("\n" in value or "\r" in value or "'" in value)
+
+
 def check() -> int:
     secrets, variables = load_context()
-    missing = [n for n in required_names() if n not in secrets and n not in variables]
-    if missing:
-        print("Falten secrets o variables requerits al repositori:", file=sys.stderr)
-        for name in missing:
-            print(f"  - {name}", file=sys.stderr)
+    names = required_names()
+    missing = [
+        n
+        for n in [*names, *extra_required_names()]
+        if n not in secrets and n not in variables
+    ]
+    # Es valida aquí perquè falli abans de tocar el servidor, no al render.
+    invalid = [
+        n for n in names if not is_renderable(secrets.get(n, variables.get(n, "")))
+    ]
+    if missing or invalid:
+        if missing:
+            print("Falten secrets o variables requerits al repositori:", file=sys.stderr)
+            for name in missing:
+                print(f"  - {name}", file=sys.stderr)
+        if invalid:
+            print(
+                "Valors amb salt de línia o cometa simple (no es poden renderitzar):",
+                file=sys.stderr,
+            )
+            for name in invalid:
+                print(f"  - {name}", file=sys.stderr)
         return 1
     print("Tots els secrets i variables requerits existeixen.")
     return 0
@@ -68,10 +97,11 @@ def render() -> int:
         if value is None:
             print(f"Falta {name}", file=sys.stderr)
             return 1
-        # Entre cometes simples el valor és literal; no es pot escapar una cometa
-        # simple ni representar un salt de línia, així que es rebutgen.
-        if "\n" in value or "\r" in value or "'" in value:
-            print(f"El valor de {name} conté un salt de línia o una cometa simple", file=sys.stderr)
+        if not is_renderable(value):
+            print(
+                f"El valor de {name} conté un salt de línia o una cometa simple",
+                file=sys.stderr,
+            )
             return 1
         lines.append(f"{name}='{value}'\n")
     sys.stdout.buffer.write("".join(lines).encode("utf-8"))

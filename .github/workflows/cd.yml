@@ -24,6 +24,8 @@ permissions: {}
 # (TG-37), que només tindrà les del Compose.
 env:
   ENV_EXCLUDE: TAIGA_USERNAME TAIGA_PASSWORD TAIGA_PROJECT_SLUG TAIGA_URL DRY_RUN
+  # Han d'existir però no van al `.env`: són per a la connexió SSH.
+  ENV_EXTRA_REQUIRED: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS
 
 jobs:
   # Falla abans de tocar el servidor si falta algun secret o variable requerit.
@@ -95,9 +97,15 @@ jobs:
         run: |
           python3 infra/scripts/render_env.py mask
           python3 infra/scripts/render_env.py render | ssh virtech '
+            set -e
+            set -e
             umask 077
             mkdir -p /opt/perseida
             cat > /opt/perseida/.env.tmp
+            # Si el render ha fallat l'stdin és buit: no es pisa el .env bo.
+            test -s /opt/perseida/.env.tmp || { rm -f /opt/perseida/.env.tmp; exit 1; }
+            # Si el render ha fallat, l'stdin és buit: no es pisa el .env bo.
+            test -s /opt/perseida/.env.tmp || { rm -f /opt/perseida/.env.tmp; exit 1; }
             chmod 600 /opt/perseida/.env.tmp
             mv /opt/perseida/.env.tmp /opt/perseida/.env
           '
