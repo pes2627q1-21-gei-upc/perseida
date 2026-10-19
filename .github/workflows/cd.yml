@@ -98,13 +98,10 @@ jobs:
           python3 infra/scripts/render_env.py mask
           python3 infra/scripts/render_env.py render | ssh virtech '
             set -e
-            set -e
             umask 077
             mkdir -p /opt/perseida
             cat > /opt/perseida/.env.tmp
-            # Si el render ha fallat l'stdin és buit: no es pisa el .env bo.
-            test -s /opt/perseida/.env.tmp || { rm -f /opt/perseida/.env.tmp; exit 1; }
-            # Si el render ha fallat, l'stdin és buit: no es pisa el .env bo.
+            # Si el render falla, no arriba res per stdin: no es pisa el .env bo.
             test -s /opt/perseida/.env.tmp || { rm -f /opt/perseida/.env.tmp; exit 1; }
             chmod 600 /opt/perseida/.env.tmp
             mv /opt/perseida/.env.tmp /opt/perseida/.env
