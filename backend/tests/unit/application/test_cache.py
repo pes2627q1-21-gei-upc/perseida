@@ -61,3 +61,15 @@ async def test_tg146_empty_cache_is_not_an_error() -> None:
     load = AsyncMock(return_value=Item(name="apod"))
 
     assert await get_or_load(cache, "apod:today", load, ADAPTER) == Item(name="apod")
+
+
+async def test_tg146_invalid_cached_value_is_a_miss_and_is_overwritten() -> None:
+    cache = FakeCache()
+    await cache.set("apod:today", '{"title":"old model"}')
+    load = AsyncMock(return_value=Item(name="apod"))
+
+    result = await get_or_load(cache, "apod:today", load, ADAPTER)
+
+    assert result == Item(name="apod")
+    load.assert_awaited_once()
+    assert cache.values == {"apod:today": '{"name":"apod"}'}
