@@ -1,7 +1,7 @@
 module.exports = {
   root: true,
   env: { node: true },
-  ignorePatterns: ['metro.config.js', 'tailwind.config.js'],
+  ignorePatterns: ['metro.config.js', 'tailwind.config.js', 'coverage/'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',

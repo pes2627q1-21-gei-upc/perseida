@@ -95,7 +95,7 @@ pnpm tsc                          # comprovació de tipus estricta
 pnpm test --coverage --ci         # Jest + informe de cobertura
 ```
 
-- **Versions:** la CI fa servir Node 22.23.3 i pnpm 10.28.0 (fixats al workflow); fes servir les mateixes en local per reproduir un error.
+- **Versions:** la CI fa servir Node 22.23.3 (fixat al workflow) i pnpm 10.28.0 (fixat a `packageManager` de `package.json`, que el workflow llegeix); fes servir les mateixes en local per reproduir un error.
 - **Cobertura:** l'informe es publica com a artefacte `frontend-coverage` (`lcov.info`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
 - **Requisits:** el job no necessita secrets ni serveis.
 

@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "main": "index.ts",
+  "packageManager": "pnpm@10.28.0",
   "dependencies": {
     "@tanstack/react-query": "5.104.2",
     "expo": "57.0.27",

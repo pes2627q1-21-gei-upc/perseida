@@ -95,7 +95,7 @@ pnpm tsc                          # strict type check
 pnpm test --coverage --ci         # Jest + coverage report
 ```
 
-- **Versions:** the CI uses Node 22.23.3 and pnpm 10.28.0 (pinned in the workflow); use the same locally to reproduce a failure.
+- **Versions:** the CI uses Node 22.23.3 (pinned in the workflow) and pnpm 10.28.0 (pinned in `packageManager` in `package.json`, which the workflow reads); use the same locally to reproduce a failure.
 - **Coverage:** the report is published as the `frontend-coverage` artifact (`lcov.info`). To download it: GitHub → **Actions** tab → the run → **Artifacts** section at the bottom of the summary page.
 - **Requirements:** the job needs no secrets and no services.
 
