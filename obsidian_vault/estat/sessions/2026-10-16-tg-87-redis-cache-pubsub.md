@@ -26,7 +26,7 @@ Implementar TG-87: Redis com a cache amb TTL (patró lazy) i com a bus pub/sub p
 ## Decisions preses
 
 - Cap ADR nova: tot encaixa a [[0005-redis-nomes-com-a-cache-lazy]], [[0016-ports-i-entitats-riques-al-domini]] i [[0017-injeccio-de-dependencies-i-services-singleton]].
-- Variables `REDIS_HOST` + `REDIS_PORT` (no una `REDIS_URL`), TTL per defecte de 3600 s, i `redis==8.1.0` ja era a les dependències.
+- Variables `REDIS_HOST` + `REDIS_PORT` (no una `REDIS_URL`), TTL per defecte de 3600 s, i `redis==8.1.0` afegit a `pyproject.toml` i `uv.lock` en aquesta PR.
 - Codi d'error nou `PUBSUB_UNAVAILABLE` (503), segons [[0018-errors-rfc-9457-amb-codis-estables]]; aprovat per la persona i registrat al catàleg de `gestio-errors` amb textos ca/es/en.
 
 ## Canvis al vault
