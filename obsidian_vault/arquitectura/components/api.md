@@ -2,7 +2,7 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-10-09"
+data: "2026-10-16"
 us: ["TG-85", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88", "TG-304"]
 font: "infra/README.md, backend/README.md, memòria §3.4.1, .env.example; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [component, api, fastapi, backend]
@@ -29,7 +29,7 @@ Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i 
 
 ## Configuració
 
-Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`. El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
+Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
 
 ## Decisions relacionades
 
@@ -38,6 +38,7 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - [[0005-redis-nomes-com-a-cache-lazy]]
 - [[0007-moderacio-local-kev-4b-sincrona]]
 - [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]
+- [[0022-logging-json-global-amb-stdlib]]
 
 ## US de Taiga relacionades
 
@@ -47,11 +48,11 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - TG-41 (Alembic)
 - TG-44 (JWKS)
 - TG-46 (cache APOD)
-- TG-88 (APScheduler)
+- TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 
 ## Estat d'implementació
 
-planificat
+parcial: esquelet FastAPI, errors RFC 9457, healthcheck i planificador APScheduler (infraestructura, TG-88) implementats; la resta de l'API (xat, moderació, purga i notificacions programades) està planificada.
 
 ## Enllaços
 

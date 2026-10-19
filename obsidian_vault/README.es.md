@@ -19,7 +19,7 @@ La nota de entrada es [`00-index.md`](00-index.md): orden de lectura, fuentes de
 | Área (carpeta) | Contenido |
 |---|---|
 | Arquitectura (`arquitectura/`) | Arquitectura física (un único servidor Virtech, Docker Compose, cinco servicios), backend hexagonal, frontend, modelo de dominio, servicios externos, contrato Spotwise y una nota por componente. |
-| Decisiones (`decisions/`) | 21 ADR con justificación y alternativas descartadas (p. ej. Docker Compose en lugar de Kubernetes, moderación Kev-4B local, Redis solo como caché lazy). |
+| Decisiones (`decisions/`) | 22 ADR con justificación y alternativas descartadas (p. ej. Docker Compose en lugar de Kubernetes, moderación Kev-4B local, Redis solo como caché lazy). |
 | Convenciones (`convencions/`) | GitFlow, Definition of Done, reglas de calidad, testing, asistentes de IA, actualización del vault y convenciones de las notas de Obsidian. |
 | Producto (`producte/`) | NOT list, stakeholders, épicas e historias de usuario. |
 | Estado (`estat/`) | Las notas de cada sesión de trabajo. |
