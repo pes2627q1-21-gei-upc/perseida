@@ -2,9 +2,9 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-66"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07)"
+data: "2026-10-19"
+us: ["TG-85", "TG-66", "TG-48", "TG-35"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -13,7 +13,7 @@ etiquetes: [arquitectura, frontend, react-native, expo, offline]
 App i panell d'administració de Perseida amb **React Native + Expo** i TypeScript. Pensada per a Android i iOS; de moment només es desplega la versió **Android** (APK).
 
 > [!warning] Estat
-> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors i el servei de l'APOD (TG-117). Encara no hi ha `src/shared/theme`, components ni rutes (`src/app`).
+> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Encara no hi ha i18n, ajustos de tema ni escena viva. Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
 
 ## Stack
 
@@ -77,6 +77,8 @@ frontend/
 - El feedback de validació de formularis ha d'aparèixer en < 100 ms sense crida de xarxa.
 - Codi nou de cada PR: cobertura ≥ 70 % i Quality Gate de SonarQube Cloud. Els components purament visuals queden fora de la cobertura.
 - Els criteris d'acceptació dependents de la UI es comproven manualment a la branca de release abans de cada sprint review. No hi ha tests end-to-end automàtics.
+- **CI (TG-35):** el job `frontend` de `.github/workflows/ci.yml` executa a cada PR i push cap a `develop`/`main` `pnpm lint` (ESLint i Prettier), `pnpm tsc` i `pnpm test --coverage --ci`, i publica `lcov.info` com a artefacte `frontend-coverage`. Detalls a [[arquitectura-fisica]] i [[qualitat]].
+- Jest fa servir el preset `jest-expo` (`jest.config.js`); hi ha un test de fum a `frontend/__tests__/smoke.test.ts` que també comprova la resolució de mòduls important codi de `src/`. Els tests de components i els mocks de l'API arriben amb la US #83.
 - En cada release fusionada a `main`, GitHub Actions publica l'**APK** com a release de GitHub.
 
 ## Enllaços
