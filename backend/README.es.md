@@ -216,6 +216,7 @@ Redis solo es una caché con TTL y el bus pub/sub del chat WebSocket; no guarda 
 
 - `REDIS_HOST`, `REDIS_PORT`: dirección del servidor (`redis://host:port`).
 - `CACHE_DEFAULT_TTL_SECONDS`: TTL por defecto en segundos (3600 si no se define).
+- `REDIS_SOCKET_TIMEOUT_SECONDS`: timeout de conexión y de socket en segundos (2 si no se define); un Redis colgado se comporta como un miss.
 
 Para ejecutar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 redis:8` y `REDIS_HOST=localhost`.
 

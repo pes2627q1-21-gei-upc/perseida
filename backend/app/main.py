@@ -24,32 +24,38 @@ from app.infrastructure.scheduler.jobs import register_jobs
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     redis_settings = RedisSettings()
-    redis = Redis.from_url(redis_settings.redis_url, decode_responses=True)
-    app.state.redis = redis
-    app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
     settings = DatabaseSettings()
-    engine = create_async_engine(settings.database_url)
-    app.state.session_factory = async_sessionmaker(
-        engine,
-        expire_on_commit=False,
-    )
     scheduler = (
         get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
     )
+    timeout = redis_settings.redis_socket_timeout_seconds
+    redis = Redis.from_url(
+        redis_settings.redis_url,
+        decode_responses=True,
+        socket_connect_timeout=timeout,
+        socket_timeout=timeout,
+    )
     try:
-        if scheduler:
-            register_jobs(scheduler)
-            scheduler.start()
-        yield
-    finally:
+        app.state.redis = redis
+        app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
+        engine = create_async_engine(settings.database_url)
         try:
+            app.state.session_factory = async_sessionmaker(
+                engine,
+                expire_on_commit=False,
+            )
             try:
                 if scheduler:
-                    await scheduler.shutdown()
+                    register_jobs(scheduler)
+                    scheduler.start()
+                yield
             finally:
-                await engine.dispose()
+                if scheduler:
+                    await scheduler.shutdown()
         finally:
-            await redis.aclose()
+            await engine.dispose()
+    finally:
+        await redis.aclose()
 
 
 def create_app() -> FastAPI:

@@ -30,8 +30,7 @@ class PubSub(Protocol):
         """Deliver ``message`` to every current subscriber of ``channel``.
 
         Raises:
-            ExternalServiceError: if the bus is unavailable
-                (``app.application.shared.errors``).
+            ExternalServiceError: if the bus is unavailable.
         """
         ...
 
@@ -44,7 +43,6 @@ class PubSub(Protocol):
         the messages published afterwards. Leaving the block unsubscribes.
 
         Raises:
-            ExternalServiceError: if the bus is unavailable
-                (``app.application.shared.errors``).
+            ExternalServiceError: if the bus is unavailable.
         """
         ...

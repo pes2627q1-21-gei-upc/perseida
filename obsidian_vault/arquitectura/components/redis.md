@@ -25,7 +25,7 @@ Redis 8 (versió fixada).
 
 ## Configuració
 
-Variables de `.env.example`: `REDIS_HOST`, `REDIS_PORT` (el backend construeix `redis://host:port`) i `CACHE_DEFAULT_TTL_SECONDS` (TTL per defecte, 3600 s). Veure `.env.example`.
+Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix `redis://host:port`). Opcionals, amb valor per defecte al codi i fora del `.env.example` de l'arrel (no cal donar-les d'alta a GitHub Actions): `CACHE_DEFAULT_TTL_SECONDS` (TTL per defecte, 3600 s) i `REDIS_SOCKET_TIMEOUT_SECONDS` (timeout de connexió i de socket, 2 s; si Redis es penja, la cache respon com un miss en lloc de bloquejar la petició). Veure `backend/.env.example`.
 
 ## Ports i adaptadors
 

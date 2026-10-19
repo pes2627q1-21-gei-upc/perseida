@@ -38,3 +38,9 @@ def test_missing_host_and_port_are_reported(monkeypatch: pytest.MonkeyPatch) -> 
 
     missing = {str(error["loc"][0]) for error in exc_info.value.errors()}
     assert missing == {"redis_host", "redis_port"}
+
+
+def test_socket_timeout_defaults_to_two_seconds() -> None:
+    settings = RedisSettings(redis_host="cache", redis_port=6379, _env_file=None)
+
+    assert settings.redis_socket_timeout_seconds == 2.0

@@ -4,6 +4,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.infrastructure.health.dependencies import get_health_service
@@ -123,3 +124,37 @@ async def test_engine_is_disposed_when_job_registration_fails(
 
     assert disposed is True
     assert get_job_scheduler().running is False
+
+
+async def test_redis_client_has_timeouts(app: FastAPI) -> None:
+    async with app.router.lifespan_context(app):
+        kwargs = app.state.redis.connection_pool.connection_kwargs
+
+    assert kwargs["socket_connect_timeout"] == 2.0
+    assert kwargs["socket_timeout"] == 2.0
+
+
+async def test_redis_is_closed_when_startup_fails(
+    app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    closed = False
+    real_aclose = Redis.aclose
+
+    async def tracking_aclose(
+        self: Redis, close_connection_pool: bool | None = None
+    ) -> None:
+        nonlocal closed
+        closed = True
+        await real_aclose(self, close_connection_pool)
+
+    def failing_engine(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("engine failed")
+
+    monkeypatch.setattr(Redis, "aclose", tracking_aclose)
+    monkeypatch.setattr("app.main.create_async_engine", failing_engine)
+
+    with pytest.raises(RuntimeError, match="engine failed"):
+        async with app.router.lifespan_context(app):
+            pass
+
+    assert closed is True
