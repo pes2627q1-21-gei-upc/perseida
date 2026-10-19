@@ -22,8 +22,8 @@ Deixar a punt el que cal fora del codi perquè la CD per SSH (US TG-38) pugui ex
 - Generada una clau ed25519 de desplegament (la privada només és al secret de GitHub; s'ha esborrat de la màquina local) i comprovat l'accés amb clau i verificació estricta de la clau del servidor.
 - Afegida la clau pública personal d'Oriol a `authorized_keys` i desactivat l'accés per contrasenya (`PasswordAuthentication no` a `/etc/ssh/sshd_config.d/20-no-password.conf`); comprovat que entra amb clau i que la contrasenya és rebutjada. La contrasenya d'`alumne` només serveix ja per a `sudo` i la consola VNC de Virtech.
 - Script `infra/scripts/add-team-key.sh`: demana nom i clau pública d'un company, la valida (rebutja claus privades i RSA < 3072 bits) i l'afegeix sense duplicar a `authorized_keys` de la VM. No conté cap secret, per això es versiona.
-- Secrets: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS`, `POSTGRES_PASSWORD` (nova, aleatòria, només per a producció).
-- Variables: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_HOST=postgres`, `POSTGRES_PORT`, `REDIS_HOST=redis`, `REDIS_PORT`, `APP_ENV=production`.
+- Secrets: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS`, `POSTGRES_PASSWORD` (nova, aleatòria, només per a producció) i `JWT_SECRET`.
+- Variables: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_HOST=postgres`, `POSTGRES_PORT`, `REDIS_HOST=redis`, `REDIS_PORT`, `APP_ENV=production`, `SCHEDULER_ENABLED` i `SCHEDULER_TIMEZONE`.
 
 ## Decisions preses
 
