@@ -66,7 +66,9 @@ def check() -> int:
     ]
     if missing or invalid:
         if missing:
-            print("Falten secrets o variables requerits al repositori:", file=sys.stderr)
+            print(
+                "Falten secrets o variables requerits al repositori:", file=sys.stderr
+            )
             for name in missing:
                 print(f"  - {name}", file=sys.stderr)
         if invalid:
