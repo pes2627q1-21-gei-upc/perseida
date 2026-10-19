@@ -22,6 +22,12 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 | `APOD_DATE_BEFORE_START` | 422 | `ValidationError` | Sí | L'APOD només està disponible a partir del 16 de juny de 1995. | El APOD solo está disponible a partir del 16 de junio de 1995. | APOD is only available from June 16, 1995 onwards. | domain/apod |
 | `APOD_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona. | Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato. | We couldn't load the APOD right now. Please try again in a while. | application/apod (constant `APOD_UNAVAILABLE`; l'adaptador de TG-46 la llança) |
 
+## Codis de Redis pub/sub (TG-87)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `PUBSUB_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | El xat no està disponible ara mateix. Torna-ho a provar. | El chat no está disponible ahora mismo. Inténtalo de nuevo. | Chat is unavailable right now. Please try again. | infrastructure/cache |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |

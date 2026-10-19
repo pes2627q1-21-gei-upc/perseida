@@ -210,6 +210,26 @@ uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 - **Cobertura:** l'informe es publica com a artefacte `backend-coverage` (`coverage.xml`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
 - **Serveis:** PostgreSQL (PostGIS 18) i Redis 8 s'aixequen sols com a service containers a la CI. No cal Docker Compose ni `.env`.
 
+## Redis
+
+Redis només és una cache amb TTL i el bus pub/sub del xat WebSocket; no hi viu res que hagi de sobreviure (la font de veritat és PostgreSQL). El client asíncron es crea al `lifespan` de FastAPI i es tanca en aturar l'aplicació. Configuració (vegeu `.env.example`):
+
+- `REDIS_HOST`, `REDIS_PORT`: adreça del servidor (`redis://host:port`).
+- `CACHE_DEFAULT_TTL_SECONDS`: TTL per defecte en segons (3600 si no es defineix).
+- `REDIS_SOCKET_TIMEOUT_SECONDS`: timeout de connexió i de socket en segons (2 si no es defineix); un Redis penjat es comporta com un miss.
+
+Per executar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 redis:8` i `REDIS_HOST=localhost`.
+
+**Ports** (`app/domain/shared/ports.py`): `Cache` (`get`, `set` amb un `ttl_seconds` opcional per clau) i `PubSub` (`publish`, `subscribe`). Els adaptadors Redis són a `app/infrastructure/cache/`; s'injecten amb `CacheDep` i `PubSubDep` (també funcionen en endpoints WebSocket).
+
+**Cache lazy:** `get_or_load(cache, key, load, adapter, ttl_seconds=None)` (`app/application/shared/cache.py`) retorna el valor de la cache o crida `load`, el desa i el retorna. Si Redis cau, `RedisCache` registra un avís i es comporta com una fallada, de manera que la dada s'obté igualment de la font (cap HTTP 500).
+
+**Convenció de claus:** qui crida fa servir `<domini>:<id>` i l'adaptador ho desa com `cache:<domini>:<id>`, p. ex. `cache:apod:2026-10-05`. Cada funcionalitat tria el seu TTL.
+
+**Pub/sub:** `async with pubsub.subscribe(canal) as missatges:` dona els missatges publicats després d'entrar al bloc; tots els subscriptors del canal reben cada missatge i els d'altres canals no. Si Redis falla es llança `ExternalServiceError` (`PUBSUB_UNAVAILABLE`, HTTP 503).
+
+Els tests d'integració (`tests/integration/test_redis.py`) s'executen si hi ha `REDIS_HOST`; la CI aixeca Redis 8.
+
 ## Testing i qualitat
 
 - Piràmide de proves: ~70 % unitàries, ~30 % d'integració (PostgreSQL/PostGIS i Redis efímers, API amb `httpx.AsyncClient`, APIs externes simulades amb `respx`). No hi ha proves end-to-end a l'app mòbil.

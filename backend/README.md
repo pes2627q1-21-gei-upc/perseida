@@ -237,6 +237,26 @@ Database settings are validated during application startup. The asynchronous eng
 
 The engine uses lazy connections: creating it does not immediately establish a connection to PostgreSQL. The first database operation opens the connection.
 
+## Redis
+
+Redis is only a TTL cache and the pub/sub bus for the WebSocket chat; nothing that must survive lives here (PostgreSQL is the source of truth). The asynchronous client is created in FastAPI's lifespan and closed on shutdown. Configuration (see `.env.example`):
+
+- `REDIS_HOST`, `REDIS_PORT`: server address (`redis://host:port`).
+- `CACHE_DEFAULT_TTL_SECONDS`: default TTL in seconds (3600 if unset).
+- `REDIS_SOCKET_TIMEOUT_SECONDS`: connect and socket timeout in seconds (2 if unset), so a hung Redis behaves as a cache miss.
+
+To run a local Redis: `docker run -d --name perseida-redis -p 6379:6379 redis:8`, then set `REDIS_HOST=localhost`.
+
+**Ports** (`app/domain/shared/ports.py`): `Cache` (`get`, `set` with an optional per-key `ttl_seconds`) and `PubSub` (`publish`, `subscribe`). Redis adapters live in `app/infrastructure/cache/`; inject them with `CacheDep` and `PubSubDep` (they also work in WebSocket endpoints).
+
+**Lazy cache:** `get_or_load(cache, key, load, adapter, ttl_seconds=None)` (`app/application/shared/cache.py`) returns the cached value or calls `load`, stores the result and returns it. If Redis is down, `RedisCache` logs a warning and behaves as a miss, so the data still comes from the source (no HTTP 500).
+
+**Key convention:** callers use `<domain>:<id>` and the adapter stores it as `cache:<domain>:<id>`, e.g. `cache:apod:2026-10-05`. Each feature chooses its own TTL.
+
+**Pub/sub:** `async with pubsub.subscribe(channel) as messages:` yields the messages published after entering the block; every subscriber of the channel receives each message and other channels do not. A Redis failure raises `ExternalServiceError` (`PUBSUB_UNAVAILABLE`, HTTP 503).
+
+Integration tests (`tests/integration/test_redis.py`) run when `REDIS_HOST` is set; the CI provides Redis 8.
+
 ## Testing and quality
 
 - Test pyramid: ~70 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`). No end-to-end tests on the mobile app.

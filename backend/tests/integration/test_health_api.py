@@ -76,19 +76,21 @@ async def test_docs_are_served(client: AsyncClient) -> None:
 
 
 @pytest.fixture
-def db_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def service_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for key, value in {
         "POSTGRES_DB": "test",
         "POSTGRES_USER": "test",
         "POSTGRES_PASSWORD": "test",
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "1",
+        "REDIS_HOST": "127.0.0.1",
+        "REDIS_PORT": "1",
     }.items():
         monkeypatch.setenv(key, value)
 
 
 async def test_lifespan_starts_and_stops(
-    app: FastAPI, db_env: None, monkeypatch: pytest.MonkeyPatch
+    app: FastAPI, service_env: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = MagicMock()
     engine.dispose = AsyncMock()
@@ -101,7 +103,7 @@ async def test_lifespan_starts_and_stops(
 
 
 async def test_app_starts_without_postgres_available(
-    app: FastAPI, db_env: None
+    app: FastAPI, service_env: None
 ) -> None:
     # Nothing listens on port 1: the engine is lazy, so startup must not connect.
     async with app.router.lifespan_context(app):

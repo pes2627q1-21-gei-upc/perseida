@@ -2,12 +2,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.openapi import install_openapi_cleanup
 from app.infrastructure.apod.router import router as apod_router
+from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
@@ -21,26 +23,39 @@ from app.infrastructure.scheduler.jobs import register_jobs
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    redis_settings = RedisSettings()
     settings = DatabaseSettings()
-    engine = create_async_engine(settings.database_url)
-    app.state.session_factory = async_sessionmaker(
-        engine,
-        expire_on_commit=False,
-    )
     scheduler = (
         get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
     )
+    timeout = redis_settings.redis_socket_timeout_seconds
+    redis = Redis.from_url(
+        redis_settings.redis_url,
+        decode_responses=True,
+        socket_connect_timeout=timeout,
+        socket_timeout=timeout,
+    )
     try:
-        if scheduler:
-            register_jobs(scheduler)
-            scheduler.start()
-        yield
-    finally:
+        app.state.redis = redis
+        app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
+        engine = create_async_engine(settings.database_url)
         try:
-            if scheduler:
-                await scheduler.shutdown()
+            app.state.session_factory = async_sessionmaker(
+                engine,
+                expire_on_commit=False,
+            )
+            try:
+                if scheduler:
+                    register_jobs(scheduler)
+                    scheduler.start()
+                yield
+            finally:
+                if scheduler:
+                    await scheduler.shutdown()
         finally:
             await engine.dispose()
+    finally:
+        await redis.aclose()
 
 
 def create_app() -> FastAPI:
