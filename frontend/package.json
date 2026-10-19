@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "main": "expo-router/entry",
+  "packageManager": "pnpm@10.28.0",
   "dependencies": {
     "@expo-google-fonts/m-plus-rounded-1c": "0.4.4",
     "@expo-google-fonts/open-sans": "0.4.2",

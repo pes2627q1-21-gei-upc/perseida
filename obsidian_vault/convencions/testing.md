@@ -2,9 +2,9 @@
 titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85"]
-font: "memòria §2.5, §2.9.3"
+data: "2026-10-19"
+us: ["TG-85", "TG-35"]
+font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24)"
 etiquetes: [convencio, testing, cobertura, nfr]
 ---
 
@@ -73,7 +73,16 @@ Els tests de temps prenen la mediana de diverses peticions consecutives.
 
 ## Execució
 
-En local: `uv run pytest` (backend) i `pnpm test` (frontend), o Docker Compose. A la CI, GitHub Actions executa els tests a cada PR cap a `develop` o `main`, amb filtres per ruta i memòria cau de dependències.
+En local: `uv run pytest` (backend) i `pnpm test` (frontend), o Docker Compose.
+
+A la CI, GitHub Actions executa els tests a cada PR cap a `develop` o `main` i a cada push a aquestes branques, amb filtres per ruta i memòria cau de dependències:
+
+| Job | Ordre de tests | Informe de cobertura (artefacte) |
+|---|---|---|
+| `backend` | `uv run pytest --cov-report=xml:coverage.xml`, amb PostgreSQL (PostGIS) i Redis com a *service containers* | `backend-coverage` (`coverage.xml`) |
+| `frontend` | `pnpm test --coverage --ci` (Jest amb el preset `jest-expo`) | `frontend-coverage` (`lcov.info`) |
+
+Cada job té un test de fum perquè el comandament de tests no falli sense cap test (`backend/tests/test_smoke.py` i `frontend/__tests__/smoke.test.ts`). Vegeu [[qualitat]] per a l'anàlisi estàtica de la CI.
 
 ## Enllaços
 

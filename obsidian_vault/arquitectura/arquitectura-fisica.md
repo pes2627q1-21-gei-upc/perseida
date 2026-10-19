@@ -2,9 +2,9 @@
 titol: "Arquitectura física i desplegament"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-16"
-us: ["TG-85", "TG-37", "TG-89", "TG-34", "TG-38"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18); Taiga: backlog (llistat de US, 2026-10-07); guia del servei Virtech i configuració de la VM (tasca #128, 2026-10-16)"
+data: "2026-10-19"
+us: ["TG-85", "TG-37", "TG-89", "TG-34", "TG-35"]
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18, PR #24); Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, infra, docker-compose, desplegament]
 ---
 
@@ -57,11 +57,13 @@ flowchart TB
 
 ## Flux de desplegament (CI/CD)
 
-- **CI del backend (implementada, TG-34)**: el workflow `.github/workflows/ci.yml` s'executa a cada PR i a cada push cap a `develop`/`main`. Té dos jobs:
+- **CI del backend (implementada, TG-34)**: el workflow `.github/workflows/ci.yml` s'executa a cada PR i a cada push cap a `develop`/`main`. Té tres jobs:
   1. `changes` (`dorny/paths-filter`): detecta si ha canviat `backend/**` o el mateix workflow.
   2. `backend`: només s'executa si hi ha canvis al backend (en un push sempre). Executa `uv sync --locked`, `ruff check`, `ruff format --check`, `mypy` i `pytest` amb cobertura. PostgreSQL (PostGIS 18) i Redis 8 s'aixequen com a *service containers* amb *healthcheck*. Publica l'informe com a artefacte `backend-coverage`. Un push nou a la mateixa PR cancel·la l'execució anterior.
-  - Les ordres per reproduir-ho en local són al README del backend, secció "Integració contínua".
-- **CI pendent**: SonarQube Cloud i comprovació del Quality Gate arribaran amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194); la CI del frontend, amb TG-35. La CI és obligatòria per fusionar quan TG-33 en fixi el check requerit (`backend`).
+  3. `frontend` (TG-35): només s'executa si ha canviat `frontend/**` o el workflow (en un push sempre). Des de `frontend/` executa `pnpm install --frozen-lockfile`, `pnpm lint` (ESLint i Prettier), `pnpm tsc` i `pnpm test --coverage --ci`. Node i pnpm fixats (Node al workflow; pnpm a `packageManager` de `frontend/package.json`) i amb memòria cau de pnpm. No necessita secrets ni *service containers*. Publica `lcov.info` com a artefacte `frontend-coverage`.
+  - Les ordres per reproduir-ho en local són als README del backend i del frontend, secció "Integració contínua".
+  - Quan un job s'omet perquè no han canviat els seus fitxers, compta com a superat per a un check requerit; per això el filtre és dins del workflow i no a `paths:`.
+- **CI pendent**: SonarQube Cloud i comprovació del Quality Gate arribaran amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194). La CI és obligatòria per fusionar quan TG-33 en fixi els checks requerits (`backend` i `frontend`).
 - **CD** a cada push a `main` (merge de release o hotfix):
   1. Construeix la imatge del backend, l'etiqueta amb el `git-sha` i la puja a **GHCR**.
   2. Es connecta per **SSH** al servidor de Virtech, renderitza el `.env` des dels secrets de GitHub (`chmod 600`) i executa `docker compose up`.
