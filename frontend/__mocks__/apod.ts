@@ -1,20 +1,20 @@
 // Simulated API responses for the APOD tests (TG-117). Same shape as the provisional contract.
 
 export const apodImage = {
-  apod_date: '2026-10-13',
+  date: '2026-10-13',
   title: 'The Orion Nebula',
   explanation: 'A stellar nursery about 1,300 light-years away.',
   media_type: 'image',
-  media_url: 'https://apod.nasa.gov/apod/image/orion.jpg',
+  url: 'https://apod.nasa.gov/apod/image/orion.jpg',
   copyright: 'Jane Doe',
 } as const;
 
 export const apodVideo = {
-  apod_date: '2026-10-14',
+  date: '2026-10-14',
   title: 'A Total Solar Eclipse',
   explanation: 'Time-lapse of totality.',
   media_type: 'video',
-  media_url: 'https://www.youtube.com/embed/abc123',
+  url: 'https://www.youtube.com/embed/abc123',
 } as const;
 
 export function problem(status: number, code: string, extra: Record<string, unknown> = {}) {

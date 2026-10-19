@@ -12,7 +12,7 @@ export interface paths {
       cookie?: never;
     };
     /** Imatge astronòmica del dia (APOD) */
-    get: operations['get_apod_today'];
+    get: operations['get_apod'];
     put?: never;
     post?: never;
     delete?: never;
@@ -27,12 +27,12 @@ export interface components {
   schemas: {
     ApodResponse: {
       /** Format: date */
-      apod_date: string;
+      date: string;
       title: string;
       explanation: string;
       /** @enum {string} */
       media_type: 'image' | 'video';
-      media_url: string;
+      url: string;
       copyright?: string | null;
     };
     FieldError: {
@@ -59,22 +59,34 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  get_apod_today: {
+  get_apod: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Data de l'APOD (YYYY-MM-DD). Per defecte, avui. */
+        date?: string | null;
+      };
       header?: never;
       path?: never;
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description L'APOD d'avui. */
+      /** @description L'APOD de la data demanada. */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['ApodResponse'];
+        };
+      };
+      /** @description Data amb format incorrecte, futura o anterior al 16/06/1995. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Error inesperat. */

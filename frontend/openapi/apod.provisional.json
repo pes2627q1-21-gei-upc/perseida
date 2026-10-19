@@ -3,19 +3,36 @@
   "info": {
     "title": "Perseida API - APOD (contracte provisional)",
     "version": "0.0.0-provisional",
-    "description": "Contracte provisional de TG-47 per desenvolupar TG-117 abans que el backend publiqui l'endpoint. Substituir per l'OpenAPI real del backend (/api/openapi.json) quan TG-47 estigui fusionada."
+    "description": "Contracte provisional de TG-47 per desenvolupar el frontend (TG-117, TG-48) abans que el backend publiqui l'endpoint. Alineat amb l'ACORD de TG-47 (camps date i url, paràmetre date i error 422). Substituir per l'OpenAPI real del backend (/api/openapi.json) quan TG-47 estigui fusionada."
   },
   "paths": {
     "/api/apod": {
       "get": {
-        "operationId": "get_apod_today",
+        "operationId": "get_apod",
         "summary": "Imatge astronòmica del dia (APOD)",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "description": "Data de l'APOD (YYYY-MM-DD). Per defecte, avui.",
+            "schema": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }] }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "L'APOD d'avui.",
+            "description": "L'APOD de la data demanada.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ApodResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Data amb format incorrecte, futura o anterior al 16/06/1995.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
               }
             }
           },
@@ -43,13 +60,13 @@
     "schemas": {
       "ApodResponse": {
         "type": "object",
-        "required": ["apod_date", "title", "explanation", "media_type", "media_url"],
+        "required": ["date", "title", "explanation", "media_type", "url"],
         "properties": {
-          "apod_date": { "type": "string", "format": "date" },
+          "date": { "type": "string", "format": "date" },
           "title": { "type": "string" },
           "explanation": { "type": "string" },
           "media_type": { "type": "string", "enum": ["image", "video"] },
-          "media_url": { "type": "string" },
+          "url": { "type": "string" },
           "copyright": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
         }
       },
