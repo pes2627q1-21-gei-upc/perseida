@@ -2,7 +2,7 @@
 
 [English](README.md) | [Català](README.ca.md) | **Español**
 
-> 🚧 **En construcción.** El proyecto está en el primer sprint. `app/` y `tests/` ya son reales (el módulo `health` es el ejemplo de referencia), pero la mayoría de módulos (persistencia, autenticación, chat, planificador) aún no están implementados.
+> 🚧 **En construcción.** El proyecto está en el primer sprint. `app/` y `tests/` ya son reales (el módulo `health` es el ejemplo de referencia), pero la mayoría de módulos (persistencia, autenticación, chat) aún no están implementados.
 
 Backend de **Perseida**, una aplicación móvil multiplataforma de divulgación, exploración y seguimiento de fenómenos astronómicos, desarrollada como proyecto de PES (UPC-FIB). Expone la API REST y el chat en tiempo real que usan la app móvil y el panel de administración, e integra las NASA Open APIs y otros proveedores externos.
 
@@ -143,6 +143,30 @@ Todo error se responde como `application/problem+json` (RFC 9457):
 
 Añadir un código: lanza la clase existente con el `code` nuevo desde `domain`/`application`, regístralo en el [catálogo de códigos](../.agents/skills/gestio-errors/references/cataleg-codis.md) y añade sus textos ca/es/en en el frontend. Nunca se renombra un `code` publicado.
 
+## Planificador
+
+APScheduler (`AsyncIOScheduler`) se ejecuta dentro del proceso de la API: se inicia en el *lifespan* de FastAPI y se detiene al apagar. No hay *job store*: las tareas se registran al arrancar.
+
+| Variable | Por defecto | Significado |
+|---|---|---|
+| `SCHEDULER_ENABLED` | `true` | con `false` no se inicia el planificador ni aparece en `/api/health` |
+| `SCHEDULER_TIMEZONE` | `UTC` | zona horaria IANA del planificador |
+
+**Registrar una tarea** (el único lugar): añade una línea a `register_jobs` de `app/infrastructure/scheduler/jobs.py`, con el puerto `JobScheduler` (`app/domain/scheduler/ports.py`):
+
+```python
+def register_jobs(scheduler: JobScheduler) -> None:
+    scheduler.add_interval_job("purge-expired-posts", purge_service.run, seconds=3600)
+```
+
+- La tarea es una `async def` sin argumentos (construye su service con los mismos providers que la API, [ADR-0017](../obsidian_vault/decisions/0017-injeccio-de-dependencies-i-services-singleton.md)); se ejecuta en el bucle de eventos, por tanto no debe bloquear.
+- Cada tarea se ejecuta con `max_instances=1` y `coalesce=True`: una tarea lenta no se solapa consigo misma y las ejecuciones perdidas se fusionan.
+- Una excepción se registra en el log (JSON, campo `job` con el nombre) y no detiene ni el planificador ni la API.
+- `/api/health` informa del componente `scheduler` mientras está activado.
+- Se asume un único proceso de API; con varias réplicas haría falta un bloqueo distribuido.
+
+Los logs (también los de uvicorn) se escriben en stderr como un objeto JSON por línea, con `correlation_id` cuando lo hay (`app/infrastructure/logging.py`). Un `SCHEDULER_TIMEZONE` desconocido falla al arrancar con un error de configuración.
+
 ## Contratos de servicio (Spotwise, grupo 21B)
 
 - **Proveemos:** `GET /api/events/active` y `GET /api/events/upcoming` devuelven los eventos astronómicos relevantes (título, descripción breve, categoría como `lunar`, `solar`, `meteor_shower`).
@@ -185,6 +209,26 @@ uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 
 - **Cobertura:** el informe se publica como artefacto `backend-coverage` (`coverage.xml`). Para descargarlo: GitHub → pestaña **Actions** → la ejecución → sección **Artifacts** al final de la página de resumen.
 - **Servicios:** PostgreSQL (PostGIS 18) y Redis 8 se levantan solos como service containers en la CI. No hacen falta Docker Compose ni `.env`.
+
+## Redis
+
+Redis solo es una caché con TTL y el bus pub/sub del chat WebSocket; no guarda nada que deba sobrevivir (la fuente de verdad es PostgreSQL). El cliente asíncrono se crea en el `lifespan` de FastAPI y se cierra al apagar la aplicación. Configuración (ver `.env.example`):
+
+- `REDIS_HOST`, `REDIS_PORT`: dirección del servidor (`redis://host:port`).
+- `CACHE_DEFAULT_TTL_SECONDS`: TTL por defecto en segundos (3600 si no se define).
+- `REDIS_SOCKET_TIMEOUT_SECONDS`: timeout de conexión y de socket en segundos (2 si no se define); un Redis colgado se comporta como un miss.
+
+Para ejecutar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 redis:8` y `REDIS_HOST=localhost`.
+
+**Puertos** (`app/domain/shared/ports.py`): `Cache` (`get`, `set` con un `ttl_seconds` opcional por clave) y `PubSub` (`publish`, `subscribe`). Los adaptadores Redis están en `app/infrastructure/cache/`; se inyectan con `CacheDep` y `PubSubDep` (también valen en endpoints WebSocket).
+
+**Caché lazy:** `get_or_load(cache, key, load, adapter, ttl_seconds=None)` (`app/application/shared/cache.py`) devuelve el valor de la caché o llama a `load`, lo guarda y lo devuelve. Si Redis cae, `RedisCache` registra un aviso y se comporta como un fallo, así que el dato se obtiene igualmente de la fuente (sin HTTP 500).
+
+**Convención de claves:** quien llama usa `<dominio>:<id>` y el adaptador lo guarda como `cache:<dominio>:<id>`, p. ej. `cache:apod:2026-10-05`. Cada funcionalidad elige su TTL.
+
+**Pub/sub:** `async with pubsub.subscribe(canal) as mensajes:` entrega los mensajes publicados tras entrar en el bloque; todos los suscriptores del canal reciben cada mensaje y los de otros canales no. Si Redis falla se lanza `ExternalServiceError` (`PUBSUB_UNAVAILABLE`, HTTP 503).
+
+Los tests de integración (`tests/integration/test_redis.py`) se ejecutan si hay `REDIS_HOST`; la CI levanta Redis 8.
 
 ## Testing y calidad
 

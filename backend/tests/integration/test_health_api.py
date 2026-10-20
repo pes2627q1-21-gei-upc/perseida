@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -8,8 +8,20 @@ from httpx import ASGITransport, AsyncClient
 import app.main as main_module
 from app.application.health.health_service import HealthService
 from app.infrastructure.health.dependencies import get_health_service
+from app.infrastructure.scheduler.dependencies import get_scheduler_settings
 from app.main import create_app
 from tests.fakes.health import FakeHealthCheck
+
+
+@pytest.fixture(autouse=True)
+def _scheduler_disabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    # The scheduler has its own lifecycle tests; here only the app check is covered.
+    monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+    get_scheduler_settings.cache_clear()
+    get_health_service.cache_clear()
+    yield
+    get_scheduler_settings.cache_clear()
+    get_health_service.cache_clear()
 
 
 @pytest.fixture
@@ -64,19 +76,21 @@ async def test_docs_are_served(client: AsyncClient) -> None:
 
 
 @pytest.fixture
-def db_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def service_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for key, value in {
         "POSTGRES_DB": "test",
         "POSTGRES_USER": "test",
         "POSTGRES_PASSWORD": "test",
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "1",
+        "REDIS_HOST": "127.0.0.1",
+        "REDIS_PORT": "1",
     }.items():
         monkeypatch.setenv(key, value)
 
 
 async def test_lifespan_starts_and_stops(
-    app: FastAPI, db_env: None, monkeypatch: pytest.MonkeyPatch
+    app: FastAPI, service_env: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = MagicMock()
     engine.dispose = AsyncMock()
@@ -89,7 +103,7 @@ async def test_lifespan_starts_and_stops(
 
 
 async def test_app_starts_without_postgres_available(
-    app: FastAPI, db_env: None
+    app: FastAPI, service_env: None
 ) -> None:
     # Nothing listens on port 1: the engine is lazy, so startup must not connect.
     async with app.router.lifespan_context(app):

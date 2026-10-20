@@ -9,6 +9,7 @@ dependencies = [
     "fastapi==0.143.1",
     "pydantic==2.14.1",
     "pydantic-settings==2.16.0",
+    "redis==8.1.0",
     "sqlalchemy[asyncio]==2.1.4",
     "sqlmodel==0.0.48",
     "uvicorn==0.54.0",
@@ -44,6 +45,11 @@ python_version = "3.14"
 strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["^\\.venv/"]
+
+[[tool.mypy.overrides]]
+# APScheduler 3.x ships no type information.
+module = ["apscheduler.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

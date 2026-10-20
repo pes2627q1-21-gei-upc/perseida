@@ -2,9 +2,9 @@
 titol: "Qualitat del codi i Quality Gate"
 tipus: convencio
 estat: vigent
-data: "2026-10-14"
-us: ["TG-85", "TG-34"]
-font: "memòria §2.4; .github/workflows/ci.yml (PR #18)"
+data: "2026-10-19"
+us: ["TG-85", "TG-34", "TG-35"]
+font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24)"
 etiquetes: [convencio, qualitat, ruff, mypy, eslint, sonarqube]
 ---
 
@@ -28,13 +28,17 @@ La qualitat es construeix de manera contínua i es fa complir automàticament. L
 
 Des de TG-34, `.github/workflows/ci.yml` executa el job `backend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `backend/`): `uv sync --locked`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .` i `uv run pytest --cov-report=xml:coverage.xml`. L'informe de cobertura es descarrega de l'execució, a *Artifacts*, amb el nom `backend-coverage`.
 
+## CI del frontend (implementada)
+
+Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `frontend/`): `pnpm install --frozen-lockfile`, `pnpm lint` (ESLint amb Prettier), `pnpm tsc` i `pnpm test --coverage --ci`. Cada ordre és un pas separat perquè es vegi quina falla. Node (al workflow) i pnpm (a `packageManager` de `frontend/package.json`) estan fixats. L'informe `lcov.info` es descarrega de l'execució, a *Artifacts*, amb el nom `frontend-coverage`. El job no necessita secrets ni serveis.
+
 > [!note] Què falta
-> SonarQube Cloud i el Quality Gate encara no són al workflow: arriben amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194). Fins llavors, la CI només cobreix lint, format, tipus i tests.
+> SonarQube Cloud i el Quality Gate encara no són al workflow: arriben amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194). Fins llavors, la CI (backend i frontend) només cobreix lint, format, tipus i tests.
 
 ## SonarQube Cloud
 
 > [!info] Descripció objectiu
-> El que segueix descriu el workflow objectiu. Ara per ara el workflow només fa lint, format, tipus i tests; vegeu "CI del backend (implementada)" més amunt.
+> El que segueix descriu el workflow objectiu. Ara per ara el workflow només fa lint, format, tipus i tests als dos jobs; vegeu "CI del backend (implementada)" i "CI del frontend (implementada)" més amunt.
 
 El workflow de CI, a cada PR cap a `develop` o `main`, executa per ordre: (1) format, linters i tipus; (2) tests amb cobertura; (3) anàlisi de SonarQube Cloud; (4) comprovació del Quality Gate. Si falla, la PR no es pot fusionar. També s'analitzen `develop` i `main` després de cada fusió. El token és el secret `SONAR_TOKEN`.
 

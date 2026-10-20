@@ -2,7 +2,7 @@
 
 **English** | [Català](README.ca.md) | [Español](README.es.md)
 
-> 🚧 **Under construction.** The project is in its first sprint. The `health` module is the reference example, and asynchronous PostgreSQL persistence infrastructure is now implemented. Most other modules (auth, chat, scheduler) are still pending.
+> 🚧 **Under construction.** The project is in its first sprint. The `health` module is the reference example, and asynchronous PostgreSQL persistence infrastructure is now implemented. Most other modules (auth, chat) are still pending.
 
 Backend of **Perseida**, a multiplatform mobile app for astronomy outreach, exploration and tracking of astronomical events, built as a PES project (UPC-FIB). It exposes the REST API and real-time chat used by the mobile app and the admin panel, and integrates NASA Open APIs and other external providers.
 
@@ -145,6 +145,30 @@ Every error is answered as `application/problem+json` (RFC 9457):
 
 Adding a code: raise the existing class with the new `code` from `domain`/`application`, register it in the [error code catalogue](../.agents/skills/gestio-errors/references/cataleg-codis.md) and add its ca/es/en texts in the frontend. Never rename a published `code`.
 
+## Scheduler
+
+APScheduler (`AsyncIOScheduler`) runs inside the API process: it starts in the FastAPI lifespan and is stopped on shutdown. There is no job store: jobs are registered at startup.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SCHEDULER_ENABLED` | `true` | `false` neither starts the scheduler nor reports it in `/api/health` |
+| `SCHEDULER_TIMEZONE` | `UTC` | IANA time zone of the scheduler |
+
+**Registering a job** (the only place): add a line to `register_jobs` in `app/infrastructure/scheduler/jobs.py`, using the `JobScheduler` port (`app/domain/scheduler/ports.py`):
+
+```python
+def register_jobs(scheduler: JobScheduler) -> None:
+    scheduler.add_interval_job("purge-expired-posts", purge_service.run, seconds=3600)
+```
+
+- The job is an `async def` without arguments (build its service with the same providers as the API, [ADR-0017](../obsidian_vault/decisions/0017-injeccio-de-dependencies-i-services-singleton.md)); it runs on the event loop, so it must not block.
+- Each job runs with `max_instances=1` and `coalesce=True`: a slow job never overlaps itself and missed runs are merged.
+- An exception is logged (JSON, `job` field with the name) and does not stop the scheduler or the API.
+- `/api/health` reports the `scheduler` component while it is enabled.
+- A single API process is assumed; with several replicas a distributed lock would be needed.
+
+Logs (including uvicorn's) are written to stderr as one JSON object per line, with `correlation_id` when there is one (`app/infrastructure/logging.py`). An unknown `SCHEDULER_TIMEZONE` fails at startup with a configuration error.
+
 ## Service contracts (Spotwise, group 21B)
 
 - **Provided:** `GET /api/events/active` and `GET /api/events/upcoming` return relevant astronomical events (title, short description, category such as `lunar`, `solar`, `meteor_shower`).
@@ -212,6 +236,26 @@ Database settings are validated during application startup. The asynchronous eng
 `persistence/models.py` sets the SQLModel naming convention (imported by `app.main`). The `ck` convention uses `%(constraint_name)s`, so every `CheckConstraint` must have an explicit `name`, otherwise Alembic migrations (TG-41) will fail.
 
 The engine uses lazy connections: creating it does not immediately establish a connection to PostgreSQL. The first database operation opens the connection.
+
+## Redis
+
+Redis is only a TTL cache and the pub/sub bus for the WebSocket chat; nothing that must survive lives here (PostgreSQL is the source of truth). The asynchronous client is created in FastAPI's lifespan and closed on shutdown. Configuration (see `.env.example`):
+
+- `REDIS_HOST`, `REDIS_PORT`: server address (`redis://host:port`).
+- `CACHE_DEFAULT_TTL_SECONDS`: default TTL in seconds (3600 if unset).
+- `REDIS_SOCKET_TIMEOUT_SECONDS`: connect and socket timeout in seconds (2 if unset), so a hung Redis behaves as a cache miss.
+
+To run a local Redis: `docker run -d --name perseida-redis -p 6379:6379 redis:8`, then set `REDIS_HOST=localhost`.
+
+**Ports** (`app/domain/shared/ports.py`): `Cache` (`get`, `set` with an optional per-key `ttl_seconds`) and `PubSub` (`publish`, `subscribe`). Redis adapters live in `app/infrastructure/cache/`; inject them with `CacheDep` and `PubSubDep` (they also work in WebSocket endpoints).
+
+**Lazy cache:** `get_or_load(cache, key, load, adapter, ttl_seconds=None)` (`app/application/shared/cache.py`) returns the cached value or calls `load`, stores the result and returns it. If Redis is down, `RedisCache` logs a warning and behaves as a miss, so the data still comes from the source (no HTTP 500).
+
+**Key convention:** callers use `<domain>:<id>` and the adapter stores it as `cache:<domain>:<id>`, e.g. `cache:apod:2026-10-05`. Each feature chooses its own TTL.
+
+**Pub/sub:** `async with pubsub.subscribe(channel) as messages:` yields the messages published after entering the block; every subscriber of the channel receives each message and other channels do not. A Redis failure raises `ExternalServiceError` (`PUBSUB_UNAVAILABLE`, HTTP 503).
+
+Integration tests (`tests/integration/test_redis.py`) run when `REDIS_HOST` is set; the CI provides Redis 8.
 
 ## Testing and quality
 

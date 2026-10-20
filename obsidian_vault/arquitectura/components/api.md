@@ -2,7 +2,7 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-10-15"
+data: "2026-10-20"
 us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88", "TG-304"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
@@ -37,7 +37,7 @@ Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i 
 
 ## Configuració
 
-Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`. El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
+Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
 
 ## Decisions relacionades
 
@@ -47,6 +47,7 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - [[0007-moderacio-local-kev-4b-sincrona]]
 - [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]
 - [[0018-errors-rfc-9457-amb-codis-estables]]
+- [[0022-logging-json-global-amb-stdlib]]
 
 ## US de Taiga relacionades
 
@@ -57,16 +58,18 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - TG-41 (Alembic)
 - TG-44 (JWKS)
 - TG-46 (cache APOD)
-- TG-88 (APScheduler)
+- TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
 
 ## Estat d'implementació
+
 - **Codi base FastAPI (TG-39)**: implementat (capes domain, application, infrastructure i mòdul health).
 - **Gestió d'errors i correlació (TG-304)**: implementat (RFC 9457, X-Correlation-ID).
 - **Persistència PostgreSQL (TG-40)**: implementat.
+- **Planificador APScheduler (TG-88)**: infraestructura implementada (vegeu [[backend-hexagonal]]).
 - **Contenidorització i pipeline GHCR (TG-36)**: implementat (Dockerfile multi-stage, workflow GitHub Actions, proves locals a `infra/scripts/test-backend-docker.sh`).
 - **Migracions Alembic (TG-41)**: pendent.
-- **Resta de serveis**: planificat.
+- **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 
 ## Enllaços
 
