@@ -119,6 +119,7 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `REDIS_HOST` | No | Redis host or service name | `redis` or `localhost` |
 | `REDIS_PORT` | No | Redis port | `6379` |
 | `APP_ENV` | No | Runtime environment (`local`, `production`) | `production` |
+| `API_IMAGE_TAG` | No | Tag or commit SHA of backend image in GHCR (used for rollbacks) | `latest` or `sha-a1b2c3d` |
 | `JWT_SECRET` | No | Secret for session JWT signing | `secret-token` |
 
 ### First-time setup: make the package public (one-time, manual)

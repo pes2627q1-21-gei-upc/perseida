@@ -119,6 +119,7 @@ El servei FastAPI (`perseida-api`) utilitza les següents variables d'entorn per
 | `REDIS_HOST` | No | Host o nom de servei de Redis | `redis` o `localhost` |
 | `REDIS_PORT` | No | Port del servei Redis | `6379` |
 | `APP_ENV` | No | Entorn d'execució (`local`, `production`) | `production` |
+| `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imatge a GHCR (usat per a rollbacks) | `latest` o `sha-a1b2c3d` |
 | `JWT_SECRET` | No | Secret per a signatures JWT de sessió | `secret-token` |
 
 ### Configuració inicial: fer el paquet públic (un sol cop, manual)
