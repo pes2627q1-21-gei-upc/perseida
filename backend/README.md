@@ -90,7 +90,23 @@ backend/
 └── uv.lock
 ```
 
-Alembic migrations will be added with the database migration implementation.
+### Database migrations
+
+Alembic migrations are managed from the `backend/` directory. The container entrypoint runs `alembic upgrade head` before starting the API and stops if the migration fails.
+
+```bash
+# Create a migration after changing SQLModel metadata
+uv run alembic revision --autogenerate -m "describe_change"
+
+# Review the generated migration before committing it.
+# Apply all pending migrations
+uv run alembic upgrade head
+
+# Roll back all migrations
+uv run alembic downgrade base
+
+# Check migration heads
+uv run alembic heads
 
 ### Adding a feature
 
