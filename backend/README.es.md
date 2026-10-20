@@ -230,6 +230,58 @@ Para ejecutar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 
 
 Los tests de integración (`tests/integration/test_redis.py`) se ejecutan si hay `REDIS_HOST`; la CI levanta Redis 8.
 
+## Autenticación
+
+La app inicia sesión con Google (OAuth2 + PKCE) y envía el `id_token` de Google al backend, que nunca recibe el código de autorización ni guarda ninguna contraseña ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). El backend comprueba el token y emite una sesión propia.
+
+**Flujo:**
+
+1. `POST /api/auth/google` con `{"id_token": "<token de Google>"}`.
+2. `GoogleJwksVerifier` comprueba la firma RS256 con las claves públicas de Google (JWKS, en memoria durante 1 hora; un `kid` desconocido provoca una descarga nueva, como máximo una vez por minuto), el emisor, la audiencia (`GOOGLE_CLIENT_ID`), la caducidad y que el correo esté verificado. Si no: 401 `INVALID_GOOGLE_TOKEN`. Si Google no responde y no hay claves en memoria: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+3. El port `AccountGateway` devuelve el estado de la cuenta: suspendida o baneada → 403 `ACCOUNT_SUSPENDED`; borrada → 403 `ACCOUNT_DELETED`.
+4. El backend emite dos JWT firmados con HS256 y `JWT_SECRET`: un access token (15 minutos) y un refresh token (30 días), con los claims `sub` (el `google_sub`), `jti`, `type` (`access` o `refresh`), `iat` y `exp`. Cada uno se registra en Redis como `session:<type>:<jti>` con un TTL igual a su duración.
+5. Respuesta `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` en segundos).
+
+Un token es válido solo si la firma y la caducidad son correctas **y** su clave existe en Redis. Borrar la clave revoca el token al instante; si Redis se reinicia, las sesiones se pierden y los usuarios vuelven a iniciar sesión con Google. Si Redis no está disponible, los endpoints responden 503 `SESSION_UNAVAILABLE`.
+
+**Renovación:** `POST /api/auth/refresh` con `{"refresh_token": "..."}` devuelve un par nuevo y borra el refresh anterior de Redis; volver a usarlo devuelve 401 `INVALID_SESSION`.
+
+**Configuración** (`.env.example`; `AuthSettings` en `app/infrastructure/auth/config.py`):
+
+| Variable | Significado |
+|---|---|
+| `GOOGLE_CLIENT_ID` | Audiencia (`aud`) esperada del token de Google |
+| `JWT_SECRET` | Clave HS256, de al menos 32 caracteres; nunca se versiona una real |
+| `ACCESS_TOKEN_MINUTES` | Duración del access token (15 por defecto) |
+| `REFRESH_TOKEN_DAYS` | Duración del refresh token (30 por defecto) |
+
+**Proteger un endpoint:** añade `CurrentSessionDep`. Lee `Authorization: Bearer <access token>` y devuelve las `SessionClaims`. Sin cabecera, con un token inválido o revocado, o con un refresh token, responde 401 `INVALID_SESSION`.
+
+```python
+from app.infrastructure.auth.dependencies import CurrentSessionDep
+
+@router.get("/me")
+async def me(session: CurrentSessionDep) -> MeResponse:
+    ...  # session.sub is the user's google_sub
+```
+
+**Conectar la US #45 (usuarios).** El dominio define el port `AccountGateway` en `app/domain/auth/ports.py`:
+
+```python
+class AccountGateway(Protocol):
+    async def get_status(self, identity: GoogleIdentity) -> AccountStatus: ...
+```
+
+`GoogleIdentity` lleva `google_sub`, `email` y, opcionales, `name` y `picture`. `AccountStatus` es `active`, `suspended`, `banned` o `deleted` (`deleted` cuando `deleted_at` está informado). Para conectarlo:
+
+1. Escribe el adaptador en `infrastructure` (busca el usuario por `google_sub`, lo crea en el primer acceso y devuelve su estado).
+2. Sustituye `ProvisionalAccountGateway()` por el adaptador en `build_auth_service` (`app/infrastructure/auth/dependencies.py`). La implementación provisional, que **acepta todas las cuentas**, está en `app/infrastructure/auth/provisional_account_gateway.py` y la retira la #45.
+3. El cierre de sesión también es de la #45: revoca la sesión con `SessionStore.delete(kind, jti)` (añade un método `logout` a `AuthService`).
+
+En los tests usa `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` muestra el flujo completo con Google simulado con `respx`.
+
+Los códigos de error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`) están en `app/application/auth/errors.py` y en el catálogo de errores.
+
 ## Testing y calidad
 
 - Pirámide de pruebas: ~70 % unitarias, ~30 % de integración (PostgreSQL/PostGIS y Redis efímeros, API con `httpx.AsyncClient`, APIs externas simuladas con `respx`). No hay pruebas end-to-end en la app móvil.
