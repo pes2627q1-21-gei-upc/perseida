@@ -10,3 +10,7 @@ ACCOUNT_DELETED = "ACCOUNT_DELETED"
 
 # ExternalServiceError (503): Google's keys cannot be fetched and none are cached.
 IDENTITY_PROVIDER_UNAVAILABLE = "IDENTITY_PROVIDER_UNAVAILABLE"
+
+# ExternalServiceError (503): Redis cannot be reached, so a session cannot be
+# registered or checked.
+SESSION_UNAVAILABLE = "SESSION_UNAVAILABLE"

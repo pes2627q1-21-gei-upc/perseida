@@ -8,6 +8,7 @@ from app.application.auth.errors import (
     IDENTITY_PROVIDER_UNAVAILABLE,
     INVALID_GOOGLE_TOKEN,
     INVALID_SESSION,
+    SESSION_UNAVAILABLE,
 )
 from app.application.shared.errors import (
     ApplicationError,
@@ -33,6 +34,7 @@ from app.infrastructure.api.error_handlers import resolve_status
             "IDENTITY_PROVIDER_UNAVAILABLE",
             503,
         ),
+        (ExternalServiceError, SESSION_UNAVAILABLE, "SESSION_UNAVAILABLE", 503),
     ],
 )
 def test_code_value_and_status(
