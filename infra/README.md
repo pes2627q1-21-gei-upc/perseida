@@ -144,13 +144,16 @@ The first time the workflow pushes the image, GitHub links the package to the re
 
 ```
 infra/
-├── docker-compose.yml        # the five services (local and production)
+├── docker-compose.yml          # base service definitions and production deployment
+├── docker-compose.override.yml # local development override (bind mount, dev ports)
 ├── .env.example
-├── nginx-proxy-manager/      # proxy configuration
-├── moderation/               # Kev-4B service image/config
+├── nginx-proxy-manager/        # proxy configuration
+├── moderation/                 # Kev-4B service image/config
 └── scripts/
-    └── test-backend-docker.sh # local validation and smoke test of perseida-api
+    └── test-backend-docker.sh   # local validation and smoke test of perseida-api
 ```
+
+> **Compose structure:** We use `docker-compose.override.yml` for local development (which Docker Compose merges automatically) so that production runs purely with `docker-compose.yml` (using GHCR images and without exposing internal ports), avoiding service duplication.
 
 ## Local validation and testing (backend Docker image)
 

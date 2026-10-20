@@ -1,0 +1,22 @@
+services:
+  reverse-proxy:
+    ports:
+      - "${NPM_ADMIN_PORT:-81}:81"
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+    volumes:
+      - ../backend/app:/app/app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  db:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  cache:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"

@@ -144,13 +144,16 @@ En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta
 
 ```
 infra/
-├── docker-compose.yml        # els cinc serveis (local i producció)
+├── docker-compose.yml          # definicions base dels serveis i desplegament a producció
+├── docker-compose.override.yml # override per a desenvolupament local (bind mount, ports dev)
 ├── .env.example
-├── nginx-proxy-manager/      # configuració del proxy
-├── moderation/               # imatge/configuració del servei Kev-4B
+├── nginx-proxy-manager/        # configuració del proxy
+├── moderation/                 # imatge/configuració del servei Kev-4B
 └── scripts/
-    └── test-backend-docker.sh # validació local i smoke test de perseida-api
+    └── test-backend-docker.sh   # validació local i smoke test de perseida-api
 ```
+
+> **Estructura de Compose:** S'utilitza `docker-compose.override.yml` per a desenvolupament local (que Docker Compose fusiona automàticament) perquè a producció s'executi exclusivament `docker-compose.yml` (amb imatges de GHCR i sense ports interns exposats), evitant duplicar definicions de serveis.
 
 ## Validació i proves locals (imatge Docker del backend)
 
