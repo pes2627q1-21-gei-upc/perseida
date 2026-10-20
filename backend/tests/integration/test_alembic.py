@@ -15,6 +15,7 @@ def _alembic_config() -> Config:
     backend_dir = Path(__file__).resolve().parents[2]
     config = Config(str(backend_dir / "alembic.ini"))
     config.set_main_option("script_location", str(backend_dir / "alembic"))
+    config.attributes["configure_logger"] = False
     return config
 
 
