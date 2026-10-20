@@ -92,7 +92,7 @@ services:
 
   moderation:
     # Stub fins a #101 (servei Kev-4B)
-    image: nginx:alpine
+    image: nginx:1.27-alpine
     container_name: perseida-moderation
     restart: unless-stopped
     profiles:
