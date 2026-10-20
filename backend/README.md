@@ -287,9 +287,10 @@ A token is valid only if its signature and expiration are correct **and** its Re
 ```python
 from app.infrastructure.auth.dependencies import CurrentSessionDep
 
+
 @router.get("/me")
 async def me(session: CurrentSessionDep) -> MeResponse:
-    ...  # session.sub is the user's google_sub
+    return MeResponse(google_sub=session.sub)  # sub is the user's google_sub
 ```
 
 **Connecting US #45 (users).** The domain defines the port `AccountGateway` in `app/domain/auth/ports.py`:

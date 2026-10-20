@@ -260,9 +260,10 @@ Un token es válido solo si la firma y la caducidad son correctas **y** su clave
 ```python
 from app.infrastructure.auth.dependencies import CurrentSessionDep
 
+
 @router.get("/me")
 async def me(session: CurrentSessionDep) -> MeResponse:
-    ...  # session.sub is the user's google_sub
+    return MeResponse(google_sub=session.sub)  # sub is the user's google_sub
 ```
 
 **Conectar la US #45 (usuarios).** El dominio define el port `AccountGateway` en `app/domain/auth/ports.py`:
