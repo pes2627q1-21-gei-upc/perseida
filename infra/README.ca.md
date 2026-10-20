@@ -59,6 +59,81 @@ flowchart TB
 - Rollback: redesplegar la imatge anterior pel seu `git-sha`.
 - El repositori també conté una automatització que desbloqueja tasques de Taiga (`.github/workflows/taiga-unblock.yml`).
 
+## GHCR — Permisos i visibilitat del paquet
+
+La imatge del backend es publica a **GitHub Container Registry** (`ghcr.io`) sota el namespace de l'organització:
+
+```
+ghcr.io/pes2627q1-21-gei-upc/perseida-api:<tag>
+```
+
+### Permisos automàtics (GITHUB_TOKEN)
+
+El workflow de CI/CD utilitza el token natiu `GITHUB_TOKEN` — sense necessitat de PAT ni secrets manuals:
+
+| Àmbit | Motiu |
+|---|---|
+| `contents: read` | Clonar el repositori al runner |
+| `packages: write` | Publicar la imatge a GHCR i actualitzar-ne les metadades |
+
+GitHub redueix automàticament els permisos de `packages` a `read` en pull requests provinents de forks externs per seguretat.
+
+### Descarregar i executar la imatge (docker pull i run)
+
+Per descarregar la imatge des de GHCR:
+
+```bash
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+# o per tag de commit o branca:
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:sha-a1b2c3d
+docker pull ghcr.io/pes2627q1-21-gei-upc/perseida-api:develop
+```
+
+Per arrencar el contenidor de l'API de forma independent (fora de Docker Compose), cal injectar les variables d'entorn requerides pel backend:
+
+```bash
+docker run -d \
+  --name perseida-api \
+  -p 8000:8000 \
+  -e POSTGRES_DB=perseida \
+  -e POSTGRES_USER=perseida \
+  -e POSTGRES_PASSWORD=secret \
+  -e POSTGRES_HOST=localhost \
+  -e POSTGRES_PORT=5432 \
+  -e REDIS_HOST=localhost \
+  -e REDIS_PORT=6379 \
+  ghcr.io/pes2627q1-21-gei-upc/perseida-api:latest
+```
+
+### Variables d'entorn del backend
+
+El servei FastAPI (`perseida-api`) utilitza les següents variables d'entorn per a la connexió i configuració:
+
+| Variable | Requerida | Descripció | Exemple |
+|---|---|---|---|
+| `POSTGRES_DB` | Sí | Nom de la base de dades PostgreSQL | `perseida` |
+| `POSTGRES_USER` | Sí | Usuari de la base de dades | `perseida` |
+| `POSTGRES_PASSWORD` | Sí | Contrasenya de la base de dades | `secret` |
+| `POSTGRES_HOST` | Sí | Host o nom de servei de PostgreSQL | `postgres` o `localhost` |
+| `POSTGRES_PORT` | Sí | Port de PostgreSQL | `5432` |
+| `REDIS_HOST` | No | Host o nom de servei de Redis | `redis` o `localhost` |
+| `REDIS_PORT` | No | Port del servei Redis | `6379` |
+| `APP_ENV` | No | Entorn d'execució (`local`, `production`) | `production` |
+| `JWT_SECRET` | No | Secret per a signatures JWT de sessió | `secret-token` |
+
+### Configuració inicial: fer el paquet públic (un sol cop, manual)
+
+Quan la imatge es puja per primer cop, GitHub crea el paquet com a **privat** per defecte. Per a un projecte acadèmic obert, es recomana canviar-lo a **públic** a través de la interfície web de GitHub:
+
+1. Vés al repositori a GitHub: `https://github.com/pes2627q1-21-gei-upc/perseida`.
+2. Fes clic a **Packages** (a la barra lateral dreta) → `perseida-api`.
+3. Fes clic a **Package settings** (a la barra lateral de configuració del paquet).
+4. A la secció **Danger Zone**, fes clic a **Change visibility** i selecciona **Public**.
+
+### Vinculació del paquet al repositori
+
+En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta `org.opencontainers.image.source`, que `docker/metadata-action` fixa automàticament a la URL del repositori. `github.repository_owner` només decideix quin compte és propietari del paquet.
+
 ## Configuració i secrets
 
 - Els secrets i variables viuen a **Secrets and variables** de GitHub; el job de CD genera el `.env` al servidor. El `.env` **mai** es versiona; un `.env.example` sense valors fa de plantilla.
@@ -72,7 +147,21 @@ infra/
 ├── docker-compose.yml        # els cinc serveis (local i producció)
 ├── .env.example
 ├── nginx-proxy-manager/      # configuració del proxy
-└── moderation/               # imatge/configuració del servei Kev-4B
+├── moderation/               # imatge/configuració del servei Kev-4B
+└── scripts/
+    └── test-backend-docker.sh # validació local i smoke test de perseida-api
+```
+
+## Validació i proves locals (imatge Docker del backend)
+
+Per validar la construcció de la imatge, la seguretat del contenidor i l'estat funcional en local abans de pujar canvis:
+
+```bash
+# Suite completa: Hadolint + actionlint + build + seguretat + smoke test
+./infra/scripts/test-backend-docker.sh
+
+# O reutilitzant una imatge ja construïda (ex. perseida-api:local)
+./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
 ## Executar en local (previst)
