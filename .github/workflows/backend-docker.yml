@@ -1,0 +1,223 @@
+name: Backend Docker build
+
+# =============================================================================
+# T219 – Workflow de construcció i publicació de la imatge Docker del backend.
+# S'activa quan canvia codi rellevant del backend o el propi workflow.
+#
+# Disparadors:
+#   · push a develop o main     → build + push de la imatge a GHCR.
+#   · pull_request cap a develop o main → build sense push (validació).
+#   · workflow_dispatch         → execució manual per a proves o redesplegaments.
+#
+# Filtres de rutes (paths):
+#   Només s'executa si el canvi afecta fitxers del backend o el workflow.
+#   Evita builds innecessaris quan canvien el frontend, la documentació, etc.
+# =============================================================================
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "release/*"
+    tags:
+      - "v*"
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-docker.yml"
+
+  pull_request:
+    branches:
+      - main
+      - develop
+      - "release/*"
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-docker.yml"
+
+  workflow_dispatch:
+
+# ── Permisos globals (mínim per defecte) ─────────────────────────────────────
+# Es nega tot el que no es declara explícitament a nivell de job.
+# Millora de seguretat: si GitHub Actions afegeix permisos per defecte
+# en el futur, no els heretarem accidentalment.
+permissions: {}
+
+# ── Concurrència ──────────────────────────────────────────────────────────────
+# Si arriba un nou push mentre ja hi ha un build en curs per a la mateixa
+# branca/PR, cancel·la l'anterior i comença el nou.
+# Excepció: `main` mai s'ha de cancel·lar (un CD a meitat pot deixar el
+# servidor en estat inconsistent); per això el grup és diferent per a main.
+concurrency:
+  group: backend-docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build i publica imatge Docker del backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # ── Permisos del job (principi de mínim privilegi) ──────────────────────
+    # Es declaren a nivell de job (no de workflow) per ser el més granulars
+    # possible. Si afegim jobs futurs (p. ex. scan de vulnerabilitats), cada
+    # un declararà únicament el que necessiti.
+    #
+    # contents: read
+    #   Necessari per a `actions/checkout`. Sense ell, el runner no pot
+    #   clonar el repositori.
+    #
+    # packages: write
+    #   Necessari per a `docker/login-action` + `docker/build-push-action`
+    #   per publicar la imatge a ghcr.io/OWNER/perseida-api.
+    #   GITHUB_TOKEN amb aquest àmbit permet:
+    #     · push de noves versions de la imatge.
+    #     · actualitzar les metadades del paquet (tags, labels).
+    #   GitHub el talla automàticament a `packages: read` en PRs des de forks
+    #   externs, de manera que cap fork no autoritzat pot publicar imatges.
+    #
+    # Visibilitat del paquet GHCR:
+    #   El primer push crea el paquet com a PRIVAT per defecte.
+    #   Per fer-lo públic (recomanat per a un projecte acadèmic obert):
+    #     GitHub → repositori → Packages → perseida-api →
+    #     Package settings → Change visibility → Public.
+    #   Alternativament, es pot fer amb la GitHub API (vegeu infra/README.md).
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout del codi
+        uses: actions/checkout@v4
+
+      # ── 2. Login a GHCR ──────────────────────────────────────────────────────
+      # Autenticació al GitHub Container Registry (ghcr.io) amb el token
+      # automàtic que GitHub injecta a cada execució del workflow.
+      #
+      # Per què GITHUB_TOKEN i no un PAT?
+      #   · Es genera automàticament per a cada run: no caduca, no cal rotar-lo.
+      #   · Té l'àmbit mínim necessari (packages:write al repo actual).
+      #   · En PRs des de forks, GitHub el talla a read-only: el pas de push
+      #     de T222 s'habilitarà condicionalment per evitar errors.
+      #
+      # Per què només en push/dispatch i no en PR?
+      #   Les PRs des de branques del mateix repo SÍ podrien fer push, però
+      #   per convenció no publiquem imatges de PRs: només de develop i main.
+      #   El condicional `if` evita el login innecessari en PR i protegeix
+      #   contra PRs de forks on GITHUB_TOKEN no té packages:write.
+      - name: Login a GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 3. Generació de tags ─────────────────────────────────────────────────
+      # docker/metadata-action llegeix el context de Git (SHA, branca, tag) i
+      # genera automàticament les etiquetes i labels OCI estàndard.
+      #
+      # Estratègia de tags (per prioritat):
+      #
+      #   a) git-sha curt (sempre): ghcr.io/org/perseida-api:sha-a1b2c3d
+      #      Imatge immutable i traçable → base del rollback (ADR arquitectura-física).
+      #
+      #   b) Branca (push a develop/main): ghcr.io/org/perseida-api:develop
+      #      Permet fer `docker pull perseida-api:develop` sense conèixer el SHA.
+      #
+      #   c) SemVer (quan el push porta un tag vX.Y.Z):
+      #        ghcr.io/org/perseida-api:1.2.3
+      #        ghcr.io/org/perseida-api:1.2
+      #        ghcr.io/org/perseida-api:1
+      #        ghcr.io/org/perseida-api:latest  (només si és el tag més nou)
+      #      Permet referenciar versions estables per sprint (SemVer des de 0.1.0).
+      #
+      # `id: meta` exposa dues sortides que usarà build-push-action (T222):
+      #   · steps.meta.outputs.tags   → llista de tags a publicar
+      #   · steps.meta.outputs.labels → labels OCI (autor, versió, URL repo…)
+      - name: Genera tags i labels de la imatge
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/perseida-api
+          flavor: |
+            latest=auto
+          tags: |
+            # a) SHA curt – sempre present, immutable
+            type=sha,prefix=sha-,format=short
+            # b) Nom de branca – per a push a develop, main i release/*
+            type=ref,event=branch
+            # c) Tag latest explícit quan es fa push a main
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # d) SemVer complet (vX.Y.Z -> X.Y.Z)
+            type=semver,pattern={{version}}
+            # e) SemVer major.minor (vX.Y.Z -> X.Y)
+            type=semver,pattern={{major}}.{{minor}}
+            # f) SemVer major (vX.Y.Z -> X)
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+          labels: |
+            org.opencontainers.image.title=perseida-api
+            org.opencontainers.image.description=Backend de Perseida (FastAPI, arquitectura hexagonal)
+            org.opencontainers.image.vendor=UPC-FIB PES
+
+
+      # ── 4. Configura QEMU i Docker Buildx ────────────────────────────────────
+      # QEMU permet emular arquitectures addicionals (arm64) si cal en el futur.
+      # Buildx és el builder modern de Docker que habilita:
+      #   · Builds multi-plataforma (--platform).
+      #   · Cache exportable a backends externs (GHA, registry, S3...).
+      #   · BuildKit per defecte (paral·lelisme de capes, secrets segurs).
+      - name: Configura QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Configura Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── 5. Lint del Dockerfile (hadolint) ────────────────────────────────────
+      # Validació estàtica del Dockerfile. S'executa sempre (també en PR)
+      # perquè és una comprovació de qualitat, no de publicació.
+      - name: Lint del Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: warning
+
+      # ── 6. Build i push de la imatge ─────────────────────────────────────────
+      # docker/build-push-action orquestra BuildKit per construir la imatge
+      # i (condicionalment) publicar-la a GHCR.
+      #
+      # Decisions de disseny:
+      #
+      #   push: github.event_name != 'pull_request'
+      #     Només fa push en push/dispatch; en PRs construeix però no publica.
+      #     Coherent amb el condicional del login (T220).
+      #
+      #   cache-from / cache-to amb mode=max:
+      #     GHA (GitHub Actions Cache) és el backend de cache integrat.
+      #     mode=max exporta TOTES les capes intermèdies (incloses les de
+      #     l'etapa builder), no només les de la imatge final. Això maximitza
+      #     la reutilització de la capa `uv sync` quan només canvia el codi
+      #     font (app/) però no les dependències (pyproject.toml/uv.lock).
+      #     Quota de cache GHA: 10 GB per repositori; es purga per LRU.
+      #
+      #   tags / labels: llegits de les sortides de metadata-action (T221).
+      #
+      #   context: backend/
+      #     El context de build és el directori backend/, coherent amb la
+      #     posició del Dockerfile i el .dockerignore.
+      #
+      #   provenance: false
+      #     Desactiva el manifest de proveïtat SLSA per defecte de BuildKit.
+      #     Amb provenance:true es genera un manifest multi-arch que confon
+      #     `docker pull` en alguns clients; `false` genera un manifest simple.
+      - name: Build i push de la imatge Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
