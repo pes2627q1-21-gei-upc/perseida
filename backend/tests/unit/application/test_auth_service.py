@@ -9,6 +9,7 @@ from app.application.auth.errors import (
     ACCOUNT_DELETED,
     ACCOUNT_SUSPENDED,
     INVALID_GOOGLE_TOKEN,
+    INVALID_SESSION,
 )
 from app.application.shared.errors import ForbiddenError, UnauthorizedError
 from app.domain.auth.models import AccountStatus, GoogleIdentity, TokenType
@@ -103,3 +104,81 @@ async def test_login_with_an_invalid_google_token_issues_nothing() -> None:
     assert accounts.asked == []
     assert store.entries == {}
     assert codec.issued == {}
+
+
+async def test_refresh_works_once_and_the_second_attempt_is_rejected() -> None:
+    service, _, _, _ = make_service()
+    first = await service.login("google-id-token")
+
+    renewed = await service.refresh(first.refresh_token)
+
+    assert renewed.access_token not in (first.access_token, first.refresh_token)
+    assert renewed.refresh_token != first.refresh_token
+    with pytest.raises(UnauthorizedError) as exc_info:
+        await service.refresh(first.refresh_token)
+    assert exc_info.value.code == INVALID_SESSION
+
+
+async def test_refresh_revokes_the_old_refresh_and_registers_the_new_pair() -> None:
+    service, codec, store, _ = make_service()
+    first = await service.login("google-id-token")
+    old_refresh = codec.decode(first.refresh_token)
+
+    renewed = await service.refresh(first.refresh_token)
+
+    assert (TokenType.REFRESH, old_refresh.jti) not in store.entries
+    new_access = codec.decode(renewed.access_token)
+    new_refresh = codec.decode(renewed.refresh_token)
+    assert store.entries[(TokenType.ACCESS, new_access.jti)] == 900
+    assert store.entries[(TokenType.REFRESH, new_refresh.jti)] == 2_592_000
+
+
+async def test_refresh_rejects_an_access_token() -> None:
+    service, _, _, _ = make_service()
+    tokens = await service.login("google-id-token")
+
+    with pytest.raises(UnauthorizedError) as exc_info:
+        await service.refresh(tokens.access_token)
+
+    assert exc_info.value.code == INVALID_SESSION
+
+
+async def test_authenticate_returns_the_claims_of_a_valid_access_token() -> None:
+    service, codec, _, _ = make_service()
+    tokens = await service.login("google-id-token")
+
+    claims = await service.authenticate(tokens.access_token)
+
+    assert claims == codec.decode(tokens.access_token)
+    assert claims.sub == "google-123"
+
+
+async def test_authenticate_rejects_a_refresh_token() -> None:
+    service, _, _, _ = make_service()
+    tokens = await service.login("google-id-token")
+
+    with pytest.raises(UnauthorizedError) as exc_info:
+        await service.authenticate(tokens.refresh_token)
+
+    assert exc_info.value.code == INVALID_SESSION
+
+
+async def test_authenticate_rejects_a_revoked_access_token() -> None:
+    service, codec, store, _ = make_service()
+    tokens = await service.login("google-id-token")
+    store.expire(TokenType.ACCESS, codec.decode(tokens.access_token).jti)
+
+    with pytest.raises(UnauthorizedError) as exc_info:
+        await service.authenticate(tokens.access_token)
+
+    assert exc_info.value.code == INVALID_SESSION
+
+
+@pytest.mark.parametrize("operation", ["authenticate", "refresh"])
+async def test_a_token_the_codec_rejects_is_an_invalid_session(operation: str) -> None:
+    service, _, _, _ = make_service()
+
+    with pytest.raises(UnauthorizedError) as exc_info:
+        await getattr(service, operation)("forged-or-expired")
+
+    assert exc_info.value.code == INVALID_SESSION

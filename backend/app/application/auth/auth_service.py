@@ -3,8 +3,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from app.application.auth.errors import ACCOUNT_DELETED, ACCOUNT_SUSPENDED
-from app.application.shared.errors import ForbiddenError
+from app.application.auth.errors import (
+    ACCOUNT_DELETED,
+    ACCOUNT_SUSPENDED,
+    INVALID_SESSION,
+)
+from app.application.shared.errors import ForbiddenError, UnauthorizedError
 from app.domain.auth.models import (
     AccountStatus,
     SessionClaims,
@@ -58,17 +62,29 @@ class AuthService:
         """
         identity = await self._verifier.verify(id_token)
         self._ensure_can_log_in(await self._accounts.get_status(identity))
-        access = await self._issue(
-            identity.google_sub, TokenType.ACCESS, self._durations.access_seconds
-        )
-        refresh = await self._issue(
-            identity.google_sub, TokenType.REFRESH, self._durations.refresh_seconds
-        )
-        return SessionTokens(
-            access_token=access,
-            refresh_token=refresh,
-            expires_in=self._durations.access_seconds,
-        )
+        return await self._issue_pair(identity.google_sub)
+
+    async def refresh(self, refresh_token: str) -> SessionTokens:
+        """Exchange a refresh token for a new pair; the old refresh is revoked.
+
+        Raises:
+            UnauthorizedError: INVALID_SESSION if the token is invalid, expired,
+                not a refresh token or already used/revoked.
+            ExternalServiceError: if the session store is unavailable.
+        """
+        claims = await self._validate(refresh_token, TokenType.REFRESH)
+        await self._store.delete(TokenType.REFRESH, claims.jti)
+        return await self._issue_pair(claims.sub)
+
+    async def authenticate(self, access_token: str) -> SessionClaims:
+        """Return the claims of a valid, non-revoked access token.
+
+        Raises:
+            UnauthorizedError: INVALID_SESSION if the token is invalid, expired,
+                not an access token or revoked.
+            ExternalServiceError: if the session store is unavailable.
+        """
+        return await self._validate(access_token, TokenType.ACCESS)
 
     @staticmethod
     def _ensure_can_log_in(status: AccountStatus) -> None:
@@ -79,6 +95,25 @@ class AuthService:
                 raise ForbiddenError(ACCOUNT_SUSPENDED)
             case AccountStatus.DELETED:
                 raise ForbiddenError(ACCOUNT_DELETED)
+
+    async def _validate(self, token: str, kind: TokenType) -> SessionClaims:
+        claims = self._codec.decode(token)
+        if claims.type != kind or not await self._store.exists(kind, claims.jti):
+            raise UnauthorizedError(INVALID_SESSION)
+        return claims
+
+    async def _issue_pair(self, sub: str) -> SessionTokens:
+        access = await self._issue(
+            sub, TokenType.ACCESS, self._durations.access_seconds
+        )
+        refresh = await self._issue(
+            sub, TokenType.REFRESH, self._durations.refresh_seconds
+        )
+        return SessionTokens(
+            access_token=access,
+            refresh_token=refresh,
+            expires_in=self._durations.access_seconds,
+        )
 
     async def _issue(self, sub: str, kind: TokenType, ttl_seconds: int) -> str:
         """Encode a new token and register it in the store for its lifetime."""

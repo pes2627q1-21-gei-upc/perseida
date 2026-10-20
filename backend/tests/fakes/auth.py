@@ -1,3 +1,5 @@
+from app.application.auth.errors import INVALID_SESSION
+from app.application.shared.errors import UnauthorizedError
 from app.domain.auth.models import (
     AccountStatus,
     GoogleIdentity,
@@ -66,4 +68,7 @@ class FakeTokenCodec:
         return token
 
     def decode(self, token: str) -> SessionClaims:
-        return self.issued[token]
+        try:
+            return self.issued[token]
+        except KeyError:
+            raise UnauthorizedError(INVALID_SESSION) from None
