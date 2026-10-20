@@ -28,6 +28,18 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 |---|---|---|---|---|---|---|---|
 | `PUBSUB_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | El xat no està disponible ara mateix. Torna-ho a provar. | El chat no está disponible ahora mismo. Inténtalo de nuevo. | Chat is unavailable right now. Please try again. | infrastructure/cache |
 
+## Codis d'autenticació (TG-44)
+
+Textos aprovats per la persona responsable (TG-44). Un compte banejat respon `ACCOUNT_SUSPENDED`. Claus i18n del frontend pendents (xat i inici de sessió).
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `INVALID_GOOGLE_TOKEN` | 401 | `UnauthorizedError` | Sí | No hem pogut verificar el teu compte de Google. Torna a iniciar sessió. | No hemos podido verificar tu cuenta de Google. Vuelve a iniciar sesión. | We couldn't verify your Google account. Please sign in again. | application/auth |
+| `INVALID_SESSION` | 401 | `UnauthorizedError` | No | La teva sessió ha caducat. Torna a iniciar sessió. | Tu sesión ha caducado. Vuelve a iniciar sesión. | Your session has expired. Please sign in again. | application/auth |
+| `ACCOUNT_SUSPENDED` | 403 | `ForbiddenError` | No | El teu compte està suspès. | Tu cuenta está suspendida. | Your account is suspended. | application/auth |
+| `ACCOUNT_DELETED` | 403 | `ForbiddenError` | No | Aquest compte s'ha eliminat. | Esta cuenta ha sido eliminada. | This account has been deleted. | application/auth |
+| `IDENTITY_PROVIDER_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona. | Google no está disponible ahora mismo. Vuelve a intentarlo en un rato. | Google is unavailable right now. Please try again in a while. | application/auth |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
