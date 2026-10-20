@@ -168,14 +168,15 @@ Per validar la construcció de la imatge, la seguretat del contenidor i l'estat 
 ./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
-## Executar en local (previst)
+## Executar en local
 
 ```bash
+cd infra
 cp .env.example .env          # omple valors locals, mai facis commit del .env
-docker compose up -d --build
-docker compose ps
-docker compose logs -f api
-docker compose down
+docker compose up -d --build  # arrenca db, cache, api i reverse-proxy
+docker compose ps             # comprova que estiguin en estat healthy
+docker compose logs -f api    # segueix els logs de l'API amb recàrrega en calent
+docker compose down           # atura els contenidors preservant els volums de dades
 ```
 
 ## Limitacions conegudes (assumides en un projecte acadèmic)

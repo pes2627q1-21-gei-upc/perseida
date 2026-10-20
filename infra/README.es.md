@@ -168,14 +168,15 @@ Para validar la construcción de la imagen, la seguridad del contenedor y el est
 ./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
-## Ejecutar en local (previsto)
+## Ejecutar en local
 
 ```bash
+cd infra
 cp .env.example .env          # rellena valores locales, nunca hagas commit del .env
-docker compose up -d --build
-docker compose ps
-docker compose logs -f api
-docker compose down
+docker compose up -d --build  # arranca db, cache, api y reverse-proxy
+docker compose ps             # comprueba que estén en estado healthy
+docker compose logs -f api    # sigue los logs de la API con recarga en caliente
+docker compose down           # detiene los contenedores preservando los volúmenes de datos
 ```
 
 ## Limitaciones conocidas (asumidas en un proyecto académico)

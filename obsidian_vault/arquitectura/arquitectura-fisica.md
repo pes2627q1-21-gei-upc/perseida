@@ -2,9 +2,9 @@
 titol: "Arquitectura física i desplegament"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-19"
+data: "2026-10-20"
 us: ["TG-85", "TG-37", "TG-89", "TG-34", "TG-35"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18, PR #24); Taiga: backlog (llistat de US, 2026-10-07)"
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18, PR #24); infra/docker-compose.yml (TG-37)"
 etiquetes: [arquitectura, infra, docker-compose, desplegament]
 ---
 
@@ -12,8 +12,8 @@ etiquetes: [arquitectura, infra, docker-compose, desplegament]
 
 Perseida es desplega sobre **un únic servidor de Virtech** on Docker Compose orquestra **cinc contenidors**. Kubernetes es va descartar explícitament: amb un sol host físic només afegeix overhead de control plane i el punt únic de fallada continua sent el servidor ([[0002-docker-compose-en-lloc-de-kubernetes]]).
 
-> [!warning] Estat
-> Descripció de l'estat **planificat** tret de la CI del backend, que **ja existeix** (`.github/workflows/ci.yml`, TG-34). `infra/docker-compose.yml` encara no existeix (US TG-37) i la CD tampoc.
+> [!note] Estat
+> `infra/docker-compose.yml` i `infra/docker-compose.override.yml` ja estan implementats (US TG-37) amb els cinc serveis orquestrats, aïllament de xarxa i volums persistents. La CD automàtica a Virtech per SSH és objecte de la US TG-38.
 
 ## Diagrama
 
