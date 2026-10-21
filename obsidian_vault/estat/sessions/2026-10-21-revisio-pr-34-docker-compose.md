@@ -25,6 +25,10 @@ Aplicar els canvis requerits a la revisió de la PR #34 (US TG-37: Docker Compos
 - **Correcció del vault**:
   - Actualitzada la nota de sessió anterior [[2026-10-20-docker-compose-cinc-serveis]] i [[arquitectura-fisica]] per reflectir la necessitat i comportament de la xarxa `dev` a l'override i la comprovació estricta de contrasenya.
   - Documentada la situació del CA5 (migracions automàtiques a l'inici): requereix la integració de TG-41 i T218 a `develop` per a la seva verificació completa de cap a cap, de manera que la US romandrà en estat `Ready for test` a Taiga fins que s'hagin completat aquestes dependències.
+- **Segona ronda de revisió (sincronització d'entorn i READMEs)**:
+  - Afegides les variables `ACCESS_TOKEN_MINUTES=15` i `REFRESH_TOKEN_DAYS=30` a `infra/.env.example` per mantenir la sincronització estricta requerida per TG-37 amb `backend/.env.example`.
+  - Actualitzada la taula de variables d'entorn a `infra/README.md`, `infra/README.ca.md` i `infra/README.es.md`.
+  - Actualitzada la descripció de la PR #34 per marcar el CA5 com a pendent de la integració de l'entrypoint al Dockerfile (#T218).
 
 ## Decisions preses
 

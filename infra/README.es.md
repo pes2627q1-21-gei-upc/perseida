@@ -122,6 +122,8 @@ El servicio FastAPI (`perseida-api`) utiliza las siguientes variables de entorno
 | `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imagen en GHCR (usado para rollbacks) | `latest` o `sha-a1b2c3d` |
 | `GOOGLE_CLIENT_ID` | Sí | Audiencia esperada de los tokens de identidad de Google | `1234-abc.apps.googleusercontent.com` |
 | `JWT_SECRET` | Sí | Secreto para firmas JWT de sesión (al menos 32 caracteres) | `<salida de openssl rand -hex 32>` |
+| `ACCESS_TOKEN_MINUTES` | No | Tiempo de expiración de los access tokens en minutos (por defecto: 15) | `15` |
+| `REFRESH_TOKEN_DAYS` | No | Tiempo de expiración de los refresh tokens en días (por defecto: 30) | `30` |
 
 ### Configuración inicial: hacer el paquete público (una sola vez, manual)
 

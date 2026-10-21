@@ -122,6 +122,8 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `API_IMAGE_TAG` | No | Tag or commit SHA of backend image in GHCR (used for rollbacks) | `latest` or `sha-a1b2c3d` |
 | `GOOGLE_CLIENT_ID` | Yes | Expected audience of the Google ID tokens | `1234-abc.apps.googleusercontent.com` |
 | `JWT_SECRET` | Yes | Secret for session JWT signing (at least 32 characters) | `<output of openssl rand -hex 32>` |
+| `ACCESS_TOKEN_MINUTES` | No | Expiration time for access tokens in minutes (default: 15) | `15` |
+| `REFRESH_TOKEN_DAYS` | No | Expiration time for refresh tokens in days (default: 30) | `30` |
 
 ### First-time setup: make the package public (one-time, manual)
 
