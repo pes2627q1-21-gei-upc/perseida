@@ -11,8 +11,11 @@ export interface ThemeColors {
   /** Fill only, never text. */
   brandFill: string;
   accentGlow: string;
-  /** Perseid streaks of the sign-in screen: the head and the colour of the tail. Decorative. */
-  meteor: { head: string; tail: string };
+  /**
+   * Colour variants of the Perseid streaks of the sign-in screen: the bright head and the
+   * colour of the tail. Decorative; every head reads on the whole sky of its theme.
+   */
+  meteors: { head: string; tail: string }[];
   state: { success: string; warning: string; danger: string };
   focusRing: string;
   /** Gel (main action button). The highlight must stay above the text: see tokens.md. */
@@ -37,7 +40,13 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#4B4BD8',
     brandFill: '#5B5BF0',
     accentGlow: '#1FA8E0',
-    meteor: { head: '#4B4BD8', tail: '#4B4BD8' },
+    meteors: [
+      { head: '#4B4BD8', tail: '#4B4BD8' },
+      { head: '#7B2FBE', tail: '#7B2FBE' },
+      { head: '#B3261E', tail: '#B3261E' },
+      { head: '#0B4F8A', tail: '#0B4F8A' },
+      { head: '#9D174D', tail: '#9D174D' },
+    ],
     state: { success: '#2A7419', warning: '#8A5A00', danger: '#B3261E' },
     focusRing: '#0B78B5',
     gel: {
@@ -59,7 +68,13 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#B3B3FF',
     brandFill: '#5B5BF0',
     accentGlow: '#2EE6D6',
-    meteor: { head: '#FFFFFF', tail: '#2EE6D6' },
+    meteors: [
+      { head: '#FFFFFF', tail: '#2EE6D6' },
+      { head: '#FFE9A8', tail: '#F2B33D' },
+      { head: '#E4DAFF', tail: '#B3B3FF' },
+      { head: '#D4FFE6', tail: '#4CFF9A' },
+      { head: '#FFC8D8', tail: '#FF9A92' },
+    ],
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
     gel: {
@@ -81,7 +96,13 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#B3B3FF',
     brandFill: '#5B5BF0',
     accentGlow: '#2EE6D6',
-    meteor: { head: '#FFFFFF', tail: '#2EE6D6' },
+    meteors: [
+      { head: '#FFFFFF', tail: '#2EE6D6' },
+      { head: '#FFE9A8', tail: '#F2B33D' },
+      { head: '#E4DAFF', tail: '#B3B3FF' },
+      { head: '#D4FFE6', tail: '#4CFF9A' },
+      { head: '#FFC8D8', tail: '#FF9A92' },
+    ],
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
     gel: {
@@ -104,7 +125,12 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#FF6B5E',
     brandFill: '#FF6B5E',
     accentGlow: '#FF8A7A',
-    meteor: { head: '#FFB3A7', tail: '#FF8A7A' },
+    meteors: [
+      { head: '#FFB3A7', tail: '#FF8A7A' },
+      { head: '#FFD9D2', tail: '#FF6B5E' },
+      { head: '#FFC3A0', tail: '#FF9E6B' },
+      { head: '#FF8A7A', tail: '#E08A7E' },
+    ],
     state: { success: '#FFB3A7', warning: '#FFB3A7', danger: '#FFB3A7' },
     focusRing: '#FF8A7A',
     gel: {

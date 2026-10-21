@@ -79,6 +79,10 @@ Cos, reflex i vora **separats** perquè el reflex no passi per sota del text:
 - El text (`gel.text`) va sobre el cos: comprova el contrast amb `scripts/contrast.py` si canvies colors.
 - `loading`: indicador al lloc del text; `accessibilityState.busy`.
 
+## Pluja de Perseides (pantalla d'inici de sessió)
+
+L'element memorable de `/login`. Tot és **aleatori dins de límits** (`LIMITS` a `PerseidShower.tsx`): posició d'inici, mida, gruix, color (una variant de `meteors` del tema), angle (18–38° cap avall a l'esquerra), recorregut i velocitat de cada estel; i el ritme, amb 8 places que descansen un temps aleatori (1,5–9 s, escalat) i una densitat compartida que es torna a sortejar cada 15–35 s (de 2 a 5 estels alhora com a màxim, descans ×0,6–1,6). Es dibuixa **abans** del contingut, així que passa sempre per darrere de textos i botons. La cua és el cap a l'esquerra (la direcció del moviment) i es desfà cap a la dreta; el reflex al llac és una còpia aixafada i tènue. Amb *reduce motion* queden 4 estels fixos; en segon pla tot s'atura.
+
 ## Acció secundària: `QuietButton`
 
 El gel és per a l'acció principal d'una pantalla i el vidre per a capes flotants (`principis.md`), així que una acció secundària (p. ex. «Tanca la sessió») no és cap dels dos: `QuietButton` (`src/shared/ui`) és una píndola transparent amb una vora fina de `surface.glassBorder`, text `text.primary`, `touch.min` d'alçada i, premuda, el fons `surface.glass`. Admet `icon` decoratiu i `busy` (anunciat com a ocupat, ignora els tocs). Només va sobre el cel o sobre una capa de vidre ja contrastada: el text hereta el contrast verificat de `text.primary`.

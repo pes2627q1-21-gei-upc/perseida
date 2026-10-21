@@ -18,8 +18,7 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 | `brand` (text/enllaç) | `#4B4BD8` | `#B3B3FF` | `#B3B3FF` | `#FF6B5E` |
 | `brand.fill` (només emplenat, no text) | `#5B5BF0` | `#5B5BF0` | `#5B5BF0` | `#FF6B5E` |
 | `accent.glow` | `#1FA8E0` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
-| `meteor.head` (estel fugaç, decoratiu; US TG-45) | `#4B4BD8` | `#FFFFFF` | `#FFFFFF` | `#FFB3A7` |
-| `meteor.tail` (cua, es desfà fins a transparent) | `#4B4BD8` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
+| `meteors` (variants `{head, tail}` of the Perseid streaks, decoratius; US TG-45) | 5: `#4B4BD8`, `#7B2FBE`, `#B3261E`, `#0B4F8A`, `#9D174D` (head = tail) | 5: head→tail `#FFFFFF`→`#2EE6D6`, `#FFE9A8`→`#F2B33D`, `#E4DAFF`→`#B3B3FF`, `#D4FFE6`→`#4CFF9A`, `#FFC8D8`→`#FF9A92` | igual que `posta` | 4: `#FFB3A7`→`#FF8A7A`, `#FFD9D2`→`#FF6B5E`, `#FFC3A0`→`#FF9E6B`, `#FF8A7A`→`#E08A7E` |
 | `state.success` | `#2A7419` | `#6FD65A` | `#6FD65A` | `#FFB3A7`* |
 | `state.warning` | `#8A5A00` | `#F2B33D` | `#F2B33D` | `#FFB3A7`* |
 | `state.danger` | `#B3261E` | `#FF9A92` | `#FF9A92` | `#FFB3A7` text · `#FF6B5E` vora i icona* |
@@ -57,7 +56,7 @@ Primitius de natura (decoratius, sense text a sobre): prat `#6DBE45` / `#3FA535`
 | `nit` text `#EAF4FF` / secundari `#B4C6E6` sobre vidre sobre `#13265A` | 9.1 / 5.9 |
 | `nit` cian `#2EE6D6`, èxit `#6FD65A`, avís `#F2B33D`, marca `#B3B3FF`, perill `#FF9A92` | 6.5 / 5.5 / 5.4 / 5.2 / 5.0 |
 | `vermell` text `#FFB3A7` / secundari `#E08A7E` / accent `#FF6B5E` | 9.2 / 6.1 / 5.6 |
-| `meteor.head` sobre el cel: `dia` `#4B4BD8` sobre `#5EC8F2` / `#BFE9F7` (3.3 / 4.9); `posta` `#FFFFFF` sobre `#2B2F6B` (12.2); `nit` `#FFFFFF` sobre `#0A1430` / `#13265A` (18.2 / 14.5); `vermell` `#FFB3A7` sobre `#14060A` / `#2A0B12` (11.6 / 10.6). A `posta` sobre l'horitzó `#E8885A` cau a 2.6, però l'estel només creua la part alta del cel i és decoratiu | ≥3 al cel visible |
+| Caps (`head`) de `meteors` sobre el cel: `dia`, els 5 sobre `#5EC8F2` / `#BFE9F7` (mínim 3.1 / 4.5); `posta` i `nit`, els 5 sobre `#0A1430` i `#2B2F6B` (mínim 6.0); `vermell`, els 4 sobre `#14060A` / `#2A0B12` (mínim 7.1). A `posta` sobre l'horitzó `#E8885A` cau, però els estels només creuen la part alta del cel i són decoratius. Un test comprova ≥3 a cada tema | ≥3 al cel visible |
 | `vermell` perill: text `#FFB3A7` sobre el fons de perill / vora i icona `#FF6B5E` (UI) | 6.8 / 4.2 |
 | `glassSolid` (mínim dels textos i estats de cada tema) | `dia` 5.6 · `posta` 7.3 · `nit` 6.2 · `vermell` 5.8 |
 | gel: blanc sobre `#075F94` (amb reflex 12 %) | 6.8 (5.3) |
@@ -102,5 +101,5 @@ Verifica l'existència i fixa la versió amb `pnpm` abans d'afegir els paquets (
 
 - Cada token semàntic té valor als **quatre** temes.
 - Qualsevol token nou es proposa a la persona abans d'afegir-lo.
-- `meteor.*` només el fa servir la pluja de Perseides de la pantalla d'inici de sessió (un sol element memorable, decoratiu). La cua és l'únic gradient addicional a la UI: un desvaniment funcional de transparent a color, no un adorn.
+- `meteors` només el fa servir la pluja de Perseides de la pantalla d'inici de sessió (un sol element memorable, decoratiu). La cua és l'únic gradient addicional a la UI: un desvaniment funcional de transparent a color, no un adorn.
 - El tema `vermell` no té blaus ni verds, també a les icones i a les imatges (tint sobre l'APOD i altres fotos).
