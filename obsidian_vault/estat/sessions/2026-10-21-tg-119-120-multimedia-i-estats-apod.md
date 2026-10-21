@@ -29,7 +29,8 @@ Omplir l'espai multimèdia de la pantalla `/apod` (TG-119, criteris 2 i 3 de TG-
 - **Textos** a `features/apod/strings.ts`, amb `apodErrorMessage(code)`:
   - `APOD_UNAVAILABLE`: text del catàleg.
   - `NETWORK_ERROR`: text nou.
-  - Qualsevol altre codi: el text d'`INTERNAL_ERROR`.
+  - `NOT_FOUND`: text del catàleg.
+  - Qualsevol altre codi recuperable: el text d'`INTERNAL_ERROR`. Si no és recuperable: «Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD.», que no convida a reintentar.
   - El `detail` del servidor no es mostra mai ([[0018-errors-rfc-9457-amb-codis-estables]]).
 - **Tests** (`ApodScreen.test.tsx`): contingut amb i sense `copyright`, càrrega, imatge i proporció, vídeo, error del backend, error de xarxa, reintent, error no recuperable, fallada del multimèdia, `keepInPlayer` i codi desconegut. `react-native-webview` es simula a Jest.
 - **Dependència**: `react-native-webview` 13.16.1, la que fixa Expo SDK 57 (`bundledNativeModules.json`).
@@ -52,7 +53,16 @@ Després de la revisió de `reviewer-arquitectura`:
 - **Anunci de l'error.** `polite`: `accessibilityLiveRegion` a Android i `announceForAccessibility` a iOS.
 - **Mapa `code` → text.** Es queda a `features/apod/strings.ts` fins a TG-91.
 - **Fallada del multimèdia.** Si la imatge o el vídeo no carreguen, al marc surt «No s'ha pogut carregar la imatge o el vídeo.». El títol i el text continuen visibles.
+- **Dependències.** No s'afegeixen `react-dom` ni `react-native-web`: la web queda fora d'abast i `react-native-web` anava sense versió fixada.
 - **`Referer` del reproductor.** YouTube rebutjava l'embed sense `Referer` (error 153 a Expo Go). Ara el WebView envia `Referer: https://edu.upc.perseida` (`PLAYER_REFERER` a `ApodMedia.tsx`). El valor el va proposar l'agent i el va acceptar la persona responsable.
+
+Després de la revisió de la PR #36 (canvis demanats):
+
+- **Reinici del multimèdia.** `ApodView` munta `ApodMedia` amb `key={apod.url}`. Si arriba un APOD nou (refetch, pull-to-refresh), es torna a intentar carregar encara que l'anterior hagués fallat. Hi ha un test de regressió.
+- **Errors no recuperables.** El missatge no convida a reintentar si no hi ha botó. El text genèric s'ha afegit al catàleg de `gestio-errors`.
+- **Enllaços externs del reproductor.** `keepInPlayer` captura el rebuig de `Linking.openURL` i només obre fora les URL `http(s)`. La resta d'esquemes (`intent:`, `tel:`...) es bloquegen.
+- **Tipus del WebView.** `ShouldStartLoadRequest` no s'exporta des de l'arrel del paquet: es deriva de `WebViewProps` en lloc d'importar-lo de `lib/`.
+- **Fallades HTTP del vídeo.** `onHttpError` també mostra l'avís del marc. L'avís s'anuncia al lector de pantalla (`accessibilityLiveRegion`).
 
 ## Validació dels criteris de TG-48 (TG-121)
 
@@ -89,7 +99,9 @@ El servei i el hook ja tenien tests propis des de TG-117 (`getApodToday.test.ts`
 - [ ] Quan l'equip fixi l'`android.package` a `app.json`, cal que `PLAYER_REFERER` hi coincideixi.
 - [ ] Validar al backend que la `url` de l'APOD és `https` (`HttpUrl`): US a part, no feta aquí.
 - [ ] `INVALID_RESPONSE` (codi del client) encara no té fila al catàleg.
-- [ ] TG-91: textos es/en d'`apodStrings` i de `NETWORK_ERROR`.
+- [ ] TG-91: textos es/en d'`apodStrings`, de `NETWORK_ERROR` i del genèric no recuperable.
+- [ ] Estat de càrrega: la skill `frontend-pagina` demana una càrrega calmada (bombolla o brillantor suau), no un spinner de plantilla. Es manté l'spinner, que la US accepta; cal substituir-lo més endavant.
+- [ ] `PLAYER_REFERER` s'ha d'acordar en equip juntament amb l'`android.package`.
 - [ ] A la web (`pnpm expo start` → `w`), NativeWind (`react-native-css-interop`) llança «Cannot manually set color scheme, as dark mode is type 'media'». No ve d'aquesta US; caldrà resoldre-ho quan es faci el panell d'admin.
 - [ ] El checkout a Windows amb CRLF continua fent fallar Prettier als fitxers no tocats (`.gitattributes`, vegeu la sessió de TG-118).
 
