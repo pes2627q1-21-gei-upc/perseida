@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { WebView, type WebViewProps } from 'react-native-webview';
 
+import { hostOf, safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { useTheme } from '../../../shared/theme';
 import type { Apod } from '../api/getApodToday';
 import { apodStrings } from '../strings';
@@ -32,23 +33,20 @@ interface Props {
   apod: Apod;
 }
 
-/** Host of an http(s) URL, without depending on the URL polyfill (incomplete in React Native). */
-function hostOf(url: string): string | undefined {
-  return /^https?:\/\/([^/?#]+)/i.exec(url)?.[1]?.toLowerCase();
-}
-
 /**
  * The player only navigates within the video's own host. Links that leave it (logo, related
  * videos) open in the system browser instead of turning the player into a browser.
  * Inner frames (iOS `isTopFrame: false`) are the player's own resources and always load.
- * Other schemes (`intent:`, `tel:`, `about:`...) are blocked without leaving the app.
+ * Other schemes (`intent:`, `tel:`, `about:`...) are blocked without leaving the app, and so
+ * is anything that is not plain https: the system browser only gets https links.
  */
 export function keepInPlayer(request: ShouldStartLoadRequest, videoUrl: string): boolean {
   if (request.isTopFrame === false) return true;
   const host = hostOf(request.url);
   if (host === hostOf(videoUrl)) return true;
   // No app may be able to open the link: the rejection is ignored, the player just stays.
-  if (host) Linking.openURL(request.url).catch(() => undefined);
+  const link = safeHttpsUrl(request.url);
+  if (host && link) Linking.openURL(link).catch(() => undefined);
   return false;
 }
 
@@ -57,6 +55,8 @@ export function ApodMedia({ apod }: Props) {
   const theme = useTheme();
   const [imageAspectRatio, setImageAspectRatio] = useState(PLACEHOLDER_ASPECT_RATIO);
   const [failed, setFailed] = useState(false);
+  // The URL comes from the API: it is only loaded if it is plain https.
+  const mediaUrl = safeHttpsUrl(apod.url);
 
   const frame = {
     width: '100%',
@@ -67,7 +67,7 @@ export function ApodMedia({ apod }: Props) {
     overflow: 'hidden',
   } as const;
 
-  if (failed) {
+  if (failed || !mediaUrl) {
     // The API answered but the remote media did not load: the title and text stay readable.
     return (
       <View
@@ -94,10 +94,14 @@ export function ApodMedia({ apod }: Props) {
         <WebView
           testID="apod-video"
           accessibilityLabel={`${apodStrings.videoLabel}: ${apod.title}`}
-          source={{ uri: apod.url, headers: { Referer: PLAYER_REFERER } }}
+          source={{ uri: mediaUrl, headers: { Referer: PLAYER_REFERER } }}
           originWhitelist={['https://*']}
+          mixedContentMode="never"
+          allowFileAccess={false}
+          allowUniversalAccessFromFileURLs={false}
+          thirdPartyCookiesEnabled={false}
           setSupportMultipleWindows={false}
-          onShouldStartLoadWithRequest={(request) => keepInPlayer(request, apod.url)}
+          onShouldStartLoadWithRequest={(request) => keepInPlayer(request, mediaUrl)}
           allowsFullscreenVideo
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction
@@ -118,7 +122,7 @@ export function ApodMedia({ apod }: Props) {
       testID="apod-image"
       accessible
       accessibilityRole="image"
-      source={{ uri: apod.url }}
+      source={{ uri: mediaUrl }}
       accessibilityLabel={apod.title}
       resizeMode="contain"
       onLoad={onLoad}
