@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GoogleOrb } from '../features/auth/components/GoogleOrb';
+import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
+import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
 import { authStrings } from '../features/auth/strings';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
@@ -12,16 +14,20 @@ import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
 export default function LoginScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const [notice, setNotice] = useState<string | null>(null);
+  const { notice: noticeParam } = useLocalSearchParams<{ notice?: string }>();
+  // A sign-out that the server could not confirm sends us here with a notice param.
+  const [pressedNotice, setPressedNotice] = useState<string | null>(null);
+  const notice =
+    pressedNotice ?? (noticeParam === LOGOUT_NOTICE ? authStrings.logoutNotConfirmed : null);
+
+  // Android announces the live region below; iOS needs an explicit announcement.
+  useEffect(() => {
+    if (notice && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(notice);
+  }, [notice]);
 
   // TEMPORARY: US #43 replaces this body with the Google OAuth2 + PKCE flow, saves the
   // tokens with saveTokens (features/auth/tokenStorage) and navigates to the app.
-  const handleContinue = () => {
-    setNotice(authStrings.loginUnavailable);
-    // Android announces the live region below; iOS needs an explicit announcement.
-    if (Platform.OS === 'ios')
-      AccessibilityInfo.announceForAccessibility(authStrings.loginUnavailable);
-  };
+  const handleContinue = () => setPressedNotice(authStrings.loginUnavailable);
 
   return (
     <SkyBackground>
@@ -54,7 +60,7 @@ export default function LoginScreen() {
               </Text>
               <GelButton
                 label={authStrings.continueWithGoogle}
-                icon={<GoogleOrb />}
+                icon={<GoogleLogo />}
                 onPress={handleContinue}
               />
               {notice && (

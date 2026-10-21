@@ -18,8 +18,6 @@ import { useTheme } from '../../../shared/theme';
 
 /** Share of the screen taken by the lake at the bottom; mirrors SkyBackground. */
 const LAKE_SHARE = 0.24;
-const STREAK_COLOR = 'rgba(255,255,255,0.95)';
-const TRANSPARENT = 'rgba(255,255,255,0)';
 const STREAK_THICKNESS = 2;
 const REFLECTION_OPACITY = 0.35;
 /** The reflection is squashed: how much of the sky height it keeps inside the lake. */
@@ -94,7 +92,9 @@ function Meteor({ spec, progress, width, skyHeight }: MeteorProps) {
     width: length,
     height: STREAK_THICKNESS,
   });
-  const tail: [string, string, string] = [TRANSPARENT, colors.accentGlow, STREAK_COLOR];
+  const { head, tail: tailColor } = colors.meteor;
+  // The tail fades in from fully transparent (8-digit hex: the colour plus alpha 00).
+  const tail: [string, string, string] = [`${tailColor}00`, tailColor, head];
 
   return (
     <>

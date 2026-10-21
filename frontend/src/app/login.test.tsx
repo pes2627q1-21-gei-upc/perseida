@@ -2,9 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
 import { authStrings } from '../features/auth/strings';
 import LoginScreen from './login';
+
+let mockParams: Record<string, string> = {};
+jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
 
 const mockUseReducedMotion = jest.fn(() => false);
 const mockWithRepeat = jest.fn((animation: unknown) => animation);
@@ -45,6 +49,7 @@ afterEach(() => {
   jest.clearAllMocks();
   jest.restoreAllMocks();
   mockUseReducedMotion.mockReturnValue(false);
+  mockParams = {};
 });
 
 describe('Login screen', () => {
@@ -75,6 +80,22 @@ describe('Login screen', () => {
 
     expect(screen.getByText(authStrings.loginUnavailable)).toBeOnTheScreen();
     expect(announce).toHaveBeenCalledWith(authStrings.loginUnavailable);
+  });
+
+  it('explains that the sign-out was not confirmed when it comes from a failed logout', async () => {
+    mockParams = { notice: LOGOUT_NOTICE };
+
+    await renderScreen();
+
+    expect(screen.getByText(authStrings.logoutNotConfirmed)).toBeOnTheScreen();
+  });
+
+  it('shows no notice for an unknown notice param', async () => {
+    mockParams = { notice: 'something-else' };
+
+    await renderScreen();
+
+    expect(screen.queryByText(authStrings.logoutNotConfirmed)).not.toBeOnTheScreen();
   });
 
   it('leaves the announcement to the live region on Android', async () => {

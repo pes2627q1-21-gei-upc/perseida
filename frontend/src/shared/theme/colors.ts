@@ -11,6 +11,8 @@ export interface ThemeColors {
   /** Fill only, never text. */
   brandFill: string;
   accentGlow: string;
+  /** Perseid streaks of the sign-in screen: the head and the colour of the tail. Decorative. */
+  meteor: { head: string; tail: string };
   state: { success: string; warning: string; danger: string };
   focusRing: string;
   /** Gel (main action button). The highlight must stay above the text: see tokens.md. */
@@ -35,6 +37,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#4B4BD8',
     brandFill: '#5B5BF0',
     accentGlow: '#1FA8E0',
+    meteor: { head: '#4B4BD8', tail: '#4B4BD8' },
     state: { success: '#2A7419', warning: '#8A5A00', danger: '#B3261E' },
     focusRing: '#0B78B5',
     gel: {
@@ -56,6 +59,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#B3B3FF',
     brandFill: '#5B5BF0',
     accentGlow: '#2EE6D6',
+    meteor: { head: '#FFFFFF', tail: '#2EE6D6' },
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
     gel: {
@@ -77,6 +81,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#B3B3FF',
     brandFill: '#5B5BF0',
     accentGlow: '#2EE6D6',
+    meteor: { head: '#FFFFFF', tail: '#2EE6D6' },
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
     gel: {
@@ -99,6 +104,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     brand: '#FF6B5E',
     brandFill: '#FF6B5E',
     accentGlow: '#FF8A7A',
+    meteor: { head: '#FFB3A7', tail: '#FF8A7A' },
     state: { success: '#FFB3A7', warning: '#FFB3A7', danger: '#FFB3A7' },
     focusRing: '#FF8A7A',
     gel: {

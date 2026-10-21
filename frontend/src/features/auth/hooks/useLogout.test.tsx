@@ -4,7 +4,9 @@ import type { ReactNode } from 'react';
 
 import { problemResponse } from '../../../../__mocks__/apod';
 import { getTokens, saveTokens } from '../tokenStorage';
-import { useLogout } from './useLogout';
+import { LOGOUT_NOTICE, useLogout } from './useLogout';
+
+const UNCONFIRMED = { pathname: '/login', params: { notice: LOGOUT_NOTICE } };
 
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
@@ -80,7 +82,7 @@ describe('useLogout', () => {
     await signOut();
 
     expect(await getTokens()).toBeNull();
-    expect(mockReplace).toHaveBeenCalledWith('/login');
+    expect(mockReplace).toHaveBeenCalledWith(UNCONFIRMED);
   });
 
   it('still wipes the tokens and redirects when the session already expired (criterion 10)', async () => {
@@ -114,6 +116,26 @@ describe('useLogout', () => {
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(await getTokens()).toBeNull();
+    expect(mockReplace).toHaveBeenCalledWith(UNCONFIRMED);
+  });
+
+  it('tells the sign-in screen when the server could not confirm the sign-out', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(503, 'SESSION_UNAVAILABLE'));
+
+    await signOut();
+
+    expect(mockReplace).toHaveBeenCalledWith(UNCONFIRMED);
+  });
+
+  it('says nothing when the session was already closed on the server', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(401, 'INVALID_SESSION'));
+
+    await signOut();
+
     expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 });
