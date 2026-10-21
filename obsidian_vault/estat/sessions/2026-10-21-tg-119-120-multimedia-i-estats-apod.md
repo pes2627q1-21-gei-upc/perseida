@@ -1,18 +1,18 @@
 ---
-titol: "Sessió 2026-10-21 · Multimèdia i estats de la pantalla de l'APOD (TG-119, TG-120)"
+titol: "Sessió 2026-10-21 · Multimèdia, estats i proves de la pantalla de l'APOD (TG-119, TG-120, TG-121)"
 tipus: sessio
 estat: vigent
 data: "2026-10-21"
 us: ["TG-48"]
-font: "treball de les tasques TG-119 i TG-120 de la US TG-48 (branca feature/TG-48-multimedia-i-estats)"
+font: "treball de les tasques TG-119, TG-120 i TG-121 de la US TG-48 (branca feature/TG-48-multimedia-i-estats, PR #36)"
 etiquetes: [sessio, frontend, tg-48, apod]
 ---
 
-# Sessió 2026-10-21 · Multimèdia i estats de la pantalla de l'APOD (TG-119, TG-120)
+# Sessió 2026-10-21 · Multimèdia, estats i proves de la pantalla de l'APOD (TG-119, TG-120, TG-121)
 
 ## Objectiu
 
-Omplir l'espai multimèdia de la pantalla `/apod` (TG-119, criteris 2 i 3 de TG-48) i afegir-hi els estats de càrrega i d'error amb reintent (TG-120, criteris 4 i 5), sobre la maquetació de [[2026-10-18-tg-118-maquetacio-pantalla-apod]].
+Omplir l'espai multimèdia de la pantalla `/apod` (TG-119, criteris 2 i 3 de TG-48) i afegir-hi els estats de càrrega i d'error amb reintent (TG-120, criteris 4 i 5). Després, validar els cinc criteris de la US (TG-121). Tot es fa sobre la maquetació de [[2026-10-18-tg-118-maquetacio-pantalla-apod]].
 
 ## Què s'ha fet
 
@@ -31,7 +31,7 @@ Omplir l'espai multimèdia de la pantalla `/apod` (TG-119, criteris 2 i 3 de TG-
   - `NETWORK_ERROR`: text nou.
   - Qualsevol altre codi: el text d'`INTERNAL_ERROR`.
   - El `detail` del servidor no es mostra mai ([[0018-errors-rfc-9457-amb-codis-estables]]).
-- **Tests** (`ApodScreen.test.tsx`): càrrega, imatge i proporció, vídeo, error del backend, error de xarxa, reintent i codi desconegut. `react-native-webview` es simula a Jest.
+- **Tests** (`ApodScreen.test.tsx`): contingut amb i sense `copyright`, càrrega, imatge i proporció, vídeo, error del backend, error de xarxa, reintent, error no recuperable, fallada del multimèdia, `keepInPlayer` i codi desconegut. `react-native-webview` es simula a Jest.
 - **Dependència**: `react-native-webview` 13.16.1, la que fixa Expo SDK 57 (`bundledNativeModules.json`).
 
 ## Decisions preses
@@ -52,6 +52,7 @@ Després de la revisió de `reviewer-arquitectura`:
 - **Anunci de l'error.** `polite`: `accessibilityLiveRegion` a Android i `announceForAccessibility` a iOS.
 - **Mapa `code` → text.** Es queda a `features/apod/strings.ts` fins a TG-91.
 - **Fallada del multimèdia.** Si la imatge o el vídeo no carreguen, al marc surt «No s'ha pogut carregar la imatge o el vídeo.». El títol i el text continuen visibles.
+- **`Referer` del reproductor.** YouTube rebutjava l'embed sense `Referer` (error 153 a Expo Go). Ara el WebView envia `Referer: https://edu.upc.perseida` (`PLAYER_REFERER` a `ApodMedia.tsx`). El valor el va proposar l'agent i el va acceptar la persona responsable.
 
 ## Validació dels criteris de TG-48 (TG-121)
 
@@ -67,7 +68,8 @@ Tests de `frontend/src/features/apod/components/ApodScreen.test.tsx` (pantalla a
 
 El servei i el hook ja tenien tests propis des de TG-117 (`getApodToday.test.ts`, `useApodToday.test.tsx`).
 
-**Incidències trobades i com s'han tractat:**
+### Incidències trobades i com s'han tractat
+
 - Error 153 de YouTube: corregit a TG-119 (`Referer`).
 - Error de NativeWind a la web: derivat al panell d'admin; no és d'aquesta US.
 - Segona mida de pantalla: comprovada amb el zoom de pantalla del sistema.
@@ -84,11 +86,10 @@ El servei i el hook ja tenien tests propis des de TG-117 (`getApodToday.test.ts`
   - vídeo de YouTube incrustat, que ja no dona el 153 un cop afegit el `Referer`;
   - spinner, error `APOD_UNAVAILABLE` amb reintent cap a càrrega i contingut, i error de xarxa amb recuperació.
 - [x] Segona mida de pantalla per a TG-119: s'ha provat amb el zoom de pantalla del sistema (amplada lògica menor).
-- [ ] YouTube rebutjava l'embed sense `Referer` (error 153 a Expo Go). Ara el WebView envia `Referer: https://edu.upc.perseida` (`PLAYER_REFERER` a `ApodMedia.tsx`), proposat per l'agent i acceptat per la persona responsable. Quan l'equip fixi l'`android.package` a `app.json`, cal que coincideixin.
+- [ ] Quan l'equip fixi l'`android.package` a `app.json`, cal que `PLAYER_REFERER` hi coincideixi.
 - [ ] Validar al backend que la `url` de l'APOD és `https` (`HttpUrl`): US a part, no feta aquí.
 - [ ] `INVALID_RESPONSE` (codi del client) encara no té fila al catàleg.
 - [ ] TG-91: textos es/en d'`apodStrings` i de `NETWORK_ERROR`.
-- [ ] TG-121: proves de components i validació d'usabilitat.
 - [ ] A la web (`pnpm expo start` → `w`), NativeWind (`react-native-css-interop`) llança «Cannot manually set color scheme, as dark mode is type 'media'». No ve d'aquesta US; caldrà resoldre-ho quan es faci el panell d'admin.
 - [ ] El checkout a Windows amb CRLF continua fent fallar Prettier als fitxers no tocats (`.gitattributes`, vegeu la sessió de TG-118).
 
