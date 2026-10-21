@@ -119,8 +119,11 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `REDIS_HOST` | No | Redis host or service name | `redis` or `localhost` |
 | `REDIS_PORT` | No | Redis port | `6379` |
 | `APP_ENV` | No | Runtime environment (`local`, `production`) | `production` |
+| `API_IMAGE_TAG` | No | Tag or commit SHA of backend image in GHCR (used for rollbacks) | `latest` or `sha-a1b2c3d` |
 | `GOOGLE_CLIENT_ID` | Yes | Expected audience of the Google ID tokens | `1234-abc.apps.googleusercontent.com` |
 | `JWT_SECRET` | Yes | Secret for session JWT signing (at least 32 characters) | `<output of openssl rand -hex 32>` |
+| `ACCESS_TOKEN_MINUTES` | No | Expiration time for access tokens in minutes (default: 15) | `15` |
+| `REFRESH_TOKEN_DAYS` | No | Expiration time for refresh tokens in days (default: 30) | `30` |
 
 ### First-time setup: make the package public (one-time, manual)
 
@@ -145,13 +148,16 @@ The first time the workflow pushes the image, GitHub links the package to the re
 
 ```
 infra/
-├── docker-compose.yml        # the five services (local and production)
+├── docker-compose.yml          # base service definitions and production deployment
+├── docker-compose.override.yml # local development override (bind mount, dev ports)
 ├── .env.example
-├── nginx-proxy-manager/      # proxy configuration
-├── moderation/               # Kev-4B service image/config
+├── nginx-proxy-manager/        # proxy configuration
+├── moderation/                 # Kev-4B service image/config
 └── scripts/
-    └── test-backend-docker.sh # local validation and smoke test of perseida-api
+    └── test-backend-docker.sh   # local validation and smoke test of perseida-api
 ```
+
+> **Compose structure:** We use `docker-compose.override.yml` for local development (which Docker Compose merges automatically) so that production runs purely with `docker-compose.yml` (using GHCR images and without exposing internal ports), avoiding service duplication.
 
 ## Local validation and testing (backend Docker image)
 
@@ -165,14 +171,15 @@ To validate the Docker image build, container security, and runtime health local
 ./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
-## Run locally (planned)
+## Run locally
 
 ```bash
+cd infra
 cp .env.example .env          # fill in local values, never commit .env
-docker compose up -d --build
-docker compose ps
-docker compose logs -f api
-docker compose down
+docker compose up -d --build  # starts db, cache, api and reverse-proxy
+docker compose ps             # verify health status (healthy)
+docker compose logs -f api    # follow API logs with hot-reload
+docker compose down           # stop containers preserving data volumes
 ```
 
 ## Known limitations (accepted for an academic project)
