@@ -2,9 +2,9 @@
 titol: "Google OAuth2 amb PKCE, validació JWKS i sessió pròpia"
 tipus: adr
 estat: acceptada
-data: "2026-10-07"
+data: "2026-10-20"
 us: ["TG-85", "TG-43", "TG-44", "TG-45"]
-font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07)"
+font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87)"
 etiquetes: [adr, autenticacio, oauth2, pkce, jwks, seguretat]
 ---
 
@@ -24,10 +24,30 @@ L'app mòbil fa l'inici de sessió amb Google OAuth2 i PKCE. El backend valida e
 
 - No s'emmagatzema cap contrasenya.
 - Els endpoints privats es poden verificar amb proves d'integració que comproven el rebuig sense sessió vàlida.
+- La sessió es pot revocar a l'instant (logout, suspensió d'un compte) esborrant la clau de Redis.
 
 ### Negatives (assumides)
 
-- No consten a les fonts.
+- Si Redis es reinicia, es perden les sessions i els usuaris tornen a iniciar sessió amb Google.
+- Cada petició privada consulta Redis; si no està disponible, l'API respon 503 `SESSION_UNAVAILABLE` en lloc de deixar passar.
+- Les sessions a Redis no contradiuen [[0005-redis-nomes-com-a-cache-lazy]] (que té una esmena que ho recull): perdre-les només obliga a tornar a entrar, no fa perdre cap dada.
+
+## Concreció (TG-44)
+
+Detall d'implementació de la decisió anterior, confirmat a la US TG-44. No canvia la decisió.
+
+- **Validació del token de Google:** signatura RS256 amb les claus públiques de Google (JWKS, en memòria 1 h; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut; si Google cau, es continuen usant les claus guardades), emissor (`https://accounts.google.com` o `accounts.google.com`), audiència (`GOOGLE_CLIENT_ID`), caducitat i `email_verified`. Si falla: 401 `INVALID_GOOGLE_TOKEN`; sense claus i sense resposta de Google: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+- **Format de la sessió:** dos JWT signats amb HS256 i `JWT_SECRET` (mínim 32 caràcters): *access token* de 15 minuts i *refresh token* de 30 dies, configurables amb `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS`. Claims: `sub` (el `google_sub`), `jti` (únic per token), `sid` (identificador de sessió, compartit per l'access i el refresh del mateix parell), `type` (`access` o `refresh`), `iat` i `exp`. El decode fixa l'algorisme i exigeix els sis claims.
+- **Claus a Redis:** cada token emès es desa com `session:<type>:<jti>` amb TTL igual a la seva caducitat. Un token només és vàlid si la signatura i la caducitat són correctes **i** la clau existeix; si no, 401 `INVALID_SESSION`. Revocar és esborrar la clau.
+- **Índex per usuari:** a més, cada usuari té el set `user_sessions:<sub>` amb membres `<sid>:<type>:<jti>`, amb un TTL que s'allarga fins al del token que viu més. `SessionStore` exposa `revoke_session(sub, sid)` (el parell d'una sessió, per al tancament de sessió, TG-45) i `revoke_all(sub)` (totes les sessions d'un usuari, per a la suspensió i el baneig i per tancar el WebSocket). Es fa ara perquè canviar el contracte del port més endavant obligaria a migrar les sessions ja emeses.
+- **Renovació:** `POST /api/auth/refresh` esborra el refresh anterior i emet un parell nou amb el **mateix `sid`**; reutilitzar-lo dona 401 `INVALID_SESSION`. És atòmic: `SessionStore.delete` retorna si ha esborrat l'entrada (el `DEL` de Redis ho és) i, de dos refresh simultanis amb el mateix token, només un obté parell nou. `refresh` no consulta l'estat del compte: la suspensió o el baneig revoquen les sessions amb `revoke_all`, i llavors el refresh falla amb 401 perquè la clau ja no hi és.
+- **Comptes:** el port `AccountGateway` retorna l'estat (`active`, `suspended`, `banned`, `deleted`); suspès o banejat → 403 `ACCOUNT_SUSPENDED`, esborrat → 403 `ACCOUNT_DELETED`. Fins que TG-45 hi connecti la implementació real hi ha una de provisional que accepta tots els comptes.
+- **Redis caigut:** el magatzem de sessions no tracta l'error com un *miss* (com fa la cache): llança 503 `SESSION_UNAVAILABLE`, perquè no es pot dir si un token és vàlid ni emetre'n de nous.
+- **Endpoints:** `POST /api/auth/google`, `POST /api/auth/refresh` i la dependència `CurrentSessionDep`, que només accepta *access tokens*.
+
+### Límits coneguts
+
+- Rotació de claus de Google: un token vàlid amb un `kid` nou, rebut just després d'una descàrrega de claus, dona 401 `INVALID_GOOGLE_TOKEN` fins que passi el minut. És un cas rar i l'usuari reintenta.
 
 ## Alternatives descartades
 
@@ -43,6 +63,9 @@ L'app mòbil fa l'inici de sessió amb Google OAuth2 i PKCE. El backend valida e
 ## Enllaços
 
 - [[serveis-externs]]
+- [[0005-redis-nomes-com-a-cache-lazy]]
+- [[0018-errors-rfc-9457-amb-codis-estables]]
+- [[redis]]
 - [[api]]
 - [[frontend]]
 - [[backend-hexagonal]]

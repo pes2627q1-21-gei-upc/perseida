@@ -119,7 +119,8 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `REDIS_HOST` | No | Redis host or service name | `redis` or `localhost` |
 | `REDIS_PORT` | No | Redis port | `6379` |
 | `APP_ENV` | No | Runtime environment (`local`, `production`) | `production` |
-| `JWT_SECRET` | No | Secret for session JWT signing | `secret-token` |
+| `GOOGLE_CLIENT_ID` | Yes | Expected audience of the Google ID tokens | `1234-abc.apps.googleusercontent.com` |
+| `JWT_SECRET` | Yes | Secret for session JWT signing (at least 32 characters) | `<output of openssl rand -hex 32>` |
 
 ### First-time setup: make the package public (one-time, manual)
 

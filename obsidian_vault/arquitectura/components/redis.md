@@ -2,8 +2,8 @@
 titol: "Component: redis"
 tipus: component
 estat: vigent
-data: "2026-10-16"
-us: ["TG-85", "TG-37", "TG-46", "TG-87"]
+data: "2026-10-20"
+us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87"]
 font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16)"
 etiquetes: [component, redis, cache, pubsub]
 ---
@@ -33,10 +33,13 @@ Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix 
 - Adaptadors a `app/infrastructure/cache/` (`RedisCache`, `RedisPubSub`); el client es crea i es tanca al `lifespan` ([[0017-injeccio-de-dependencies-i-services-singleton]]).
 - Cache lazy: `get_or_load` (`app/application/shared/cache.py`). Si Redis cau, `RedisCache` registra un avís i actua com una fallada: es torna a la font, sense HTTP 500.
 - Pub/sub: si Redis falla, `ExternalServiceError` amb el codi `PUBSUB_UNAVAILABLE` (503), segons [[0018-errors-rfc-9457-amb-codis-estables]].
+- Sessions (TG-44): el port `SessionStore` (`save`, `exists`, `delete`) i l'adaptador `RedisSessionStore` (`app/infrastructure/auth/`) desen cada token emès. A diferència de la cache, si Redis falla llança `SESSION_UNAVAILABLE` (503) en lloc de comportar-se com un *miss*.
 
 ## Convenció de claus
 
 Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<id>`, p. ex. `cache:apod:2026-10-05`. Cada funcionalitat fixa el TTL del seu recurs.
+
+Les sessions no passen per la cache: es desen com `session:<type>:<jti>` (`type` és `access` o `refresh`) amb un TTL igual a la caducitat del token. Un índex `user_sessions:<sub>` (set amb membres `<sid>:<type>:<jti>` i el TTL del token que viu més) permet revocar el parell d'una sessió o totes les d'un usuari; `delete` i la revocació són transaccions (`MULTI/EXEC`). Si Redis es reinicia, les sessions es perden i els usuaris tornen a iniciar sessió ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]).
 
 ## Decisions relacionades
 
@@ -47,6 +50,7 @@ Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<
 
 - TG-37 (Docker Compose amb cinc serveis)
 - TG-46 (cache APOD)
+- TG-44 (sessions a Redis)
 - TG-87 (Redis)
 
 ## Estat d'implementació

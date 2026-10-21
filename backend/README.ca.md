@@ -230,6 +230,59 @@ Per executar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 r
 
 Els tests d'integració (`tests/integration/test_redis.py`) s'executen si hi ha `REDIS_HOST`; la CI aixeca Redis 8.
 
+## Autenticació
+
+L'app inicia la sessió amb Google (OAuth2 + PKCE) i envia l'`id_token` de Google al backend, que mai rep el codi d'autorització ni desa cap contrasenya ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). El backend en comprova el token i emet una sessió pròpia.
+
+**Flux:**
+
+1. `POST /api/auth/google` amb `{"id_token": "<token de Google>"}`.
+2. `GoogleJwksVerifier` comprova la signatura RS256 amb les claus públiques de Google (JWKS, en memòria durant 1 hora; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut), l'emissor, l'audiència (`GOOGLE_CLIENT_ID`), la caducitat i que el correu estigui verificat. Si no: 401 `INVALID_GOOGLE_TOKEN`. Si Google no respon i no hi ha claus en memòria: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+3. El port `AccountGateway` retorna l'estat del compte: suspès o banejat → 403 `ACCOUNT_SUSPENDED`; esborrat → 403 `ACCOUNT_DELETED`.
+4. El backend emet dos JWT signats amb HS256 i `JWT_SECRET`: un access token (15 minuts) i un refresh token (30 dies), amb les claims `sub` (el `google_sub`), `jti` (únic per token), `sid` (identificador de sessió, compartit per l'access i el refresh d'un parell i mantingut per `refresh`), `type` (`access` o `refresh`), `iat` i `exp`. Cadascun es registra a Redis com a `session:<type>:<jti>` amb un TTL igual a la seva durada, i s'apunta a l'índex de l'usuari `user_sessions:<sub>` (membres `<sid>:<type>:<jti>`).
+5. Resposta `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` en segons).
+
+Un token és vàlid només si la signatura i la caducitat són correctes **i** la seva clau existeix a Redis. Esborrar la clau revoca el token a l'instant; si Redis es reinicia, les sessions es perden i els usuaris tornen a iniciar sessió amb Google. Si Redis no està disponible, els endpoints responen 503 `SESSION_UNAVAILABLE`.
+
+**Renovació:** `POST /api/auth/refresh` amb `{"refresh_token": "..."}` retorna un parell nou i esborra el refresh anterior de Redis; tornar-lo a usar retorna 401 `INVALID_SESSION`.
+
+**Configuració** (`.env.example`; `AuthSettings` a `app/infrastructure/auth/config.py`):
+
+| Variable | Significat |
+|---|---|
+| `GOOGLE_CLIENT_ID` | Audiència (`aud`) esperada del token de Google |
+| `JWT_SECRET` | Clau HS256, d'almenys 32 caràcters; mai no se'n versiona una de real |
+| `ACCESS_TOKEN_MINUTES` | Durada de l'access token (15 per defecte) |
+| `REFRESH_TOKEN_DAYS` | Durada del refresh token (30 per defecte) |
+
+**Protegir un endpoint:** afegeix `CurrentSessionDep`. Llegeix `Authorization: Bearer <access token>` i retorna les `SessionClaims`. Sense capçalera, amb un token invàlid o revocat, o amb un refresh token, respon 401 `INVALID_SESSION`.
+
+```python
+from app.infrastructure.auth.dependencies import CurrentSessionDep
+
+
+@router.get("/me")
+async def me(session: CurrentSessionDep) -> MeResponse:
+    return MeResponse(google_sub=session.sub)  # sub is the user's google_sub
+```
+
+**Connectar la US #45 (usuaris).** El domini defineix el port `AccountGateway` a `app/domain/auth/ports.py`:
+
+```python
+class AccountGateway(Protocol):
+    async def get_status(self, identity: GoogleIdentity) -> AccountStatus: ...
+```
+
+`GoogleIdentity` porta `google_sub`, `email` i, opcionals, `name` i `picture`. `AccountStatus` és `active`, `suspended`, `banned` o `deleted` (`deleted` quan `deleted_at` està informat). Per connectar-lo:
+
+1. Escriu l'adaptador a `infrastructure` (cerca l'usuari per `google_sub`, el crea al primer accés i retorna el seu estat).
+2. Substitueix `ProvisionalAccountGateway()` per l'adaptador a `build_auth_service` (`app/infrastructure/auth/dependencies.py`). La implementació provisional, que **accepta tots els comptes**, és a `app/infrastructure/auth/provisional_account_gateway.py` i la treu la #45.
+3. El tancament de sessió també és de la #45: revoca el parell amb `SessionStore.revoke_session(sub, sid)` (afegeix un mètode `logout` a `AuthService`). La suspensió i el baneig (#78, #102) usen `SessionStore.revoke_all(sub)`; el refresh falla llavors amb 401 perquè la clau ja no existeix.
+
+Als tests fes servir `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` mostra el flux complet amb Google simulat amb `respx`.
+
+Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`) són a `app/application/auth/errors.py` i al catàleg d'errors.
+
 ## Testing i qualitat
 
 - Piràmide de proves: ~70 % unitàries, ~30 % d'integració (PostgreSQL/PostGIS i Redis efímers, API amb `httpx.AsyncClient`, APIs externes simulades amb `respx`). No hi ha proves end-to-end a l'app mòbil.
