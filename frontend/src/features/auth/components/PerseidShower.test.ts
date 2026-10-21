@@ -24,6 +24,7 @@ import {
   flightPose,
   nextGapMs,
   randomMeteor,
+  reflectionDepth,
   streakRotationDeg,
   travelDirection,
 } from './PerseidShower';
@@ -135,6 +136,38 @@ describe('meteors and the hills', () => {
 
       expect(travel).toBeGreaterThanOrEqual(0);
       expect(endY).toBeLessThanOrEqual(cropY + 1e-9);
+    }
+  });
+});
+
+describe('reflections', () => {
+  const SKY_HEIGHT = 650;
+  const WATER_HEIGHT = 280;
+
+  it('start at the waterline and go down into the water, never up into the air', () => {
+    expect(reflectionDepth(SKY_HEIGHT, SKY_HEIGHT)).toBe(0);
+    expect(reflectionDepth(300, SKY_HEIGHT)).toBeGreaterThan(0);
+    // Even for a point that is (wrongly) below the waterline, the depth is never negative.
+    expect(reflectionDepth(SKY_HEIGHT + 50, SKY_HEIGHT)).toBe(0);
+  });
+
+  it('the higher the meteor, the deeper its reflection', () => {
+    expect(reflectionDepth(100, SKY_HEIGHT)).toBeGreaterThan(reflectionDepth(400, SKY_HEIGHT));
+  });
+
+  it('stay inside the water for every meteor the shower can roll and at every moment', () => {
+    const rng = seeded(321);
+    for (let i = 0; i < 1000; i += 1) {
+      const meteor = randomMeteor(rng);
+      const headY = meteor.y * SKY_HEIGHT;
+      const travel = clampedTravel(390 * meteor.travelShare, headY, 560, meteor.angleDeg);
+      for (let t = 0; t <= 1; t += 0.1) {
+        const pose = flightPose(t, travel, meteor.angleDeg);
+        const depth = reflectionDepth(headY + pose.dy, SKY_HEIGHT);
+
+        expect(depth).toBeGreaterThanOrEqual(0);
+        expect(depth).toBeLessThan(WATER_HEIGHT);
+      }
     }
   });
 });

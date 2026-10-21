@@ -153,6 +153,16 @@ function reflectionRotationDeg(angleDeg: number) {
 }
 
 /**
+ * How far below the waterline the reflection of a point of the sky at height `skyY` falls: the
+ * mirror image, squashed by the lake. Zero at the waterline and never negative, so a
+ * reflection is always on the water and never above it.
+ */
+export function reflectionDepth(skyY: number, skyHeight: number) {
+  'worklet';
+  return Math.max(0, (skyHeight - skyY) * REFLECTION_SQUASH);
+}
+
+/**
  * The travel of the head, shortened if it would end below `cropY` (the top of the hills): a
  * meteor ends in the sky, it never goes over the land.
  */
@@ -216,22 +226,22 @@ function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
 
   const lake = useAnimatedStyle(() => {
     const pose = flightPose(Math.min(Math.max(progress.value, 0), 1), travel, angleDeg);
-    const lakeY = skyHeight + (skyHeight - (headY + pose.dy)) * REFLECTION_SQUASH;
     return {
       opacity: pose.opacity * REFLECTION_OPACITY,
       transform: [
         { translateX: pose.dx },
-        { translateY: lakeY - headY },
+        // From the top of the water, which is where the reflection layer starts.
+        { translateY: reflectionDepth(headY + pose.dy, skyHeight) },
         { rotate: `${lakeRotation}deg` },
         { scaleX: pose.stretch },
       ],
     };
   });
 
-  const bar = (length: number) => ({
+  const bar = (length: number, top: number) => ({
     position: 'absolute' as const,
     left: headX,
-    top: headY - spec.thickness / 2,
+    top,
     width: length,
     height: spec.thickness,
     // The head is the fixed point: the tail is what stretches and trails.
@@ -257,7 +267,7 @@ function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
           overflow: 'hidden',
         }}
       >
-        <Animated.View style={[bar(spec.length), sky]}>
+        <Animated.View style={[bar(spec.length, headY - spec.thickness / 2), sky]}>
           <LinearGradient
             colors={fade}
             start={{ x: 0, y: 0.5 }}
@@ -266,14 +276,28 @@ function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
           />
         </Animated.View>
       </View>
-      <Animated.View style={[bar(spec.length * REFLECTION_LENGTH), lake]}>
-        <LinearGradient
-          colors={fade}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+      {/* The reflection lives in a layer that is exactly the water: it can only be seen there,
+          never in the air. The meadow of the banks, drawn over it, shapes the shore. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: skyHeight,
+          bottom: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <Animated.View style={[bar(spec.length * REFLECTION_LENGTH, 0), lake]}>
+          <LinearGradient
+            colors={fade}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
     </>
   );
 }

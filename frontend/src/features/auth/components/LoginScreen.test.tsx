@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, Platform } from 'react-native';
+import { AccessibilityInfo, Dimensions, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LOGOUT_NOTICE } from '../hooks/useLogout';
+import { LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, SLOT_COUNT } from './PerseidShower';
 import { authStrings } from '../strings';
 import LoginScreen from '../../../app/login';
@@ -183,6 +184,28 @@ describe('Login screen', () => {
       expect(mostAtOnce).toBeLessThanOrEqual(LIMITS.maxActive[1]);
       expect(mostAtOnce).toBeGreaterThanOrEqual(2);
     });
+  });
+
+  it('keeps every reflection in a layer that is exactly the water, so it is never in the air', async () => {
+    await renderScreen();
+
+    type StyleNode = { props?: { style?: unknown }; children?: (StyleNode | string)[] | null };
+    const layers: Record<string, unknown>[] = [];
+    const walk = (node: StyleNode | string) => {
+      if (typeof node === 'string') return;
+      const style = StyleSheet.flatten(node.props?.style as never) as Record<string, unknown>;
+      if (style?.overflow === 'hidden' && typeof style.top === 'number' && style.bottom === 0) {
+        layers.push(style);
+      }
+      node.children?.forEach(walk);
+    };
+    walk(screen.toJSON() as unknown as StyleNode);
+    const { height } = Dimensions.get('window');
+    const waterline = height * (1 - LAKE_SHARE);
+
+    // One reflection layer per meteor slot, every one starting at the waterline.
+    expect(layers).toHaveLength(SLOT_COUNT);
+    layers.forEach((layer) => expect(layer.top).toBeCloseTo(waterline, 5));
   });
 
   it('paints the shower before the content: no meteor can cover a letter or a button', async () => {
