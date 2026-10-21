@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.openapi import install_openapi_cleanup
+from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
 from app.infrastructure.apod.router import router as apod_router
 from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     )
     register_error_handlers(app)
     app.add_middleware(CorrelationIdMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(health_router, prefix="/api")
     app.include_router(apod_router, prefix="/api")
     app.include_router(auth_router, prefix="/api")

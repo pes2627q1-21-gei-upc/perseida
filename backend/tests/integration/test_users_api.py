@@ -339,3 +339,86 @@ async def test_logout_with_an_expired_access_token_still_revokes_the_refresh(
 
     assert logout.status_code == 204
     assert_problem(refresh, 401, INVALID_SESSION)
+
+
+SQL_INJECTION_PAYLOADS = [
+    "'; DROP TABLE users; --",
+    "' OR '1'='1",
+    "x'); DELETE FROM user_identities; --",
+    'a" OR 1=1 --',
+    "1; SELECT pg_sleep(5); --",
+]
+
+
+@pytest.mark.parametrize("payload", SQL_INJECTION_PAYLOADS)
+async def test_sql_injection_payloads_in_the_google_profile_are_stored_as_plain_text(
+    client: AsyncClient, engine: AsyncEngine, sub: str, payload: str
+) -> None:
+    # Hardening: every value is a bound parameter, so a payload is just a string
+    # An email cannot hold blanks (rejected as USER_EMAIL_INVALID), the rest is kept.
+    email = f"{''.join(payload.split())}{sub}@example.test"
+    id_token = token(sub=f"{payload}{sub}", email=email, name=payload)
+
+    login_response = await client.post("/api/auth/google", json={"id_token": id_token})
+    me = await client.get("/api/users/me", headers=bearer(login_response.json()))
+
+    assert login_response.status_code == 200
+    assert me.json()["display_name"] == payload.strip()
+    assert me.json()["email"] == email.lower()
+    # The tables are intact and the injected statements did nothing
+    assert await scalar(engine, "SELECT count(*) FROM users") == 1
+    assert await scalar(engine, "SELECT count(*) FROM user_identities") == 1
+
+
+async def test_a_payload_in_the_language_field_is_ignored(
+    client: AsyncClient, engine: AsyncEngine, sub: str
+) -> None:
+    response = await login(client, sub, language="ca';DROP TABLE--")
+
+    assert response.status_code == 200
+    assert await scalar(engine, "SELECT preferred_language FROM users") == "ca"
+
+
+async def test_markup_in_the_profile_comes_back_as_inert_json(
+    client: AsyncClient, sub: str
+) -> None:
+    # Hardening: the API never answers HTML, and nosniff stops a browser from guessing
+    markup = "<script>alert(document.cookie)</script><img src=x onerror=alert(1)>"
+    id_token = token(sub=sub, email=f"{sub}@example.test", name=markup)
+    tokens = (await client.post("/api/auth/google", json={"id_token": id_token})).json()
+
+    response = await client.get("/api/users/me", headers=bearer(tokens))
+
+    assert response.headers["content-type"] == "application/json"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["content-security-policy"].startswith("default-src 'none'")
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["display_name"] == markup
+
+
+async def test_a_dangerous_avatar_link_is_not_stored(
+    client: AsyncClient, sub: str
+) -> None:
+    id_token = token(
+        sub=sub,
+        email=f"{sub}@example.test",
+        picture="javascript:alert(document.cookie)",
+    )
+    tokens = (await client.post("/api/auth/google", json={"id_token": id_token})).json()
+
+    response = await client.get("/api/users/me", headers=bearer(tokens))
+
+    assert response.json()["avatar_url"] is None
+
+
+async def test_control_characters_in_the_name_do_not_break_the_login(
+    client: AsyncClient, sub: str
+) -> None:
+    # A NUL byte makes PostgreSQL refuse the text: it must be stripped, not a 500
+    id_token = token(sub=sub, email=f"{sub}@example.test", name="Ana\x00 Lovelace")
+
+    response = await client.post("/api/auth/google", json={"id_token": id_token})
+    me = await client.get("/api/users/me", headers=bearer(response.json()))
+
+    assert response.status_code == 200
+    assert me.json()["display_name"] == "Ana Lovelace"

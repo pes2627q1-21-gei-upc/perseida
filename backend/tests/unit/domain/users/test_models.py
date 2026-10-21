@@ -151,3 +151,62 @@ def test_account_status_is_deleted_whenever_deleted_at_is_set(
     user = _user(status=status, deleted_at=datetime.now(UTC))
 
     assert user.account_status is AuthAccountStatus.DELETED
+
+
+def test_display_name_loses_control_characters_and_is_cut_to_the_column() -> None:
+    # Hardening: NUL bytes make PostgreSQL fail and the column is 255 long
+    user = User.create(
+        google_sub="sub-123",
+        email="ada@example.test",
+        display_name="A\x00da" + "x" * 300,
+    )
+
+    assert user.display_name is not None
+    assert "\x00" not in user.display_name
+    assert len(user.display_name) == 255
+
+
+def test_display_name_keeps_markup_as_text() -> None:
+    user = User.create(
+        google_sub="sub-123",
+        email="ada@example.test",
+        display_name="<img src=x onerror=alert(1)>",
+    )
+
+    assert user.display_name == "<img src=x onerror=alert(1)>"
+
+
+def test_a_blank_display_name_becomes_none() -> None:
+    user = User.create(
+        google_sub="sub-123", email="ada@example.test", display_name=" \x00 "
+    )
+
+    assert user.display_name is None
+
+
+@pytest.mark.parametrize(
+    "avatar_url",
+    ["javascript:alert(1)", "data:image/png;base64,AAAA", "http://example.test/a.png"],
+)
+def test_an_avatar_that_is_not_a_plain_https_link_is_dropped(avatar_url: str) -> None:
+    user = User.create(
+        google_sub="sub-123", email="ada@example.test", avatar_url=avatar_url
+    )
+
+    assert user.avatar_url is None
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "a" * 320 + "@example.test",
+        "ada @example.test",
+        "ada\x00@example.test",
+        "a\nb@example.test",
+    ],
+)
+def test_a_malformed_or_oversized_email_is_rejected(email: str) -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        User.create(google_sub="sub-123", email=email)
+
+    assert exc_info.value.code == "USER_EMAIL_INVALID"

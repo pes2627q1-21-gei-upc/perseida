@@ -17,6 +17,9 @@ from app.domain.auth.models import SessionTokens
 from app.infrastructure.api.schemas import ProblemDetails
 from app.infrastructure.auth.dependencies import BEARER, AuthServiceDep
 
+# Generous for a JWT (about 1 KB), small enough to refuse payloads that exhaust memory.
+MAX_TOKEN_LENGTH = 4096
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _PROBLEM_CONTENT: dict[str, Any] = {
@@ -38,6 +41,7 @@ class GoogleLoginRequest(BaseModel):
     id_token: str = Field(
         ...,
         min_length=1,
+        max_length=MAX_TOKEN_LENGTH,
         description="ID token que l'app obté de Google (OAuth2 amb PKCE)",
     )
     language: str | None = Field(
@@ -52,7 +56,10 @@ class GoogleLoginRequest(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str = Field(
-        ..., min_length=1, description="Refresh token vigent de la sessió"
+        ...,
+        min_length=1,
+        max_length=MAX_TOKEN_LENGTH,
+        description="Refresh token vigent de la sessió",
     )
 
 
