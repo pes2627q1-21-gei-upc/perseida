@@ -5,7 +5,7 @@ description: Fa la review d'una PR de Perseida d'una altra persona - llegeix la 
 
 # Revisar una PR
 
-Reps una PR (URL, número o branca) i retornes una review argumentada. No edites codi. No publiques comentaris, aprovacions ni rebutjos a GitHub si la persona no ho demana explícitament, després d'ensenyar-li el text exacte.
+Reps una PR (URL, número o branca) i retornes una review argumentada. No edites codi. No publiques comentaris, aprovacions ni rebutjos a GitHub sense l'elecció explícita de la persona (pas 6), després d'ensenyar-li el text exacte.
 
 Segueix `AGENTS.md` i la skill `vault-context`. Protocol de dubtes: res d'inventar; si falta una dada o una regla és ambigua, **pregunta a la persona** (agrupat, amb opcions i recomanació).
 
@@ -28,7 +28,13 @@ Review **laxa amb l'estil**: només s'informa del que **viola una norma escrita*
    - **CI i local:** taula `comprovació → resultat real`.
    - **Veredicte:** aprovable / cal canvis.
    - Punts verificats sense problemes i preguntes per a la persona.
-6. **Publicar (només si ho demana).** Mostra el text exacte (comentaris en línia o resum) i espera un sí abans d'enviar-lo amb `gh pr review`/`gh pr comment`. Aprovar o rebutjar la PR és decisió de la persona.
+6. **Pregunta què fer (SEMPRE).** Després d'informar de les troballes, fes **sempre** una pregunta amb l'eina de preguntes, amb la teva recomanació primera segons el veredicte:
+   - **Aprovar** (`gh pr review --approve`): recomanat si no hi ha troballes ni checks en vermell.
+   - **Request changes** (`--request-changes`): recomanat si hi ha troballes CRÍTIQUES/ALTES, o una violació de norma, o la CI en vermell.
+   - **Només comentar** (`--comment`): sense aprovar ni bloquejar.
+   - **No publicar res:** l'informe es queda al xat.
+   Si cal, ofereix també editar o treure troballes abans d'enviar-les.
+7. **Publicar (només el que triï).** Mostra el text exacte (resum i comentaris en línia) i espera un sí abans d'enviar-lo amb `gh pr review`/`gh pr comment`. Sense `gh`, redacta el text perquè la persona l'enganxi. Mai aprovis ni rebutgis sense la resposta explícita de la persona.
 
 ## Què NO fer
 
