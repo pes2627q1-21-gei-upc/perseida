@@ -6,18 +6,16 @@ import { GlassPanel } from '../../../shared/ui';
 import type { Apod } from '../api/getApodToday';
 import { formatApodDate } from '../formatApodDate';
 import { apodStrings } from '../strings';
-
-const MEDIA_ASPECT_RATIO = 4 / 3;
+import { ApodMedia } from './ApodMedia';
 
 interface Props {
   apod: Apod;
 }
 
-/** Content of the APOD screen (TG-118). The media slot is filled in TG-119. */
+/** Content of the APOD screen (TG-118), with the media from TG-119. */
 export function ApodView({ apod }: Props) {
-  const theme = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const insets = useSafeAreaInsets();
-  const { colors, spacing, typography } = theme;
 
   return (
     <ScrollView
@@ -29,17 +27,7 @@ export function ApodView({ apod }: Props) {
       }}
     >
       <View style={[styles.column, { maxWidth: readingMaxWidth, gap: spacing.md }]}>
-        <View
-          accessible
-          accessibilityLabel={apodStrings.mediaPlaceholderLabel}
-          style={{
-            aspectRatio: MEDIA_ASPECT_RATIO,
-            borderRadius: theme.radii.lg,
-            borderWidth: 1,
-            borderColor: colors.surface.glassBorder,
-            backgroundColor: colors.surface.glass,
-          }}
-        />
+        <ApodMedia apod={apod} />
 
         <View style={{ gap: spacing.xs }}>
           <Text
