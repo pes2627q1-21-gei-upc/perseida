@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
 from alembic import context
-from app.infrastructure.persistence import models  # noqa: F401
+from app.infrastructure.persistence import apod_table, models  # noqa: F401
 from app.infrastructure.persistence.config import DatabaseSettings
 
 config = context.config
