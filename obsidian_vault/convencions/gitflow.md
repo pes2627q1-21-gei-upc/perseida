@@ -48,6 +48,33 @@ Els noms usen el prefix seguit d'un nom breu i descriptiu. Els missatges de comm
 
 Versionat semàntic (SemVer, `MAJOR.MINOR.PATCH`) a partir de `0.1.0`: patch per bugfixes, minor per funcionalitat nova compatible, major per canvis incompatibles. Una release per sprint; un push a `main` equival a fusionar una release o un hotfix i dispara la CD. L'assignació de versions i la creació de releases les automatitza el pipeline de GitHub Actions.
 
+## Enllaç amb Taiga
+
+La integració de GitHub amb Taiga permet relacionar els commits i les pull requests (PR) amb les tasques i les històries d'usuari (US).
+
+- Inclou la referència `TG-<ref>` al missatge del commit o a la descripció de la PR. Per exemple: `TG-33`.
+- Opcionalment, es pot canviar l'estat de l'element afegint `TG-<ref> #<estat>`. Per exemple: `TG-33 #closed`.
+- En fusionar una PR es genera un commit de fusió; si la descripció de la PR conté la referència, aquesta també arriba a Taiga quan es fusiona.
+
+Estats vàlids per a les subtasques:
+
+- `NEW`
+- `IN PROGRESS`
+- `READY FOR TEST`
+- `CLOSED`
+- `NEEDS INFO`
+
+Estats vàlids per a les US (no coincideixen exactament amb els de les subtasques):
+
+- `New`
+- `Ready`
+- `In progress`
+- `Ready for test`
+- `Done`
+- `Archived`
+
+Quan s'agrupen diverses tasques d'una mateixa US en una PR, totes les tasques implicades passen alhora a `READY FOR TEST` mentre esperen revisió.
+
 ## US de Taiga relacionades
 
 - TG-85 (vault d'Obsidian)
