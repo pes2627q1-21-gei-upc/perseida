@@ -18,7 +18,9 @@ type Props = { state: 'loading' } | { state: 'error'; code: string; onRetry?: ()
 /** Loading and error states of the APOD screen (TG-120). */
 export function ApodStatus(props: Props) {
   const { colors, spacing, typography } = useTheme();
-  const message = props.state === 'error' ? apodErrorMessage(props.code) : undefined;
+  // `onRetry` is only given for retryable errors, so it also picks the generic message.
+  const message =
+    props.state === 'error' ? apodErrorMessage(props.code, props.onRetry !== undefined) : undefined;
 
   useEffect(() => {
     // Android reads the live region by itself; iOS needs an explicit announcement.

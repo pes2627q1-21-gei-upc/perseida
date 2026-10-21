@@ -163,8 +163,22 @@ describe('APOD screen', () => {
 
     await renderScreen();
 
-    expect(await screen.findByText(apodErrorMessage('NOT_FOUND'))).toBeTruthy();
+    expect(await screen.findByText("No s'ha trobat el que busques.")).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Torna-ho a provar' })).toBeNull();
+  });
+
+  it('does not invite a retry for a non-retryable error without its own text (gestio-errors)', async () => {
+    // A 200 without a body is INVALID_RESPONSE, which is not retryable.
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response(null, { status: 200 }));
+
+    await renderScreen();
+
+    expect(
+      await screen.findByText("Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD."),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Torna-ho a provar/)).toBeNull();
   });
 
   it('shows a message in the frame when the image cannot be loaded', async () => {
@@ -224,9 +238,15 @@ describe('keepInPlayer', () => {
 });
 
 describe('apodErrorMessage', () => {
-  it('falls back to the generic message for unknown codes', () => {
+  it('falls back to the generic message for unknown retryable codes', () => {
     expect(apodErrorMessage('SOMETHING_NEW')).toBe(
       'Alguna cosa ha anat malament. Torna-ho a provar.',
+    );
+  });
+
+  it('falls back to a message without a retry for unknown non-retryable codes', () => {
+    expect(apodErrorMessage('SOMETHING_NEW', false)).toBe(
+      "Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD.",
     );
   });
 });

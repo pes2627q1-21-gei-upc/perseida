@@ -22,6 +22,8 @@ Els genera el frontend, no el backend. Text en català aprovat per la persona re
 |---|---|---|---|---|---|---|---|
 | `NETWORK_ERROR` | — | `AppError` `kind: 'network'` (cap resposta del servidor) | Sí | No hi ha connexió. Comprova la xarxa i torna-ho a provar. | (pendent) | (pendent) | frontend `shared/errors/toAppError.ts` |
 
+Missatge genèric per als errors **no recuperables** sense text propi (p. ex. `INVALID_RESPONSE`), aprovat per la persona responsable (TG-120): «Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD.» No convida a reintentar perquè no hi ha botó de reintent. Els recuperables sense text propi fan servir el d'`INTERNAL_ERROR`. es i en pendents de TG-91.
+
 ## Codis de l'APOD (TG-113, TG-115)
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
