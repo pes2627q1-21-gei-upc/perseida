@@ -23,7 +23,7 @@ US TG-45: que el compte es creï sol al primer accés amb Google, poder tancar l
 - **TG-142:** tests de `tokenStorage`, `logout`, `useLogout`, `LogoutButton` i de la pantalla de login.
 - **Revisió d'arquitectura** (subagent `reviewer-arquitectura`): 0 crítiques i 1 alta, ja corregida. El logout no tancava la sessió amb un access token caducat (`exp`); ara `TokenCodec.decode(token, verify_expiry=False)` només s'usa per identificar la sessió, amb tests amb JWT real caducat. També: `language` amb `max_length`, `save_last_login` amb un sol `UPDATE`, el logout neteja els tokens encara que no es puguin llegir i no hi ha doble anunci a Android.
 - **Cinc punts de la revisió, resolts a petició de la persona:**
-  1. **Web:** `tokenStorage.web.ts` (només memòria) perquè `expo-secure-store` no existeix a web; vegeu [[0008-google-oauth2-pkce-jwks-i-sessio-propia]].
+  1. **Web:** `tokenStorage.web.ts` perquè `expo-secure-store` no existeix a web. Primer només en memòria i, a petició de la persona, ara a `sessionStorage` perquè sobrevisqui a la recàrrega (mor en tancar la pestanya; memòria com a reserva); vegeu [[0008-google-oauth2-pkce-jwks-i-sessio-propia]].
   2. **Colors fixos:** la traça de `PerseidShower` pren els tokens nous `meteor.head` i `meteor.tail` dels quatre temes (contrastos mesurats; al tema `dia` és índigo, perquè el blanc no es veu sobre el cel clar), documentats a `tokens.md` de la skill `estetica-frutiger-cosmo`.
   3. **Acció amb vidre:** nou `QuietButton` per a accions secundàries (ni gel ni vidre); `LogoutButton` el fa servir.
   4. **Acoblament `users` ↔ `auth`:** `AccountStatus` a `domain/shared`, codis comuns a `application/shared/error_codes.py`, `UserService.sign_in` sense `GoogleIdentity` i composició a `main.py`; tests d'arquitectura que ho vigilen ([[backend-hexagonal]]).
@@ -44,7 +44,7 @@ US TG-45: que el compte es creï sol al primer accés amb Google, poder tancar l
 - [ ] TG-43: flux PKCE, credencials de Google, guard de ruta, toasts i claus i18n dels codis (incloent `EMAIL_ALREADY_REGISTERED`); eliminar el missatge temporal de `login.tsx`.
 - [ ] Veure la pantalla de login en un dispositiu (incloent el logotip oficial de Google i la pluja de Perseides als quatre temes) (no s'ha pogut provar visualment: no hi ha `react-native-web`).
 - [ ] El títol de `/login` i el de la home no compleixen el contrast sobre l'horitzó del tema `posta` (2,33:1); revisar quan `posta` sigui seleccionable.
-- [ ] Si el panell d'admin necessita sessions que sobrevisquin a la recàrrega de la pàgina, decidir una estratègia nova (galeta `httpOnly`).
+- [ ] Quan s'implementi el panell d'admin, valorar la galeta `httpOnly` en lloc de `sessionStorage` (un XSS podria llegir els tokens) i no carregar-hi scripts de tercers.
 - [ ] Decidir si la sessió ha d'usar `users.id` en lloc de `google_sub` (heretat de TG-135).
 - [ ] Tancar a Taiga les subtasques i, després de la PR aprovada, moure la US a `Done` (només la persona).
 
