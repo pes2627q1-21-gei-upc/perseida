@@ -22,6 +22,13 @@ US TG-45: que el compte es creï sol al primer accés amb Google, poder tancar l
 - **TG-141:** `features/auth` (`tokenStorage` amb `expo-secure-store`, `useLogout`, `LogoutButton`), pantalla `/login` amb la pluja de Perseides (`PerseidShower`) i botó «Continua amb Google» amb la G de Google; els tipus de l'API es generen ara de l'OpenAPI real del backend.
 - **TG-142:** tests de `tokenStorage`, `logout`, `useLogout`, `LogoutButton` i de la pantalla de login.
 - **Revisió d'arquitectura** (subagent `reviewer-arquitectura`): 0 crítiques i 1 alta, ja corregida. El logout no tancava la sessió amb un access token caducat (`exp`); ara `TokenCodec.decode(token, verify_expiry=False)` només s'usa per identificar la sessió, amb tests amb JWT real caducat. També: `language` amb `max_length`, `save_last_login` amb un sol `UPDATE`, el logout neteja els tokens encara que no es puguin llegir i no hi ha doble anunci a Android.
+- **Cinc punts de la revisió, resolts a petició de la persona:**
+  1. **Web:** `tokenStorage.web.ts` (només memòria) perquè `expo-secure-store` no existeix a web; vegeu [[0008-google-oauth2-pkce-jwks-i-sessio-propia]].
+  2. **Colors fixos:** la traça de `PerseidShower` pren els tokens nous `meteor.head` i `meteor.tail` dels quatre temes (contrastos mesurats; al tema `dia` és índigo, perquè el blanc no es veu sobre el cel clar), documentats a `tokens.md` de la skill `estetica-frutiger-cosmo`.
+  3. **Acció amb vidre:** nou `QuietButton` per a accions secundàries (ni gel ni vidre); `LogoutButton` el fa servir.
+  4. **Acoblament `users` ↔ `auth`:** `AccountStatus` a `domain/shared`, codis comuns a `application/shared/error_codes.py`, `UserService.sign_in` sense `GoogleIdentity` i composició a `main.py`; tests d'arquitectura que ho vigilen ([[backend-hexagonal]]).
+  5. **Logout silenciós:** si el servidor no ho confirma, `/login` ho explica (un 401 no avisa).
+- **La «G» de Google** (a petició de la persona): la «G» dibuixada a mà era la antiga i no coincidia amb l'oficial. Ara s'usa el botó d'icona oficial del paquet `signin-assets.zip` de les directrius de marca, copiat byte per byte a `frontend/assets/google/` (SHA-256 verificat contra el paquet i protegit amb un test). Origen i regles a `assets/google/README.md`.
 - A Taiga, la descripció de la US TG-43 explica què existeix i què li falta (flux PKCE, credencials, toasts, guard de ruta).
 
 ## Decisions preses
@@ -30,14 +37,14 @@ US TG-45: que el compte es creï sol al primer accés amb Google, poder tancar l
 - Textos de la pantalla només en català (`strings.ts`), com l'APOD, fins que arribi i18next (TG-91).
 
 ## Canvis al vault
-- [[0008-google-oauth2-pkce-jwks-i-sessio-propia]], [[api]] i [[frontend]].
+- [[0008-google-oauth2-pkce-jwks-i-sessio-propia]], [[api]], [[frontend]] i [[backend-hexagonal]] (regla de mòduls independents).
+- Skill `estetica-frutiger-cosmo`: tokens `meteor.*`, recepta `QuietButton` i regla de la «G» oficial de Google.
 
 ## Pendent / següents passos
 - [ ] TG-43: flux PKCE, credencials de Google, guard de ruta, toasts i claus i18n dels codis (incloent `EMAIL_ALREADY_REGISTERED`); eliminar el missatge temporal de `login.tsx`.
-- [ ] Comparar la «G» de `GoogleMark` amb l'asset oficial de Google (la marca exigeix no modificar-la).
-- [ ] Veure la pantalla de login en un dispositiu (no s'ha pogut provar visualment: no hi ha `react-native-web`).
+- [ ] Veure la pantalla de login en un dispositiu (incloent el logotip oficial de Google i la pluja de Perseides als quatre temes) (no s'ha pogut provar visualment: no hi ha `react-native-web`).
 - [ ] El títol de `/login` i el de la home no compleixen el contrast sobre l'horitzó del tema `posta` (2,33:1); revisar quan `posta` sigui seleccionable.
-- [ ] Decisions obertes de la revisió (mitjanes i baixes): `expo-secure-store` no funciona a web, així que l'admin necessita una altra estratègia si fa servir `features/auth`; colors fixos (traça, orbe de Google) que haurien de ser tokens, sobretot al tema `dia`, on la traça blanca gairebé no es veu; `LogoutButton` fa servir vidre per a una acció (les regles diuen gel per a accions); acoblament `users` ↔ `auth` (codis d'error i `AccountStatus` compartits); si el logout falla al servidor, no es mostra cap avís (cal el sistema de toasts).
+- [ ] Si el panell d'admin necessita sessions que sobrevisquin a la recàrrega de la pàgina, decidir una estratègia nova (galeta `httpOnly`).
 - [ ] Decidir si la sessió ha d'usar `users.id` en lloc de `google_sub` (heretat de TG-135).
 - [ ] Tancar a Taiga les subtasques i, després de la PR aprovada, moure la US a `Done` (només la persona).
 
