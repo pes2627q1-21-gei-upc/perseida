@@ -79,6 +79,14 @@ Cos, reflex i vora **separats** perquè el reflex no passi per sota del text:
 - El text (`gel.text`) va sobre el cos: comprova el contrast amb `scripts/contrast.py` si canvies colors.
 - `loading`: indicador al lloc del text; `accessibilityState.busy`.
 
+## Acció secundària: `QuietButton`
+
+El gel és per a l'acció principal d'una pantalla i el vidre per a capes flotants (`principis.md`), així que una acció secundària (p. ex. «Tanca la sessió») no és cap dels dos: `QuietButton` (`src/shared/ui`) és una píndola transparent amb una vora fina de `surface.glassBorder`, text `text.primary`, `touch.min` d'alçada i, premuda, el fons `surface.glass`. Admet `icon` decoratiu i `busy` (anunciat com a ocupat, ignora els tocs). Només va sobre el cel o sobre una capa de vidre ja contrastada: el text hereta el contrast verificat de `text.primary`.
+
+## Logotips de tercers: la «G» de Google
+
+La marca de Google exigeix el logotip oficial **sense cap canvi** (no redibuixar-lo, no tenyir-lo, no estirar-lo; només el logotip vigent, no el «G» antic de quatre colors) i damunt fons blanc. Es fa servir el botó d'icona oficial (tema Light, sense text, cercle) del paquet `signin-assets.zip` de les directrius de marca, copiat byte per byte a `frontend/assets/google/` (hi ha l'origen i la regla a `assets/google/README.md` i un test que en comprova el SHA-256). Si Google publica un paquet nou, se substitueixen els tres fitxers; no es dibuixa mai a mà.
+
 ## Icones
 
 Una **sola família**: **Phosphor** (`phosphor-react-native`; veure `tokens.md`), mai emojis ni altres famílies. Les icones d'**acció principal** poden anar en un orbe glossy (cercle/quadrat arrodonit amb reflex curvat i vora de llum, com l'iPhone 4); la resta d'icones d'UI són planes amb un glow suau. Decoratives amagades al lector de pantalla.
