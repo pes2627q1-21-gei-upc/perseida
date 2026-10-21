@@ -27,6 +27,7 @@ import { useTheme } from '../theme';
 import {
   BANKS_HEIGHT,
   BANKS_WIDTH,
+  HILL_REFLECTION_SHARE,
   HILL_SHARE,
   LAKE_SHARE,
   LIGHT_X,
@@ -378,12 +379,12 @@ export function LakeWater() {
             position: 'absolute',
             top: 0,
             width,
-            height: hillHeight * 0.9,
+            height: hillHeight * HILL_REFLECTION_SHARE,
             opacity: 0.32,
             transform: [{ scaleY: -1 }],
           }}
         >
-          <Hills width={width} height={hillHeight * 0.9} />
+          <Hills width={width} height={hillHeight * HILL_REFLECTION_SHARE} />
         </View>
         {/* Column of light under the sun or the moon. */}
         <Svg width={width} height={waterHeight} style={StyleSheet.absoluteFill}>

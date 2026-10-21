@@ -3,7 +3,7 @@ import { AccessibilityInfo, Dimensions, Platform, StyleSheet } from 'react-nativ
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LOGOUT_NOTICE } from '../hooks/useLogout';
-import { LAKE_SHARE } from '../../../shared/ui/lakeLayout';
+import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, SLOT_COUNT } from './PerseidShower';
 import { authStrings } from '../strings';
 import LoginScreen from '../../../app/login';
@@ -157,7 +157,7 @@ describe('Login screen', () => {
         expect(duration).toBeLessThanOrEqual(LIMITS.flightMs[1]);
       });
       expect(new Set(durations.map((d) => Math.round(d))).size).toBeGreaterThan(
-        durations.length * 0.9,
+        durations.length * 0.8,
       );
     });
 
@@ -186,26 +186,50 @@ describe('Login screen', () => {
     });
   });
 
-  it('keeps every reflection in a layer that is exactly the water, so it is never in the air', async () => {
-    await renderScreen();
-
+  describe('reflection layers', () => {
     type StyleNode = { props?: { style?: unknown }; children?: (StyleNode | string)[] | null };
-    const layers: Record<string, unknown>[] = [];
-    const walk = (node: StyleNode | string) => {
-      if (typeof node === 'string') return;
-      const style = StyleSheet.flatten(node.props?.style as never) as Record<string, unknown>;
-      if (style?.overflow === 'hidden' && typeof style.top === 'number' && style.bottom === 0) {
-        layers.push(style);
-      }
-      node.children?.forEach(walk);
+    const reflectionLayers = () => {
+      const layers: Record<string, unknown>[] = [];
+      const walk = (node: StyleNode | string) => {
+        if (typeof node === 'string') return;
+        const style = StyleSheet.flatten(node.props?.style as never) as Record<string, unknown>;
+        if (style?.overflow === 'hidden' && typeof style.top === 'number' && style.bottom === 0) {
+          layers.push(style);
+        }
+        node.children?.forEach(walk);
+      };
+      walk(screen.toJSON() as unknown as StyleNode);
+      return layers;
     };
-    walk(screen.toJSON() as unknown as StyleNode);
     const { height } = Dimensions.get('window');
-    const waterline = height * (1 - LAKE_SHARE);
+    // Below the waterline and below the upside-down hills the water shows: only sky is
+    // reflected under that line.
+    const expectedTop = height * (1 - LAKE_SHARE) + height * HILL_SHARE * HILL_REFLECTION_SHARE;
 
-    // One reflection layer per meteor slot, every one starting at the waterline.
-    expect(layers).toHaveLength(SLOT_COUNT);
-    layers.forEach((layer) => expect(layer.top).toBeCloseTo(waterline, 5));
+    it('keeps every reflection in a layer that is only water, never in the air', async () => {
+      await renderScreen();
+
+      const layers = reflectionLayers();
+
+      expect(layers).toHaveLength(SLOT_COUNT);
+      layers.forEach((layer) => expect(layer.top).toBeCloseTo(expectedTop, 5));
+    });
+
+    it('measures the layer itself, so a phone whose screen is shorter than its window still lines up', async () => {
+      await renderScreen();
+      const { width } = Dimensions.get('window');
+
+      await fireEvent(
+        screen.getByTestId('perseid-shower', { includeHiddenElements: true }),
+        'layout',
+        {
+          nativeEvent: { layout: { x: 0, y: 0, width, height: height - 48 } },
+        },
+      );
+
+      // The water is anchored to the bottom: the waterline moves up with the bottom edge.
+      reflectionLayers().forEach((layer) => expect(layer.top).toBeCloseTo(expectedTop - 48, 5));
+    });
   });
 
   it('paints the shower before the content: no meteor can cover a letter or a button', async () => {

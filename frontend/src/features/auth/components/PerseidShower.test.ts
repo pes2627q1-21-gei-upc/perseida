@@ -141,12 +141,22 @@ describe('meteors and the hills', () => {
 });
 
 describe('reflections', () => {
-  const SKY_HEIGHT = 650;
-  const WATER_HEIGHT = 280;
+  // A 390 x 844 screen: the water is 30 % of it and the hills 12 %.
+  const HEIGHT = 844;
+  const SKY_HEIGHT = HEIGHT * 0.7;
+  const HILL_HEIGHT = HEIGHT * 0.12;
+  const WATER_HEIGHT = HEIGHT * 0.3;
+  const CROP_Y = SKY_HEIGHT - HILL_HEIGHT;
+  // The water shows the hills upside down down to here: the sky is only reflected below it.
+  const SKY_REFLECTION_TOP = HILL_HEIGHT * 0.9;
 
-  it('start at the waterline and go down into the water, never up into the air', () => {
+  it('are the exact mirror image: as far below the waterline as the point is above it', () => {
     expect(reflectionDepth(SKY_HEIGHT, SKY_HEIGHT)).toBe(0);
-    expect(reflectionDepth(300, SKY_HEIGHT)).toBeGreaterThan(0);
+    expect(reflectionDepth(SKY_HEIGHT - 120, SKY_HEIGHT)).toBe(120);
+    expect(reflectionDepth(SKY_HEIGHT - 300, SKY_HEIGHT)).toBe(300);
+  });
+
+  it('go down into the water, never up into the air', () => {
     // Even for a point that is (wrongly) below the waterline, the depth is never negative.
     expect(reflectionDepth(SKY_HEIGHT + 50, SKY_HEIGHT)).toBe(0);
   });
@@ -155,20 +165,44 @@ describe('reflections', () => {
     expect(reflectionDepth(100, SKY_HEIGHT)).toBeGreaterThan(reflectionDepth(400, SKY_HEIGHT));
   });
 
-  it('stay inside the water for every meteor the shower can roll and at every moment', () => {
+  it('a low meteor is reflected in the water that the screen shows, under the reflected hills', () => {
     const rng = seeded(321);
-    for (let i = 0; i < 1000; i += 1) {
+    let low = 0;
+    for (let i = 0; i < 2000; i += 1) {
       const meteor = randomMeteor(rng);
+      if (meteor.y < LIMITS.lowY[0]) continue;
+      low += 1;
       const headY = meteor.y * SKY_HEIGHT;
-      const travel = clampedTravel(390 * meteor.travelShare, headY, 560, meteor.angleDeg);
+      const travel = clampedTravel(390 * meteor.travelShare, headY, CROP_Y, meteor.angleDeg);
       for (let t = 0; t <= 1; t += 0.1) {
         const pose = flightPose(t, travel, meteor.angleDeg);
         const depth = reflectionDepth(headY + pose.dy, SKY_HEIGHT);
 
-        expect(depth).toBeGreaterThanOrEqual(0);
+        expect(depth).toBeGreaterThan(SKY_REFLECTION_TOP);
         expect(depth).toBeLessThan(WATER_HEIGHT);
       }
     }
+    expect(low).toBeGreaterThan(600);
+  });
+
+  it('a high meteor is not reflected on the screen: its image would be below it', () => {
+    const rng = seeded(7);
+    for (let i = 0; i < 500; i += 1) {
+      const meteor = randomMeteor(rng);
+      if (meteor.y > LIMITS.y[1]) continue;
+      const depth = reflectionDepth(meteor.y * SKY_HEIGHT, SKY_HEIGHT);
+
+      expect(depth).toBeGreaterThan(WATER_HEIGHT * 1.2);
+    }
+  });
+
+  it('about half of the meteors are low, so the water shows reflections regularly', () => {
+    const rng = seeded(11);
+    const meteors = Array.from({ length: 4000 }, () => randomMeteor(rng));
+    const share = meteors.filter((meteor) => meteor.y >= LIMITS.lowY[0]).length / meteors.length;
+
+    expect(share).toBeGreaterThan(LIMITS.lowShare - 0.05);
+    expect(share).toBeLessThan(LIMITS.lowShare + 0.05);
   });
 });
 
@@ -178,7 +212,7 @@ describe('random meteors', () => {
   it('stay inside the limits of every property', () => {
     samples.forEach((meteor) => {
       expect(within(meteor.x, LIMITS.x)).toBe(true);
-      expect(within(meteor.y, LIMITS.y)).toBe(true);
+      expect(within(meteor.y, LIMITS.y) || within(meteor.y, LIMITS.lowY)).toBe(true);
       expect(within(meteor.length, LIMITS.length)).toBe(true);
       expect(within(meteor.thickness, LIMITS.thickness)).toBe(true);
       expect(within(meteor.angleDeg, LIMITS.angleDeg)).toBe(true);
@@ -192,7 +226,7 @@ describe('random meteors', () => {
     samples.forEach((meteor) => {
       expect(travelDirection(meteor.angleDeg).x).toBeLessThan(0);
       expect(travelDirection(meteor.angleDeg).y).toBeGreaterThan(0);
-      expect(meteor.y).toBeLessThan(0.5);
+      expect(meteor.y).toBeLessThan(0.8);
     });
   });
 

@@ -14,13 +14,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../../shared/theme';
-import { HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
+import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 
-const REFLECTION_OPACITY = 0.35;
-/** The lake squashes the reflection: it keeps this share of the sky's height and slope. */
-const REFLECTION_SQUASH = 0.15;
-/** Length of the reflection relative to the streak. */
-const REFLECTION_LENGTH = 0.5;
+const REFLECTION_OPACITY = 0.7;
+/** The deeper the reflection, the fainter: this share of the opacity is lost at the bottom. */
+const REFLECTION_DEPTH_FADE = 0.55;
 /** Where the frozen frame stops for reduced motion: just before the middle of the flight. */
 const FROZEN_FLIGHT = 0.45;
 const FADE_STOPS = [0, 0.15, 0.6, 1];
@@ -38,6 +36,13 @@ export const LIMITS = {
   /** Start of the head as a share of the width and of the sky height. */
   x: [0.1, 1.1] as Range,
   y: [0, 0.45] as Range,
+  /**
+   * Low meteors, close to the hills: the only ones whose reflection falls inside the water
+   * that the screen shows (the mirror image of a high one would be below the screen).
+   */
+  lowY: [0.6, 0.78] as Range,
+  /** Share of the meteors that are low. */
+  lowShare: 0.45,
   length: [50, 190] as Range,
   thickness: [1, 3.5] as Range,
   /** Degrees below the horizontal, falling to the left. */
@@ -84,7 +89,7 @@ export interface MeteorSpec {
 export function randomMeteor(rng: Rng = Math.random): MeteorSpec {
   return {
     x: between(rng, LIMITS.x),
-    y: between(rng, LIMITS.y),
+    y: between(rng, rng() < LIMITS.lowShare ? LIMITS.lowY : LIMITS.y),
     length: between(rng, LIMITS.length),
     thickness: between(rng, LIMITS.thickness),
     angleDeg: between(rng, LIMITS.angleDeg),
@@ -146,20 +151,22 @@ export function streakRotationDeg(angleDeg: number) {
   return -angleDeg;
 }
 
-/** Slope of the mirrored motion: same horizontal speed, vertical speed squashed and reversed. */
+/**
+ * Rotation of the reflected bar: the exact mirror of the streak across the waterline. The streak
+ * rises to the right (its tail trails behind it); the mirror image falls to the right.
+ */
 function reflectionRotationDeg(angleDeg: number) {
-  const radians = (angleDeg * Math.PI) / 180;
-  return (Math.atan(Math.tan(radians) * REFLECTION_SQUASH) * 180) / Math.PI;
+  return angleDeg;
 }
 
 /**
- * How far below the waterline the reflection of a point of the sky at height `skyY` falls: the
- * mirror image, squashed by the lake. Zero at the waterline and never negative, so a
- * reflection is always on the water and never above it.
+ * How far below the waterline the reflection of a point of the sky at height `skyY` falls:
+ * the exact mirror image, same distance below the line as the point is above it. Never
+ * negative, so a reflection is always on the water and never above it.
  */
 export function reflectionDepth(skyY: number, skyHeight: number) {
   'worklet';
-  return Math.max(0, (skyHeight - skyY) * REFLECTION_SQUASH);
+  return Math.max(0, skyHeight - skyY);
 }
 
 /**
@@ -193,16 +200,19 @@ interface MeteorProps {
   skyHeight: number;
   /** y where the hills begin: a meteor never goes below it, it passes behind them. */
   cropY: number;
+  /** Height of the water and of the hills, in px. */
+  waterHeight: number;
+  hillHeight: number;
 }
 
 /**
- * One streak in the sky and its faint, squashed reflection in the lake. The bar has its head
+ * One streak in the sky and its mirror image on the water, right under it. The bar has its head
  * on the left and its tail on the right; it is rotated about the head so that the tail trails
  * behind the direction of travel (up and to the right). The head moves along that direction
  * with an ease-out, the tail stretches as it speeds up and shrinks as it burns out, and the
  * opacity rises and falls smoothly, so it never pops in or out.
  */
-function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
+function Meteor({ spec, progress, width, skyHeight, cropY, waterHeight, hillHeight }: MeteorProps) {
   const { colors } = useTheme();
   const headX = spec.x * width;
   const headY = spec.y * skyHeight;
@@ -210,6 +220,10 @@ function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
   const travel = clampedTravel(width * spec.travelShare, headY, cropY, angleDeg);
   const skyRotation = streakRotationDeg(angleDeg);
   const lakeRotation = reflectionRotationDeg(angleDeg);
+  // The reflection layer starts under the reflected hills: what the water shows above that
+  // line is the hills, not the sky, so a reflection of the sky can only be seen below it.
+  const layerOffset = hillHeight * HILL_REFLECTION_SHARE;
+  const reflectionTop = skyHeight + layerOffset;
 
   const sky = useAnimatedStyle(() => {
     const pose = flightPose(Math.min(Math.max(progress.value, 0), 1), travel, angleDeg);
@@ -226,12 +240,14 @@ function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
 
   const lake = useAnimatedStyle(() => {
     const pose = flightPose(Math.min(Math.max(progress.value, 0), 1), travel, angleDeg);
+    const depth = reflectionDepth(headY + pose.dy, skyHeight);
+    const deep = Math.min(depth / waterHeight, 1);
     return {
-      opacity: pose.opacity * REFLECTION_OPACITY,
+      opacity: pose.opacity * REFLECTION_OPACITY * (1 - REFLECTION_DEPTH_FADE * deep),
       transform: [
         { translateX: pose.dx },
-        // From the top of the water, which is where the reflection layer starts.
-        { translateY: reflectionDepth(headY + pose.dy, skyHeight) },
+        // Relative to the reflection layer, which starts `layerOffset` below the waterline.
+        { translateY: depth - layerOffset },
         { rotate: `${lakeRotation}deg` },
         { scaleX: pose.stretch },
       ],
@@ -276,20 +292,20 @@ function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
           />
         </Animated.View>
       </View>
-      {/* The reflection lives in a layer that is exactly the water: it can only be seen there,
-          never in the air. The meadow of the banks, drawn over it, shapes the shore. */}
+      {/* The reflection lives in a layer that is only water (below the reflected hills): it can
+          only be seen there, never in the air. The meadow of the banks shapes the shore. */}
       <View
         pointerEvents="none"
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
-          top: skyHeight,
+          top: reflectionTop,
           bottom: 0,
           overflow: 'hidden',
         }}
       >
-        <Animated.View style={[bar(spec.length * REFLECTION_LENGTH, 0), lake]}>
+        <Animated.View style={[bar(spec.length, 0), lake]}>
           <LinearGradient
             colors={fade}
             start={{ x: 0, y: 0.5 }}
@@ -306,6 +322,8 @@ interface SlotProps {
   width: number;
   skyHeight: number;
   cropY: number;
+  waterHeight: number;
+  hillHeight: number;
   density: SkyDensity;
 }
 
@@ -313,7 +331,7 @@ interface SlotProps {
  * A place in the sky that launches one meteor after another: it rests a random time, takes
  * a place if the density allows it, flies a freshly rolled meteor, and starts over.
  */
-function ShowerSlot({ width, skyHeight, cropY, density }: SlotProps) {
+function ShowerSlot({ width, skyHeight, cropY, waterHeight, hillHeight, density }: SlotProps) {
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(0);
   const [spec, setSpec] = useState<MeteorSpec>(() => randomMeteor());
@@ -371,7 +389,15 @@ function ShowerSlot({ width, skyHeight, cropY, density }: SlotProps) {
   }, [reduceMotion, progress, density]);
 
   return (
-    <Meteor spec={spec} progress={progress} width={width} skyHeight={skyHeight} cropY={cropY} />
+    <Meteor
+      spec={spec}
+      progress={progress}
+      width={width}
+      skyHeight={skyHeight}
+      cropY={cropY}
+      waterHeight={waterHeight}
+      hillHeight={hillHeight}
+    />
   );
 }
 
@@ -383,10 +409,17 @@ function ShowerSlot({ width, skyHeight, cropY, density }: SlotProps) {
  * readers; it never takes touches.
  */
 export function PerseidShower() {
-  const { width, height } = useWindowDimensions();
+  const window = useWindowDimensions();
+  // The size of the layer itself: the water is anchored to the bottom of the screen, so the
+  // waterline has to be measured from the bottom of this layer, not from the window (they
+  // differ by the status bar or the navigation bar on some phones).
+  const [layout, setLayout] = useState<{ width: number; height: number } | null>(null);
+  const { width, height } = layout ?? window;
   const reduceMotion = useReducedMotion();
-  const skyHeight = height * (1 - LAKE_SHARE);
-  const cropY = height * (1 - LAKE_SHARE - HILL_SHARE);
+  const waterHeight = window.height * LAKE_SHARE;
+  const hillHeight = window.height * HILL_SHARE;
+  const skyHeight = height - waterHeight;
+  const cropY = skyHeight - hillHeight;
   const [density] = useState(() => new SkyDensity());
 
   // The density of the sky changes by itself every few seconds.
@@ -408,6 +441,8 @@ export function PerseidShower() {
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      testID="perseid-shower"
+      onLayout={(event) => setLayout(event.nativeEvent.layout)}
     >
       {Array.from({ length: slots }, (_, index) => (
         <ShowerSlot
@@ -415,6 +450,8 @@ export function PerseidShower() {
           width={width}
           skyHeight={skyHeight}
           cropY={cropY}
+          waterHeight={waterHeight}
+          hillHeight={hillHeight}
           density={density}
         />
       ))}

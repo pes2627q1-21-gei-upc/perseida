@@ -6,6 +6,8 @@
 export const LAKE_SHARE = 0.3;
 /** Share of the screen height taken by the hills above the waterline. */
 export const HILL_SHARE = 0.12;
+/** Height of the upside-down hills in the water, as a share of the height of the hills. */
+export const HILL_REFLECTION_SHARE = 0.9;
 /** Horizontal position (share of the width) of the sun or moon and of its glitter. */
 export const LIGHT_X = 0.7;
 
