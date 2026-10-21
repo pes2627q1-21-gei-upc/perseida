@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col
@@ -89,9 +89,11 @@ class SqlUserRepository:
 
     async def save_last_login(self, user: User) -> None:
         async with self._session_factory() as session, session.begin():
-            row = await session.get(UserRow, user.id)
-            if row is not None:
-                row.last_login_at = user.last_login_at
+            await session.execute(
+                update(UserRow)
+                .where(col(UserRow.id) == user.id)
+                .values(last_login_at=user.last_login_at)
+            )
 
     @staticmethod
     async def _find(session: AsyncSession, google_sub: str) -> User | None:
