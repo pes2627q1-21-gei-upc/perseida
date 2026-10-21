@@ -103,4 +103,17 @@ describe('useLogout', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith('/login');
   });
+
+  it('still wipes the tokens and redirects when the secure storage cannot be read', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+    jest
+      .requireMock('expo-secure-store')
+      .getItemAsync.mockRejectedValueOnce(new Error('storage unavailable'));
+
+    await signOut();
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(await getTokens()).toBeNull();
+    expect(mockReplace).toHaveBeenCalledWith('/login');
+  });
 });

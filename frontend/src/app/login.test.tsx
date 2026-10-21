@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PerseidShower } from '../features/auth/components/PerseidShower';
@@ -43,6 +43,7 @@ async function renderScreen() {
 
 afterEach(() => {
   jest.clearAllMocks();
+  jest.restoreAllMocks();
   mockUseReducedMotion.mockReturnValue(false);
 });
 
@@ -74,6 +75,17 @@ describe('Login screen', () => {
 
     expect(screen.getByText(authStrings.loginUnavailable)).toBeOnTheScreen();
     expect(announce).toHaveBeenCalledWith(authStrings.loginUnavailable);
+  });
+
+  it('leaves the announcement to the live region on Android', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authStrings.loginUnavailable)).toBeOnTheScreen();
+    expect(announce).not.toHaveBeenCalled();
   });
 
   it('hides the decorative Perseid shower from screen readers and from touches', async () => {

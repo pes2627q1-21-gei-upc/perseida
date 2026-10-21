@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AccessibilityInfo, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GoogleOrb } from '../features/auth/components/GoogleOrb';
@@ -18,7 +18,9 @@ export default function LoginScreen() {
   // tokens with saveTokens (features/auth/tokenStorage) and navigates to the app.
   const handleContinue = () => {
     setNotice(authStrings.loginUnavailable);
-    AccessibilityInfo.announceForAccessibility(authStrings.loginUnavailable);
+    // Android announces the live region below; iOS needs an explicit announcement.
+    if (Platform.OS === 'ios')
+      AccessibilityInfo.announceForAccessibility(authStrings.loginUnavailable);
   };
 
   return (

@@ -15,8 +15,8 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const tokens = await getTokens();
       try {
+        const tokens = await getTokens();
         if (tokens) await logout(tokens.accessToken);
       } finally {
         await clearTokens();
