@@ -119,7 +119,11 @@ El servei FastAPI (`perseida-api`) utilitza les següents variables d'entorn per
 | `REDIS_HOST` | No | Host o nom de servei de Redis | `redis` o `localhost` |
 | `REDIS_PORT` | No | Port del servei Redis | `6379` |
 | `APP_ENV` | No | Entorn d'execució (`local`, `production`) | `production` |
-| `JWT_SECRET` | No | Secret per a signatures JWT de sessió | `secret-token` |
+| `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imatge a GHCR (usat per a rollbacks) | `latest` o `sha-a1b2c3d` |
+| `GOOGLE_CLIENT_ID` | Sí | Audiència esperada dels tokens d'identitat de Google | `1234-abc.apps.googleusercontent.com` |
+| `JWT_SECRET` | Sí | Secret per a signatures JWT de sessió (com a mínim 32 caràcters) | `<sortida d'openssl rand -hex 32>` |
+| `ACCESS_TOKEN_MINUTES` | No | Temps d'expiració dels access tokens en minuts (per defecte: 15) | `15` |
+| `REFRESH_TOKEN_DAYS` | No | Temps d'expiració dels refresh tokens en dies (per defecte: 30) | `30` |
 
 ### Configuració inicial: fer el paquet públic (un sol cop, manual)
 
@@ -144,13 +148,16 @@ En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta
 
 ```
 infra/
-├── docker-compose.yml        # els cinc serveis (local i producció)
+├── docker-compose.yml          # definicions base dels serveis i desplegament a producció
+├── docker-compose.override.yml # override per a desenvolupament local (bind mount, ports dev)
 ├── .env.example
-├── nginx-proxy-manager/      # configuració del proxy
-├── moderation/               # imatge/configuració del servei Kev-4B
+├── nginx-proxy-manager/        # configuració del proxy
+├── moderation/                 # imatge/configuració del servei Kev-4B
 └── scripts/
-    └── test-backend-docker.sh # validació local i smoke test de perseida-api
+    └── test-backend-docker.sh   # validació local i smoke test de perseida-api
 ```
+
+> **Estructura de Compose:** S'utilitza `docker-compose.override.yml` per a desenvolupament local (que Docker Compose fusiona automàticament) perquè a producció s'executi exclusivament `docker-compose.yml` (amb imatges de GHCR i sense ports interns exposats), evitant duplicar definicions de serveis.
 
 ## Validació i proves locals (imatge Docker del backend)
 
@@ -164,14 +171,15 @@ Per validar la construcció de la imatge, la seguretat del contenidor i l'estat 
 ./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
-## Executar en local (previst)
+## Executar en local
 
 ```bash
+cd infra
 cp .env.example .env          # omple valors locals, mai facis commit del .env
-docker compose up -d --build
-docker compose ps
-docker compose logs -f api
-docker compose down
+docker compose up -d --build  # arrenca db, cache, api i reverse-proxy
+docker compose ps             # comprova que estiguin en estat healthy
+docker compose logs -f api    # segueix els logs de l'API amb recàrrega en calent
+docker compose down           # atura els contenidors preservant els volums de dades
 ```
 
 ## Limitacions conegudes (assumides en un projecte acadèmic)
