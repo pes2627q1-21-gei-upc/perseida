@@ -59,6 +59,9 @@ def test_postgis_migration_upgrade_downgrade() -> None:
         )
 
         assert version == ScriptDirectory.from_config(config).get_current_head()
+        # TG-135 / US #45 criteri 1: el head crea les taules d'usuaris
+        for table in ("users", "user_identities"):
+            assert asyncio.run(query_database(f"SELECT to_regclass('public.{table}')"))
         assert postgis_version
         assert extension_exists
 
@@ -69,5 +72,22 @@ def test_postgis_migration_upgrade_downgrade() -> None:
             )
         )
         assert not extension_exists
+        for table in ("users", "user_identities"):
+            assert (
+                asyncio.run(query_database(f"SELECT to_regclass('public.{table}')"))
+                is None
+            )
     finally:
         command.upgrade(config, "head")
+
+
+@pytest.mark.skipif(
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires POSTGRES_HOST",
+)
+def test_models_match_migrations() -> None:
+    # TG-135: les taules de SQLModel i la migració no divergeixen, i les taules
+    # de PostGIS (spatial_ref_sys, tiger...) no surten com a esborrables
+    config = _alembic_config()
+    command.upgrade(config, "head")
+    command.check(config)

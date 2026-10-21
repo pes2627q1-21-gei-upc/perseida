@@ -120,7 +120,8 @@ El servicio FastAPI (`perseida-api`) utiliza las siguientes variables de entorno
 | `REDIS_PORT` | No | Puerto del servicio Redis | `6379` |
 | `APP_ENV` | No | Entorno de ejecución (`local`, `production`) | `production` |
 | `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imagen en GHCR (usado para rollbacks) | `latest` o `sha-a1b2c3d` |
-| `JWT_SECRET` | No | Secreto para firmas JWT de sesión | `secret-token` |
+| `GOOGLE_CLIENT_ID` | Sí | Audiencia esperada de los tokens de identidad de Google | `1234-abc.apps.googleusercontent.com` |
+| `JWT_SECRET` | Sí | Secreto para firmas JWT de sesión (al menos 32 caracteres) | `<salida de openssl rand -hex 32>` |
 
 ### Configuración inicial: hacer el paquete público (una sola vez, manual)
 
