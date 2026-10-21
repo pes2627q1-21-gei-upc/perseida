@@ -17,8 +17,8 @@ Implementar una configuració unificada i modular de Docker Compose que orquestr
 ## Què s'ha fet
 
 - **Estructura base i override (`infra/docker-compose.yml` i `infra/docker-compose.override.yml`)**:
-  - `docker-compose.yml`: definició base per a producció amb imatge de GHCR (`ghcr.io/pes2627q1-21-gei-upc/perseida-api:${API_IMAGE_TAG:-latest}`), xarxes aïllades i sense ports interns exposats al host.
-  - `docker-compose.override.yml`: modificador local que munta el codi font en calent (`../backend/app:/app/app`), executa Uvicorn amb `--reload` i exposa els ports de depuració (`5432`, `6379`, `8000`, `81`).
+  - `docker-compose.yml`: definició base per a producció amb imatge de GHCR (`ghcr.io/pes2627q1-21-gei-upc/perseida-api:${API_IMAGE_TAG:-latest}`), xarxes aïllades i sense ports interns exposats al host. Error explícit `${POSTGRES_PASSWORD:?POSTGRES_PASSWORD no definida}` a `api` i `db` si falta la variable.
+  - `docker-compose.override.yml`: modificador local que munta el codi font en calent (`../backend/app:/app/app`), executa Uvicorn amb `--reload`, afegeix la xarxa `dev` (bridge) a `db` i `cache` perquè Docker publiqui efectivament els ports cap al host (`5432`, `6379`) i exposa també els ports `8000` i `81`.
 - **Serveis de dades i healthchecks (`db` i `cache`)**:
   - `db`: imatge oficial `postgis/postgis:18-3.6` amb volum persistent `pgdata:/var/lib/postgresql` (adaptat a la nova estructura de directoris de PostgreSQL 18) i healthcheck amb `pg_isready`.
   - `cache`: imatge oficial `redis:8-alpine` amb volum `redisdata:/data`, healthcheck `redis-cli ping` i variable `REDIS_URL`.
@@ -27,7 +27,8 @@ Implementar una configuració unificada i modular de Docker Compose que orquestr
   - `reverse-proxy`: imatge `jc21/nginx-proxy-manager:2.12.3` amb ports públics `80` i `443`, volums `npm_data` i `npm_letsencrypt`, i port d'administració `81` restringit exclusivament a local.
   - `moderation`: stub basat en `nginx:1.27-alpine` amb perfil `moderation` (`profiles: ["moderation"]`) i healthcheck funcional, preparat per ser substituït a la US TG-101.
 - **Aïllament de xarxa**:
-  - Dues xarxes bridge: `gateway` (pública, connecta `reverse-proxy` i `api`) i `internal` (`internal: true`, aïlla completament `db`, `cache` i `moderation`).
+  - Dues xarxes bridge a la base: `gateway` (pública, connecta `reverse-proxy` i `api`) i `internal` (`internal: true`, aïlla completament `db`, `cache` i `moderation` a producció).
+  - A l'override de local s'afegeix la xarxa `dev` (bridge ordinari) exclusivament per a `db` i `cache`; Docker no publica ports de contenidors connectats únicament a xarxes `internal: true`, de manera que `dev` permet exposar els ports 5432 i 6379 per executar l'API o migracions des de fora de Docker en local sense trencar l'aïllament en producció.
 - **Plantilla de configuració (`infra/.env.example`)**:
   - Plantilla completa amb valors segurs d'exemple, alineada amb `backend/.env.example`.
 - **Verificacions reals executades (TG-301)**:
@@ -40,6 +41,8 @@ Implementar una configuració unificada i modular de Docker Compose que orquestr
 ## Decisions preses
 
 - Ús del patró d'herència de Docker Compose (`docker-compose.yml` base de producció + `docker-compose.override.yml` per a local) en lloc de fitxers duplicats.
+- Xarxa `dev` (bridge) a l'override per permetre a Docker publicar els ports de `db` (5432) i `cache` (6379) en local, mantenint l'aïllament absolut en producció sota `internal: true`.
+- Substitució de valors per defecte de contrasenya per `${POSTGRES_PASSWORD:?POSTGRES_PASSWORD no definida}` a `api` i `db` per forçar una aturada immediata i explícita si falta la variable.
 - Adaptació del punt de muntatge de PostgreSQL 18 a `/var/lib/postgresql` (recomanació oficial de la imatge Docker 18+).
 - Inclusió del port 8000 a l'override local per permetre proves directes sobre l'API i Swagger sense obligar a configurar el proxy a la màquina de desenvolupament.
 

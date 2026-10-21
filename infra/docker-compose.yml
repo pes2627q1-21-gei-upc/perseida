@@ -28,7 +28,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-perseida}
       POSTGRES_USER: ${POSTGRES_USER:-perseida}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD no definida}
       POSTGRES_HOST: ${POSTGRES_HOST:-db}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       REDIS_HOST: ${REDIS_HOST:-cache}
@@ -59,7 +59,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-perseida}
       POSTGRES_USER: ${POSTGRES_USER:-perseida}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD no definida}
     volumes:
       - pgdata:/var/lib/postgresql
     networks:

@@ -13,7 +13,7 @@ etiquetes: [arquitectura, infra, docker-compose, desplegament]
 Perseida es desplega sobre **un únic servidor de Virtech** on Docker Compose orquestra **cinc contenidors**. Kubernetes es va descartar explícitament: amb un sol host físic només afegeix overhead de control plane i el punt únic de fallada continua sent el servidor ([[0002-docker-compose-en-lloc-de-kubernetes]]).
 
 > [!note] Estat
-> `infra/docker-compose.yml` i `infra/docker-compose.override.yml` ja estan implementats (US TG-37) amb els cinc serveis orquestrats, aïllament de xarxa i volums persistents. La CD automàtica a Virtech per SSH és objecte de la US TG-38.
+> `infra/docker-compose.yml` i `infra/docker-compose.override.yml` ja estan implementats (US TG-37) amb els cinc serveis orquestrats, aïllament de xarxa (`internal: true` a producció i xarxa `dev` addicional només a l'override local per publicar ports de depuració) i volums persistents. La CD automàtica a Virtech per SSH és objecte de la US TG-38.
 
 ## Diagrama
 
