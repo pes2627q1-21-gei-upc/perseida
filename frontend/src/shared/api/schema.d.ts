@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+  '/api/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Comprovació de salut del sistema
+     * @description Retorna l'estat de salut de l'API i de tots els seus components subjacents (base de dades, cau, etc.) per a tasques de monitoratge i healthcheck.
+     */
+    get: operations['get_health_api_health_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/apod': {
     parameters: {
       query?: never;
@@ -11,8 +31,91 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Imatge astronòmica del dia (APOD) */
+    /**
+     * Imatge astronòmica del dia (APOD)
+     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui.
+     */
     get: operations['get_apod'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/google': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Inici de sessió amb Google
+     * @description Valida l'`id_token` de Google i retorna una sessió pròpia del backend (access i refresh token). El backend no desa cap contrasenya.
+     */
+    post: operations['login_with_google'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Renovació de la sessió
+     * @description Canvia un refresh token vigent per un parell nou. El refresh anterior queda revocat: reutilitzar-lo és un error.
+     */
+    post: operations['refresh_session'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Tancament de sessió
+     * @description Revoca la sessió sencera (access i refresh token) a la qual pertany el token `Bearer`. És idempotent: amb un token caducat, ja revocat, invàlid o sense token també respon 204.
+     */
+    post: operations['logout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Perfil de l'usuari autenticat
+     * @description Retorna les dades de l'usuari propietari de la sessió.
+     */
+    get: operations['get_current_user'];
     put?: never;
     post?: never;
     delete?: never;
@@ -25,30 +128,207 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** ApodResponse */
     ApodResponse: {
-      /** Format: date */
+      /**
+       * Date
+       * Format: date
+       * @description Data de l'APOD
+       * @example 2026-10-14
+       */
       date: string;
+      /**
+       * Title
+       * @description Títol de la imatge o vídeo
+       */
       title: string;
+      /**
+       * Explanation
+       * @description Explicació de la NASA
+       */
       explanation: string;
-      /** @enum {string} */
-      media_type: 'image' | 'video';
+      /** @description Tipus de contingut (image, video) */
+      media_type: components['schemas']['MediaType'];
+      /**
+       * Url
+       * @description URL del contingut multimèdia
+       */
       url: string;
+      /**
+       * Copyright
+       * @description Autoria, si l'APOD no és de domini públic
+       */
       copyright?: string | null;
     };
+    /** FieldError */
     FieldError: {
+      /**
+       * Field
+       * @description Camp que ha fallat la validació
+       */
       field: string;
+      /**
+       * Message
+       * @description Motiu tècnic de l'error
+       */
       message: string;
+      /**
+       * Type
+       * @description Tipus d'error de validació
+       */
       type: string;
     };
+    /** GoogleLoginRequest */
+    GoogleLoginRequest: {
+      /**
+       * Id Token
+       * @description ID token que l'app obté de Google (OAuth2 amb PKCE)
+       */
+      id_token: string;
+      /**
+       * Language
+       * @description Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el compte; si falta o no és compatible, `ca`.
+       */
+      language?: string | null;
+    };
+    /** HealthResponse */
+    HealthResponse: {
+      /**
+       * @description Estat general de salut del sistema (ok, down)
+       * @example ok
+       */
+      status: components['schemas']['HealthStatus'];
+      /**
+       * Components
+       * @description Diccionari amb l'estat detallat de cada component o servei extern depenent
+       * @example {
+       *       "app": "ok"
+       *     }
+       */
+      components: {
+        [key: string]: components['schemas']['HealthStatus'];
+      };
+    };
+    /**
+     * HealthStatus
+     * @enum {string}
+     */
+    HealthStatus: 'ok' | 'down';
+    /**
+     * Language
+     * @enum {string}
+     */
+    Language: 'ca' | 'es' | 'en';
+    /**
+     * MediaType
+     * @enum {string}
+     */
+    MediaType: 'image' | 'video';
+    /**
+     * ProblemDetails
+     * @description RFC 9457 error body, as built by ``problem_response``.
+     */
     ProblemDetails: {
+      /**
+       * Type
+       * @example about:blank
+       */
       type: string;
+      /**
+       * Title
+       * @description Frase HTTP estàndard de l'estat
+       */
       title: string;
+      /** Status */
       status: number;
+      /**
+       * Detail
+       * @description Missatge tècnic, mai per a l'usuari
+       */
       detail: string;
+      /**
+       * Instance
+       * @description Ruta de la petició
+       */
       instance: string;
+      /**
+       * Code
+       * @description Codi d'error estable que tradueix el frontend
+       */
       code: string;
+      /** Correlation Id */
       correlation_id: string;
+      /**
+       * Errors
+       * @description Només en errors de validació; en la resta, la clau no hi és
+       */
       errors?: components['schemas']['FieldError'][];
+    };
+    /** RefreshRequest */
+    RefreshRequest: {
+      /**
+       * Refresh Token
+       * @description Refresh token vigent de la sessió
+       */
+      refresh_token: string;
+    };
+    /**
+     * Role
+     * @enum {string}
+     */
+    Role: 'user' | 'moderator' | 'admin';
+    /** TokenResponse */
+    TokenResponse: {
+      /**
+       * Access Token
+       * @description Token d'accés (JWT) de curta durada
+       */
+      access_token: string;
+      /**
+       * Refresh Token
+       * @description Token de renovació (JWT), d'un sol ús
+       */
+      refresh_token: string;
+      /**
+       * Token Type
+       * @description Tipus de token; sempre `bearer`
+       * @default bearer
+       * @constant
+       */
+      token_type: 'bearer';
+      /**
+       * Expires In
+       * @description Segons de vida de l'access token
+       * @example 900
+       */
+      expires_in: number;
+    };
+    /** UserResponse */
+    UserResponse: {
+      /**
+       * Id
+       * @description Identificador intern de l'usuari (UUID)
+       */
+      id: string;
+      /**
+       * Email
+       * @description Correu del compte de Google
+       */
+      email: string;
+      /**
+       * Display Name
+       * @description Nom del perfil de Google
+       */
+      display_name: string | null;
+      /**
+       * Avatar Url
+       * @description Avatar del perfil de Google
+       */
+      avatar_url: string | null;
+      /** @description Idioma preferit */
+      preferred_language: components['schemas']['Language'];
+      /** @description Rol de l'usuari */
+      role: components['schemas']['Role'];
     };
   };
   responses: never;
@@ -59,6 +339,34 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  get_health_api_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description L'estat de salut actual i el desglossament per components. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "ok",
+           *       "components": {
+           *         "app": "ok"
+           *       }
+           *     }
+           */
+          'application/json': components['schemas']['HealthResponse'];
+        };
+      };
+    };
+  };
   get_apod: {
     parameters: {
       query?: {
@@ -98,7 +406,201 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description La NASA no respon i no hi ha dada a la cache. */
+      /** @description La NASA no respon i no hi ha dada a la cache (code `APOD_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  login_with_google: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GoogleLoginRequest'];
+      };
+    };
+    responses: {
+      /** @description La sessió: access token, refresh token i durada. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
+      /** @description El token de Google no és vàlid (code `INVALID_GOOGLE_TOKEN`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El correu ja pertany a un altre compte (`EMAIL_ALREADY_REGISTERED`). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cos de la petició incorrecte. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Google no respon (`IDENTITY_PROVIDER_UNAVAILABLE`) o no es pot desar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  refresh_session: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefreshRequest'];
+      };
+    };
+    responses: {
+      /** @description El parell nou de tokens. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
+      /** @description Refresh token invàlid, caducat o ja utilitzat (code `INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cos de la petició incorrecte. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Sessió tancada. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No es pot revocar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_current_user: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description El perfil de l'usuari. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
       503: {
         headers: {
           [name: string]: unknown;
