@@ -92,6 +92,22 @@ class AuthService:
         """
         return await self._validate(access_token, TokenType.ACCESS)
 
+    async def logout(self, token: str) -> None:
+        """Revoke the whole session (access and refresh) the token belongs to.
+
+        Idempotent: a token that is invalid, expired or already revoked is not an
+        error, and an expired access token still revokes its live refresh token
+        through the shared ``sid``.
+
+        Raises:
+            ExternalServiceError: if the session store is unavailable.
+        """
+        try:
+            claims = self._codec.decode(token)
+        except UnauthorizedError:
+            return
+        await self._store.revoke_session(claims.sub, claims.sid)
+
     @staticmethod
     def _ensure_can_log_in(status: AccountStatus) -> None:
         match status:
