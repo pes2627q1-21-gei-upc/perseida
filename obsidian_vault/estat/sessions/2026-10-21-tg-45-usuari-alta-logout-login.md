@@ -29,6 +29,7 @@ US TG-45: que el compte es creï sol al primer accés amb Google, poder tancar l
   4. **Acoblament `users` ↔ `auth`:** `AccountStatus` a `domain/shared`, codis comuns a `application/shared/error_codes.py`, `UserService.sign_in` sense `GoogleIdentity` i composició a `main.py`; tests d'arquitectura que ho vigilen ([[backend-hexagonal]]).
   5. **Logout silenciós:** si el servidor no ho confirma, `/login` ho explica (un 401 no avisa).
 - **La «G» de Google** (a petició de la persona): la «G» dibuixada a mà era la antiga i no coincidia amb l'oficial. Ara s'usa el botó d'icona oficial del paquet `signin-assets.zip` de les directrius de marca, copiat byte per byte a `frontend/assets/google/` (SHA-256 verificat contra el paquet i protegit amb un test). Origen i regles a `assets/google/README.md`.
+- **Seguretat contra injecció SQL i XSS** (a petició de la persona), amb auditoria prèvia: l'accés a dades ja usava només paràmetres lligats i l'API només JSON, però faltaven capçaleres, validació d'URL i regles que ho mantinguessin. S'hi han afegit: `SecurityHeadersMiddleware`, `app/domain/shared/text.py` (neteja de text i URL `https`), validació del correu, l'avatar i l'URL de l'APOD, límits als tokens, un test d'arquitectura contra SQL fet amb cadenes, `safeHttpsUrl` i un `WebView` restrictiu al frontend, regles d'ESLint, la configuració de capçaleres del proxy i 106 tests nous (càrregues d'injecció SQL contra PostgreSQL real, marcatge hostil, `javascript:`, NUL). Decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]]; regles i estat de les dependències a [[seguretat]]. `certifi` actualitzat a 2026.10.19 (`pip-audit` net).
 - A Taiga, la descripció de la US TG-43 explica què existeix i què li falta (flux PKCE, credencials, toasts, guard de ruta).
 
 ## Decisions preses
@@ -38,12 +39,16 @@ US TG-45: que el compte es creï sol al primer accés amb Google, poder tancar l
 
 ## Canvis al vault
 - [[0008-google-oauth2-pkce-jwks-i-sessio-propia]], [[api]], [[frontend]] i [[backend-hexagonal]] (regla de mòduls independents).
+- [[seguretat]] i [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]] nous; [[api]] i [[frontend]] amb la secció de seguretat.
 - Skill `estetica-frutiger-cosmo`: tokens `meteor.*`, recepta `QuietButton` i regla de la «G» oficial de Google.
 
 ## Pendent / següents passos
 - [ ] TG-43: flux PKCE, credencials de Google, guard de ruta, toasts i claus i18n dels codis (incloent `EMAIL_ALREADY_REGISTERED`); eliminar el missatge temporal de `login.tsx`.
 - [ ] Veure la pantalla de login en un dispositiu (incloent el logotip oficial de Google i la pluja de Perseides als quatre temes) (no s'ha pogut provar visualment: no hi ha `react-native-web`).
 - [ ] El títol de `/login` i el de la home no compleixen el contrast sobre l'horitzó del tema `posta` (2,33:1); revisar quan `posta` sigui seleccionable.
+- [ ] Aplicar `infra/nginx-proxy-manager/security-headers.conf` al proxy real (substituint `<API_ORIGIN>`) i comprovar-ho amb `curl -sI` i la consola del navegador.
+- [ ] Passar `pip-audit` i `pnpm audit` a cada canvi de dependències (vegeu [[seguretat]]); valorar afegir-ho a la CI.
+- [ ] Acceptar l'ADR-0024 a la PR (és `proposada`).
 - [ ] Quan s'implementi el panell d'admin, valorar la galeta `httpOnly` en lloc de `sessionStorage` (un XSS podria llegir els tokens) i no carregar-hi scripts de tercers.
 - [ ] Decidir si la sessió ha d'usar `users.id` en lloc de `google_sub` (heretat de TG-135).
 - [ ] Tancar a Taiga les subtasques i, després de la PR aprovada, moure la US a `Done` (només la persona).

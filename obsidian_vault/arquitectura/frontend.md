@@ -73,6 +73,10 @@ frontend/
 └── tsconfig.json
 ```
 
+## Seguretat (TG-45)
+
+L'app mai tracta una cadena externa com a codi ni com a enllaç de confiança: `safeHttpsUrl` (`src/shared/security`) filtra les URL de l'API abans d'`<Image>`, `WebView` i `Linking`; el reproductor de l'APOD té una configuració de `WebView` restrictiva; ESLint prohibeix `eval`, `innerHTML`, `dangerouslySetInnerHTML` i `javascript:`. Detall a [[seguretat]] i [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
+
 ## Proves i qualitat
 
 - Prioritat: hooks propis i lògica de presentació (estats de càrrega/error/buit, validació de formularis), components principals i que cada text de la UI tingui traducció ca/es/en. El client d'API es simula.

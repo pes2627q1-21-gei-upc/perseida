@@ -48,6 +48,10 @@ Valida el token de Google via JWKS i emet una sessió pròpia (dos JWT HS256: *a
 
 Els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel port `AccountGateway`, que implementa `UserAccountGateway` sobre [[postgres]] (taules `users` i `user_identities`, [[0023-convencions-del-model-de-dades]]). Format, caducitats, alta concurrent i conseqüències a [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]; guia d'ús a la secció «Authentication» de `backend/README.md`.
 
+## Seguretat (TG-45)
+
+Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
+
 ## Configuració
 
 Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_ID`, `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals, 15 i 30; no són a `.env.example` perquè el CD no les exigeixi), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
