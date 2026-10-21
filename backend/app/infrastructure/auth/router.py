@@ -42,6 +42,7 @@ class GoogleLoginRequest(BaseModel):
     )
     language: str | None = Field(
         default=None,
+        max_length=16,
         description=(
             "Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el "
             "compte; si falta o no és compatible, `ca`."

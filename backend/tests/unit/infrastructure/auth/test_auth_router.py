@@ -133,6 +133,7 @@ async def test_login_errors_have_the_status_and_code_of_the_us(
     [
         ("/api/auth/google", {}),
         ("/api/auth/google", {"id_token": ""}),
+        ("/api/auth/google", {"id_token": "g", "language": "x" * 17}),
         ("/api/auth/refresh", {}),
         ("/api/auth/refresh", {"refresh_token": ""}),
     ],
