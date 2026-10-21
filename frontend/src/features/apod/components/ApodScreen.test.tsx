@@ -40,6 +40,7 @@ beforeEach(() => {
 
 afterEach(() => {
   client.clear();
+  jest.clearAllMocks();
   jest.restoreAllMocks();
 });
 
@@ -212,6 +213,15 @@ describe('APOD screen', () => {
 
     expect(screen.getByText("No s'ha pogut carregar la imatge o el vídeo.")).toBeTruthy();
   });
+
+  it('shows a message in the frame when the video page answers with an HTTP error', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodVideo));
+    await renderScreen();
+
+    await fireEvent(await screen.findByTestId('apod-video'), 'httpError');
+
+    expect(screen.getByText("No s'ha pogut carregar la imatge o el vídeo.")).toBeTruthy();
+  });
 });
 
 describe('keepInPlayer', () => {
@@ -234,6 +244,21 @@ describe('keepInPlayer', () => {
 
     expect(keepInPlayer(request('https://evil.example/page'), video)).toBe(false);
     expect(openURL).toHaveBeenCalledWith('https://evil.example/page');
+  });
+
+  it('stays in the player when no app can open the link', async () => {
+    jest.spyOn(Linking, 'openURL').mockRejectedValue(new Error('No app to open the URL'));
+
+    expect(keepInPlayer(request('https://evil.example/page'), video)).toBe(false);
+    // Lets the rejection settle: if it were not handled, Jest would fail the test.
+    await Promise.resolve();
+  });
+
+  it('blocks other schemes without opening them', () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+
+    expect(keepInPlayer(request('intent://evil.example#Intent;end'), video)).toBe(false);
+    expect(openURL).not.toHaveBeenCalled();
   });
 });
 

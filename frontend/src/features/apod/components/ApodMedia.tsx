@@ -8,8 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
-import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
+import { WebView, type WebViewProps } from 'react-native-webview';
 
 import { useTheme } from '../../../shared/theme';
 import type { Apod } from '../api/getApodToday';
@@ -24,6 +23,11 @@ const VIDEO_ASPECT_RATIO = 16 / 9;
  */
 export const PLAYER_REFERER = 'https://edu.upc.perseida';
 
+/** Not exported from the package root: derived from the public props instead of `lib/`. */
+type ShouldStartLoadRequest = Parameters<
+  NonNullable<WebViewProps['onShouldStartLoadWithRequest']>
+>[0];
+
 interface Props {
   apod: Apod;
 }
@@ -37,11 +41,14 @@ function hostOf(url: string): string | undefined {
  * The player only navigates within the video's own host. Links that leave it (logo, related
  * videos) open in the system browser instead of turning the player into a browser.
  * Inner frames (iOS `isTopFrame: false`) are the player's own resources and always load.
+ * Other schemes (`intent:`, `tel:`, `about:`...) are blocked without leaving the app.
  */
 export function keepInPlayer(request: ShouldStartLoadRequest, videoUrl: string): boolean {
   if (request.isTopFrame === false) return true;
-  if (hostOf(request.url) === hostOf(videoUrl)) return true;
-  void Linking.openURL(request.url);
+  const host = hostOf(request.url);
+  if (host === hostOf(videoUrl)) return true;
+  // No app may be able to open the link: the rejection is ignored, the player just stays.
+  if (host) Linking.openURL(request.url).catch(() => undefined);
   return false;
 }
 
@@ -70,7 +77,10 @@ export function ApodMedia({ apod }: Props) {
           { aspectRatio: PLACEHOLDER_ASPECT_RATIO, padding: theme.spacing.md },
         ]}
       >
-        <Text style={[theme.typography.body, { color: theme.colors.text.primary }]}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[theme.typography.body, { color: theme.colors.text.primary }]}
+        >
           {apodStrings.mediaError}
         </Text>
       </View>
@@ -92,6 +102,7 @@ export function ApodMedia({ apod }: Props) {
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction
           onError={() => setFailed(true)}
+          onHttpError={() => setFailed(true)}
         />
       </View>
     );
