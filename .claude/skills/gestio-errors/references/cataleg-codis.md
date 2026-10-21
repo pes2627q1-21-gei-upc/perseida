@@ -32,6 +32,8 @@ Missatge genèric per als errors **no recuperables** sense text propi (p. ex. `I
 | `APOD_DATE_BEFORE_START` | 422 | `ValidationError` | Sí | L'APOD només està disponible a partir del 16 de juny de 1995. | El APOD solo está disponible a partir del 16 de junio de 1995. | APOD is only available from June 16, 1995 onwards. | domain/apod |
 | `APOD_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona. | Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato. | We couldn't load the APOD right now. Please try again in a while. | application/apod (constant `APOD_UNAVAILABLE`; l'adaptador de TG-46 la llança) |
 | `USER_EMAIL_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
+| `USER_EMAIL_INVALID` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users (correu massa llarg o amb espais o caràcters de control) |
+| `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
 
 ## Codis de Redis pub/sub (TG-87)
@@ -52,6 +54,7 @@ Textos aprovats per la persona responsable (TG-44). Un compte banejat respon `AC
 | `ACCOUNT_DELETED` | 403 | `ForbiddenError` | No | Aquest compte s'ha eliminat. | Esta cuenta ha sido eliminada. | This account has been deleted. | application/auth |
 | `IDENTITY_PROVIDER_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona. | Google no está disponible ahora mismo. Vuelve a intentarlo en un rato. | Google is unavailable right now. Please try again in a while. | application/auth |
 | `SESSION_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona. | No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato. | We can't check your session right now. Please try again in a while. | infrastructure/auth (Redis no disponible) |
+| `EMAIL_ALREADY_REGISTERED` | 409 | `ConflictError` | No | Aquest correu ja està associat a un altre compte. | Este correo ya está asociado a otra cuenta. | This email is already linked to another account. | infrastructure/users |
 
 ## Taula plantilla
 

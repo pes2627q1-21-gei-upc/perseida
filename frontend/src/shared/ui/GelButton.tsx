@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../theme';
@@ -10,10 +11,12 @@ interface Props {
   label: string;
   onPress: () => void;
   accessibilityHint?: string;
+  /** Decorative icon before the label; the label carries the meaning. */
+  icon?: ReactNode;
 }
 
 /** Main action button with the "gel" material. Simple version: no sound or animation yet. */
-export function GelButton({ label, onPress, accessibilityHint }: Props) {
+export function GelButton({ label, onPress, accessibilityHint, icon }: Props) {
   const theme = useTheme();
   const { gel } = theme.colors;
 
@@ -54,9 +57,14 @@ export function GelButton({ label, onPress, accessibilityHint }: Props) {
           <View
             style={[
               styles.content,
-              { paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.sm },
+              {
+                gap: theme.spacing.sm,
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: theme.spacing.sm,
+              },
             ]}
           >
+            {icon}
             <Text style={[theme.typography.bodyStrong, { color: gel.text }]}>{label}</Text>
           </View>
         </>
@@ -68,5 +76,5 @@ export function GelButton({ label, onPress, accessibilityHint }: Props) {
 const styles = StyleSheet.create({
   highlight: { position: 'absolute', top: 0, left: 0, right: 0 },
   rim: { borderWidth: 1, opacity: 0.5 },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
 });

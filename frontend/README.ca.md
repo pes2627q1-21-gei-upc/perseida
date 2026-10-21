@@ -30,7 +30,7 @@ App mòbil i panell d'administració de **Perseida**, una aplicació multiplataf
 | Emmagatzematge local | SQLite (cua + cache offline)                                              |
 | Autenticació         | Google OAuth2 + PKCE                                                      |
 | Push                 | Firebase Cloud Messaging                                                  |
-| Tipus d'API          | Generats a partir de l'esquema OpenAPI del backend (`openapi-typescript`) |
+| Tipus d'API          | Generats a partir de l'esquema OpenAPI del backend (`openapi-typescript`; còpia de `/api/openapi.json` a `openapi/openapi.json`, i després `pnpm api:generate`) |
 | Web d'administració  | React Native Web (bundle estàtic servit per nginx-proxy-manager)          |
 | Dependències         | `pnpm`                                                                    |
 | Qualitat             | ESLint (TS, React, React Hooks), Prettier, SonarQube Cloud                |

@@ -31,9 +31,13 @@ class FakeAccountGateway:
     def __init__(self, status: AccountStatus = AccountStatus.ACTIVE) -> None:
         self._status = status
         self.asked: list[GoogleIdentity] = []
+        self.languages: list[str | None] = []
 
-    async def get_status(self, identity: GoogleIdentity) -> AccountStatus:
+    async def get_status(
+        self, identity: GoogleIdentity, language: str | None = None
+    ) -> AccountStatus:
         self.asked.append(identity)
+        self.languages.append(language)
         return self._status
 
 
@@ -77,13 +81,20 @@ class FakeTokenCodec:
 
     def __init__(self) -> None:
         self.issued: dict[str, SessionClaims] = {}
+        self.expired: set[str] = set()
+
+    def expire(self, token: str) -> None:
+        """Simulate the token's ``exp`` having passed."""
+        self.expired.add(token)
 
     def encode(self, claims: SessionClaims) -> str:
         token = f"token-{len(self.issued) + 1}"
         self.issued[token] = claims
         return token
 
-    def decode(self, token: str) -> SessionClaims:
+    def decode(self, token: str, *, verify_expiry: bool = True) -> SessionClaims:
+        if token in self.expired and verify_expiry:
+            raise UnauthorizedError(INVALID_SESSION)
         try:
             return self.issued[token]
         except KeyError:

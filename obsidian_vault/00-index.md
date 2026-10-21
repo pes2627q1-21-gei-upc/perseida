@@ -54,8 +54,9 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0021-subagents-agnostics-i-generador|ADR-0021 Subagents agnòstics]]
 - [[0022-logging-json-global-amb-stdlib|ADR-0022 Logging JSON global]]
 - [[0023-convencions-del-model-de-dades|ADR-0023 Convencions del model de dades]]
+- [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss|ADR-0024 Defensa contra injecció SQL i XSS]]
 
-**convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
+**convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 
 **producte/**: [[not-list]], [[stakeholders]], [[epiques-i-us]]
 

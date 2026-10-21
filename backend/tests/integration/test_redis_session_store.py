@@ -7,9 +7,13 @@ from uuid import uuid4
 import pytest
 from redis.asyncio import Redis
 
-from app.domain.auth.models import SessionClaims, TokenType
+from app.application.auth.auth_service import AuthService, SessionDurations
+from app.application.shared.errors import UnauthorizedError
+from app.domain.auth.models import GoogleIdentity, SessionClaims, TokenType
+from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.config import RedisSettings
+from tests.fakes.auth import FakeAccountGateway, FakeGoogleTokenVerifier
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("REDIS_HOST"),
@@ -128,3 +132,30 @@ async def test_revoke_all_removes_every_session_of_the_user_and_no_other(
     assert await store.exists(TokenType.ACCESS, theirs.jti)
     assert await redis.scard(f"user_sessions:{sub}") == 0
     await store.revoke_all(theirs.sub)
+
+
+async def test_logout_through_the_service_revokes_the_pair_in_redis(
+    redis: Redis, sub: str
+) -> None:
+    # TG-138 / US #45 criteri 8: AuthService.logout sobre el Redis real
+    identity = GoogleIdentity(google_sub=sub, email="ana@example.com")
+    store = RedisSessionStore(redis)
+    service = AuthService(
+        FakeGoogleTokenVerifier(identity),
+        JwtTokenCodec("x" * 32),
+        store,
+        FakeAccountGateway(),
+        SessionDurations(access_seconds=900, refresh_seconds=3600),
+    )
+    tokens = await service.login("google-id-token")
+    other = await service.login("google-id-token")
+
+    await service.logout(tokens.access_token)
+    await service.logout(tokens.access_token)
+
+    with pytest.raises(UnauthorizedError):
+        await service.authenticate(tokens.access_token)
+    with pytest.raises(UnauthorizedError):
+        await service.refresh(tokens.refresh_token)
+    assert (await service.authenticate(other.access_token)).sub == sub
+    await store.revoke_all(sub)

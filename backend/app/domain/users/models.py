@@ -4,7 +4,13 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.domain.shared.account import AccountStatus as AccessStatus
 from app.domain.shared.errors import ValidationError
+from app.domain.shared.text import clean_text, safe_https_url
+
+# Same limits as the columns of ``users`` (infrastructure/users/tables.py).
+EMAIL_MAX_LENGTH = 320
+DISPLAY_NAME_MAX_LENGTH = 255
 
 
 class Role(StrEnum):
@@ -53,7 +59,22 @@ class User(BaseModel):
         normalized = value.strip().lower()
         if not normalized:
             raise ValidationError("USER_EMAIL_EMPTY", "User email must not be empty")
+        if len(normalized) > EMAIL_MAX_LENGTH or any(
+            char.isspace() or not char.isprintable() for char in normalized
+        ):
+            raise ValidationError("USER_EMAIL_INVALID", "User email is not valid")
         return normalized
+
+    @field_validator("display_name")
+    @classmethod
+    def _clean_display_name(cls, value: str | None) -> str | None:
+        return clean_text(value, DISPLAY_NAME_MAX_LENGTH)
+
+    @field_validator("avatar_url")
+    @classmethod
+    def _require_https_avatar(cls, value: str | None) -> str | None:
+        # A link that is not plain https (javascript:, data:...) is dropped, not stored.
+        return safe_https_url(value)
 
     @field_validator("google_sub")
     @classmethod
@@ -67,6 +88,17 @@ class User(BaseModel):
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
+
+    @property
+    def account_status(self) -> AccessStatus:
+        """Status as seen by the auth flow; a deleted account wins over any other."""
+        if self.is_deleted:
+            return AccessStatus.DELETED
+        return AccessStatus(self.status.value)
+
+    def record_login(self, at: datetime) -> User:
+        """Return the account with ``last_login_at`` set to ``at``."""
+        return self.model_copy(update={"last_login_at": at})
 
     @classmethod
     def create(

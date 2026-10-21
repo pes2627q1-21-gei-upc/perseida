@@ -3,17 +3,12 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.shared.account import AccountStatus as AccountStatus
+
 
 class TokenType(StrEnum):
     ACCESS = "access"
     REFRESH = "refresh"
-
-
-class AccountStatus(StrEnum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-    BANNED = "banned"
-    DELETED = "deleted"
 
 
 class GoogleIdentity(BaseModel):

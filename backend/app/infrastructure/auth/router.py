@@ -1,6 +1,7 @@
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
 from app.application.auth.errors import (
@@ -11,9 +12,13 @@ from app.application.auth.errors import (
     INVALID_SESSION,
     SESSION_UNAVAILABLE,
 )
+from app.application.users.errors import EMAIL_ALREADY_REGISTERED
 from app.domain.auth.models import SessionTokens
 from app.infrastructure.api.schemas import ProblemDetails
-from app.infrastructure.auth.dependencies import AuthServiceDep
+from app.infrastructure.auth.dependencies import BEARER, AuthServiceDep
+
+# Generous for a JWT (about 1 KB), small enough to refuse payloads that exhaust memory.
+MAX_TOKEN_LENGTH = 4096
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,13 +41,25 @@ class GoogleLoginRequest(BaseModel):
     id_token: str = Field(
         ...,
         min_length=1,
+        max_length=MAX_TOKEN_LENGTH,
         description="ID token que l'app obté de Google (OAuth2 amb PKCE)",
+    )
+    language: str | None = Field(
+        default=None,
+        max_length=16,
+        description=(
+            "Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el "
+            "compte; si falta o no és compatible, `ca`."
+        ),
     )
 
 
 class RefreshRequest(BaseModel):
     refresh_token: str = Field(
-        ..., min_length=1, description="Refresh token vigent de la sessió"
+        ...,
+        min_length=1,
+        max_length=MAX_TOKEN_LENGTH,
+        description="Refresh token vigent de la sessió",
     )
 
 
@@ -84,6 +101,9 @@ class TokenResponse(BaseModel):
             f"El compte és suspès (`{ACCOUNT_SUSPENDED}`) o esborrat "
             f"(`{ACCOUNT_DELETED}`)."
         ),
+        409: _problem(
+            f"El correu ja pertany a un altre compte (`{EMAIL_ALREADY_REGISTERED}`)."
+        ),
         422: _problem("Cos de la petició incorrecte."),
         503: _problem(
             f"Google no respon (`{IDENTITY_PROVIDER_UNAVAILABLE}`) o no es pot "
@@ -95,7 +115,7 @@ async def login_with_google(
     body: GoogleLoginRequest, service: AuthServiceDep
 ) -> TokenResponse:
     """Canvia un ID token de Google per una sessió pròpia."""
-    return TokenResponse.from_tokens(await service.login(body.id_token))
+    return TokenResponse.from_tokens(await service.login(body.id_token, body.language))
 
 
 @router.post(
@@ -122,3 +142,27 @@ async def refresh_session(
 ) -> TokenResponse:
     """Renova la sessió amb un refresh token."""
     return TokenResponse.from_tokens(await service.refresh(body.refresh_token))
+
+
+@router.post(
+    "/logout",
+    operation_id="logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Tancament de sessió",
+    description=(
+        "Revoca la sessió sencera (access i refresh token) a la qual pertany el "
+        "token `Bearer`. És idempotent: amb un token caducat, ja revocat, invàlid "
+        "o sense token també respon 204."
+    ),
+    response_description="Sessió tancada.",
+    responses={
+        503: _problem(f"No es pot revocar la sessió (`{SESSION_UNAVAILABLE}`)."),
+    },
+)
+async def logout(
+    service: AuthServiceDep,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(BEARER)],
+) -> None:
+    """Tanca la sessió del token que s'envia."""
+    if credentials is not None:
+        await service.logout(credentials.credentials)

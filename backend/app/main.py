@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.openapi import install_openapi_cleanup
+from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
 from app.infrastructure.apod.router import router as apod_router
 from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
@@ -23,6 +24,9 @@ from app.infrastructure.scheduler.dependencies import (
     get_scheduler_settings,
 )
 from app.infrastructure.scheduler.jobs import register_jobs
+from app.infrastructure.users.account_gateway import UserAccountGateway
+from app.infrastructure.users.dependencies import build_user_service
+from app.infrastructure.users.router import router as users_router
 
 GOOGLE_HTTP_TIMEOUT_SECONDS = 5.0
 
@@ -46,12 +50,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.redis = redis
         app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
         async with httpx.AsyncClient(timeout=GOOGLE_HTTP_TIMEOUT_SECONDS) as client:
-            app.state.auth_service = build_auth_service(auth_settings, redis, client)
             engine = create_async_engine(settings.database_url)
             try:
-                app.state.session_factory = async_sessionmaker(
+                session_factory = async_sessionmaker(
                     engine,
                     expire_on_commit=False,
+                )
+                app.state.session_factory = session_factory
+                user_service = build_user_service(session_factory)
+                app.state.user_service = user_service
+                app.state.auth_service = build_auth_service(
+                    auth_settings, redis, client, UserAccountGateway(user_service)
                 )
                 try:
                     if scheduler:
@@ -81,9 +90,11 @@ def create_app() -> FastAPI:
     )
     register_error_handlers(app)
     app.add_middleware(CorrelationIdMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(health_router, prefix="/api")
     app.include_router(apod_router, prefix="/api")
     app.include_router(auth_router, prefix="/api")
+    app.include_router(users_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 

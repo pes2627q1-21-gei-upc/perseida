@@ -66,6 +66,16 @@ async def test_login_returns_an_access_and_a_refresh_token() -> None:
     assert refresh.exp == NOW + timedelta(days=30)
 
 
+async def test_login_passes_the_device_language_to_the_account_gateway() -> None:
+    # TG-137 / US #45 criteri 1: l'idioma del primer accés arriba al gateway
+    service, _, _, accounts = make_service()
+
+    await service.login("google-id-token", "es")
+
+    assert accounts.languages == ["es"]
+    assert accounts.asked == [IDENTITY]
+
+
 async def test_login_registers_each_token_with_its_lifetime() -> None:
     service, codec, store, _ = make_service()
 
@@ -265,3 +275,76 @@ async def test_revoking_all_the_sessions_of_a_user_leaves_other_users_alone() ->
     with pytest.raises(UnauthorizedError):
         await service.authenticate(tokens.access_token)
     assert await store.exists(TokenType.ACCESS, "other-jti")
+
+
+async def test_logout_revokes_the_access_and_the_refresh_token() -> None:
+    # TG-138 / US #45 criteri 8
+    service, _, store, _ = make_service()
+    tokens = await service.login("google-id-token")
+
+    await service.logout(tokens.access_token)
+
+    assert store.entries == {}
+    for operation, token in (
+        (service.authenticate, tokens.access_token),
+        (service.refresh, tokens.refresh_token),
+    ):
+        with pytest.raises(UnauthorizedError) as exc_info:
+            await operation(token)
+        assert exc_info.value.code == INVALID_SESSION
+
+
+async def test_logout_with_the_refresh_token_closes_the_session_too() -> None:
+    service, _, store, _ = make_service()
+    tokens = await service.login("google-id-token")
+
+    await service.logout(tokens.refresh_token)
+
+    assert store.entries == {}
+
+
+async def test_logout_leaves_other_sessions_of_the_same_user_alone() -> None:
+    service, _, store, _ = make_service()
+    closed = await service.login("google-id-token")
+    kept = await service.login("google-id-token")
+
+    await service.logout(closed.access_token)
+
+    assert (await service.authenticate(kept.access_token)).sub == "google-123"
+    assert len(store.entries) == 2
+
+
+async def test_logout_is_idempotent() -> None:
+    # TG-138 / US #45 criteri 10
+    service, _, _, _ = make_service()
+    tokens = await service.login("google-id-token")
+
+    await service.logout(tokens.access_token)
+    await service.logout(tokens.access_token)
+
+
+async def test_logout_with_an_expired_access_token_still_revokes_the_refresh() -> None:
+    # TG-138 / US #45 criteri 10: l'access ha caducat però el refresh viu
+    service, codec, store, _ = make_service()
+    tokens = await service.login("google-id-token")
+    codec.expire(tokens.access_token)
+    store.expire(
+        TokenType.ACCESS, codec.decode(tokens.access_token, verify_expiry=False).jti
+    )
+
+    await service.logout(tokens.access_token)
+
+    assert store.entries == {}
+    with pytest.raises(UnauthorizedError):
+        await service.refresh(tokens.refresh_token)
+
+
+async def test_logout_with_an_invalid_token_is_not_an_error() -> None:
+    # TG-138 / US #45 criteri 10
+    service, _, store, _ = make_service()
+    tokens = await service.login("google-id-token")
+
+    await service.logout("not-a-token")
+
+    assert len(store.entries) == 2
+    assert (await service.authenticate(tokens.access_token)).sub == "google-123"

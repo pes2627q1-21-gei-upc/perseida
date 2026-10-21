@@ -2,8 +2,8 @@
 titol: "Backend: arquitectura hexagonal"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-16"
-us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-46", "TG-88", "TG-205", "TG-304"]
+data: "2026-10-21"
+us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-45", "TG-46", "TG-88", "TG-205", "TG-304"]
 font: "backend/README.md, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, backend, hexagonal]
 ---
@@ -48,6 +48,8 @@ flowchart LR
 - `infrastructure`: tot el que toca l'exterior: endpoints, WebSockets, persistència, Redis, clients externs i *exception handlers* ([[0018-errors-rfc-9457-amb-codis-estables]]). Implementa els ports del domini.
 
 Les dependències només van cap endins (`infrastructure` → `application` → `domain`) i cada capa s'organitza per mòduls (`app/<capa>/<mòdul>/`).
+
+**Mòduls de funcionalitat independents:** dues funcionalitats (p. ex. `auth` i `users`) no s'importen entre elles a `domain` ni a `application`. El que comparteixen viu als mòduls `shared`: `AccountStatus` a `app/domain/shared/account.py` i els codis d'error comuns (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) a `app/application/shared/error_codes.py`. A `infrastructure`, `main.py` les compon (p. ex. entrega `UserAccountGateway` a `build_auth_service`), de manera que `auth` no depèn de `users`; la regla la vigila `backend/tests/architecture`.
 
 Errors: la jerarquia viu als mòduls `shared` de cada capa (`DomainError` i subclasses a `app/domain/shared/`; `ApplicationError`, `UnauthorizedError`, `ForbiddenError` i `ExternalServiceError` a `app/application/shared/`). Només `infrastructure` coneix HTTP: `app/infrastructure/api/` té el middleware `X-Correlation-ID` i els *exception handlers* que els tradueixen a RFC 9457 (vegeu [[0018-errors-rfc-9457-amb-codis-estables]]).
 

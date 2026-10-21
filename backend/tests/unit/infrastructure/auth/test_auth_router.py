@@ -133,6 +133,7 @@ async def test_login_errors_have_the_status_and_code_of_the_us(
     [
         ("/api/auth/google", {}),
         ("/api/auth/google", {"id_token": ""}),
+        ("/api/auth/google", {"id_token": "g", "language": "x" * 17}),
         ("/api/auth/refresh", {}),
         ("/api/auth/refresh", {"refresh_token": ""}),
     ],
@@ -236,3 +237,53 @@ def test_swagger_documents_both_endpoints_with_problem_json_errors() -> None:
         operation = paths[path]["post"]
         assert set(operation["responses"]["200"]["content"]) == {"application/json"}
         assert set(operation["responses"]["401"]["content"]) == {PROBLEM_JSON}
+
+
+async def test_logout_closes_the_whole_session_and_answers_204() -> None:
+    # TG-139 / US #45 criteri 8
+    service, _, _ = make_service()
+    async for client in client_for(service):
+        tokens = await login(client)
+        headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+        response = await client.post("/api/auth/logout", headers=headers)
+        after_access = await client.get("/private", headers=headers)
+        after_refresh = await client.post(
+            "/api/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+        )
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert_problem(after_access, 401, INVALID_SESSION)
+    assert_problem(after_refresh, 401, INVALID_SESSION)
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        pytest.param({}, id="no-header"),
+        pytest.param({"Authorization": "Bearer forged"}, id="forged-token"),
+    ],
+)
+async def test_logout_without_a_usable_token_is_still_204(
+    headers: dict[str, str],
+) -> None:
+    # TG-139 / US #45 criteri 10
+    service, _, _ = make_service()
+    async for client in client_for(service):
+        response = await client.post("/api/auth/logout", headers=headers)
+
+    assert response.status_code == 204
+
+
+async def test_logout_twice_is_still_204() -> None:
+    # TG-139 / US #45 criteri 10
+    service, _, _ = make_service()
+    async for client in client_for(service):
+        tokens = await login(client)
+        headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+        first = await client.post("/api/auth/logout", headers=headers)
+        second = await client.post("/api/auth/logout", headers=headers)
+
+    assert (first.status_code, second.status_code) == (204, 204)

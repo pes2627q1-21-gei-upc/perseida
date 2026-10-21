@@ -282,9 +282,9 @@ The app signs the user in with Google (OAuth2 + PKCE) and sends the Google `id_t
 
 **Flow:**
 
-1. `POST /api/auth/google` with `{"id_token": "<Google token>"}`.
+1. `POST /api/auth/google` with `{"id_token": "<Google token>", "language": "ca"}` (`language` is optional).
 2. `GoogleJwksVerifier` checks the RS256 signature with Google's public keys (JWKS, cached for 1 hour; an unknown `kid` triggers one new download, at most once a minute), the issuer, the audience (`GOOGLE_CLIENT_ID`), the expiration and that the email is verified. Otherwise: 401 `INVALID_GOOGLE_TOKEN`. If Google does not answer and no keys are cached: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
-3. The `AccountGateway` port returns the account status: suspended or banned → 403 `ACCOUNT_SUSPENDED`; deleted → 403 `ACCOUNT_DELETED`.
+3. The `AccountGateway` port signs the account up on the first access and returns its status: suspended or banned → 403 `ACCOUNT_SUSPENDED`; deleted → 403 `ACCOUNT_DELETED`.
 4. The backend issues two JWTs signed with HS256 and `JWT_SECRET`: an access token (15 minutes) and a refresh token (30 days), with the claims `sub` (the `google_sub`), `jti` (unique per token), `sid` (session id, shared by the access and the refresh token of a pair and kept by `refresh`), `type` (`access` or `refresh`), `iat` and `exp`. Each one is registered in Redis as `session:<type>:<jti>` with a TTL equal to its lifetime, and listed in the user index `user_sessions:<sub>` (members `<sid>:<type>:<jti>`).
 5. Response `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` in seconds).
 
@@ -312,22 +312,20 @@ async def me(session: CurrentSessionDep) -> MeResponse:
     return MeResponse(google_sub=session.sub)  # sub is the user's google_sub
 ```
 
-**Connecting US #45 (users).** The domain defines the port `AccountGateway` in `app/domain/auth/ports.py`:
+**Users and sign-up (US #45).** The `AccountGateway` port is implemented by `UserAccountGateway` (`app/infrastructure/users/`), which delegates to `UserService.sign_in` (`app/application/users/`):
 
-```python
-class AccountGateway(Protocol):
-    async def get_status(self, identity: GoogleIdentity) -> AccountStatus: ...
-```
+- **First access:** a `google_sub` that does not exist creates the user (role `user`, name and avatar from the Google profile). The optional `language` of the login body (`ca`, `es` or `en`; anything else or absent means `ca`) is stored only then. The insert is `INSERT … ON CONFLICT DO NOTHING`, so two simultaneous first accesses leave a single user.
+- **Returning access:** no new user; `last_login_at` is updated.
+- **Email of another account:** if the email already belongs to a user linked to a different `google_sub`, 409 `EMAIL_ALREADY_REGISTERED` (identities are never linked automatically).
+- **Deleted, suspended or banned:** 403 and nothing is created or updated; the `google_sub` of a deleted account stays reserved.
 
-`GoogleIdentity` carries `google_sub`, `email`, and optional `name` and `picture`. `AccountStatus` is `active`, `suspended`, `banned` or `deleted` (`deleted` when `deleted_at` is set). To connect it:
+**Current user:** `GET /api/users/me` returns `id`, `email`, `display_name`, `avatar_url`, `preferred_language` and `role` of the session owner. 401 `INVALID_SESSION` without a valid session; 403 `ACCOUNT_SUSPENDED` or `ACCOUNT_DELETED` if the account cannot be used.
 
-1. Write the adapter in `infrastructure` (it looks the user up by `google_sub`, creates it on first access and returns its status).
-2. Replace `ProvisionalAccountGateway()` with it in `build_auth_service` (`app/infrastructure/auth/dependencies.py`). The provisional implementation, which **accepts every account**, lives in `app/infrastructure/auth/provisional_account_gateway.py` and is removed by #45.
-3. Logout is also #45's: revoke the pair with `SessionStore.revoke_session(sub, sid)` (add a `logout` method to `AuthService`). Suspending or banning (#78, #102) uses `SessionStore.revoke_all(sub)`; the refresh then fails with 401 because its key no longer exists.
+**Logout:** `POST /api/auth/logout` (header `Authorization: Bearer <token>`) revokes the whole session, the access and the refresh token, through their shared `sid` (`SessionStore.revoke_session`) and answers 204. It is idempotent: an expired, invalid or already revoked token, or no token at all, also answers 204. Suspending or banning (#78, #102) uses `SessionStore.revoke_all(sub)`; the refresh then fails with 401 because its key no longer exists.
 
 For tests use `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` shows the full flow with Google simulated by `respx`.
 
-The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`) are in `app/application/auth/errors.py` and in the error catalog.
+The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) are in `app/application/auth/errors.py` and in the error catalog. The three that `users` also raises (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) are defined in `app/application/shared/error_codes.py` and `AccountStatus` in `app/domain/shared/account.py`, so `auth` and `users` never import each other in `domain` or `application` (`tests/architecture`); `main.py` composes them by handing `UserAccountGateway` to `build_auth_service`.
 
 ## Testing and quality
 
