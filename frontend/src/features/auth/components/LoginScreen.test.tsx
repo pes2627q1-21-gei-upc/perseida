@@ -2,10 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
-import { PerseidShower } from '../features/auth/components/PerseidShower';
-import { authStrings } from '../features/auth/strings';
-import LoginScreen from './login';
+import { LOGOUT_NOTICE } from '../hooks/useLogout';
+import { PerseidShower } from './PerseidShower';
+import { authStrings } from '../strings';
+import LoginScreen from '../../../app/login';
 
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
