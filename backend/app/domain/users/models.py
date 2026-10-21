@@ -4,6 +4,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.domain.auth.models import AccountStatus as AuthAccountStatus
 from app.domain.shared.errors import ValidationError
 
 
@@ -67,6 +68,17 @@ class User(BaseModel):
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
+
+    @property
+    def account_status(self) -> AuthAccountStatus:
+        """Status as seen by the auth flow; a deleted account wins over any other."""
+        if self.is_deleted:
+            return AuthAccountStatus.DELETED
+        return AuthAccountStatus(self.status.value)
+
+    def record_login(self, at: datetime) -> User:
+        """Return the account with ``last_login_at`` set to ``at``."""
+        return self.model_copy(update={"last_login_at": at})
 
     @classmethod
     def create(
