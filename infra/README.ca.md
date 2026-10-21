@@ -182,6 +182,10 @@ Sense escalat horitzontal ni còpies de seguretat automàtiques; el servidor és
 
 [Backend](../backend/README.ca.md) · [Frontend](../frontend/README.ca.md) · [Obsidian vault](../obsidian_vault/README.ca.md)
 
+## Capçaleres de seguretat
+
+L'API envia les seves pròpies capçaleres de seguretat (`nosniff`, una `Content-Security-Policy` de `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` als endpoints d'autenticació i d'usuari, i HSTS quan la petició arriba per HTTPS). El TLS acaba a nginx-proxy-manager, així que el proxy afegeix HSTS i les polítiques de les dues coses que l'API no serveix: el panell d'administració (CSP estricta: cap script en línia ni de tercers) i els fitxers dels usuaris (`sandbox` i `nosniff`, perquè un fitxer pujat no pugui executar-se mai com a pàgina). Els blocs per enganxar, amb els motius, són a `nginx-proxy-manager/security-headers.conf`. Comprova'ls després de cada canvi amb `curl -sI https://<host>/` i la consola del navegador (una violació de la CSP hi queda registrada).
+
 ## Equip
 
 Manel Alaminos · Simona Duelt · Alex Garcia · Oriol Orbea · Javier Pascual · Raquel Rubio
