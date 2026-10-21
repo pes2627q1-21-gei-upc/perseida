@@ -2,6 +2,12 @@ from datetime import UTC, datetime
 
 import pytest
 
+from app.application.auth.errors import (
+    ACCOUNT_DELETED,
+    ACCOUNT_SUSPENDED,
+    INVALID_SESSION,
+)
+from app.application.shared.errors import ForbiddenError, UnauthorizedError
 from app.application.users.errors import EMAIL_ALREADY_REGISTERED
 from app.application.users.user_service import UserService
 from app.domain.auth.models import AccountStatus, GoogleIdentity
@@ -136,3 +142,38 @@ async def test_losing_a_registration_race_returns_the_winner_status() -> None:
 
     assert await _service(repo).sign_in(IDENTITY) is AccountStatus.ACTIVE
     assert list(repo.users.values()) == [winner]
+
+
+async def test_get_profile_returns_the_active_account() -> None:
+    # TG-139 / US #45 criteri 7
+    existing = _existing()
+    repo = InMemoryUserRepository(existing)
+
+    assert await _service(repo).get_profile("sub-1") == existing
+
+
+async def test_get_profile_of_a_session_without_account_is_an_invalid_session() -> None:
+    with pytest.raises(UnauthorizedError) as exc_info:
+        await _service(InMemoryUserRepository()).get_profile("sub-1")
+
+    assert exc_info.value.code == INVALID_SESSION
+
+
+@pytest.mark.parametrize(
+    ("overrides", "code"),
+    [
+        ({"status": UserStatus.SUSPENDED}, ACCOUNT_SUSPENDED),
+        ({"status": UserStatus.BANNED}, ACCOUNT_SUSPENDED),
+        ({"deleted_at": NOW}, ACCOUNT_DELETED),
+    ],
+)
+async def test_get_profile_rejects_suspended_banned_and_deleted_accounts(
+    overrides: dict[str, object], code: str
+) -> None:
+    # TG-139 / US #45 criteri 6
+    repo = InMemoryUserRepository(_existing(**overrides))
+
+    with pytest.raises(ForbiddenError) as exc_info:
+        await _service(repo).get_profile("sub-1")
+
+    assert exc_info.value.code == code

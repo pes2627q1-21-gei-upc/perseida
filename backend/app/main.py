@@ -23,6 +23,8 @@ from app.infrastructure.scheduler.dependencies import (
     get_scheduler_settings,
 )
 from app.infrastructure.scheduler.jobs import register_jobs
+from app.infrastructure.users.dependencies import build_user_service
+from app.infrastructure.users.router import router as users_router
 
 GOOGLE_HTTP_TIMEOUT_SECONDS = 5.0
 
@@ -53,8 +55,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     expire_on_commit=False,
                 )
                 app.state.session_factory = session_factory
+                user_service = build_user_service(session_factory)
+                app.state.user_service = user_service
                 app.state.auth_service = build_auth_service(
-                    auth_settings, redis, client, session_factory
+                    auth_settings, redis, client, user_service
                 )
                 try:
                     if scheduler:
@@ -87,6 +91,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(apod_router, prefix="/api")
     app.include_router(auth_router, prefix="/api")
+    app.include_router(users_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 

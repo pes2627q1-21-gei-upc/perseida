@@ -4,7 +4,6 @@ import httpx
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.requests import HTTPConnection
 
 from app.application.auth.auth_service import AuthService, SessionDurations
@@ -17,7 +16,6 @@ from app.infrastructure.auth.google_verifier import GoogleJwksVerifier
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.users.account_gateway import UserAccountGateway
-from app.infrastructure.users.repository import SqlUserRepository
 
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_DAY = 24 * 60 * 60
@@ -27,14 +25,14 @@ def build_auth_service(
     settings: AuthSettings,
     redis: Redis,
     client: httpx.AsyncClient,
-    session_factory: async_sessionmaker[AsyncSession],
+    users: UserService,
 ) -> AuthService:
     """Wire the auth service; called once from the lifespan, which owns the clients."""
     return AuthService(
         verifier=GoogleJwksVerifier(client, settings.google_client_id),
         codec=JwtTokenCodec(settings.jwt_secret),
         store=RedisSessionStore(redis),
-        accounts=UserAccountGateway(UserService(SqlUserRepository(session_factory))),
+        accounts=UserAccountGateway(users),
         durations=SessionDurations(
             access_seconds=settings.access_token_minutes * SECONDS_PER_MINUTE,
             refresh_seconds=settings.refresh_token_days * SECONDS_PER_DAY,
@@ -53,12 +51,12 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 # auto_error=False: a missing header must answer our own 401 (RFC 9457), not
 # FastAPI's default. The scheme still adds the "Authorize" button to /docs.
-_bearer = HTTPBearer(auto_error=False, description="Access token (Bearer)")
+BEARER = HTTPBearer(auto_error=False, description="Access token (Bearer)")
 
 
 async def get_current_session(
     service: AuthServiceDep,
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(BEARER)],
 ) -> SessionClaims:
     if credentials is None:
         raise UnauthorizedError(INVALID_SESSION)

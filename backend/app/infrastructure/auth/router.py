@@ -1,6 +1,7 @@
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
 from app.application.auth.errors import (
@@ -14,7 +15,7 @@ from app.application.auth.errors import (
 from app.application.users.errors import EMAIL_ALREADY_REGISTERED
 from app.domain.auth.models import SessionTokens
 from app.infrastructure.api.schemas import ProblemDetails
-from app.infrastructure.auth.dependencies import AuthServiceDep
+from app.infrastructure.auth.dependencies import BEARER, AuthServiceDep
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -133,3 +134,27 @@ async def refresh_session(
 ) -> TokenResponse:
     """Renova la sessió amb un refresh token."""
     return TokenResponse.from_tokens(await service.refresh(body.refresh_token))
+
+
+@router.post(
+    "/logout",
+    operation_id="logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Tancament de sessió",
+    description=(
+        "Revoca la sessió sencera (access i refresh token) a la qual pertany el "
+        "token `Bearer`. És idempotent: amb un token caducat, ja revocat, invàlid "
+        "o sense token també respon 204."
+    ),
+    response_description="Sessió tancada.",
+    responses={
+        503: _problem(f"No es pot revocar la sessió (`{SESSION_UNAVAILABLE}`)."),
+    },
+)
+async def logout(
+    service: AuthServiceDep,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(BEARER)],
+) -> None:
+    """Tanca la sessió del token que s'envia."""
+    if credentials is not None:
+        await service.logout(credentials.credentials)
