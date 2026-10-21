@@ -6,8 +6,13 @@
 export const LAKE_SHARE = 0.3;
 /** Share of the screen height taken by the hills above the waterline. */
 export const HILL_SHARE = 0.12;
-/** Height of the upside-down hills in the water, as a share of the height of the hills. */
-export const HILL_REFLECTION_SHARE = 0.9;
+/**
+ * Height of the upside-down hills in the water, as a share of the height of the hills: it is
+ * 1 because a mirror shows them exactly as tall as they are. Where the hills end in the air,
+ * the reflected hills end in the water, and the meteors are cut at the same distance from the
+ * waterline on both sides.
+ */
+export const HILL_REFLECTION_SHARE = 1;
 /** Horizontal position (share of the width) of the sun or moon and of its glitter. */
 export const LIGHT_X = 0.7;
 

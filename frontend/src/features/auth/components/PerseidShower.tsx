@@ -305,7 +305,7 @@ function Meteor({ spec, progress, width, skyHeight, cropY, waterHeight, hillHeig
           overflow: 'hidden',
         }}
       >
-        <Animated.View style={[bar(spec.length, 0), lake]}>
+        <Animated.View style={[bar(spec.length, -spec.thickness / 2), lake]}>
           <LinearGradient
             colors={fade}
             start={{ x: 0, y: 0.5 }}
@@ -333,7 +333,7 @@ interface SlotProps {
  */
 function ShowerSlot({ width, skyHeight, cropY, waterHeight, hillHeight, density }: SlotProps) {
   const reduceMotion = useReducedMotion();
-  const progress = useSharedValue(0);
+  const progress = useSharedValue(reduceMotion ? FROZEN_FLIGHT : 0);
   const [spec, setSpec] = useState<MeteorSpec>(() => randomMeteor());
 
   useEffect(() => {

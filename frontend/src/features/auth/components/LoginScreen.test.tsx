@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LOGOUT_NOTICE } from '../hooks/useLogout';
 import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
-import { LIMITS, PerseidShower, SLOT_COUNT } from './PerseidShower';
+import { LIMITS, PerseidShower, REDUCED_MOTION_COUNT, SLOT_COUNT } from './PerseidShower';
 import { authStrings } from '../strings';
 import LoginScreen from '../../../app/login';
 
@@ -229,6 +229,117 @@ describe('Login screen', () => {
 
       // The water is anchored to the bottom: the waterline moves up with the bottom edge.
       reflectionLayers().forEach((layer) => expect(layer.top).toBeCloseTo(expectedTop - 48, 5));
+    });
+  });
+
+  describe('each reflection is the exact mirror image of its meteor', () => {
+    type Transform = { translateX?: number; translateY?: number; rotate?: string; scaleX?: number };
+    type Bar = {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      opacity: number;
+      transform: Transform[];
+    };
+    type TreeNode = { props?: { style?: unknown }; children?: (TreeNode | string)[] | null };
+
+    /** [sky bar, reflection bar] of every meteor, with the top of the layer that holds each. */
+    const meteorPairs = () => {
+      const layers: { top: number; isReflection: boolean; bar: Bar }[] = [];
+      const walk = (node: TreeNode | string) => {
+        if (typeof node === 'string') return;
+        const style = StyleSheet.flatten(node.props?.style as never) as Record<string, unknown>;
+        if (style?.overflow === 'hidden' && typeof style.top === 'number') {
+          const child = node.children?.[0];
+          if (child && typeof child !== 'string') {
+            layers.push({
+              top: style.top,
+              isReflection: style.bottom === 0,
+              bar: StyleSheet.flatten(child.props?.style as never) as unknown as Bar,
+            });
+          }
+        }
+        node.children?.forEach(walk);
+      };
+      walk(screen.toJSON() as unknown as TreeNode);
+      const sky = layers.filter((layer) => !layer.isReflection);
+      const reflections = layers.filter((layer) => layer.isReflection);
+      return sky.map((layer, index) => ({ sky: layer, reflection: reflections[index] }));
+    };
+
+    /** Where the head (left end) and the end of the tail of a bar are on the screen. */
+    const ends = ({ top, bar }: { top: number; bar: Bar }) => {
+      const find = (key: keyof Transform) => bar.transform.find((t) => key in t)?.[key];
+      const rotation = (parseFloat(String(find('rotate'))) * Math.PI) / 180;
+      const head = {
+        x: bar.left + Number(find('translateX')),
+        y: top + bar.top + bar.height / 2 + Number(find('translateY')),
+      };
+      const length = bar.width * Number(find('scaleX'));
+      return {
+        head,
+        tail: { x: head.x + length * Math.cos(rotation), y: head.y + length * Math.sin(rotation) },
+      };
+    };
+
+    beforeEach(() => {
+      // Reduced motion freezes every meteor halfway through its flight: a fixed picture
+      // that is built by the very same code as the moving one.
+      mockUseReducedMotion.mockReturnValue(true);
+      let state = 4242;
+      jest.spyOn(Math, 'random').mockImplementation(() => {
+        state = (state + 0x6d2b79f5) | 0;
+        let t = Math.imul(state ^ (state >>> 15), 1 | state);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      });
+    });
+
+    const waterline = Dimensions.get('window').height * (1 - LAKE_SHARE);
+
+    it('is under it (same x) and mirrored across the waterline, head and tail', async () => {
+      await renderScreen();
+
+      const pairs = meteorPairs();
+      expect(pairs).toHaveLength(REDUCED_MOTION_COUNT);
+      pairs.forEach(({ sky, reflection }) => {
+        const real = ends(sky);
+        const mirror = ends(reflection);
+
+        expect(mirror.head.x).toBeCloseTo(real.head.x, 6);
+        expect(mirror.tail.x).toBeCloseTo(real.tail.x, 6);
+        // As far below the waterline as the real one is above it.
+        expect(mirror.head.y - waterline).toBeCloseTo(waterline - real.head.y, 6);
+        expect(mirror.tail.y - waterline).toBeCloseTo(waterline - real.tail.y, 6);
+      });
+    });
+
+    it('is as long as the meteor and as visible as it can be (a bit fainter, never brighter)', async () => {
+      await renderScreen();
+
+      meteorPairs().forEach(({ sky, reflection }) => {
+        const real = ends(sky);
+        const mirror = ends(reflection);
+
+        expect(
+          Math.hypot(mirror.tail.x - mirror.head.x, mirror.tail.y - mirror.head.y),
+        ).toBeCloseTo(Math.hypot(real.tail.x - real.head.x, real.tail.y - real.head.y), 6);
+        expect(reflection.bar.opacity).toBeGreaterThan(0);
+        expect(reflection.bar.opacity).toBeLessThanOrEqual(sky.bar.opacity);
+      });
+    });
+
+    it('falls with it: it is lower at the same instant than the meteor is high, never in the air', async () => {
+      await renderScreen();
+
+      meteorPairs().forEach(({ reflection }) => {
+        const mirror = ends(reflection);
+
+        // Both ends of the reflection are below the waterline.
+        expect(mirror.head.y).toBeGreaterThanOrEqual(waterline);
+        expect(mirror.tail.y).toBeGreaterThanOrEqual(waterline);
+      });
     });
   });
 

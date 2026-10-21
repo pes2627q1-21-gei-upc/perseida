@@ -148,7 +148,7 @@ describe('reflections', () => {
   const WATER_HEIGHT = HEIGHT * 0.3;
   const CROP_Y = SKY_HEIGHT - HILL_HEIGHT;
   // The water shows the hills upside down down to here: the sky is only reflected below it.
-  const SKY_REFLECTION_TOP = HILL_HEIGHT * 0.9;
+  const SKY_REFLECTION_TOP = HILL_HEIGHT;
 
   it('are the exact mirror image: as far below the waterline as the point is above it', () => {
     expect(reflectionDepth(SKY_HEIGHT, SKY_HEIGHT)).toBe(0);
@@ -178,7 +178,7 @@ describe('reflections', () => {
         const pose = flightPose(t, travel, meteor.angleDeg);
         const depth = reflectionDepth(headY + pose.dy, SKY_HEIGHT);
 
-        expect(depth).toBeGreaterThan(SKY_REFLECTION_TOP);
+        expect(depth).toBeGreaterThanOrEqual(SKY_REFLECTION_TOP - 1e-9);
         expect(depth).toBeLessThan(WATER_HEIGHT);
       }
     }
