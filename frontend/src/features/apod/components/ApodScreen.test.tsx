@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { apodImage, apodVideo, jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import ApodScreen from '../../../app/(app)/apod';
+import { formatApodDate } from '../formatApodDate';
 import { apodErrorMessage } from '../strings';
 import { keepInPlayer, PLAYER_REFERER } from './ApodMedia';
 
@@ -50,6 +51,26 @@ describe('APOD screen', () => {
     expect(screen.getByLabelText("Carregant l'APOD")).toBeTruthy();
     expect(await screen.findByText(apodImage.title)).toBeTruthy();
     expect(screen.queryByLabelText("Carregant l'APOD")).toBeNull();
+  });
+
+  it('shows the title, date, explanation and copyright of the APOD (criterion 1)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+
+    await renderScreen();
+
+    expect(await screen.findByRole('header', { name: apodImage.title })).toBeTruthy();
+    expect(screen.getByText(formatApodDate(apodImage.date))).toBeTruthy();
+    expect(screen.getByText(apodImage.explanation)).toBeTruthy();
+    expect(screen.getByText(`© ${apodImage.copyright}`)).toBeTruthy();
+  });
+
+  it('hides the copyright line when the APOD has no copyright (criterion 1)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodVideo));
+
+    await renderScreen();
+
+    expect(await screen.findByText(apodVideo.explanation)).toBeTruthy();
+    expect(screen.queryByText(/©/)).toBeNull();
   });
 
   it('renders an image APOD as an image without cropping (criterion 2)', async () => {

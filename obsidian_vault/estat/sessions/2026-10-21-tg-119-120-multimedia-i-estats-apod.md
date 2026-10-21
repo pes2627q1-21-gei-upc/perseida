@@ -53,6 +53,25 @@ Després de la revisió de `reviewer-arquitectura`:
 - **Mapa `code` → text.** Es queda a `features/apod/strings.ts` fins a TG-91.
 - **Fallada del multimèdia.** Si la imatge o el vídeo no carreguen, al marc surt «No s'ha pogut carregar la imatge o el vídeo.». El títol i el text continuen visibles.
 
+## Validació dels criteris de TG-48 (TG-121)
+
+Tests de `frontend/src/features/apod/components/ApodScreen.test.tsx` (pantalla amb `fetch` simulat), més la comprovació manual a Expo Go descrita a «Pendent».
+
+| # | Criteri | Test automàtic | Comprovació manual |
+|---|---|---|---|
+| 1 | Títol, data, explicació i `copyright` (si n'hi ha) | `shows the title, date, explanation and copyright…`, `hides the copyright line…` | Fet: imatge amb © i vídeo sense © |
+| 2 | Imatge adaptada a la pantalla | `renders an image APOD as an image without cropping`, `adapts the image frame to the real proportions…` | Fet: apaïsada, vertical i panoràmica, en dues mides (normal i amb zoom de pantalla) |
+| 3 | Vídeo amb reproductor incrustat | `renders a video APOD in an embedded player`, `keepInPlayer` | Fet: YouTube incrustat amb `Referer` |
+| 4 | Estat de càrrega | `shows the loading state until the data arrives` | Fet: spinner |
+| 5 | Error entenedor i reintent | `shows the catalogue message…`, `shows the network message…`, `retries from the error state…`, `does not offer a retry…` | Fet: 503 amb reintent i sense xarxa amb recuperació |
+
+El servei i el hook ja tenien tests propis des de TG-117 (`getApodToday.test.ts`, `useApodToday.test.tsx`).
+
+**Incidències trobades i com s'han tractat:**
+- Error 153 de YouTube: corregit a TG-119 (`Referer`).
+- Error de NativeWind a la web: derivat al panell d'admin; no és d'aquesta US.
+- Segona mida de pantalla: comprovada amb el zoom de pantalla del sistema.
+
 ## Canvis al vault
 
 - [[frontend]]: avís d'estat i fila «Vídeo incrustat» a l'stack.
@@ -64,7 +83,7 @@ Després de la revisió de `reviewer-arquitectura`:
   - imatge apaïsada, vertical (600×1400) i panoràmica (1800×500), sense deformar-se ni retallar-se;
   - vídeo de YouTube incrustat, que ja no dona el 153 un cop afegit el `Referer`;
   - spinner, error `APOD_UNAVAILABLE` amb reintent cap a càrrega i contingut, i error de xarxa amb recuperació.
-- [ ] Segona mida de pantalla per a TG-119: només s'ha provat en un dispositiu. Opció: zoom de pantalla del sistema o emulador.
+- [x] Segona mida de pantalla per a TG-119: s'ha provat amb el zoom de pantalla del sistema (amplada lògica menor).
 - [ ] YouTube rebutjava l'embed sense `Referer` (error 153 a Expo Go). Ara el WebView envia `Referer: https://edu.upc.perseida` (`PLAYER_REFERER` a `ApodMedia.tsx`), proposat per l'agent i acceptat per la persona responsable. Quan l'equip fixi l'`android.package` a `app.json`, cal que coincideixin.
 - [ ] Validar al backend que la `url` de l'APOD és `https` (`HttpUrl`): US a part, no feta aquí.
 - [ ] `INVALID_RESPONSE` (codi del client) encara no té fila al catàleg.
