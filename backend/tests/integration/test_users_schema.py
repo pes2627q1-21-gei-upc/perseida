@@ -164,7 +164,7 @@ async def test_uppercase_email_is_rejected(engine: AsyncEngine, email: str) -> N
 async def test_invalid_enum_value_is_rejected(
     engine: AsyncEngine, email: str, column: str, value: str
 ) -> None:
-    # TG-135 / US #45 criteri 5: restriccions CHECK
+    # TG-135 / US #45 criteri 1: restriccions CHECK
     with pytest.raises(IntegrityError):
         await _insert_user(engine, email, **{column: value})
 
@@ -183,12 +183,12 @@ async def test_invalid_enum_value_is_rejected(
 async def test_valid_enum_value_is_accepted(
     engine: AsyncEngine, email: str, column: str, value: str
 ) -> None:
-    # TG-135 / US #45 criteri 5
+    # TG-135 / US #45 criteri 1
     assert await _insert_user(engine, email, **{column: value})
 
 
 async def test_invalid_provider_is_rejected(engine: AsyncEngine, email: str) -> None:
-    # TG-135 / US #45 criteri 5
+    # TG-135 / US #45 criteri 1
     user_id = await _insert_user(engine, email)
 
     with pytest.raises(IntegrityError):
