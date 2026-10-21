@@ -21,11 +21,11 @@ etiquetes: [sessio, backend, postgres, postgis, alembic, migracions]
 
 ## Validació
 - Ruff, format i mypy correctes.
-- Suite: 222 passats, 7 omesos; cobertura global 99%.
+- Suite completa després de les correccions: 224 passats, 5 omesos; cobertura global 99%.
 - Test específic contra PostgreSQL/PostGIS local: 2 passats.
 - `git diff --check`: correcte.
 - Comportament de fallada de l'entrypoint comprovat amb `uv` simulat.
 
 ## Pendent / limitacions
 - No s'ha provat l'entrypoint dins d'un contenidor real: el projecte no té Dockerfile/Compose.
-- Revisar el diff final abans de commit i PR.
+- Revisió final del diff completada després dels canvis de documentació i dependències.
