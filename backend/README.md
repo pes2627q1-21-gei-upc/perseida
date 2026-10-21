@@ -325,7 +325,7 @@ async def me(session: CurrentSessionDep) -> MeResponse:
 
 For tests use `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` shows the full flow with Google simulated by `respx`.
 
-The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) are in `app/application/auth/errors.py` and in the error catalog.
+The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) are in `app/application/auth/errors.py` and in the error catalog. The three that `users` also raises (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) are defined in `app/application/shared/error_codes.py` and `AccountStatus` in `app/domain/shared/account.py`, so `auth` and `users` never import each other in `domain` or `application` (`tests/architecture`); `main.py` composes them by handing `UserAccountGateway` to `build_auth_service`.
 
 ## Testing and quality
 

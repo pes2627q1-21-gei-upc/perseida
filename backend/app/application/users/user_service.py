@@ -1,13 +1,13 @@
 from collections.abc import Callable
 from datetime import UTC, datetime
 
-from app.application.auth.errors import (
+from app.application.shared.error_codes import (
     ACCOUNT_DELETED,
     ACCOUNT_SUSPENDED,
     INVALID_SESSION,
 )
 from app.application.shared.errors import ForbiddenError, UnauthorizedError
-from app.domain.auth.models import AccountStatus, GoogleIdentity
+from app.domain.shared.account import AccountStatus
 from app.domain.users.models import Language, User
 from app.domain.users.ports import UserRepository
 
@@ -33,7 +33,13 @@ class UserService:
         self._now = now
 
     async def sign_in(
-        self, identity: GoogleIdentity, language: str | None = None
+        self,
+        *,
+        google_sub: str,
+        email: str,
+        display_name: str | None = None,
+        avatar_url: str | None = None,
+        language: str | None = None,
     ) -> AccountStatus:
         """Register the account on the first access and return its status.
 
@@ -44,14 +50,14 @@ class UserService:
             ConflictError: EMAIL_ALREADY_REGISTERED if the email belongs to an
                 account linked to another Google ``sub``.
         """
-        user = await self._users.get_by_google_sub(identity.google_sub)
+        user = await self._users.get_by_google_sub(google_sub)
         if user is None:
             created = await self._users.add(
                 User.create(
-                    google_sub=identity.google_sub,
-                    email=identity.email,
-                    display_name=identity.name,
-                    avatar_url=identity.picture,
+                    google_sub=google_sub,
+                    email=email,
+                    display_name=display_name,
+                    avatar_url=avatar_url,
                     preferred_language=_parse_language(language),
                 )
             )

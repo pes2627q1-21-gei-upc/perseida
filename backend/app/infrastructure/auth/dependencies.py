@@ -9,13 +9,12 @@ from starlette.requests import HTTPConnection
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.auth.errors import INVALID_SESSION
 from app.application.shared.errors import UnauthorizedError
-from app.application.users.user_service import UserService
 from app.domain.auth.models import SessionClaims
+from app.domain.auth.ports import AccountGateway
 from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.google_verifier import GoogleJwksVerifier
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
-from app.infrastructure.users.account_gateway import UserAccountGateway
 
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_DAY = 24 * 60 * 60
@@ -25,14 +24,14 @@ def build_auth_service(
     settings: AuthSettings,
     redis: Redis,
     client: httpx.AsyncClient,
-    users: UserService,
+    accounts: AccountGateway,
 ) -> AuthService:
     """Wire the auth service; called once from the lifespan, which owns the clients."""
     return AuthService(
         verifier=GoogleJwksVerifier(client, settings.google_client_id),
         codec=JwtTokenCodec(settings.jwt_secret),
         store=RedisSessionStore(redis),
-        accounts=UserAccountGateway(users),
+        accounts=accounts,
         durations=SessionDurations(
             access_seconds=settings.access_token_minutes * SECONDS_PER_MINUTE,
             refresh_seconds=settings.refresh_token_days * SECONDS_PER_DAY,

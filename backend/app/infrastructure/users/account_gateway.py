@@ -11,4 +11,10 @@ class UserAccountGateway:
     async def get_status(
         self, identity: GoogleIdentity, language: str | None = None
     ) -> AccountStatus:
-        return await self._users.sign_in(identity, language)
+        return await self._users.sign_in(
+            google_sub=identity.google_sub,
+            email=identity.email,
+            display_name=identity.name,
+            avatar_url=identity.picture,
+            language=language,
+        )

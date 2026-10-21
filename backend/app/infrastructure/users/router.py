@@ -3,11 +3,11 @@ from typing import Any, Self
 from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
 
-from app.application.auth.errors import (
+from app.application.auth.errors import SESSION_UNAVAILABLE
+from app.application.shared.error_codes import (
     ACCOUNT_DELETED,
     ACCOUNT_SUSPENDED,
     INVALID_SESSION,
-    SESSION_UNAVAILABLE,
 )
 from app.domain.users.models import Language, Role, User
 from app.infrastructure.api.schemas import ProblemDetails

@@ -10,19 +10,19 @@ from app.application.auth.errors import (
 from app.application.shared.errors import ForbiddenError, UnauthorizedError
 from app.application.users.errors import EMAIL_ALREADY_REGISTERED
 from app.application.users.user_service import UserService
-from app.domain.auth.models import AccountStatus, GoogleIdentity
+from app.domain.shared.account import AccountStatus
 from app.domain.shared.errors import ConflictError
 from app.domain.users.models import AccountStatus as UserStatus
 from app.domain.users.models import Language, User
 from tests.fakes.users import InMemoryUserRepository
 
 NOW = datetime(2026, 10, 21, 12, 0, tzinfo=UTC)
-IDENTITY = GoogleIdentity(
-    google_sub="sub-1",
-    email="Ada@Example.test",
-    name="Ada",
-    picture="https://example.test/a.png",
-)
+PROFILE = {
+    "google_sub": "sub-1",
+    "email": "Ada@Example.test",
+    "display_name": "Ada",
+    "avatar_url": "https://example.test/a.png",
+}
 
 
 def _service(repo: InMemoryUserRepository) -> UserService:
@@ -38,7 +38,7 @@ async def test_first_access_creates_the_account_from_the_google_profile() -> Non
     # TG-137 / US #45 criteri 2
     repo = InMemoryUserRepository()
 
-    status = await _service(repo).sign_in(IDENTITY)
+    status = await _service(repo).sign_in(**PROFILE)
 
     assert status is AccountStatus.ACTIVE
     user = repo.users["sub-1"]
@@ -65,7 +65,7 @@ async def test_first_access_stores_the_device_language_or_falls_back_to_ca(
     # TG-137 / US #45 criteri 1 (idioma per defecte)
     repo = InMemoryUserRepository()
 
-    await _service(repo).sign_in(IDENTITY, language)
+    await _service(repo).sign_in(**PROFILE, language=language)
 
     assert repo.users["sub-1"].preferred_language is expected
 
@@ -75,7 +75,7 @@ async def test_returning_access_updates_last_login_without_a_new_user() -> None:
     existing = _existing()
     repo = InMemoryUserRepository(existing)
 
-    status = await _service(repo).sign_in(IDENTITY, "en")
+    status = await _service(repo).sign_in(**PROFILE, language="en")
 
     assert status is AccountStatus.ACTIVE
     assert len(repo.users) == 1
@@ -88,7 +88,7 @@ async def test_deleted_account_is_reported_and_not_touched() -> None:
     # TG-137 / US #45 criteri 5
     repo = InMemoryUserRepository(_existing(deleted_at=NOW))
 
-    status = await _service(repo).sign_in(IDENTITY)
+    status = await _service(repo).sign_in(**PROFILE)
 
     assert status is AccountStatus.DELETED
     assert repo.saved_logins == []
@@ -108,7 +108,7 @@ async def test_suspended_or_banned_account_is_reported_and_not_touched(
     # TG-137 / US #45 criteri 6
     repo = InMemoryUserRepository(_existing(status=stored))
 
-    status = await _service(repo).sign_in(IDENTITY)
+    status = await _service(repo).sign_in(**PROFILE)
 
     assert status is expected
     assert repo.saved_logins == []
@@ -120,7 +120,7 @@ async def test_email_of_another_google_account_is_a_conflict() -> None:
     repo = InMemoryUserRepository(other)
 
     with pytest.raises(ConflictError) as exc_info:
-        await _service(repo).sign_in(IDENTITY)
+        await _service(repo).sign_in(**PROFILE)
 
     assert exc_info.value.code == EMAIL_ALREADY_REGISTERED
     assert list(repo.users) == ["sub-other"]
@@ -140,7 +140,7 @@ async def test_losing_a_registration_race_returns_the_winner_status() -> None:
 
     repo = RacyRepository()
 
-    assert await _service(repo).sign_in(IDENTITY) is AccountStatus.ACTIVE
+    assert await _service(repo).sign_in(**PROFILE) is AccountStatus.ACTIVE
     assert list(repo.users.values()) == [winner]
 
 

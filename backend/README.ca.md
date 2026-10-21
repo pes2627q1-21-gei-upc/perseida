@@ -279,7 +279,7 @@ async def me(session: CurrentSessionDep) -> MeResponse:
 
 Als tests fes servir `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` mostra el flux complet amb Google simulat amb `respx`.
 
-Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) són a `app/application/auth/errors.py` i al catàleg d'errors.
+Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) són a `app/application/auth/errors.py` i al catàleg d'errors. Els tres que també llança `users` (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) es defineixen a `app/application/shared/error_codes.py` i `AccountStatus` a `app/domain/shared/account.py`, de manera que `auth` i `users` no s'importen mai entre ells a `domain` ni a `application` (`tests/architecture`); `main.py` els compon passant `UserAccountGateway` a `build_auth_service`.
 
 ## Testing i qualitat
 

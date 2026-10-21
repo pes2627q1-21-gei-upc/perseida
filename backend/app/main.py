@@ -23,6 +23,7 @@ from app.infrastructure.scheduler.dependencies import (
     get_scheduler_settings,
 )
 from app.infrastructure.scheduler.jobs import register_jobs
+from app.infrastructure.users.account_gateway import UserAccountGateway
 from app.infrastructure.users.dependencies import build_user_service
 from app.infrastructure.users.router import router as users_router
 
@@ -58,7 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 user_service = build_user_service(session_factory)
                 app.state.user_service = user_service
                 app.state.auth_service = build_auth_service(
-                    auth_settings, redis, client, user_service
+                    auth_settings, redis, client, UserAccountGateway(user_service)
                 )
                 try:
                     if scheduler:
