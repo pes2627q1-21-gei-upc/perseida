@@ -21,6 +21,7 @@ jest.mock('react-native-reanimated', () => {
     __esModule: true,
     default: { View },
     Easing: { linear: 'linear' },
+    Extrapolation: { CLAMP: 'clamp' },
     cancelAnimation: jest.fn(),
     interpolate: () => 0,
     useAnimatedStyle: (style: () => object) => style(),
