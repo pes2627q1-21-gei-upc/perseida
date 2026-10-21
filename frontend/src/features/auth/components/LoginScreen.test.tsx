@@ -14,27 +14,20 @@ const mockUseReducedMotion = jest.fn(() => false);
 // Every meteor launch, with the (fake) clock at that moment and its flight time.
 const mockLaunches: { start: number; duration: number }[] = [];
 const mockWithTiming = jest.fn((value: number, config?: unknown) => {
-  mockLaunches.push({ start: Date.now(), duration: (config as { duration: number }).duration });
+  const { duration, easing } = config as { duration: number; easing: unknown };
+  // The meteors fly with a linear easing; the lake loops (waves, bubbles...) use another one.
+  if (easing === 'linear') mockLaunches.push({ start: Date.now(), duration });
   return value;
 });
 
-// Reanimated needs its native worklets runtime, which does not run under Jest: a small stand-in
-// that keeps the values (no animation) is enough to check what the screen decides.
-jest.mock('react-native-reanimated', () => {
-  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  return {
-    __esModule: true,
-    default: { View },
-    Easing: { linear: 'linear' },
-    Extrapolation: { CLAMP: 'clamp' },
-    cancelAnimation: jest.fn(),
-    interpolate: () => 0,
-    useAnimatedStyle: (style: () => object) => style(),
-    useReducedMotion: () => mockUseReducedMotion(),
-    useSharedValue: (value: number) => ({ value }),
-    withTiming: (value: number, config: unknown) => mockWithTiming(value, config),
-  };
-});
+// Reanimated needs its native worklets runtime, which does not run under Jest: the stand-in in
+// __mocks__ keeps the values (no animation); here only the two things the tests watch change.
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  ...jest.requireActual('../../../../__mocks__/react-native-reanimated'),
+  useReducedMotion: () => mockUseReducedMotion(),
+  withTiming: (value: number, config: unknown) => mockWithTiming(value, config),
+}));
 
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -144,11 +137,11 @@ describe('Login screen', () => {
 
     it('launches meteors by itself, one after another, as time goes by', async () => {
       await renderScreen();
-      expect(mockWithTiming).not.toHaveBeenCalled();
+      expect(mockLaunches).toHaveLength(0);
 
       await advance(60_000);
 
-      expect(mockWithTiming.mock.calls.length).toBeGreaterThan(SLOT_COUNT);
+      expect(mockLaunches.length).toBeGreaterThan(SLOT_COUNT);
     });
 
     it('gives every meteor its own flight time, inside the limits', async () => {
@@ -156,9 +149,7 @@ describe('Login screen', () => {
 
       await advance(120_000);
 
-      const durations = mockWithTiming.mock.calls.map(
-        ([, config]) => (config as { duration: number }).duration,
-      );
+      const durations = mockLaunches.map(({ duration }) => duration);
       expect(durations.length).toBeGreaterThan(20);
       durations.forEach((duration) => {
         expect(duration).toBeGreaterThanOrEqual(LIMITS.flightMs[0]);
@@ -224,6 +215,7 @@ describe('Login screen', () => {
 
     await renderScreen();
 
+    expect(mockLaunches).toHaveLength(0);
     expect(mockWithTiming).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).toBeOnTheScreen();
   });

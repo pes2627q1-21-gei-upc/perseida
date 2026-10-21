@@ -7,8 +7,8 @@ Tot el fons de l'app és una **escena** (`SkyScene`): un paisatge fix (turons de
 1. **Cel**: gradient vertical `sky.top` → `sky.low` (`tokens.md`), interpolat segons l'altitud solar.
 2. **Estels i Via Làctia** (Skia): només amb el Sol per sota de l'horitzó; la densitat creix amb la foscor (vegeu fases). Pocs, sense parpelleig >3 Hz.
 3. **Aurora** (Skia, `nit`): bandes cian/verd/violeta amb desenfocament; lenta. Congelada amb *reduce motion*.
-4. **Turons de prat**: 2 capes de `Path` SVG (`#6DBE45` / `#3FA535` de dia; es tenyeixen cap al blau fosc de nit, no desapareixen).
-5. **Llac**: reflecteix el cel (el mateix gradient invertit al 35 % d'opacitat) amb ones suaus i bombolles de vidre ascendents.
+4. **Sol o lluna i turons**: un llum (`lake.glow`) darrere dels turons, a la vall de la dreta; dues capes de turons (`lake.hillFar`, més boirosa, i `lake.hillNear`, més fosca) amb una vora de llum (`lake.rim`). Es tenyeixen cap al blau o el vermell de la nit, no desapareixen.
+5. **Llac** (`Lake.tsx`): una massa d'aigua ovalada (`waterTop` → `waterBottom`) amb els turons reflectits i invertits, una columna de llum del sol o de la lluna que centelleja, ones fines que van de costat, nenúfars amb flor, bombolles de vidre que pugen, un lluentor a la superfície i profunditat cap al davant. **Al voltant hi ha el prat**: una vora de gespa opaca (amb el llac retallat, de manera que la vora de l'aigua és exactament la línia de costa), una línia fosca d'aigua mullada i una vora de llum, herba, flors silvestres, joncs amb espadanyes i tuf d'herba alta que es mou amb el vent. El prat és el que fa que es reconegui com un llac.
 6. La UI (vidre, gel) a sobre.
 
 **Un motiu natural destacat per pantalla** (`principis.md`): l'escena és el fons, però cada pantalla n'activa un de viu (llac amb bombolles, aurora o llum). No tots alhora.

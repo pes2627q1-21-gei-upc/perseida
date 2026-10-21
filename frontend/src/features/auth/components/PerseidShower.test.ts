@@ -20,6 +20,7 @@ import {
   REDUCED_MOTION_COUNT,
   SLOT_COUNT,
   SkyDensity,
+  clampedTravel,
   flightPose,
   nextGapMs,
   randomMeteor,
@@ -108,6 +109,35 @@ describe('PerseidShower geometry', () => {
 
 const within = (value: number, [min, max]: readonly [number, number]) =>
   value >= min && value <= max;
+
+describe('meteors and the hills', () => {
+  it('keep their whole travel when there is room above the hills', () => {
+    expect(clampedTravel(300, 100, 600, 28)).toBe(300);
+  });
+
+  it('shorten the travel so that the head ends above the top of the hills', () => {
+    const travel = clampedTravel(500, 400, 480, 30);
+    const endY = 400 + Math.sin((30 * Math.PI) / 180) * travel;
+
+    expect(travel).toBeLessThan(500);
+    expect(endY).toBeLessThanOrEqual(480 + 1e-9);
+  });
+
+  it('never go below the hills for any meteor the shower can roll', () => {
+    const cropY = 560;
+    const skyHeight = 650;
+    const rng = seeded(99);
+    for (let i = 0; i < 2000; i += 1) {
+      const meteor = randomMeteor(rng);
+      const headY = meteor.y * skyHeight;
+      const travel = clampedTravel(390 * meteor.travelShare, headY, cropY, meteor.angleDeg);
+      const endY = headY + Math.sin((meteor.angleDeg * Math.PI) / 180) * travel;
+
+      expect(travel).toBeGreaterThanOrEqual(0);
+      expect(endY).toBeLessThanOrEqual(cropY + 1e-9);
+    }
+  });
+});
 
 describe('random meteors', () => {
   const samples = Array.from({ length: 500 }, (_, i) => randomMeteor(seeded(i + 1)));

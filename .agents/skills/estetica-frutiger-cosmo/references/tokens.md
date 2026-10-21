@@ -19,6 +19,7 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 | `brand.fill` (només emplenat, no text) | `#5B5BF0` | `#5B5BF0` | `#5B5BF0` | `#FF6B5E` |
 | `accent.glow` | `#1FA8E0` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
 | `meteors` (variants `{head, tail}` of the Perseid streaks, decoratius; US TG-45) | 5: `#4B4BD8`, `#7B2FBE`, `#B3261E`, `#0B4F8A`, `#9D174D` (head = tail) | 5: head→tail `#FFFFFF`→`#2EE6D6`, `#FFE9A8`→`#F2B33D`, `#E4DAFF`→`#B3B3FF`, `#D4FFE6`→`#4CFF9A`, `#FFC8D8`→`#FF9A92` | igual que `posta` | 4: `#FFB3A7`→`#FF8A7A`, `#FFD9D2`→`#FF6B5E`, `#FFC3A0`→`#FF9E6B`, `#FF8A7A`→`#E08A7E` |
+| `lake` (aigua, llum, turons i prat; US TG-45) | `waterTop #9FDDF5` `waterBottom #2F9BD8` `glow #FFF3C8` `glitter #FFFFFF` `hillFar #A7DB88` `hillNear #5FB83F` `grassLight #6DBE45` `grassDark #2E8A2B` `rim #C8F5A0` | `#F0A070` `#2B2F6B` `#FFC58A` `#FFE2B8` `#8A6A8E` `#3F6B4A` `#5E8F4F` `#2E5A3C` `#F2B36B` | `#1B3A78` `#0A1430` `#CFE0FF` `#EAF4FF` `#1C3F66` `#103447` `#1F5A4E` `#0F3A3A` `#2EE6D6` | `#3A1218` `#14060A` `#FF8A7A` `#FFB3A7` `#35121A` `#4A1820` `#5A1E26` `#3A1018` `#FF6B5E` |
 | `state.success` | `#2A7419` | `#6FD65A` | `#6FD65A` | `#FFB3A7`* |
 | `state.warning` | `#8A5A00` | `#F2B33D` | `#F2B33D` | `#FFB3A7`* |
 | `state.danger` | `#B3261E` | `#FF9A92` | `#FF9A92` | `#FFB3A7` text · `#FF6B5E` vora i icona* |
@@ -101,5 +102,6 @@ Verifica l'existència i fixa la versió amb `pnpm` abans d'afegir els paquets (
 
 - Cada token semàntic té valor als **quatre** temes.
 - Qualsevol token nou es proposa a la persona abans d'afegir-lo.
+- `lake` és decoratiu. Cada tema té a més tres colors de flors (`flowers`). El text principal es llegeix sobre tota l'aigua a `dia`, `nit` i `vermell` (≥4.5:1, comprovat per un test); a `posta` l'horitzó és clar i no arriba (límit conegut; el tema encara no és seleccionable). A `vermell` tot el llac és en vermells.
 - `meteors` només el fa servir la pluja de Perseides de la pantalla d'inici de sessió (un sol element memorable, decoratiu). La cua és l'únic gradient addicional a la UI: un desvaniment funcional de transparent a color, no un adorn.
 - El tema `vermell` no té blaus ni verds, també a les icones i a les imatges (tint sobre l'APOD i altres fotos).

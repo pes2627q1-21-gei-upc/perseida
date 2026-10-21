@@ -79,6 +79,10 @@ Cos, reflex i vora **separats** perquè el reflex no passi per sota del text:
 - El text (`gel.text`) va sobre el cos: comprova el contrast amb `scripts/contrast.py` si canvies colors.
 - `loading`: indicador al lloc del text; `accessibilityState.busy`.
 
+## El llac (`SkyBackground`)
+
+`SkyBackground` pinta, de darrere cap endavant: el cel, `LakeWater` (llum, turons, aigua), la prop `behind` (el que ha de passar per darrere dels turons i de l'herba, com les Perseides), `LakeBanks` (el prat) i, a sobre de tot, el contingut. La geometria i tot l'«atzar» del llac (ones, centelleigs, bombolles, nenúfars, herba, flors, joncs) surten d'una llavor fixa a `lakeLayout.ts`: són iguals a cada render i a cada dispositiu, i es poden provar. El llac és un oval (superel·lipse) i el prat és la caixa sencera amb l'oval retallat (`fill-rule: evenodd`), així que la línia de costa és exacta. Rendiment: ~85 vistes animades al total, amb una sola passada de cada bucle; amb *reduce motion* tot queda quiet en una posició agradable. Les parts del llac són decoratives: amagades al lector de pantalla i sense tocs.
+
 ## Pluja de Perseides (pantalla d'inici de sessió)
 
 L'element memorable de `/login`. Tot és **aleatori dins de límits** (`LIMITS` a `PerseidShower.tsx`): posició d'inici, mida, gruix, color (una variant de `meteors` del tema), angle (18–38° cap avall a l'esquerra), recorregut i velocitat de cada estel; i el ritme, amb 8 places que descansen un temps aleatori (1,5–9 s, escalat) i una densitat compartida que es torna a sortejar cada 15–35 s (de 2 a 5 estels alhora com a màxim, descans ×0,6–1,6). Es dibuixa **abans** del contingut, així que passa sempre per darrere de textos i botons. La cua és el cap a l'esquerra (la direcció del moviment) i es desfà cap a la dreta; el reflex al llac és una còpia aixafada i tènue. Amb *reduce motion* queden 4 estels fixos; en segon pla tot s'atura.

@@ -14,9 +14,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../../shared/theme';
+import { HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 
-/** Share of the screen taken by the lake at the bottom; mirrors SkyBackground. */
-const LAKE_SHARE = 0.24;
 const REFLECTION_OPACITY = 0.35;
 /** The lake squashes the reflection: it keeps this share of the sky's height and slope. */
 const REFLECTION_SQUASH = 0.15;
@@ -47,21 +46,21 @@ export const LIMITS = {
   travelShare: [0.3, 0.75] as Range,
   flightMs: [900, 2100] as Range,
   /** Rest of one slot between two meteors, before the density factor. */
-  gapMs: [1500, 9000] as Range,
+  gapMs: [1200, 7000] as Range,
   /** Wait before trying again when the sky is already as busy as it is allowed to be. */
   retryMs: [400, 1200] as Range,
   /** Meteors in flight at the same time (the sky is re-rolled within this range). */
-  maxActive: [2, 5] as Range,
+  maxActive: [3, 7] as Range,
   /** Scale of the rests: below 1 is a busier sky, above 1 a calmer one. */
-  gapScale: [0.6, 1.6] as Range,
+  gapScale: [0.5, 1.4] as Range,
   /** How long a density lasts before it is re-rolled. */
   densityMs: [15_000, 35_000] as Range,
 };
 
 /** Slots: the most meteors that can be on their way at once is `LIMITS.maxActive[1]`. */
-export const SLOT_COUNT = 8;
+export const SLOT_COUNT = 12;
 /** With reduced motion nothing moves: a few frozen streaks keep the look of the screen. */
-export const REDUCED_MOTION_COUNT = 4;
+export const REDUCED_MOTION_COUNT = 5;
 
 type Rng = () => number;
 
@@ -153,6 +152,15 @@ function reflectionRotationDeg(angleDeg: number) {
   return (Math.atan(Math.tan(radians) * REFLECTION_SQUASH) * 180) / Math.PI;
 }
 
+/**
+ * The travel of the head, shortened if it would end below `cropY` (the top of the hills): a
+ * meteor ends in the sky, it never goes over the land.
+ */
+export function clampedTravel(travel: number, headY: number, cropY: number, angleDeg: number) {
+  const room = (cropY - headY) / Math.sin((angleDeg * Math.PI) / 180);
+  return Math.max(0, Math.min(travel, room));
+}
+
 /** Where a meteor is at ``t`` (0 → 1 along its flight): offset of the head, opacity, tail stretch. */
 export function flightPose(t: number, travel: number, angleDeg: number) {
   'worklet';
@@ -171,7 +179,10 @@ interface MeteorProps {
   /** 0 → 1 along the flight. */
   progress: SharedValue<number>;
   width: number;
+  /** y of the waterline: the sky is above it and the lake below. */
   skyHeight: number;
+  /** y where the hills begin: a meteor never goes below it, it passes behind them. */
+  cropY: number;
 }
 
 /**
@@ -181,12 +192,12 @@ interface MeteorProps {
  * with an ease-out, the tail stretches as it speeds up and shrinks as it burns out, and the
  * opacity rises and falls smoothly, so it never pops in or out.
  */
-function Meteor({ spec, progress, width, skyHeight }: MeteorProps) {
+function Meteor({ spec, progress, width, skyHeight, cropY }: MeteorProps) {
   const { colors } = useTheme();
-  const travel = width * spec.travelShare;
   const headX = spec.x * width;
   const headY = spec.y * skyHeight;
   const { angleDeg } = spec;
+  const travel = clampedTravel(width * spec.travelShare, headY, cropY, angleDeg);
   const skyRotation = streakRotationDeg(angleDeg);
   const lakeRotation = reflectionRotationDeg(angleDeg);
 
@@ -234,14 +245,27 @@ function Meteor({ spec, progress, width, skyHeight }: MeteorProps) {
 
   return (
     <>
-      <Animated.View style={[bar(spec.length), sky]}>
-        <LinearGradient
-          colors={fade}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+      {/* Clipped at the top of the hills: the streak ends in the sky, never over the land. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: cropY,
+          overflow: 'hidden',
+        }}
+      >
+        <Animated.View style={[bar(spec.length), sky]}>
+          <LinearGradient
+            colors={fade}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
       <Animated.View style={[bar(spec.length * REFLECTION_LENGTH), lake]}>
         <LinearGradient
           colors={fade}
@@ -257,6 +281,7 @@ function Meteor({ spec, progress, width, skyHeight }: MeteorProps) {
 interface SlotProps {
   width: number;
   skyHeight: number;
+  cropY: number;
   density: SkyDensity;
 }
 
@@ -264,7 +289,7 @@ interface SlotProps {
  * A place in the sky that launches one meteor after another: it rests a random time, takes
  * a place if the density allows it, flies a freshly rolled meteor, and starts over.
  */
-function ShowerSlot({ width, skyHeight, density }: SlotProps) {
+function ShowerSlot({ width, skyHeight, cropY, density }: SlotProps) {
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(0);
   const [spec, setSpec] = useState<MeteorSpec>(() => randomMeteor());
@@ -321,7 +346,9 @@ function ShowerSlot({ width, skyHeight, density }: SlotProps) {
     };
   }, [reduceMotion, progress, density]);
 
-  return <Meteor spec={spec} progress={progress} width={width} skyHeight={skyHeight} />;
+  return (
+    <Meteor spec={spec} progress={progress} width={width} skyHeight={skyHeight} cropY={cropY} />
+  );
 }
 
 /**
@@ -335,6 +362,7 @@ export function PerseidShower() {
   const { width, height } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const skyHeight = height * (1 - LAKE_SHARE);
+  const cropY = height * (1 - LAKE_SHARE - HILL_SHARE);
   const [density] = useState(() => new SkyDensity());
 
   // The density of the sky changes by itself every few seconds.
@@ -358,7 +386,13 @@ export function PerseidShower() {
       importantForAccessibility="no-hide-descendants"
     >
       {Array.from({ length: slots }, (_, index) => (
-        <ShowerSlot key={index} width={width} skyHeight={skyHeight} density={density} />
+        <ShowerSlot
+          key={index}
+          width={width}
+          skyHeight={skyHeight}
+          cropY={cropY}
+          density={density}
+        />
       ))}
     </View>
   );

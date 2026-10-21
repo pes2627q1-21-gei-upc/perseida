@@ -30,8 +30,7 @@ export default function LoginScreen() {
   const handleContinue = () => setPressedNotice(authStrings.loginUnavailable);
 
   return (
-    <SkyBackground>
-      <PerseidShower />
+    <SkyBackground behind={<PerseidShower />}>
       <View
         className="flex-1 items-center justify-center"
         style={{
