@@ -51,6 +51,15 @@ def test_create_sets_timezone_aware_timestamps() -> None:
     assert user.last_login_at == user.created_at
 
 
+def test_create_accepts_preferred_language() -> None:
+    # TG-135 / US #45 criteri 1: l'idioma del dispositiu, si es coneix
+    user = User.create(
+        google_sub="sub-123", email="ada@example.test", preferred_language=Language.EN
+    )
+
+    assert user.preferred_language is Language.EN
+
+
 def test_create_keeps_optional_profile_fields() -> None:
     user = User.create(
         google_sub="sub-123",

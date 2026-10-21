@@ -76,8 +76,9 @@ class User(BaseModel):
         email: str,
         display_name: str | None = None,
         avatar_url: str | None = None,
+        preferred_language: Language = Language.CA,
     ) -> User:
-        """Register a new account with default language, role and status."""
+        """Register a new account with default role and status."""
         now = datetime.now(UTC)
         return cls(
             id=uuid.uuid7(),
@@ -85,6 +86,7 @@ class User(BaseModel):
             email=email,
             display_name=display_name,
             avatar_url=avatar_url,
+            preferred_language=preferred_language,
             created_at=now,
             last_login_at=now,
         )
