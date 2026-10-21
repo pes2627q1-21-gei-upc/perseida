@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { apodImage, apodVideo, jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import ApodScreen from '../../../app/(app)/apod';
 import { formatApodDate } from '../formatApodDate';
+import { apodKeys } from '../hooks/useApodToday';
 import { apodErrorMessage } from '../strings';
 import { keepInPlayer, PLAYER_REFERER } from './ApodMedia';
 
@@ -174,6 +175,19 @@ describe('APOD screen', () => {
 
     expect(screen.getByText("No s'ha pogut carregar la imatge o el vídeo.")).toBeTruthy();
     expect(screen.getByText(apodImage.title)).toBeTruthy();
+  });
+
+  it('loads the media of a new APOD after the previous one failed', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    await renderScreen();
+    await fireEvent(await screen.findByTestId('apod-image'), 'error');
+    const nextApod = { ...apodImage, url: 'https://apod.nasa.gov/apod/image/m31.jpg' };
+
+    // Same path as a later refetch (pull-to-refresh, focus): new data with the screen still open.
+    client.setQueryData(apodKeys.today(), nextApod);
+
+    expect((await screen.findByTestId('apod-image')).props.source).toEqual({ uri: nextApod.url });
+    expect(screen.queryByText("No s'ha pogut carregar la imatge o el vídeo.")).toBeNull();
   });
 
   it('shows a message in the frame when the video cannot be loaded', async () => {

@@ -27,7 +27,8 @@ export function ApodView({ apod }: Props) {
       }}
     >
       <View style={[styles.column, { maxWidth: readingMaxWidth, gap: spacing.md }]}>
-        <ApodMedia apod={apod} />
+        {/* A new APOD remounts the media, so a previous load failure or aspect ratio does not stick. */}
+        <ApodMedia key={apod.url} apod={apod} />
 
         <View style={{ gap: spacing.xs }}>
           <Text
