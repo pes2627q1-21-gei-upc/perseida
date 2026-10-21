@@ -14,6 +14,14 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 | `METHOD_NOT_ALLOWED` | 405 | Mètode HTTP no permès | No | Aquesta acció no està permesa. | Esta acción no está permitida. | This action is not allowed. | infrastructure/api |
 | `HTTP_<status>` | `<status>` | Altres errors HTTP de Starlette | Segons status | (missatge genèric) | (mensaje genérico) | (generic message) | infrastructure/api |
 
+## Codis del client (TG-120)
+
+Els genera el frontend, no el backend. Text en català aprovat per la persona responsable (TG-120); es i en pendents de TG-91.
+
+| Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `NETWORK_ERROR` | — | `AppError` `kind: 'network'` (cap resposta del servidor) | Sí | No hi ha connexió. Comprova la xarxa i torna-ho a provar. | (pendent) | (pendent) | frontend `shared/errors/toAppError.ts` |
+
 ## Codis de l'APOD (TG-113, TG-115)
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
