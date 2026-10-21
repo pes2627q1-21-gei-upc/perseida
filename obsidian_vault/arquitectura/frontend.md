@@ -3,7 +3,7 @@ titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
 data: "2026-10-21"
-us: ["TG-85", "TG-66", "TG-48", "TG-35"]
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35"]
 font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
@@ -13,7 +13,7 @@ etiquetes: [arquitectura, frontend, react-native, expo, offline]
 App i panell d'administració de Perseida amb **React Native + Expo** i TypeScript. Pensada per a Android i iOS; de moment només es desplega la versió **Android** (APK).
 
 > [!warning] Estat
-> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Des de TG-119 i TG-120, la pantalla `/apod` mostra la imatge o el vídeo i els estats de càrrega i d'error amb reintent. Encara no hi ha i18n, ajustos de tema ni escena viva. Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
+> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Des de TG-119 i TG-120, la pantalla `/apod` mostra la imatge o el vídeo i els estats de càrrega i d'error amb reintent. Des de TG-45 hi ha la pantalla `/login` (només UI: encara no fa el flux de Google, que és TG-43), el tancament de sessió amb `useLogout` i `LogoutButton`, i l'emmagatzematge de tokens a `expo-secure-store` (`src/features/auth`); els tipus de l'API es generen ara de l'OpenAPI real del backend (`openapi/openapi.json`). Encara no hi ha i18n, ajustos de tema ni escena viva completa (només l'estàtica de `SkyBackground` i la pluja de Perseides del login). Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
 
 ## Stack
 
@@ -25,7 +25,8 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 | Tipografia | M PLUS Rounded 1c (títols i xifres) + Open Sans (cos), amb `expo-font` |
 | i18n | i18next (català, castellà i anglès; detecció d'idioma del dispositiu + selector) |
 | Emmagatzematge local | SQLite (outbox + cache offline) |
-| Auth | Google OAuth2 + PKCE |
+| Auth | Google OAuth2 + PKCE; tokens a `expo-secure-store` |
+| Animació i icones | `react-native-reanimated` (+ `react-native-worklets`), `react-native-svg`, `phosphor-react-native` |
 | Push | Firebase Cloud Messaging |
 | Vídeo incrustat | `react-native-webview` (reproductor de l'APOD; no funciona a la web) |
 | Tipus d'API | Generats de l'esquema OpenAPI del backend (`openapi-typescript`) |
