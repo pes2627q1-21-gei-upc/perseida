@@ -39,7 +39,7 @@ Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix 
 
 Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<id>`, p. ex. `cache:apod:2026-10-05`. Cada funcionalitat fixa el TTL del seu recurs.
 
-Les sessions no passen per la cache: es desen com `session:<type>:<jti>` (`type` és `access` o `refresh`) amb un TTL igual a la caducitat del token. Si Redis es reinicia, les sessions es perden i els usuaris tornen a iniciar sessió ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]).
+Les sessions no passen per la cache: es desen com `session:<type>:<jti>` (`type` és `access` o `refresh`) amb un TTL igual a la caducitat del token. Un índex `user_sessions:<sub>` (set amb membres `<sid>:<type>:<jti>` i el TTL del token que viu més) permet revocar el parell d'una sessió o totes les d'un usuari; `delete` i la revocació són transaccions (`MULTI/EXEC`). Si Redis es reinicia, les sessions es perden i els usuaris tornen a iniciar sessió ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]).
 
 ## Decisions relacionades
 

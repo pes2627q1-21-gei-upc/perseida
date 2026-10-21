@@ -17,6 +17,7 @@ NOW = datetime.now(UTC).replace(microsecond=0)
 CLAIMS = SessionClaims(
     sub="google-123",
     jti="jti-1",
+    sid="sid-1",
     type=TokenType.ACCESS,
     exp=NOW + timedelta(hours=1),
 )
@@ -30,6 +31,7 @@ def payload(**changes: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "sub": "google-123",
         "jti": "jti-1",
+        "sid": "sid-1",
         "type": "access",
         "iat": NOW,
         "exp": NOW + timedelta(hours=1),
@@ -53,7 +55,7 @@ def test_decode_returns_the_claims_that_were_encoded() -> None:
     assert codec.decode(codec.encode(CLAIMS)) == CLAIMS
 
 
-def test_the_token_carries_sub_jti_type_iat_and_exp() -> None:
+def test_the_token_carries_sub_jti_sid_type_iat_and_exp() -> None:
     token = make_codec().encode(CLAIMS)
 
     decoded = jwt.decode(token, SECRET, algorithms=["HS256"])
@@ -61,6 +63,7 @@ def test_the_token_carries_sub_jti_type_iat_and_exp() -> None:
     assert decoded == {
         "sub": "google-123",
         "jti": "jti-1",
+        "sid": "sid-1",
         "type": "access",
         "iat": int(NOW.timestamp()),
         "exp": int(CLAIMS.exp.timestamp()),
@@ -100,6 +103,9 @@ def test_a_tampered_token_is_rejected() -> None:
         ),
         pytest.param(
             jwt.encode(payload(jti=None), SECRET, algorithm="HS256"), id="no-jti"
+        ),
+        pytest.param(
+            jwt.encode(payload(sid=None), SECRET, algorithm="HS256"), id="no-sid"
         ),
         pytest.param(
             jwt.encode(payload(type="other"), SECRET, algorithm="HS256"),

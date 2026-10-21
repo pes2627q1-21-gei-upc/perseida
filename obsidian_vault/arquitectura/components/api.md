@@ -37,11 +37,11 @@ Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i 
 
 ## Autenticació (TG-44)
 
-Valida el token de Google via JWKS i emet una sessió pròpia (dos JWT HS256: *access* 15 min i *refresh* 30 dies), registrada a [[redis]] com a `session:<type>:<jti>` perquè es pugui revocar a l'instant. Endpoints `POST /api/auth/google` i `POST /api/auth/refresh`; els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel port `AccountGateway` (implementació provisional fins a TG-45). Format, caducitats i conseqüències a [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]; guia d'ús a la secció «Authentication» de `backend/README.md`.
+Valida el token de Google via JWKS i emet una sessió pròpia (dos JWT HS256: *access* 15 min i *refresh* 30 dies), registrada a [[redis]] com a `session:<type>:<jti>` (i indexada per usuari a `user_sessions:<sub>`, amb un `sid` comú a l'access i al refresh) perquè es pugui revocar a l'instant, per sessió o per usuari. Endpoints `POST /api/auth/google` i `POST /api/auth/refresh`; els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel port `AccountGateway` (implementació provisional fins a TG-45). Format, caducitats i conseqüències a [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]; guia d'ús a la secció «Authentication» de `backend/README.md`.
 
 ## Configuració
 
-Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_ID`, `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals, 15 i 30), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
+Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_ID`, `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals, 15 i 30; no són a `.env.example` perquè el CD no les exigeixi), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
 
 ## Decisions relacionades
 

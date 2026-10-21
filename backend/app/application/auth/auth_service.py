@@ -62,7 +62,7 @@ class AuthService:
         """
         identity = await self._verifier.verify(id_token)
         self._ensure_can_log_in(await self._accounts.get_status(identity))
-        return await self._issue_pair(identity.google_sub)
+        return await self._issue_pair(identity.google_sub, str(uuid4()))
 
     async def refresh(self, refresh_token: str) -> SessionTokens:
         """Exchange a refresh token for a new pair; the old refresh is revoked.
@@ -72,9 +72,14 @@ class AuthService:
                 not a refresh token or already used/revoked.
             ExternalServiceError: if the session store is unavailable.
         """
-        claims = await self._validate(refresh_token, TokenType.REFRESH)
-        await self._store.delete(TokenType.REFRESH, claims.jti)
-        return await self._issue_pair(claims.sub)
+        claims = self._codec.decode(refresh_token)
+        if claims.type != TokenType.REFRESH:
+            raise UnauthorizedError(INVALID_SESSION)
+        # One atomic delete instead of exists + delete: of two concurrent
+        # refreshes with the same token only one revokes it and gets a new pair.
+        if not await self._store.delete(claims):
+            raise UnauthorizedError(INVALID_SESSION)
+        return await self._issue_pair(claims.sub, claims.sid)
 
     async def authenticate(self, access_token: str) -> SessionClaims:
         """Return the claims of a valid, non-revoked access token.
@@ -102,12 +107,12 @@ class AuthService:
             raise UnauthorizedError(INVALID_SESSION)
         return claims
 
-    async def _issue_pair(self, sub: str) -> SessionTokens:
+    async def _issue_pair(self, sub: str, sid: str) -> SessionTokens:
         access = await self._issue(
-            sub, TokenType.ACCESS, self._durations.access_seconds
+            sub, sid, TokenType.ACCESS, self._durations.access_seconds
         )
         refresh = await self._issue(
-            sub, TokenType.REFRESH, self._durations.refresh_seconds
+            sub, sid, TokenType.REFRESH, self._durations.refresh_seconds
         )
         return SessionTokens(
             access_token=access,
@@ -115,15 +120,17 @@ class AuthService:
             expires_in=self._durations.access_seconds,
         )
 
-    async def _issue(self, sub: str, kind: TokenType, ttl_seconds: int) -> str:
+    async def _issue(
+        self, sub: str, sid: str, kind: TokenType, ttl_seconds: int
+    ) -> str:
         """Encode a new token and register it in the store for its lifetime."""
-        jti = str(uuid4())
         claims = SessionClaims(
             sub=sub,
-            jti=jti,
+            jti=str(uuid4()),
+            sid=sid,
             type=kind,
             exp=self._now() + timedelta(seconds=ttl_seconds),
         )
         token = self._codec.encode(claims)
-        await self._store.save(kind, jti, ttl_seconds)
+        await self._store.save(claims, ttl_seconds)
         return token

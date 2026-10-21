@@ -9,7 +9,7 @@ from app.application.shared.errors import UnauthorizedError
 from app.domain.auth.models import SessionClaims
 
 ALGORITHM = "HS256"
-REQUIRED_CLAIMS = ["sub", "jti", "type", "iat", "exp"]
+REQUIRED_CLAIMS = ["sub", "jti", "sid", "type", "iat", "exp"]
 
 
 def _utc_now() -> datetime:
@@ -27,6 +27,7 @@ class JwtTokenCodec:
         payload = {
             "sub": claims.sub,
             "jti": claims.jti,
+            "sid": claims.sid,
             "type": claims.type.value,
             "iat": self._now(),
             "exp": claims.exp,
@@ -43,7 +44,7 @@ class JwtTokenCodec:
                 options={"require": REQUIRED_CLAIMS},
             )
             return SessionClaims.model_validate(
-                {key: payload[key] for key in ("sub", "jti", "type", "exp")}
+                {key: payload[key] for key in ("sub", "jti", "sid", "type", "exp")}
             )
         except jwt.InvalidTokenError, ValidationError:
             raise UnauthorizedError(INVALID_SESSION) from None

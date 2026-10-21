@@ -239,7 +239,7 @@ L'app inicia la sessió amb Google (OAuth2 + PKCE) i envia l'`id_token` de Googl
 1. `POST /api/auth/google` amb `{"id_token": "<token de Google>"}`.
 2. `GoogleJwksVerifier` comprova la signatura RS256 amb les claus públiques de Google (JWKS, en memòria durant 1 hora; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut), l'emissor, l'audiència (`GOOGLE_CLIENT_ID`), la caducitat i que el correu estigui verificat. Si no: 401 `INVALID_GOOGLE_TOKEN`. Si Google no respon i no hi ha claus en memòria: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
 3. El port `AccountGateway` retorna l'estat del compte: suspès o banejat → 403 `ACCOUNT_SUSPENDED`; esborrat → 403 `ACCOUNT_DELETED`.
-4. El backend emet dos JWT signats amb HS256 i `JWT_SECRET`: un access token (15 minuts) i un refresh token (30 dies), amb les claims `sub` (el `google_sub`), `jti`, `type` (`access` o `refresh`), `iat` i `exp`. Cadascun es registra a Redis com a `session:<type>:<jti>` amb un TTL igual a la seva durada.
+4. El backend emet dos JWT signats amb HS256 i `JWT_SECRET`: un access token (15 minuts) i un refresh token (30 dies), amb les claims `sub` (el `google_sub`), `jti` (únic per token), `sid` (identificador de sessió, compartit per l'access i el refresh d'un parell i mantingut per `refresh`), `type` (`access` o `refresh`), `iat` i `exp`. Cadascun es registra a Redis com a `session:<type>:<jti>` amb un TTL igual a la seva durada, i s'apunta a l'índex de l'usuari `user_sessions:<sub>` (membres `<sid>:<type>:<jti>`).
 5. Resposta `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` en segons).
 
 Un token és vàlid només si la signatura i la caducitat són correctes **i** la seva clau existeix a Redis. Esborrar la clau revoca el token a l'instant; si Redis es reinicia, les sessions es perden i els usuaris tornen a iniciar sessió amb Google. Si Redis no està disponible, els endpoints responen 503 `SESSION_UNAVAILABLE`.
@@ -277,7 +277,7 @@ class AccountGateway(Protocol):
 
 1. Escriu l'adaptador a `infrastructure` (cerca l'usuari per `google_sub`, el crea al primer accés i retorna el seu estat).
 2. Substitueix `ProvisionalAccountGateway()` per l'adaptador a `build_auth_service` (`app/infrastructure/auth/dependencies.py`). La implementació provisional, que **accepta tots els comptes**, és a `app/infrastructure/auth/provisional_account_gateway.py` i la treu la #45.
-3. El tancament de sessió també és de la #45: revoca la sessió amb `SessionStore.delete(kind, jti)` (afegeix un mètode `logout` a `AuthService`).
+3. El tancament de sessió també és de la #45: revoca el parell amb `SessionStore.revoke_session(sub, sid)` (afegeix un mètode `logout` a `AuthService`). La suspensió i el baneig (#78, #102) usen `SessionStore.revoke_all(sub)`; el refresh falla llavors amb 401 perquè la clau ja no existeix.
 
 Als tests fes servir `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` mostra el flux complet amb Google simulat amb `respx`.
 

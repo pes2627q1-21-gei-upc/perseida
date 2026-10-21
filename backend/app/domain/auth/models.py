@@ -28,12 +28,17 @@ class GoogleIdentity(BaseModel):
 
 
 class SessionClaims(BaseModel):
-    """Content of one of our own session tokens (``exp`` is a UTC datetime)."""
+    """Content of one of our own session tokens (``exp`` is a UTC datetime).
+
+    ``sid`` is shared by the access and the refresh token of one session and
+    survives ``refresh``; ``jti`` is unique per token.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     sub: str
     jti: str
+    sid: str
     type: TokenType
     exp: datetime
 

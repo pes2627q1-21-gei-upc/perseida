@@ -1,5 +1,6 @@
 """AuthService.login with fake ports. TG-44."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -12,7 +13,12 @@ from app.application.auth.errors import (
     INVALID_SESSION,
 )
 from app.application.shared.errors import ForbiddenError, UnauthorizedError
-from app.domain.auth.models import AccountStatus, GoogleIdentity, TokenType
+from app.domain.auth.models import (
+    AccountStatus,
+    GoogleIdentity,
+    SessionClaims,
+    TokenType,
+)
 from tests.fakes.auth import (
     FakeAccountGateway,
     FakeGoogleTokenVerifier,
@@ -55,6 +61,7 @@ async def test_login_returns_an_access_and_a_refresh_token() -> None:
     assert (access.type, refresh.type) == (TokenType.ACCESS, TokenType.REFRESH)
     assert access.sub == refresh.sub == "google-123"
     assert access.jti != refresh.jti
+    assert access.sid == refresh.sid
     assert access.exp == NOW + timedelta(minutes=15)
     assert refresh.exp == NOW + timedelta(days=30)
 
@@ -182,3 +189,79 @@ async def test_a_token_the_codec_rejects_is_an_invalid_session(operation: str) -
         await getattr(service, operation)("forged-or-expired")
 
     assert exc_info.value.code == INVALID_SESSION
+
+
+async def test_refresh_keeps_the_sid_of_the_session() -> None:
+    service, codec, _, _ = make_service()
+    first = await service.login("google-id-token")
+
+    renewed = await service.refresh(first.refresh_token)
+
+    sids = {
+        codec.decode(token).sid
+        for token in (
+            first.access_token,
+            first.refresh_token,
+            renewed.access_token,
+            renewed.refresh_token,
+        )
+    }
+    assert len(sids) == 1
+
+
+async def test_each_login_starts_a_new_session() -> None:
+    service, codec, _, _ = make_service()
+
+    first = await service.login("google-id-token")
+    second = await service.login("google-id-token")
+
+    assert codec.decode(first.access_token).sid != codec.decode(second.access_token).sid
+
+
+async def test_concurrent_refreshes_with_the_same_token_only_one_wins() -> None:
+    service, _, _, _ = make_service()
+    first = await service.login("google-id-token")
+
+    results = await asyncio.gather(
+        service.refresh(first.refresh_token),
+        service.refresh(first.refresh_token),
+        return_exceptions=True,
+    )
+
+    failures = [r for r in results if isinstance(r, UnauthorizedError)]
+    assert len(failures) == 1
+    assert failures[0].code == INVALID_SESSION
+
+
+async def test_revoking_the_session_invalidates_the_whole_pair() -> None:
+    service, codec, store, _ = make_service()
+    tokens = await service.login("google-id-token")
+    claims = codec.decode(tokens.access_token)
+
+    await store.revoke_session(claims.sub, claims.sid)
+
+    for operation, token in (
+        (service.authenticate, tokens.access_token),
+        (service.refresh, tokens.refresh_token),
+    ):
+        with pytest.raises(UnauthorizedError):
+            await operation(token)
+
+
+async def test_revoking_all_the_sessions_of_a_user_leaves_other_users_alone() -> None:
+    service, codec, store, _ = make_service()
+    tokens = await service.login("google-id-token")
+    other = SessionClaims(
+        sub="google-999",
+        jti="other-jti",
+        sid="other-sid",
+        type=TokenType.ACCESS,
+        exp=NOW,
+    )
+    await store.save(other, 900)
+
+    await store.revoke_all("google-123")
+
+    with pytest.raises(UnauthorizedError):
+        await service.authenticate(tokens.access_token)
+    assert await store.exists(TokenType.ACCESS, "other-jti")

@@ -42,18 +42,34 @@ class InMemorySessionStore:
 
     def __init__(self) -> None:
         self.entries: dict[tuple[TokenType, str], int] = {}
+        self._claims: dict[tuple[TokenType, str], SessionClaims] = {}
 
-    async def save(self, kind: TokenType, jti: str, ttl_seconds: int) -> None:
-        self.entries[(kind, jti)] = ttl_seconds
+    async def save(self, claims: SessionClaims, ttl_seconds: int) -> None:
+        self.entries[(claims.type, claims.jti)] = ttl_seconds
+        self._claims[(claims.type, claims.jti)] = claims
 
     async def exists(self, kind: TokenType, jti: str) -> bool:
         return (kind, jti) in self.entries
 
-    async def delete(self, kind: TokenType, jti: str) -> None:
-        self.entries.pop((kind, jti), None)
+    async def delete(self, claims: SessionClaims) -> bool:
+        return self._remove((claims.type, claims.jti))
+
+    async def revoke_session(self, sub: str, sid: str) -> None:
+        for key, claims in list(self._claims.items()):
+            if (claims.sub, claims.sid) == (sub, sid):
+                self._remove(key)
+
+    async def revoke_all(self, sub: str) -> None:
+        for key, claims in list(self._claims.items()):
+            if claims.sub == sub:
+                self._remove(key)
 
     def expire(self, kind: TokenType, jti: str) -> None:
-        self.entries.pop((kind, jti), None)
+        self._remove((kind, jti))
+
+    def _remove(self, key: tuple[TokenType, str]) -> bool:
+        self._claims.pop(key, None)
+        return self.entries.pop(key, None) is not None
 
 
 class FakeTokenCodec:
