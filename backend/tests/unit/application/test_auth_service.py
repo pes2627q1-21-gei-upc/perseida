@@ -327,11 +327,14 @@ async def test_logout_with_an_expired_access_token_still_revokes_the_refresh() -
     # TG-138 / US #45 criteri 10: l'access ha caducat però el refresh viu
     service, codec, store, _ = make_service()
     tokens = await service.login("google-id-token")
-    access = codec.decode(tokens.access_token)
-    store.expire(TokenType.ACCESS, access.jti)
+    codec.expire(tokens.access_token)
+    store.expire(
+        TokenType.ACCESS, codec.decode(tokens.access_token, verify_expiry=False).jti
+    )
 
     await service.logout(tokens.access_token)
 
+    assert store.entries == {}
     with pytest.raises(UnauthorizedError):
         await service.refresh(tokens.refresh_token)
 

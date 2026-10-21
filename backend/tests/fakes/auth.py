@@ -81,13 +81,20 @@ class FakeTokenCodec:
 
     def __init__(self) -> None:
         self.issued: dict[str, SessionClaims] = {}
+        self.expired: set[str] = set()
+
+    def expire(self, token: str) -> None:
+        """Simulate the token's ``exp`` having passed."""
+        self.expired.add(token)
 
     def encode(self, claims: SessionClaims) -> str:
         token = f"token-{len(self.issued) + 1}"
         self.issued[token] = claims
         return token
 
-    def decode(self, token: str) -> SessionClaims:
+    def decode(self, token: str, *, verify_expiry: bool = True) -> SessionClaims:
+        if token in self.expired and verify_expiry:
+            raise UnauthorizedError(INVALID_SESSION)
         try:
             return self.issued[token]
         except KeyError:

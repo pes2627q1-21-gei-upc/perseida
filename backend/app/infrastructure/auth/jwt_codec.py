@@ -34,14 +34,14 @@ class JwtTokenCodec:
         }
         return jwt.encode(payload, self._secret, algorithm=ALGORITHM)
 
-    def decode(self, token: str) -> SessionClaims:
+    def decode(self, token: str, *, verify_expiry: bool = True) -> SessionClaims:
         # ``algorithms`` is always explicit: the token must not pick its own.
         try:
             payload = jwt.decode(
                 token,
                 self._secret,
                 algorithms=[ALGORITHM],
-                options={"require": REQUIRED_CLAIMS},
+                options={"require": REQUIRED_CLAIMS, "verify_exp": verify_expiry},
             )
             return SessionClaims.model_validate(
                 {key: payload[key] for key in ("sub", "jti", "sid", "type", "exp")}

@@ -119,3 +119,38 @@ def test_an_invalid_token_is_an_invalid_session(token: str) -> None:
         make_codec().decode(token)
 
     assert exc_info.value.code == INVALID_SESSION
+
+
+def test_an_expired_token_is_accepted_when_expiry_is_not_verified() -> None:
+    # TG-138: logout must identify the session of an access token that has expired
+    expired = jwt.encode(
+        payload(exp=NOW - timedelta(hours=1)), SECRET, algorithm="HS256"
+    )
+
+    claims = make_codec().decode(expired, verify_expiry=False)
+
+    assert (claims.sub, claims.sid, claims.type) == (
+        "google-123",
+        "sid-1",
+        TokenType.ACCESS,
+    )
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        pytest.param(
+            jwt.encode(payload(), "o" * 64, algorithm="HS256"), id="other-secret"
+        ),
+        pytest.param(unsigned(payload()), id="alg-none"),
+        pytest.param(
+            jwt.encode(payload(sid=None), SECRET, algorithm="HS256"), id="no-sid"
+        ),
+        pytest.param("not-a-jwt", id="garbage"),
+    ],
+)
+def test_ignoring_expiry_still_checks_signature_and_claims(token: str) -> None:
+    with pytest.raises(UnauthorizedError) as exc_info:
+        make_codec().decode(token, verify_expiry=False)
+
+    assert exc_info.value.code == INVALID_SESSION

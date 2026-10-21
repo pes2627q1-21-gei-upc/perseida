@@ -8,6 +8,7 @@ import asyncio
 import os
 import uuid
 from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,7 @@ from app.application.auth.errors import (
     INVALID_SESSION,
 )
 from app.application.users.errors import EMAIL_ALREADY_REGISTERED
+from app.domain.auth.models import SessionClaims, TokenType
 from app.infrastructure.auth.google_verifier import (
     GOOGLE_CERTS_URL,
     GoogleJwksVerifier,
@@ -309,3 +311,31 @@ async def test_logout_is_idempotent(client: AsyncClient, sub: str) -> None:
     )
 
     assert [r.status_code for r in (first, second, without_token, forged)] == [204] * 4
+
+
+async def test_logout_with_an_expired_access_token_still_revokes_the_refresh(
+    client: AsyncClient, sub: str
+) -> None:
+    # TG-138 / US #45 criteri 10: l'access dura 15 min, el refresh 30 dies
+    tokens = (await login(client, sub)).json()
+    codec = JwtTokenCodec("i" * 40)
+    live = codec.decode(tokens["refresh_token"])
+    expired = codec.encode(
+        SessionClaims(
+            sub=live.sub,
+            jti=uuid.uuid4().hex,
+            sid=live.sid,
+            type=TokenType.ACCESS,
+            exp=datetime.now(UTC) - timedelta(hours=1),
+        )
+    )
+
+    logout = await client.post(
+        "/api/auth/logout", headers={"Authorization": f"Bearer {expired}"}
+    )
+    refresh = await client.post(
+        "/api/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+    )
+
+    assert logout.status_code == 204
+    assert_problem(refresh, 401, INVALID_SESSION)

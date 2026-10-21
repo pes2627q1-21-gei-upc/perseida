@@ -28,8 +28,11 @@ class TokenCodec(Protocol):
         """Return the signed token for ``claims``."""
         ...
 
-    def decode(self, token: str) -> SessionClaims:
+    def decode(self, token: str, *, verify_expiry: bool = True) -> SessionClaims:
         """Return the claims of a token with a valid signature that has not expired.
+
+        With ``verify_expiry=False`` an expired token is accepted (the signature
+        and the claims are still checked); only to identify a session to close it.
 
         Raises:
             UnauthorizedError: code INVALID_SESSION if the signature or the
