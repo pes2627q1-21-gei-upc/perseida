@@ -2,8 +2,8 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-14"
-us: ["TG-85", "TG-40", "TG-70", "TG-113"]
+data: "2026-10-21"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, domini, uml, model]
 ---

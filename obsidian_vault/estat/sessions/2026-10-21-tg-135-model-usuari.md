@@ -29,6 +29,8 @@ Tasca TG-135 de la US TG-45: taula d'usuaris amb `deleted_at` i migració d'Alem
 - [ ] Repositori, mapeig fila↔entitat i upsert concurrent (TG-137).
 - [ ] Substituir `ProvisionalAccountGateway` de TG-44; derivar l'estat esborrat de `deleted_at`.
 - [ ] Decidir si la sessió ha d'usar `users.id` en lloc de `google_sub`.
+- [ ] Resoldre l'idioma del dispositiu (`preferred_language` de `User.create()`) a l'alta automàtica (TG-137).
+- [ ] Acordar amb la PO i ajustar a Taiga el criteri 1 de TG-45: `google_sub` és a `user_identities` (ADR-0023).
 
 ## US de Taiga
 - TG-45, tasca TG-135
