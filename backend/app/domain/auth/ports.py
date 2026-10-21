@@ -92,10 +92,17 @@ class SessionStore(Protocol):
 
 
 class AccountGateway(Protocol):
-    async def get_status(self, identity: GoogleIdentity) -> AccountStatus:
+    async def get_status(
+        self, identity: GoogleIdentity, language: str | None = None
+    ) -> AccountStatus:
         """Return the status of the account identified by ``identity.google_sub``.
 
-        The implementation (US #45) may create the user on first access, in which
-        case the status is ``AccountStatus.ACTIVE``.
+        Creates the account on first access (with ``language`` as preferred
+        language, ``ca`` if absent or unsupported), in which case the status is
+        ``AccountStatus.ACTIVE``.
+
+        Raises:
+            ConflictError: code EMAIL_ALREADY_REGISTERED if the email belongs to an
+                account linked to another Google ``sub``.
         """
         ...

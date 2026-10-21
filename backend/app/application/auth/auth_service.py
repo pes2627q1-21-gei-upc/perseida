@@ -50,7 +50,7 @@ class AuthService:
         self._durations = durations
         self._now = now
 
-    async def login(self, id_token: str) -> SessionTokens:
+    async def login(self, id_token: str, language: str | None = None) -> SessionTokens:
         """Exchange a Google ID token for our own access and refresh tokens.
 
         Raises:
@@ -59,9 +59,10 @@ class AuthService:
                 or the session store unavailable.
             ForbiddenError: ACCOUNT_SUSPENDED (suspended or banned account) or
                 ACCOUNT_DELETED.
+            ConflictError: EMAIL_ALREADY_REGISTERED (from the account gateway).
         """
         identity = await self._verifier.verify(id_token)
-        self._ensure_can_log_in(await self._accounts.get_status(identity))
+        self._ensure_can_log_in(await self._accounts.get_status(identity, language))
         return await self._issue_pair(identity.google_sub, str(uuid4()))
 
     async def refresh(self, refresh_token: str) -> SessionTokens:

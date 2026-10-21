@@ -31,9 +31,13 @@ class FakeAccountGateway:
     def __init__(self, status: AccountStatus = AccountStatus.ACTIVE) -> None:
         self._status = status
         self.asked: list[GoogleIdentity] = []
+        self.languages: list[str | None] = []
 
-    async def get_status(self, identity: GoogleIdentity) -> AccountStatus:
+    async def get_status(
+        self, identity: GoogleIdentity, language: str | None = None
+    ) -> AccountStatus:
         self.asked.append(identity)
+        self.languages.append(language)
         return self._status
 
 

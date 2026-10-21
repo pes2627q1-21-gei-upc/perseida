@@ -52,6 +52,7 @@ Textos aprovats per la persona responsable (TG-44). Un compte banejat respon `AC
 | `ACCOUNT_DELETED` | 403 | `ForbiddenError` | No | Aquest compte s'ha eliminat. | Esta cuenta ha sido eliminada. | This account has been deleted. | application/auth |
 | `IDENTITY_PROVIDER_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona. | Google no está disponible ahora mismo. Vuelve a intentarlo en un rato. | Google is unavailable right now. Please try again in a while. | application/auth |
 | `SESSION_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona. | No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato. | We can't check your session right now. Please try again in a while. | infrastructure/auth (Redis no disponible) |
+| `EMAIL_ALREADY_REGISTERED` | 409 | `ConflictError` | No | Aquest correu ja està associat a un altre compte. | Este correo ya está asociado a otra cuenta. | This email is already linked to another account. | infrastructure/users |
 
 ## Taula plantilla
 

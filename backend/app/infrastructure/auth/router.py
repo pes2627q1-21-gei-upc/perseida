@@ -11,6 +11,7 @@ from app.application.auth.errors import (
     INVALID_SESSION,
     SESSION_UNAVAILABLE,
 )
+from app.application.users.errors import EMAIL_ALREADY_REGISTERED
 from app.domain.auth.models import SessionTokens
 from app.infrastructure.api.schemas import ProblemDetails
 from app.infrastructure.auth.dependencies import AuthServiceDep
@@ -37,6 +38,13 @@ class GoogleLoginRequest(BaseModel):
         ...,
         min_length=1,
         description="ID token que l'app obté de Google (OAuth2 amb PKCE)",
+    )
+    language: str | None = Field(
+        default=None,
+        description=(
+            "Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el "
+            "compte; si falta o no és compatible, `ca`."
+        ),
     )
 
 
@@ -84,6 +92,9 @@ class TokenResponse(BaseModel):
             f"El compte és suspès (`{ACCOUNT_SUSPENDED}`) o esborrat "
             f"(`{ACCOUNT_DELETED}`)."
         ),
+        409: _problem(
+            f"El correu ja pertany a un altre compte (`{EMAIL_ALREADY_REGISTERED}`)."
+        ),
         422: _problem("Cos de la petició incorrecte."),
         503: _problem(
             f"Google no respon (`{IDENTITY_PROVIDER_UNAVAILABLE}`) o no es pot "
@@ -95,7 +106,7 @@ async def login_with_google(
     body: GoogleLoginRequest, service: AuthServiceDep
 ) -> TokenResponse:
     """Canvia un ID token de Google per una sessió pròpia."""
-    return TokenResponse.from_tokens(await service.login(body.id_token))
+    return TokenResponse.from_tokens(await service.login(body.id_token, body.language))
 
 
 @router.post(

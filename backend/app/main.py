@@ -46,12 +46,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.redis = redis
         app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
         async with httpx.AsyncClient(timeout=GOOGLE_HTTP_TIMEOUT_SECONDS) as client:
-            app.state.auth_service = build_auth_service(auth_settings, redis, client)
             engine = create_async_engine(settings.database_url)
             try:
-                app.state.session_factory = async_sessionmaker(
+                session_factory = async_sessionmaker(
                     engine,
                     expire_on_commit=False,
+                )
+                app.state.session_factory = session_factory
+                app.state.auth_service = build_auth_service(
+                    auth_settings, redis, client, session_factory
                 )
                 try:
                     if scheduler:

@@ -66,6 +66,16 @@ async def test_login_returns_an_access_and_a_refresh_token() -> None:
     assert refresh.exp == NOW + timedelta(days=30)
 
 
+async def test_login_passes_the_device_language_to_the_account_gateway() -> None:
+    # TG-137 / US #45 criteri 1: l'idioma del primer accés arriba al gateway
+    service, _, _, accounts = make_service()
+
+    await service.login("google-id-token", "es")
+
+    assert accounts.languages == ["es"]
+    assert accounts.asked == [IDENTITY]
+
+
 async def test_login_registers_each_token_with_its_lifetime() -> None:
     service, codec, store, _ = make_service()
 
