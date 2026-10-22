@@ -85,7 +85,7 @@ def service_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "POSTGRES_PORT": "1",
         "REDIS_HOST": "127.0.0.1",
         "REDIS_PORT": "1",
-        "GOOGLE_CLIENT_ID": "test.apps.googleusercontent.com",
+        "GOOGLE_CLIENT_IDS": "test.apps.googleusercontent.com",
         "JWT_SECRET": "t" * 32,
     }.items():
         monkeypatch.setenv(key, value)

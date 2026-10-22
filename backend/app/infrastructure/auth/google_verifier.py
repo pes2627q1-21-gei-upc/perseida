@@ -31,11 +31,11 @@ class GoogleJwksVerifier:
     def __init__(
         self,
         client: httpx.AsyncClient,
-        google_client_id: str,
+        google_client_ids: list[str],
         monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
         self._client = client
-        self._google_client_id = google_client_id
+        self._google_client_ids = google_client_ids
         self._monotonic = monotonic
         self._keys: dict[str, jwt.PyJWK] = {}
         self._fetched_at = 0.0
@@ -54,7 +54,7 @@ class GoogleJwksVerifier:
                 id_token,
                 key,
                 algorithms=[ALGORITHM],
-                audience=self._google_client_id,
+                audience=self._google_client_ids,
                 issuer=GOOGLE_ISSUERS,
                 options={"require": REQUIRED_CLAIMS},
             )

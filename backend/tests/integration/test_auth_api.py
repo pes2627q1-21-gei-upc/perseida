@@ -49,7 +49,7 @@ def make_app(
     google: httpx.AsyncClient, status: AccountStatus = AccountStatus.ACTIVE
 ) -> FastAPI:
     service = AuthService(
-        GoogleJwksVerifier(google, CLIENT_ID),
+        GoogleJwksVerifier(google, [CLIENT_ID]),
         JwtTokenCodec(SECRET),
         InMemorySessionStore(),
         FakeAccountGateway(status),

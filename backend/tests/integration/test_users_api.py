@@ -97,7 +97,7 @@ async def client(
         app: FastAPI = create_app()
         app.state.user_service = users
         app.state.auth_service = AuthService(
-            GoogleJwksVerifier(google, CLIENT_ID),
+            GoogleJwksVerifier(google, [CLIENT_ID]),
             JwtTokenCodec("i" * 40),
             RedisSessionStore(redis),
             UserAccountGateway(users),
