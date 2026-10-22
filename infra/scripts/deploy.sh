@@ -19,6 +19,10 @@ set -eu
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-120}
 STATE_FILE=.deployed-tag
 
+# Si es talla la connexió SSH (job cancel·lat, xarxa) el desplegament no s'ha de
+# quedar a mig fer, amb l'API aturada o `.deployed-tag` desactualitzat.
+trap '' HUP
+
 # Zero si `/api/health` respon 200 amb `status: ok`. Es consulta des de dins del
 # contenidor de l'API: el servidor no exposa aquest port a fora.
 api_healthy() {
@@ -69,11 +73,22 @@ rollback_to() {
   API_IMAGE_TAG=$to docker compose up -d --remove-orphans && wait_healthy
 }
 
+# Un error en escriure l'estat (disc ple) no ha de fer fallar un desplegament sa.
 mark_deployed() {
-  printf '%s\n' "$1" > "$STATE_FILE"
+  printf '%s\n' "$1" > "$STATE_FILE" ||
+    echo "AVÍS: no s'ha pogut escriure $STATE_FILE; un rollback posterior pot partir d'una versió incorrecta." >&2
 }
 
 cd "$(dirname "$0")"
+
+# Un sol desplegament o rollback alhora: el CD ja serialitza els seus runs
+# (`concurrency`), però un `--rollback` manual per SSH podria coincidir amb un.
+if command -v flock >/dev/null 2>&1; then
+  exec 9>.deploy.lock
+  flock -n 9 || { echo "Ja hi ha un desplegament o un rollback en curs (.deploy.lock)." >&2; exit 1; }
+else
+  echo "AVÍS: no hi ha 'flock' al servidor; no es pot evitar un desplegament concurrent." >&2
+fi
 
 previous=""
 if [ -f "$STATE_FILE" ]; then
@@ -93,7 +108,7 @@ if [ "${1:-}" = "--rollback" ]; then
     echo "Rollback fet: $previous -> $target."
     exit 0
   fi
-  echo "El rollback a $target no ha superat el healthcheck en ${HEALTH_TIMEOUT} s." >&2
+  echo "El rollback a $target no ha superat el healthcheck." >&2
   exit 1
 fi
 
@@ -113,7 +128,7 @@ if docker compose up -d --remove-orphans && wait_healthy; then
 fi
 
 # No es mostren els logs dels contenidors: els del workflow són públics.
-echo "L'API no ha respost correctament al healthcheck en ${HEALTH_TIMEOUT} s ($tag)." >&2
+echo "L'API no ha superat el healthcheck ($tag)." >&2
 if [ -z "$previous" ] || [ "$previous" = "$tag" ]; then
   echo "No hi ha una versió anterior a què tornar: rollback no possible." >&2
   exit 1
