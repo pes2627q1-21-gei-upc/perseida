@@ -23,6 +23,7 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 ### Positives
 
 - Sempre hi ha una imatge per al commit desplegat, i el rollback torna també l'esquema, no només el codi.
+- Un bloqueig (`flock`) evita que un `--rollback` manual coincideixi amb un desplegament; la sonda no executa migracions i desactiva el planificador, i si no es pot ni crear (imatge anterior absent) tampoc es desfà res.
 - El servidor baixa la imatge amb el `GITHUB_TOKEN` temporal del job: no cal cap secret nou ni fer el paquet públic.
 - Cap secret al repositori: el `.env` es renderitza al servidor des dels secrets i variables de GitHub, amb permisos 600 i sense passar pels logs.
 
