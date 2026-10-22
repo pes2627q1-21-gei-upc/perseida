@@ -52,11 +52,12 @@ flowchart TB
 
 - **CI** en cada PR hacia `develop`/`main`, con filtros por ruta y caché de dependencias `uv`/`pnpm`: formato, linters y tipos → tests con cobertura → SonarQube Cloud → Quality Gate. Obligatorio para fusionar.
 - **CD** en cada push a `main` (fusión de release o hotfix):
-  1. Construye la imagen del backend, la etiqueta con el `git-sha` y la sube a **GHCR**.
-  2. Se conecta al servidor de Virtech por **SSH**, renderiza el `.env` desde los secretos de GitHub (`chmod 600`) y ejecuta `docker compose up`.
-  3. Publica el **APK** del frontend en una release de GitHub.
+  1. Construye la imagen del backend (el job `image` reutiliza `backend-docker.yml`), la etiqueta con el `git-sha` (`sha-<7 caracteres>`) y la sube a **GHCR**, aunque no haya cambiado ningún fichero del backend.
+  2. Se conecta al servidor de Virtech por **SSH**, copia `docker-compose.yml` y `deploy.sh`, renderiza el `.env` desde los secretos y variables de GitHub (`chmod 600`) y ejecuta `deploy.sh`: descarga la imagen, hace `docker compose up` y comprueba el healthcheck con un tiempo de espera.
+  3. Si el healthcheck falla, hace rollback automático a la versión anterior y el job termina en error.
+  4. Publica el **APK** del frontend en una release de GitHub.
 - Versionado: SemVer a partir de `0.1.0`, una release por sprint, automatizado por el pipeline.
-- Rollback: redesplegar la imagen anterior por su `git-sha`.
+- Rollback: automático cuando falla el healthcheck, manual con `deploy.sh --rollback <tag>` (véase *Despliegue en producción (CD)* más abajo).
 - El repositorio también contiene una automatización que desbloquea tareas de Taiga (`.github/workflows/taiga-unblock.yml`).
 
 ## GHCR — Permisos y visibilidad del paquete
@@ -138,6 +139,78 @@ Cuando la imagen se sube por primera vez, GitHub crea el paquete como **privado*
 
 En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta `org.opencontainers.image.source`, que `docker/metadata-action` fija automáticamente a la URL del repositorio. `github.repository_owner` solo decide qué cuenta es propietaria del paquete.
 
+## Despliegue en producción (CD)
+
+`.github/workflows/cd.yml` se ejecuta en cada push a `main` (y a mano desde `main`). Un push o PR a `develop` o a una rama `feature/*` no lo dispara nunca. Jobs, en orden: `verify-config` (comprueba todos los secretos y variables, antes de tocar el servidor) → `image` (construye y sube a GHCR) → `deploy` (entorno `production`).
+
+> **Ningún secreto entra nunca en el repositorio.** Los secretos y variables viven solo en GitHub (**Settings → Secrets and variables → Actions**); este README lista sus *nombres*, nunca sus valores. El `.env` se genera en el servidor y está ignorado por git.
+
+### Secretos y variables requeridos
+
+`verify-config` lista todos los nombres que faltan y falla antes de tocar el servidor. Los nombres salen de `infra/.env.example` (menos los de abajo que se definen en otro sitio) más los `SSH_*`. Un nombre puede ser secreto o variable; los valores sensibles son secretos. Los valores no pueden llevar saltos de línea ni comillas simples.
+
+| Nombre | Tipo | Qué es |
+|---|---|---|
+| `SSH_HOST` | Secreto | Host al que se conecta el runner (el nombre público del NAT de la VM de Virtech) |
+| `SSH_PORT` | Secreto | Puerto SSH (ahora el puerto NAT que llega al `8089` de la VM) |
+| `SSH_USER` | Secreto | Usuario SSH de la VM |
+| `SSH_PRIVATE_KEY` | Secreto | Parte privada de la clave de despliegue dedicada (ed25519) |
+| `SSH_KNOWN_HOSTS` | Secreto | Línea(s) de la clave del servidor, p. ej. de `ssh-keyscan -p <puerto> <host>`; la conexión nunca desactiva la verificación de la clave |
+| `POSTGRES_PASSWORD` | Secreto | Contraseña de la base de datos de producción (aleatoria, solo para producción) |
+| `JWT_SECRET` | Secreto | Clave de los JWT de sesión, como mínimo 32 caracteres (`openssl rand -hex 32`) |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PORT` | Variable | Nombre, usuario y puerto de la base de datos |
+| `POSTGRES_HOST` | Variable | `postgres` (alias de red del servicio de base de datos) |
+| `REDIS_HOST` | Variable | `redis` (alias de red del servicio de caché) |
+| `REDIS_PORT`, `CACHE_DEFAULT_TTL_SECONDS` | Variable | Puerto de Redis y TTL por defecto de la caché |
+| `SCHEDULER_ENABLED`, `SCHEDULER_TIMEZONE` | Variable | Interruptor del planificador y zona horaria IANA |
+| `APP_ENV` | Variable | `production` |
+| `GOOGLE_CLIENT_IDS` | Variable | Client ids OAuth (web, Android, iOS), separados por comas; valores públicos |
+| `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS` | Variable | Duraciones de la sesión (`15` y `30`) |
+| `HTTP_PORT`, `HTTPS_PORT` | Variable | Puertos que publica nginx-proxy-manager en la VM (`8080` y `8081`; solo el `8080`–`8088` es accesible desde fuera) |
+
+No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `NPM_ADMIN_PORT` y `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
+
+Requisitos del servidor: Docker Engine con Compose, el usuario SSH en el grupo `docker` y `/opt/perseida` con permiso de escritura para ese usuario.
+
+### Cómo se genera el `.env`
+
+`infra/scripts/render_env.py` lo construye con los secretos y variables de la ejecución:
+
+1. `check` falla, indicando cuáles faltan, si algún nombre de `infra/.env.example` (o algún `SSH_*`) no tiene secreto ni variable.
+2. `mask` registra cada valor secreto con `::add-mask::`, de modo que en los logs sale como `***`.
+3. `render` escribe líneas `NOMBRE='valor'` por la salida estándar. El runner las pasa por SSH a un fichero temporal del servidor creado con `umask 077`; se comprueba que no esté vacío, se le pone `chmod 600` y se mueve a `/opt/perseida/.env` de golpe, así un render fallido nunca pisa un buen `.env`. El `.env` nunca toca el disco del runner, el repositorio ni los logs.
+
+El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`docker login` por stdin y `docker logout` al final), de modo que el paquete puede seguir siendo privado.
+
+### Rollback automático
+
+`deploy.sh <tag>` descarga la imagen si falta, ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok`. Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
+
+1. Se detiene la API.
+2. Se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
+3. Se arranca la imagen anterior (el tag de `.deployed-tag`) y se vuelve a comprobar el healthcheck.
+4. El job **siempre termina en error**, aunque el rollback haya funcionado.
+
+El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
+
+### Rollback manual a una versión concreta
+
+```bash
+ssh -p <puerto> <usuario>@<host>
+cd /opt/perseida
+cat .deployed-tag                                          # versión que corre ahora
+docker images ghcr.io/pes2627q1-21-gei-upc/perseida-api    # versiones que aún están en el servidor
+./deploy.sh --rollback sha-a1b2c3d
+```
+
+Si la imagen de destino ya no está en el servidor, hay que hacer antes `docker login ghcr.io -u <usuario-github>` con un token con `read:packages`. El script deshace las migraciones hasta la revisión de esa versión, la arranca, comprueba el healthcheck y actualiza `.deployed-tag`.
+
+> **Aviso sobre los datos:** deshacer una migración elimina las tablas y columnas que había creado, con sus datos. No hay copias de seguridad. Volver a una versión muy antigua solo debe hacerse sabiéndolo.
+
+### Acceso SSH del equipo
+
+La VM solo acepta claves (el acceso por contraseña está desactivado). Quien ya tiene acceso añade la clave **pública** de un compañero con `infra/scripts/add-team-key.sh`: pide un nombre y la clave pública, rechaza claves privadas y claves RSA de menos de 3072 bits y la añade a `authorized_keys` sin duplicar. La clave de despliegue (`SSH_PRIVATE_KEY`) es independiente de las claves personales.
+
 ## Configuración y secretos
 
 - Los secretos y variables viven en **Secrets and variables** de GitHub; el job de CD genera el `.env` en el servidor. El `.env` **nunca** se versiona; un `.env.example` sin valores hace de plantilla.
@@ -154,6 +227,9 @@ infra/
 ├── nginx-proxy-manager/        # configuración del proxy
 ├── moderation/                 # imagen/configuración del servicio Kev-4B
 └── scripts/
+    ├── deploy.sh                # se ejecuta en el servidor: pull, up, healthcheck, rollback
+    ├── render_env.py            # CD: comprueba secretos/variables y renderiza el .env
+    ├── add-team-key.sh          # añade la clave SSH pública de un compañero a la VM
     └── test-backend-docker.sh   # validación local y smoke test de perseida-api
 ```
 
