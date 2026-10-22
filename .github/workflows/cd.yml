@@ -4,8 +4,9 @@ name: CD
 # S'executa a cada push a `main` (fusió d'una release o d'un hotfix) o a mà
 # des de `main`. Un push o PR a `develop` o a una `feature/*` no el dispara.
 #
-# Pendent (depèn de TG-36 i TG-37): imatge per git-sha, pull i `docker compose
-# up` (TG-130), healthcheck (TG-131) i rollback automàtic (TG-132).
+# La imatge `perseida-api:sha-<commit>` la publica `backend-docker.yml` (job
+# `image`) i `infra/scripts/deploy.sh` la desplega al servidor amb Docker Compose.
+# Pendent: healthcheck (TG-131) i rollback automàtic (TG-132).
 on:
   push:
     branches: [main]
@@ -19,11 +20,12 @@ concurrency:
 
 permissions: {}
 
-# Les variables de `.env.example` que no van al servidor: són només del workflow
-# de Taiga (`taiga-unblock.yml`). Es pot treure quan hi hagi `infra/.env.example`
-# (TG-37), que només tindrà les del Compose.
+# El `.env` del servidor té les variables d'`infra/.env.example`, menys les que
+# no cal definir a GitHub: `API_IMAGE_TAG` el posa `deploy.sh` (git-sha del
+# commit) i `NPM_ADMIN_PORT` i `PORT` només són del Compose local.
 env:
-  ENV_EXCLUDE: TAIGA_USERNAME TAIGA_PASSWORD TAIGA_PROJECT_SLUG TAIGA_URL DRY_RUN
+  ENV_TEMPLATE: infra/.env.example
+  ENV_EXCLUDE: API_IMAGE_TAG NPM_ADMIN_PORT PORT
   # Han d'existir però no van al `.env`: són per a la connexió SSH.
   ENV_EXTRA_REQUIRED: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS
 
@@ -38,15 +40,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          sparse-checkout: infra/scripts
+          sparse-checkout: infra
       - name: Comprovar secrets i variables requerits
         env:
           SECRETS_JSON: ${{ toJSON(secrets) }}
           VARS_JSON: ${{ toJSON(vars) }}
         run: python3 infra/scripts/render_env.py check
 
-  deploy:
+  # Publica `perseida-api:sha-<commit>` a GHCR encara que no hagin canviat
+  # fitxers del backend (el workflow reutilitzat no filtra per rutes en aquest cas).
+  image:
     needs: verify-config
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/backend-docker.yml
+
+  deploy:
+    needs: [verify-config, image]
     # També limita el `workflow_dispatch` manual a `main`.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -54,6 +66,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      packages: read
     env:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
@@ -106,3 +119,28 @@ jobs:
             chmod 600 /opt/perseida/.env.tmp
             mv /opt/perseida/.env.tmp /opt/perseida/.env
           '
+
+      - name: Copiar el Compose i el script de desplegament
+        shell: bash
+        run: |
+          scp -q infra/docker-compose.yml infra/scripts/deploy.sh virtech:/opt/perseida/
+          ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
+
+      # El servidor baixa la imatge de GHCR (paquet privat) amb el token efímer
+      # del job, que viatja per stdin i es revoca en acabar; `docker logout` el
+      # treu del servidor igualment.
+      - name: Desplegar la imatge del commit
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          tag="sha-${GITHUB_SHA::7}"
+          printf '%s' "$GHCR_TOKEN" | ssh virtech docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          # shellcheck disable=SC2029  # el tag s'expandeix al runner a propòsit
+          ssh virtech /opt/perseida/deploy.sh "$tag"
+
+      - name: Tancar la sessió de GHCR al servidor
+        if: always()
+        shell: bash
+        run: ssh virtech 'docker logout ghcr.io' || true
