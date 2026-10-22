@@ -283,7 +283,7 @@ The app signs the user in with Google (OAuth2 + PKCE) and sends the Google `id_t
 **Flow:**
 
 1. `POST /api/auth/google` with `{"id_token": "<Google token>", "language": "ca"}` (`language` is optional).
-2. `GoogleJwksVerifier` checks the RS256 signature with Google's public keys (JWKS, cached for 1 hour; an unknown `kid` triggers one new download, at most once a minute), the issuer, the audience (`GOOGLE_CLIENT_ID`), the expiration and that the email is verified. Otherwise: 401 `INVALID_GOOGLE_TOKEN`. If Google does not answer and no keys are cached: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+2. `GoogleJwksVerifier` checks the RS256 signature with Google's public keys (JWKS, cached for 1 hour; an unknown `kid` triggers one new download, at most once a minute), the issuer, the audience (one of the clients in `GOOGLE_CLIENT_IDS`), the expiration and that the email is verified. Otherwise: 401 `INVALID_GOOGLE_TOKEN`. If Google does not answer and no keys are cached: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
 3. The `AccountGateway` port signs the account up on the first access and returns its status: suspended or banned → 403 `ACCOUNT_SUSPENDED`; deleted → 403 `ACCOUNT_DELETED`.
 4. The backend issues two JWTs signed with HS256 and `JWT_SECRET`: an access token (15 minutes) and a refresh token (30 days), with the claims `sub` (the `google_sub`), `jti` (unique per token), `sid` (session id, shared by the access and the refresh token of a pair and kept by `refresh`), `type` (`access` or `refresh`), `iat` and `exp`. Each one is registered in Redis as `session:<type>:<jti>` with a TTL equal to its lifetime, and listed in the user index `user_sessions:<sub>` (members `<sid>:<type>:<jti>`).
 5. Response `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` in seconds).
@@ -296,7 +296,7 @@ A token is valid only if its signature and expiration are correct **and** its Re
 
 | Variable | Meaning |
 |---|---|
-| `GOOGLE_CLIENT_ID` | Expected audience (`aud`) of the Google token |
+| `GOOGLE_CLIENT_IDS` | Accepted audiences (`aud`) of the Google token: the OAuth clients of the app (web, Android, iOS), comma-separated |
 | `JWT_SECRET` | HS256 key, at least 32 characters; never commit a real one |
 | `ACCESS_TOKEN_MINUTES` | Access token lifetime (15 by default) |
 | `REFRESH_TOKEN_DAYS` | Refresh token lifetime (30 by default) |

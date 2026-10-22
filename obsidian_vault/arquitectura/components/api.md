@@ -3,7 +3,7 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-10-21"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304"]
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
@@ -24,7 +24,7 @@ Python 3.14, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`.
 - **Entorn**: `PYTHONUNBUFFERED=1` per a emissió immediata de logs a stdout, `PYTHONDONTWRITEBYTECODE=1` i `PATH="/app/.venv/bin:$PATH"`.
 - **Pipeline CI/CD**: `.github/workflows/backend-docker.yml` amb Buildx, memòria cau GHA (`mode=max`) i generació d'etiquetes immutables (`sha-XXXXXXX`), de branca (`develop`/`main`/`release/*`) i SemVer (`vX.Y.Z`).
 
-Alembic s'executarà a l'entrypoint del contenidor un cop implementat a TG-41. Estructura hexagonal: [[backend-hexagonal]].
+L'entrypoint del contenidor (`backend/entrypoint.sh`, el `CMD` de la imatge) aplica les migracions d'Alembic (`alembic upgrade head`) i arrenca uvicorn; el CD les desfà amb `alembic downgrade` si ha de fer rollback ([[arquitectura-fisica]]). Estructura hexagonal: [[backend-hexagonal]].
 
 ## Interfícies
 
@@ -54,7 +54,7 @@ Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosn
 
 ## Configuració
 
-Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_ID`, `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals, 15 i 30; no són a `.env.example` perquè el CD no les exigeixi), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
+Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_IDS` (llista separada per comes dels clients OAuth: web, Android i iOS), `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals al backend, 15 i 30; a `infra/.env.example` hi són i el CD les exigeix), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
 
 ## Decisions relacionades
 
