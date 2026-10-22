@@ -16,7 +16,7 @@ La US TG-38 demana que cada fusió a `main` desplegui el backend a la VM de Virt
 
 ## Decisió
 
-El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la CI (`workflow_call`), la desplega amb `infra/scripts/deploy.sh` i, si el healthcheck no passa (límit `HEALTH_TIMEOUT`, 120 s per defecte; Compose pot rendir-se abans amb el seu propi healthcheck), **atura l'API, desfà les migracions amb `alembic downgrade` fins a la revisió de la imatge anterior, redesplega l'anterior i marca el job com a fallit**. La versió bona es guarda a `/opt/perseida/.deployed-tag`; el rollback manual és `deploy.sh --rollback <tag>`.
+El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la CI (`workflow_call`), la desplega amb `infra/scripts/deploy.sh` i, si el healthcheck no passa (límit `HEALTH_TIMEOUT`, 120 s per defecte; Compose pot rendir-se abans amb el seu propi healthcheck), **atura l'API i fa una sonda: arrenca la imatge anterior sense migracions i amb el mateix `.env`. Si no respon, el fallo és de configuració o d'infraestructura i no es desfà res (les dades es conserven); si respon, desfà les migracions amb `alembic downgrade` fins a la revisió de la imatge anterior i la redesplega. El job queda sempre com a fallit**. La versió bona es guarda a `/opt/perseida/.deployed-tag`; el rollback manual és `deploy.sh --rollback <tag>`.
 
 ## Conseqüències
 
@@ -28,7 +28,7 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 
 ### Negatives (assumides)
 
-- Desfer una migració elimina les taules i columnes que havia creat, amb les seves dades, i no hi ha còpies de seguretat. El README d'`infra/` ho avisa.
+- Desfer una migració elimina les taules i columnes que havia creat, amb les seves dades, i no hi ha còpies de seguretat. El README d'`infra/` ho avisa. La sonda evita el downgrade quan la causa és la configuració, però no distingeix una base de dades caiguda perquè el healthcheck no la consulta.
 - Si el `downgrade` falla, es redesplega igualment la imatge anterior (es prefereix un servei amb un esquema possiblement desquadrat que un servei caigut) i el job falla amb un avís explícit.
 - El primer desplegament no té versió anterior: només pot fallar.
 - Els logs dels contenidors no es mostren al workflow, perquè són públics; s'han de llegir al servidor.
@@ -36,6 +36,8 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 ## Alternatives descartades
 
 - **Tornar només a la imatge anterior, sense downgrade:** exigiria que cada migració fos compatible cap enrere amb la versió anterior; la persona responsable va demanar explícitament desfer les migracions.
+- **Provar la imatge anterior amb el seu entrypoint (amb migracions) abans del downgrade:** no serveix, perquè no arrenca mai contra un esquema més nou (`Can't locate revision identified by ...`, comprovat); per això la sonda arrenca la imatge anterior sense migracions.
+- **`pg_dump` abans de cada desplegament amb migracions:** es deixa per a més endavant (espai a la VM i procediment de restauració); ara no hi ha còpies.
 - **Fer el paquet de GHCR públic:** continua sent possible, però no cal i exposa les imatges.
 - **Un PAT de lectura com a secret per al `docker pull`:** un secret més a rotar; el `GITHUB_TOKEN` del job ja ho cobreix.
 - **Publicar la imatge de `main` amb `backend-docker.yml` en paral·lel al CD:** no garanteix que `sha-<commit>` existeixi quan el CD el necessita, ni quan no canvia el backend.

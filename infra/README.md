@@ -188,11 +188,14 @@ The server pulls the image from GHCR with the job's temporary `GITHUB_TOKEN` (`d
 `deploy.sh <tag>` pulls the image if it is missing, runs `docker compose up -d` and waits up to `HEALTH_TIMEOUT` seconds (120 by default) for `GET /api/health` to answer 200 with `status: ok` (Compose itself may give up sooner, when the container's own healthcheck gives up, about 65 s with the current settings; the outcome is the same). When it does, the tag is saved in `/opt/perseida/.deployed-tag`. When it does not:
 
 1. The API is stopped.
-2. The Alembic migrations are undone down to the revision of the previous image (`alembic downgrade`, run with the new image, which is the one that has the new migrations).
-3. The previous image (the tag in `.deployed-tag`) is started and the healthcheck is checked again.
-4. The job **always fails**, even if the rollback worked.
+2. **Probe:** the previous image (the tag in `.deployed-tag`) is started **without migrations** and with the same `.env`, in a temporary container.
+   - If it does not respond, the cause is the configuration or the infrastructure, not the new code: **nothing is undone** (the data is kept), the API stays stopped and the job fails telling you to fix the secret or variable and run the CD again.
+   - If it responds, the cause is the new code or its migrations and the rollback goes on.
+3. The Alembic migrations are undone down to the revision of the previous image (`alembic downgrade`, run with the new image, which is the one that has the new migrations).
+4. The previous image is started normally and the healthcheck is checked again.
+5. The job **always fails**, even if the rollback worked.
 
-The rollback restores the image and the database schema, **not the `.env`**: it has already been rewritten with the current secrets and variables (so the first deployment after `GOOGLE_CLIENT_ID` became `GOOGLE_CLIENT_IDS` cannot roll back to an image from before that change either). If a deployment fails because of a wrong value (for example a bad port), the previous image starts with the same wrong configuration and the rollback fails too; fix the secret or variable and run the CD again. The very first deployment has no previous version, so it only fails. Container logs are not printed in the workflow (they are public); read them on the server with `docker compose logs api`.
+The rollback restores the image and the database schema, **not the `.env`**: it has already been rewritten with the current secrets and variables (so the first deployment after `GOOGLE_CLIENT_ID` became `GOOGLE_CLIENT_IDS` cannot roll back to an image from before that change either). If a deployment fails because of a wrong value (for example a bad key), the probe detects it, because the previous image fails the same way: nothing is undone; fix the secret or variable and run the CD again. The probe cannot tell a database that is down, because the healthcheck does not query it. The very first deployment has no previous version, so it only fails. Container logs are not printed in the workflow (they are public); read them on the server with `docker compose logs api`.
 
 ### Manual rollback to a specific version
 
