@@ -147,7 +147,7 @@ The first time the workflow pushes the image, GitHub links the package to the re
 
 ### Required secrets and variables
 
-`verify-config` lists every missing name and fails before touching the server. The names come from `infra/.env.example` (minus the ones below that are set elsewhere) plus the `SSH_*` ones. A name can be either a secret or a variable; sensitive values are secrets. Values cannot contain a line break or a single quote.
+`verify-config` lists every missing name and fails before touching the server. The names come from `infra/.env.example` (minus the ones below that are set elsewhere) plus the `SSH_*` ones. The names marked Secret must be secrets: `verify-config` also fails if one of them exists only as a variable, because a variable shows unmasked in the public logs. The rest can be either. Values cannot contain a line break or a single quote.
 
 | Name | Type | What it is |
 |---|---|---|
@@ -171,7 +171,7 @@ The first time the workflow pushes the image, GitHub links the package to the re
 
 Not set in GitHub: `API_IMAGE_TAG` (`deploy.sh` sets it to the commit's image), `NPM_ADMIN_PORT` and `PORT` (local development only) and `GITHUB_TOKEN` (automatic).
 
-Server prerequisites: Docker Engine with Compose, the SSH user in the `docker` group and `/opt/perseida` writable by that user.
+Server prerequisites: Docker Engine with Compose 2.22 or later (`pull --policy`), `flock` (from `util-linux`), the SSH user in the `docker` group and `/opt/perseida` writable by that user.
 
 ### How `.env` is generated
 
@@ -185,14 +185,14 @@ The server pulls the image from GHCR with the job's temporary `GITHUB_TOKEN` (`d
 
 ### Automatic rollback
 
-`deploy.sh <tag>` pulls the image if it is missing, runs `docker compose up -d` and waits up to `HEALTH_TIMEOUT` seconds (120 by default) for `GET /api/health` to answer 200 with `status: ok`. When it does, the tag is saved in `/opt/perseida/.deployed-tag`. When it does not:
+`deploy.sh <tag>` pulls the image if it is missing, runs `docker compose up -d` and waits up to `HEALTH_TIMEOUT` seconds (120 by default) for `GET /api/health` to answer 200 with `status: ok` (Compose itself may give up sooner, when the container's own healthcheck gives up, about 65 s with the current settings; the outcome is the same). When it does, the tag is saved in `/opt/perseida/.deployed-tag`. When it does not:
 
 1. The API is stopped.
 2. The Alembic migrations are undone down to the revision of the previous image (`alembic downgrade`, run with the new image, which is the one that has the new migrations).
 3. The previous image (the tag in `.deployed-tag`) is started and the healthcheck is checked again.
 4. The job **always fails**, even if the rollback worked.
 
-The rollback restores the image and the database schema, **not the `.env`**: it has already been rewritten with the current secrets and variables. If a deployment fails because of a wrong value (for example a bad port), the previous image starts with the same wrong configuration and the rollback fails too; fix the secret or variable and run the CD again. The very first deployment has no previous version, so it only fails. Container logs are not printed in the workflow (they are public); read them on the server with `docker compose logs api`.
+The rollback restores the image and the database schema, **not the `.env`**: it has already been rewritten with the current secrets and variables (so the first deployment after `GOOGLE_CLIENT_ID` became `GOOGLE_CLIENT_IDS` cannot roll back to an image from before that change either). If a deployment fails because of a wrong value (for example a bad port), the previous image starts with the same wrong configuration and the rollback fails too; fix the secret or variable and run the CD again. The very first deployment has no previous version, so it only fails. Container logs are not printed in the workflow (they are public); read them on the server with `docker compose logs api`.
 
 ### Manual rollback to a specific version
 

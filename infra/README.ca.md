@@ -147,7 +147,7 @@ En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta
 
 ### Secrets i variables requerits
 
-`verify-config` llista tots els noms que falten i falla abans de tocar el servidor. Els noms surten d'`infra/.env.example` (menys els de sota que es defineixen en un altre lloc) més els `SSH_*`. Un nom pot ser secret o variable; els valors sensibles són secrets. Els valors no poden tenir salts de línia ni cometes simples.
+`verify-config` llista tots els noms que falten i falla abans de tocar el servidor. Els noms surten d'`infra/.env.example` (menys els de sota que es defineixen en un altre lloc) més els `SSH_*`. Els noms marcats com a Secret han de ser secrets: `verify-config` també falla si algun existeix només com a variable, perquè una variable es veu sense emmascarar als logs públics. La resta poden ser una cosa o l'altra. Els valors no poden tenir salts de línia ni cometes simples.
 
 | Nom | Tipus | Què és |
 |---|---|---|
@@ -171,7 +171,7 @@ En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta
 
 No es defineixen a GitHub: `API_IMAGE_TAG` (`deploy.sh` hi posa la imatge del commit), `NPM_ADMIN_PORT` i `PORT` (només desenvolupament local) i `GITHUB_TOKEN` (automàtic).
 
-Requisits del servidor: Docker Engine amb Compose, l'usuari SSH al grup `docker` i `/opt/perseida` amb permís d'escriptura per a aquest usuari.
+Requisits del servidor: Docker Engine amb Compose 2.22 o superior (`pull --policy`), `flock` (de `util-linux`), l'usuari SSH al grup `docker` i `/opt/perseida` amb permís d'escriptura per a aquest usuari.
 
 ### Com es genera el `.env`
 
@@ -185,14 +185,14 @@ El servidor baixa la imatge de GHCR amb el `GITHUB_TOKEN` temporal del job (`doc
 
 ### Rollback automàtic
 
-`deploy.sh <tag>` baixa la imatge si falta, executa `docker compose up -d` i espera fins a `HEALTH_TIMEOUT` segons (120 per defecte) que `GET /api/health` respongui 200 amb `status: ok`. Quan ho fa, el tag es desa a `/opt/perseida/.deployed-tag`. Quan no:
+`deploy.sh <tag>` baixa la imatge si falta, executa `docker compose up -d` i espera fins a `HEALTH_TIMEOUT` segons (120 per defecte) que `GET /api/health` respongui 200 amb `status: ok` (el mateix Compose pot rendir-se abans, quan s'hi rendeix el healthcheck del contenidor, uns 65 s amb la configuració actual; el resultat és el mateix). Quan ho fa, el tag es desa a `/opt/perseida/.deployed-tag`. Quan no:
 
 1. S'atura l'API.
 2. Es desfan les migracions d'Alembic fins a la revisió de la imatge anterior (`alembic downgrade`, executat amb la imatge nova, que és la que té les migracions noves).
 3. S'arrenca la imatge anterior (el tag de `.deployed-tag`) i es torna a comprovar el healthcheck.
 4. El job **sempre acaba en error**, encara que el rollback hagi funcionat.
 
-El rollback restaura la imatge i l'esquema de la base de dades, **no el `.env`**: ja s'ha reescrit amb els secrets i variables actuals. Si un desplegament falla per un valor erroni (per exemple un port equivocat), la imatge anterior arrenca amb la mateixa configuració errònia i el rollback també falla; cal corregir el secret o la variable i tornar a executar el CD. El primer desplegament no té versió anterior, així que només falla. Els logs dels contenidors no es mostren al workflow (són públics); es llegeixen al servidor amb `docker compose logs api`.
+El rollback restaura la imatge i l'esquema de la base de dades, **no el `.env`**: ja s'ha reescrit amb els secrets i variables actuals (per tant, el primer desplegament després que `GOOGLE_CLIENT_ID` passés a `GOOGLE_CLIENT_IDS` tampoc pot fer rollback a una imatge anterior a aquest canvi). Si un desplegament falla per un valor erroni (per exemple un port equivocat), la imatge anterior arrenca amb la mateixa configuració errònia i el rollback també falla; cal corregir el secret o la variable i tornar a executar el CD. El primer desplegament no té versió anterior, així que només falla. Els logs dels contenidors no es mostren al workflow (són públics); es llegeixen al servidor amb `docker compose logs api`.
 
 ### Rollback manual a una versió concreta
 

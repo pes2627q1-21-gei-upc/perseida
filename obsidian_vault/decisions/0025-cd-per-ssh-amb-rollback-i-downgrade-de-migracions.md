@@ -16,7 +16,7 @@ La US TG-38 demana que cada fusió a `main` desplegui el backend a la VM de Virt
 
 ## Decisió
 
-El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la CI (`workflow_call`), la desplega amb `infra/scripts/deploy.sh` i, si el healthcheck no passa en 120 s, **atura l'API, desfà les migracions amb `alembic downgrade` fins a la revisió de la imatge anterior, redesplega l'anterior i marca el job com a fallit**. La versió bona es guarda a `/opt/perseida/.deployed-tag`; el rollback manual és `deploy.sh --rollback <tag>`.
+El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la CI (`workflow_call`), la desplega amb `infra/scripts/deploy.sh` i, si el healthcheck no passa (límit `HEALTH_TIMEOUT`, 120 s per defecte; Compose pot rendir-se abans amb el seu propi healthcheck), **atura l'API, desfà les migracions amb `alembic downgrade` fins a la revisió de la imatge anterior, redesplega l'anterior i marca el job com a fallit**. La versió bona es guarda a `/opt/perseida/.deployed-tag`; el rollback manual és `deploy.sh --rollback <tag>`.
 
 ## Conseqüències
 

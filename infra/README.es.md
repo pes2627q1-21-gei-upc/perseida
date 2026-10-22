@@ -147,7 +147,7 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 
 ### Secretos y variables requeridos
 
-`verify-config` lista todos los nombres que faltan y falla antes de tocar el servidor. Los nombres salen de `infra/.env.example` (menos los de abajo que se definen en otro sitio) más los `SSH_*`. Un nombre puede ser secreto o variable; los valores sensibles son secretos. Los valores no pueden llevar saltos de línea ni comillas simples.
+`verify-config` lista todos los nombres que faltan y falla antes de tocar el servidor. Los nombres salen de `infra/.env.example` (menos los de abajo que se definen en otro sitio) más los `SSH_*`. Los nombres marcados como Secreto deben ser secretos: `verify-config` también falla si alguno existe solo como variable, porque una variable se ve sin enmascarar en los logs públicos. El resto pueden ser una cosa u otra. Los valores no pueden llevar saltos de línea ni comillas simples.
 
 | Nombre | Tipo | Qué es |
 |---|---|---|
@@ -171,7 +171,7 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 
 No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `NPM_ADMIN_PORT` y `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
 
-Requisitos del servidor: Docker Engine con Compose, el usuario SSH en el grupo `docker` y `/opt/perseida` con permiso de escritura para ese usuario.
+Requisitos del servidor: Docker Engine con Compose 2.22 o superior (`pull --policy`), `flock` (de `util-linux`), el usuario SSH en el grupo `docker` y `/opt/perseida` con permiso de escritura para ese usuario.
 
 ### Cómo se genera el `.env`
 
@@ -185,14 +185,14 @@ El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`
 
 ### Rollback automático
 
-`deploy.sh <tag>` descarga la imagen si falta, ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok`. Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
+`deploy.sh <tag>` descarga la imagen si falta, ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok` (el propio Compose puede rendirse antes, cuando se rinde el healthcheck del contenedor, unos 65 s con la configuración actual; el resultado es el mismo). Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
 
 1. Se detiene la API.
 2. Se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
 3. Se arranca la imagen anterior (el tag de `.deployed-tag`) y se vuelve a comprobar el healthcheck.
 4. El job **siempre termina en error**, aunque el rollback haya funcionado.
 
-El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales. Si un despliegue falla por un valor erróneo (por ejemplo un puerto equivocado), la imagen anterior arranca con la misma configuración errónea y el rollback también falla; hay que corregir el secreto o la variable y volver a ejecutar el CD. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
+El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales (por tanto, el primer despliegue tras pasar `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_IDS` tampoco puede hacer rollback a una imagen anterior a ese cambio). Si un despliegue falla por un valor erróneo (por ejemplo un puerto equivocado), la imagen anterior arranca con la misma configuración errónea y el rollback también falla; hay que corregir el secreto o la variable y volver a ejecutar el CD. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
 
 ### Rollback manual a una versión concreta
 
