@@ -27,8 +27,14 @@ STATE_FILE=.deployed-tag
 PROBE_NAME=perseida-probe
 
 # Si es talla la connexió SSH (job cancel·lat, xarxa) el desplegament no s'ha de
-# quedar a mig fer, amb l'API aturada o `.deployed-tag` desactualitzat.
-trap '' HUP
+# quedar a mig fer, amb l'API aturada o `.deployed-tag` desactualitzat: SIGHUP i
+# SIGPIPE s'ignoren.
+trap '' HUP PIPE
+
+# Els missatges mai fan fallar el script: si es talla la connexió, un `echo` a un
+# pipe trencat tornaria error (i `set -e` aturaria el desplegament a mig fer).
+say() { printf '%s\n' "$*" || true; }
+warn() { printf '%s\n' "$*" >&2 || true; }
 
 # Zero si `/api/health` respon 200 amb `status: ok`. Es consulta des de dins del
 # contenidor: el servidor no exposa aquest port a fora.
@@ -76,22 +82,38 @@ head_of() {
   docker run --rm --entrypoint alembic "$(image_of "$1")" heads | grep '(head)' | awk 'NR==1 {print $1}'
 }
 
-# Zero si la imatge de `$1` respon al healthcheck arrencada SENSE migracions (només
-# uvicorn) amb el mateix `.env`. Un contenidor temporal; no toca la base de dades.
-# Diu si el fallo del desplegament és del codi o de les migracions (respon) o de la
-# configuració o la infraestructura (no respon).
+# Arrenca la imatge de `$1` SENSE migracions (només uvicorn) amb el mateix `.env`,
+# en un contenidor temporal (`perseida-probe`), i diu si respon al healthcheck. No
+# executa migracions; el procés sí obre connexions, per això es desactiva el
+# planificador (no ha d'executar feines amb codi antic). Retorna:
+#   0  respon: el fallo del desplegament és del codi o de les migracions noves
+#   1  no respon: el fallo és de configuració o d'infraestructura
+#   2  no s'ha pogut crear la sonda (imatge absent i pull fallit, error de Docker)
 probe_previous() {
   docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
-  API_IMAGE_TAG=$1 docker compose run -d --no-deps --name "$PROBE_NAME" api \
-    uvicorn app.main:app --host 0.0.0.0 --port 8000 >/dev/null 2>&1 || return 1
-  if wait_for "$PROBE_TIMEOUT" probe_healthy; then
-    docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
-    return 0
-  fi
+  # La imatge anterior pot no ser al servidor (p. ex. després d'un `docker image prune`).
+  API_IMAGE_TAG=$1 docker compose pull --policy missing api >/dev/null 2>&1 || return 2
+  API_IMAGE_TAG=$1 docker compose run -d --no-deps --name "$PROBE_NAME" -e SCHEDULER_ENABLED=false api \
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 >/dev/null 2>&1 || return 2
+  deadline=$(( $(date +%s) + PROBE_TIMEOUT ))
+  result=1
+  while :; do
+    if probe_healthy; then
+      result=0
+      break
+    fi
+    # Si el contenidor ja ha sortit (error d'importació o de configuració) no cal esperar.
+    [ "$(docker inspect -f '{{.State.Running}}' "$PROBE_NAME" 2>/dev/null)" = true ] || break
+    [ "$(date +%s)" -lt "$deadline" ] || break
+    sleep 2
+  done
   docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
-  return 1
+  return "$result"
 }
 
+# Nota: aquesta funció i `probe_previous` es criden en context `if`/`||`, on `set -e`
+# no actua dins del cos; per això cada ordre que pot fallar ho gestiona explícitament.
+#
 # Torna de `$1` (el tag que corre ara) a `$2`: atura l'API, desfà les migracions
 # amb la imatge de `$1` (és la que té les migracions noves) fins a la revisió de
 # `$2`, i arrenca `$2`. Si el downgrade falla, arrenca igualment `$2` i ho avisa.
@@ -100,11 +122,11 @@ rollback_to() {
   to=$2
   rev=$(head_of "$to") || rev=""
   if [ -z "$rev" ]; then
-    echo "No es pot saber la revisió d'Alembic de $to: no es desfan les migracions." >&2
+    warn "No es pot saber la revisió d'Alembic de $to: no es desfan les migracions."
   fi
   docker compose stop api
   if [ -n "$rev" ] && ! API_IMAGE_TAG=$from docker compose run --rm -T --no-deps api alembic downgrade "$rev"; then
-    echo "ATENCIÓ: el downgrade a $rev ha fallat; l'esquema pot no coincidir amb $to." >&2
+    warn "ATENCIÓ: el downgrade a $rev ha fallat; l'esquema pot no coincidir amb $to."
   fi
   API_IMAGE_TAG=$to docker compose up -d --remove-orphans && wait_healthy
 }
@@ -112,7 +134,7 @@ rollback_to() {
 # Un error en escriure l'estat (disc ple) no ha de fer fallar un desplegament sa.
 mark_deployed() {
   printf '%s\n' "$1" > "$STATE_FILE" ||
-    echo "AVÍS: no s'ha pogut escriure $STATE_FILE; un rollback posterior pot partir d'una versió incorrecta." >&2
+    warn "AVÍS: no s'ha pogut escriure $STATE_FILE; un rollback posterior pot partir d'una versió incorrecta."
 }
 
 cd "$(dirname "$0")"
@@ -121,9 +143,9 @@ cd "$(dirname "$0")"
 # (`concurrency`), però un `--rollback` manual per SSH podria coincidir amb un.
 if command -v flock >/dev/null 2>&1; then
   exec 9>.deploy.lock
-  flock -n 9 || { echo "Ja hi ha un desplegament o un rollback en curs (.deploy.lock)." >&2; exit 1; }
+  flock -n 9 || { warn "Ja hi ha un desplegament o un rollback en curs (.deploy.lock)."; exit 1; }
 else
-  echo "AVÍS: no hi ha 'flock' al servidor; no es pot evitar un desplegament concurrent." >&2
+  warn "AVÍS: no hi ha 'flock' al servidor; no es pot evitar un desplegament concurrent."
 fi
 
 previous=""
@@ -133,23 +155,23 @@ fi
 
 # --- Rollback manual -------------------------------------------------------
 if [ "${1:-}" = "--rollback" ]; then
-  [ "$#" -eq 2 ] || { echo "Ús: $0 --rollback <tag-de-la-imatge>" >&2; exit 2; }
+  [ "$#" -eq 2 ] || { warn "Ús: $0 --rollback <tag-de-la-imatge>"; exit 2; }
   target=$2
-  [ -n "$previous" ] || { echo "No consta cap versió desplegada ($STATE_FILE): no es pot desfer res." >&2; exit 1; }
+  [ -n "$previous" ] || { warn "No consta cap versió desplegada ($STATE_FILE): no es pot desfer res."; exit 1; }
   export API_IMAGE_TAG="$previous"
   docker compose pull --policy missing api
   API_IMAGE_TAG=$target docker compose pull --policy missing api
   if rollback_to "$previous" "$target"; then
     mark_deployed "$target"
-    echo "Rollback fet: $previous -> $target."
+    say "Rollback fet: $previous -> $target."
     exit 0
   fi
-  echo "El rollback a $target no ha superat el healthcheck." >&2
+  warn "El rollback a $target no ha superat el healthcheck."
   exit 1
 fi
 
 # --- Desplegament ----------------------------------------------------------
-[ "$#" -eq 1 ] || { echo "Ús: $0 <tag> | --rollback <tag>" >&2; exit 2; }
+[ "$#" -eq 1 ] || { warn "Ús: $0 <tag> | --rollback <tag>"; exit 2; }
 tag=$1
 
 export API_IMAGE_TAG="$tag"
@@ -159,29 +181,36 @@ docker compose pull --policy missing api
 
 if docker compose up -d --remove-orphans && wait_healthy; then
   mark_deployed "$tag"
-  echo "Desplegat $tag: l'API respon correctament al healthcheck."
+  say "Desplegat $tag: l'API respon correctament al healthcheck."
   exit 0
 fi
 
 # No es mostren els logs dels contenidors: els del workflow són públics.
-echo "L'API no ha superat el healthcheck ($tag)." >&2
+warn "L'API no ha superat el healthcheck ($tag)."
 if [ -z "$previous" ] || [ "$previous" = "$tag" ]; then
-  echo "No hi ha una versió anterior a què tornar: rollback no possible." >&2
+  warn "No hi ha una versió anterior a què tornar: rollback no possible."
   exit 1
 fi
 
 docker compose stop api
-echo "Comprovant si $previous arrenca amb la mateixa configuració (sense migracions)..." >&2
-if ! probe_previous "$previous"; then
-  echo "$previous tampoc arrenca amb la mateixa configuració: el fallo és de configuració o d'infraestructura, no del codi de $tag." >&2
-  echo "NO es desfan les migracions (les dades es conserven) i l'API queda aturada. Corregeix el secret o la variable de GitHub i torna a executar el CD." >&2
+warn "Comprovant si $previous arrenca amb la mateixa configuració (sense migracions)..."
+probe=0
+probe_previous "$previous" || probe=$?
+if [ "$probe" -eq 1 ]; then
+  warn "$previous tampoc arrenca amb la mateixa configuració: el fallo és de configuració o d'infraestructura, no del codi de $tag."
+  warn "NO es desfan les migracions (les dades es conserven) i l'API queda aturada. Corregeix el secret o la variable de GitHub i torna a executar el CD."
+  warn "Pot ser que l'esquema sigui més nou que $previous: un \`--rollback\` manual posterior pot avisar que no troba la revisió."
+  exit 1
+elif [ "$probe" -ne 0 ]; then
+  warn "No s'ha pogut crear la sonda amb $previous (imatge absent i pull fallit, o error de Docker): no es pot saber la causa."
+  warn "NO es desfan les migracions i l'API queda aturada. Comprova-ho al servidor (\`docker images\`, \`docker compose ps\`)."
   exit 1
 fi
 
-echo "$previous arrenca bé: el fallo és del codi o de les migracions de $tag. Rollback automàtic a $previous..." >&2
+warn "$previous arrenca bé: el fallo és del codi o de les migracions de $tag. Rollback automàtic a $previous..."
 if rollback_to "$tag" "$previous"; then
-  echo "Rollback fet: l'API torna a respondre amb $previous. El desplegament de $tag ha fallat." >&2
+  warn "Rollback fet: l'API torna a respondre amb $previous. El desplegament de $tag ha fallat."
 else
-  echo "EL ROLLBACK A $previous TAMPOC HA SUPERAT EL HEALTHCHECK: cal intervenir al servidor." >&2
+  warn "EL ROLLBACK A $previous TAMPOC HA SUPERAT EL HEALTHCHECK: cal intervenir al servidor."
 fi
 exit 1
