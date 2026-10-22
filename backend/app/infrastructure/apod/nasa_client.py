@@ -6,6 +6,7 @@ import httpx
 from pydantic import BaseModel, SecretStr, ValidationError
 
 from app.domain.apod.models import Apod, MediaType
+from app.domain.shared.errors import DomainError
 
 APOD_URL = "https://api.nasa.gov/planetary/apod"
 
@@ -79,12 +80,16 @@ class NasaApodClient:
             raise NasaApodError("NASA APOD response is not a usable APOD") from exc
         if _is_placeholder(nasa.url):
             raise NasaApodError("NASA APOD response is the placeholder logo")
-        return Apod(
-            apod_date=nasa.date,
-            title=nasa.title,
-            explanation=nasa.explanation,
-            media_type=nasa.media_type,
-            media_url=nasa.url,
-            # NASA wraps it in spaces and line breaks ("\nJane Doe\n").
-            copyright=(nasa.copyright or "").strip() or None,
-        )
+        try:
+            return Apod(
+                apod_date=nasa.date,
+                title=nasa.title,
+                explanation=nasa.explanation,
+                media_type=nasa.media_type,
+                media_url=nasa.url,
+                # NASA wraps it in spaces and line breaks ("\nJane Doe\n").
+                copyright=(nasa.copyright or "").strip() or None,
+            )
+        except DomainError as exc:
+            # E.g. a media URL that is not https (APOD_MEDIA_URL_INVALID).
+            raise NasaApodError("NASA APOD response breaks a domain rule") from exc

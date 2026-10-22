@@ -2,9 +2,9 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-10-20"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-46", "TG-88", "TG-304"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example"
+data: "2026-10-21"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -35,9 +35,26 @@ Alembic s'executarà a l'entrypoint del contenidor un cop implementat a TG-41. E
 
 Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i `correlation_id`; el 500 no exposa detalls interns. Cada resposta porta la capçalera `X-Correlation-ID` (generada amb `uuid4` o reutilitzada si el valor entrant és vàlid). Jerarquia a `app/domain/shared/errors.py` i `app/application/shared/errors.py`; handlers i middleware a `app/infrastructure/api/`. Detall a [[0018-errors-rfc-9457-amb-codis-estables]].
 
+## Autenticació i usuaris (TG-44, TG-45)
+
+Valida el token de Google via JWKS i emet una sessió pròpia (dos JWT HS256: *access* 15 min i *refresh* 30 dies), registrada a [[redis]] com a `session:<type>:<jti>` (i indexada per usuari a `user_sessions:<sub>`, amb un `sid` comú a l'access i al refresh) perquè es pugui revocar a l'instant, per sessió o per usuari. Endpoints:
+
+| Endpoint | Què fa |
+|---|---|
+| `POST /api/auth/google` | Canvia l'`id_token` de Google per una sessió; dona d'alta l'usuari al primer accés (`language` opcional). 401, 403, 409 `EMAIL_ALREADY_REGISTERED`, 503 |
+| `POST /api/auth/refresh` | Renova la sessió; el refresh és d'un sol ús |
+| `POST /api/auth/logout` | Revoca la sessió sencera pel `sid`; 204 i idempotent |
+| `GET /api/users/me` | Perfil de l'usuari autenticat; 401 sense sessió, 403 si el compte és suspès o esborrat |
+
+Els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel port `AccountGateway`, que implementa `UserAccountGateway` sobre [[postgres]] (taules `users` i `user_identities`, [[0023-convencions-del-model-de-dades]]). Format, caducitats, alta concurrent i conseqüències a [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]; guia d'ús a la secció «Authentication» de `backend/README.md`.
+
+## Seguretat (TG-45)
+
+Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
+
 ## Configuració
 
-Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
+Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_ID`, `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals, 15 i 30; no són a `.env.example` perquè el CD no les exigeixi), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
 
 ## Decisions relacionades
 
@@ -57,6 +74,7 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - TG-40 (PostgreSQL async amb SQLModel)
 - TG-41 (Alembic)
 - TG-44 (JWKS)
+- TG-45 (model d'usuari, alta automàtica i tancament de sessió)
 - TG-46 (cache APOD)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
@@ -68,6 +86,8 @@ Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET`, `POSTGRES_D
 - **Persistència PostgreSQL (TG-40)**: implementat.
 - **Planificador APScheduler (TG-88)**: infraestructura implementada (vegeu [[backend-hexagonal]]).
 - **Contenidorització i pipeline GHCR (TG-36)**: implementat (Dockerfile multi-stage, workflow GitHub Actions, proves locals a `infra/scripts/test-backend-docker.sh`).
+- **Validació de tokens de Google i sessió pròpia (TG-44)**: implementat (JWKS, JWT HS256, sessions a Redis, `/api/auth/google`, `/api/auth/refresh`, `CurrentSessionDep`).
+- **Usuari, alta automàtica i tancament de sessió (TG-45)**: implementat (`UserService`, `SqlUserRepository` amb alta concurrent segura, `/api/auth/logout`, `/api/users/me`, error `EMAIL_ALREADY_REGISTERED`).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 

@@ -300,6 +300,57 @@ The API does not start without `NASA_API_KEY`. In production it comes from the `
 
 > NASA's API currently answers with a placeholder instead of the APOD (the NASA Science logo and a generic text, seen on 2026-10-21). The client rejects it like any other unusable answer, so it is never stored.
 
+## Authentication
+
+The app signs the user in with Google (OAuth2 + PKCE) and sends the Google `id_token` to the backend, which never receives the authorization code and never stores a password ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). The backend checks the token and issues its own session.
+
+**Flow:**
+
+1. `POST /api/auth/google` with `{"id_token": "<Google token>", "language": "ca"}` (`language` is optional).
+2. `GoogleJwksVerifier` checks the RS256 signature with Google's public keys (JWKS, cached for 1 hour; an unknown `kid` triggers one new download, at most once a minute), the issuer, the audience (`GOOGLE_CLIENT_ID`), the expiration and that the email is verified. Otherwise: 401 `INVALID_GOOGLE_TOKEN`. If Google does not answer and no keys are cached: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+3. The `AccountGateway` port signs the account up on the first access and returns its status: suspended or banned → 403 `ACCOUNT_SUSPENDED`; deleted → 403 `ACCOUNT_DELETED`.
+4. The backend issues two JWTs signed with HS256 and `JWT_SECRET`: an access token (15 minutes) and a refresh token (30 days), with the claims `sub` (the `google_sub`), `jti` (unique per token), `sid` (session id, shared by the access and the refresh token of a pair and kept by `refresh`), `type` (`access` or `refresh`), `iat` and `exp`. Each one is registered in Redis as `session:<type>:<jti>` with a TTL equal to its lifetime, and listed in the user index `user_sessions:<sub>` (members `<sid>:<type>:<jti>`).
+5. Response `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` in seconds).
+
+A token is valid only if its signature and expiration are correct **and** its Redis key exists. Deleting the key revokes the token at once; if Redis restarts, the sessions are lost and users sign in with Google again. If Redis is down, the endpoints answer 503 `SESSION_UNAVAILABLE`.
+
+**Refresh:** `POST /api/auth/refresh` with `{"refresh_token": "..."}` returns a new pair and deletes the old refresh token from Redis; using it again returns 401 `INVALID_SESSION`.
+
+**Configuration** (`.env.example`; `AuthSettings` in `app/infrastructure/auth/config.py`):
+
+| Variable | Meaning |
+|---|---|
+| `GOOGLE_CLIENT_ID` | Expected audience (`aud`) of the Google token |
+| `JWT_SECRET` | HS256 key, at least 32 characters; never commit a real one |
+| `ACCESS_TOKEN_MINUTES` | Access token lifetime (15 by default) |
+| `REFRESH_TOKEN_DAYS` | Refresh token lifetime (30 by default) |
+
+**Protecting an endpoint:** add `CurrentSessionDep`. It reads `Authorization: Bearer <access token>` and returns the `SessionClaims`. Without a header, with an invalid or revoked token, or with a refresh token it answers 401 `INVALID_SESSION`.
+
+```python
+from app.infrastructure.auth.dependencies import CurrentSessionDep
+
+
+@router.get("/me")
+async def me(session: CurrentSessionDep) -> MeResponse:
+    return MeResponse(google_sub=session.sub)  # sub is the user's google_sub
+```
+
+**Users and sign-up (US #45).** The `AccountGateway` port is implemented by `UserAccountGateway` (`app/infrastructure/users/`), which delegates to `UserService.sign_in` (`app/application/users/`):
+
+- **First access:** a `google_sub` that does not exist creates the user (role `user`, name and avatar from the Google profile). The optional `language` of the login body (`ca`, `es` or `en`; anything else or absent means `ca`) is stored only then. The insert is `INSERT … ON CONFLICT DO NOTHING`, so two simultaneous first accesses leave a single user.
+- **Returning access:** no new user; `last_login_at` is updated.
+- **Email of another account:** if the email already belongs to a user linked to a different `google_sub`, 409 `EMAIL_ALREADY_REGISTERED` (identities are never linked automatically).
+- **Deleted, suspended or banned:** 403 and nothing is created or updated; the `google_sub` of a deleted account stays reserved.
+
+**Current user:** `GET /api/users/me` returns `id`, `email`, `display_name`, `avatar_url`, `preferred_language` and `role` of the session owner. 401 `INVALID_SESSION` without a valid session; 403 `ACCOUNT_SUSPENDED` or `ACCOUNT_DELETED` if the account cannot be used.
+
+**Logout:** `POST /api/auth/logout` (header `Authorization: Bearer <token>`) revokes the whole session, the access and the refresh token, through their shared `sid` (`SessionStore.revoke_session`) and answers 204. It is idempotent: an expired, invalid or already revoked token, or no token at all, also answers 204. Suspending or banning (#78, #102) uses `SessionStore.revoke_all(sub)`; the refresh then fails with 401 because its key no longer exists.
+
+For tests use `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` shows the full flow with Google simulated by `respx`.
+
+The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) are in `app/application/auth/errors.py` and in the error catalog. The three that `users` also raises (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) are defined in `app/application/shared/error_codes.py` and `AccountStatus` in `app/domain/shared/account.py`, so `auth` and `users` never import each other in `domain` or `application` (`tests/architecture`); `main.py` composes them by handing `UserAccountGateway` to `build_auth_service`.
+
 ## Testing and quality
 
 - Test pyramid: ~70 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`). No end-to-end tests on the mobile app.

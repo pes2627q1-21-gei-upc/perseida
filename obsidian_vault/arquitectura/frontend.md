@@ -2,8 +2,8 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-19"
-us: ["TG-85", "TG-66", "TG-48", "TG-35"]
+data: "2026-10-21"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35"]
 font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
@@ -13,7 +13,7 @@ etiquetes: [arquitectura, frontend, react-native, expo, offline]
 App i panell d'administració de Perseida amb **React Native + Expo** i TypeScript. Pensada per a Android i iOS; de moment només es desplega la versió **Android** (APK).
 
 > [!warning] Estat
-> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Encara no hi ha i18n, ajustos de tema ni escena viva. Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
+> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Des de TG-119 i TG-120, la pantalla `/apod` mostra la imatge o el vídeo i els estats de càrrega i d'error amb reintent. Des de TG-45 hi ha la pantalla `/login` (només UI: encara no fa el flux de Google, que és TG-43), el tancament de sessió amb `useLogout` i `LogoutButton`, i l'emmagatzematge de tokens (`src/features/auth`: `expo-secure-store` al mòbil i `sessionStorage` a web, `tokenStorage.web.ts`, amb memòria com a reserva); el logotip de Google és l'asset oficial sense modificar (`assets/google`, amb el seu origen i un test de SHA-256); les accions secundàries fan servir `QuietButton` (`src/shared/ui`), no gel ni vidre; el fons `SkyBackground` és l'escena de Cel viu: cel, sol o lluna entre turons i un llac ovalat amb prat al voltant, nenúfars, joncs, flors, ones, centelleig i bombolles (`src/shared/ui/Lake.tsx`; la geometria, amb llavor fixa, a `lakeLayout.ts`); la pluja de Perseides de `/login` passa per darrere dels turons i de l'herba i és aleatòria dins de límits (mida, color, angle, velocitat, posició, ritme i quants n'hi ha alhora) i pren els colors de les variants `meteors` de cada tema; els tipus de l'API es generen ara de l'OpenAPI real del backend (`openapi/openapi.json`). Encara no hi ha i18n, ajustos de tema ni escena viva completa (només l'estàtica de `SkyBackground` i la pluja de Perseides del login). Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
 
 ## Stack
 
@@ -25,8 +25,10 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 | Tipografia | M PLUS Rounded 1c (títols i xifres) + Open Sans (cos), amb `expo-font` |
 | i18n | i18next (català, castellà i anglès; detecció d'idioma del dispositiu + selector) |
 | Emmagatzematge local | SQLite (outbox + cache offline) |
-| Auth | Google OAuth2 + PKCE |
+| Auth | Google OAuth2 + PKCE; tokens a `expo-secure-store` |
+| Animació i icones | `react-native-reanimated` (+ `react-native-worklets`), `react-native-svg`, `phosphor-react-native` |
 | Push | Firebase Cloud Messaging |
+| Vídeo incrustat | `react-native-webview` (reproductor de l'APOD; no funciona a la web) |
 | Tipus d'API | Generats de l'esquema OpenAPI del backend (`openapi-typescript`) |
 | Admin web | React Native Web (bundle estàtic servit per nginx-proxy-manager) |
 | Dependències | `pnpm` |
@@ -71,6 +73,10 @@ frontend/
 └── tsconfig.json
 ```
 
+## Seguretat (TG-45)
+
+L'app mai tracta una cadena externa com a codi ni com a enllaç de confiança: `safeHttpsUrl` (`src/shared/security`) filtra les URL de l'API abans d'`<Image>`, `WebView` i `Linking`; el reproductor de l'APOD té una configuració de `WebView` restrictiva; ESLint prohibeix `eval`, `innerHTML`, `dangerouslySetInnerHTML` i `javascript:`. Detall a [[seguretat]] i [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
+
 ## Proves i qualitat
 
 - Prioritat: hooks propis i lògica de presentació (estats de càrrega/error/buit, validació de formularis), components principals i que cada text de la UI tingui traducció ca/es/en. El client d'API es simula.
@@ -78,6 +84,7 @@ frontend/
 - Codi nou de cada PR: cobertura ≥ 70 % i Quality Gate de SonarQube Cloud. Els components purament visuals queden fora de la cobertura.
 - Els criteris d'acceptació dependents de la UI es comproven manualment a la branca de release abans de cada sprint review. No hi ha tests end-to-end automàtics.
 - **CI (TG-35):** el job `frontend` de `.github/workflows/ci.yml` executa a cada PR i push cap a `develop`/`main` `pnpm lint` (ESLint i Prettier), `pnpm tsc` i `pnpm test --coverage --ci`, i publica `lcov.info` com a artefacte `frontend-coverage`. Detalls a [[arquitectura-fisica]] i [[qualitat]].
+- **Cap test a `src/app`:** Expo Router converteix cada fitxer d'aquesta carpeta en una ruta i l'empaqueta; un test allà arrossega Jest i Testing Library al paquet de l'app i el *bundler* respon 500 (va trencar la primera execució al mòbil). Els tests de pantalles van al costat de la feature (p. ex. `features/auth/components/LoginScreen.test.tsx`); `__tests__/routes.test.ts` ho vigila.
 - Jest fa servir el preset `jest-expo` (`jest.config.js`); hi ha un test de fum a `frontend/__tests__/smoke.test.ts` que també comprova la resolució de mòduls important codi de `src/`. Els tests de components i els mocks de l'API arriben amb la US #83.
 - En cada release fusionada a `main`, GitHub Actions publica l'**APK** com a release de GitHub.
 

@@ -117,6 +117,13 @@ async def test_tg46_c2_the_key_never_reaches_the_logs(
                 "url": "https://science.nasa.gov/wp-content/uploads/nasa-logo.svg",
             },
         ),
+        httpx.Response(
+            200,
+            json={
+                **fixture("nasa_apod_image.json"),
+                "url": "http://apod.nasa.gov/apod/image/2610/orion.jpg",
+            },
+        ),
     ],
     ids=[
         "500",
@@ -127,6 +134,7 @@ async def test_tg46_c2_the_key_never_reaches_the_logs(
         "other",
         "placeholder",
         "placeholder-other-path",
+        "not-https",
     ],
 )
 @respx.mock

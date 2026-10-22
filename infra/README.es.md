@@ -119,7 +119,11 @@ El servicio FastAPI (`perseida-api`) utiliza las siguientes variables de entorno
 | `REDIS_HOST` | No | Host o nombre de servicio de Redis | `redis` o `localhost` |
 | `REDIS_PORT` | No | Puerto del servicio Redis | `6379` |
 | `APP_ENV` | No | Entorno de ejecución (`local`, `production`) | `production` |
-| `JWT_SECRET` | No | Secreto para firmas JWT de sesión | `secret-token` |
+| `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imagen en GHCR (usado para rollbacks) | `latest` o `sha-a1b2c3d` |
+| `GOOGLE_CLIENT_ID` | Sí | Audiencia esperada de los tokens de identidad de Google | `1234-abc.apps.googleusercontent.com` |
+| `JWT_SECRET` | Sí | Secreto para firmas JWT de sesión (al menos 32 caracteres) | `<salida de openssl rand -hex 32>` |
+| `ACCESS_TOKEN_MINUTES` | No | Tiempo de expiración de los access tokens en minutos (por defecto: 15) | `15` |
+| `REFRESH_TOKEN_DAYS` | No | Tiempo de expiración de los refresh tokens en días (por defecto: 30) | `30` |
 
 ### Configuración inicial: hacer el paquete público (una sola vez, manual)
 
@@ -144,13 +148,16 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 
 ```
 infra/
-├── docker-compose.yml        # los cinco servicios (local y producción)
+├── docker-compose.yml          # definiciones base de los servicios y despliegue en producción
+├── docker-compose.override.yml # override para desarrollo local (bind mount, puertos dev)
 ├── .env.example
-├── nginx-proxy-manager/      # configuración del proxy
-├── moderation/               # imagen/configuración del servicio Kev-4B
+├── nginx-proxy-manager/        # configuración del proxy
+├── moderation/                 # imagen/configuración del servicio Kev-4B
 └── scripts/
-    └── test-backend-docker.sh # validación local y smoke test de perseida-api
+    └── test-backend-docker.sh   # validación local y smoke test de perseida-api
 ```
+
+> **Estructura de Compose:** Se utiliza `docker-compose.override.yml` para desarrollo local (que Docker Compose fusiona automáticamente) para que en producción se ejecute exclusivamente `docker-compose.yml` (con imágenes de GHCR y sin puertos internos expuestos), evitando duplicar definiciones de servicios.
 
 ## Validación y pruebas locales (imagen Docker del backend)
 
@@ -164,14 +171,15 @@ Para validar la construcción de la imagen, la seguridad del contenedor y el est
 ./infra/scripts/test-backend-docker.sh --image=perseida-api:local --skip-build
 ```
 
-## Ejecutar en local (previsto)
+## Ejecutar en local
 
 ```bash
+cd infra
 cp .env.example .env          # rellena valores locales, nunca hagas commit del .env
-docker compose up -d --build
-docker compose ps
-docker compose logs -f api
-docker compose down
+docker compose up -d --build  # arranca db, cache, api y reverse-proxy
+docker compose ps             # comprueba que estén en estado healthy
+docker compose logs -f api    # sigue los logs de la API con recarga en caliente
+docker compose down           # detiene los contenedores preservando los volúmenes de datos
 ```
 
 ## Limitaciones conocidas (asumidas en un proyecto académico)
@@ -181,6 +189,10 @@ Sin escalado horizontal ni copias de seguridad automáticas; el servidor es un p
 ## Relacionado
 
 [Backend](../backend/README.es.md) · [Frontend](../frontend/README.es.md) · [Obsidian vault](../obsidian_vault/README.es.md)
+
+## Cabeceras de seguridad
+
+La API envía sus propias cabeceras de seguridad (`nosniff`, una `Content-Security-Policy` de `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` en los endpoints de autenticación y de usuario, y HSTS cuando la petición llega por HTTPS). El TLS termina en nginx-proxy-manager, así que el proxy añade HSTS y las políticas de las dos cosas que la API no sirve: el panel de administración (CSP estricta: ningún script en línea ni de terceros) y los ficheros de los usuarios (`sandbox` y `nosniff`, para que un fichero subido nunca pueda ejecutarse como página). Los bloques para pegar, con los motivos, están en `nginx-proxy-manager/security-headers.conf`. Compruébalos tras cada cambio con `curl -sI https://<host>/` y la consola del navegador (una violación de la CSP queda registrada ahí).
 
 ## Equipo
 

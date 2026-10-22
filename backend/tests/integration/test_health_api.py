@@ -85,6 +85,8 @@ def service_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "POSTGRES_PORT": "1",
         "REDIS_HOST": "127.0.0.1",
         "REDIS_PORT": "1",
+        "GOOGLE_CLIENT_ID": "test.apps.googleusercontent.com",
+        "JWT_SECRET": "t" * 32,
         "NASA_API_KEY": "test-nasa-api-key",
     }.items():
         monkeypatch.setenv(key, value)
@@ -99,6 +101,7 @@ async def test_lifespan_starts_and_stops(
 
     async with app.router.lifespan_context(app):
         assert app.state.session_factory is not None
+        assert app.state.auth_service is not None
 
     engine.dispose.assert_awaited_once()
 

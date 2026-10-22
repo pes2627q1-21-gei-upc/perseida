@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LogoutButton } from '../../features/auth/components/LogoutButton';
 import { useTheme } from '../../shared/theme';
 import { GelButton, SkyBackground } from '../../shared/ui';
 
@@ -28,6 +29,7 @@ export default function HomeScreen() {
           Perseida
         </Text>
         <GelButton label="APOD del dia" onPress={() => router.push('/apod')} />
+        <LogoutButton />
       </View>
     </SkyBackground>
   );
