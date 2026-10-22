@@ -191,7 +191,7 @@ El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`
 3. Se arranca la imagen anterior (el tag de `.deployed-tag`) y se vuelve a comprobar el healthcheck.
 4. El job **siempre termina en error**, aunque el rollback haya funcionado.
 
-El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
+El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales. Si un despliegue falla por un valor erróneo (por ejemplo un puerto equivocado), la imagen anterior arranca con la misma configuración errónea y el rollback también falla; hay que corregir el secreto o la variable y volver a ejecutar el CD. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
 
 ### Rollback manual a una versión concreta
 

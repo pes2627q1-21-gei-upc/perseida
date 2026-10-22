@@ -191,7 +191,7 @@ The server pulls the image from GHCR with the job's temporary `GITHUB_TOKEN` (`d
 3. The previous image (the tag in `.deployed-tag`) is started and the healthcheck is checked again.
 4. The job **always fails**, even if the rollback worked.
 
-The very first deployment has no previous version, so it only fails. Container logs are not printed in the workflow (they are public); read them on the server with `docker compose logs api`.
+The rollback restores the image and the database schema, **not the `.env`**: it has already been rewritten with the current secrets and variables. If a deployment fails because of a wrong value (for example a bad port), the previous image starts with the same wrong configuration and the rollback fails too; fix the secret or variable and run the CD again. The very first deployment has no previous version, so it only fails. Container logs are not printed in the workflow (they are public); read them on the server with `docker compose logs api`.
 
 ### Manual rollback to a specific version
 
