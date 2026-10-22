@@ -286,6 +286,8 @@ Integration tests (`tests/integration/test_redis.py`) run when `REDIS_HOST` is s
 
 Without a date, today (UTC) is looked up in Redis and PostgreSQL; if it is not there, NASA is asked for its latest published APOD. If NASA fails (error, timeout or an unusable answer), the stored data is returned: the APOD of that date or, for today, the latest stored one. With nothing stored the answer is 503 `APOD_UNAVAILABLE`. If Redis is down the request still works through PostgreSQL and NASA.
 
+So that NASA is not called on every request, two answers are kept in Redis for **15 minutes** (`RETRY_AFTER_SECONDS`): today's result while NASA has not published it yet (`cache:apod:today:<date>`), and a failed NASA call (`cache:apod:unavailable:<date|latest>`), which is not repeated until it expires.
+
 Configuration (`.env`):
 
 | Variable | Default | Meaning |
@@ -296,7 +298,7 @@ Configuration (`.env`):
 
 The API does not start without `NASA_API_KEY`. In production it comes from the `NASA_API_KEY` GitHub secret; never commit a real key.
 
-> NASA's API currently answers some dates with a placeholder (the NASA Science logo and a generic text). The client rejects it like any other unusable answer, so it is never stored.
+> NASA's API currently answers with a placeholder instead of the APOD (the NASA Science logo and a generic text, seen on 2026-10-21). The client rejects it like any other unusable answer, so it is never stored.
 
 ## Testing and quality
 

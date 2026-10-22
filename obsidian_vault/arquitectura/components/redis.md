@@ -41,6 +41,8 @@ Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<
 | Clau | TTL | Qui la desa | US |
 |---|---|---|---|
 | `cache:apod:<AAAA-MM-DD>` | 24 h | `NasaApodProvider`, en llegir de la NASA o de [[postgres]] | TG-46 |
+| `cache:apod:today:<AAAA-MM-DD>` | 15 min | `NasaApodProvider`: resultat d'avui mentre la NASA no l'ha publicat (l'últim publicat o el desat) | TG-46 |
+| `cache:apod:unavailable:<AAAA-MM-DD\|latest>` | 15 min | `NasaApodProvider`: la crida a la NASA ha fallat i no es repeteix fins que caduqui | TG-46 |
 
 ## Decisions relacionades
 

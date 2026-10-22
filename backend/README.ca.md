@@ -240,6 +240,8 @@ Els tests d'integració (`tests/integration/test_redis.py`) s'executen si hi ha 
 
 Sense data, es busca el d'avui (UTC) a Redis i PostgreSQL; si no hi és, es demana a la NASA l'últim publicat. Si la NASA falla (error, timeout o resposta inservible), es retorna la dada guardada: l'APOD d'aquella data o, per a avui, l'últim desat. Sense res guardat, la resposta és 503 `APOD_UNAVAILABLE`. Si Redis cau, la petició continua amb PostgreSQL i la NASA.
 
+Perquè no es cridi la NASA a cada petició, dues respostes es guarden a Redis **15 minuts** (`RETRY_AFTER_SECONDS`): el resultat d'avui mentre la NASA encara no l'ha publicat (`cache:apod:today:<data>`) i una crida fallida a la NASA (`cache:apod:unavailable:<data|latest>`), que no es repeteix fins que caduca.
+
 Configuració (`.env`):
 
 | Variable | Per defecte | Significat |
@@ -250,7 +252,7 @@ Configuració (`.env`):
 
 L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NASA_API_KEY`; mai facis commit d'una clau real.
 
-> Ara mateix l'API de la NASA respon algunes dates amb un farciment (el logotip de NASA Science i un text genèric). El client el rebutja com qualsevol altra resposta inservible, així que mai es desa.
+> Ara mateix l'API de la NASA respon amb un farciment en lloc de l'APOD (el logotip de NASA Science i un text genèric, observat el 2026-10-21). El client el rebutja com qualsevol altra resposta inservible, així que mai es desa.
 
 ## Testing i qualitat
 

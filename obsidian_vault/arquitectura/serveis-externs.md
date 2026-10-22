@@ -32,9 +32,10 @@ Patró d'accés: primera petició a l'API externa, resultat a Redis, i les segü
 - **Client:** `NasaApodClient` (`app/infrastructure/apod/nasa_client.py`) amb un `httpx.AsyncClient` compartit creat al `lifespan` ([[0017-injeccio-de-dependencies-i-services-singleton]]). Timeout de connexió de 3 s i total de 10 s; sense reintents.
 - **Ordre de consulta:** [[redis]] (`cache:apod:<data>`, 24 h) → [[postgres]] (taula `apod`) → NASA. El que respon la NASA es desa a totes dues.
 - **Respostes inservibles:** error HTTP, timeout, JSON invàlid, sense `url` o `media_type` diferent d'`image`/`video` es tracten igual que la NASA caiguda. Llavors es retorna la dada guardada; sense dada, 503 `APOD_UNAVAILABLE` ([[0018-errors-rfc-9457-amb-codis-estables]]).
+- **Sense crides repetides:** una crida fallida no es repeteix durant 15 min, i el resultat d'avui abans que la NASA el publiqui es guarda 15 min. Així, amb la NASA caiguda o encara sense APOD d'avui, hi ha com a màxim 4 crides per hora i clau ([[redis]]).
 
 > [!warning] Farciment de la NASA
-> Des que l'APOD es va traslladar a science.nasa.gov, l'API respon amb el logotip de NASA Science i un text genèric en lloc de l'APOD (observat el 2026-10-21). El client el rebutja (`PLACEHOLDER_MEDIA_URL`) i no es desa mai. Si la NASA ho arregla, no cal tocar res; si canvia la URL del farciment, s'ha d'actualitzar la constant.
+> Des que l'APOD es va traslladar a science.nasa.gov, l'API respon amb el logotip de NASA Science i un text genèric en lloc de l'APOD (observat el 2026-10-21). El client el rebutja (host `science.nasa.gov` i `nasa-logo` al camí) i no es desa mai. Si la NASA ho arregla, no cal tocar res; si el farciment canvia de forma, s'ha d'actualitzar `_is_placeholder`.
 
 ## Meteorologia i contaminació lumínica
 
