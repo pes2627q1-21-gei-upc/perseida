@@ -24,7 +24,11 @@ from app.domain.shared.ports import Cache
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.apod.dependencies import get_apod_provider
 from app.infrastructure.apod.nasa_client import APOD_URL, NasaApodClient
-from app.infrastructure.apod.nasa_provider import APOD_TTL_SECONDS, NasaApodProvider
+from app.infrastructure.apod.nasa_provider import (
+    APOD_TTL_SECONDS,
+    RETRY_AFTER_SECONDS,
+    NasaApodProvider,
+)
 from app.infrastructure.apod.router import router
 from app.infrastructure.cache.redis_cache import RedisCache
 from tests.factories.apod import make_apod
@@ -159,7 +163,46 @@ async def test_tg46_c7_nasa_down_and_nothing_stored_raises_apod_unavailable(
 
     assert raised.value.code == APOD_UNAVAILABLE
     assert raised.value.message == "NASA APOD API unavailable"
-    assert cache.values == {}
+    assert "apod:2026-10-14" not in cache.values
+
+
+@respx.mock
+async def test_tg46_c7_a_failed_date_is_not_asked_again_for_15_minutes(
+    http: httpx.AsyncClient, cache: FakeCache, repository: FakeApodRepository
+) -> None:
+    route = respx.get(APOD_URL).respond(503)
+    provider = make_provider(http, cache, repository)
+
+    for _ in range(3):
+        with pytest.raises(ExternalServiceError):
+            await provider.get_by_date(DAY)
+
+    assert route.call_count == 1
+    assert cache.ttls["apod:unavailable:2026-10-14"] == RETRY_AFTER_SECONDS == 900
+
+    cache.expire("apod:unavailable:2026-10-14")
+    route.respond(json=nasa_answer(DAY))
+    assert (await provider.get_by_date(DAY)).apod_date == DAY
+    assert route.call_count == 2
+
+
+@respx.mock
+async def test_tg46_c2_the_key_never_reaches_the_adapter_logs(
+    http: httpx.AsyncClient,
+    cache: FakeCache,
+    repository: FakeApodRepository,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    respx.get(APOD_URL).mock(side_effect=httpx.ConnectError("unreachable"))
+    caplog.set_level(logging.DEBUG)
+    provider = make_provider(http, cache, repository)
+
+    for call in (provider.get_today, lambda: provider.get_by_date(DAY)):
+        with pytest.raises(ExternalServiceError):
+            await call()
+
+    assert "NASA APOD unavailable" in caplog.text
+    assert "test-key" not in caplog.text
 
 
 @respx.mock
@@ -191,6 +234,26 @@ async def test_tg46_today_before_nasa_publishes_is_its_latest_apod(
 
 
 @respx.mock
+async def test_tg46_c3_today_before_nasa_publishes_is_kept_for_15_minutes(
+    http: httpx.AsyncClient, cache: FakeCache, repository: FakeApodRepository
+) -> None:
+    route = respx.get(APOD_URL).respond(json=nasa_answer(YESTERDAY))
+    provider = make_provider(http, cache, repository)
+
+    for _ in range(3):
+        assert (await provider.get_today()).apod_date == YESTERDAY
+
+    assert route.call_count == 1
+    assert cache.ttls["apod:today:2026-10-21"] == RETRY_AFTER_SECONDS
+
+    # After 15 min NASA is asked again and today's APOD is already published.
+    cache.expire("apod:today:2026-10-21")
+    route.respond(json=nasa_answer(TODAY))
+    assert (await provider.get_today()).apod_date == TODAY
+    assert route.call_count == 2
+
+
+@respx.mock
 async def test_tg46_c6_today_with_nasa_down_serves_the_latest_stored(
     http: httpx.AsyncClient, cache: FakeCache
 ) -> None:
@@ -206,12 +269,16 @@ async def test_tg46_c6_today_with_nasa_down_serves_the_latest_stored(
 async def test_tg46_c7_today_with_nasa_down_and_nothing_stored_raises(
     http: httpx.AsyncClient, cache: FakeCache, repository: FakeApodRepository
 ) -> None:
-    respx.get(APOD_URL).respond(503)
+    route = respx.get(APOD_URL).respond(503)
+    provider = make_provider(http, cache, repository)
 
-    with pytest.raises(ExternalServiceError) as raised:
-        await make_provider(http, cache, repository).get_today()
+    for _ in range(3):
+        with pytest.raises(ExternalServiceError) as raised:
+            await provider.get_today()
+        assert raised.value.code == APOD_UNAVAILABLE
 
-    assert raised.value.code == APOD_UNAVAILABLE
+    assert route.call_count == 1
+    assert cache.ttls["apod:unavailable:latest"] == RETRY_AFTER_SECONDS
 
 
 @respx.mock

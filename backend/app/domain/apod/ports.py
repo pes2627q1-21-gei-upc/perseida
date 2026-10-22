@@ -31,3 +31,19 @@ class ApodProvider(Protocol):
                 data can be served (``app.application.shared.errors``).
         """
         ...
+
+
+class ApodRepository(Protocol):
+    """Durable storage of the APODs already obtained, one per date."""
+
+    async def get(self, day: date) -> Apod | None:
+        """Return the stored APOD of ``day``, or None."""
+        ...
+
+    async def latest(self, until: date) -> Apod | None:
+        """Return the most recent stored APOD up to ``until``, or None."""
+        ...
+
+    async def save(self, apod: Apod) -> None:
+        """Store ``apod``; if its date is already stored, keep the first one."""
+        ...
