@@ -55,7 +55,7 @@ Les sessions no passen per la cache: es desen com `session:<type>:<jti>` (`type`
 
 ## Estat d'implementació
 
-Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Pendent: el servei `redis` al Docker Compose (TG-37).
+Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. El servei és `cache` (`redis:8-alpine`, healthcheck) al Docker Compose de `infra/` (TG-37), amb l'àlies de xarxa `redis`; `REDIS_HOST=cache` als `.env.example` de l'arrel i d'`infra/` (TG-143).
 
 ## Enllaços
 

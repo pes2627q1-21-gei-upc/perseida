@@ -116,7 +116,7 @@ El servei FastAPI (`perseida-api`) utilitza les següents variables d'entorn per
 | `POSTGRES_PASSWORD` | Sí | Contrasenya de la base de dades | `secret` |
 | `POSTGRES_HOST` | Sí | Host o nom de servei de PostgreSQL | `postgres` o `localhost` |
 | `POSTGRES_PORT` | Sí | Port de PostgreSQL | `5432` |
-| `REDIS_HOST` | No | Host o nom de servei de Redis | `redis` o `localhost` |
+| `REDIS_HOST` | No | Host o nom de servei de Redis | `cache` o `localhost` |
 | `REDIS_PORT` | No | Port del servei Redis | `6379` |
 | `APP_ENV` | No | Entorn d'execució (`local`, `production`) | `production` |
 | `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imatge a GHCR (usat per a rollbacks) | `latest` o `sha-a1b2c3d` |

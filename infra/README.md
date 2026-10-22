@@ -116,7 +116,7 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `POSTGRES_PASSWORD` | Yes | Database password | `secret` |
 | `POSTGRES_HOST` | Yes | PostgreSQL host or service name | `postgres` or `localhost` |
 | `POSTGRES_PORT` | Yes | PostgreSQL port | `5432` |
-| `REDIS_HOST` | No | Redis host or service name | `redis` or `localhost` |
+| `REDIS_HOST` | No | Redis host or service name | `cache` or `localhost` |
 | `REDIS_PORT` | No | Redis port | `6379` |
 | `APP_ENV` | No | Runtime environment (`local`, `production`) | `production` |
 | `API_IMAGE_TAG` | No | Tag or commit SHA of backend image in GHCR (used for rollbacks) | `latest` or `sha-a1b2c3d` |
