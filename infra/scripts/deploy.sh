@@ -7,43 +7,63 @@
 #     ./deploy.sh sha-a1b2c3d              desplega aquest tag
 #     ./deploy.sh --rollback sha-a1b2c3d   torna a aquest tag (rollback manual)
 #
-# Si el desplegament no supera el healthcheck, torna sol a l'última versió bona
-# (la guarda a `.deployed-tag`) i desfà les migracions d'Alembic fins a la seva
-# revisió; surt sempre amb error perquè el job quedi en vermell.
+# Si el desplegament no supera el healthcheck, primer comprova de què és culpa:
+# arrenca l'última versió bona (la guarda a `.deployed-tag`) SENSE migracions i amb
+# el mateix `.env`. Si respon, el fallo era del codi o de les migracions noves: hi
+# torna i desfà les migracions d'Alembic fins a la seva revisió. Si tampoc respon,
+# el fallo és de configuració o d'infraestructura: no es desfà res (les dades es
+# conserven), l'API queda aturada i s'explica. Surt sempre amb error perquè el job
+# quedi en vermell.
 #
 # `API_IMAGE_TAG` a l'entorn té prioritat sobre el del `.env`, així el tag només
 # viu en aquesta execució. `HEALTH_TIMEOUT` (segons, 120 per defecte) és l'espera
-# màxima perquè l'API respongui bé al healthcheck.
+# màxima perquè l'API respongui bé al healthcheck; `PROBE_TIMEOUT` (60), la de la
+# sonda de la versió anterior.
 set -eu
 
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-120}
+PROBE_TIMEOUT=${PROBE_TIMEOUT:-60}
 STATE_FILE=.deployed-tag
+PROBE_NAME=perseida-probe
 
 # Si es talla la connexió SSH (job cancel·lat, xarxa) el desplegament no s'ha de
 # quedar a mig fer, amb l'API aturada o `.deployed-tag` desactualitzat.
 trap '' HUP
 
 # Zero si `/api/health` respon 200 amb `status: ok`. Es consulta des de dins del
-# contenidor de l'API: el servidor no exposa aquest port a fora.
-api_healthy() {
-  docker compose exec -T api python3 -c "
+# contenidor: el servidor no exposa aquest port a fora.
+HEALTH_PY="
 import json, sys, urllib.request
 try:
     body = json.load(urllib.request.urlopen('http://localhost:8000/api/health', timeout=5))
 except Exception:
     sys.exit(1)
 sys.exit(0 if body.get('status') == 'ok' else 1)
-" >/dev/null 2>&1
+"
+
+api_healthy() {
+  docker compose exec -T api python3 -c "$HEALTH_PY" >/dev/null 2>&1
 }
 
-wait_healthy() {
-  deadline=$(( $(date +%s) + HEALTH_TIMEOUT ))
-  until api_healthy; do
+probe_healthy() {
+  docker exec "$PROBE_NAME" python3 -c "$HEALTH_PY" >/dev/null 2>&1
+}
+
+# Espera fins a `$1` segons que la comanda següent (`$2...`) tingui èxit.
+wait_for() {
+  limit=$1
+  shift
+  deadline=$(( $(date +%s) + limit ))
+  until "$@"; do
     if [ "$(date +%s)" -ge "$deadline" ]; then
       return 1
     fi
     sleep 3
   done
+}
+
+wait_healthy() {
+  wait_for "$HEALTH_TIMEOUT" api_healthy
 }
 
 # Referència completa de la imatge de l'API per a un tag, tal com la defineix el Compose.
@@ -54,6 +74,22 @@ image_of() {
 # Revisió d'Alembic (head) que porta la imatge d'un tag; buit si no es pot saber.
 head_of() {
   docker run --rm --entrypoint alembic "$(image_of "$1")" heads | grep '(head)' | awk 'NR==1 {print $1}'
+}
+
+# Zero si la imatge de `$1` respon al healthcheck arrencada SENSE migracions (només
+# uvicorn) amb el mateix `.env`. Un contenidor temporal; no toca la base de dades.
+# Diu si el fallo del desplegament és del codi o de les migracions (respon) o de la
+# configuració o la infraestructura (no respon).
+probe_previous() {
+  docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
+  API_IMAGE_TAG=$1 docker compose run -d --no-deps --name "$PROBE_NAME" api \
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 >/dev/null 2>&1 || return 1
+  if wait_for "$PROBE_TIMEOUT" probe_healthy; then
+    docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
+    return 0
+  fi
+  docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
+  return 1
 }
 
 # Torna de `$1` (el tag que corre ara) a `$2`: atura l'API, desfà les migracions
@@ -134,7 +170,15 @@ if [ -z "$previous" ] || [ "$previous" = "$tag" ]; then
   exit 1
 fi
 
-echo "Rollback automàtic a $previous..." >&2
+docker compose stop api
+echo "Comprovant si $previous arrenca amb la mateixa configuració (sense migracions)..." >&2
+if ! probe_previous "$previous"; then
+  echo "$previous tampoc arrenca amb la mateixa configuració: el fallo és de configuració o d'infraestructura, no del codi de $tag." >&2
+  echo "NO es desfan les migracions (les dades es conserven) i l'API queda aturada. Corregeix el secret o la variable de GitHub i torna a executar el CD." >&2
+  exit 1
+fi
+
+echo "$previous arrenca bé: el fallo és del codi o de les migracions de $tag. Rollback automàtic a $previous..." >&2
 if rollback_to "$tag" "$previous"; then
   echo "Rollback fet: l'API torna a respondre amb $previous. El desplegament de $tag ha fallat." >&2
 else
