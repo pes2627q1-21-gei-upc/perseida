@@ -110,8 +110,24 @@ async def test_tg46_c2_the_key_never_reaches_the_logs(
             200, json={**fixture("nasa_apod_image.json"), "media_type": "other"}
         ),
         httpx.Response(200, json=fixture("nasa_apod_placeholder.json")),
+        httpx.Response(
+            200,
+            json={
+                **fixture("nasa_apod_placeholder.json"),
+                "url": "https://science.nasa.gov/wp-content/uploads/nasa-logo.svg",
+            },
+        ),
     ],
-    ids=["500", "404", "400", "not-json", "no-url", "other", "placeholder"],
+    ids=[
+        "500",
+        "404",
+        "400",
+        "not-json",
+        "no-url",
+        "other",
+        "placeholder",
+        "placeholder-other-path",
+    ],
 )
 @respx.mock
 async def test_tg46_c6_unusable_answers_raise_nasa_apod_error(
@@ -129,8 +145,12 @@ async def test_tg46_c6_network_errors_raise_nasa_apod_error(
 ) -> None:
     respx.get(APOD_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
 
-    with pytest.raises(NasaApodError):
+    with pytest.raises(NasaApodError) as raised:
         await client.fetch(date(2026, 10, 14))
+
+    # Only the type in the message; the httpx error stays as the cause.
+    assert str(raised.value) == "NASA APOD request failed: ConnectTimeout"
+    assert isinstance(raised.value.__cause__, httpx.ConnectTimeout)
 
 
 async def test_tg46_c2_the_whole_request_is_bounded_by_the_timeout() -> None:

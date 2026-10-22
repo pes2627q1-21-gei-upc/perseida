@@ -1,5 +1,6 @@
 import asyncio
 import datetime as dt
+from urllib.parse import urlsplit
 
 import httpx
 from pydantic import BaseModel, SecretStr, ValidationError
@@ -8,12 +9,18 @@ from app.domain.apod.models import Apod, MediaType
 
 APOD_URL = "https://api.nasa.gov/planetary/apod"
 
-# Since APOD moved to science.nasa.gov, the API answers every date with this logo
-# and a generic text (seen on 2026-10-21). It is not an APOD and is never stored.
-PLACEHOLDER_MEDIA_URL = (
-    "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/"
-    "nasa-logo@2x.png"
-)
+# Since APOD moved to science.nasa.gov, the API answers every date with its logo
+# (https://science.nasa.gov/.../nasa-logo@2x.png) and a generic text (seen on
+# 2026-10-21). It is not an APOD and is never stored. Matched by host and file
+# name, so another size or path of the logo is not stored for good either
+# (``save`` never overwrites a date).
+_PLACEHOLDER_HOST = "science.nasa.gov"
+_PLACEHOLDER_NAME = "nasa-logo"
+
+
+def _is_placeholder(url: str) -> bool:
+    parsed = urlsplit(url)
+    return parsed.hostname == _PLACEHOLDER_HOST and _PLACEHOLDER_NAME in parsed.path
 
 
 class NasaApodError(Exception):
@@ -54,6 +61,8 @@ class NasaApodClient:
         """
         params = {} if day is None else {"date": day.isoformat()}
         try:
+            # httpx's timeouts apply to each phase (connect, each read...), so a
+            # slow trickle could exceed them; this bounds the whole request.
             async with asyncio.timeout(self._timeout_seconds):
                 response = await self._http.get(
                     APOD_URL,
@@ -63,10 +72,12 @@ class NasaApodClient:
             response.raise_for_status()
             nasa = _NasaApod.model_validate_json(response.content)
         except (httpx.HTTPError, TimeoutError) as exc:
-            raise NasaApodError(f"NASA APOD request failed: {exc!r}") from exc
+            # Only the type: the details stay in ``__cause__``.
+            message = f"NASA APOD request failed: {type(exc).__name__}"
+            raise NasaApodError(message) from exc
         except ValidationError as exc:
             raise NasaApodError("NASA APOD response is not a usable APOD") from exc
-        if nasa.url == PLACEHOLDER_MEDIA_URL:
+        if _is_placeholder(nasa.url):
             raise NasaApodError("NASA APOD response is the placeholder logo")
         return Apod(
             apod_date=nasa.date,
