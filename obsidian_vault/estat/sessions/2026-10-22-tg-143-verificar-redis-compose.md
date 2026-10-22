@@ -17,7 +17,7 @@ Verificar el servei `cache` (Redis 8) que defineix TG-37 i assegurar que `REDIS_
 ## Què s'ha fet
 
 - Revisat `infra/docker-compose.yml`: `cache` és `redis:8-alpine`, amb healthcheck `redis-cli ping`, volum `redisdata`, xarxa `internal` (àlies `redis`) i sense ports al host en producció (només al `docker-compose.override.yml` local). `api` en depèn amb `service_healthy`.
-- `infra/.env.example` i `backend/.env.example` ja tenen `REDIS_HOST`, `REDIS_PORT` i `CACHE_DEFAULT_TTL_SECONDS` amb els mateixos noms; només canvia l'amfitrió (`cache` contra `localhost`).
+- `infra/.env.example` i `backend/.env.example` ja tenen `REDIS_HOST`, `REDIS_PORT` i `CACHE_DEFAULT_TTL_SECONDS` amb els mateixos noms; només canvia l'amfitrió (`cache` contra `localhost`). El `.env.example` de l'arrel també té `REDIS_HOST` (`redis`, àlies del servei `cache`) i `REDIS_PORT`.
 - Eliminada la variable `REDIS_URL` de l'entorn de `api` al Compose: el backend no la llegeix (`RedisSettings` construeix la URL de host i port) i no constava a cap `.env.example`.
 - Comprovat amb Docker i un `.env` temporal (esborrat després): `cache`, `db` i `api` queden `healthy`, Redis és `8.8.1` i, des del contenidor `api`, `RedisSettings()` dona `redis://cache:6379` amb TTL 3600 i `ping()` retorna `True`.
 
