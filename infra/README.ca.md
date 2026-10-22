@@ -143,7 +143,7 @@ En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta
 
 `.github/workflows/cd.yml` s'executa a cada push a `main` (i a mà des de `main`). Un push o PR a `develop` o a una branca `feature/*` no el dispara mai. Jobs, en ordre: `verify-config` (comprova tots els secrets i variables, abans de tocar el servidor) → `image` (construeix i puja a GHCR) → `deploy` (entorn `production`).
 
-> **Cap secret no entra mai al repositori.** Els secrets i variables viuen només a GitHub (**Settings → Secrets and variables → Actions**); aquest README en llista els *noms*, mai els valors. El `.env` es genera al servidor i està ignorat per git.
+> **Cap secret no entra mai al repositori.** Els secrets i variables viuen només a GitHub (**Settings → Secrets and variables → Actions**); aquest README en llista els *noms*, mai els valors. El `.env` es genera al servidor i està ignorat per git. Crea'ls com a secrets i variables **de repositori**, no com a secrets de l'entorn `production`: `verify-config` no fa servir aquest entorn i els donaria per absents.
 
 ### Secrets i variables requerits
 

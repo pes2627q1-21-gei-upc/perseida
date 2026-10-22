@@ -143,7 +143,7 @@ The first time the workflow pushes the image, GitHub links the package to the re
 
 `.github/workflows/cd.yml` runs on every push to `main` (and manually from `main`). A push or PR to `develop` or to a `feature/*` branch never triggers it. Jobs, in order: `verify-config` (checks every secret and variable, before touching the server) → `image` (build and push to GHCR) → `deploy` (environment `production`).
 
-> **No secret ever goes into the repository.** Secrets and variables live only in GitHub (**Settings → Secrets and variables → Actions**); this README lists their *names*, never their values. `.env` is generated on the server and is git-ignored.
+> **No secret ever goes into the repository.** Secrets and variables live only in GitHub (**Settings → Secrets and variables → Actions**); this README lists their *names*, never their values. `.env` is generated on the server and is git-ignored. Create them as **repository** secrets and variables, not as secrets of the `production` environment: `verify-config` does not use that environment and would report them as missing.
 
 ### Required secrets and variables
 
