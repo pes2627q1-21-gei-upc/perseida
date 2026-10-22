@@ -230,6 +230,28 @@ Para ejecutar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 
 
 Los tests de integración (`tests/integration/test_redis.py`) se ejecutan si hay `REDIS_HOST`; la CI levanta Redis 8.
 
+## APOD (NASA)
+
+`GET /api/apod` devuelve la imagen astronómica del día de la NASA; `GET /api/apod?date=AAAA-MM-DD`, la de esa fecha. El adaptador (`app/infrastructure/apod/nasa_provider.py`) la busca en este orden:
+
+1. **Redis** (`cache:apod:<fecha>`, TTL 24 h).
+2. **PostgreSQL** (tabla `apod`, una fila por fecha): se guarda cada APOD recibido de la NASA y, si está, se vuelve a poner en Redis.
+3. **NASA** (`https://api.nasa.gov/planetary/apod`): la respuesta se guarda en PostgreSQL y en Redis.
+
+Sin fecha, se busca el de hoy (UTC) en Redis y PostgreSQL; si no está, se pide a la NASA el último publicado. Si la NASA falla (error, timeout o respuesta inservible), se devuelve el dato guardado: el APOD de esa fecha o, para hoy, el último guardado. Sin nada guardado, la respuesta es 503 `APOD_UNAVAILABLE`. Si Redis cae, la petición sigue con PostgreSQL y la NASA.
+
+Configuración (`.env`):
+
+| Variable | Por defecto | Significado |
+|---|---|---|
+| `NASA_API_KEY` | (obligatoria) | Clave de [api.nasa.gov](https://api.nasa.gov). En local vale `DEMO_KEY` (con límite de peticiones). Se envía en la cabecera `X-Api-Key`, nunca en la URL, para que no salga en los logs. |
+| `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Timeout de conexión |
+| `NASA_TIMEOUT_SECONDS` | `10` | Timeout total de una petición (sin reintentos) |
+
+La API no arranca sin `NASA_API_KEY`. En producción viene del secret de GitHub `NASA_API_KEY`; nunca hagas commit de una clave real.
+
+> Ahora mismo la API de la NASA responde algunas fechas con un relleno (el logo de NASA Science y un texto genérico). El cliente lo rechaza como cualquier otra respuesta inservible, así que nunca se guarda.
+
 ## Testing y calidad
 
 - Pirámide de pruebas: ~70 % unitarias, ~30 % de integración (PostgreSQL/PostGIS y Redis efímeros, API con `httpx.AsyncClient`, APIs externas simuladas con `respx`). No hay pruebas end-to-end en la app móvil.

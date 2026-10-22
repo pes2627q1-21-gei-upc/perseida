@@ -2,9 +2,9 @@
 titol: "Component: postgres"
 tipus: component
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-37", "TG-40", "TG-41", "TG-70"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07)"
+data: "2026-10-22"
+us: ["TG-85", "TG-37", "TG-40", "TG-41", "TG-70", "TG-46"]
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 (2026-10-22)"
 etiquetes: [component, postgres, postgis, base-de-dades]
 ---
 
@@ -27,6 +27,14 @@ PostgreSQL 18 amb l'extensió PostGIS (versió fixada). Dades al volum `pgdata`.
 
 Variables de `.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`. Els valors mai es versionen. Veure `.env.example`.
 
+## Taules
+
+| Taula | Contingut | Restriccions | Migració | US |
+|---|---|---|---|---|
+| `apod` | APOD rebuts de la NASA: `apod_date`, `title`, `explanation`, `media_type`, `media_url`, `copyright` (opcional) | `pk_apod`, `uq_apod_apod_date` (una fila per data) | `8b892a8ae4b4_create_apod` | TG-46 |
+
+El model és `ApodTable` (`app/infrastructure/persistence/apod_table.py`), d'infraestructura; l'entitat `Apod` del domini continua sent Pydantic pura ([[0016-ports-i-entitats-riques-al-domini]]). `SqlApodRepository` desa amb `ON CONFLICT (apod_date) DO NOTHING`: si la data ja hi és, es queda la primera fila. Si la NASA cau, `latest(until)` dona l'últim APOD desat per servir-lo com a APOD d'avui ([[serveis-externs]]).
+
 ## Decisions relacionades
 
 - [[0006-postgresql-postgis-font-de-veritat]]
@@ -39,6 +47,7 @@ Variables de `.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 - TG-40 (PostgreSQL async amb SQLModel)
 - TG-41 (Alembic)
 - TG-70 (PostGIS)
+- TG-46 (taula `apod`)
 
 ## Estat d'implementació
 

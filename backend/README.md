@@ -276,6 +276,28 @@ To run a local Redis: `docker run -d --name perseida-redis -p 6379:6379 redis:8`
 
 Integration tests (`tests/integration/test_redis.py`) run when `REDIS_HOST` is set; the CI provides Redis 8.
 
+## APOD (NASA)
+
+`GET /api/apod` returns NASA's Astronomy Picture of the Day; `GET /api/apod?date=YYYY-MM-DD` returns the one of that date. The adapter (`app/infrastructure/apod/nasa_provider.py`) looks for it in this order:
+
+1. **Redis** (`cache:apod:<date>`, TTL 24 h).
+2. **PostgreSQL** (`apod` table, one row per date): every APOD received from NASA is stored, and a hit refills Redis.
+3. **NASA** (`https://api.nasa.gov/planetary/apod`): the answer is stored in PostgreSQL and Redis.
+
+Without a date, today (UTC) is looked up in Redis and PostgreSQL; if it is not there, NASA is asked for its latest published APOD. If NASA fails (error, timeout or an unusable answer), the stored data is returned: the APOD of that date or, for today, the latest stored one. With nothing stored the answer is 503 `APOD_UNAVAILABLE`. If Redis is down the request still works through PostgreSQL and NASA.
+
+Configuration (`.env`):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NASA_API_KEY` | (required) | Key from [api.nasa.gov](https://api.nasa.gov). Locally `DEMO_KEY` works (rate-limited). It is sent in the `X-Api-Key` header, never in the URL, so it does not show up in the logs. |
+| `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Connection timeout |
+| `NASA_TIMEOUT_SECONDS` | `10` | Total timeout of a request (no retries) |
+
+The API does not start without `NASA_API_KEY`. In production it comes from the `NASA_API_KEY` GitHub secret; never commit a real key.
+
+> NASA's API currently answers some dates with a placeholder (the NASA Science logo and a generic text). The client rejects it like any other unusable answer, so it is never stored.
+
 ## Testing and quality
 
 - Test pyramid: ~70 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`). No end-to-end tests on the mobile app.

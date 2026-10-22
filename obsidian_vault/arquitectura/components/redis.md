@@ -2,9 +2,9 @@
 titol: "Component: redis"
 tipus: component
 estat: vigent
-data: "2026-10-16"
+data: "2026-10-22"
 us: ["TG-85", "TG-37", "TG-46", "TG-87"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16)"
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16); Taiga TG-46 (2026-10-22)"
 etiquetes: [component, redis, cache, pubsub]
 ---
 
@@ -38,6 +38,10 @@ Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix 
 
 Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<id>`, p. ex. `cache:apod:2026-10-05`. Cada funcionalitat fixa el TTL del seu recurs.
 
+| Clau | TTL | Qui la desa | US |
+|---|---|---|---|
+| `cache:apod:<AAAA-MM-DD>` | 24 h | `NasaApodProvider`, en llegir de la NASA o de [[postgres]] | TG-46 |
+
 ## Decisions relacionades
 
 - [[0005-redis-nomes-com-a-cache-lazy]]
@@ -51,7 +55,7 @@ Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<
 
 ## Estat d'implementació
 
-Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Pendent: el servei `redis` al Docker Compose (TG-37).
+Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Primer ús real: la cache de l'APOD (TG-46), amb un test que comprova que es serveix des de Redis en ≤ 200 ms. Pendent: el servei `redis` al Docker Compose (TG-37).
 
 ## Enllaços
 
