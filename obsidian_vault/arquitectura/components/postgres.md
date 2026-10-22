@@ -31,9 +31,9 @@ Variables de `.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 
 | Taula | Contingut | Restriccions | Migració | US |
 |---|---|---|---|---|
-| `apod` | APOD rebuts de la NASA: `apod_date`, `title`, `explanation`, `media_type`, `media_url`, `copyright` (opcional) | `pk_apod`, `uq_apod_apod_date` (una fila per data) | `8b892a8ae4b4_create_apod` | TG-46 |
+| `apod` | APOD rebuts de la NASA: `id` (UUIDv7), `apod_date`, `title`, `explanation`, `media_type`, `media_url`, `copyright` (opcional) | `pk_apod`, `uq_apod_apod_date` (una fila per data), `ck_apod_media_type` (`image`/`video`) | `8b892a8ae4b4_create_apod` | TG-46 |
 
-El model és `ApodTable` (`app/infrastructure/persistence/apod_table.py`), d'infraestructura; l'entitat `Apod` del domini continua sent Pydantic pura ([[0016-ports-i-entitats-riques-al-domini]]). `SqlApodRepository` desa amb `ON CONFLICT (apod_date) DO NOTHING`: si la data ja hi és, es queda la primera fila. Si la NASA cau, `latest(until)` dona l'últim APOD desat per servir-lo com a APOD d'avui ([[serveis-externs]]).
+Segueix [[0023-convencions-del-model-de-dades]]: clau `uuid` generada per `uuidv7()` i `media_type` com a `VARCHAR` amb `CHECK`. El model és `ApodTable` (`app/infrastructure/persistence/apod_table.py`), d'infraestructura; l'entitat `Apod` del domini continua sent Pydantic pura ([[0016-ports-i-entitats-riques-al-domini]]). `SqlApodRepository` desa amb `ON CONFLICT (apod_date) DO NOTHING`: si la data ja hi és, es queda la primera fila. Si la NASA cau, `latest(until)` dona l'últim APOD desat per servir-lo com a APOD d'avui ([[serveis-externs]]).
 
 ## Decisions relacionades
 

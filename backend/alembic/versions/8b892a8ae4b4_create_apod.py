@@ -15,13 +15,16 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "apod",
-        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("id", sa.Uuid(), server_default=sa.text("uuidv7()"), nullable=False),
         sa.Column("apod_date", sa.Date(), nullable=False),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("explanation", sa.String(), nullable=False),
         sa.Column("media_type", sa.String(), nullable=False),
         sa.Column("media_url", sa.String(), nullable=False),
         sa.Column("copyright", sa.String(), nullable=True),
+        sa.CheckConstraint(
+            "media_type IN ('image', 'video')", name=op.f("ck_apod_media_type")
+        ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_apod")),
         sa.UniqueConstraint("apod_date", name=op.f("uq_apod_apod_date")),
     )
