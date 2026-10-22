@@ -157,8 +157,9 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 | `SSH_PRIVATE_KEY` | Secreto | Parte privada de la clave de despliegue dedicada (ed25519) |
 | `SSH_KNOWN_HOSTS` | Secreto | Línea(s) de la clave del servidor, p. ej. de `ssh-keyscan -p <puerto> <host>`; la conexión nunca desactiva la verificación de la clave |
 | `POSTGRES_PASSWORD` | Secreto | Contraseña de la base de datos de producción (aleatoria, solo para producción) |
+| `POSTGRES_DB`, `POSTGRES_USER` | Secreto | Nombre y usuario de la base de datos de producción |
 | `JWT_SECRET` | Secreto | Clave de los JWT de sesión, como mínimo 32 caracteres (`openssl rand -hex 32`) |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PORT` | Variable | Nombre, usuario y puerto de la base de datos |
+| `POSTGRES_PORT` | Variable | Puerto de la base de datos |
 | `POSTGRES_HOST` | Variable | `postgres` (alias de red del servicio de base de datos) |
 | `REDIS_HOST` | Variable | `redis` (alias de red del servicio de caché) |
 | `REDIS_PORT`, `CACHE_DEFAULT_TTL_SECONDS` | Variable | Puerto de Redis y TTL por defecto de la caché |

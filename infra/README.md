@@ -157,8 +157,9 @@ The first time the workflow pushes the image, GitHub links the package to the re
 | `SSH_PRIVATE_KEY` | Secret | Private half of the dedicated deploy key (ed25519) |
 | `SSH_KNOWN_HOSTS` | Secret | Host key line(s) of the server, e.g. from `ssh-keyscan -p <port> <host>`; the connection never disables host key checking |
 | `POSTGRES_PASSWORD` | Secret | Production database password (random, only for production) |
+| `POSTGRES_DB`, `POSTGRES_USER` | Secret | Production database name and user |
 | `JWT_SECRET` | Secret | Session JWT key, at least 32 characters (`openssl rand -hex 32`) |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PORT` | Variable | Database name, user and port |
+| `POSTGRES_PORT` | Variable | Database port |
 | `POSTGRES_HOST` | Variable | `postgres` (network alias of the database service) |
 | `REDIS_HOST` | Variable | `redis` (network alias of the cache service) |
 | `REDIS_PORT`, `CACHE_DEFAULT_TTL_SECONDS` | Variable | Redis port and default cache TTL |
