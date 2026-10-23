@@ -8,7 +8,7 @@ import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
 import { useGoogleAuth } from '../features/auth/hooks/useGoogleAuth';
 import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
-import { authStrings } from '../features/auth/strings';
+import { authStrings, toAuthErrorMessage } from '../features/auth/strings';
 import { saveTokens } from '../features/auth/tokenStorage';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
@@ -33,7 +33,10 @@ export default function LoginScreen() {
       });
       router.replace('/(app)');
     },
-    onError: (err) => setPressedNotice(err.message),
+    onError: (err) => setPressedNotice(toAuthErrorMessage(err)),
+    onCancel: () => {
+      // Cancellation dismisses browser tab and keeps UI interactive
+    },
   });
 
   // Android announces the live region below; iOS needs an explicit announcement.
@@ -82,6 +85,7 @@ export default function LoginScreen() {
               />
               {notice && (
                 <Text
+                  accessibilityRole="alert"
                   accessibilityLiveRegion="polite"
                   style={[
                     theme.typography.caption,

@@ -6,7 +6,8 @@ import { LOGOUT_NOTICE } from '../hooks/useLogout';
 import * as googleAuthHook from '../hooks/useGoogleAuth';
 import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, REDUCED_MOTION_COUNT, SLOT_COUNT } from './PerseidShower';
-import { authStrings } from '../strings';
+import { authErrorMessage, authStrings } from '../strings';
+import { AppError } from '../../../shared/errors';
 import * as googleSignInModule from '../api/googleSignIn';
 import * as tokenStorage from '../tokenStorage';
 import LoginScreen from '../../../app/login';
@@ -128,8 +129,8 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(new Error('Connection failed'));
-          return { type: 'error' as const, error: new Error('Connection failed') };
+          capturedOptions?.onError?.(new Error('Network request failed'));
+          return { type: 'error' as const, error: new Error('Network request failed') };
         }),
         isAuthenticating: false,
       };
@@ -139,8 +140,113 @@ describe('Login screen', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
 
-    expect(screen.getByText('Connection failed')).toBeOnTheScreen();
-    expect(announce).toHaveBeenCalledWith('Connection failed');
+    const expectedText = authErrorMessage('NETWORK_ERROR');
+    expect(screen.getByText(expectedText)).toBeOnTheScreen();
+    expect(announce).toHaveBeenCalledWith(expectedText);
+  });
+
+  it('displays translated toast for 401 INVALID_GOOGLE_TOKEN', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 401,
+              code: 'INVALID_GOOGLE_TOKEN',
+              retryable: true,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('401') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authErrorMessage('INVALID_GOOGLE_TOKEN'))).toBeOnTheScreen();
+  });
+
+  it('displays translated toast for 403 ACCOUNT_SUSPENDED and ACCOUNT_DELETED', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 403,
+              code: 'ACCOUNT_SUSPENDED',
+              retryable: false,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('403') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authErrorMessage('ACCOUNT_SUSPENDED'))).toBeOnTheScreen();
+  });
+
+  it('displays translated toast for 409 EMAIL_ALREADY_REGISTERED', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 409,
+              code: 'EMAIL_ALREADY_REGISTERED',
+              retryable: false,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('409') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authErrorMessage('EMAIL_ALREADY_REGISTERED'))).toBeOnTheScreen();
+  });
+
+  it('displays translated toast for 503 IDENTITY_PROVIDER_UNAVAILABLE', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 503,
+              code: 'IDENTITY_PROVIDER_UNAVAILABLE',
+              retryable: true,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('503') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authErrorMessage('IDENTITY_PROVIDER_UNAVAILABLE'))).toBeOnTheScreen();
   });
 
   it('explains that the sign-out was not confirmed when it comes from a failed logout', async () => {
@@ -166,8 +272,8 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(new Error('Connection failed'));
-          return { type: 'error' as const, error: new Error('Connection failed') };
+          capturedOptions?.onError?.(new Error('Network request failed'));
+          return { type: 'error' as const, error: new Error('Network request failed') };
         }),
         isAuthenticating: false,
       };
@@ -177,7 +283,8 @@ describe('Login screen', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
 
-    expect(screen.getByText('Connection failed')).toBeOnTheScreen();
+    const expectedText = authErrorMessage('NETWORK_ERROR');
+    expect(screen.getByText(expectedText)).toBeOnTheScreen();
     expect(announce).not.toHaveBeenCalled();
   });
 

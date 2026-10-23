@@ -30,6 +30,27 @@ describe('useGoogleAuth hook', () => {
     expect(result.current.isAuthenticating).toBe(false);
   });
 
+  it('catches error thrown in onSuccess, routes it to onError, and resets isAuthenticating', async () => {
+    jest.spyOn(googleAuthModule, 'performGoogleOAuthFlow').mockResolvedValueOnce({
+      type: 'success',
+      idToken: 'mock-id-token-abc',
+    });
+
+    const failure = new Error('Backend rejected token');
+    const onSuccess = jest.fn().mockRejectedValueOnce(failure);
+    const onError = jest.fn();
+
+    const { result } = await renderHook(() => useGoogleAuth({ onSuccess, onError }));
+
+    await act(async () => {
+      await result.current.signIn();
+    });
+
+    expect(onSuccess).toHaveBeenCalledWith('mock-id-token-abc');
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(result.current.isAuthenticating).toBe(false);
+  });
+
   it('calls onCancel callback when user cancels the flow', async () => {
     jest.spyOn(googleAuthModule, 'performGoogleOAuthFlow').mockResolvedValueOnce({
       type: 'cancel',

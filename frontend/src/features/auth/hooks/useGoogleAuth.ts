@@ -20,7 +20,13 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
     try {
       const result = await performGoogleOAuthFlow();
       if (result.type === 'success') {
-        await options.onSuccess?.(result.idToken);
+        try {
+          await options.onSuccess?.(result.idToken);
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          options.onError?.(error);
+          return { type: 'error', error };
+        }
       } else if (result.type === 'cancel') {
         options.onCancel?.();
       } else if (result.type === 'error') {
