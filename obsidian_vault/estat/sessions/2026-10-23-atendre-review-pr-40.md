@@ -29,7 +29,6 @@ Aplicar els canvis demanats a la review de la #40, que ve de la integració amb 
 
 ## Pendent
 
-- [ ] Decidir si els secrets de repositori queden accessibles des de qualsevol branca o es posa `environment: production` a `verify-config` (el cas de `SSH_PRIVATE_KEY`).
 - [ ] Push de la branca, resposta als comentaris i nova revisió (la persona).
 
 ## US de Taiga
