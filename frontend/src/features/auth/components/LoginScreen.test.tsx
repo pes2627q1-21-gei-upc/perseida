@@ -1,15 +1,48 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AccessibilityInfo, Dimensions, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LOGOUT_NOTICE } from '../hooks/useLogout';
+import * as googleAuthHook from '../hooks/useGoogleAuth';
 import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, REDUCED_MOTION_COUNT, SLOT_COUNT } from './PerseidShower';
-import { authStrings } from '../strings';
+import { authErrorMessage, authStrings } from '../strings';
+import { AppError } from '../../../shared/errors';
+import * as googleSignInModule from '../api/googleSignIn';
+import * as tokenStorage from '../tokenStorage';
 import LoginScreen from '../../../app/login';
 
+const mockReplace = jest.fn();
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => mockParams,
+  useRouter: () => ({ replace: mockReplace }),
+}));
+
+const mockSecureStore = new Map<string, string>();
+jest.mock('expo-secure-store', () => ({
+  setItemAsync: jest.fn(async (key: string, value: string) => {
+    mockSecureStore.set(key, value);
+  }),
+  getItemAsync: jest.fn(async (key: string) => mockSecureStore.get(key) ?? null),
+  deleteItemAsync: jest.fn(async (key: string) => {
+    mockSecureStore.delete(key);
+  }),
+}));
+
+const mockPromptAsync = jest.fn();
+const mockExchangeCodeAsync = jest.fn();
+jest.mock('expo-auth-session', () => ({
+  AuthRequest: jest.fn().mockImplementation(() => ({
+    promptAsync: mockPromptAsync,
+    codeVerifier: 'mock-code-verifier-12345',
+    state: 'mock-csrf-state-abcde',
+  })),
+  exchangeCodeAsync: jest.fn((...args: unknown[]) => mockExchangeCodeAsync(...args)),
+  ResponseType: { Code: 'code' },
+  CodeChallengeMethod: { S256: 'S256' },
+  makeRedirectUri: jest.fn(() => 'perseida://oauth/callback'),
+}));
 
 const mockUseReducedMotion = jest.fn(() => false);
 // Every meteor launch, with the (fake) clock at that moment and its flight time.
@@ -43,12 +76,18 @@ async function renderScreen() {
   );
 }
 
+const originalWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
 afterEach(() => {
   jest.clearAllMocks();
   jest.restoreAllMocks();
+  mockSecureStore.clear();
+  mockPromptAsync.mockReset();
+  mockExchangeCodeAsync.mockReset();
   mockLaunches.length = 0;
   mockUseReducedMotion.mockReturnValue(false);
   mockParams = {};
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = originalWebClientId;
 });
 
 describe('Login screen', () => {
@@ -59,7 +98,7 @@ describe('Login screen', () => {
     expect(screen.getByText(authStrings.tagline)).toBeOnTheScreen();
   });
 
-  it('offers the Google button, reachable by role and name (US #43 criterion 1)', async () => {
+  it('TG-43 Criteri 1: offers the Google button, reachable by role and name', async () => {
     await renderScreen();
 
     expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).toBeOnTheScreen();
@@ -71,14 +110,242 @@ describe('Login screen', () => {
     expect(screen.queryByText(authStrings.loginUnavailable)).not.toBeOnTheScreen();
   });
 
-  it('explains that the sign-in is not available yet and announces it', async () => {
+  it('TG-43 #233: redirects already authenticated users to /(app)', async () => {
+    jest.spyOn(tokenStorage, 'getTokens').mockResolvedValueOnce({
+      accessToken: 'existing-acc',
+      refreshToken: 'existing-ref',
+    });
+
+    await renderScreen();
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(app)'));
+  });
+
+  it('TG-43 Criteri 1: triggers Google OAuth PKCE flow when the button is pressed', async () => {
+    const mockSignIn = jest.fn();
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockReturnValue({
+      signIn: mockSignIn,
+      isAuthenticating: false,
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(mockSignIn).toHaveBeenCalled();
+  });
+
+  it('TG-43 Criteri 1: does not trigger sign in when authentication is already in progress', async () => {
+    const mockSignIn = jest.fn();
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockReturnValue({
+      signIn: mockSignIn,
+      isAuthenticating: true,
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(mockSignIn).not.toHaveBeenCalled();
+  });
+
+  it('TG-43 Criteris 3, 4, 6: exchanges id_token for app session tokens, saves them, and navigates to the app', async () => {
+    const mockTokens = {
+      access_token: 'acc-1',
+      refresh_token: 'ref-1',
+      token_type: 'bearer' as const,
+      expires_in: 900,
+    };
+    jest.spyOn(googleSignInModule, 'signInWithGoogle').mockResolvedValueOnce(mockTokens);
+    const saveSpy = jest.spyOn(tokenStorage, 'saveTokens').mockResolvedValueOnce();
+
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          await capturedOptions?.onSuccess?.('id-token-valid');
+          return { type: 'success' as const, idToken: 'id-token-valid' };
+        }),
+        isAuthenticating: false,
+      };
+    });
+
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(googleSignInModule.signInWithGoogle).toHaveBeenCalledWith('id-token-valid');
+    expect(saveSpy).toHaveBeenCalledWith({ accessToken: 'acc-1', refreshToken: 'ref-1' });
+    expect(mockReplace).toHaveBeenCalledWith('/(app)');
+  });
+
+  it('TG-43 Criteri 5: handles cancellation from useGoogleAuth without error notice', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onCancel?.();
+          return { type: 'cancel' as const };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).toBeOnTheScreen();
+  });
+
+  it('TG-43 Criteri 5: displays and announces error notice when authentication encounters a network error', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(new Error('Network request failed'));
+          return { type: 'error' as const, error: new Error('Network request failed') };
+        }),
+        isAuthenticating: false,
+      };
+    });
     const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     await renderScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
 
-    expect(screen.getByText(authStrings.loginUnavailable)).toBeOnTheScreen();
-    expect(announce).toHaveBeenCalledWith(authStrings.loginUnavailable);
+    const expectedText = authErrorMessage('NETWORK_ERROR');
+    expect(screen.getByText(expectedText)).toBeOnTheScreen();
+    expect(announce).toHaveBeenCalledWith(expectedText);
+  });
+
+  it('TG-43 Criteri 5: displays translated toast for 401 INVALID_GOOGLE_TOKEN', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 401,
+              code: 'INVALID_GOOGLE_TOKEN',
+              retryable: true,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('401') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authErrorMessage('INVALID_GOOGLE_TOKEN'))).toBeOnTheScreen();
+  });
+
+  it('TG-43 Criteri 5: displays translated toast for 403 ACCOUNT_SUSPENDED', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 403,
+              code: 'ACCOUNT_SUSPENDED',
+              retryable: false,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('403') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    expect(screen.getByText(authErrorMessage('ACCOUNT_SUSPENDED'))).toBeOnTheScreen();
+  });
+
+  it('TG-43 Criteri 5: displays translated toast for 403 ACCOUNT_DELETED', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 403,
+              code: 'ACCOUNT_DELETED',
+              retryable: false,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('403') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    expect(screen.getByText(authErrorMessage('ACCOUNT_DELETED'))).toBeOnTheScreen();
+  });
+
+  it('TG-43 Criteri 5: displays translated toast for 409 EMAIL_ALREADY_REGISTERED', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 409,
+              code: 'EMAIL_ALREADY_REGISTERED',
+              retryable: false,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('409') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authErrorMessage('EMAIL_ALREADY_REGISTERED'))).toBeOnTheScreen();
+  });
+
+  it('TG-43 Criteri 5: displays translated toast for 503 IDENTITY_PROVIDER_UNAVAILABLE', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(
+            new AppError({
+              kind: 'http',
+              status: 503,
+              code: 'IDENTITY_PROVIDER_UNAVAILABLE',
+              retryable: true,
+            }),
+          );
+          return { type: 'error' as const, error: new Error('503') };
+        }),
+        isAuthenticating: false,
+      };
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(screen.getByText(authErrorMessage('IDENTITY_PROVIDER_UNAVAILABLE'))).toBeOnTheScreen();
   });
 
   it('explains that the sign-out was not confirmed when it comes from a failed logout', async () => {
@@ -99,13 +366,226 @@ describe('Login screen', () => {
 
   it('leaves the announcement to the live region on Android', async () => {
     jest.replaceProperty(Platform, 'OS', 'android');
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(new Error('Network request failed'));
+          return { type: 'error' as const, error: new Error('Network request failed') };
+        }),
+        isAuthenticating: false,
+      };
+    });
     const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     await renderScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
 
-    expect(screen.getByText(authStrings.loginUnavailable)).toBeOnTheScreen();
+    const expectedText = authErrorMessage('NETWORK_ERROR');
+    expect(screen.getByText(expectedText)).toBeOnTheScreen();
     expect(announce).not.toHaveBeenCalled();
+  });
+
+  describe("TG-43 Criteri 8: Proves del flux d'inici de sessió amb mocks natius (expo-auth-session, fetch, expo-secure-store)", () => {
+    beforeEach(() => {
+      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = 'test-google-web-client-id';
+    });
+
+    it('completes the full authentication flow end-to-end, persists tokens, and redirects (TG-43 Criteris 1, 2, 3, 4, 6, 8)', async () => {
+      mockPromptAsync.mockResolvedValueOnce({
+        type: 'success',
+        params: { code: 'auth-code-test-123', state: 'mock-csrf-state-abcde' },
+      });
+      mockExchangeCodeAsync.mockResolvedValueOnce({
+        idToken: 'google-id-token-xyz',
+      });
+      const fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              access_token: 'native-acc-token',
+              refresh_token: 'native-ref-token',
+              token_type: 'bearer',
+              expires_in: 900,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+      );
+
+      await renderScreen();
+
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+      });
+
+      // 1. AuthRequest launched with PKCE
+      expect(mockPromptAsync).toHaveBeenCalled();
+      // 2. Exchange code directly with Google without client_secret
+      expect(mockExchangeCodeAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 'auth-code-test-123',
+          extraParams: expect.objectContaining({
+            code_verifier: 'mock-code-verifier-12345',
+          }),
+        }),
+        expect.anything(),
+      );
+      // 3. POST /api/auth/google called with id_token and device language
+      expect(fetchSpy).toHaveBeenCalled();
+      const request = fetchSpy.mock.calls[0][0] as Request;
+      expect(request.method).toBe('POST');
+      expect(request.url).toBe('http://api.test/api/auth/google');
+      const body = await request.json();
+      expect(body).toEqual({
+        id_token: 'google-id-token-xyz',
+        language: expect.stringMatching(/^(ca|es|en)$/),
+      });
+      // 4. Tokens stored securely in SecureStore
+      expect(mockSecureStore.get('perseida.accessToken')).toBe('native-acc-token');
+      expect(mockSecureStore.get('perseida.refreshToken')).toBe('native-ref-token');
+      // 5. User redirected to app
+      expect(mockReplace).toHaveBeenCalledWith('/(app)');
+    });
+
+    it('handles user cancellation without throwing or displaying errors (TG-43 Criteri 5, 8)', async () => {
+      mockPromptAsync.mockResolvedValueOnce({ type: 'cancel' });
+      const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+      await renderScreen();
+
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+      });
+
+      expect(mockPromptAsync).toHaveBeenCalled();
+      expect(mockExchangeCodeAsync).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+      expect(
+        screen.getByRole('button', { name: authStrings.continueWithGoogle }),
+      ).toBeOnTheScreen();
+    });
+
+    it('handles backend 401 INVALID_GOOGLE_TOKEN and shows translated alert (TG-43 Criteri 5, 8)', async () => {
+      mockPromptAsync.mockResolvedValueOnce({
+        type: 'success',
+        params: { code: 'auth-code-test-123', state: 'mock-csrf-state-abcde' },
+      });
+      mockExchangeCodeAsync.mockResolvedValueOnce({
+        idToken: 'bad-google-id-token',
+      });
+      jest.spyOn(globalThis, 'fetch').mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              type: 'urn:perseida:error:INVALID_GOOGLE_TOKEN',
+              status: 401,
+              code: 'INVALID_GOOGLE_TOKEN',
+              title: 'Unauthorized',
+              detail: 'Invalid token',
+            }),
+            { status: 401, headers: { 'Content-Type': 'application/problem+json' } },
+          ),
+      );
+
+      await renderScreen();
+
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+      });
+
+      expect(screen.getByText(authErrorMessage('INVALID_GOOGLE_TOKEN'))).toBeOnTheScreen();
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(mockSecureStore.get('perseida.accessToken')).toBeUndefined();
+    });
+
+    it('handles backend 403 ACCOUNT_SUSPENDED and shows translated alert (TG-43 Criteri 5, 8)', async () => {
+      mockPromptAsync.mockResolvedValueOnce({
+        type: 'success',
+        params: { code: 'auth-code-test-123', state: 'mock-csrf-state-abcde' },
+      });
+      mockExchangeCodeAsync.mockResolvedValueOnce({
+        idToken: 'suspended-google-id-token',
+      });
+      jest.spyOn(globalThis, 'fetch').mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              type: 'urn:perseida:error:ACCOUNT_SUSPENDED',
+              status: 403,
+              code: 'ACCOUNT_SUSPENDED',
+              title: 'Forbidden',
+              detail: 'Account suspended',
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/problem+json' } },
+          ),
+      );
+
+      await renderScreen();
+
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+      });
+
+      expect(screen.getByText(authErrorMessage('ACCOUNT_SUSPENDED'))).toBeOnTheScreen();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('handles backend 503 IDENTITY_PROVIDER_UNAVAILABLE and shows translated alert (TG-43 Criteri 5, 8)', async () => {
+      mockPromptAsync.mockResolvedValueOnce({
+        type: 'success',
+        params: { code: 'auth-code-test-123', state: 'mock-csrf-state-abcde' },
+      });
+      mockExchangeCodeAsync.mockResolvedValueOnce({
+        idToken: 'google-id-token',
+      });
+      jest.spyOn(globalThis, 'fetch').mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              type: 'urn:perseida:error:IDENTITY_PROVIDER_UNAVAILABLE',
+              status: 503,
+              code: 'IDENTITY_PROVIDER_UNAVAILABLE',
+              title: 'Service Unavailable',
+              detail: 'Google identity provider down',
+            }),
+            { status: 503, headers: { 'Content-Type': 'application/problem+json' } },
+          ),
+      );
+
+      await renderScreen();
+
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+      });
+
+      expect(screen.getByText(authErrorMessage('IDENTITY_PROVIDER_UNAVAILABLE'))).toBeOnTheScreen();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('handles network failure and displays network error toast (TG-43 Criteri 5, 8)', async () => {
+      mockPromptAsync.mockResolvedValueOnce({
+        type: 'success',
+        params: { code: 'auth-code-test-123', state: 'mock-csrf-state-abcde' },
+      });
+      mockExchangeCodeAsync.mockResolvedValueOnce({
+        idToken: 'google-id-token',
+      });
+      jest.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+        throw new TypeError('Network request failed');
+      });
+
+      await renderScreen();
+
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+      });
+
+      expect(screen.getByText(authErrorMessage('NETWORK_ERROR'))).toBeOnTheScreen();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
   });
 
   it('hides the decorative Perseid shower from screen readers and from touches', async () => {

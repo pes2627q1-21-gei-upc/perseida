@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 
 import { AppError } from '../../../shared/errors';
 import { logout } from '../api/logout';
-import { clearTokens, getTokens } from '../tokenStorage';
+import { clearSession } from '../session';
+import { getTokens } from '../tokenStorage';
 
 /** Route param that makes the sign-in screen explain that the server did not confirm. */
 export const LOGOUT_NOTICE = 'logout-unconfirmed';
@@ -23,7 +24,7 @@ export function useLogout() {
         const tokens = await getTokens();
         if (tokens) await logout(tokens.accessToken);
       } finally {
-        await clearTokens();
+        await clearSession(queryClient);
       }
     },
     onSettled: (_data, error) => {

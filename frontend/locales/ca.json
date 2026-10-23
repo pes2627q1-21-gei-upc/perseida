@@ -1,0 +1,13 @@
+{
+  "errors": {
+    "INVALID_GOOGLE_TOKEN": "No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.",
+    "INVALID_SESSION": "La teva sessió ha caducat. Torna a iniciar sessió.",
+    "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
+    "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
+    "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
+    "IDENTITY_PROVIDER_UNAVAILABLE": "Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
+    "INTERNAL_ERROR": "Alguna cosa ha anat malament. Torna-ho a provar."
+  }
+}

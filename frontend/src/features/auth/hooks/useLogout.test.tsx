@@ -43,14 +43,19 @@ afterEach(() => {
 async function signOut() {
   const { result } = await renderHook(() => useLogout(), { wrapper });
   await act(async () => {
-    result.current.mutate();
+    try {
+      await result.current.mutateAsync();
+    } catch {
+      // Ignored for error tests
+    }
   });
+  await waitFor(() => expect(result.current.isPending).toBe(false));
   await waitFor(() => expect(mockReplace).toHaveBeenCalled());
   return result;
 }
 
 describe('useLogout', () => {
-  it('calls the server, wipes the tokens and redirects to /login (US #45 criterion 9)', async () => {
+  it('TG-43 Criteri 7: calls the server, wipes the tokens and redirects to /login (US #45 criterion 9)', async () => {
     const fetchSpy = jest
       .spyOn(globalThis, 'fetch')
       .mockImplementation(async () => new Response(null, { status: 204 }));

@@ -1,0 +1,13 @@
+{
+  "errors": {
+    "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
+    "INVALID_SESSION": "Your session has expired. Please sign in again.",
+    "ACCOUNT_SUSPENDED": "Your account is suspended.",
+    "ACCOUNT_DELETED": "This account has been deleted.",
+    "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
+    "IDENTITY_PROVIDER_UNAVAILABLE": "Google is unavailable right now. Please try again in a while.",
+    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
+    "NETWORK_ERROR": "No connection. Check your network and try again.",
+    "INTERNAL_ERROR": "Something went wrong. Please try again."
+  }
+}
