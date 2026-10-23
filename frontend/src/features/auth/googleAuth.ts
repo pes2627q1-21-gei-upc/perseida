@@ -5,6 +5,7 @@ import {
   exchangeCodeAsync,
   type DiscoveryDocument,
 } from 'expo-auth-session';
+import { Platform } from 'react-native';
 
 import { getGoogleClientId, getGoogleRedirectUri } from './googleConfig';
 
@@ -18,12 +19,11 @@ export type GoogleOAuthResult =
   { type: 'success'; idToken: string } | { type: 'cancel' } | { type: 'error'; error: Error };
 
 /**
- * Executes the RFC 7636 PKCE Google OAuth2 authorization flow:
- * 1. Generates cryptographic code_verifier, code_challenge (S256) and CSRF state.
- * 2. Launches the system browser session (ASWebAuthenticationSession / Custom Tabs).
- * 3. Validates the state parameter on redirect to prevent CSRF.
- * 4. Exchanges the authorization code + code_verifier directly with Google (public client,
- *    no client_secret) to retrieve the id_token.
+ * Executes the Google OAuth2 authorization flow:
+ * - On native devices (Android/iOS): RFC 7636 PKCE flow exchanging authorization code
+ *   directly with Google for the id_token without client_secret.
+ * - On web: OpenID Connect implicit flow (response_type=id_token) to avoid Google
+ *   rejecting code exchange for public web client IDs without client_secret.
  */
 export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
   const clientId = getGoogleClientId();
@@ -35,14 +35,16 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
   }
 
   const redirectUri = getGoogleRedirectUri();
+  const isWeb = Platform.OS === 'web';
 
   const request = new AuthRequest({
     clientId,
     scopes: ['openid', 'profile', 'email'],
-    responseType: ResponseType.Code,
+    responseType: isWeb ? ResponseType.IdToken : ResponseType.Code,
     redirectUri,
-    usePKCE: true,
-    codeChallengeMethod: CodeChallengeMethod.S256,
+    usePKCE: !isWeb,
+    codeChallengeMethod: isWeb ? undefined : CodeChallengeMethod.S256,
+    extraParams: isWeb ? { nonce: Math.random().toString(36).substring(2) } : undefined,
   });
 
   const authResponse = await request.promptAsync(GOOGLE_DISCOVERY);
@@ -64,10 +66,25 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
     return { type: 'error', error: new Error('Authentication failed') };
   }
 
-  const { code, state } = authResponse.params;
+  const { state } = authResponse.params;
   if (request.state && state !== request.state) {
     return { type: 'error', error: new Error('Invalid state parameter returned from Google') };
   }
+
+  // Web platform receives id_token directly from Google authorization endpoint
+  if (isWeb) {
+    const idToken = authResponse.params.id_token;
+    if (!idToken) {
+      return {
+        type: 'error',
+        error: new Error('Google token response did not contain an id_token'),
+      };
+    }
+    return { type: 'success', idToken };
+  }
+
+  // Native platforms (Android/iOS): exchange code + code_verifier for id_token
+  const { code } = authResponse.params;
   if (!code) {
     return { type: 'error', error: new Error('No authorization code returned from Google') };
   }

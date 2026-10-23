@@ -4,6 +4,7 @@ import {
   ResponseType,
   CodeChallengeMethod,
 } from 'expo-auth-session';
+import { Platform } from 'react-native';
 
 import { performGoogleOAuthFlow, GOOGLE_DISCOVERY } from './googleAuth';
 import * as googleConfig from './googleConfig';
@@ -11,7 +12,7 @@ import * as googleConfig from './googleConfig';
 jest.mock('expo-auth-session', () => ({
   AuthRequest: jest.fn(),
   exchangeCodeAsync: jest.fn(),
-  ResponseType: { Code: 'code' },
+  ResponseType: { Code: 'code', IdToken: 'id_token' },
   CodeChallengeMethod: { S256: 'S256' },
   makeRedirectUri: jest.fn(() => 'perseida://oauth/callback'),
 }));
@@ -170,5 +171,29 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
       expect(result.error.message).toContain('Google Client ID is not configured');
     }
     expect(mockPromptAsync).not.toHaveBeenCalled();
+  });
+
+  it('TG-43 Web: uses IdToken response type and returns id_token directly without code exchange', async () => {
+    const originalOS = Platform.OS;
+    try {
+      Platform.OS = 'web';
+      mockPromptAsync.mockResolvedValueOnce({
+        type: 'success',
+        params: { id_token: 'web-direct-id-token', state: 'mock-csrf-state' },
+      });
+
+      const result = await performGoogleOAuthFlow();
+
+      expect(AuthRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          responseType: 'id_token',
+          usePKCE: false,
+        }),
+      );
+      expect(exchangeCodeAsync).not.toHaveBeenCalled();
+      expect(result).toEqual({ type: 'success', idToken: 'web-direct-id-token' });
+    } finally {
+      Platform.OS = originalOS;
+    }
   });
 });
