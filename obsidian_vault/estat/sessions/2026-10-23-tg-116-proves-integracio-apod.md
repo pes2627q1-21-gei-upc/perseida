@@ -22,7 +22,7 @@ Tancar TG-116: verificar `GET /api/apod` sobre l'app completa ara que TG-46 ha p
   - c3: amb una data passada se'n demana aquella data;
   - c4: camps `date`, `title`, `explanation`, `media_type`, `url` i `copyright` (amb valor i `null`);
   - c5: la clau va a la NASA per la capçalera `X-Api-Key` i no surt ni a la resposta ni al `detail` del 503;
-  - c6: 422 (`VALIDATION_ERROR`, `APOD_DATE_IN_FUTURE`, `APOD_DATE_BEFORE_START`) sense cridar la NASA, 503 `APOD_UNAVAILABLE` sense dades guardades i 200 amb les dades de PostgreSQL si la NASA cau.
+  - c6: 422 (`VALIDATION_ERROR`, `APOD_DATE_IN_FUTURE`, `APOD_DATE_BEFORE_START`) sense cridar la NASA, 503 `APOD_UNAVAILABLE` sense dades guardades i 200 amb les dades de Redis o de PostgreSQL si la NASA cau.
 - Cada test buida la taula `apod` i les claus `cache:apod:*` abans i després.
 
 ## Decisions preses
