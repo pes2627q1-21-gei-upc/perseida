@@ -79,6 +79,17 @@ describe('Login screen', () => {
     expect(screen.queryByText(authStrings.loginUnavailable)).not.toBeOnTheScreen();
   });
 
+  it('redirects already authenticated users to /(app) (TG-43 #233)', async () => {
+    jest.spyOn(tokenStorage, 'getTokens').mockResolvedValueOnce({
+      accessToken: 'existing-acc',
+      refreshToken: 'existing-ref',
+    });
+
+    await renderScreen();
+
+    expect(mockReplace).toHaveBeenCalledWith('/(app)');
+  });
+
   it('triggers Google OAuth PKCE flow when the button is pressed (US #43 criterion 1)', async () => {
     const mockSignIn = jest.fn();
     jest.spyOn(googleAuthHook, 'useGoogleAuth').mockReturnValue({

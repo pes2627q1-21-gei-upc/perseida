@@ -9,7 +9,7 @@ import { PerseidShower } from '../features/auth/components/PerseidShower';
 import { useGoogleAuth } from '../features/auth/hooks/useGoogleAuth';
 import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
 import { authStrings, toAuthErrorMessage } from '../features/auth/strings';
-import { saveTokens } from '../features/auth/tokenStorage';
+import { getTokens, saveTokens } from '../features/auth/tokenStorage';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
 
@@ -43,6 +43,19 @@ export default function LoginScreen() {
   useEffect(() => {
     if (notice && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(notice);
   }, [notice]);
+
+  // Route guard: if the user already has a valid session, redirect to the app (TG-43 #233)
+  useEffect(() => {
+    let mounted = true;
+    getTokens().then((tokens) => {
+      if (mounted && tokens) {
+        router.replace('/(app)');
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
   // Launches Google OAuth2 + PKCE authorization flow
   const handleContinue = async () => {
