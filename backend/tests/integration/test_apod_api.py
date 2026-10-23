@@ -219,13 +219,28 @@ async def test_tg47_c6_nasa_down_with_stored_data_serves_it(
 ) -> None:
     stored = make_apod(date(2026, 10, 14), copyright="Jane Doe")
     await SqlApodRepository(app.state.session_factory).save(stored)
-    nasa.get(APOD_URL).respond(500)
+    route = nasa.get(APOD_URL).respond(500)
 
     response = await client.get("/api/apod")
 
     assert response.status_code == 200
     assert response.json()["date"] == "2026-10-14"
     assert response.json()["title"] == stored.title
+    assert route.call_count == 1
+
+
+async def test_tg47_c6_nasa_down_serves_the_cached_apod(
+    client: AsyncClient, nasa: respx.MockRouter
+) -> None:
+    route = nasa.get(APOD_URL).respond(json=fixture("nasa_apod_image.json"))
+    await client.get("/api/apod", params={"date": "2026-10-14"})
+    route.respond(500)
+
+    response = await client.get("/api/apod", params={"date": "2026-10-14"})
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "The Orion Nebula"
+    assert route.call_count == 1
 
 
 async def test_tg116_correlation_id_from_the_client_is_kept(
