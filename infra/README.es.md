@@ -193,6 +193,7 @@ El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`
 2. **Sonda:** se arranca la imagen anterior (el tag de `.deployed-tag`) **sin migraciones** y con el mismo `.env`, en un contenedor temporal.
    - Si no responde, la causa es la configuración o la infraestructura, no el código nuevo: **no se deshace nada** (los datos se conservan), la API queda parada y el job falla diciéndote que corrijas el secreto o la variable y vuelvas a ejecutar el CD.
    - Si responde, la causa es el código nuevo o sus migraciones y el rollback continúa.
+   - Aunque responda, si los nombres de variable del `.env` difieren de los del último despliegue bueno (`.deployed-env`, solo nombres), tampoco se deshace nada: una variable nueva que falta o es errónea hace fallar la versión nueva pero no la sonda. La API queda parada y el job falla diciendo que revises los secretos y las variables. Sin `.deployed-env` (primer despliegue tras esta comprobación) se considera que han cambiado, que es el caso seguro.
 3. Se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
 4. Se arranca la imagen anterior con normalidad y se vuelve a comprobar el healthcheck.
 5. El job **siempre termina en error**, aunque el rollback haya funcionado.

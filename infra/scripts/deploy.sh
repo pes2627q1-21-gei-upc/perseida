@@ -12,8 +12,11 @@
 # el mateix `.env`. Si respon, el fallo era del codi o de les migracions noves: hi
 # torna i desfà les migracions d'Alembic fins a la seva revisió. Si tampoc respon,
 # el fallo és de configuració o d'infraestructura: no es desfà res (les dades es
-# conserven), l'API queda aturada i s'explica. Surt sempre amb error perquè el job
-# quedi en vermell.
+# conserven), l'API queda aturada i s'explica. Tampoc es desfà res si el `.env` té
+# uns noms de variable diferents dels del darrer desplegament bo (`.deployed-env`):
+# una variable nova que falta o és errònia fa fallar la versió nova però no la
+# sonda, i s'ha de poder corregir sense perdre dades. Surt sempre amb error perquè
+# el job quedi en vermell.
 #
 # `API_IMAGE_TAG` a l'entorn té prioritat sobre el del `.env`, així el tag només
 # viu en aquesta execució. `HEALTH_TIMEOUT` (segons, 120 per defecte) és l'espera
@@ -24,6 +27,7 @@ set -eu
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-120}
 PROBE_TIMEOUT=${PROBE_TIMEOUT:-60}
 STATE_FILE=.deployed-tag
+ENV_NAMES_FILE=.deployed-env
 PROBE_NAME=perseida-probe
 
 # Si es talla la connexió SSH (job cancel·lat, xarxa) el desplegament no s'ha de
@@ -131,10 +135,24 @@ rollback_to() {
   API_IMAGE_TAG=$to docker compose up -d --remove-orphans && wait_healthy
 }
 
+# Noms (no valors) de les variables del `.env`, ordenats.
+env_names() {
+  grep -oE '^[A-Z][A-Z0-9_]*=' .env | sort -u
+}
+
 # Un error en escriure l'estat (disc ple) no ha de fer fallar un desplegament sa.
 mark_deployed() {
   printf '%s\n' "$1" > "$STATE_FILE" ||
     warn "AVÍS: no s'ha pogut escriure $STATE_FILE; un rollback posterior pot partir d'una versió incorrecta."
+  env_names > "$ENV_NAMES_FILE" ||
+    warn "AVÍS: no s'ha pogut escriure $ENV_NAMES_FILE; el pròxim desplegament fallit no desfarà migracions."
+}
+
+# Zero si el `.env` té els mateixos noms de variable que al darrer desplegament
+# bo. Si no es poden comparar (fitxer absent, p. ex. abans d'aquesta comprovació)
+# es considera que han canviat: és el cas segur, el que no esborra dades.
+env_names_unchanged() {
+  [ -f "$ENV_NAMES_FILE" ] && [ "$(env_names)" = "$(cat "$ENV_NAMES_FILE")" ]
 }
 
 cd "$(dirname "$0")"
@@ -204,6 +222,12 @@ if [ "$probe" -eq 1 ]; then
 elif [ "$probe" -ne 0 ]; then
   warn "No s'ha pogut crear la sonda amb $previous (imatge absent i pull fallit, o error de Docker): no es pot saber la causa."
   warn "NO es desfan les migracions i l'API queda aturada. Comprova-ho al servidor (\`docker images\`, \`docker compose ps\`)."
+  exit 1
+fi
+
+if ! env_names_unchanged; then
+  warn "$previous arrenca bé, però els noms de variable del .env han canviat des del darrer desplegament bo: la causa pot ser una variable nova que falta o és errònia."
+  warn "NO es desfan les migracions (les dades es conserven) i l'API queda aturada. Revisa els secrets i les variables de GitHub i torna a executar el CD."
   exit 1
 fi
 

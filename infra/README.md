@@ -193,6 +193,7 @@ The server pulls the image from GHCR with the job's temporary `GITHUB_TOKEN` (`d
 2. **Probe:** the previous image (the tag in `.deployed-tag`) is started **without migrations** and with the same `.env`, in a temporary container.
    - If it does not respond, the cause is the configuration or the infrastructure, not the new code: **nothing is undone** (the data is kept), the API stays stopped and the job fails telling you to fix the secret or variable and run the CD again.
    - If it responds, the cause is the new code or its migrations and the rollback goes on.
+   - Even if it responds, if the `.env` variable names differ from the last good deployment (`.deployed-env`, names only), nothing is undone either: a new variable that is missing or wrong makes the new version fail but not the probe. The API stays stopped and the job fails telling you to check the secrets and variables. Without `.deployed-env` (first deployment after this check) it is treated as changed, which is the safe case.
 3. The Alembic migrations are undone down to the revision of the previous image (`alembic downgrade`, run with the new image, which is the one that has the new migrations).
 4. The previous image is started normally and the healthcheck is checked again.
 5. The job **always fails**, even if the rollback worked.
