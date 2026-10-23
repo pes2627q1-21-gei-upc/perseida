@@ -2,9 +2,9 @@
 titol: "Component: redis"
 tipus: component
 estat: vigent
-data: "2026-10-20"
-us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16)"
+data: "2026-10-22"
+us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87", "TG-143"]
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16); Taiga TG-46 (2026-10-22); Taiga TG-143 (2026-10-22)"
 etiquetes: [component, redis, cache, pubsub]
 ---
 
@@ -39,6 +39,12 @@ Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix 
 
 Qui crida fa servir `<domini>:<id>` i `RedisCache` ho desa com `cache:<domini>:<id>`, p. ex. `cache:apod:2026-10-05`. Cada funcionalitat fixa el TTL del seu recurs.
 
+| Clau | TTL | Qui la desa | US |
+|---|---|---|---|
+| `cache:apod:<AAAA-MM-DD>` | 24 h | `NasaApodProvider`, en llegir de la NASA o de [[postgres]] | TG-46 |
+| `cache:apod:today:<AAAA-MM-DD>` | 15 min | `NasaApodProvider`: resultat d'avui mentre la NASA no l'ha publicat (l'últim publicat o el desat) | TG-46 |
+| `cache:apod:unavailable:<AAAA-MM-DD\|latest>` | 15 min | `NasaApodProvider`: la crida a la NASA ha fallat i no es repeteix fins que caduqui | TG-46 |
+
 Les sessions no passen per la cache: es desen com `session:<type>:<jti>` (`type` és `access` o `refresh`) amb un TTL igual a la caducitat del token. Un índex `user_sessions:<sub>` (set amb membres `<sid>:<type>:<jti>` i el TTL del token que viu més) permet revocar el parell d'una sessió o totes les d'un usuari; `delete` i la revocació són transaccions (`MULTI/EXEC`). Si Redis es reinicia, les sessions es perden i els usuaris tornen a iniciar sessió ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]).
 
 ## Decisions relacionades
@@ -52,10 +58,11 @@ Les sessions no passen per la cache: es desen com `session:<type>:<jti>` (`type`
 - TG-46 (cache APOD)
 - TG-44 (sessions a Redis)
 - TG-87 (Redis)
+- TG-143 (verificar el servei Redis del Compose i `REDIS_*`)
 
 ## Estat d'implementació
 
-Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. El servei és `cache` (`redis:8-alpine`, healthcheck) al Docker Compose de `infra/` (TG-37), amb l'àlies de xarxa `redis`; `REDIS_HOST=cache` als `.env.example` de l'arrel i d'`infra/` (TG-143).
+Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Primer ús real: la cache de l'APOD (TG-46), amb un test que comprova que es serveix des de Redis en ≤ 200 ms. El servei és `cache` (`redis:8-alpine`, healthcheck) al Docker Compose de `infra/` (TG-37), amb l'àlies de xarxa `redis`; `REDIS_HOST=cache` als `.env.example` de l'arrel i d'`infra/` (TG-143).
 
 ## Enllaços
 

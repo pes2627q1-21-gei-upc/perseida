@@ -87,6 +87,7 @@ def service_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "REDIS_PORT": "1",
         "GOOGLE_CLIENT_ID": "test.apps.googleusercontent.com",
         "JWT_SECRET": "t" * 32,
+        "NASA_API_KEY": "test-nasa-api-key",
     }.items():
         monkeypatch.setenv(key, value)
 

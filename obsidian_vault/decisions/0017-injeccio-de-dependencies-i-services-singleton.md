@@ -2,9 +2,9 @@
 titol: "Injecció de dependències amb Depends i services singleton pythònics"
 tipus: adr
 estat: acceptada
-data: "2026-10-07"
-us: ["TG-205"]
-font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable"
+data: "2026-10-22"
+us: ["TG-205", "TG-46"]
+font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable; actualització de TG-46 (2026-10-22)"
 etiquetes: [adr, backend, fastapi, di, patrons]
 ---
 
@@ -20,6 +20,14 @@ Els casos d'ús de `application` són serveis sense estat que no cal instanciar 
 - Els recursos amb cicle de vida (engine, pool de Redis, client `httpx`) es creen i es tanquen a `lifespan`.
 - La injecció es fa **sempre amb `Depends()`** a routers i WebSockets; als tests es substitueix amb `app.dependency_overrides`.
 - **No s'usa Service Locator.** Els contextos sense petició (jobs d'APScheduler, scripts) construeixen els services amb els mateixos providers.
+
+> [!info] Actualització 2026-10-22 (TG-46): adaptadors per petició sobre recursos de `lifespan`
+> Un service o adaptador que depèn d'un recurs creat al `lifespan` (client `httpx`, `session_factory`, Redis) no pot ser un singleton de `@lru_cache`, perquè el provider no té accés a l'`app`. En aquest cas:
+> - el provider rep `HTTPConnection` (serveix per a HTTP i WebSocket) i construeix l'adaptador i el service **a cada petició** amb els recursos d'`app.state`;
+> - l'adaptador i el service són objectes lleugers, sense estat propi; el cost és crear-los, no els recursos, que es comparteixen;
+> - als tests es continua substituint amb `app.dependency_overrides`.
+>
+> Primer cas: `get_apod_provider` i `get_apod_service` (`app/infrastructure/apod/dependencies.py`). La resta de la decisió no canvia.
 
 ## Conseqüències
 
@@ -41,6 +49,7 @@ Els casos d'ús de `application` són serveis sense estat que no cal instanciar 
 ## US de Taiga relacionades
 
 - TG-205 (subagents i skills agnòstiques)
+- TG-46 (actualització: adaptadors per petició sobre recursos de `lifespan`)
 
 ## Enllaços
 

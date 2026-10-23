@@ -122,6 +122,7 @@ El servei FastAPI (`perseida-api`) utilitza les següents variables d'entorn per
 | `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imatge a GHCR (usat per a rollbacks) | `latest` o `sha-a1b2c3d` |
 | `GOOGLE_CLIENT_ID` | Sí | Audiència esperada dels tokens d'identitat de Google | `1234-abc.apps.googleusercontent.com` |
 | `JWT_SECRET` | Sí | Secret per a signatures JWT de sessió (com a mínim 32 caràcters) | `<sortida d'openssl rand -hex 32>` |
+| `NASA_API_KEY` | Sí | Clau de l'API de la NASA per a l'APOD (l'API no arrenca sense); en local val `DEMO_KEY`, amb límit de peticions | `<clau d'https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Temps d'expiració dels access tokens en minuts (per defecte: 15) | `15` |
 | `REFRESH_TOKEN_DAYS` | No | Temps d'expiració dels refresh tokens en dies (per defecte: 30) | `30` |
 

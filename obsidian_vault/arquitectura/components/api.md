@@ -56,6 +56,8 @@ Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosn
 
 Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_ID`, `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals, 15 i 30; no són a `.env.example` perquè el CD no les exigeixi), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
 
+APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca; en local val `DEMO_KEY`), i `NASA_CONNECT_TIMEOUT_SECONDS` i `NASA_TIMEOUT_SECONDS` (opcionals, 3 i 10 s). Detall a [[serveis-externs]].
+
 ## Decisions relacionades
 
 - [[0003-un-sol-proces-fastapi]]
