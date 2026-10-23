@@ -29,3 +29,20 @@ class FakeApodProvider:
         if self._failure is not None:
             raise self._failure
         return self._by_date[day]
+
+
+class FakeApodRepository:
+    """In-memory stand-in for ``SqlApodRepository``."""
+
+    def __init__(self, apods: Iterable[Apod] = ()) -> None:
+        self.by_date = {apod.apod_date: apod for apod in apods}
+
+    async def get(self, day: date) -> Apod | None:
+        return self.by_date.get(day)
+
+    async def latest(self, until: date) -> Apod | None:
+        stored = [day for day in self.by_date if day <= until]
+        return self.by_date[max(stored)] if stored else None
+
+    async def save(self, apod: Apod) -> None:
+        self.by_date.setdefault(apod.apod_date, apod)

@@ -10,6 +10,7 @@ from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.openapi import install_openapi_cleanup
 from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
+from app.infrastructure.apod.config import NasaSettings
 from app.infrastructure.apod.router import router as apod_router
 from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     redis_settings = RedisSettings()
     auth_settings = AuthSettings()
     settings = DatabaseSettings()
+    nasa_settings = NasaSettings()
     scheduler = (
         get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
     )
@@ -62,14 +64,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 app.state.auth_service = build_auth_service(
                     auth_settings, redis, client, UserAccountGateway(user_service)
                 )
-                try:
-                    if scheduler:
-                        register_jobs(scheduler)
-                        scheduler.start()
-                    yield
-                finally:
-                    if scheduler:
-                        await scheduler.shutdown()
+                nasa_timeout = nasa_settings.nasa_timeout_seconds
+                async with httpx.AsyncClient(
+                    timeout=httpx.Timeout(
+                        nasa_timeout,
+                        connect=nasa_settings.nasa_connect_timeout_seconds,
+                    )
+                ) as nasa_http:
+                    app.state.nasa_http = nasa_http
+                    app.state.nasa_api_key = nasa_settings.nasa_api_key
+                    app.state.nasa_timeout_seconds = nasa_timeout
+                    try:
+                        if scheduler:
+                            register_jobs(scheduler)
+                            scheduler.start()
+                        yield
+                    finally:
+                        if scheduler:
+                            await scheduler.shutdown()
             finally:
                 await engine.dispose()
     finally:

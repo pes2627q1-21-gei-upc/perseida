@@ -276,6 +276,30 @@ To run a local Redis: `docker run -d --name perseida-redis -p 6379:6379 redis:8`
 
 Integration tests (`tests/integration/test_redis.py`) run when `REDIS_HOST` is set; the CI provides Redis 8.
 
+## APOD (NASA)
+
+`GET /api/apod` returns NASA's Astronomy Picture of the Day; `GET /api/apod?date=YYYY-MM-DD` returns the one of that date. The adapter (`app/infrastructure/apod/nasa_provider.py`) looks for it in this order:
+
+1. **Redis** (`cache:apod:<date>`, TTL 24 h).
+2. **PostgreSQL** (`apod` table, one row per date): every APOD received from NASA is stored, and a hit refills Redis.
+3. **NASA** (`https://api.nasa.gov/planetary/apod`): the answer is stored in PostgreSQL and Redis.
+
+Without a date, today (UTC) is looked up in Redis and PostgreSQL; if it is not there, NASA is asked for its latest published APOD. If NASA fails (error, timeout or an unusable answer), the stored data is returned: the APOD of that date or, for today, the latest stored one. With nothing stored the answer is 503 `APOD_UNAVAILABLE`. If Redis is down the request still works through PostgreSQL and NASA.
+
+So that NASA is not called on every request, two answers are kept in Redis for **15 minutes** (`RETRY_AFTER_SECONDS`): today's result while NASA has not published it yet (`cache:apod:today:<date>`), and a failed NASA call (`cache:apod:unavailable:<date|latest>`), which is not repeated until it expires.
+
+Configuration (`.env`):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NASA_API_KEY` | (required) | Key from [api.nasa.gov](https://api.nasa.gov). Locally `DEMO_KEY` works (rate-limited). It is sent in the `X-Api-Key` header, never in the URL, so it does not show up in the logs. |
+| `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Connection timeout |
+| `NASA_TIMEOUT_SECONDS` | `10` | Total timeout of a request (no retries) |
+
+The API does not start without `NASA_API_KEY`. In production it comes from the `NASA_API_KEY` GitHub secret; never commit a real key.
+
+> NASA's API currently answers with a placeholder instead of the APOD (the NASA Science logo and a generic text, seen on 2026-10-21). The client rejects it like any other unusable answer, so it is never stored.
+
 ## Authentication
 
 The app signs the user in with Google (OAuth2 + PKCE) and sends the Google `id_token` to the backend, which never receives the authorization code and never stores a password ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). The backend checks the token and issues its own session.

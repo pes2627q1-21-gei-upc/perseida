@@ -123,6 +123,7 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `API_IMAGE_TAG` | No | Tag or commit SHA of backend image in GHCR (used for rollbacks) | `latest` or `sha-a1b2c3d` |
 | `GOOGLE_CLIENT_IDS` | Yes | Accepted audiences of the Google ID tokens: OAuth clients (web, Android, iOS), comma-separated | `1234-web.apps.googleusercontent.com,5678-ios.apps.googleusercontent.com` |
 | `JWT_SECRET` | Yes | Secret for session JWT signing (at least 32 characters) | `<output of openssl rand -hex 32>` |
+| `NASA_API_KEY` | Yes | NASA API key for the APOD (the API does not start without it); `DEMO_KEY` works locally, rate-limited | `<key from https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Expiration time for access tokens in minutes (default: 15) | `15` |
 | `REFRESH_TOKEN_DAYS` | No | Expiration time for refresh tokens in days (default: 30) | `30` |
 

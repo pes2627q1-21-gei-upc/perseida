@@ -230,6 +230,30 @@ Per executar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 r
 
 Els tests d'integració (`tests/integration/test_redis.py`) s'executen si hi ha `REDIS_HOST`; la CI aixeca Redis 8.
 
+## APOD (NASA)
+
+`GET /api/apod` retorna la imatge astronòmica del dia de la NASA; `GET /api/apod?date=AAAA-MM-DD`, la d'aquella data. L'adaptador (`app/infrastructure/apod/nasa_provider.py`) la busca en aquest ordre:
+
+1. **Redis** (`cache:apod:<data>`, TTL 24 h).
+2. **PostgreSQL** (taula `apod`, una fila per data): s'hi desa cada APOD rebut de la NASA, i si hi és, es torna a posar a Redis.
+3. **NASA** (`https://api.nasa.gov/planetary/apod`): la resposta es desa a PostgreSQL i a Redis.
+
+Sense data, es busca el d'avui (UTC) a Redis i PostgreSQL; si no hi és, es demana a la NASA l'últim publicat. Si la NASA falla (error, timeout o resposta inservible), es retorna la dada guardada: l'APOD d'aquella data o, per a avui, l'últim desat. Sense res guardat, la resposta és 503 `APOD_UNAVAILABLE`. Si Redis cau, la petició continua amb PostgreSQL i la NASA.
+
+Perquè no es cridi la NASA a cada petició, dues respostes es guarden a Redis **15 minuts** (`RETRY_AFTER_SECONDS`): el resultat d'avui mentre la NASA encara no l'ha publicat (`cache:apod:today:<data>`) i una crida fallida a la NASA (`cache:apod:unavailable:<data|latest>`), que no es repeteix fins que caduca.
+
+Configuració (`.env`):
+
+| Variable | Per defecte | Significat |
+|---|---|---|
+| `NASA_API_KEY` | (obligatòria) | Clau d'[api.nasa.gov](https://api.nasa.gov). En local val `DEMO_KEY` (amb límit de peticions). S'envia a la capçalera `X-Api-Key`, mai a la URL, perquè no surti als logs. |
+| `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Timeout de connexió |
+| `NASA_TIMEOUT_SECONDS` | `10` | Timeout total d'una petició (sense reintents) |
+
+L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NASA_API_KEY`; mai facis commit d'una clau real.
+
+> Ara mateix l'API de la NASA respon amb un farciment en lloc de l'APOD (el logotip de NASA Science i un text genèric, observat el 2026-10-21). El client el rebutja com qualsevol altra resposta inservible, així que mai es desa.
+
 ## Autenticació
 
 L'app inicia la sessió amb Google (OAuth2 + PKCE) i envia l'`id_token` de Google al backend, que mai rep el codi d'autorització ni desa cap contrasenya ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). El backend en comprova el token i emet una sessió pròpia.
