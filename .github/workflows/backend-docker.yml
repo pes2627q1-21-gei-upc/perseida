@@ -5,9 +5,10 @@ name: Backend Docker build
 # S'activa quan canvia codi rellevant del backend o el propi workflow.
 #
 # Disparadors:
-#   · push a develop o main     → build + push de la imatge a GHCR.
+#   · push a develop o release/* → build + push de la imatge a GHCR.
 #   · pull_request cap a develop o main → build sense push (validació).
 #   · workflow_dispatch         → execució manual per a proves o redesplegaments.
+#   · workflow_call             → el CD (`cd.yml`) hi publica la imatge de `main`.
 #
 # Filtres de rutes (paths):
 #   Només s'executa si el canvi afecta fitxers del backend o el workflow.
@@ -16,8 +17,10 @@ name: Backend Docker build
 
 on:
   push:
+    # `main` no hi és: el publica el workflow `cd.yml` (workflow_call), perquè
+    # el desplegament sempre tingui la imatge `sha-<commit>` encara que no
+    # hagin canviat fitxers del backend.
     branches:
-      - main
       - develop
       - "release/*"
     tags:
@@ -36,6 +39,9 @@ on:
       - ".github/workflows/backend-docker.yml"
 
   workflow_dispatch:
+
+  # Cridat pel CD (TG-38) a cada push a `main`, sense filtre de rutes.
+  workflow_call:
 
 # ── Permisos globals (mínim per defecte) ─────────────────────────────────────
 # Es nega tot el que no es declara explícitament a nivell de job.

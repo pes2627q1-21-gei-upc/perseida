@@ -28,7 +28,7 @@ def build_auth_service(
 ) -> AuthService:
     """Wire the auth service; called once from the lifespan, which owns the clients."""
     return AuthService(
-        verifier=GoogleJwksVerifier(client, settings.google_client_id),
+        verifier=GoogleJwksVerifier(client, settings.google_client_ids),
         codec=JwtTokenCodec(settings.jwt_secret),
         store=RedisSessionStore(redis),
         accounts=accounts,

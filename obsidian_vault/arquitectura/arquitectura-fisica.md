@@ -3,8 +3,8 @@ titol: "Arquitectura física i desplegament"
 tipus: arquitectura
 estat: vigent
 data: "2026-10-20"
-us: ["TG-85", "TG-37", "TG-89", "TG-34", "TG-35"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18, PR #24); infra/docker-compose.yml (TG-37)"
+us: ["TG-85", "TG-37", "TG-89", "TG-34", "TG-35", "TG-38"]
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18, PR #24); infra/docker-compose.yml (TG-37); .github/workflows/cd.yml i infra/scripts/deploy.sh (TG-38)"
 etiquetes: [arquitectura, infra, docker-compose, desplegament]
 ---
 
@@ -13,7 +13,7 @@ etiquetes: [arquitectura, infra, docker-compose, desplegament]
 Perseida es desplega sobre **un únic servidor de Virtech** on Docker Compose orquestra **cinc contenidors**. Kubernetes es va descartar explícitament: amb un sol host físic només afegeix overhead de control plane i el punt únic de fallada continua sent el servidor ([[0002-docker-compose-en-lloc-de-kubernetes]]).
 
 > [!note] Estat
-> `infra/docker-compose.yml` i `infra/docker-compose.override.yml` ja estan implementats (US TG-37) amb els cinc serveis orquestrats, aïllament de xarxa (`internal: true` a producció i xarxa `dev` addicional només a l'override local per publicar ports de depuració) i volums persistents. La CD automàtica a Virtech per SSH és objecte de la US TG-38.
+> `infra/docker-compose.yml` i `infra/docker-compose.override.yml` ja estan implementats (US TG-37) amb els cinc serveis orquestrats, aïllament de xarxa (`internal: true` a producció i xarxa `dev` addicional només a l'override local per publicar ports de depuració) i volums persistents. La CD automàtica a Virtech per SSH (US TG-38) també hi és: vegeu «Flux de desplegament (CI/CD)».
 
 ## Diagrama
 
@@ -64,11 +64,13 @@ flowchart TB
   - Les ordres per reproduir-ho en local són als README del backend i del frontend, secció "Integració contínua".
   - Quan un job s'omet perquè no han canviat els seus fitxers, compta com a superat per a un check requerit; per això el filtre és dins del workflow i no a `paths:`.
 - **CI pendent**: SonarQube Cloud i comprovació del Quality Gate arribaran amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194). La CI és obligatòria per fusionar quan TG-33 en fixi els checks requerits (`backend` i `frontend`).
-- **CD** a cada push a `main` (merge de release o hotfix):
-  1. Construeix la imatge del backend, l'etiqueta amb el `git-sha` i la puja a **GHCR**.
-  2. Es connecta per **SSH** al servidor de Virtech, renderitza el `.env` des dels secrets de GitHub (`chmod 600`) i executa `docker compose up`.
-  3. Publica l'**APK** del frontend en una release de GitHub.
-- **Rollback**: tornar a desplegar la imatge anterior pel seu `git-sha`.
+- **CD (implementada, TG-38)**: `.github/workflows/cd.yml` s'executa a cada push a `main` (merge de release o hotfix) i a mà des de `main`; un push o PR a `develop` o a una `feature/*` no el dispara. Tres jobs encadenats:
+  1. `verify-config`: comprova que hi són tots els secrets i variables (els noms d'`infra/.env.example` més els `SSH_*`) i, si en falta algun, falla llistant-los abans de tocar el servidor.
+  2. `image`: reutilitza `backend-docker.yml` (`workflow_call`) i puja a **GHCR** `perseida-api:sha-<commit>` encara que no hagi canviat cap fitxer del backend.
+  3. `deploy` (entorn `production`): es connecta per **SSH** amb clau (secret de GitHub) i verificació estricta de la clau del servidor, copia `docker-compose.yml` i `infra/scripts/deploy.sh` a `/opt/perseida`, renderitza el `.env` des dels secrets i variables (`chmod 600`; viatja per stdin, mai surt als logs), fa `docker login` a GHCR amb el `GITHUB_TOKEN` temporal del job (el paquet pot continuar privat) i executa `deploy.sh <tag>`.
+  - Publicar l'**APK** del frontend en una release de GitHub encara no hi és.
+- **Healthcheck i rollback automàtic** ([[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]): `deploy.sh` fa `docker compose up -d` i espera fins a 120 s que `GET /api/health` respongui 200 amb `status: ok`. Si ho fa, desa el tag a `/opt/perseida/.deployed-tag`. Si no, atura l'API i fa una sonda amb la imatge anterior sense migracions i amb el mateix `.env`: si tampoc respon (o els noms de variable han canviat), el fallo és de configuració o d'infraestructura i no es desfà res; si respon i els noms de variable del `.env` no han canviat respecte del darrer desplegament bo (`.deployed-env`), desfà les migracions d'Alembic fins a la revisió de la imatge anterior (`alembic downgrade`, amb la imatge nova, que és la que les té), arrenca la imatge anterior, comprova el healthcheck i **el job acaba sempre en error**. El primer desplegament no té versió anterior. Els logs dels contenidors no es mostren al workflow perquè són públics.
+- **Rollback manual**: `./deploy.sh --rollback sha-<commit>` al servidor, per SSH ([[api]]); fa el downgrade amb la imatge de l'últim intent fallit (`.attempted-tag`) si n'hi ha. Desfer migracions elimina les dades de les taules i columnes que havien creat, i no hi ha còpies de seguretat.
 - Versionat SemVer des de `0.1.0`, una release per sprint.
 
 ## Servidor de Virtech (VM)

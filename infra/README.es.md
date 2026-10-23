@@ -52,11 +52,12 @@ flowchart TB
 
 - **CI** en cada PR hacia `develop`/`main`, con filtros por ruta y caché de dependencias `uv`/`pnpm`: formato, linters y tipos → tests con cobertura → SonarQube Cloud → Quality Gate. Obligatorio para fusionar.
 - **CD** en cada push a `main` (fusión de release o hotfix):
-  1. Construye la imagen del backend, la etiqueta con el `git-sha` y la sube a **GHCR**.
-  2. Se conecta al servidor de Virtech por **SSH**, renderiza el `.env` desde los secretos de GitHub (`chmod 600`) y ejecuta `docker compose up`.
-  3. Publica el **APK** del frontend en una release de GitHub.
+  1. Construye la imagen del backend (el job `image` reutiliza `backend-docker.yml`), la etiqueta con el `git-sha` (`sha-<7 caracteres>`) y la sube a **GHCR**, aunque no haya cambiado ningún fichero del backend.
+  2. Se conecta al servidor de Virtech por **SSH**, copia `docker-compose.yml` y `deploy.sh`, renderiza el `.env` desde los secretos y variables de GitHub (`chmod 600`) y ejecuta `deploy.sh`: descarga la imagen, hace `docker compose up` y comprueba el healthcheck con un tiempo de espera.
+  3. Si el healthcheck falla, hace rollback automático a la versión anterior y el job termina en error.
+  4. Publica el **APK** del frontend en una release de GitHub.
 - Versionado: SemVer a partir de `0.1.0`, una release por sprint, automatizado por el pipeline.
-- Rollback: redesplegar la imagen anterior por su `git-sha`.
+- Rollback: automático cuando falla el healthcheck, manual con `deploy.sh --rollback <tag>` (véase *Despliegue en producción (CD)* más abajo).
 - El repositorio también contiene una automatización que desbloquea tareas de Taiga (`.github/workflows/taiga-unblock.yml`).
 
 ## GHCR — Permisos y visibilidad del paquete
@@ -120,7 +121,7 @@ El servicio FastAPI (`perseida-api`) utiliza las siguientes variables de entorno
 | `REDIS_PORT` | No | Puerto del servicio Redis | `6379` |
 | `APP_ENV` | No | Entorno de ejecución (`local`, `production`) | `production` |
 | `API_IMAGE_TAG` | No | Etiqueta o SHA de commit de la imagen en GHCR (usado para rollbacks) | `latest` o `sha-a1b2c3d` |
-| `GOOGLE_CLIENT_ID` | Sí | Audiencia esperada de los tokens de identidad de Google | `1234-abc.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_IDS` | Sí | Audiencias aceptadas de los tokens de identidad de Google: clientes OAuth (web, Android, iOS), separados por comas | `1234-web.apps.googleusercontent.com,5678-ios.apps.googleusercontent.com` |
 | `JWT_SECRET` | Sí | Secreto para firmas JWT de sesión (al menos 32 caracteres) | `<salida de openssl rand -hex 32>` |
 | `NASA_API_KEY` | Sí | Clave de la API de la NASA para el APOD (la API no arranca sin ella); en local vale `DEMO_KEY`, con límite de peticiones | `<clave de https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Tiempo de expiración de los access tokens en minutos (por defecto: 15) | `15` |
@@ -139,6 +140,86 @@ Cuando la imagen se sube por primera vez, GitHub crea el paquete como **privado*
 
 En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta `org.opencontainers.image.source`, que `docker/metadata-action` fija automáticamente a la URL del repositorio. `github.repository_owner` solo decide qué cuenta es propietaria del paquete.
 
+## Despliegue en producción (CD)
+
+`.github/workflows/cd.yml` se ejecuta en cada push a `main` (y a mano desde `main`). Un push o PR a `develop` o a una rama `feature/*` no lo dispara nunca. Jobs, en orden: `verify-config` (comprueba todos los secretos y variables, antes de tocar el servidor) → `image` (construye y sube a GHCR) → `deploy` (entorno `production`).
+
+> **Ningún secreto entra nunca en el repositorio.** Los secretos y variables viven solo en GitHub (**Settings → Secrets and variables → Actions**); este README lista sus *nombres*, nunca sus valores. El `.env` se genera en el servidor y está ignorado por git. Créalos como secretos y variables **de repositorio**, no como secretos del entorno `production`: `verify-config` no usa ese entorno y los daría por ausentes.
+
+### Secretos y variables requeridos
+
+`verify-config` lista todos los nombres que faltan y falla antes de tocar el servidor. Los nombres salen de `infra/.env.example` (menos los de abajo que se definen en otro sitio) más los `SSH_*`. Los nombres marcados como Secreto deben ser secretos: `verify-config` también falla si alguno existe solo como variable, porque una variable se ve sin enmascarar en los logs públicos. El resto pueden ser una cosa u otra. Los valores no pueden llevar saltos de línea ni comillas simples.
+
+| Nombre | Tipo | Qué es |
+|---|---|---|
+| `SSH_HOST` | Secreto | Host al que se conecta el runner (el nombre público del NAT de la VM de Virtech) |
+| `SSH_PORT` | Secreto | Puerto SSH (ahora el puerto NAT que llega al `8089` de la VM) |
+| `SSH_USER` | Secreto | Usuario SSH de la VM |
+| `SSH_PRIVATE_KEY` | Secreto | Parte privada de la clave de despliegue dedicada (ed25519) |
+| `SSH_KNOWN_HOSTS` | Secreto | Línea(s) de la clave del servidor, p. ej. de `ssh-keyscan -p <puerto> <host>`; la conexión nunca desactiva la verificación de la clave |
+| `POSTGRES_PASSWORD` | Secreto | Contraseña de la base de datos de producción (aleatoria, solo para producción) |
+| `POSTGRES_DB`, `POSTGRES_USER` | Secreto | Nombre y usuario de la base de datos de producción |
+| `JWT_SECRET` | Secreto | Clave de los JWT de sesión, como mínimo 32 caracteres (`openssl rand -hex 32`) |
+| `NASA_API_KEY` | Secreto | Clave de la API de la NASA para el APOD (<https://api.nasa.gov>) |
+| `POSTGRES_PORT` | Variable | Puerto de la base de datos |
+| `POSTGRES_HOST` | Variable | `postgres` (alias de red del servicio de base de datos) |
+| `REDIS_HOST` | Variable | `redis` (alias de red del servicio de caché) |
+| `REDIS_PORT`, `CACHE_DEFAULT_TTL_SECONDS` | Variable | Puerto de Redis y TTL por defecto de la caché |
+| `SCHEDULER_ENABLED`, `SCHEDULER_TIMEZONE` | Variable | Interruptor del planificador y zona horaria IANA |
+| `APP_ENV` | Variable | `production` |
+| `GOOGLE_CLIENT_IDS` | Variable | Client ids OAuth (web, Android, iOS), separados por comas; valores públicos |
+| `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS` | Variable | Duraciones de la sesión (`15` y `30`) |
+| `HTTP_PORT`, `HTTPS_PORT` | Variable | Puertos que publica nginx-proxy-manager en la VM (`8080` y `8081`; solo el `8080`–`8088` es accesible desde fuera) |
+
+No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `NPM_ADMIN_PORT` y `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
+
+Requisitos del servidor: Docker Engine con Compose 2.22 o superior (`pull --policy`), `flock` (de `util-linux`), el usuario SSH en el grupo `docker` y `/opt/perseida` con permiso de escritura para ese usuario.
+
+### Cómo se genera el `.env`
+
+`infra/scripts/render_env.py` lo construye con los secretos y variables de la ejecución:
+
+1. `check` falla, indicando cuáles faltan, si algún nombre de `infra/.env.example` (o algún `SSH_*`) no tiene secreto ni variable.
+2. `mask` registra cada valor secreto con `::add-mask::`, de modo que en los logs sale como `***`.
+3. `render` escribe líneas `NOMBRE='valor'` por la salida estándar. El runner las pasa por SSH a un fichero temporal del servidor creado con `umask 077`; se comprueba que no esté vacío, se le pone `chmod 600` y se mueve a `/opt/perseida/.env` de golpe, así un render fallido nunca pisa un buen `.env`. El `.env` nunca toca el disco del runner, el repositorio ni los logs.
+
+El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`docker login` por stdin y `docker logout` al final), de modo que el paquete puede seguir siendo privado.
+
+### Rollback automático
+
+`deploy.sh <tag>` descarga la imagen si falta, ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok` (el propio Compose puede rendirse antes, cuando se rinde el healthcheck del contenedor, unos 65 s con la configuración actual; el resultado es el mismo). Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
+
+1. Se detiene la API.
+2. **Sonda:** se arranca la imagen anterior (el tag de `.deployed-tag`) **sin migraciones** y con el mismo `.env`, en un contenedor temporal.
+   - Si no responde, la causa es la configuración o la infraestructura, no el código nuevo: **no se deshace nada** (los datos se conservan), la API queda parada y el job falla diciéndote que corrijas el secreto o la variable y vuelvas a ejecutar el CD.
+   - Si responde, la causa es el código nuevo o sus migraciones y el rollback continúa.
+   - Aunque responda, si los nombres de variable del `.env` difieren de los del último despliegue bueno (`.deployed-env`, solo nombres), tampoco se deshace nada: una variable nueva que falta o es errónea hace fallar la versión nueva pero no la sonda. La API queda parada y el job falla diciendo que revises los secretos y las variables. Sin `.deployed-env` (primer despliegue tras esta comprobación) se considera que han cambiado, que es el caso seguro.
+3. Se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
+4. Se arranca la imagen anterior con normalidad y se vuelve a comprobar el healthcheck.
+5. El job **siempre termina en error**, aunque el rollback haya funcionado.
+
+La sonda corre en un contenedor temporal llamado `perseida-probe`, con el planificador desactivado (`SCHEDULER_ENABLED=false`), y espera hasta `PROBE_TIMEOUT` segundos (60 por defecto); termina antes si el contenedor sale. Si la sonda ni siquiera se puede crear (por ejemplo, la imagen anterior ya no está en el servidor y no se puede descargar), tampoco se deshace nada y el job falla diciéndolo. Un bloqueo (`/opt/perseida/.deploy.lock`, con `flock`) evita que un `--rollback` manual coincida con un despliegue; sin `flock` el script solo avisa y continúa. Antes de arrancar una versión nueva, el script guarda su tag en `.attempted-tag`; se borra cuando un despliegue o un rollback terminan bien. Si el CD deja la API parada sin deshacer nada (configuración, sonda que no se puede crear o nombres de variable cambiados), el esquema puede ser más nuevo que `.deployed-tag`, porque la imagen nueva ya ha aplicado sus migraciones. Tienes dos salidas: corregir el secreto o la variable y volver a ejecutar el CD, o volver a la versión anterior con `./deploy.sh --rollback <tag-anterior>`, que deshace las migraciones con la imagen de `.attempted-tag` (la que las conoce) y, por tanto, borra sus datos.
+
+El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales (por tanto, el primer despliegue tras pasar `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_IDS` tampoco puede hacer rollback a una imagen anterior a ese cambio). Si un despliegue falla por un valor erróneo (por ejemplo una clave), la sonda lo detecta, porque la imagen anterior falla igual: no se deshace nada; hay que corregir el secreto o la variable y volver a ejecutar el CD. La sonda no puede distinguir una base de datos caída, porque el healthcheck no la consulta. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
+
+### Rollback manual a una versión concreta
+
+```bash
+ssh -p <puerto> <usuario>@<host>
+cd /opt/perseida
+cat .deployed-tag                                          # versión que corre ahora
+docker images ghcr.io/pes2627q1-21-gei-upc/perseida-api    # versiones que aún están en el servidor
+./deploy.sh --rollback sha-a1b2c3d
+```
+
+Si la imagen de destino ya no está en el servidor, hay que hacer antes `docker login ghcr.io -u <usuario-github>` con un token con `read:packages`. El script deshace las migraciones hasta la revisión de esa versión con la imagen del último intento fallido (`.attempted-tag`) si lo hay, y si no con la de `.deployed-tag`; la arranca, comprueba el healthcheck, actualiza `.deployed-tag` y borra `.attempted-tag`.
+
+> **Aviso sobre los datos:** deshacer una migración elimina las tablas y columnas que había creado, con sus datos. No hay copias de seguridad. Volver a una versión muy antigua solo debe hacerse sabiéndolo.
+
+### Acceso SSH del equipo
+
+La VM solo acepta claves (el acceso por contraseña está desactivado). Quien ya tiene acceso añade la clave **pública** de un compañero con `infra/scripts/add-team-key.sh`: pide un nombre y la clave pública, rechaza claves privadas y claves RSA de menos de 3072 bits y la añade a `authorized_keys` sin duplicar. La clave de despliegue (`SSH_PRIVATE_KEY`) es independiente de las claves personales.
+
 ## Configuración y secretos
 
 - Los secretos y variables viven en **Secrets and variables** de GitHub; el job de CD genera el `.env` en el servidor. El `.env` **nunca** se versiona; un `.env.example` sin valores hace de plantilla.
@@ -155,6 +236,9 @@ infra/
 ├── nginx-proxy-manager/        # configuración del proxy
 ├── moderation/                 # imagen/configuración del servicio Kev-4B
 └── scripts/
+    ├── deploy.sh                # se ejecuta en el servidor: pull, up, healthcheck, rollback
+    ├── render_env.py            # CD: comprueba secretos/variables y renderiza el .env
+    ├── add-team-key.sh          # añade la clave SSH pública de un compañero a la VM
     └── test-backend-docker.sh   # validación local y smoke test de perseida-api
 ```
 

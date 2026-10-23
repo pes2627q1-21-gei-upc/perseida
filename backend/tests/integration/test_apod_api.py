@@ -54,7 +54,7 @@ def _migrated() -> None:
 def _env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("SCHEDULER_ENABLED", "false")
     # The lifespan also builds the auth service (TG-44), which requires these.
-    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test.apps.googleusercontent.com")
+    monkeypatch.setenv("GOOGLE_CLIENT_IDS", "test.apps.googleusercontent.com")
     monkeypatch.setenv("JWT_SECRET", "t" * 32)
     monkeypatch.setenv("NASA_API_KEY", API_KEY)
     get_scheduler_settings.cache_clear()
