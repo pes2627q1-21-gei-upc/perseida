@@ -1,3 +1,4 @@
+import { makeRedirectUri } from 'expo-auth-session';
 import { Platform } from 'react-native';
 
 export interface GoogleClientIds {
@@ -41,4 +42,16 @@ export function getGoogleClientId(platform: typeof Platform.OS = Platform.OS): s
 
   // Fallback to web client ID in development if platform-specific ID is not configured
   return clientId || ids.web || '';
+}
+
+/**
+ * Returns the redirect URI for the OAuth callback.
+ * On native devices (iOS/Android), produces the deep link `perseida://oauth/callback`.
+ * On web, resolves to the browser location.
+ */
+export function getGoogleRedirectUri(): string {
+  return makeRedirectUri({
+    scheme: 'perseida',
+    path: 'oauth/callback',
+  });
 }

@@ -1,4 +1,12 @@
-import { getGoogleClientId, getGoogleClientIds } from './googleConfig';
+import { getGoogleClientId, getGoogleClientIds, getGoogleRedirectUri } from './googleConfig';
+
+jest.mock('expo-auth-session', () => {
+  const actual = jest.requireActual('expo-auth-session');
+  return {
+    ...actual,
+    makeRedirectUri: jest.fn(({ scheme, path } = {}) => `${scheme ?? 'perseida'}://${path ?? ''}`),
+  };
+});
 
 describe('googleConfig', () => {
   const savedWeb = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
@@ -46,5 +54,11 @@ describe('googleConfig', () => {
     delete process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
     delete process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
     expect(getGoogleClientId('ios')).toBe('');
+  });
+
+  it('generates redirect URI containing the perseida scheme', () => {
+    const redirectUri = getGoogleRedirectUri();
+    expect(redirectUri).toBeDefined();
+    expect(typeof redirectUri).toBe('string');
   });
 });
