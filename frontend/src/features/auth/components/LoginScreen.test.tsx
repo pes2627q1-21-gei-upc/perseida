@@ -7,10 +7,16 @@ import * as googleAuthHook from '../hooks/useGoogleAuth';
 import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, REDUCED_MOTION_COUNT, SLOT_COUNT } from './PerseidShower';
 import { authStrings } from '../strings';
+import * as googleSignInModule from '../api/googleSignIn';
+import * as tokenStorage from '../tokenStorage';
 import LoginScreen from '../../../app/login';
 
+const mockReplace = jest.fn();
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => mockParams,
+  useRouter: () => ({ replace: mockReplace }),
+}));
 
 const mockUseReducedMotion = jest.fn(() => false);
 // Every meteor launch, with the (fake) clock at that moment and its flight time.
@@ -83,6 +89,37 @@ describe('Login screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
 
     expect(mockSignIn).toHaveBeenCalled();
+  });
+
+  it('exchanges id_token for app session tokens, saves them, and navigates to the app (criteria 3, 4, 6)', async () => {
+    const mockTokens = {
+      access_token: 'acc-1',
+      refresh_token: 'ref-1',
+      token_type: 'bearer' as const,
+      expires_in: 900,
+    };
+    jest.spyOn(googleSignInModule, 'signInWithGoogle').mockResolvedValueOnce(mockTokens);
+    const saveSpy = jest.spyOn(tokenStorage, 'saveTokens').mockResolvedValueOnce();
+
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          await capturedOptions?.onSuccess?.('id-token-valid');
+          return { type: 'success' as const, idToken: 'id-token-valid' };
+        }),
+        isAuthenticating: false,
+      };
+    });
+
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(googleSignInModule.signInWithGoogle).toHaveBeenCalledWith('id-token-valid');
+    expect(saveSpy).toHaveBeenCalledWith({ accessToken: 'acc-1', refreshToken: 'ref-1' });
+    expect(mockReplace).toHaveBeenCalledWith('/(app)');
   });
 
   it('displays and announces error notice when authentication encounters an error', async () => {

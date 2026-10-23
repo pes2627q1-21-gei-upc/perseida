@@ -1,18 +1,21 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { signInWithGoogle } from '../features/auth/api/googleSignIn';
 import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
 import { useGoogleAuth } from '../features/auth/hooks/useGoogleAuth';
 import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
 import { authStrings } from '../features/auth/strings';
+import { saveTokens } from '../features/auth/tokenStorage';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
 
 /** Sign-in screen. Its memorable element is the Perseid shower over the lake. */
 export default function LoginScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { notice: noticeParam } = useLocalSearchParams<{ notice?: string }>();
@@ -22,6 +25,14 @@ export default function LoginScreen() {
     pressedNotice ?? (noticeParam === LOGOUT_NOTICE ? authStrings.logoutNotConfirmed : null);
 
   const { signIn, isAuthenticating } = useGoogleAuth({
+    onSuccess: async (idToken) => {
+      const tokens = await signInWithGoogle(idToken);
+      await saveTokens({
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+      });
+      router.replace('/(app)');
+    },
     onError: (err) => setPressedNotice(err.message),
   });
 
