@@ -31,6 +31,9 @@ def _env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         "POSTGRES_PORT": "1",
         "REDIS_HOST": "127.0.0.1",
         "REDIS_PORT": "1",
+        "GOOGLE_CLIENT_ID": "test.apps.googleusercontent.com",
+        "JWT_SECRET": "t" * 32,
+        "NASA_API_KEY": "test-nasa-api-key",
     }.items():
         monkeypatch.setenv(key, value)
     monkeypatch.delenv("SCHEDULER_ENABLED", raising=False)

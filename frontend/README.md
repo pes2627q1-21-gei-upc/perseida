@@ -30,7 +30,7 @@ Mobile app and admin panel of **Perseida**, a multiplatform app for astronomy ou
 | Local storage | SQLite (outbox + offline cache)                                  |
 | Auth          | Google OAuth2 + PKCE                                             |
 | Push          | Firebase Cloud Messaging                                         |
-| API types     | Generated from the backend OpenAPI schema (`openapi-typescript`) |
+| API types     | Generated from the backend OpenAPI schema (`openapi-typescript`; copy of `/api/openapi.json` in `openapi/openapi.json`, then `pnpm api:generate`) |
 | Admin web     | React Native Web (static bundle served by nginx-proxy-manager)   |
 | Dependencies  | `pnpm`                                                           |
 | Quality       | ESLint (TS, React, React Hooks), Prettier, SonarQube Cloud       |

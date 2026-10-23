@@ -79,6 +79,22 @@ Cos, reflex i vora **separats** perquè el reflex no passi per sota del text:
 - El text (`gel.text`) va sobre el cos: comprova el contrast amb `scripts/contrast.py` si canvies colors.
 - `loading`: indicador al lloc del text; `accessibilityState.busy`.
 
+## El llac (`SkyBackground`)
+
+`SkyBackground` pinta, de darrere cap endavant: el cel, `LakeWater` (llum, turons, aigua), la prop `behind` (el que ha de passar per darrere dels turons i de l'herba, com les Perseides), `LakeBanks` (el prat) i, a sobre de tot, el contingut. La geometria i tot l'«atzar» del llac (ones, centelleigs, bombolles, nenúfars, herba, flors, joncs) surten d'una llavor fixa a `lakeLayout.ts`: són iguals a cada render i a cada dispositiu, i es poden provar. El llac és un oval (superel·lipse) i el prat és la caixa sencera amb l'oval retallat (`fill-rule: evenodd`), així que la línia de costa és exacta. Rendiment: ~85 vistes animades al total, amb una sola passada de cada bucle; amb *reduce motion* tot queda quiet en una posició agradable. Les parts del llac són decoratives: amagades al lector de pantalla i sense tocs.
+
+## Pluja de Perseides (pantalla d'inici de sessió)
+
+L'element memorable de `/login`. Tot és **aleatori dins de límits** (`LIMITS` a `PerseidShower.tsx`): posició d'inici, mida, gruix, color (una variant de `meteors` del tema), angle (18–38° cap avall a l'esquerra), recorregut i velocitat de cada estel; i el ritme, amb 8 places que descansen un temps aleatori (1,5–9 s, escalat) i una densitat compartida que es torna a sortejar cada 15–35 s (de 2 a 5 estels alhora com a màxim, descans ×0,6–1,6). Es dibuixa **abans** del contingut, així que passa sempre per darrere de textos i botons. La cua és el cap a l'esquerra (la direcció del moviment) i es desfà cap a la dreta; el reflex és la **imatge mirall exacta** de l'estel respecte de la línia de flotació (mateixa x, a tanta profunditat sota la línia com l'estel és a sobre, inclinat al revés i més feble com més avall), en una capa que és només aigua: comença sota els turons reflectits, perquè allà l'aigua mostra els turons i no el cel, i el prat de les vores la retalla a la forma del llac. Per això només es reflecteixen els estels **baixos** (prop dels turons, el 45 % dels que es sorteja): la imatge d'un de ben alt cauria per sota de la pantalla. Les mides es mesuren de la capa mateixa (`onLayout`), no de la finestra, perquè l'aigua està ancorada a baix i la finestra pot ser més alta que la pantalla (barra d'estat). Amb *reduce motion* queden 4 estels fixos; en segon pla tot s'atura.
+
+## Acció secundària: `QuietButton`
+
+El gel és per a l'acció principal d'una pantalla i el vidre per a capes flotants (`principis.md`), així que una acció secundària (p. ex. «Tanca la sessió») no és cap dels dos: `QuietButton` (`src/shared/ui`) és una píndola transparent amb una vora fina de `surface.glassBorder`, text `text.primary`, `touch.min` d'alçada i, premuda, el fons `surface.glass`. Admet `icon` decoratiu i `busy` (anunciat com a ocupat, ignora els tocs). Només va sobre el cel o sobre una capa de vidre ja contrastada: el text hereta el contrast verificat de `text.primary`.
+
+## Logotips de tercers: la «G» de Google
+
+La marca de Google exigeix el logotip oficial **sense cap canvi** (no redibuixar-lo, no tenyir-lo, no estirar-lo; només el logotip vigent, no el «G» antic de quatre colors) i damunt fons blanc. Es fa servir el botó d'icona oficial (tema Light, sense text, cercle) del paquet `signin-assets.zip` de les directrius de marca, copiat byte per byte a `frontend/assets/google/` (hi ha l'origen i la regla a `assets/google/README.md` i un test que en comprova el SHA-256). Si Google publica un paquet nou, se substitueixen els tres fitxers; no es dibuixa mai a mà.
+
 ## Icones
 
 Una **sola família**: **Phosphor** (`phosphor-react-native`; veure `tokens.md`), mai emojis ni altres famílies. Les icones d'**acció principal** poden anar en un orbe glossy (cercle/quadrat arrodonit amb reflex curvat i vora de llum, com l'iPhone 4); la resta d'icones d'UI són planes amb un glow suau. Decoratives amagades al lector de pantalla.

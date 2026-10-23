@@ -2,8 +2,8 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-14"
-us: ["TG-85", "TG-40", "TG-70", "TG-113"]
+data: "2026-10-21"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
@@ -17,6 +17,9 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!note] Lectura del diagrama
 > Els atributs i les etiquetes de relació s'han transcrit tal com es llegeixen a la imatge. Les multiplicitats d'alguns extrems no es llegeixen amb claredat (línies que se solapen al voltant de `User`); aquí només es llisten les que es veuen bé i la resta es dona sense multiplicitat.
+
+> [!info] Implementat: usuari
+> `User` ja té taula i entitat (TG-135), amb més atributs que el diagrama; vegeu [[#Usuari (implementat)]].
 
 ## Gamificació
 
@@ -70,6 +73,23 @@ Etiquetes tal com apareixen al diagrama:
 - `User` — `EventChatRoom` («participa»); `User` — `ChatMessage` («envia»); `User` 2 — 0..* `DirectConversation` («participants»: 2 usuaris per conversa).
 - No s'assigna amb certesa: les tres multiplicitats «1» de la part superior de `User`, l'extrem `User` de les relacions «fites desbloquejades», «obté», «registre d'activitat» i «subscripcions», les de les tres línies llargues de la part inferior (`User` amb `EventChatRoom`, `ChatMessage` i `DirectConversation`, més enllà del «2» ja indicat) i la de l'autorelació «segueix». Es donen sense multiplicitat.
 - `ObservationZone` i `APOD` apareixen al paquet «Usuaris i esdeveniments» sense cap relació dibuixada.
+
+## Usuari (implementat)
+
+Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.py` (migració `create_users`). Convencions: [[0023-convencions-del-model-de-dades]].
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, clau primària interna |
+| `email` | únic, en minúscules; mai clau |
+| `display_name`, `avatar_url` | opcionals (perfil de Google) |
+| `preferred_language` | `ca` (per defecte), `es`, `en` |
+| `role` | `user` (per defecte), `moderator`, `admin` |
+| `status` | `active` (per defecte), `suspended`, `banned` |
+| `created_at`, `last_login_at` | `timestamptz` |
+| `deleted_at` | nul = actiu; soft delete |
+
+`user_identities(provider, subject, user_id, created_at)`: identitat externa (`google_sub` = `subject`), PK `(provider, subject)`, FK a `users`. A l'entitat de domini, `google_sub` és un camp de `User`; el repositori ho mapeja.
 
 ## Diagrama (transcripció)
 
