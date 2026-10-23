@@ -3,8 +3,8 @@ titol: "Component: redis"
 tipus: component
 estat: vigent
 data: "2026-10-22"
-us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16); Taiga TG-46 (2026-10-22)"
+us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87", "TG-143"]
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16); Taiga TG-46 (2026-10-22); Taiga TG-143 (2026-10-22)"
 etiquetes: [component, redis, cache, pubsub]
 ---
 
@@ -58,10 +58,11 @@ Les sessions no passen per la cache: es desen com `session:<type>:<jti>` (`type`
 - TG-46 (cache APOD)
 - TG-44 (sessions a Redis)
 - TG-87 (Redis)
+- TG-143 (verificar el servei Redis del Compose i `REDIS_*`)
 
 ## Estat d'implementació
 
-Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Primer ús real: la cache de l'APOD (TG-46), amb un test que comprova que es serveix des de Redis en ≤ 200 ms. Pendent: el servei `redis` al Docker Compose (TG-37).
+Client, ports, cache lazy i pub/sub implementats al backend (TG-87), amb tests d'integració contra Redis real. Primer ús real: la cache de l'APOD (TG-46), amb un test que comprova que es serveix des de Redis en ≤ 200 ms. El servei és `cache` (`redis:8-alpine`, healthcheck) al Docker Compose de `infra/` (TG-37), amb l'àlies de xarxa `redis`; `REDIS_HOST=cache` als `.env.example` de l'arrel i d'`infra/` (TG-143).
 
 ## Enllaços
 

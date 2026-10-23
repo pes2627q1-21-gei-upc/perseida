@@ -3,7 +3,7 @@ titol: "Google OAuth2 amb PKCE, validació JWKS i sessió pròpia"
 tipus: adr
 estat: acceptada
 data: "2026-10-21"
-us: ["TG-85", "TG-43", "TG-44", "TG-45"]
+us: ["TG-85", "TG-43", "TG-44", "TG-45", "TG-38"]
 font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87); Taiga: US TG-45 (criteris d'acceptació)"
 etiquetes: [adr, autenticacio, oauth2, pkce, jwks, seguretat]
 ---
@@ -36,7 +36,7 @@ L'app mòbil fa l'inici de sessió amb Google OAuth2 i PKCE. El backend valida e
 
 Detall d'implementació de la decisió anterior, confirmat a la US TG-44. No canvia la decisió.
 
-- **Validació del token de Google:** signatura RS256 amb les claus públiques de Google (JWKS, en memòria 1 h; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut; si Google cau, es continuen usant les claus guardades), emissor (`https://accounts.google.com` o `accounts.google.com`), audiència (`GOOGLE_CLIENT_ID`), caducitat i `email_verified`. Si falla: 401 `INVALID_GOOGLE_TOKEN`; sense claus i sense resposta de Google: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+- **Validació del token de Google:** signatura RS256 amb les claus públiques de Google (JWKS, en memòria 1 h; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut; si Google cau, es continuen usant les claus guardades), emissor (`https://accounts.google.com` o `accounts.google.com`), audiència (un dels clients de `GOOGLE_CLIENT_IDS`), caducitat i `email_verified`. Si falla: 401 `INVALID_GOOGLE_TOKEN`; sense claus i sense resposta de Google: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
 - **Format de la sessió:** dos JWT signats amb HS256 i `JWT_SECRET` (mínim 32 caràcters): *access token* de 15 minuts i *refresh token* de 30 dies, configurables amb `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS`. Claims: `sub` (el `google_sub`), `jti` (únic per token), `sid` (identificador de sessió, compartit per l'access i el refresh del mateix parell), `type` (`access` o `refresh`), `iat` i `exp`. El decode fixa l'algorisme i exigeix els sis claims.
 - **Claus a Redis:** cada token emès es desa com `session:<type>:<jti>` amb TTL igual a la seva caducitat. Un token només és vàlid si la signatura i la caducitat són correctes **i** la clau existeix; si no, 401 `INVALID_SESSION`. Revocar és esborrar la clau.
 - **Índex per usuari:** a més, cada usuari té el set `user_sessions:<sub>` amb membres `<sid>:<type>:<jti>`, amb un TTL que s'allarga fins al del token que viu més. `SessionStore` exposa `revoke_session(sub, sid)` (el parell d'una sessió, per al tancament de sessió, TG-45) i `revoke_all(sub)` (totes les sessions d'un usuari, per a la suspensió i el baneig i per tancar el WebSocket). Es fa ara perquè canviar el contracte del port més endavant obligaria a migrar les sessions ja emeses.
@@ -62,6 +62,15 @@ Detall d'implementació de l'alta d'usuari i del tancament de sessió, confirmat
 - **Frontend, mòbil:** els tokens es desen només a `expo-secure-store`. El tancament de sessió crida el logout, esborra els tokens i la cache de dades i torna a `/login`; el dispositiu queda sempre sense sessió encara que la crida falli.
 - **Frontend, web (panell d'administració):** `expo-secure-store` no existeix a web, així que `tokenStorage.web.ts` desa els tokens a `sessionStorage`: **sobreviuen a la recàrrega de la pàgina i moren en tancar la pestanya** (mai `localStorage`, que els deixaria viure més enllà de la sessió del navegador). Si `sessionStorage` no està disponible o llança un error, la sessió viu en memòria i la recàrrega demana iniciar sessió de nou. Contrapartida assumida: un script injectat a la pàgina (XSS) podria llegir-los, de manera que el panell no ha de carregar scripts de tercers. L'alternativa més segura és una galeta `httpOnly` emesa pel backend, que no s'ha fet perquè exigeix canviar el contracte de la sessió i el CORS; es pot reobrir quan el panell s'implementi.
 - **Logout no confirmat:** si la crida de logout falla (sense connexió, 503) però el dispositiu ja ha quedat sense sessió, la pantalla d'inici de sessió ho diu («S'ha tancat la sessió en aquest dispositiu, però no s'ha pogut confirmar al servidor»). Un 401 `INVALID_SESSION` no avisa: la sessió ja era tancada, que és el que es volia. No es reintenta: guardar un token per revocar-lo més tard contradiu l'esborrat immediat.
+
+## Concreció (TG-38)
+
+Detall de configuració decidit el 2026-10-22 en preparar el desplegament. No canvia la decisió.
+
+- **Un client OAuth per plataforma:** Web, Android i iOS. Un token de Google porta com a `aud` l'id del client que l'ha demanat, així que el backend ja no espera un sol valor: `GOOGLE_CLIENT_IDS` és una llista separada per comes i el token és vàlid si el seu `aud` és un dels clients. La llista és tancada (només ids nostres); la resta de validacions no canvia.
+- **L'app tria el seu client** segons la plataforma (`Platform.OS`) amb variables públiques `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` (els client ids no són secrets). El flux, a la US TG-43.
+- **Identificador de l'app:** `app.perseida` (*bundle ID* d'iOS i *package* d'Android; no es pot canviar un cop publicada).
+- **Sense `client_secret`:** els clients són públics (PKCE); el secret del client Web no s'usa ni es desa enlloc.
 
 ## Alternatives descartades
 

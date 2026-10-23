@@ -24,6 +24,7 @@ from tests.factories.google import CLIENT_ID, KEY, claims, jwk, token
 
 OTHER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 NEW_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+SECOND_CLIENT_ID = "ios.apps.googleusercontent.com"
 JWKS = {"keys": [jwk(KEY, "k1")]}
 ROTATED_JWKS = {"keys": [jwk(KEY, "k1"), jwk(NEW_KEY, "k2")]}
 
@@ -59,7 +60,7 @@ def clock() -> Clock:
 @pytest.fixture
 async def verifier(clock: Clock) -> AsyncIterator[GoogleJwksVerifier]:
     async with httpx.AsyncClient() as client:
-        yield GoogleJwksVerifier(client, CLIENT_ID, monotonic=clock)
+        yield GoogleJwksVerifier(client, [CLIENT_ID, SECOND_CLIENT_ID], monotonic=clock)
 
 
 @pytest.fixture
@@ -76,6 +77,15 @@ async def test_a_valid_token_returns_the_identity(
     assert identity.email == "ana@example.com"
     assert identity.name == "Ana"
     assert identity.picture == "https://example.com/ana.png"
+
+
+@pytest.mark.parametrize("audience", [CLIENT_ID, SECOND_CLIENT_ID])
+async def test_the_token_of_any_configured_client_is_accepted(
+    verifier: GoogleJwksVerifier, certs: respx.Route, audience: str
+) -> None:
+    identity = await verifier.verify(token(aud=audience))
+
+    assert identity.google_sub == "google-123"
 
 
 @pytest.mark.parametrize(
