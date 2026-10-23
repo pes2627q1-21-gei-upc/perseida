@@ -3,6 +3,7 @@ import { AccessibilityInfo, Dimensions, Platform, StyleSheet } from 'react-nativ
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LOGOUT_NOTICE } from '../hooks/useLogout';
+import * as googleAuthHook from '../hooks/useGoogleAuth';
 import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, REDUCED_MOTION_COUNT, SLOT_COUNT } from './PerseidShower';
 import { authStrings } from '../strings';
@@ -71,14 +72,38 @@ describe('Login screen', () => {
     expect(screen.queryByText(authStrings.loginUnavailable)).not.toBeOnTheScreen();
   });
 
-  it('explains that the sign-in is not available yet and announces it', async () => {
+  it('triggers Google OAuth PKCE flow when the button is pressed (US #43 criterion 1)', async () => {
+    const mockSignIn = jest.fn();
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockReturnValue({
+      signIn: mockSignIn,
+      isAuthenticating: false,
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+
+    expect(mockSignIn).toHaveBeenCalled();
+  });
+
+  it('displays and announces error notice when authentication encounters an error', async () => {
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(new Error('Connection failed'));
+          return { type: 'error' as const, error: new Error('Connection failed') };
+        }),
+        isAuthenticating: false,
+      };
+    });
     const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     await renderScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
 
-    expect(screen.getByText(authStrings.loginUnavailable)).toBeOnTheScreen();
-    expect(announce).toHaveBeenCalledWith(authStrings.loginUnavailable);
+    expect(screen.getByText('Connection failed')).toBeOnTheScreen();
+    expect(announce).toHaveBeenCalledWith('Connection failed');
   });
 
   it('explains that the sign-out was not confirmed when it comes from a failed logout', async () => {
@@ -99,12 +124,23 @@ describe('Login screen', () => {
 
   it('leaves the announcement to the live region on Android', async () => {
     jest.replaceProperty(Platform, 'OS', 'android');
+    let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+      capturedOptions = opts;
+      return {
+        signIn: jest.fn(async () => {
+          capturedOptions?.onError?.(new Error('Connection failed'));
+          return { type: 'error' as const, error: new Error('Connection failed') };
+        }),
+        isAuthenticating: false,
+      };
+    });
     const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     await renderScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
 
-    expect(screen.getByText(authStrings.loginUnavailable)).toBeOnTheScreen();
+    expect(screen.getByText('Connection failed')).toBeOnTheScreen();
     expect(announce).not.toHaveBeenCalled();
   });
 

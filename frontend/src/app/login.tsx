@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
+import { useGoogleAuth } from '../features/auth/hooks/useGoogleAuth';
 import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
 import { authStrings } from '../features/auth/strings';
 import { useTheme } from '../shared/theme';
@@ -20,14 +21,20 @@ export default function LoginScreen() {
   const notice =
     pressedNotice ?? (noticeParam === LOGOUT_NOTICE ? authStrings.logoutNotConfirmed : null);
 
+  const { signIn, isAuthenticating } = useGoogleAuth({
+    onError: (err) => setPressedNotice(err.message),
+  });
+
   // Android announces the live region below; iOS needs an explicit announcement.
   useEffect(() => {
     if (notice && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(notice);
   }, [notice]);
 
-  // TEMPORARY: US #43 replaces this body with the Google OAuth2 + PKCE flow, saves the
-  // tokens with saveTokens (features/auth/tokenStorage) and navigates to the app.
-  const handleContinue = () => setPressedNotice(authStrings.loginUnavailable);
+  // Launches Google OAuth2 + PKCE authorization flow
+  const handleContinue = async () => {
+    if (isAuthenticating) return;
+    await signIn();
+  };
 
   return (
     <SkyBackground behind={<PerseidShower />}>
