@@ -31,7 +31,11 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     }));
   });
 
-  it('configures AuthRequest with PKCE (S256) and correct scopes', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('TG-43 Criteri 1: configures AuthRequest with PKCE (S256) and correct scopes', async () => {
     mockPromptAsync.mockResolvedValueOnce({
       type: 'success',
       params: { code: 'valid-code', state: 'mock-csrf-state' },
@@ -55,7 +59,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     expect(result).toEqual({ type: 'success', idToken: 'valid-id-token' });
   });
 
-  it('exchanges code and verifier directly with Google on successful authorization', async () => {
+  it('TG-43 Criteri 2: exchanges code and verifier directly with Google on successful authorization without client_secret', async () => {
     mockPromptAsync.mockResolvedValueOnce({
       type: 'success',
       params: { code: 'auth-code-123', state: 'mock-csrf-state' },
@@ -80,7 +84,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     expect(result).toEqual({ type: 'success', idToken: 'google-id-token-xyz' });
   });
 
-  it('returns cancel when user cancels or dismisses the browser', async () => {
+  it('TG-43 Criteri 5: returns cancel when user cancels or dismisses the browser', async () => {
     mockPromptAsync.mockResolvedValueOnce({ type: 'cancel' });
 
     const result = await performGoogleOAuthFlow();
@@ -89,7 +93,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     expect(exchangeCodeAsync).not.toHaveBeenCalled();
   });
 
-  it('returns cancel when window is dismissed', async () => {
+  it('TG-43 Criteri 5: returns cancel when window is dismissed', async () => {
     mockPromptAsync.mockResolvedValueOnce({ type: 'dismiss' });
 
     const result = await performGoogleOAuthFlow();
@@ -98,7 +102,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     expect(exchangeCodeAsync).not.toHaveBeenCalled();
   });
 
-  it('returns error when auth session encounters an error', async () => {
+  it('TG-43 Criteri 5: returns error when auth session encounters an error', async () => {
     mockPromptAsync.mockResolvedValueOnce({
       type: 'error',
       error: { message: 'access_denied' },
@@ -112,10 +116,25 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     }
   });
 
-  it('returns error when Google does not return an authorization code', async () => {
+  it('TG-43 Criteri 2: returns error when response state does not match request state (CSRF prevention)', async () => {
     mockPromptAsync.mockResolvedValueOnce({
       type: 'success',
-      params: {},
+      params: { code: 'auth-code-123', state: 'tampered-csrf-state' },
+    });
+
+    const result = await performGoogleOAuthFlow();
+
+    expect(result.type).toBe('error');
+    if (result.type === 'error') {
+      expect(result.error.message).toContain('Invalid state parameter');
+    }
+    expect(exchangeCodeAsync).not.toHaveBeenCalled();
+  });
+
+  it('TG-43 Criteri 5: returns error when Google does not return an authorization code', async () => {
+    mockPromptAsync.mockResolvedValueOnce({
+      type: 'success',
+      params: { state: 'mock-csrf-state' },
     });
 
     const result = await performGoogleOAuthFlow();
@@ -126,10 +145,10 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     }
   });
 
-  it('returns error when token exchange does not return an id_token', async () => {
+  it('TG-43 Criteri 5: returns error when token exchange does not return an id_token', async () => {
     mockPromptAsync.mockResolvedValueOnce({
       type: 'success',
-      params: { code: 'auth-code-123' },
+      params: { code: 'auth-code-123', state: 'mock-csrf-state' },
     });
     (exchangeCodeAsync as jest.Mock).mockResolvedValueOnce({});
 
@@ -141,7 +160,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     }
   });
 
-  it('returns error if client ID is missing for platform', async () => {
+  it('TG-43 Criteri 1: returns error if client ID is missing for platform', async () => {
     jest.spyOn(googleConfig, 'getGoogleClientId').mockReturnValue('');
 
     const result = await performGoogleOAuthFlow();

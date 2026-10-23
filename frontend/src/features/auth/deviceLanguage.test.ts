@@ -1,6 +1,6 @@
 import { DEFAULT_LANGUAGE, getDeviceLanguage } from './deviceLanguage';
 
-describe('deviceLanguage · getDeviceLanguage', () => {
+describe('deviceLanguage · getDeviceLanguage (TG-43 Criteri 6)', () => {
   const originalDateTimeFormat = Intl.DateTimeFormat;
 
   afterEach(() => {

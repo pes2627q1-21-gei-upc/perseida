@@ -14,7 +14,7 @@ const mockTokenResponse = {
 };
 
 describe('googleSignIn · signInWithGoogle', () => {
-  it('posts id_token and device language to /api/auth/google and returns tokens (criteria 3 & 6)', async () => {
+  it('TG-43 Criteris 3 & 6: posts id_token and device language to /api/auth/google and returns tokens without code or verifier', async () => {
     const fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
         new Response(JSON.stringify(mockTokenResponse), {
@@ -38,7 +38,21 @@ describe('googleSignIn · signInWithGoogle', () => {
     });
   });
 
-  it('transforms problem+json 401 into an AppError with code INVALID_GOOGLE_TOKEN', async () => {
+  it('TG-43 Criteri 3: throws an error when server returns 200 without token data', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(null, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+
+    await expect(signInWithGoogle('google-id-token-abc', 'ca')).rejects.toThrow(
+      'Missing token response from auth server',
+    );
+  });
+
+  it('TG-43 Criteri 5: transforms problem+json 401 into an AppError with code INVALID_GOOGLE_TOKEN', async () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockImplementation(async () => problemResponse(401, 'INVALID_GOOGLE_TOKEN'));
@@ -50,7 +64,7 @@ describe('googleSignIn · signInWithGoogle', () => {
     expect((error as AppError).status).toBe(401);
   });
 
-  it('transforms problem+json 403 into an AppError with code ACCOUNT_SUSPENDED', async () => {
+  it('TG-43 Criteri 5: transforms problem+json 403 into an AppError with code ACCOUNT_SUSPENDED', async () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockImplementation(async () => problemResponse(403, 'ACCOUNT_SUSPENDED'));
@@ -62,7 +76,7 @@ describe('googleSignIn · signInWithGoogle', () => {
     expect((error as AppError).status).toBe(403);
   });
 
-  it('transforms problem+json 409 into an AppError with code EMAIL_ALREADY_REGISTERED', async () => {
+  it('TG-43 Criteri 5: transforms problem+json 409 into an AppError with code EMAIL_ALREADY_REGISTERED', async () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockImplementation(async () => problemResponse(409, 'EMAIL_ALREADY_REGISTERED'));
@@ -74,7 +88,19 @@ describe('googleSignIn · signInWithGoogle', () => {
     expect((error as AppError).status).toBe(409);
   });
 
-  it('transforms network errors into an AppError of kind network', async () => {
+  it('TG-43 Criteri 5: transforms problem+json 503 into an AppError with code IDENTITY_PROVIDER_UNAVAILABLE', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(503, 'IDENTITY_PROVIDER_UNAVAILABLE'));
+
+    const error = await signInWithGoogle('idp-down-token').catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe('IDENTITY_PROVIDER_UNAVAILABLE');
+    expect((error as AppError).status).toBe(503);
+  });
+
+  it('TG-43 Criteri 5: transforms network errors into an AppError of kind network', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => {
       throw new TypeError('Network request failed');
     });

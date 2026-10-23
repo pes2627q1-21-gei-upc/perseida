@@ -1,3 +1,4 @@
+import { QueryClient } from '@tanstack/react-query';
 import { queryClient } from '../../shared/api/queryClient';
 import { clearSession } from './session';
 import { getTokens, saveTokens } from './tokenStorage';
@@ -24,7 +25,7 @@ describe('clearSession helper (#232)', () => {
     jest.clearAllMocks();
   });
 
-  it('wipes tokens from secure store and purges query cache', async () => {
+  it('TG-43 Criteri 7: wipes tokens from secure store and purges query cache', async () => {
     expect(await getTokens()).not.toBeNull();
     expect(queryClient.getQueryData(['test-query'])).toEqual({ data: 'sample' });
 
@@ -32,5 +33,14 @@ describe('clearSession helper (#232)', () => {
 
     expect(await getTokens()).toBeNull();
     expect(queryClient.getQueryData(['test-query'])).toBeUndefined();
+  });
+
+  it('TG-43 Criteri 7: purges a custom query client if provided', async () => {
+    const customQc = new QueryClient();
+    customQc.setQueryData(['custom-key'], { value: 123 });
+
+    await clearSession(customQc);
+
+    expect(customQc.getQueryData(['custom-key'])).toBeUndefined();
   });
 });

@@ -18,7 +18,7 @@ afterEach(async () => {
 });
 
 describe('tokenStorage', () => {
-  it('stores the pair in the secure storage and reads it back (US #43 criterion 4)', async () => {
+  it('TG-43 Criteri 4: stores the pair in the secure storage and reads it back', async () => {
     await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
 
     expect(await getTokens()).toEqual({ accessToken: 'access-1', refreshToken: 'refresh-1' });
@@ -35,7 +35,7 @@ describe('tokenStorage', () => {
     expect(await getTokens()).toBeNull();
   });
 
-  it('clearTokens wipes both tokens (US #45 criterion 9)', async () => {
+  it('TG-43 Criteri 7: clearTokens wipes both tokens from secure storage', async () => {
     await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
 
     await clearTokens();

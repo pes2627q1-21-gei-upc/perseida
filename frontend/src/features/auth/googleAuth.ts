@@ -64,7 +64,10 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
     return { type: 'error', error: new Error('Authentication failed') };
   }
 
-  const { code } = authResponse.params;
+  const { code, state } = authResponse.params;
+  if (request.state && state !== request.state) {
+    return { type: 'error', error: new Error('Invalid state parameter returned from Google') };
+  }
   if (!code) {
     return { type: 'error', error: new Error('No authorization code returned from Google') };
   }

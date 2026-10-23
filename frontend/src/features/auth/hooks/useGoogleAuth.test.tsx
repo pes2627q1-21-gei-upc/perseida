@@ -8,7 +8,11 @@ describe('useGoogleAuth hook', () => {
     jest.clearAllMocks();
   });
 
-  it('manages isAuthenticating and triggers onSuccess upon successful authentication', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('TG-43 Criteri 1: manages isAuthenticating and triggers onSuccess upon successful authentication', async () => {
     jest.spyOn(googleAuthModule, 'performGoogleOAuthFlow').mockResolvedValueOnce({
       type: 'success',
       idToken: 'mock-id-token-abc',
@@ -19,18 +23,17 @@ describe('useGoogleAuth hook', () => {
 
     expect(result.current.isAuthenticating).toBe(false);
 
-    let authPromise: ReturnType<typeof result.current.signIn>;
+    let response: googleAuthModule.GoogleOAuthResult | undefined;
     await act(async () => {
-      authPromise = result.current.signIn();
+      response = await result.current.signIn();
     });
 
-    const response = await authPromise!;
     expect(response).toEqual({ type: 'success', idToken: 'mock-id-token-abc' });
     expect(onSuccess).toHaveBeenCalledWith('mock-id-token-abc');
     expect(result.current.isAuthenticating).toBe(false);
   });
 
-  it('catches error thrown in onSuccess, routes it to onError, and resets isAuthenticating', async () => {
+  it('TG-43 Criteri 5: catches error thrown in onSuccess, routes it to onError, and resets isAuthenticating', async () => {
     jest.spyOn(googleAuthModule, 'performGoogleOAuthFlow').mockResolvedValueOnce({
       type: 'success',
       idToken: 'mock-id-token-abc',
@@ -51,7 +54,7 @@ describe('useGoogleAuth hook', () => {
     expect(result.current.isAuthenticating).toBe(false);
   });
 
-  it('calls onCancel callback when user cancels the flow', async () => {
+  it('TG-43 Criteri 5: calls onCancel callback when user cancels the flow', async () => {
     jest.spyOn(googleAuthModule, 'performGoogleOAuthFlow').mockResolvedValueOnce({
       type: 'cancel',
     });
@@ -67,7 +70,7 @@ describe('useGoogleAuth hook', () => {
     expect(result.current.isAuthenticating).toBe(false);
   });
 
-  it('calls onError callback when flow fails', async () => {
+  it('TG-43 Criteri 5: calls onError callback when flow fails', async () => {
     const error = new Error('OAuth flow failed');
     jest.spyOn(googleAuthModule, 'performGoogleOAuthFlow').mockResolvedValueOnce({
       type: 'error',
