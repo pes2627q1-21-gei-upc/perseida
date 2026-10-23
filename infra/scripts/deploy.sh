@@ -18,6 +18,11 @@
 # sonda, i s'ha de poder corregir sense perdre dades. Surt sempre amb error perquè
 # el job quedi en vermell.
 #
+# Abans d'arrencar una versió nova es desa el seu tag a `.attempted-tag`: la seva
+# imatge és la que aplica les migracions noves, així que és l'origen del downgrade
+# d'un `--rollback` posterior (si no, la imatge anterior no coneixeria les
+# revisions noves). S'esborra quan un desplegament o un rollback acaben bé.
+#
 # `API_IMAGE_TAG` a l'entorn té prioritat sobre el del `.env`, així el tag només
 # viu en aquesta execució. `HEALTH_TIMEOUT` (segons, 120 per defecte) és l'espera
 # màxima perquè l'API respongui bé al healthcheck; `PROBE_TIMEOUT` (60), la de la
@@ -28,6 +33,7 @@ HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-120}
 PROBE_TIMEOUT=${PROBE_TIMEOUT:-60}
 STATE_FILE=.deployed-tag
 ENV_NAMES_FILE=.deployed-env
+ATTEMPT_FILE=.attempted-tag
 PROBE_NAME=perseida-probe
 
 # Si es talla la connexió SSH (job cancel·lat, xarxa) el desplegament no s'ha de
@@ -144,6 +150,7 @@ env_names() {
 mark_deployed() {
   printf '%s\n' "$1" > "$STATE_FILE" ||
     warn "AVÍS: no s'ha pogut escriure $STATE_FILE; un rollback posterior pot partir d'una versió incorrecta."
+  rm -f "$ATTEMPT_FILE"
   env_names > "$ENV_NAMES_FILE" ||
     warn "AVÍS: no s'ha pogut escriure $ENV_NAMES_FILE; el pròxim desplegament fallit no desfarà migracions."
 }
@@ -175,13 +182,18 @@ fi
 if [ "${1:-}" = "--rollback" ]; then
   [ "$#" -eq 2 ] || { warn "Ús: $0 --rollback <tag-de-la-imatge>"; exit 2; }
   target=$2
-  [ -n "$previous" ] || { warn "No consta cap versió desplegada ($STATE_FILE): no es pot desfer res."; exit 1; }
-  export API_IMAGE_TAG="$previous"
+  # La imatge que ha migrat l'esquema: la de l'últim intent que no ha acabat bé, si n'hi ha.
+  from=$previous
+  if [ -s "$ATTEMPT_FILE" ]; then
+    from=$(cat "$ATTEMPT_FILE")
+  fi
+  [ -n "$from" ] || { warn "No consta cap versió desplegada ($STATE_FILE) ni intent ($ATTEMPT_FILE): no es pot desfer res."; exit 1; }
+  export API_IMAGE_TAG="$from"
   docker compose pull --policy missing api
   API_IMAGE_TAG=$target docker compose pull --policy missing api
-  if rollback_to "$previous" "$target"; then
+  if rollback_to "$from" "$target"; then
     mark_deployed "$target"
-    say "Rollback fet: $previous -> $target."
+    say "Rollback fet: $from -> $target."
     exit 0
   fi
   warn "El rollback a $target no ha superat el healthcheck."
@@ -196,6 +208,10 @@ export API_IMAGE_TAG="$tag"
 # Els tags per git-sha són immutables: només es baixa la imatge si falta. Si el
 # pull falla no s'ha tocat res i el desplegament s'atura aquí.
 docker compose pull --policy missing api
+
+# L'entrypoint de la imatge nova migra en arrencar: des d'aquí l'esquema pot ser més nou que `previous`.
+printf '%s\n' "$tag" > "$ATTEMPT_FILE" ||
+  warn "AVÍS: no s'ha pogut escriure $ATTEMPT_FILE; un --rollback posterior podria no trobar la revisió."
 
 if docker compose up -d --remove-orphans && wait_healthy; then
   mark_deployed "$tag"
@@ -217,17 +233,19 @@ probe_previous "$previous" || probe=$?
 if [ "$probe" -eq 1 ]; then
   warn "$previous tampoc arrenca amb la mateixa configuració: el fallo és de configuració o d'infraestructura, no del codi de $tag."
   warn "NO es desfan les migracions (les dades es conserven) i l'API queda aturada. Corregeix el secret o la variable de GitHub i torna a executar el CD."
-  warn "Pot ser que l'esquema sigui més nou que $previous: un \`--rollback\` manual posterior pot avisar que no troba la revisió."
+  warn "L'esquema pot ser més nou que $previous. Per tornar-hi desfent les migracions de $tag (n'esborra les dades): \`./deploy.sh --rollback $previous\`."
   exit 1
 elif [ "$probe" -ne 0 ]; then
   warn "No s'ha pogut crear la sonda amb $previous (imatge absent i pull fallit, o error de Docker): no es pot saber la causa."
   warn "NO es desfan les migracions i l'API queda aturada. Comprova-ho al servidor (\`docker images\`, \`docker compose ps\`)."
+  warn "Si cal tornar a $previous desfent les migracions de $tag (n'esborra les dades): \`./deploy.sh --rollback $previous\`."
   exit 1
 fi
 
 if ! env_names_unchanged; then
   warn "$previous arrenca bé, però els noms de variable del .env han canviat des del darrer desplegament bo: la causa pot ser una variable nova que falta o és errònia."
   warn "NO es desfan les migracions (les dades es conserven) i l'API queda aturada. Revisa els secrets i les variables de GitHub i torna a executar el CD."
+  warn "Si en lloc d'això cal tornar a $previous desfent les migracions de $tag (n'esborra les dades): \`./deploy.sh --rollback $previous\`."
   exit 1
 fi
 
