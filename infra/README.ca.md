@@ -160,6 +160,7 @@ En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta
 | `POSTGRES_PASSWORD` | Secret | Contrasenya de la base de dades de producció (aleatòria, només per a producció) |
 | `POSTGRES_DB`, `POSTGRES_USER` | Secret | Nom i usuari de la base de dades de producció |
 | `JWT_SECRET` | Secret | Clau dels JWT de sessió, com a mínim 32 caràcters (`openssl rand -hex 32`) |
+| `NASA_API_KEY` | Secret | Clau de l'API de la NASA per a l'APOD (<https://api.nasa.gov>) |
 | `POSTGRES_PORT` | Variable | Port de la base de dades |
 | `POSTGRES_HOST` | Variable | `postgres` (àlies de xarxa del servei de base de dades) |
 | `REDIS_HOST` | Variable | `redis` (àlies de xarxa del servei de cache) |
