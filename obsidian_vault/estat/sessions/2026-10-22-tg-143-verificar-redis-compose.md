@@ -3,7 +3,7 @@ titol: "Sessió 2026-10-22: Verificar el servei Redis del Compose i les variable
 tipus: sessio
 estat: vigent
 data: 2026-10-22
-us: ["TG-87", "TG-37"]
+us: ["TG-87", "TG-37", "TG-143"]
 font: "tasca TG-143 de la US TG-87 (branca feature/TG-143)"
 etiquetes: [sessio, devops, infra, redis, docker-compose, tg-87, tg-143]
 ---
@@ -29,6 +29,7 @@ Verificar el servei `cache` (Redis 8) que defineix TG-37 i assegurar que `REDIS_
 ## Canvis al vault
 
 - Aquesta sessió.
+- [[redis]]: estat d'implementació (servei `cache`, àlies `redis`, `REDIS_HOST=cache`).
 
 ## Pendent / següents passos
 
