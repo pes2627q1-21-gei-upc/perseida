@@ -40,8 +40,16 @@ Completar la subtasca pendent #218 de la US TG-36: connectar l'script d'entrypoi
 
 ## Canvis al vault
 
-- [[api]]: actualitzat l'estat de l'entrypoint i migracions automàtiques (#218).
+- [[api]]: actualitzat l'estat de l'entrypoint, migracions automàtiques (#218) i opció `RUN_MIGRATIONS=false`.
+- [[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions|ADR-0025]]: referència explícita a `RUN_MIGRATIONS=false` per a la sonda del CD.
 - Aquesta nota de sessió.
+
+## Atenció a la review de la PR #45 (oorbea)
+
+1. **`RUN_MIGRATIONS=false` per a la sonda de rollback**: s'ha incorporat l'interruptor `RUN_MIGRATIONS` a `backend/entrypoint.sh` (actiu per defecte; si és `false`, omet les migracions). S'ha configurat a `probe_previous` de `infra/scripts/deploy.sh` (`-e RUN_MIGRATIONS=false`) per evitar que la sonda falli intentant migrar amb codi antic sobre un esquema més nou, d'acord amb la [[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions|ADR-0025]].
+2. **Robustesa a `test-backend-docker.sh`**: inicialització prèvia de `CONTAINER_ID=""` i guarda `${CONTAINER_ID:-}` a la funció `cleanup` abans d'instal·lar el `trap EXIT` (evitant fallada per *unbound variable* amb `set -u`).
+3. **Numeració de passos**: unificats tots els passos a `/6`.
+4. **Rebase**: branca rebasejada netament sobre `develop` (incorporant la PR #40 de la TG-38).
 
 ## US de Taiga
 

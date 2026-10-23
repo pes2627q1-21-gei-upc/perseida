@@ -65,7 +65,7 @@ cd "$ROOT_DIR"
 log_info "Iniciant bateria de proves de la imatge Docker del backend ($IMAGE_NAME)..."
 
 # ── 1. Hadolint (Lint del Dockerfile) ──────────────────────────────────────────
-log_info "1/5 Comprovant Dockerfile amb Hadolint..."
+log_info "1/6 Comprovant Dockerfile amb Hadolint..."
 if docker run --rm -i hadolint/hadolint:latest < backend/Dockerfile; then
     log_pass "Dockerfile compleix totes les regles d'Hadolint (0 warnings, 0 errors)."
 else
@@ -73,7 +73,7 @@ else
 fi
 
 # ── 2. Actionlint (Validació del workflow CI/CD) ───────────────────────────────
-log_info "2/5 Comprovant workflow .github/workflows/backend-docker.yml..."
+log_info "2/6 Comprovant workflow .github/workflows/backend-docker.yml..."
 if cat .github/workflows/backend-docker.yml | docker run --rm -i rhysd/actionlint:latest -; then
     log_pass "Workflow de GitHub Actions vàlid segons actionlint."
 else
@@ -82,12 +82,12 @@ fi
 
 # ── 3. Build de la imatge Docker ──────────────────────────────────────────────
 if [ "$SKIP_BUILD" -eq 1 ]; then
-    log_info "3/5 Saltant pas de build (--skip-build indicat). Usant imatge existent: $IMAGE_NAME"
+    log_info "3/6 Saltant pas de build (--skip-build indicat). Usant imatge existent: $IMAGE_NAME"
     if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
         log_fail "La imatge $IMAGE_NAME no existeix localment. Construeix-la abans d'usar --skip-build."
     fi
 else
-    log_info "3/5 Construint imatge Docker ($IMAGE_NAME)..."
+    log_info "3/6 Construint imatge Docker ($IMAGE_NAME)..."
     if docker build -t "$IMAGE_NAME" backend/; then
         log_pass "Imatge Docker construïda correctament."
     else
@@ -96,7 +96,7 @@ else
 fi
 
 # ── 4. Proves de seguretat i aïllament ────────────────────────────────────────
-log_info "4/5 Verificant seguretat i superfície d'atac..."
+log_info "4/6 Verificant seguretat i superfície d'atac..."
 
 # a) Usuari no privilegiat UID 1001
 CONTAINER_UID=$(docker run --rm "$IMAGE_NAME" id -u)
@@ -140,6 +140,7 @@ FAIL_CONTAINER_ID=$(docker run -d \
     -e REDIS_HOST="127.0.0.1" \
     -e REDIS_PORT="6379" \
     -e JWT_SECRET="test-jwt-secret-at-least-32-chars-long" \
+    -e GOOGLE_CLIENT_IDS="test-google-client-id" \
     -e GOOGLE_CLIENT_ID="test-google-client-id" \
     -e NASA_API_KEY="DEMO_KEY" \
     "$IMAGE_NAME")
@@ -160,16 +161,42 @@ else
     log_fail "El contenidor no ha fallat quan la BD no és accessible (codi $EXIT_CODE)."
 fi
 
+# b) Comprovació de RUN_MIGRATIONS=false (sonda de rollback de deploy.sh)
+NO_MIG_CONTAINER_ID=$(docker run -d \
+    -e RUN_MIGRATIONS=false \
+    -e POSTGRES_DB="perseida_test" \
+    -e POSTGRES_USER="perseida" \
+    -e POSTGRES_PASSWORD="test-password" \
+    -e POSTGRES_HOST="127.0.0.1" \
+    -e POSTGRES_PORT="5432" \
+    -e REDIS_HOST="127.0.0.1" \
+    -e REDIS_PORT="6379" \
+    -e JWT_SECRET="test-jwt-secret-at-least-32-chars-long" \
+    -e GOOGLE_CLIENT_IDS="test-google-client-id" \
+    -e GOOGLE_CLIENT_ID="test-google-client-id" \
+    -e NASA_API_KEY="DEMO_KEY" \
+    "$IMAGE_NAME")
+
+sleep 2
+NO_MIG_STATUS=$(docker inspect "$NO_MIG_CONTAINER_ID" --format '{{.State.Status}}' 2>/dev/null || echo "")
+if [ "$NO_MIG_STATUS" = "running" ]; then
+    log_pass "Comprovat: RUN_MIGRATIONS=false permet iniciar uvicorn sense executar Alembic."
+else
+    log_fail "RUN_MIGRATIONS=false no ha mantingut el contenidor actiu."
+fi
+docker rm -f "$NO_MIG_CONTAINER_ID" >/dev/null 2>&1 || true
+
 # ── 6. Smoke test funcional (arrencada, migracions i endpoints) ────────────────
 log_info "6/6 Executant smoke test de l'aplicació FastAPI amb BD i Redis..."
 
 TEST_NET="perseida-test-net-$$"
 DB_NAME="perseida-test-db-$$"
 REDIS_NAME="perseida-test-redis-$$"
+CONTAINER_ID=""
 
 cleanup() {
     log_info "Netejant contenidors i xarxa de prova..."
-    [ -n "$CONTAINER_ID" ] && docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
+    [ -n "${CONTAINER_ID:-}" ] && docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
     docker rm -f "$DB_NAME" "$REDIS_NAME" >/dev/null 2>&1 || true
     docker network rm "$TEST_NET" >/dev/null 2>&1 || true
 }
@@ -184,9 +211,9 @@ docker run -d --name "$DB_NAME" --network "$TEST_NET" \
 
 docker run -d --name "$REDIS_NAME" --network "$TEST_NET" redis:8-alpine >/dev/null
 
-# Espera que la BD estigui preparada per acceptar connexions
+# Espera que la BD estigui preparada per acceptar consultes (evitant el període de starting up)
 for _ in $(seq 1 30); do
-    if docker exec "$DB_NAME" pg_isready -U perseida -d perseida_test >/dev/null 2>&1; then
+    if docker exec "$DB_NAME" psql -U perseida -d perseida_test -c "SELECT 1" >/dev/null 2>&1; then
         break
     fi
     sleep 1
@@ -201,6 +228,7 @@ CONTAINER_ID=$(docker run -d --network "$TEST_NET" \
     -e REDIS_HOST="$REDIS_NAME" \
     -e REDIS_PORT="6379" \
     -e JWT_SECRET="test-jwt-secret-at-least-32-chars-long" \
+    -e GOOGLE_CLIENT_IDS="test-google-client-id" \
     -e GOOGLE_CLIENT_ID="test-google-client-id" \
     -e NASA_API_KEY="DEMO_KEY" \
     "$IMAGE_NAME")
