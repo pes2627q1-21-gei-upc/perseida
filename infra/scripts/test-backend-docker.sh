@@ -12,11 +12,13 @@
 #      - Execució sota usuari no privilegiat (UID 1001).
 #      - Absència d'eines de desenvolupament (pip, uv).
 #      - Presència de variables d'entorn requerides (PYTHONUNBUFFERED=1, PATH).
-#   5. Smoke test funcional:
-#      - Arrencada del contenidor en segon pla.
+#   5. Comprovació d'error si la base de dades no és accessible (#T218).
+#   6. Smoke test funcional:
+#      - Arrencada del contenidor amb xarxa i dependències (BD PostGIS i Redis).
+#      - Execució automàtica de les migracions d'Alembic des de l'entrypoint.
 #      - Comprovació HTTP de GET /api/health (200 OK, components.app == "ok").
 #      - Comprovació HTTP de GET /api/openapi.json (OpenAPI 3.1.0 disponible).
-#      - Neteja garantida del contenidor mitjançant trap EXIT.
+#      - Neteja garantida dels contenidors i xarxa mitjançant trap EXIT.
 # =============================================================================
 
 set -euo pipefail
@@ -60,10 +62,28 @@ log_fail() {
 
 cd "$ROOT_DIR"
 
+FAIL_CONTAINER_ID=""
+NO_MIG_CONTAINER_ID=""
+CONTAINER_ID=""
+TEST_NET=""
+DB_NAME=""
+REDIS_NAME=""
+
+cleanup() {
+    log_info "Netejant contenidors i xarxa de prova..."
+    [ -n "${FAIL_CONTAINER_ID:-}" ] && docker rm -f "$FAIL_CONTAINER_ID" >/dev/null 2>&1 || true
+    [ -n "${NO_MIG_CONTAINER_ID:-}" ] && docker rm -f "$NO_MIG_CONTAINER_ID" >/dev/null 2>&1 || true
+    [ -n "${CONTAINER_ID:-}" ] && docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
+    [ -n "${DB_NAME:-}" ] && docker rm -f "$DB_NAME" >/dev/null 2>&1 || true
+    [ -n "${REDIS_NAME:-}" ] && docker rm -f "$REDIS_NAME" >/dev/null 2>&1 || true
+    [ -n "${TEST_NET:-}" ] && docker network rm "$TEST_NET" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT INT TERM
+
 log_info "Iniciant bateria de proves de la imatge Docker del backend ($IMAGE_NAME)..."
 
 # ── 1. Hadolint (Lint del Dockerfile) ──────────────────────────────────────────
-log_info "1/5 Comprovant Dockerfile amb Hadolint..."
+log_info "1/6 Comprovant Dockerfile amb Hadolint..."
 if docker run --rm -i hadolint/hadolint:latest < backend/Dockerfile; then
     log_pass "Dockerfile compleix totes les regles d'Hadolint (0 warnings, 0 errors)."
 else
@@ -71,7 +91,7 @@ else
 fi
 
 # ── 2. Actionlint (Validació del workflow CI/CD) ───────────────────────────────
-log_info "2/5 Comprovant workflow .github/workflows/backend-docker.yml..."
+log_info "2/6 Comprovant workflow .github/workflows/backend-docker.yml..."
 if cat .github/workflows/backend-docker.yml | docker run --rm -i rhysd/actionlint:latest -; then
     log_pass "Workflow de GitHub Actions vàlid segons actionlint."
 else
@@ -80,12 +100,12 @@ fi
 
 # ── 3. Build de la imatge Docker ──────────────────────────────────────────────
 if [ "$SKIP_BUILD" -eq 1 ]; then
-    log_info "3/5 Saltant pas de build (--skip-build indicat). Usant imatge existent: $IMAGE_NAME"
+    log_info "3/6 Saltant pas de build (--skip-build indicat). Usant imatge existent: $IMAGE_NAME"
     if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
         log_fail "La imatge $IMAGE_NAME no existeix localment. Construeix-la abans d'usar --skip-build."
     fi
 else
-    log_info "3/5 Construint imatge Docker ($IMAGE_NAME)..."
+    log_info "3/6 Construint imatge Docker ($IMAGE_NAME)..."
     if docker build -t "$IMAGE_NAME" backend/; then
         log_pass "Imatge Docker construïda correctament."
     else
@@ -94,7 +114,7 @@ else
 fi
 
 # ── 4. Proves de seguretat i aïllament ────────────────────────────────────────
-log_info "4/5 Verificant seguretat i superfície d'atac..."
+log_info "4/6 Verificant seguretat i superfície d'atac..."
 
 # a) Usuari no privilegiat UID 1001
 CONTAINER_UID=$(docker run --rm "$IMAGE_NAME" id -u)
@@ -126,27 +146,121 @@ else
     log_fail "PYTHONUNBUFFERED no té el valor 1 ($ENV_UNBUF)."
 fi
 
-# ── 5. Smoke test funcional (arrencada i endpoints) ───────────────────────────
-log_info "5/5 Executant smoke test de l'aplicació FastAPI..."
+# ── 5. Comprovació de fallada si la base de dades no és accessible (#T218) ─────
+log_info "5/6 Verificant fallada quan la BD no és accessible (#T218)..."
 
-CONTAINER_ID=""
-cleanup() {
-    if [ -n "$CONTAINER_ID" ]; then
-        log_info "Aturant i netejant contenidor de prova ($CONTAINER_ID)..."
-        docker stop "$CONTAINER_ID" >/dev/null 2>&1 || true
-        docker rm "$CONTAINER_ID" >/dev/null 2>&1 || true
+FAIL_CONTAINER_ID=$(docker run -d \
+    -e POSTGRES_DB="perseida_test" \
+    -e POSTGRES_USER="perseida" \
+    -e POSTGRES_PASSWORD="test-password" \
+    -e POSTGRES_HOST="127.0.0.1" \
+    -e POSTGRES_PORT="5432" \
+    -e REDIS_HOST="127.0.0.1" \
+    -e REDIS_PORT="6379" \
+    -e JWT_SECRET="test-jwt-secret-at-least-32-chars-long" \
+    -e GOOGLE_CLIENT_IDS="test-google-client-id" \
+    -e GOOGLE_CLIENT_ID="test-google-client-id" \
+    -e NASA_API_KEY="DEMO_KEY" \
+    "$IMAGE_NAME")
+
+# Espera que el contenidor s'aturi per fallada d'alembic (fins a 10 s)
+for _ in $(seq 1 10); do
+    FAIL_STATUS=$(docker inspect "$FAIL_CONTAINER_ID" --format '{{.State.Status}}' 2>/dev/null || true)
+    [ "$FAIL_STATUS" = "exited" ] && break
+    sleep 1
+done
+
+EXIT_CODE=$(docker inspect "$FAIL_CONTAINER_ID" --format '{{.State.ExitCode}}' 2>/dev/null || echo 0)
+docker rm -f "$FAIL_CONTAINER_ID" >/dev/null 2>&1 || true
+FAIL_CONTAINER_ID=""
+
+if [ "$EXIT_CODE" -ne 0 ]; then
+    log_pass "Comprovat: el contenidor surt amb error (codi $EXIT_CODE) si la BD no és accessible (#T218)."
+else
+    log_fail "El contenidor no ha fallat quan la BD no és accessible (codi $EXIT_CODE)."
+fi
+
+# b) Comprovació de RUN_MIGRATIONS=false (sonda de rollback de deploy.sh)
+NO_MIG_CONTAINER_ID=$(docker run -d \
+    -e RUN_MIGRATIONS=false \
+    -e POSTGRES_DB="perseida_test" \
+    -e POSTGRES_USER="perseida" \
+    -e POSTGRES_PASSWORD="test-password" \
+    -e POSTGRES_HOST="127.0.0.1" \
+    -e POSTGRES_PORT="5432" \
+    -e REDIS_HOST="127.0.0.1" \
+    -e REDIS_PORT="6379" \
+    -e JWT_SECRET="test-jwt-secret-at-least-32-chars-long" \
+    -e GOOGLE_CLIENT_IDS="test-google-client-id" \
+    -e GOOGLE_CLIENT_ID="test-google-client-id" \
+    -e NASA_API_KEY="DEMO_KEY" \
+    "$IMAGE_NAME")
+
+STARTUP_OK=0
+NO_MIG_LOGS=""
+for _ in $(seq 1 15); do
+    NO_MIG_LOGS=$(docker logs "$NO_MIG_CONTAINER_ID" 2>&1 || true)
+    if [[ "$NO_MIG_LOGS" == *"Application startup complete"* ]]; then
+        STARTUP_OK=1
+        break
     fi
-}
-# El codi actual del backend requereix les variables POSTGRES_* (i opcionalment REDIS_*)
-# definides per al cicle de vida (DatabaseSettings a lifespan).
-CONTAINER_ID=$(docker run -d \
-    -e POSTGRES_DB="${POSTGRES_DB:-perseida_test}" \
-    -e POSTGRES_USER="${POSTGRES_USER:-perseida}" \
-    -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-test-password}" \
-    -e POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}" \
-    -e POSTGRES_PORT="${POSTGRES_PORT:-5432}" \
-    -e REDIS_HOST="${REDIS_HOST:-127.0.0.1}" \
-    -e REDIS_PORT="${REDIS_PORT:-6379}" \
+    sleep 1
+done
+
+if [ "$STARTUP_OK" -ne 1 ]; then
+    log_fail "RUN_MIGRATIONS=false: Uvicorn no ha completat l'arrencada dins el temps esperat."
+fi
+
+if [[ "$NO_MIG_LOGS" == *"Running upgrade"* ]] || [[ "$NO_MIG_LOGS" == *"Context impl"* ]]; then
+    log_fail "RUN_MIGRATIONS=false ha executat Alembic inesperadament: $NO_MIG_LOGS"
+else
+    log_pass "Comprovat: RUN_MIGRATIONS=false permet iniciar uvicorn sense executar Alembic."
+fi
+docker rm -f "$NO_MIG_CONTAINER_ID" >/dev/null 2>&1 || true
+NO_MIG_CONTAINER_ID=""
+
+# ── 6. Smoke test funcional (arrencada, migracions i endpoints) ────────────────
+log_info "6/6 Executant smoke test de l'aplicació FastAPI amb BD i Redis..."
+
+TEST_NET="perseida-test-net-$$"
+DB_NAME="perseida-test-db-$$"
+REDIS_NAME="perseida-test-redis-$$"
+
+docker network create "$TEST_NET" >/dev/null
+docker run -d --name "$DB_NAME" --network "$TEST_NET" \
+    -e POSTGRES_DB=perseida_test \
+    -e POSTGRES_USER=perseida \
+    -e POSTGRES_PASSWORD=test \
+    postgis/postgis:18-3.6 >/dev/null
+
+docker run -d --name "$REDIS_NAME" --network "$TEST_NET" redis:8-alpine >/dev/null
+
+# Espera que la BD estigui preparada per acceptar connexions TCP (evitant l'arrencada temporal sense xarxa)
+DB_READY=0
+for _ in $(seq 1 30); do
+    if docker exec "$DB_NAME" pg_isready -h 127.0.0.1 -U perseida -d perseida_test >/dev/null 2>&1; then
+        DB_READY=1
+        break
+    fi
+    sleep 1
+done
+
+if [ "$DB_READY" -ne 1 ]; then
+    log_fail "La base de dades PostGIS no està disponible després de 30 segons."
+fi
+
+CONTAINER_ID=$(docker run -d --network "$TEST_NET" \
+    -e POSTGRES_DB="perseida_test" \
+    -e POSTGRES_USER="perseida" \
+    -e POSTGRES_PASSWORD="test" \
+    -e POSTGRES_HOST="$DB_NAME" \
+    -e POSTGRES_PORT="5432" \
+    -e REDIS_HOST="$REDIS_NAME" \
+    -e REDIS_PORT="6379" \
+    -e JWT_SECRET="test-jwt-secret-at-least-32-chars-long" \
+    -e GOOGLE_CLIENT_IDS="test-google-client-id" \
+    -e GOOGLE_CLIENT_ID="test-google-client-id" \
+    -e NASA_API_KEY="DEMO_KEY" \
     "$IMAGE_NAME")
 
 # Espera amb reintents (fins a 30 s) que l'API respongui a /api/health
@@ -166,7 +280,7 @@ done
 
 # Verificació de GET /api/health
 if [[ "$HEALTH_RESPONSE" == *"\"status\":\"ok\""* ]]; then
-    log_pass "Endpoint /api/health respon correctament: $HEALTH_RESPONSE"
+    log_pass "Endpoint /api/health respon correctament (migracions i app actives): $HEALTH_RESPONSE"
 else
     log_fail "Endpoint /api/health ha fallat o resposta inesperada: $HEALTH_RESPONSE"
 fi
@@ -189,5 +303,5 @@ fi
 
 echo ""
 echo -e "${GREEN}======================================================================${NC}"
-echo -e "${GREEN}TOTES LES VALIDACIONS I PROVES LOCALS HAN PASSAT CORRECTAMENT (#T224)${NC}"
+echo -e "${GREEN}TOTES LES VALIDACIONS I PROVES LOCALS HAN PASSAT CORRECTAMENT (#T218, #T224)${NC}"
 echo -e "${GREEN}======================================================================${NC}"
