@@ -2,7 +2,7 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-10-21"
+data: "2026-10-23"
 us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
@@ -24,7 +24,9 @@ Python 3.14, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`.
 - **Entorn**: `PYTHONUNBUFFERED=1` per a emissió immediata de logs a stdout, `PYTHONDONTWRITEBYTECODE=1` i `PATH="/app/.venv/bin:$PATH"`.
 - **Pipeline CI/CD**: `.github/workflows/backend-docker.yml` amb Buildx, memòria cau GHA (`mode=max`) i generació d'etiquetes immutables (`sha-XXXXXXX`), de branca (`develop`/`main`/`release/*`) i SemVer (`vX.Y.Z`).
 
-L'entrypoint del contenidor (`backend/entrypoint.sh`, el `CMD` de la imatge) aplica les migracions d'Alembic (`alembic upgrade head`) i arrenca uvicorn; el CD les desfà amb `alembic downgrade` si ha de fer rollback ([[arquitectura-fisica]]). Estructura hexagonal: [[backend-hexagonal]].
+- **Entrypoint i migracions (TG-36, #218)**: l'script `backend/entrypoint.sh` actua com a `ENTRYPOINT` del contenidor; executa automàticament les migracions d'Alembic (`alembic upgrade head`) abans d'iniciar FastAPI/Uvicorn (desactivable amb la variable d'entorn `RUN_MIGRATIONS=false`, emprat per la sonda de rollback del CD a [[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions|ADR-0025]]), i s'atura amb error si la base de dades no és accessible.
+
+Estructura hexagonal: [[backend-hexagonal]].
 
 ## Interfícies
 

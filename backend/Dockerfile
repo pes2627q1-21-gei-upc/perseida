@@ -73,18 +73,18 @@ WORKDIR /app
 # dependències; aquí no hi ha uv ni pip, per tant la superfície d'atac és mínima.
 COPY --from=builder /app/.venv /app/.venv
 
-# ── Còpia del codi font ────────────────────────────────────────────────────────
-# Copiem ÚNICAMENT el directori app/ (lògica de negoci) i cap fitxer de
-# configuració de dev (ruff, mypy, pytest, etc.). El .dockerignore s'encarrega
-# d'excloure tests/, *.md, .venv local, etc.
+# ── Còpia del codi font i migracions ───────────────────────────────────────────
+# Copiem el directori app/ (lògica de negoci), la configuració i migracions
+# d'Alembic (alembic.ini, alembic/) i l'script d'entrypoint. El .dockerignore
+# s'encarrega d'excloure tests/, *.md, .venv local, etc.
 COPY app/ ./app/
-
-# Migracions d'Alembic i entrypoint que les aplica abans d'arrencar l'API.
+COPY alembic.ini ./alembic.ini
 COPY alembic/ ./alembic/
-COPY alembic.ini entrypoint.sh ./
+COPY entrypoint.sh ./entrypoint.sh
 
 # ── Permisos ───────────────────────────────────────────────────────────────────
-RUN chown -R appuser:appgroup /app
+RUN chmod +x /app/entrypoint.sh \
+ && chown -R appuser:appgroup /app
 
 # Canvia a l'usuari no privilegiat per a totes les instruccions posteriors
 # (incloent CMD/ENTRYPOINT).
@@ -95,7 +95,9 @@ USER 1001
 # docker-compose.yml / el CD amb la variable d'entorn PORT.
 EXPOSE 8000
 
-# ── CMD ────────────────────────────────────────────────────────────────────────
-# L'entrypoint aplica les migracions d'Alembic i arrenca uvicorn.
-CMD ["sh", "./entrypoint.sh"]
+# ── ENTRYPOINT i CMD ───────────────────────────────────────────────────────────
+# L'entrypoint executa les migracions d'Alembic i engega uvicorn (#T218).
+# Els arguments de CMD es passen a l'entrypoint com a comandament per defecte.
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
