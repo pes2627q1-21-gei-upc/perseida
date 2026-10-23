@@ -2,7 +2,7 @@
 <!-- Explica breument què canvia i per què. -->
 
 ## Taiga
-<!-- Enllaça la US o tasca relacionada: TG-<ref> (ex.: TG-33). -->
+<!-- Inclou TG-<ref> al títol de la PR i indica la US o tasca relacionada. -->
 - Referència: TG-
 
 ## Checklist (Definition of Done)

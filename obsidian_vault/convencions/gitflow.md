@@ -2,8 +2,8 @@
 titol: "GitFlow i política de pull requests"
 tipus: convencio
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85"]
+data: "2026-10-23"
+us: ["TG-85", "TG-33"]
 font: "memòria §2.2"
 etiquetes: [convencio, git, gitflow, pull-requests]
 ---
@@ -52,32 +52,33 @@ Versionat semàntic (SemVer, `MAJOR.MINOR.PATCH`) a partir de `0.1.0`: patch per
 
 La integració de GitHub amb Taiga permet relacionar els commits i les pull requests (PR) amb les tasques i les històries d'usuari (US).
 
-- Inclou la referència `TG-<ref>` al missatge del commit o a la descripció de la PR. Per exemple: `TG-33`.
-- Opcionalment, es pot canviar l'estat de l'element afegint `TG-<ref> #<estat>`. Per exemple: `TG-33 #closed`.
-- En fusionar una PR es genera un commit de fusió; si la descripció de la PR conté la referència, aquesta també arriba a Taiga quan es fusiona.
+- Inclou la referència `TG-<ref>` al missatge del commit o al títol de la PR. Recomanem incloure-la també a la descripció.
+- Per canviar l'estat, afegeix `TG-<ref> #<slug>`. Cal fer servir el slug exacte de l'estat, no el nom visible.
+- Exemples: `TG-33 #ready-for-test` per a una US i `TG-306 #closed` per a una tasca.
+- Amb squash, el missatge del commit és la descripció de la PR en aquest repositori; per tant, la referència inclosa a la descripció arriba a Taiga.
+- Amb merge commit (releases i hotfixes), el missatge de fusió inclou el títol de la PR; per assegurar la referència, posa `TG-<ref>` al títol.
 
-Estats vàlids per a les subtasques:
+Estats de les tasques:
 
-- `NEW`
-- `IN PROGRESS`
-- `READY FOR TEST`
-- `CLOSED`
-- `NEEDS INFO`
+- `New` → `new`
+- `In progress` → `in-progress`
+- `Ready for test` → `ready-for-test`
+- `Closed` → `closed`
+- `Needs info` → `needs-info`
 
-Estats vàlids per a les US (no coincideixen exactament amb els de les subtasques):
+Estats de les US:
 
-- `New`
-- `Ready`
-- `In progress`
-- `Ready for test`
-- `Done`
-- `Archived`
-
-Quan s'agrupen diverses tasques d'una mateixa US en una PR, totes les tasques implicades passen alhora a `READY FOR TEST` mentre esperen revisió.
+- `New` → `new`
+- `Ready` → `ready`
+- `In progress` → `in-progress`
+- `Ready for test` → `ready-for-test`
+- `Done` → `done`
+- `Archived` → `archived`
 
 ## US de Taiga relacionades
 
 - TG-85 (vault d'Obsidian)
+- TG-33 (convencions de GitFlow i pull requests)
 
 ## Enllaços
 
