@@ -62,6 +62,24 @@ log_fail() {
 
 cd "$ROOT_DIR"
 
+FAIL_CONTAINER_ID=""
+NO_MIG_CONTAINER_ID=""
+CONTAINER_ID=""
+TEST_NET=""
+DB_NAME=""
+REDIS_NAME=""
+
+cleanup() {
+    log_info "Netejant contenidors i xarxa de prova..."
+    [ -n "${FAIL_CONTAINER_ID:-}" ] && docker rm -f "$FAIL_CONTAINER_ID" >/dev/null 2>&1 || true
+    [ -n "${NO_MIG_CONTAINER_ID:-}" ] && docker rm -f "$NO_MIG_CONTAINER_ID" >/dev/null 2>&1 || true
+    [ -n "${CONTAINER_ID:-}" ] && docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
+    [ -n "${DB_NAME:-}" ] && docker rm -f "$DB_NAME" >/dev/null 2>&1 || true
+    [ -n "${REDIS_NAME:-}" ] && docker rm -f "$REDIS_NAME" >/dev/null 2>&1 || true
+    [ -n "${TEST_NET:-}" ] && docker network rm "$TEST_NET" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT INT TERM
+
 log_info "Iniciant bateria de proves de la imatge Docker del backend ($IMAGE_NAME)..."
 
 # ── 1. Hadolint (Lint del Dockerfile) ──────────────────────────────────────────
@@ -154,6 +172,7 @@ done
 
 EXIT_CODE=$(docker inspect "$FAIL_CONTAINER_ID" --format '{{.State.ExitCode}}' 2>/dev/null || echo 0)
 docker rm -f "$FAIL_CONTAINER_ID" >/dev/null 2>&1 || true
+FAIL_CONTAINER_ID=""
 
 if [ "$EXIT_CODE" -ne 0 ]; then
     log_pass "Comprovat: el contenidor surt amb error (codi $EXIT_CODE) si la BD no és accessible (#T218)."
@@ -177,14 +196,28 @@ NO_MIG_CONTAINER_ID=$(docker run -d \
     -e NASA_API_KEY="DEMO_KEY" \
     "$IMAGE_NAME")
 
-sleep 2
-NO_MIG_STATUS=$(docker inspect "$NO_MIG_CONTAINER_ID" --format '{{.State.Status}}' 2>/dev/null || echo "")
-if [ "$NO_MIG_STATUS" = "running" ]; then
-    log_pass "Comprovat: RUN_MIGRATIONS=false permet iniciar uvicorn sense executar Alembic."
+STARTUP_OK=0
+NO_MIG_LOGS=""
+for _ in $(seq 1 15); do
+    NO_MIG_LOGS=$(docker logs "$NO_MIG_CONTAINER_ID" 2>&1 || true)
+    if [[ "$NO_MIG_LOGS" == *"Application startup complete"* ]]; then
+        STARTUP_OK=1
+        break
+    fi
+    sleep 1
+done
+
+if [ "$STARTUP_OK" -ne 1 ]; then
+    log_fail "RUN_MIGRATIONS=false: Uvicorn no ha completat l'arrencada dins el temps esperat."
+fi
+
+if [[ "$NO_MIG_LOGS" == *"Running upgrade"* ]] || [[ "$NO_MIG_LOGS" == *"Context impl"* ]]; then
+    log_fail "RUN_MIGRATIONS=false ha executat Alembic inesperadament: $NO_MIG_LOGS"
 else
-    log_fail "RUN_MIGRATIONS=false no ha mantingut el contenidor actiu."
+    log_pass "Comprovat: RUN_MIGRATIONS=false permet iniciar uvicorn sense executar Alembic."
 fi
 docker rm -f "$NO_MIG_CONTAINER_ID" >/dev/null 2>&1 || true
+NO_MIG_CONTAINER_ID=""
 
 # ── 6. Smoke test funcional (arrencada, migracions i endpoints) ────────────────
 log_info "6/6 Executant smoke test de l'aplicació FastAPI amb BD i Redis..."
@@ -192,15 +225,6 @@ log_info "6/6 Executant smoke test de l'aplicació FastAPI amb BD i Redis..."
 TEST_NET="perseida-test-net-$$"
 DB_NAME="perseida-test-db-$$"
 REDIS_NAME="perseida-test-redis-$$"
-CONTAINER_ID=""
-
-cleanup() {
-    log_info "Netejant contenidors i xarxa de prova..."
-    [ -n "${CONTAINER_ID:-}" ] && docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
-    docker rm -f "$DB_NAME" "$REDIS_NAME" >/dev/null 2>&1 || true
-    docker network rm "$TEST_NET" >/dev/null 2>&1 || true
-}
-trap cleanup EXIT
 
 docker network create "$TEST_NET" >/dev/null
 docker run -d --name "$DB_NAME" --network "$TEST_NET" \
@@ -211,13 +235,19 @@ docker run -d --name "$DB_NAME" --network "$TEST_NET" \
 
 docker run -d --name "$REDIS_NAME" --network "$TEST_NET" redis:8-alpine >/dev/null
 
-# Espera que la BD estigui preparada per acceptar consultes (evitant el període de starting up)
+# Espera que la BD estigui preparada per acceptar connexions TCP (evitant l'arrencada temporal sense xarxa)
+DB_READY=0
 for _ in $(seq 1 30); do
-    if docker exec "$DB_NAME" psql -U perseida -d perseida_test -c "SELECT 1" >/dev/null 2>&1; then
+    if docker exec "$DB_NAME" pg_isready -h 127.0.0.1 -U perseida -d perseida_test >/dev/null 2>&1; then
+        DB_READY=1
         break
     fi
     sleep 1
 done
+
+if [ "$DB_READY" -ne 1 ]; then
+    log_fail "La base de dades PostGIS no està disponible després de 30 segons."
+fi
 
 CONTAINER_ID=$(docker run -d --network "$TEST_NET" \
     -e POSTGRES_DB="perseida_test" \

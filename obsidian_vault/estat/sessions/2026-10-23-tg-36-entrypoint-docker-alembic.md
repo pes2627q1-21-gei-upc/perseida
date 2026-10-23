@@ -51,6 +51,12 @@ Completar la subtasca pendent #218 de la US TG-36: connectar l'script d'entrypoi
 3. **Numeració de passos**: unificats tots els passos a `/6`.
 4. **Rebase**: branca rebasejada netament sobre `develop` (incorporant la PR #40 de la TG-38).
 
+## Atenció a la review de la PR #45 - 2a ronda (raquelrubiosuarez)
+
+1. **`trap` i neteja global**: `cleanup` i `trap cleanup EXIT INT TERM` moguts a l'inici del script, inicialitzant totes les variables de contenidor (`FAIL_CONTAINER_ID`, `NO_MIG_CONTAINER_ID`, `CONTAINER_ID`, etc.) per garantir la neteja si falla qualsevol pas o si s'interromp el test.
+2. **Validació estricta de `RUN_MIGRATIONS=false`**: s'espera el log `Application startup complete` d'Uvicorn i es comprova explícitament que no hi hagi cap traça d'Alembic (`Running upgrade`, `Context impl`).
+3. **Espera de la BD amb TCP (`pg_isready`)**: comprovació de disponibilitat de PostgreSQL via TCP (`pg_isready -h 127.0.0.1 -U perseida -d perseida_test`) evitant falsos positius amb el socket Unix durant la fase d'arrencada temporal de la imatge de PostGIS, amb avís explícit de timeout si s'esgota el termini.
+
 ## US de Taiga
 
 - TG-36
