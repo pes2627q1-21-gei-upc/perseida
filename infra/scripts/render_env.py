@@ -15,6 +15,9 @@ Entrada (variables d'entorn):
     ENV_EXCLUDE    noms de la plantilla que no van al servidor, separats per espais
     ENV_EXTRA_REQUIRED  noms que han d'existir però no van al `.env` (p. ex. els
                    `SSH_*` de la connexió), separats per espais
+    ENV_SECRET_ONLY  noms que només poden ser secrets: si n'hi ha cap com a variable,
+                   `check` falla (una variable surt sense emmascarar als logs), separats
+                   per espais
 
 Mai s'imprimeix el valor d'una variable als missatges d'error.
 """
@@ -37,6 +40,10 @@ def required_names() -> list[str]:
 
 def extra_required_names() -> list[str]:
     return os.environ.get("ENV_EXTRA_REQUIRED", "").split()
+
+
+def secret_only_names() -> list[str]:
+    return os.environ.get("ENV_SECRET_ONLY", "").split()
 
 
 def load_context() -> tuple[dict[str, str], dict[str, str]]:
@@ -64,12 +71,21 @@ def check() -> int:
     invalid = [
         n for n in names if not is_renderable(secrets.get(n, variables.get(n, "")))
     ]
-    if missing or invalid:
+    # Un nom sensible creat per error com a variable es veuria en clar als logs.
+    as_variable = [n for n in secret_only_names() if n in variables and n not in secrets]
+    if missing or invalid or as_variable:
         if missing:
             print(
                 "Falten secrets o variables requerits al repositori:", file=sys.stderr
             )
             for name in missing:
+                print(f"  - {name}", file=sys.stderr)
+        if as_variable:
+            print(
+                "Han de ser secrets, no variables (esborra la variable i crea el secret):",
+                file=sys.stderr,
+            )
+            for name in as_variable:
                 print(f"  - {name}", file=sys.stderr)
         if invalid:
             print(

@@ -79,6 +79,10 @@ COPY --from=builder /app/.venv /app/.venv
 # d'excloure tests/, *.md, .venv local, etc.
 COPY app/ ./app/
 
+# Migracions d'Alembic i entrypoint que les aplica abans d'arrencar l'API.
+COPY alembic/ ./alembic/
+COPY alembic.ini entrypoint.sh ./
+
 # ── Permisos ───────────────────────────────────────────────────────────────────
 RUN chown -R appuser:appgroup /app
 
@@ -92,7 +96,6 @@ USER 1001
 EXPOSE 8000
 
 # ── CMD ────────────────────────────────────────────────────────────────────────
-# L'entrypoint real (migracions Alembic + uvicorn) s'implementarà a #T218
-# un cop TG-41 (Alembic) estigui disponible.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# L'entrypoint aplica les migracions d'Alembic i arrenca uvicorn.
+CMD ["sh", "./entrypoint.sh"]
 

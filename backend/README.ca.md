@@ -261,7 +261,7 @@ L'app inicia la sessió amb Google (OAuth2 + PKCE) i envia l'`id_token` de Googl
 **Flux:**
 
 1. `POST /api/auth/google` amb `{"id_token": "<token de Google>", "language": "ca"}` (`language` és opcional).
-2. `GoogleJwksVerifier` comprova la signatura RS256 amb les claus públiques de Google (JWKS, en memòria durant 1 hora; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut), l'emissor, l'audiència (`GOOGLE_CLIENT_ID`), la caducitat i que el correu estigui verificat. Si no: 401 `INVALID_GOOGLE_TOKEN`. Si Google no respon i no hi ha claus en memòria: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+2. `GoogleJwksVerifier` comprova la signatura RS256 amb les claus públiques de Google (JWKS, en memòria durant 1 hora; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut), l'emissor, l'audiència (un dels clients de `GOOGLE_CLIENT_IDS`), la caducitat i que el correu estigui verificat. Si no: 401 `INVALID_GOOGLE_TOKEN`. Si Google no respon i no hi ha claus en memòria: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
 3. El port `AccountGateway` dona d'alta el compte al primer accés i retorna el seu estat: suspès o banejat → 403 `ACCOUNT_SUSPENDED`; esborrat → 403 `ACCOUNT_DELETED`.
 4. El backend emet dos JWT signats amb HS256 i `JWT_SECRET`: un access token (15 minuts) i un refresh token (30 dies), amb les claims `sub` (el `google_sub`), `jti` (únic per token), `sid` (identificador de sessió, compartit per l'access i el refresh d'un parell i mantingut per `refresh`), `type` (`access` o `refresh`), `iat` i `exp`. Cadascun es registra a Redis com a `session:<type>:<jti>` amb un TTL igual a la seva durada, i s'apunta a l'índex de l'usuari `user_sessions:<sub>` (membres `<sid>:<type>:<jti>`).
 5. Resposta `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` en segons).
@@ -274,7 +274,7 @@ Un token és vàlid només si la signatura i la caducitat són correctes **i** l
 
 | Variable | Significat |
 |---|---|
-| `GOOGLE_CLIENT_ID` | Audiència (`aud`) esperada del token de Google |
+| `GOOGLE_CLIENT_IDS` | Audiències (`aud`) acceptades del token de Google: els clients OAuth de l'app (web, Android, iOS), separats per comes |
 | `JWT_SECRET` | Clau HS256, d'almenys 32 caràcters; mai no se'n versiona una de real |
 | `ACCESS_TOKEN_MINUTES` | Durada de l'access token (15 per defecte) |
 | `REFRESH_TOKEN_DAYS` | Durada del refresh token (30 per defecte) |
