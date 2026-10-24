@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Image,
-  type ImageLoadEventData,
-  Linking,
-  type NativeSyntheticEvent,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, type ImageLoadEvent, Linking, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewProps } from 'react-native-webview';
 
 import { hostOf, safeHttpsUrl } from '../../../shared/security/safeUrl';
@@ -112,7 +104,7 @@ export function ApodMedia({ apod }: Props) {
     );
   }
 
-  const onLoad = ({ nativeEvent }: NativeSyntheticEvent<ImageLoadEventData>) => {
+  const onLoad = ({ nativeEvent }: ImageLoadEvent) => {
     const { width, height } = nativeEvent.source;
     if (width > 0 && height > 0) setImageAspectRatio(width / height);
   };

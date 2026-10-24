@@ -240,7 +240,7 @@ describe('keepInPlayer', () => {
   });
 
   it('opens links to other hosts in the system browser', () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
 
     expect(keepInPlayer(request('https://evil.example/page'), video)).toBe(false);
     expect(openURL).toHaveBeenCalledWith('https://evil.example/page');
@@ -255,7 +255,7 @@ describe('keepInPlayer', () => {
   });
 
   it('blocks other schemes without opening them', () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
 
     expect(keepInPlayer(request('intent://evil.example#Intent;end'), video)).toBe(false);
     expect(openURL).not.toHaveBeenCalled();
