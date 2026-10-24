@@ -12,6 +12,7 @@ services:
       - npm_data:/data
       - npm_letsencrypt:/etc/letsencrypt
       - media_data:/media:ro
+      - admin_dist:/admin:ro
     networks:
       - gateway
     depends_on:
@@ -123,3 +124,5 @@ volumes:
     name: perseida_npm_letsencrypt
   media_data:
     name: perseida_media_data
+  admin_dist:
+    name: perseida_admin_dist
