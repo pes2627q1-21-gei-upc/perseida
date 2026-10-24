@@ -28,7 +28,7 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 | Auth | Google OAuth2 + PKCE; tokens a `expo-secure-store` |
 | Animació i icones | `react-native-reanimated` (+ `react-native-worklets`), `react-native-svg`, `phosphor-react-native` |
 | Push | Firebase Cloud Messaging |
-| Vídeo incrustat | Mòbil: `react-native-webview` (`ApodVideo.tsx`). Web: `<iframe>` amb *sandbox* (`ApodVideo.web.tsx`); el CSP de l'admin ja limita `frame-src` |
+| Vídeo incrustat | Mòbil: `react-native-webview` (`ApodVideo.tsx`). Web: `<iframe>` amb *sandbox* (`ApodVideo.web.tsx`); només es emmarquen `www.youtube.com` i `apod.nasa.gov` (llista a `ApodVideo.web.tsx`, alineada amb `frame-src` del CSP) |
 | Tipus d'API | Generats de l'esquema OpenAPI del backend (`openapi-typescript`) |
 | Admin web | React Native Web (bundle estàtic servit per nginx-proxy-manager) |
 | Dependències | `pnpm` |
