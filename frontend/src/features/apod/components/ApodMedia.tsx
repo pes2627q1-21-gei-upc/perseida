@@ -7,9 +7,6 @@ import type { Apod } from '../api/getApodToday';
 import { apodStrings } from '../strings';
 import { ApodVideo } from './ApodVideo';
 
-// The tests (and any caller) keep importing the player guards from here.
-export { keepInPlayer, PLAYER_REFERER } from './ApodVideo';
-
 /** Frame used until the image reports its real size. */
 const PLACEHOLDER_ASPECT_RATIO = 4 / 3;
 const VIDEO_ASPECT_RATIO = 16 / 9;

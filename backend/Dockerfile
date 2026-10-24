@@ -7,7 +7,7 @@
 #
 # Requeriments de disseny:
 #   · uv com a gestor de dependències (ADR-0013).
-#   · Python 3.14.9 (pinned a .python-version i pyproject.toml).
+#   · Python 3.14.9 (fixat a .python-version; pyproject.toml fixa la família 3.14.*).
 #   · Usuari no-root fix (UID 1001) per a seguretat en producció.
 #   · PYTHONUNBUFFERED evita el buffering de stdout/stderr, imprescindible
 #     per a logs en temps real dins de Docker.

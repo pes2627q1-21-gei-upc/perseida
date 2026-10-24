@@ -3,7 +3,8 @@ import { Linking } from 'react-native';
 
 import { apodImage, apodVideo } from '../../../../__mocks__/apod';
 import { apodStrings } from '../strings';
-import { ApodMedia, keepInPlayer } from './ApodMedia';
+import { ApodMedia } from './ApodMedia';
+import { keepInPlayer } from './ApodVideo';
 
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
 jest.mock('react-native-webview', () => {

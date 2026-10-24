@@ -8,7 +8,7 @@ import ApodScreen from '../../../app/(app)/apod';
 import { formatApodDate } from '../formatApodDate';
 import { apodKeys } from '../hooks/useApodToday';
 import { apodErrorMessage } from '../strings';
-import { keepInPlayer, PLAYER_REFERER } from './ApodMedia';
+import { keepInPlayer, PLAYER_REFERER } from './ApodVideo';
 
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
 jest.mock('react-native-webview', () => {

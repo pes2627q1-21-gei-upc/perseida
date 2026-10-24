@@ -19,7 +19,7 @@ Un únic procés FastAPI que fa tres coses: atén l'API REST de l'app i del pane
 Python 3.14, FastAPI (async), SQLModel (SQLAlchemy), Alembic, APScheduler, `uv`. Imatge `perseida-api:<git-sha>` publicada a GHCR (`ghcr.io/pes2627q1-21-gei-upc/perseida-api`).
 
 ### Contenidorització i empaquetament (TG-36)
-- **Multi-stage build**: etapa `builder` amb `uv sync --frozen --no-dev` creant un entorn virtual aïllat a `/app/.venv`, i etapa `runner` neta basada en `python:3.14-slim` on s'elimina `pip` i no hi ha eines de compilació.
+- **Multi-stage build**: etapa `builder` amb `uv sync --frozen --no-dev` creant un entorn virtual aïllat a `/app/.venv`, i etapa `runner` neta basada en `python:3.14.9-slim` on s'elimina `pip` i no hi ha eines de compilació.
 - **Seguretat**: execució sota usuari no privilegiat `appuser` (UID/GID fix `1001`, shell `/sbin/nologin`, sense home).
 - **Entorn**: `PYTHONUNBUFFERED=1` per a emissió immediata de logs a stdout, `PYTHONDONTWRITEBYTECODE=1` i `PATH="/app/.venv/bin:$PATH"`.
 - **Pipeline CI/CD**: `.github/workflows/backend-docker.yml` amb Buildx, memòria cau GHA (`mode=max`) i generació d'etiquetes immutables (`sha-XXXXXXX`), de branca (`develop`/`main`/`release/*`) i SemVer (`vX.Y.Z`).
