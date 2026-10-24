@@ -277,7 +277,7 @@ No horizontal scaling and no automatic backups; the server is a single point of 
 
 ## Security headers
 
-The API sends its own security headers (`nosniff`, a `Content-Security-Policy` of `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` on the authentication and user endpoints, and HSTS when the request arrives over HTTPS). TLS ends in nginx-proxy-manager, so the proxy adds HSTS and the policies of the two things the API does not serve: the admin panel (strict CSP: no inline script, no third-party script) and the user media (`sandbox` and `nosniff`, so an uploaded file can never run as a page). The ready-to-paste blocks, with the reasons, are in `nginx-proxy-manager/security-headers.conf`. Check them after each change with `curl -sI https://<host>/` and the browser console (a CSP violation is logged there).
+The API sends its own security headers (`nosniff`, a `Content-Security-Policy` of `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` on the authentication and user endpoints, and HSTS when the request arrives over HTTPS). TLS ends in nginx-proxy-manager, so the proxy adds HSTS and the policies of the two things the API does not serve: the admin panel (strict CSP: no inline script, no third-party script) and the user media (`sandbox` and `nosniff`, so an uploaded file can never run as a page). The ready-to-paste blocks, with the reasons, are in `nginx-proxy-manager/static.conf` (admin panel and media, inside their locations) and `nginx-proxy-manager/security-headers.conf` (HSTS for the API). Check them after each change with `curl -sI https://<host>/` and the browser console (a CSP violation is logged there).
 
 ## Team
 
