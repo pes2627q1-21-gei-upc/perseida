@@ -171,7 +171,7 @@ En el primer push, GitHub vincula el paquet al repositori mitjançant l'etiqueta
 | `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS` | Variable | Durades de la sessió (`15` i `30`) |
 | `HTTP_PORT`, `HTTPS_PORT` | Variable | Ports que publica nginx-proxy-manager a la VM (`8080` i `8081`; només el `8080`–`8088` és accessible des de fora) |
 
-No es defineixen a GitHub: `API_IMAGE_TAG` (`deploy.sh` hi posa la imatge del commit), `NPM_ADMIN_PORT` i `PORT` (només desenvolupament local) i `GITHUB_TOKEN` (automàtic).
+No es defineixen a GitHub: `API_IMAGE_TAG` (`deploy.sh` hi posa la imatge del commit), `NPM_ADMIN_PORT` (per defecte `81`, només a `127.0.0.1`), `PORT` (només desenvolupament local) i `GITHUB_TOKEN` (automàtic).
 
 Requisits del servidor: Docker Engine amb Compose 2.22 o superior (`pull --policy`), `flock` (de `util-linux`), l'usuari SSH al grup `docker` i `/opt/perseida` amb permís d'escriptura per a aquest usuari.
 
@@ -274,6 +274,63 @@ Sense escalat horitzontal ni còpies de seguretat automàtiques; el servidor és
 ## Relacionat
 
 [Backend](../backend/README.ca.md) · [Frontend](../frontend/README.ca.md) · [Obsidian vault](../obsidian_vault/README.ca.md)
+
+## nginx-proxy-manager
+
+nginx-proxy-manager (NPM) desa els *proxy hosts* i els certificats a la seva pròpia base de dades (el volum `npm_data`), així que no es poden versionar: aquests passos serveixen per recrear-los. La configuració avançada de nginx sí que es versiona, a `nginx-proxy-manager/`.
+
+Un sol *proxy host* ho serveix tot des del mateix origen:
+
+| Camí | Qui el serveix |
+|---|---|
+| `/api/...` | `api:8000` (API REST; comprovació de salut a `/api/health`) |
+| `/api/ws` | `api:8000` amb l'upgrade de WebSocket (xat, TG-63) |
+| `/media/` | El mateix NPM, des del volum `media_data` (multimèdia dels usuaris) |
+| `/admin/` | El mateix NPM, des del volum `admin_dist` (SPA del panell d'administració) |
+
+### Ports i panell
+
+| | Local | Producció (Virtech) |
+|---|---|---|
+| HTTP / HTTPS | `80` / `443` | `HTTP_PORT=8080` / `HTTPS_PORT=8081`, accessibles des de fora com a `40430` / `40431` pel NAT de la UPC |
+| URL pública | `https://localhost` | `https://perseida.duckdns.org:40431` |
+| Panell (port `81`) | `http://127.0.0.1:81` | Túnel SSH: `ssh -L 8181:localhost:81 -p <SSH_PORT> <SSH_USER>@<SSH_HOST>` i després `http://localhost:8181` |
+
+El panell només escolta a `127.0.0.1`, mai des de fora. El primer cop que hi entris, canvia el correu i la contrasenya d'administrador per defecte; la contrasenya no s'escriu mai al repositori. Les variables de ports són a [Desplegament a producció (CD)](#desplegament-a-producció-cd); aquesta configuració no n'afegeix cap de nova.
+
+> A producció, *Force SSL* redirigeix `http://…:40430` a `https://…` pel port 443, que el NAT no obre. Fes servir directament la URL HTTPS amb el port `40431`.
+
+### Certificat
+
+- **Producció:** *SSL Certificates → Add SSL Certificate → Let's Encrypt*, domini `perseida.duckdns.org`, *Use a DNS Challenge*, proveïdor *DuckDNS*, credencials `dns_duckdns_token=<token>`. El token només s'escriu al panell, mai al repositori, a Taiga ni a GitHub. Cal el repte DNS perquè Let's Encrypt no arriba al port 80 a través del NAT.
+- **Local:** NPM no pot crear un certificat autosignat. Genera'n un fora del repositori i puja'l com a *Custom*:
+
+  ```bash
+  openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=localhost" -keyout localhost.key -out localhost.crt
+  ```
+
+### Proxy host
+
+*Hosts → Proxy Hosts → Add Proxy Host*:
+
+1. **Details:** domini `perseida.duckdns.org` (en local, `localhost`), esquema `http`, *forward hostname* `api`, *forward port* `8000`. Activa *Block Common Exploits* i *Websockets Support*.
+2. **SSL:** el certificat d'abans, amb *Force SSL* i *HTTP/2 Support*. Deixa desactivada l'opció *HSTS* d'NPM, perquè ja l'envia `security-headers.conf`.
+3. **Advanced:** enganxa-hi `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` i `nginx-proxy-manager/websocket.conf`, un darrere l'altre.
+4. **Comprova-ho** (en local, amb `-k` perquè el certificat és autosignat):
+
+   ```bash
+   curl -kI http://localhost/            # 301 cap a https
+   curl -k https://localhost/api/health  # 200 de l'API
+   curl -kI https://localhost/admin/     # index.html de la SPA, amb la seva CSP
+   curl -kI https://localhost/media/<fitxer>
+   ```
+
+   Un client de WebSocket (p. ex. `wscat -n -c wss://localhost/api/ws`) ha de rebre `101 Switching Protocols` quan existeixi l'endpoint del xat.
+
+### Volums
+
+- `media_data` és compartit: `api` hi escriu la multimèdia dels usuaris i NPM el munta en lectura a `/media`.
+- `admin_dist` conté el panell d'administració compilat (TG-77), muntat en lectura a `/admin`. Com `media_data`, és un volum nomenat: sobreviu a `docker compose down` i als redesplegaments, no depèn d'on sigui el repositori al servidor i NPM només el pot llegir.
 
 ## Capçaleres de seguretat
 
