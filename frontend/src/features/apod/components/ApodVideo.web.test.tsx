@@ -29,4 +29,17 @@ describe('ApodVideo (web)', () => {
 
     expect(onError).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    'https://evil.example/embed/abc',
+    'https://www.youtube.com.evil.example/embed/abc',
+    'https://www.youtube.com:8443/embed/abc',
+    'https://localhost:8081/apod',
+  ])('does not frame %s: it reports the error instead', async (url) => {
+    const onError = jest.fn();
+    await render(<ApodVideo url={url} label={apodStrings.videoLabel} onError={onError} />);
+
+    expect(screen.root).toBeUndefined();
+    expect(onError).toHaveBeenCalled();
+  });
 });
