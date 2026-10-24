@@ -27,7 +27,7 @@ Es fixen quatre capes, per ordre de preferència.
 3. **La sortida no es pot interpretar com a codi.**
    - **API:** `SecurityHeadersMiddleware` posa a totes les respostes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` i una `Content-Security-Policy` de `default-src 'none'` (només la documentació interactiva, `/api/docs` i `/api/redoc`, rep una política que li deixa carregar els seus recursos de jsDelivr); HSTS si la petició arriba per HTTPS; `Cache-Control: no-store` a `/api/auth` i `/api/users`.
    - **Frontend:** `safeHttpsUrl` filtra tot enllaç que ve de l'API o d'un tercer abans que arribi a un `<Image>`, a un `WebView` o a `Linking.openURL`; el reproductor de l'APOD té `mixedContentMode="never"`, sense accés a fitxers ni galetes de tercers. ESLint prohibeix `eval`, `new Function`, `javascript:`, `dangerouslySetInnerHTML`, `innerHTML` i `document.write`.
-   - **Proxy:** `infra/nginx-proxy-manager/security-headers.conf` té la CSP estricta del panell d'administració (cap script en línia ni de tercers) i la de `sandbox` per als fitxers dels usuaris, que no han de poder executar-se mai com a pàgina.
+   - **Proxy:** `infra/nginx-proxy-manager/static.conf` (TG-89; abans `security-headers.conf`, que ara només té l'HSTS de l'API) té la CSP estricta del panell d'administració (cap script en línia ni de tercers) i la de `sandbox` per als fitxers dels usuaris, que no han de poder executar-se mai com a pàgina.
 4. **Dependències vigilades.** `pip-audit` (backend) i `pnpm audit` (frontend) es passen a cada canvi de dependències; es corregeix el que té versió arreglada i la resta es tria i es documenta a [[seguretat]].
 
 ## Conseqüències

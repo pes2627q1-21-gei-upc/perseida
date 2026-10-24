@@ -12,7 +12,7 @@ Everything runs on **a single server provided by Virtech**, orchestrated with **
 
 ```mermaid
 flowchart TB
-    PHONE[Android app] -- HTTPS 443 / WSS --> NPM
+    PHONE[Android app] -- HTTPS / WSS: 443 local, 40431 prod --> NPM
     ADMIN[Admin browser] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Virtech server - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, proxy_pass, media + admin SPA]
@@ -171,7 +171,7 @@ The first time the workflow pushes the image, GitHub links the package to the re
 | `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS` | Variable | Session lifetimes (`15` and `30`) |
 | `HTTP_PORT`, `HTTPS_PORT` | Variable | Ports nginx-proxy-manager publishes on the VM (`8080` and `8081`; only `8080`–`8088` are reachable from outside) |
 
-Not set in GitHub: `API_IMAGE_TAG` (`deploy.sh` sets it to the commit's image), `NPM_ADMIN_PORT` and `PORT` (local development only) and `GITHUB_TOKEN` (automatic).
+Not set in GitHub: `API_IMAGE_TAG` (`deploy.sh` sets it to the commit's image), `NPM_ADMIN_PORT` (defaults to `81`, only on `127.0.0.1`), `PORT` (local development only) and `GITHUB_TOKEN` (automatic).
 
 Server prerequisites: Docker Engine with Compose 2.22 or later (`pull --policy`), `flock` (from `util-linux`), the SSH user in the `docker` group and `/opt/perseida` writable by that user.
 
@@ -275,9 +275,66 @@ No horizontal scaling and no automatic backups; the server is a single point of 
 
 [Backend](../backend/README.md) · [Frontend](../frontend/README.md) · [Obsidian vault](../obsidian_vault/README.md)
 
+## nginx-proxy-manager
+
+nginx-proxy-manager (NPM) keeps its proxy hosts and certificates in its own database (the `npm_data` volume), so they cannot be versioned: follow these steps to recreate them. The advanced nginx configuration can be versioned and lives in `nginx-proxy-manager/`.
+
+A single proxy host serves everything from the same origin:
+
+| Path | Served by |
+|---|---|
+| `/api/...` | `api:8000` (REST API; health check at `/api/health`) |
+| `/api/ws` | `api:8000` with the WebSocket upgrade (chat, TG-63) |
+| `/media/` | NPM itself, from the `media_data` volume (user media) |
+| `/admin/` | NPM itself, from the `admin_dist` volume (admin panel SPA) |
+
+### Ports and panel
+
+| | Local | Production (Virtech) |
+|---|---|---|
+| HTTP / HTTPS | `80` / `443` | `HTTP_PORT=8080` / `HTTPS_PORT=8081`, reachable from outside as `40430` / `40431` through the UPC NAT |
+| Public URL | `https://perseida.localhost` | `https://perseida.duckdns.org:40431` |
+| Panel (port `81`) | `http://127.0.0.1:81` | SSH tunnel: `ssh -L 8181:localhost:81 -p <SSH_PORT> <SSH_USER>@<SSH_HOST>`, then `http://localhost:8181` |
+
+The panel only listens on `127.0.0.1`, never from outside. The first time you log in, change the default administrator email and password; the password is never written in the repository. The port variables are described in [Production deployment (CD)](#production-deployment-cd); this configuration does not add any new ones.
+
+> In production, *Force SSL* redirects `http://…:40430` to `https://…` on port 443, which the NAT does not open. Use the HTTPS URL with port `40431` directly.
+
+### Certificate
+
+- **Production:** *SSL Certificates → Add SSL Certificate → Let's Encrypt*, domain `perseida.duckdns.org`, *Use a DNS Challenge*, provider *DuckDNS*, credentials `dns_duckdns_token=<token>`. The token is typed only in the panel, never in the repository, Taiga or GitHub. A DNS challenge is needed because Let's Encrypt cannot reach port 80 through the NAT. This is task #326 of TG-89 in Taiga.
+- **Local:** NPM cannot create a self-signed certificate. Generate one outside the repository and upload it as *Custom*:
+
+  ```bash
+  openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=perseida.localhost" -addext "subjectAltName=DNS:perseida.localhost" -keyout perseida.localhost.key -out perseida.localhost.crt
+  ```
+
+### Proxy host
+
+*Hosts → Proxy Hosts → Add Proxy Host*:
+
+1. **Details:** domain `perseida.duckdns.org` (local: `perseida.localhost`; not `localhost`, which NPM already reserves on port 443 and rejects the TLS handshake), scheme `http`, forward hostname `api`, forward port `8000`. Turn on *Block Common Exploits* and *Websockets Support*; leave *Cache Assets* off.
+2. **SSL:** the certificate above, with *Force SSL* and *HTTP/2 Support*. Leave NPM's *HSTS* option off, because `security-headers.conf` already sends it.
+3. **Advanced:** paste `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` and `nginx-proxy-manager/websocket.conf`, one after another.
+4. **Check** (locally, with `-k` because the certificate is self-signed):
+
+   ```bash
+   curl -kI http://perseida.localhost/            # 301 to https
+   curl -k https://perseida.localhost/api/health  # 200 from the API
+   curl -kI https://perseida.localhost/admin/     # index.html of the SPA, with its CSP
+   curl -kI https://perseida.localhost/media/<file>
+   ```
+
+   A WebSocket client (e.g. `wscat -n -c wss://perseida.localhost/api/ws`) must get `101 Switching Protocols` once the chat endpoint exists.
+
+### Volumes
+
+- `media_data` is shared: `api` writes user media to it, and NPM mounts it read-only at `/media`.
+- `admin_dist` holds the built admin panel (TG-77), mounted read-only at `/admin`. Like `media_data`, it is a named volume: it survives `docker compose down` and redeploys, does not depend on where the repository is on the server, and NPM can only read it.
+
 ## Security headers
 
-The API sends its own security headers (`nosniff`, a `Content-Security-Policy` of `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` on the authentication and user endpoints, and HSTS when the request arrives over HTTPS). TLS ends in nginx-proxy-manager, so the proxy adds HSTS and the policies of the two things the API does not serve: the admin panel (strict CSP: no inline script, no third-party script) and the user media (`sandbox` and `nosniff`, so an uploaded file can never run as a page). The ready-to-paste blocks, with the reasons, are in `nginx-proxy-manager/security-headers.conf`. Check them after each change with `curl -sI https://<host>/` and the browser console (a CSP violation is logged there).
+The API sends its own security headers (`nosniff`, a `Content-Security-Policy` of `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` on the authentication and user endpoints, and HSTS when the request arrives over HTTPS). TLS ends in nginx-proxy-manager, so the proxy adds HSTS and the policies of the two things the API does not serve: the admin panel (strict CSP: no inline script, no third-party script) and the user media (`sandbox` and `nosniff`, so an uploaded file can never run as a page). The ready-to-paste blocks, with the reasons, are in `nginx-proxy-manager/static.conf` (admin panel and media, inside their locations) and `nginx-proxy-manager/security-headers.conf` (HSTS for the API). Check them after each change with `curl -sI https://<host>/` and the browser console (a CSP violation is logged there).
 
 ## Team
 
