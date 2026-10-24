@@ -1,7 +1,8 @@
 services:
   reverse-proxy:
     ports:
-      - "${NPM_ADMIN_PORT:-81}:81"
+      # Panell d'NPM només des d'aquesta màquina (criteri 3 de TG-89).
+      - "127.0.0.1:${NPM_ADMIN_PORT:-81}:81"
 
   api:
     build:
