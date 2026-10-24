@@ -2,9 +2,9 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-21"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24)"
+data: "2026-10-24"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -19,8 +19,8 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 
 | Àrea | Tecnologia |
 |---|---|
-| Framework | React Native + Expo |
-| Llenguatge | TypeScript (`strict`), motor Hermes |
+| Framework | React Native 0.88 + **Expo SDK 58** (les versions es fixen a `package.json` segons `bundledNativeModules` d'`expo`) |
+| Llenguatge | TypeScript 6.0 (`strict`), motor Hermes. Es manté a la 6.x: `typescript-eslint` encara no admet TypeScript 7 (peer `<6.1`) |
 | Estils | NativeWind + *tokens* de tema propis; estètica «Frutiger Cosmo · Cel viu» amb quatre temes (`dia`, `posta`, `nit`, `vermell`) i quatre modes ([[0020-frontend-expo-router-i-estetica-frutiger-cosmo]]) |
 | Tipografia | M PLUS Rounded 1c (títols i xifres) + Open Sans (cos), amb `expo-font` |
 | i18n | i18next (català, castellà i anglès; detecció d'idioma del dispositiu + selector) |
@@ -28,7 +28,7 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 | Auth | Google OAuth2 + PKCE; tokens a `expo-secure-store` |
 | Animació i icones | `react-native-reanimated` (+ `react-native-worklets`), `react-native-svg`, `phosphor-react-native` |
 | Push | Firebase Cloud Messaging |
-| Vídeo incrustat | `react-native-webview` (reproductor de l'APOD; no funciona a la web) |
+| Vídeo incrustat | Mòbil: `react-native-webview` (`ApodVideo.tsx`). Web: `<iframe>` amb *sandbox* (`ApodVideo.web.tsx`); el CSP de l'admin ja limita `frame-src` |
 | Tipus d'API | Generats de l'esquema OpenAPI del backend (`openapi-typescript`) |
 | Admin web | React Native Web (bundle estàtic servit per nginx-proxy-manager) |
 | Dependències | `pnpm` |
@@ -51,6 +51,12 @@ flowchart LR
     GOOGLE[Google Identity] -- OAuth2 + PKCE --> UI
     FCM[Firebase Cloud Messaging] -- push --> UI
 ```
+
+## Versions i execució
+
+- **Expo Go** de les botigues només admet l'SDK actual: si Expo Go no carrega l'app, primer s'ha de mirar que l'SDK del projecte coincideixi (TG-327: el salt a l'SDK 58 va deixar l'SDK 57 sense Expo Go).
+- Node 24.22.1 (LTS) i pnpm 12.15.0 (`packageManager`; s'actualitza amb `pnpm self-update`, no amb `pnpm add -g pnpm`). Amb pnpm 12 els scripts de build de dependències s'aproven a `allowBuilds` de `pnpm-workspace.yaml` (ara `@parcel/watcher` i `unrs-resolver` denegats).
+- Web: `pnpm web` serveix la mateixa app amb React Native Web; NativeWind necessita `darkMode: 'class'` a `tailwind.config.js` (amb `media` la web queda en blanc).
 
 ## Mode offline
 
