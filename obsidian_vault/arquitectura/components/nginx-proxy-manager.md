@@ -2,9 +2,9 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-10-20"
+data: "2026-10-24"
 us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37)"
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
 ---
 
@@ -22,7 +22,7 @@ Nginx Proxy Manager amb la imatge oficial `jc21/nginx-proxy-manager:2.12.3` fixa
 
 - Qui el crida: l'app Android (HTTPS 443 / WSS) i el navegador d'administració (SPA + REST).
 - A qui crida: [[api]] (`proxy_pass`). Comparteix el volum de media amb l'API.
-- Ports: En producció exposa el `80` (HTTP) i `443` (HTTPS); el port d'administració `81` s'exposa exclusivament a `infra/docker-compose.override.yml` per a desenvolupament local.
+- Ports: publica `HTTP_PORT` i `HTTPS_PORT` (en local `80` i `443`; a producció `8080` i `8081`). El port d'administració `81` es publica només a `127.0.0.1`, tant en local com a producció (`infra/docker-compose.yml`, TG-89): no s'hi pot arribar des de fora, i a producció s'hi entra per túnel SSH (`ssh -L 8181:localhost:81 …`). Sense publicar-lo a `127.0.0.1`, el túnel no arribaria al contenidor.
 
 > [!warning] Port 443 a Virtech
 > A Virtech només hi ha ports públics NAT (`40430`–`40439`, dels quals el `40439` és SSH); no hi ha 80/443 públics. Com s'exposa aquest servei i com s'obté el certificat TLS és encara una decisió pendent; vegeu [[arquitectura-fisica]].
