@@ -12,7 +12,7 @@ Todo se ejecuta en **un único servidor proporcionado por Virtech**, orquestado 
 
 ```mermaid
 flowchart TB
-    PHONE[App Android] -- HTTPS 443 / WSS --> NPM
+    PHONE[App Android] -- HTTPS / WSS: 443 local, 40431 prod --> NPM
     ADMIN[Navegador admin] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Servidor Virtech - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, proxy_pass, media + SPA admin]
@@ -171,7 +171,7 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 | `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS` | Variable | Duraciones de la sesión (`15` y `30`) |
 | `HTTP_PORT`, `HTTPS_PORT` | Variable | Puertos que publica nginx-proxy-manager en la VM (`8080` y `8081`; solo el `8080`–`8088` es accesible desde fuera) |
 
-No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `NPM_ADMIN_PORT` y `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
+No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `NPM_ADMIN_PORT` (por defecto `81`, solo en `127.0.0.1`), `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
 
 Requisitos del servidor: Docker Engine con Compose 2.22 o superior (`pull --policy`), `flock` (de `util-linux`), el usuario SSH en el grupo `docker` y `/opt/perseida` con permiso de escritura para ese usuario.
 
@@ -275,9 +275,66 @@ Sin escalado horizontal ni copias de seguridad automáticas; el servidor es un p
 
 [Backend](../backend/README.es.md) · [Frontend](../frontend/README.es.md) · [Obsidian vault](../obsidian_vault/README.es.md)
 
+## nginx-proxy-manager
+
+nginx-proxy-manager (NPM) guarda los *proxy hosts* y los certificados en su propia base de datos (el volumen `npm_data`), así que no se pueden versionar: estos pasos sirven para recrearlos. La configuración avanzada de nginx sí se versiona, en `nginx-proxy-manager/`.
+
+Un solo *proxy host* lo sirve todo desde el mismo origen:
+
+| Ruta | Quién la sirve |
+|---|---|
+| `/api/...` | `api:8000` (API REST; comprobación de salud en `/api/health`) |
+| `/api/ws` | `api:8000` con el upgrade de WebSocket (chat, TG-63) |
+| `/media/` | El propio NPM, desde el volumen `media_data` (multimedia de los usuarios) |
+| `/admin/` | El propio NPM, desde el volumen `admin_dist` (SPA del panel de administración) |
+
+### Puertos y panel
+
+| | Local | Producción (Virtech) |
+|---|---|---|
+| HTTP / HTTPS | `80` / `443` | `HTTP_PORT=8080` / `HTTPS_PORT=8081`, accesibles desde fuera como `40430` / `40431` por el NAT de la UPC |
+| URL pública | `https://perseida.localhost` | `https://perseida.duckdns.org:40431` |
+| Panel (puerto `81`) | `http://127.0.0.1:81` | Túnel SSH: `ssh -L 8181:localhost:81 -p <SSH_PORT> <SSH_USER>@<SSH_HOST>` y después `http://localhost:8181` |
+
+El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entres, cambia el correo y la contraseña de administrador por defecto; la contraseña no se escribe nunca en el repositorio. Las variables de puertos están en [Despliegue en producción (CD)](#despliegue-en-producción-cd); esta configuración no añade ninguna nueva.
+
+> En producción, *Force SSL* redirige `http://…:40430` a `https://…` por el puerto 443, que el NAT no abre. Usa directamente la URL HTTPS con el puerto `40431`.
+
+### Certificado
+
+- **Producción:** *SSL Certificates → Add SSL Certificate → Let's Encrypt*, dominio `perseida.duckdns.org`, *Use a DNS Challenge*, proveedor *DuckDNS*, credenciales `dns_duckdns_token=<token>`. El token solo se escribe en el panel, nunca en el repositorio, en Taiga ni en GitHub. Hace falta el reto DNS porque Let's Encrypt no llega al puerto 80 a través del NAT. Es la tarea #326 de TG-89 en Taiga.
+- **Local:** NPM no puede crear un certificado autofirmado. Genera uno fuera del repositorio y súbelo como *Custom*:
+
+  ```bash
+  openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=perseida.localhost" -addext "subjectAltName=DNS:perseida.localhost" -keyout perseida.localhost.key -out perseida.localhost.crt
+  ```
+
+### Proxy host
+
+*Hosts → Proxy Hosts → Add Proxy Host*:
+
+1. **Details:** dominio `perseida.duckdns.org` (en local, `perseida.localhost`; no `localhost`, que NPM ya se reserva en el puerto 443 y rechaza el *handshake* TLS), esquema `http`, *forward hostname* `api`, *forward port* `8000`. Activa *Block Common Exploits* y *Websockets Support*; deja *Cache Assets* desactivado.
+2. **SSL:** el certificado de antes, con *Force SSL* y *HTTP/2 Support*. Deja desactivada la opción *HSTS* de NPM, porque ya la envía `security-headers.conf`.
+3. **Advanced:** pega `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` y `nginx-proxy-manager/websocket.conf`, uno detrás de otro.
+4. **Compruébalo** (en local, con `-k` porque el certificado es autofirmado):
+
+   ```bash
+   curl -kI http://perseida.localhost/            # 301 hacia https
+   curl -k https://perseida.localhost/api/health  # 200 de la API
+   curl -kI https://perseida.localhost/admin/     # index.html de la SPA, con su CSP
+   curl -kI https://perseida.localhost/media/<fichero>
+   ```
+
+   Un cliente de WebSocket (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe recibir `101 Switching Protocols` cuando exista el endpoint del chat.
+
+### Volúmenes
+
+- `media_data` es compartido: `api` escribe en él la multimedia de los usuarios y NPM lo monta en lectura en `/media`.
+- `admin_dist` contiene el panel de administración compilado (TG-77), montado en lectura en `/admin`. Como `media_data`, es un volumen nombrado: sobrevive a `docker compose down` y a los redespliegues, no depende de dónde esté el repositorio en el servidor y NPM solo puede leerlo.
+
 ## Cabeceras de seguridad
 
-La API envía sus propias cabeceras de seguridad (`nosniff`, una `Content-Security-Policy` de `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` en los endpoints de autenticación y de usuario, y HSTS cuando la petición llega por HTTPS). El TLS termina en nginx-proxy-manager, así que el proxy añade HSTS y las políticas de las dos cosas que la API no sirve: el panel de administración (CSP estricta: ningún script en línea ni de terceros) y los ficheros de los usuarios (`sandbox` y `nosniff`, para que un fichero subido nunca pueda ejecutarse como página). Los bloques para pegar, con los motivos, están en `nginx-proxy-manager/security-headers.conf`. Compruébalos tras cada cambio con `curl -sI https://<host>/` y la consola del navegador (una violación de la CSP queda registrada ahí).
+La API envía sus propias cabeceras de seguridad (`nosniff`, una `Content-Security-Policy` de `default-src 'none'`, `X-Frame-Options`, `Referrer-Policy`, `no-store` en los endpoints de autenticación y de usuario, y HSTS cuando la petición llega por HTTPS). El TLS termina en nginx-proxy-manager, así que el proxy añade HSTS y las políticas de las dos cosas que la API no sirve: el panel de administración (CSP estricta: ningún script en línea ni de terceros) y los ficheros de los usuarios (`sandbox` y `nosniff`, para que un fichero subido nunca pueda ejecutarse como página). Los bloques para pegar, con los motivos, están en `nginx-proxy-manager/static.conf` (panel de administración y ficheros de los usuarios, dentro de sus `location`) y `nginx-proxy-manager/security-headers.conf` (HSTS de la API). Compruébalos tras cada cambio con `curl -sI https://<host>/` y la consola del navegador (una violación de la CSP queda registrada ahí).
 
 ## Equipo
 

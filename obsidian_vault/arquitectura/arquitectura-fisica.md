@@ -2,9 +2,9 @@
 titol: "Arquitectura física i desplegament"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-20"
+data: "2026-10-24"
 us: ["TG-85", "TG-37", "TG-89", "TG-34", "TG-35", "TG-38"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18, PR #24); infra/docker-compose.yml (TG-37); .github/workflows/cd.yml i infra/scripts/deploy.sh (TG-38)"
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; .github/workflows/ci.yml (PR #18, PR #24); infra/docker-compose.yml (TG-37); .github/workflows/cd.yml i infra/scripts/deploy.sh (TG-38); ADR-0026 (TG-89)"
 etiquetes: [arquitectura, infra, docker-compose, desplegament]
 ---
 
@@ -19,7 +19,7 @@ Perseida es desplega sobre **un únic servidor de Virtech** on Docker Compose or
 
 ```mermaid
 flowchart TB
-    PHONE[Android app] -- HTTPS 443 / WSS --> NPM
+    PHONE[Android app] -- HTTPS / WSS :40431 --> NPM
     ADMIN[Admin browser] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Virtech server - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, proxy_pass, media + admin SPA]
@@ -91,8 +91,7 @@ Conseqüències:
 
 - El `8089` queda reservat a SSH; per a [[nginx-proxy-manager]] i la resta de serveis només es poden publicar els ports `8080`–`8088`. No hi ha ports 80/443 públics.
 
-> [!warning] Pendent de decidir: HTTPS al port 443
-> Els diagrames d'aquesta nota i de [[visio-general]], i [[nginx-proxy-manager]], parlen de «HTTPS 443», però a Virtech l'únic accés públic és per ports NAT (`40430`–`40439`). Cal decidir com s'exposa nginx-proxy-manager (port NAT amb la URL de l'API a l'app) i com s'obté el certificat TLS, ja que el repte HTTP-01 de Let's Encrypt necessita el port 80 i el TLS-ALPN-01 el 443; amb ports NAT caldria un repte DNS-01 o un altre mètode. Encara no hi ha decisió presa.
+- HTTPS a producció ([[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01]]): [[nginx-proxy-manager]] publica el `8080` i el `8081` (des de fora, `40430` i `40431`). L'URL pública és `https://perseida.duckdns.org:40431`, amb un certificat de Let's Encrypt obtingut pel repte DNS-01 de DuckDNS. El panell d'NPM (port 81) només escolta a `127.0.0.1` i s'hi entra per túnel SSH.
 - La VM s'esborra al final del quadrimestre i no té còpia de seguretat (guia del servei Virtech).
 - Secrets SSH al repositori: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS`. La resta de configuració del `.env` de producció (només el que usa el backend) va com a secrets i variables de GitHub.
 

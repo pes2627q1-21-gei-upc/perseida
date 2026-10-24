@@ -8,10 +8,13 @@ services:
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
+      # Panell d'NPM només des de la mateixa màquina; a producció, per túnel SSH (criteri 3 de TG-89).
+      - "127.0.0.1:${NPM_ADMIN_PORT:-81}:81"
     volumes:
       - npm_data:/data
       - npm_letsencrypt:/etc/letsencrypt
       - media_data:/media:ro
+      - admin_dist:/admin:ro
     networks:
       - gateway
     depends_on:
@@ -123,3 +126,5 @@ volumes:
     name: perseida_npm_letsencrypt
   media_data:
     name: perseida_media_data
+  admin_dist:
+    name: perseida_admin_dist

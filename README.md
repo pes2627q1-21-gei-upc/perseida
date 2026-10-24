@@ -36,7 +36,7 @@ Everything runs on **a single Virtech server** orchestrated with **Docker Compos
 
 ```mermaid
 flowchart LR
-    PHONE[Android app<br/>SQLite outbox + cache] -- REST / WSS 443 --> NPM
+    PHONE[Android app<br/>SQLite outbox + cache] -- REST / WSS: 443 local, 40431 prod --> NPM
     ADMIN[Admin browser<br/>admin SPA] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Virtech server - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, serves media + admin SPA]
