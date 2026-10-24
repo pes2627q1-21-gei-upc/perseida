@@ -36,7 +36,7 @@ Tot s'executa en **un únic servidor de Virtech** orquestrat amb **Docker Compos
 
 ```mermaid
 flowchart LR
-    PHONE[App Android<br/>SQLite outbox + cache] -- REST / WSS 443 --> NPM
+    PHONE[App Android<br/>SQLite outbox + cache] -- REST / WSS: 443 local, 40431 prod --> NPM
     ADMIN[Navegador admin<br/>admin SPA] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Servidor Virtech - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, serveix media + SPA admin]

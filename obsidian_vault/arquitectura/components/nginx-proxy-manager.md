@@ -49,6 +49,9 @@ Variables a `.env.example`: `HTTP_PORT`, `HTTPS_PORT` i `NPM_ADMIN_PORT`. El tok
 
 implementat (TG-89): en local i a producció. A producció, `/admin/` funcionarà quan la VM tingui el compose amb el volum `admin_dist` i el paquet de la TG-77.
 
+> [!warning] El panell es serveix a `/admin/`
+> L'export web d'Expo ha de tenir `experiments.baseUrl: "/admin"` a `frontend/app.json` (TG-77). Sense això, el paquet demana `/_expo/static/...` des de l'arrel, que va a l'API i dona 404.
+
 ## Enllaços
 
 - [[arquitectura-fisica]], [[visio-general]], [[frontend]]
