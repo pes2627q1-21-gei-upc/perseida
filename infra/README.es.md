@@ -293,7 +293,7 @@ Un solo *proxy host* lo sirve todo desde el mismo origen:
 | | Local | Producción (Virtech) |
 |---|---|---|
 | HTTP / HTTPS | `80` / `443` | `HTTP_PORT=8080` / `HTTPS_PORT=8081`, accesibles desde fuera como `40430` / `40431` por el NAT de la UPC |
-| URL pública | `https://localhost` | `https://perseida.duckdns.org:40431` |
+| URL pública | `https://perseida.localhost` | `https://perseida.duckdns.org:40431` |
 | Panel (puerto `81`) | `http://127.0.0.1:81` | Túnel SSH: `ssh -L 8181:localhost:81 -p <SSH_PORT> <SSH_USER>@<SSH_HOST>` y después `http://localhost:8181` |
 
 El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entres, cambia el correo y la contraseña de administrador por defecto; la contraseña no se escribe nunca en el repositorio. Las variables de puertos están en [Despliegue en producción (CD)](#despliegue-en-producción-cd); esta configuración no añade ninguna nueva.
@@ -302,30 +302,30 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
 
 ### Certificado
 
-- **Producción:** *SSL Certificates → Add SSL Certificate → Let's Encrypt*, dominio `perseida.duckdns.org`, *Use a DNS Challenge*, proveedor *DuckDNS*, credenciales `dns_duckdns_token=<token>`. El token solo se escribe en el panel, nunca en el repositorio, en Taiga ni en GitHub. Hace falta el reto DNS porque Let's Encrypt no llega al puerto 80 a través del NAT.
+- **Producción:** *SSL Certificates → Add SSL Certificate → Let's Encrypt*, dominio `perseida.duckdns.org`, *Use a DNS Challenge*, proveedor *DuckDNS*, credenciales `dns_duckdns_token=<token>`. El token solo se escribe en el panel, nunca en el repositorio, en Taiga ni en GitHub. Hace falta el reto DNS porque Let's Encrypt no llega al puerto 80 a través del NAT. Es la tarea #326 de TG-89 en Taiga.
 - **Local:** NPM no puede crear un certificado autofirmado. Genera uno fuera del repositorio y súbelo como *Custom*:
 
   ```bash
-  openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=localhost" -keyout localhost.key -out localhost.crt
+  openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=perseida.localhost" -addext "subjectAltName=DNS:perseida.localhost" -keyout perseida.localhost.key -out perseida.localhost.crt
   ```
 
 ### Proxy host
 
 *Hosts → Proxy Hosts → Add Proxy Host*:
 
-1. **Details:** dominio `perseida.duckdns.org` (en local, `localhost`), esquema `http`, *forward hostname* `api`, *forward port* `8000`. Activa *Block Common Exploits* y *Websockets Support*.
+1. **Details:** dominio `perseida.duckdns.org` (en local, `perseida.localhost`; no `localhost`, que NPM ya se reserva en el puerto 443 y rechaza el *handshake* TLS), esquema `http`, *forward hostname* `api`, *forward port* `8000`. Activa *Block Common Exploits* y *Websockets Support*.
 2. **SSL:** el certificado de antes, con *Force SSL* y *HTTP/2 Support*. Deja desactivada la opción *HSTS* de NPM, porque ya la envía `security-headers.conf`.
 3. **Advanced:** pega `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` y `nginx-proxy-manager/websocket.conf`, uno detrás de otro.
 4. **Compruébalo** (en local, con `-k` porque el certificado es autofirmado):
 
    ```bash
-   curl -kI http://localhost/            # 301 hacia https
-   curl -k https://localhost/api/health  # 200 de la API
-   curl -kI https://localhost/admin/     # index.html de la SPA, con su CSP
-   curl -kI https://localhost/media/<fichero>
+   curl -kI http://perseida.localhost/            # 301 hacia https
+   curl -k https://perseida.localhost/api/health  # 200 de la API
+   curl -kI https://perseida.localhost/admin/     # index.html de la SPA, con su CSP
+   curl -kI https://perseida.localhost/media/<fichero>
    ```
 
-   Un cliente de WebSocket (p. ej. `wscat -n -c wss://localhost/api/ws`) debe recibir `101 Switching Protocols` cuando exista el endpoint del chat.
+   Un cliente de WebSocket (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe recibir `101 Switching Protocols` cuando exista el endpoint del chat.
 
 ### Volúmenes
 
