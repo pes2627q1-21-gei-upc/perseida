@@ -12,7 +12,7 @@ Everything runs on **a single server provided by Virtech**, orchestrated with **
 
 ```mermaid
 flowchart TB
-    PHONE[Android app] -- HTTPS 443 / WSS --> NPM
+    PHONE[Android app] -- HTTPS / WSS: 443 local, 40431 prod --> NPM
     ADMIN[Admin browser] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Virtech server - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, proxy_pass, media + admin SPA]
@@ -313,7 +313,7 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
 
 *Hosts → Proxy Hosts → Add Proxy Host*:
 
-1. **Details:** domain `perseida.duckdns.org` (local: `perseida.localhost`; not `localhost`, which NPM already reserves on port 443 and rejects the TLS handshake), scheme `http`, forward hostname `api`, forward port `8000`. Turn on *Block Common Exploits* and *Websockets Support*.
+1. **Details:** domain `perseida.duckdns.org` (local: `perseida.localhost`; not `localhost`, which NPM already reserves on port 443 and rejects the TLS handshake), scheme `http`, forward hostname `api`, forward port `8000`. Turn on *Block Common Exploits* and *Websockets Support*; leave *Cache Assets* off.
 2. **SSL:** the certificate above, with *Force SSL* and *HTTP/2 Support*. Leave NPM's *HSTS* option off, because `security-headers.conf` already sends it.
 3. **Advanced:** paste `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` and `nginx-proxy-manager/websocket.conf`, one after another.
 4. **Check** (locally, with `-k` because the certificate is self-signed):

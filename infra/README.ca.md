@@ -12,7 +12,7 @@ Tot s'executa en **un únic servidor proporcionat per Virtech**, orquestrat amb 
 
 ```mermaid
 flowchart TB
-    PHONE[App Android] -- HTTPS 443 / WSS --> NPM
+    PHONE[App Android] -- HTTPS / WSS: 443 local, 40431 prod --> NPM
     ADMIN[Navegador admin] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Servidor Virtech - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, proxy_pass, media + SPA admin]
@@ -313,7 +313,7 @@ El panell només escolta a `127.0.0.1`, mai des de fora. El primer cop que hi en
 
 *Hosts → Proxy Hosts → Add Proxy Host*:
 
-1. **Details:** domini `perseida.duckdns.org` (en local, `perseida.localhost`; no `localhost`, que NPM ja es reserva al port 443 i hi rebutja el *handshake* TLS), esquema `http`, *forward hostname* `api`, *forward port* `8000`. Activa *Block Common Exploits* i *Websockets Support*.
+1. **Details:** domini `perseida.duckdns.org` (en local, `perseida.localhost`; no `localhost`, que NPM ja es reserva al port 443 i hi rebutja el *handshake* TLS), esquema `http`, *forward hostname* `api`, *forward port* `8000`. Activa *Block Common Exploits* i *Websockets Support*; deixa *Cache Assets* desactivat.
 2. **SSL:** el certificat d'abans, amb *Force SSL* i *HTTP/2 Support*. Deixa desactivada l'opció *HSTS* d'NPM, perquè ja l'envia `security-headers.conf`.
 3. **Advanced:** enganxa-hi `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` i `nginx-proxy-manager/websocket.conf`, un darrere l'altre.
 4. **Comprova-ho** (en local, amb `-k` perquè el certificat és autosignat):
