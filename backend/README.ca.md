@@ -174,7 +174,7 @@ Els logs (també els d'uvicorn) s'escriuen a stderr com un objecte JSON per lín
 
 ## Executar i testejar
 
-Prerequisit: [`uv`](https://docs.astral.sh/uv/). La versió de Python (3.14) la fixa `.python-version` i `uv` la instal·la si cal.
+Prerequisit: [`uv`](https://docs.astral.sh/uv/). La versió de Python (3.14.9) la fixa `.python-version` i `uv` la instal·la si cal.
 
 ```bash
 cd backend                    # des de l'arrel del repositori

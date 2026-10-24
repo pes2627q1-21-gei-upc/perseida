@@ -72,7 +72,8 @@ frontend/
 ```bash
 cd frontend                       # from the repository root
 pnpm install --frozen-lockfile    # install dependencies exactly as in pnpm-lock.yaml
-pnpm expo start                   # start the Expo dev server (Android emulator / device)
+pnpm expo start                   # start the Expo dev server (Android emulator / device; Expo Go must match SDK 58)
+pnpm web                          # same app in the browser (React Native Web)
 pnpm lint                         # ESLint + Prettier (also checks formatting)
 pnpm tsc                          # strict type check (tsc --noEmit)
 pnpm test                         # Jest (jest-expo preset)
@@ -95,7 +96,7 @@ pnpm tsc                          # strict type check
 pnpm test --coverage --ci         # Jest + coverage report
 ```
 
-- **Versions:** the CI uses Node 22.23.3 (pinned in the workflow) and pnpm 10.28.0 (pinned in `packageManager` in `package.json`, which the workflow reads); use the same locally to reproduce a failure.
+- **Versions:** the CI uses Node 24.22.1 (pinned in the workflow) and pnpm 12.15.0 (pinned in `packageManager` in `package.json`, which the workflow reads); use the same locally to reproduce a failure. To update pnpm run `pnpm self-update` (`pnpm add -g pnpm` is rejected since pnpm 11.10).
 - **Coverage:** the report is published as the `frontend-coverage` artifact (`lcov.info`). To download it: GitHub → **Actions** tab → the run → **Artifacts** section at the bottom of the summary page.
 - **Requirements:** the job needs no secrets and no services.
 
