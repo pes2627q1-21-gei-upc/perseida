@@ -3,7 +3,8 @@ import { Linking } from 'react-native';
 
 import { apodImage, apodVideo } from '../../../../__mocks__/apod';
 import { apodStrings } from '../strings';
-import { ApodMedia, keepInPlayer } from './ApodMedia';
+import { ApodMedia } from './ApodMedia';
+import { keepInPlayer } from './ApodVideo';
 
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
 jest.mock('react-native-webview', () => {
@@ -63,7 +64,7 @@ describe('keepInPlayer: links that leave the player', () => {
     ({ url, isTopFrame: true }) as Parameters<typeof keepInPlayer>[0];
 
   it('hands only https links to the system browser', async () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
 
     keepInPlayer(request('http://evil.example/page'), video);
     keepInPlayer(request('javascript:alert(1)'), video);
@@ -73,7 +74,7 @@ describe('keepInPlayer: links that leave the player', () => {
   });
 
   it('still opens a plain https link outside the player', async () => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
 
     expect(keepInPlayer(request('https://evil.example/page'), video)).toBe(false);
 

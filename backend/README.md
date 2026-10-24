@@ -195,7 +195,7 @@ Logs (including uvicorn's) are written to stderr as one JSON object per line, wi
 
 ## Run and test
 
-Prerequisite: [`uv`](https://docs.astral.sh/uv/). The Python version (3.14) is pinned by `.python-version` and `uv` installs it if needed.
+Prerequisite: [`uv`](https://docs.astral.sh/uv/). The Python version (3.14.9) is pinned by `.python-version` and `uv` installs it if needed.
 
 ```bash
 cd backend                    # from the repository root

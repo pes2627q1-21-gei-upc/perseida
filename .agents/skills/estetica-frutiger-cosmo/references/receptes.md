@@ -13,7 +13,7 @@ export const useSkyTarget = () => useContext(SkyTarget);
 // <SkyTarget.Provider value={ref}><BlurTargetView ref={ref} style={StyleSheet.absoluteFill}><SkyScene/></BlurTargetView>{children}</SkyTarget.Provider>
 ```
 
-Fets verificats a la documentació d'`expo-blur` (SDK 57 / «latest»):
+Fets verificats a la documentació d'`expo-blur` (SDK 58 / «latest»):
 - `BlurView` accepta `intensity` (1–100, animable), `tint`, i a Android `blurMethod` (`'none'` per defecte; `'dimezisBlurViewSdk31Plus'` recomanat: cau a `'none'` per sota d'Android 12), `blurTarget` i `blurReductionFactor` (4 per defecte; ajusta'l perquè Android s'assembli a iOS).
 - `borderRadius` **no s'aplica** al `BlurView`: posa'l a un wrapper amb `overflow: 'hidden'`.
 - Renderitza el `BlurView` **després** del contingut dinàmic (`FlatList`), o no s'actualitza.
