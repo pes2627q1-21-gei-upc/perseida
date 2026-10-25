@@ -250,7 +250,7 @@ Configuració (`.env`):
 | `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Timeout de connexió |
 | `NASA_TIMEOUT_SECONDS` | `10` | Timeout total d'una petició (sense reintents) |
 | `NASA_APOD_FEED_URL` | `https://science.nasa.gov/feed/apod-basic/` | Feed RSS de l'APOD (es prova primer). Opcional, només https. |
-| `NASA_APOD_API_URL` | `https://api.nasa.gov/planetary/apod` | API JSON de la NASA (alternativa). Opcional, només https. |
+| `NASA_APOD_API_URL` | `https://api.nasa.gov/planetary/apod` | API JSON de la NASA (alternativa). Opcional, només https. `NASA_API_KEY` s'envia a aquesta URL: apunta-la només a un host de confiança. |
 
 L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NASA_API_KEY`; mai facis commit d'una clau real.
 

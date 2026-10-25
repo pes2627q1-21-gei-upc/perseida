@@ -296,7 +296,7 @@ Configuration (`.env`):
 | `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Connection timeout |
 | `NASA_TIMEOUT_SECONDS` | `10` | Total timeout of a request (no retries) |
 | `NASA_APOD_FEED_URL` | `https://science.nasa.gov/feed/apod-basic/` | APOD RSS feed (tried first). Optional, https only. |
-| `NASA_APOD_API_URL` | `https://api.nasa.gov/planetary/apod` | NASA JSON API (fallback). Optional, https only. |
+| `NASA_APOD_API_URL` | `https://api.nasa.gov/planetary/apod` | NASA JSON API (fallback). Optional, https only. `NASA_API_KEY` is sent to this URL: point it only at a host you trust. |
 
 The API does not start without `NASA_API_KEY`. In production it comes from the `NASA_API_KEY` GitHub secret; never commit a real key.
 
