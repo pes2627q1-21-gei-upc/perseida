@@ -62,10 +62,10 @@ describe('googleConfig', () => {
     expect(redirectUri).toBe('perseida://oauth/callback');
   });
 
-  it('allows overriding redirect scheme via EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME', () => {
+  it('allows overriding redirect scheme via EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME and normalizes single slash for package schemes', () => {
     process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME = 'app.perseida';
     const redirectUri = getGoogleRedirectUri();
-    expect(redirectUri).toBe('app.perseida://oauth/callback');
+    expect(redirectUri).toBe('app.perseida:/oauth/callback');
     delete process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME;
   });
 });

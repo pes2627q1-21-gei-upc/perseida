@@ -53,8 +53,15 @@ export function getGoogleClientId(platform: typeof Platform.OS = Platform.OS): s
  */
 export function getGoogleRedirectUri(): string {
   const scheme = process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME || 'perseida';
-  return makeRedirectUri({
+  const uri = makeRedirectUri({
     scheme,
     path: 'oauth/callback',
   });
+
+  // Google Cloud native OAuth clients for Android/iOS require single-slash format for package schemes (e.g. app.perseida:/oauth/callback)
+  if (scheme.includes('.') && uri.startsWith(`${scheme}://`)) {
+    return uri.replace(`${scheme}://`, `${scheme}:/`);
+  }
+
+  return uri;
 }
