@@ -7,6 +7,7 @@ import {
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
+import { AppError } from '../../shared/errors';
 import { performGoogleOAuthFlow, GOOGLE_DISCOVERY, parseJwtPayload } from './googleAuth';
 import * as googleConfig from './googleConfig';
 
@@ -130,7 +131,8 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
 
     expect(result.type).toBe('error');
     if (result.type === 'error') {
-      expect(result.error.message).toBe('access_denied');
+      expect(result.error).toBeInstanceOf(AppError);
+      expect(result.error.code).toBe('IDENTITY_PROVIDER_UNAVAILABLE');
     }
   });
 
@@ -144,7 +146,8 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
 
     expect(result.type).toBe('error');
     if (result.type === 'error') {
-      expect(result.error.message).toContain('Invalid state parameter');
+      expect(result.error).toBeInstanceOf(AppError);
+      expect(result.error.code).toBe('INVALID_GOOGLE_TOKEN');
     }
     expect(exchangeCodeAsync).not.toHaveBeenCalled();
   });
@@ -159,7 +162,8 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
 
     expect(result.type).toBe('error');
     if (result.type === 'error') {
-      expect(result.error.message).toContain('No authorization code');
+      expect(result.error).toBeInstanceOf(AppError);
+      expect(result.error.code).toBe('INVALID_GOOGLE_TOKEN');
     }
   });
 
@@ -174,7 +178,8 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
 
     expect(result.type).toBe('error');
     if (result.type === 'error') {
-      expect(result.error.message).toContain('did not contain an id_token');
+      expect(result.error).toBeInstanceOf(AppError);
+      expect(result.error.code).toBe('INVALID_GOOGLE_TOKEN');
     }
   });
 
@@ -185,7 +190,8 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
 
     expect(result.type).toBe('error');
     if (result.type === 'error') {
-      expect(result.error.message).toContain('Google Client ID is not configured');
+      expect(result.error).toBeInstanceOf(AppError);
+      expect(result.error.code).toBe('INTERNAL_ERROR');
     }
     expect(mockPromptAsync).not.toHaveBeenCalled();
   });
@@ -235,7 +241,8 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
 
       expect(result.type).toBe('error');
       if (result.type === 'error') {
-        expect(result.error.message).toContain('Invalid nonce');
+        expect(result.error).toBeInstanceOf(AppError);
+        expect(result.error.code).toBe('INVALID_GOOGLE_TOKEN');
       }
     } finally {
       Platform.OS = originalOS;

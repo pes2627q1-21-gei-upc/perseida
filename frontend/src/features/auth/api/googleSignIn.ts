@@ -1,5 +1,6 @@
 import { api } from '../../../shared/api/client';
 import type { components } from '../../../shared/api/schema';
+import { AppError } from '../../../shared/errors';
 import { getDeviceLanguage } from '../deviceLanguage';
 
 export type TokenResponse = components['schemas']['TokenResponse'];
@@ -21,7 +22,12 @@ export async function signInWithGoogle(
   });
 
   if (!data) {
-    throw new Error('Missing token response from auth server');
+    throw new AppError({
+      kind: 'http',
+      code: 'INVALID_RESPONSE',
+      status: 200,
+      retryable: false,
+    });
   }
 
   return data;

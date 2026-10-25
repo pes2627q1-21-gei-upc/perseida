@@ -7,7 +7,7 @@ import * as googleAuthHook from '../hooks/useGoogleAuth';
 import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, REDUCED_MOTION_COUNT, SLOT_COUNT } from './PerseidShower';
 import { authErrorMessage, authStrings } from '../strings';
-import { AppError } from '../../../shared/errors';
+import { AppError, networkError } from '../../../shared/errors';
 import * as googleSignInModule from '../api/googleSignIn';
 import * as tokenStorage from '../tokenStorage';
 import LoginScreen from '../../../app/login';
@@ -207,8 +207,8 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(new Error('Network request failed'));
-          return { type: 'error' as const, error: new Error('Network request failed') };
+          capturedOptions?.onError?.(networkError());
+          return { type: 'error' as const, error: networkError() };
         }),
         isAuthenticating: false,
       };
@@ -229,15 +229,14 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(
-            new AppError({
-              kind: 'http',
-              status: 401,
-              code: 'INVALID_GOOGLE_TOKEN',
-              retryable: true,
-            }),
-          );
-          return { type: 'error' as const, error: new Error('401') };
+          const err = new AppError({
+            kind: 'http',
+            status: 401,
+            code: 'INVALID_GOOGLE_TOKEN',
+            retryable: true,
+          });
+          capturedOptions?.onError?.(err);
+          return { type: 'error' as const, error: err };
         }),
         isAuthenticating: false,
       };
@@ -255,15 +254,14 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(
-            new AppError({
-              kind: 'http',
-              status: 403,
-              code: 'ACCOUNT_SUSPENDED',
-              retryable: false,
-            }),
-          );
-          return { type: 'error' as const, error: new Error('403') };
+          const err = new AppError({
+            kind: 'http',
+            status: 403,
+            code: 'ACCOUNT_SUSPENDED',
+            retryable: false,
+          });
+          capturedOptions?.onError?.(err);
+          return { type: 'error' as const, error: err };
         }),
         isAuthenticating: false,
       };
@@ -280,15 +278,14 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(
-            new AppError({
-              kind: 'http',
-              status: 403,
-              code: 'ACCOUNT_DELETED',
-              retryable: false,
-            }),
-          );
-          return { type: 'error' as const, error: new Error('403') };
+          const err = new AppError({
+            kind: 'http',
+            status: 403,
+            code: 'ACCOUNT_DELETED',
+            retryable: false,
+          });
+          capturedOptions?.onError?.(err);
+          return { type: 'error' as const, error: err };
         }),
         isAuthenticating: false,
       };
@@ -305,15 +302,14 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(
-            new AppError({
-              kind: 'http',
-              status: 409,
-              code: 'EMAIL_ALREADY_REGISTERED',
-              retryable: false,
-            }),
-          );
-          return { type: 'error' as const, error: new Error('409') };
+          const err = new AppError({
+            kind: 'http',
+            status: 409,
+            code: 'EMAIL_ALREADY_REGISTERED',
+            retryable: false,
+          });
+          capturedOptions?.onError?.(err);
+          return { type: 'error' as const, error: err };
         }),
         isAuthenticating: false,
       };
@@ -331,15 +327,14 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(
-            new AppError({
-              kind: 'http',
-              status: 503,
-              code: 'IDENTITY_PROVIDER_UNAVAILABLE',
-              retryable: true,
-            }),
-          );
-          return { type: 'error' as const, error: new Error('503') };
+          const err = new AppError({
+            kind: 'http',
+            status: 503,
+            code: 'IDENTITY_PROVIDER_UNAVAILABLE',
+            retryable: true,
+          });
+          capturedOptions?.onError?.(err);
+          return { type: 'error' as const, error: err };
         }),
         isAuthenticating: false,
       };
@@ -374,8 +369,8 @@ describe('Login screen', () => {
       capturedOptions = opts;
       return {
         signIn: jest.fn(async () => {
-          capturedOptions?.onError?.(new Error('Network request failed'));
-          return { type: 'error' as const, error: new Error('Network request failed') };
+          capturedOptions?.onError?.(networkError());
+          return { type: 'error' as const, error: networkError() };
         }),
         isAuthenticating: false,
       };

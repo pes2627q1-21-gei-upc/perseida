@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
 
+import { AppError, isAppError } from '../../../shared/errors';
 import { performGoogleOAuthFlow, type GoogleOAuthResult } from '../googleAuth';
 
 export interface UseGoogleAuthOptions {
   onSuccess?: (idToken: string) => void | Promise<void>;
-  onError?: (error: Error) => void;
+  onError?: (error: AppError) => void;
   onCancel?: () => void;
 }
 
@@ -23,9 +24,16 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
         try {
           await options.onSuccess?.(result.idToken);
         } catch (err) {
-          const error = err instanceof Error ? err : new Error(String(err));
-          options.onError?.(error);
-          return { type: 'error', error };
+          const appError = isAppError(err)
+            ? err
+            : new AppError({
+                kind: 'http',
+                code: 'INTERNAL_ERROR',
+                status: 500,
+                retryable: false,
+              });
+          options.onError?.(appError);
+          return { type: 'error', error: appError };
         }
       } else if (result.type === 'cancel') {
         options.onCancel?.();

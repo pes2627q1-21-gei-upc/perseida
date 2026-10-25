@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 
+import { AppError } from '../../../shared/errors';
 import * as googleAuthModule from '../googleAuth';
 import { useGoogleAuth } from './useGoogleAuth';
 
@@ -39,7 +40,12 @@ describe('useGoogleAuth hook', () => {
       idToken: 'mock-id-token-abc',
     });
 
-    const failure = new Error('Backend rejected token');
+    const failure = new AppError({
+      kind: 'http',
+      code: 'INVALID_GOOGLE_TOKEN',
+      status: 401,
+      retryable: false,
+    });
     const onSuccess = jest.fn().mockRejectedValueOnce(failure);
     const onError = jest.fn();
 
@@ -71,7 +77,12 @@ describe('useGoogleAuth hook', () => {
   });
 
   it('TG-43 Criteri 5: calls onError callback when flow fails', async () => {
-    const error = new Error('OAuth flow failed');
+    const error = new AppError({
+      kind: 'http',
+      code: 'IDENTITY_PROVIDER_UNAVAILABLE',
+      status: 503,
+      retryable: true,
+    });
     jest.spyOn(googleAuthModule, 'performGoogleOAuthFlow').mockResolvedValueOnce({
       type: 'error',
       error,

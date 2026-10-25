@@ -48,7 +48,7 @@ describe('googleSignIn · signInWithGoogle', () => {
     );
 
     await expect(signInWithGoogle('google-id-token-abc', 'ca')).rejects.toThrow(
-      'Missing token response from auth server',
+      'INVALID_RESPONSE',
     );
   });
 

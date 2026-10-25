@@ -8,6 +8,7 @@ import {
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
+import { AppError, networkError } from '../../shared/errors';
 import { getGoogleClientId, getGoogleRedirectUri } from './googleConfig';
 
 export const GOOGLE_DISCOVERY: DiscoveryDocument = {
@@ -17,7 +18,7 @@ export const GOOGLE_DISCOVERY: DiscoveryDocument = {
 };
 
 export type GoogleOAuthResult =
-  { type: 'success'; idToken: string } | { type: 'cancel' } | { type: 'error'; error: Error };
+  { type: 'success'; idToken: string } | { type: 'cancel' } | { type: 'error'; error: AppError };
 
 /**
  * Safely decodes the payload of a JWT without verifying signature (verified by backend via JWKS).
@@ -57,7 +58,12 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
   if (!clientId) {
     return {
       type: 'error',
-      error: new Error('Google Client ID is not configured for this platform.'),
+      error: new AppError({
+        kind: 'http',
+        code: 'INTERNAL_ERROR',
+        status: 500,
+        retryable: false,
+      }),
     };
   }
 
@@ -81,22 +87,29 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
     return { type: 'cancel' };
   }
 
-  if (authResponse.type === 'error') {
-    const errorMsg =
-      authResponse.error?.message ||
-      authResponse.params?.error_description ||
-      authResponse.params?.error ||
-      'Authentication failed';
-    return { type: 'error', error: new Error(errorMsg) };
-  }
-
-  if (authResponse.type !== 'success') {
-    return { type: 'error', error: new Error('Authentication failed') };
+  if (authResponse.type === 'error' || authResponse.type !== 'success') {
+    return {
+      type: 'error',
+      error: new AppError({
+        kind: 'http',
+        code: 'IDENTITY_PROVIDER_UNAVAILABLE',
+        status: 503,
+        retryable: true,
+      }),
+    };
   }
 
   const { state } = authResponse.params;
   if (request.state && state !== request.state) {
-    return { type: 'error', error: new Error('Invalid state parameter returned from Google') };
+    return {
+      type: 'error',
+      error: new AppError({
+        kind: 'http',
+        code: 'INVALID_GOOGLE_TOKEN',
+        status: 401,
+        retryable: false,
+      }),
+    };
   }
 
   // Web platform receives id_token directly from Google authorization endpoint
@@ -105,7 +118,12 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
     if (!idToken) {
       return {
         type: 'error',
-        error: new Error('Google token response did not contain an id_token'),
+        error: new AppError({
+          kind: 'http',
+          code: 'INVALID_GOOGLE_TOKEN',
+          status: 401,
+          retryable: false,
+        }),
       };
     }
 
@@ -114,7 +132,12 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
       if (!payload || payload.nonce !== webNonce) {
         return {
           type: 'error',
-          error: new Error('Invalid nonce in Google id_token'),
+          error: new AppError({
+            kind: 'http',
+            code: 'INVALID_GOOGLE_TOKEN',
+            status: 401,
+            retryable: false,
+          }),
         };
       }
     }
@@ -125,7 +148,15 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
   // Native platforms (Android/iOS): exchange code + code_verifier for id_token
   const { code } = authResponse.params;
   if (!code) {
-    return { type: 'error', error: new Error('No authorization code returned from Google') };
+    return {
+      type: 'error',
+      error: new AppError({
+        kind: 'http',
+        code: 'INVALID_GOOGLE_TOKEN',
+        status: 401,
+        retryable: false,
+      }),
+    };
   }
 
   try {
@@ -144,15 +175,20 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
     if (!tokenResult.idToken) {
       return {
         type: 'error',
-        error: new Error('Google token response did not contain an id_token'),
+        error: new AppError({
+          kind: 'http',
+          code: 'INVALID_GOOGLE_TOKEN',
+          status: 401,
+          retryable: false,
+        }),
       };
     }
 
     return { type: 'success', idToken: tokenResult.idToken };
-  } catch (err) {
+  } catch {
     return {
       type: 'error',
-      error: err instanceof Error ? err : new Error(String(err)),
+      error: networkError(),
     };
   }
 }

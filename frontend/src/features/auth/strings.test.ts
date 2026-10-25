@@ -1,4 +1,4 @@
-import { AppError } from '../../shared/errors';
+import { AppError, networkError } from '../../shared/errors';
 import { authErrorMessage, toAuthErrorMessage } from './strings';
 
 describe('Auth error messages mapping', () => {
@@ -52,6 +52,14 @@ describe('Auth error messages mapping', () => {
     );
   });
 
+  it('safely handles inherited object properties without leaking functions', () => {
+    expect(authErrorMessage('constructor')).toBe(
+      'Alguna cosa ha anat malament. Torna-ho a provar.',
+    );
+    expect(authErrorMessage('toString')).toBe('Alguna cosa ha anat malament. Torna-ho a provar.');
+    expect(authErrorMessage('valueOf')).toBe('Alguna cosa ha anat malament. Torna-ho a provar.');
+  });
+
   describe('toAuthErrorMessage helper', () => {
     it('converts AppError with known code to the corresponding message', () => {
       const err = new AppError({
@@ -75,14 +83,14 @@ describe('Auth error messages mapping', () => {
       expect(toAuthErrorMessage(err)).toBe('Aquest correu ja està associat a un altre compte.');
     });
 
-    it('converts network failures to NETWORK_ERROR text', () => {
-      const networkErr = new TypeError('Failed to fetch');
+    it('converts network failures (networkError) to NETWORK_ERROR text', () => {
+      const networkErr = networkError();
       expect(toAuthErrorMessage(networkErr)).toBe(
         'No hi ha connexió. Comprova la xarxa i torna-ho a provar.',
       );
     });
 
-    it('never leaks raw technical error details from unknown exceptions', () => {
+    it('never leaks raw technical error details from unknown exceptions and falls back safely', () => {
       const sensitiveErr = new Error('SyntaxError: Unexpected token in JSON at position 42');
       expect(toAuthErrorMessage(sensitiveErr)).toBe(
         'Alguna cosa ha anat malament. Torna-ho a provar.',

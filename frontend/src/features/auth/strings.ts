@@ -1,4 +1,5 @@
-import { isAppError } from '../../shared/errors';
+import { errorMessage, isAppError } from '../../shared/errors';
+import i18n from '../../shared/i18n';
 
 // Fixed texts of the sign-in and sign-out UI, grouped so TG-91 (#319) can move them to i18next (ca/es/en).
 export const authStrings = {
@@ -13,57 +14,23 @@ export const authStrings = {
   logoutHint: "Tanca la sessió d'aquest dispositiu i torna a la pantalla d'inici de sessió",
 } as const;
 
-// Error texts by stable code (ADR-0018, cataleg-codis.md). The server `detail` is never shown.
-const authErrorMessages: Record<string, string> = {
-  INVALID_GOOGLE_TOKEN: 'No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.',
-  INVALID_SESSION: 'La teva sessió ha caducat. Torna a iniciar sessió.',
-  ACCOUNT_SUSPENDED: 'El teu compte està suspès.',
-  ACCOUNT_DELETED: "Aquest compte s'ha eliminat.",
-  EMAIL_ALREADY_REGISTERED: 'Aquest correu ja està associat a un altre compte.',
-  IDENTITY_PROVIDER_UNAVAILABLE:
-    "Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
-  SESSION_UNAVAILABLE:
-    "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
-  NETWORK_ERROR: 'No hi ha connexió. Comprova la xarxa i torna-ho a provar.',
-  INTERNAL_ERROR: 'Alguna cosa ha anat malament. Torna-ho a provar.',
-};
-
-const GENERIC_ERROR_MESSAGE = 'Alguna cosa ha anat malament. Torna-ho a provar.';
-
 /**
- * Returns the localized error message for an authentication error code.
- * Falls back to the generic error message for unknown codes (ADR-0018).
+ * Returns the localized error message for an authentication error code (ADR-0018).
+ * Uses i18next via errorMessage() to support ca/es/en from locales/{ca,es,en}.json.
+ * Avoids prototype pollution by verifying SCREAMING_SNAKE code format.
  */
-export function authErrorMessage(code: string): string {
-  return authErrorMessages[code] ?? GENERIC_ERROR_MESSAGE;
+export function authErrorMessage(code: string, retryable = true): string {
+  return errorMessage(i18n.t.bind(i18n), code, retryable);
 }
 
 /**
- * Converts any caught error into a safe, localized user-facing message.
+ * Converts any caught error into a safe, localized user-facing message (ADR-0018).
  * Never leaks raw server details, traces, or technical error messages.
+ * Maps only stable AppError instances and falls back safely to INTERNAL_ERROR without text heuristics.
  */
 export function toAuthErrorMessage(error: unknown): string {
   if (isAppError(error)) {
-    return authErrorMessage(error.code);
+    return authErrorMessage(error.code, error.retryable);
   }
-  if (error instanceof Error) {
-    if (error.message in authErrorMessages) {
-      return authErrorMessage(error.message);
-    }
-    const lower = error.message.toLowerCase();
-    if (
-      lower.includes('network') ||
-      lower.includes('fetch') ||
-      lower.includes('timeout') ||
-      lower.includes('abort') ||
-      lower.includes('offline')
-    ) {
-      return authErrorMessage('NETWORK_ERROR');
-    }
-    const code = (error as { code?: string }).code;
-    if (code && typeof code === 'string') {
-      return authErrorMessage(code);
-    }
-  }
-  return authErrorMessage('INTERNAL_ERROR');
+  return authErrorMessage('INTERNAL_ERROR', true);
 }
