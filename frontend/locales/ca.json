@@ -10,8 +10,11 @@
     "APOD_UNAVAILABLE": "Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
     "INTERNAL_ERROR": "Alguna cosa ha anat malament. Torna-ho a provar.",
-    "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD.",
+    "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar el contingut.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
     "NOT_FOUND": "No s'ha trobat el que busques."
+  },
+  "home": {
+    "apodLink": "Imatge del dia"
   }
 }

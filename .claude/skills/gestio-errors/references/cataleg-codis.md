@@ -16,12 +16,12 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 
 ## Codis del client (TG-120)
 
-Els genera el frontend, no el backend. Text en català aprovat per la persona responsable (TG-120); es i en afegits a TG-91 (`frontend/locales/`), pendents de la revisió d'una persona de l'equip.
+Els genera el frontend, no el backend. Text en català aprovat per la persona responsable (TG-120); es i en afegits a TG-91 (`frontend/locales/`) i aprovats a la review de la PR #50.
 
 | Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
 | `NETWORK_ERROR` | — | `AppError` `kind: 'network'` (cap resposta del servidor) | Sí | No hi ha connexió. Comprova la xarxa i torna-ho a provar. | No hay conexión. Comprueba la red e inténtalo de nuevo. | No connection. Check your network and try again. | frontend `shared/errors/toAppError.ts` |
-| `INVALID_RESPONSE` | 200 sense cos vàlid | `AppError` `kind: 'http'` (resposta il·legible) | No | Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD. | Algo ha salido mal. No se ha podido cargar el APOD. | Something went wrong. We couldn't load the APOD. | frontend `features/apod/api/getApodToday.ts` |
+| `INVALID_RESPONSE` | 200 sense cos vàlid | `AppError` `kind: 'http'` (resposta il·legible) | No | Alguna cosa ha anat malament. No s'ha pogut carregar el contingut. | Algo ha salido mal. No se ha podido cargar el contenido. | Something went wrong. We couldn't load the content. | frontend `features/apod/api/getApodToday.ts` |
 
 Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els errors **recuperables** sense text propi fan servir `errors.INTERNAL_ERROR` (el text d'`INTERNAL_ERROR` de dalt). Els **no recuperables** sense text propi fan servir `errors.GENERIC_FINAL`: «Alguna cosa ha anat malament.» / «Algo ha salido mal.» / «Something went wrong.» (decidit per la persona responsable a TG-91; no convida a reintentar perquè no hi ha botó de reintent). `NOT_FOUND`, `APOD_UNAVAILABLE`, `INTERNAL_ERROR` i `GENERIC_FINAL` també tenen clau al frontend.
 

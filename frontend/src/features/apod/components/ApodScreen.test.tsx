@@ -207,7 +207,7 @@ describe('APOD screen', () => {
     await renderScreen();
 
     expect(
-      await screen.findByText("Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD."),
+      await screen.findByText("Alguna cosa ha anat malament. No s'ha pogut carregar el contingut."),
     ).toBeTruthy();
     expect(screen.queryByText(/Torna-ho a provar/)).toBeNull();
   });

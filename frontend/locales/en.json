@@ -10,8 +10,11 @@
     "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
     "GENERIC_FINAL": "Something went wrong.",
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
-    "INVALID_RESPONSE": "Something went wrong. We couldn't load the APOD.",
+    "INVALID_RESPONSE": "Something went wrong. We couldn't load the content.",
     "NETWORK_ERROR": "No connection. Check your network and try again.",
     "NOT_FOUND": "We couldn't find what you were looking for."
+  },
+  "home": {
+    "apodLink": "Picture of the day"
   }
 }
