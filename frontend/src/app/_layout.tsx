@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '../shared/api/queryClient';
+import '../shared/i18n';
 import { useTheme } from '../shared/theme';
 
 export default function RootLayout() {

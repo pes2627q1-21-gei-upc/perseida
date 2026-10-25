@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,9 +10,10 @@ import { GelButton, SkyBackground } from '../../shared/ui';
 /**
  * TEMPORARY home (TG-118): there is no real home screen yet, only a way into /apod.
  * Replace this whole file when the home US is done; keep a link to /apod.
- * Its texts are placeholders and are not meant to be translated.
+ * Its only text goes through i18next; the title is the app name.
  */
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -28,7 +30,7 @@ export default function HomeScreen() {
         >
           Perseida
         </Text>
-        <GelButton label="APOD del dia" onPress={() => router.push('/apod')} />
+        <GelButton label={t('home.apodLink')} onPress={() => router.push('/apod')} />
         <LogoutButton />
       </View>
     </SkyBackground>

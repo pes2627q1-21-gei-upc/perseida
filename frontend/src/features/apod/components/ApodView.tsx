@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -5,7 +6,6 @@ import { readingMaxWidth, useTheme } from '../../../shared/theme';
 import { GlassPanel } from '../../../shared/ui';
 import type { Apod } from '../api/getApodToday';
 import { formatApodDate } from '../formatApodDate';
-import { apodStrings } from '../strings';
 import { ApodMedia } from './ApodMedia';
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
 
 /** Content of the APOD screen (TG-118), with the media from TG-119. */
 export function ApodView({ apod }: Props) {
+  const { i18n } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -38,7 +39,7 @@ export function ApodView({ apod }: Props) {
             {apod.title}
           </Text>
           <Text style={[typography.bodyStrong, { color: colors.text.secondary }]}>
-            {formatApodDate(apod.date)}
+            {formatApodDate(apod.date, i18n.language)}
           </Text>
         </View>
 
@@ -49,7 +50,7 @@ export function ApodView({ apod }: Props) {
             </Text>
             {apod.copyright ? (
               <Text style={[typography.caption, { color: colors.text.secondary }]}>
-                {`${apodStrings.copyrightPrefix} ${apod.copyright}`}
+                {`© ${apod.copyright}`}
               </Text>
             ) : null}
           </View>

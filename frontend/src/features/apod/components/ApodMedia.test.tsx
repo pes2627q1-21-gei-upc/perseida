@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
 import { apodImage, apodVideo } from '../../../../__mocks__/apod';
-import { apodStrings } from '../strings';
 import { ApodMedia } from './ApodMedia';
 import { keepInPlayer } from './ApodVideo';
 
@@ -29,14 +28,14 @@ describe('ApodMedia: URLs that come from the API', () => {
     await render(<ApodMedia apod={{ ...apodImage, url }} />);
 
     expect(screen.queryByTestId('apod-image')).not.toBeOnTheScreen();
-    expect(screen.getByText(apodStrings.mediaError)).toBeOnTheScreen();
+    expect(screen.getByText("No s'ha pogut carregar la imatge o el vídeo.")).toBeOnTheScreen();
   });
 
   it.each(UNSAFE_URLS)('does not open the player for the video %s', async (url) => {
     await render(<ApodMedia apod={{ ...apodVideo, url }} />);
 
     expect(screen.queryByTestId('apod-video')).not.toBeOnTheScreen();
-    expect(screen.getByText(apodStrings.mediaError)).toBeOnTheScreen();
+    expect(screen.getByText("No s'ha pogut carregar la imatge o el vídeo.")).toBeOnTheScreen();
   });
 
   it('loads a plain https image', async () => {

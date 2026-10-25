@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Image, type ImageLoadEvent, StyleSheet, Text, View } from 'react-native';
 
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { useTheme } from '../../../shared/theme';
 import type { Apod } from '../api/getApodToday';
-import { apodStrings } from '../strings';
 import { ApodVideo } from './ApodVideo';
 
 /** Frame used until the image reports its real size. */
@@ -17,6 +17,7 @@ interface Props {
 
 /** APOD media (TG-119): the image at its real proportions, or the video in an embedded player. */
 export function ApodMedia({ apod }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [imageAspectRatio, setImageAspectRatio] = useState(PLACEHOLDER_ASPECT_RATIO);
   const [failed, setFailed] = useState(false);
@@ -46,7 +47,7 @@ export function ApodMedia({ apod }: Props) {
           accessibilityLiveRegion="polite"
           style={[theme.typography.body, { color: theme.colors.text.primary }]}
         >
-          {apodStrings.mediaError}
+          {t('apod.mediaError')}
         </Text>
       </View>
     );
@@ -58,7 +59,7 @@ export function ApodMedia({ apod }: Props) {
       <View style={[frame, { aspectRatio: VIDEO_ASPECT_RATIO }]}>
         <ApodVideo
           url={mediaUrl}
-          label={`${apodStrings.videoLabel}: ${apod.title}`}
+          label={`${t('apod.videoLabel')}: ${apod.title}`}
           onError={() => setFailed(true)}
         />
       </View>
