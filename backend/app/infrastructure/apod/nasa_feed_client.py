@@ -73,7 +73,11 @@ def _parse_feed(content: bytes) -> list[tuple[dt.date, ET.Element]]:
         raise NasaApodError("NASA APOD feed is too large")
     # A feed never needs a DTD: refusing it rules out entity expansion and external
     # entities without adding a dependency (xml.etree does not fetch them anyway).
-    if re.search(rb"<!(DOCTYPE|ENTITY)", content, re.IGNORECASE):
+    # A DTD can only come before the root element; the items carry whole HTML pages
+    # in CDATA (``<!doctype html>``), which are not DTDs.
+    first_element = re.search(rb"<[A-Za-z_:]", content)
+    prolog = content if first_element is None else content[: first_element.start()]
+    if re.search(rb"<!(DOCTYPE|ENTITY)", prolog, re.IGNORECASE):
         raise NasaApodError("NASA APOD feed has a DTD")
     try:
         root = ET.fromstring(content)
