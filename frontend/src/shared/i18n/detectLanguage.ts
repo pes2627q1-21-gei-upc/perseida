@@ -11,6 +11,8 @@ function isSupported(code: string | null): code is Language {
 
 /** First supported language in the device's preference order, or Catalan if none is. */
 export function detectLanguage(): Language {
-  const match = getLocales().find((locale) => isSupported(locale.languageCode));
-  return (match?.languageCode as Language | undefined) ?? DEFAULT_LANGUAGE;
+  for (const { languageCode } of getLocales()) {
+    if (isSupported(languageCode)) return languageCode;
+  }
+  return DEFAULT_LANGUAGE;
 }

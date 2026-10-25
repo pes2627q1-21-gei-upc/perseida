@@ -20,6 +20,11 @@ describe('errorMessage', () => {
     expect(errorMessage(t, 'SOMETHING_NEW', false)).toBe('Alguna cosa ha anat malament.');
   });
 
+  it.each(['a.b', 'x:y', ''])('never shows the key for the odd code "%s"', (code) => {
+    expect(errorMessage(t, code, true)).toBe('Alguna cosa ha anat malament. Torna-ho a provar.');
+    expect(errorMessage(t, code, false)).toBe('Alguna cosa ha anat malament.');
+  });
+
   it('translates in the active language', async () => {
     await i18n.changeLanguage('en');
     try {
