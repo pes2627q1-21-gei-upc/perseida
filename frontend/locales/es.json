@@ -1,7 +1,10 @@
 {
   "errors": {
+    "APOD_UNAVAILABLE": "Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato.",
+    "GENERIC_FINAL": "Algo ha salido mal.",
     "INTERNAL_ERROR": "Algo ha salido mal. Inténtalo de nuevo.",
     "INVALID_RESPONSE": "Algo ha salido mal. No se ha podido cargar el APOD.",
-    "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo."
+    "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo.",
+    "NOT_FOUND": "No se ha encontrado lo que buscas."
   }
 }
