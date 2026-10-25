@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo, Linking } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { apodImage, apodVideo, jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import ApodScreen from '../../../app/(app)/apod';
+import i18n from '../../../shared/i18n';
 import { formatApodDate } from '../formatApodDate';
 import { apodKeys } from '../hooks/useApodToday';
 import { keepInPlayer, PLAYER_REFERER } from './ApodVideo';
@@ -64,7 +65,7 @@ describe('APOD screen', () => {
     await renderScreen();
 
     expect(await screen.findByRole('header', { name: apodImage.title })).toBeTruthy();
-    expect(screen.getByText(formatApodDate(apodImage.date))).toBeTruthy();
+    expect(screen.getByText(formatApodDate(apodImage.date, 'ca'))).toBeTruthy();
     expect(screen.getByText(apodImage.explanation)).toBeTruthy();
     expect(screen.getByText(`© ${apodImage.copyright}`)).toBeTruthy();
   });
@@ -137,6 +138,32 @@ describe('APOD screen', () => {
     await renderScreen();
 
     expect(await screen.findByText(NETWORK_ERROR_TEXT)).toBeTruthy();
+  });
+
+  it.each([
+    [
+      'es',
+      'Cargando el APOD',
+      'No hay conexión. Comprueba la red e inténtalo de nuevo.',
+      'Vuelve a intentarlo',
+    ],
+    ['en', 'Loading the APOD', 'No connection. Check your network and try again.', 'Try again'],
+  ])('shows loading, error and retry in %s', async (language, loading, message, retry) => {
+    await i18n.changeLanguage(language);
+    try {
+      jest.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+        throw new TypeError('Network request failed');
+      });
+
+      await renderScreen();
+
+      expect(screen.getByLabelText(loading)).toBeTruthy();
+      expect(await screen.findByText(message)).toBeTruthy();
+      expect(screen.getByRole('button', { name: retry })).toBeTruthy();
+    } finally {
+      // The screen is still mounted: changing the language re-renders it.
+      await act(() => i18n.changeLanguage('ca'));
+    }
   });
 
   it('retries from the error state, showing loading and then the content (criterion 5)', async () => {

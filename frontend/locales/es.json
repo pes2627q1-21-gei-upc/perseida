@@ -1,4 +1,11 @@
 {
+  "apod": {
+    "loadingLabel": "Cargando el APOD",
+    "mediaError": "No se ha podido cargar la imagen o el vídeo.",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar el APOD",
+    "videoLabel": "Vídeo del APOD"
+  },
   "errors": {
     "APOD_UNAVAILABLE": "Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato.",
     "GENERIC_FINAL": "Algo ha salido mal.",

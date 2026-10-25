@@ -12,7 +12,6 @@ import {
 import { errorMessage } from '../../../shared/errors';
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel } from '../../../shared/ui';
-import { apodStrings } from '../strings';
 
 /** `onRetry` is only given for retryable errors (gestio-errors): the rest show just the message. */
 type Props = { state: 'loading' } | { state: 'error'; code: string; onRetry?: () => void };
@@ -36,7 +35,7 @@ export function ApodStatus(props: Props) {
         <ActivityIndicator
           size="large"
           color={colors.text.primary}
-          accessibilityLabel={apodStrings.loadingLabel}
+          accessibilityLabel={t('apod.loadingLabel')}
         />
       ) : (
         <View style={[styles.column, { maxWidth: readingMaxWidth }]}>
@@ -51,8 +50,8 @@ export function ApodStatus(props: Props) {
               </Text>
               {props.onRetry ? (
                 <GelButton
-                  label={apodStrings.retry}
-                  accessibilityHint={apodStrings.retryHint}
+                  label={t('apod.retry')}
+                  accessibilityHint={t('apod.retryHint')}
                   onPress={props.onRetry}
                 />
               ) : null}
