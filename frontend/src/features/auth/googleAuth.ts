@@ -26,11 +26,19 @@ export function parseJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split('.');
     if (parts.length < 2) return null;
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
     const json =
       typeof atob === 'function'
         ? atob(base64)
-        : Buffer.from(base64, 'base64').toString('utf-8');
+        : (
+            globalThis as unknown as {
+              Buffer?: { from: (s: string, enc: string) => { toString: (e: string) => string } };
+            }
+          ).Buffer?.from(base64, 'base64').toString('utf-8');
+    if (!json) return null;
     return JSON.parse(json) as Record<string, unknown>;
   } catch {
     return null;

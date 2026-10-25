@@ -22,6 +22,18 @@ jest.mock('expo-auth-session', () => ({
   makeRedirectUri: jest.fn(() => 'perseida://oauth/callback'),
 }));
 
+function toBase64Url(str: string): string {
+  if (typeof btoa === 'function') {
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  const maybeBuffer = (
+    globalThis as unknown as {
+      Buffer?: { from: (s: string) => { toString: (e: string) => string } };
+    }
+  ).Buffer;
+  return maybeBuffer ? maybeBuffer.from(str).toString('base64url') : '';
+}
+
 describe('googleAuth · performGoogleOAuthFlow', () => {
   const mockPromptAsync = jest.fn();
 
@@ -183,7 +195,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     try {
       Platform.OS = 'web';
       const validPayload = { nonce: 'mock-uuid-nonce', sub: 'web-user' };
-      const validToken = `eyJhbGciOiJSUzI1NiJ9.${Buffer.from(JSON.stringify(validPayload)).toString('base64url')}.mock-sig`;
+      const validToken = `eyJhbGciOiJSUzI1NiJ9.${toBase64Url(JSON.stringify(validPayload))}.mock-sig`;
 
       mockPromptAsync.mockResolvedValueOnce({
         type: 'success',
@@ -212,7 +224,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     try {
       Platform.OS = 'web';
       const mismatchPayload = { nonce: 'different-nonce', sub: 'web-user' };
-      const mismatchToken = `eyJhbGciOiJSUzI1NiJ9.${Buffer.from(JSON.stringify(mismatchPayload)).toString('base64url')}.mock-sig`;
+      const mismatchToken = `eyJhbGciOiJSUzI1NiJ9.${toBase64Url(JSON.stringify(mismatchPayload))}.mock-sig`;
 
       mockPromptAsync.mockResolvedValueOnce({
         type: 'success',
@@ -232,7 +244,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
 
   it('parseJwtPayload: safely decodes valid payload and returns null for invalid tokens', () => {
     const payload = { sub: 'user-1', name: 'Alex' };
-    const validJwt = `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+    const validJwt = `header.${toBase64Url(JSON.stringify(payload))}.signature`;
 
     expect(parseJwtPayload(validJwt)).toEqual(payload);
     expect(parseJwtPayload('invalid-token')).toBeNull();
