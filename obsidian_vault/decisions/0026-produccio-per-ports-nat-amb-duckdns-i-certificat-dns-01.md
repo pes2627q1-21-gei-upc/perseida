@@ -1,10 +1,10 @@
 ---
 titol: "Producció per ports NAT amb DuckDNS i certificat DNS-01"
 tipus: adr
-estat: proposada
-data: "2026-10-24"
+estat: acceptada
+data: "2026-10-25"
 us: ["TG-89", "TG-38"]
-font: "Taiga: TG-89 (nota «Producció a Virtech», decidit 2026-10-22) i tasca #326 (passos i comentari de verificació del 2026-10-24); infra/docker-compose.yml i infra/nginx-proxy-manager/ (TG-89)"
+font: "Taiga: TG-89 (nota «Producció a Virtech», decidit 2026-10-22) i tasca #326 (passos i comentari de verificació del 2026-10-24); infra/docker-compose.yml i infra/nginx-proxy-manager/ (TG-89); acceptada amb l'aprovació de la PR #48 (2026-10-24)"
 etiquetes: [adr, infra, nginx-proxy-manager, tls, https, duckdns, virtech]
 ---
 
@@ -38,7 +38,7 @@ etiquetes: [adr, infra, nginx-proxy-manager, tls, https, duckdns, virtech]
 - La IP del NAT és compartida i pot canviar; si canvia, cal actualitzar el registre A a DuckDNS a mà.
 - El token de DuckDNS dona control sobre el domini. El 2026-10-24 el registre apuntava a una IP domèstica (una actualització sense el paràmetre `ip`) i es va haver de corregir; qualsevol client d'actualització automàtica de DuckDNS l'hauria de fixar a `147.83.148.217`.
 - DuckDNS és un servei gratuït de tercers, sense garanties. La VM i el domini deixen de servir al final del quadrimestre.
-- Queda per comprovar si Google OAuth accepta `perseida.duckdns.org` com a domini autoritzat (pas 8 de la #326).
+- Google OAuth (pas 8 de la #326): `duckdns.org` és a la [Public Suffix List](https://publicsuffix.org/list/), de manera que `perseida.duckdns.org` es pot afegir com a domini autoritzat. L'app Android no el necessita (torna per l'enllaç profund `perseida://`); el client web del panell sí, amb l'origen `https://perseida.duckdns.org:40431`. Cal registrar-lo a Google Cloud qui gestioni el client OAuth (TG-43).
 
 ## Alternatives descartades
 
