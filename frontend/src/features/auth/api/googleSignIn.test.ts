@@ -47,9 +47,7 @@ describe('googleSignIn · signInWithGoogle', () => {
         }),
     );
 
-    await expect(signInWithGoogle('google-id-token-abc', 'ca')).rejects.toThrow(
-      'INVALID_RESPONSE',
-    );
+    await expect(signInWithGoogle('google-id-token-abc', 'ca')).rejects.toThrow('INVALID_RESPONSE');
   });
 
   it('TG-43 Criteri 5: transforms problem+json 401 into an AppError with code INVALID_GOOGLE_TOKEN', async () => {
