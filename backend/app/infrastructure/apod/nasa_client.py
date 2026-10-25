@@ -47,9 +47,14 @@ class NasaApodClient:
     """Calls the NASA APOD API and translates its response into ``Apod``."""
 
     def __init__(
-        self, http: httpx.AsyncClient, api_key: SecretStr, timeout_seconds: float
+        self,
+        http: httpx.AsyncClient,
+        api_key: SecretStr,
+        timeout_seconds: float,
+        api_url: str = APOD_URL,
     ) -> None:
         self._http = http
+        self._api_url = api_url
         self._api_key = api_key
         self._timeout_seconds = timeout_seconds
 
@@ -66,7 +71,7 @@ class NasaApodClient:
             # slow trickle could exceed them; this bounds the whole request.
             async with asyncio.timeout(self._timeout_seconds):
                 response = await self._http.get(
-                    APOD_URL,
+                    self._api_url,
                     params=params,
                     headers={"X-Api-Key": self._api_key.get_secret_value()},
                 )
