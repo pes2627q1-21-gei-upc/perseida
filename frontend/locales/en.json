@@ -1,5 +1,7 @@
 {
   "errors": {
+    "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "INVALID_RESPONSE": "Something went wrong. We couldn't load the APOD.",
     "NETWORK_ERROR": "No connection. Check your network and try again."
   }
 }

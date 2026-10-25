@@ -1,5 +1,7 @@
 {
   "errors": {
+    "INTERNAL_ERROR": "Alguna cosa ha anat malament. Torna-ho a provar.",
+    "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar l'APOD.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar."
   }
 }

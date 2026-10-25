@@ -1,5 +1,7 @@
 {
   "errors": {
+    "INTERNAL_ERROR": "Algo ha salido mal. Inténtalo de nuevo.",
+    "INVALID_RESPONSE": "Algo ha salido mal. No se ha podido cargar el APOD.",
     "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo."
   }
 }
