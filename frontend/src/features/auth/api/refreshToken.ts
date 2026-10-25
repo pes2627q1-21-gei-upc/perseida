@@ -1,5 +1,6 @@
 import { api } from '../../../shared/api/client';
 import type { components } from '../../../shared/api/schema';
+import { isAppError } from '../../../shared/errors';
 import { clearSession } from '../session';
 import { getTokens, saveTokens } from '../tokenStorage';
 
@@ -41,7 +42,6 @@ export async function refreshSession(customRefreshToken?: string): Promise<Token
       });
 
       if (!data) {
-        await clearSession();
         return null;
       }
 
@@ -51,8 +51,10 @@ export async function refreshSession(customRefreshToken?: string): Promise<Token
       });
 
       return data;
-    } catch {
-      await clearSession();
+    } catch (err: unknown) {
+      if (isAppError(err) && err.status === 401) {
+        await clearSession();
+      }
       return null;
     } finally {
       activeRefreshPromise = null;

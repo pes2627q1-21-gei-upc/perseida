@@ -96,6 +96,30 @@ describe('refreshSession (#233)', () => {
     expect(await tokenStorage.getTokens()).toBeNull();
   });
 
+  it('does not clear session when server returns 503 SESSION_UNAVAILABLE (ADR-0008)', async () => {
+    const clearSessionSpy = jest.spyOn(sessionModule, 'clearSession');
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(problemResponse(503, 'SESSION_UNAVAILABLE'));
+
+    const result = await refreshSession();
+
+    expect(result).toBeNull();
+    expect(clearSessionSpy).not.toHaveBeenCalled();
+    expect(await tokenStorage.getTokens()).toEqual(initialTokens);
+  });
+
+  it('does not clear session when network request fails (temporary network error)', async () => {
+    const clearSessionSpy = jest.spyOn(sessionModule, 'clearSession');
+    jest.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Network request failed'));
+
+    const result = await refreshSession();
+
+    expect(result).toBeNull();
+    expect(clearSessionSpy).not.toHaveBeenCalled();
+    expect(await tokenStorage.getTokens()).toEqual(initialTokens);
+  });
+
   it('clears session and returns null without network call when no refresh token exists', async () => {
     await tokenStorage.clearTokens();
     const fetchSpy = jest.spyOn(globalThis, 'fetch');
