@@ -5,6 +5,7 @@ import {
   exchangeCodeAsync,
   type DiscoveryDocument,
 } from 'expo-auth-session';
+import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
 import { getGoogleClientId, getGoogleRedirectUri } from './googleConfig';
@@ -17,6 +18,24 @@ export const GOOGLE_DISCOVERY: DiscoveryDocument = {
 
 export type GoogleOAuthResult =
   { type: 'success'; idToken: string } | { type: 'cancel' } | { type: 'error'; error: Error };
+
+/**
+ * Safely decodes the payload of a JWT without verifying signature (verified by backend via JWKS).
+ */
+export function parseJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json =
+      typeof atob === 'function'
+        ? atob(base64)
+        : Buffer.from(base64, 'base64').toString('utf-8');
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Executes the Google OAuth2 authorization flow:
@@ -36,6 +55,7 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
 
   const redirectUri = getGoogleRedirectUri();
   const isWeb = Platform.OS === 'web';
+  const webNonce = isWeb ? Crypto.randomUUID() : undefined;
 
   const request = new AuthRequest({
     clientId,
@@ -44,7 +64,7 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
     redirectUri,
     usePKCE: !isWeb,
     codeChallengeMethod: isWeb ? undefined : CodeChallengeMethod.S256,
-    extraParams: isWeb ? { nonce: Math.random().toString(36).substring(2) } : undefined,
+    extraParams: webNonce ? { nonce: webNonce } : undefined,
   });
 
   const authResponse = await request.promptAsync(GOOGLE_DISCOVERY);
@@ -80,6 +100,17 @@ export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
         error: new Error('Google token response did not contain an id_token'),
       };
     }
+
+    if (webNonce) {
+      const payload = parseJwtPayload(idToken);
+      if (!payload || payload.nonce !== webNonce) {
+        return {
+          type: 'error',
+          error: new Error('Invalid nonce in Google id_token'),
+        };
+      }
+    }
+
     return { type: 'success', idToken };
   }
 

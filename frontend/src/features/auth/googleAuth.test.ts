@@ -4,10 +4,15 @@ import {
   ResponseType,
   CodeChallengeMethod,
 } from 'expo-auth-session';
+import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
-import { performGoogleOAuthFlow, GOOGLE_DISCOVERY } from './googleAuth';
+import { performGoogleOAuthFlow, GOOGLE_DISCOVERY, parseJwtPayload } from './googleAuth';
 import * as googleConfig from './googleConfig';
+
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(() => 'mock-uuid-nonce'),
+}));
 
 jest.mock('expo-auth-session', () => ({
   AuthRequest: jest.fn(),
@@ -173,27 +178,64 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     expect(mockPromptAsync).not.toHaveBeenCalled();
   });
 
-  it('TG-43 Web: uses IdToken response type and returns id_token directly without code exchange', async () => {
+  it('TG-43 Web: uses IdToken response type with cryptographic nonce and returns id_token when valid', async () => {
     const originalOS = Platform.OS;
     try {
       Platform.OS = 'web';
+      const validPayload = { nonce: 'mock-uuid-nonce', sub: 'web-user' };
+      const validToken = `eyJhbGciOiJSUzI1NiJ9.${Buffer.from(JSON.stringify(validPayload)).toString('base64url')}.mock-sig`;
+
       mockPromptAsync.mockResolvedValueOnce({
         type: 'success',
-        params: { id_token: 'web-direct-id-token', state: 'mock-csrf-state' },
+        params: { id_token: validToken, state: 'mock-csrf-state' },
       });
 
       const result = await performGoogleOAuthFlow();
 
+      expect(Crypto.randomUUID).toHaveBeenCalled();
       expect(AuthRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           responseType: 'id_token',
           usePKCE: false,
+          extraParams: { nonce: 'mock-uuid-nonce' },
         }),
       );
       expect(exchangeCodeAsync).not.toHaveBeenCalled();
-      expect(result).toEqual({ type: 'success', idToken: 'web-direct-id-token' });
+      expect(result).toEqual({ type: 'success', idToken: validToken });
     } finally {
       Platform.OS = originalOS;
     }
+  });
+
+  it('TG-43 Web: rejects id_token when nonce in payload does not match generated nonce', async () => {
+    const originalOS = Platform.OS;
+    try {
+      Platform.OS = 'web';
+      const mismatchPayload = { nonce: 'different-nonce', sub: 'web-user' };
+      const mismatchToken = `eyJhbGciOiJSUzI1NiJ9.${Buffer.from(JSON.stringify(mismatchPayload)).toString('base64url')}.mock-sig`;
+
+      mockPromptAsync.mockResolvedValueOnce({
+        type: 'success',
+        params: { id_token: mismatchToken, state: 'mock-csrf-state' },
+      });
+
+      const result = await performGoogleOAuthFlow();
+
+      expect(result.type).toBe('error');
+      if (result.type === 'error') {
+        expect(result.error.message).toContain('Invalid nonce');
+      }
+    } finally {
+      Platform.OS = originalOS;
+    }
+  });
+
+  it('parseJwtPayload: safely decodes valid payload and returns null for invalid tokens', () => {
+    const payload = { sub: 'user-1', name: 'Alex' };
+    const validJwt = `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+
+    expect(parseJwtPayload(validJwt)).toEqual(payload);
+    expect(parseJwtPayload('invalid-token')).toBeNull();
+    expect(parseJwtPayload('')).toBeNull();
   });
 });
