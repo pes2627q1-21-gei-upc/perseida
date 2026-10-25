@@ -134,7 +134,7 @@ describe('Login screen', () => {
     expect(mockSignIn).toHaveBeenCalled();
   });
 
-  it('TG-43 Criteri 1: does not trigger sign in when authentication is already in progress', async () => {
+  it('TG-43 Criteri 1: does not trigger sign in and exposes busy/disabled accessibility state when authentication is in progress (WCAG 4.1.2)', async () => {
     const mockSignIn = jest.fn();
     jest.spyOn(googleAuthHook, 'useGoogleAuth').mockReturnValue({
       signIn: mockSignIn,
@@ -142,7 +142,10 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    const button = screen.getByRole('button', { name: authStrings.continueWithGoogle });
+    expect(button.props.accessibilityState).toEqual({ busy: true, disabled: true });
+
+    await fireEvent.press(button);
 
     expect(mockSignIn).not.toHaveBeenCalled();
   });

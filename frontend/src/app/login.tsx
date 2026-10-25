@@ -95,6 +95,8 @@ export default function LoginScreen() {
                 label={authStrings.continueWithGoogle}
                 icon={<GoogleLogo />}
                 onPress={handleContinue}
+                busy={isAuthenticating}
+                disabled={isAuthenticating}
               />
               {notice && (
                 <Text

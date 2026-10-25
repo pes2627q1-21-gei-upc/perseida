@@ -13,24 +13,39 @@ interface Props {
   accessibilityHint?: string;
   /** Decorative icon before the label; the label carries the meaning. */
   icon?: ReactNode;
+  /** An action is in progress: the button is announced as busy and ignores taps (WCAG 4.1.2). */
+  busy?: boolean;
+  /** When disabled, the button cannot be pressed and reduces opacity. */
+  disabled?: boolean;
 }
 
 /** Main action button with the "gel" material. Simple version: no sound or animation yet. */
-export function GelButton({ label, onPress, accessibilityHint, icon }: Props) {
+export function GelButton({
+  label,
+  onPress,
+  accessibilityHint,
+  icon,
+  busy = false,
+  disabled = false,
+}: Props) {
   const theme = useTheme();
   const { gel } = theme.colors;
+  const isDisabled = disabled || busy;
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: isDisabled, busy }}
+      disabled={isDisabled}
       onPress={onPress}
       style={{
         minHeight: theme.touch.min,
         borderRadius: theme.radii.pill,
         overflow: 'hidden',
         boxShadow: `0 8px 20px ${gel.rim}99`,
+        opacity: isDisabled ? 0.6 : 1,
       }}
     >
       {({ pressed }) => (
