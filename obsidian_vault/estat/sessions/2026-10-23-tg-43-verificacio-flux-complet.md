@@ -37,7 +37,19 @@ Completar i verificar la tasca **TG-235** de la US **TG-43**: provar el flux com
 ## Decisions preses
 
 - Seguint GitFlow i les regles del repositori, no s'ha modificat cap fitxer de `backend/` a la branca `feature/TG-43` (el suport de CORS per a desenvolupament web s'ha aplicat únicament com a configuració temporal de l'entorn Docker local).
-- Els fitxers `react-dom` i `react-native-web` es mantenen al `frontend/package.json` per donar suport a l'execució web del projecte.
+- Els paquets `react-dom` i `react-native-web` es mantenen al `frontend/package.json` per donar suport a l'execució web del projecte.
+- [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]: el flux web fa servir OIDC directe amb nonce criptogràfic per evitar l'exigència de client_secret de Google a web, mentre que el mòbil fa PKCE estricte.
+
+## Canvis al vault
+
+- Actualització de la concreció a [[0008-google-oauth2-pkce-jwks-i-sessio-propia]] per documentar l'excepció OIDC a web i el nonce d'`expo-crypto`.
+- Actualització de l'estat a [[frontend]].
+
+## Pendent / següents passos
+
+- [ ] Resoldre els comentaris de la review de la PR #46 (TG-43).
+- [ ] Validar el flux a dispositius Android/iOS reals (dev build EAS) amb les claus SHA-1 i package registrats a Google Cloud.
+- [ ] Passar la CI a GitHub Actions sobre develop actualitzat.
 
 ## US de Taiga
 
