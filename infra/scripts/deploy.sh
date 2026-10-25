@@ -103,7 +103,7 @@ probe_previous() {
   docker rm -f "$PROBE_NAME" >/dev/null 2>&1 || true
   # La imatge anterior pot no ser al servidor (p. ex. després d'un `docker image prune`).
   API_IMAGE_TAG=$1 docker compose pull --policy missing api >/dev/null 2>&1 || return 2
-  API_IMAGE_TAG=$1 docker compose run -d --no-deps --name "$PROBE_NAME" -e SCHEDULER_ENABLED=false api \
+  API_IMAGE_TAG=$1 docker compose run -d --no-deps --name "$PROBE_NAME" -e SCHEDULER_ENABLED=false -e RUN_MIGRATIONS=false api \
     uvicorn app.main:app --host 0.0.0.0 --port 8000 >/dev/null 2>&1 || return 2
   deadline=$(( $(date +%s) + PROBE_TIMEOUT ))
   result=1

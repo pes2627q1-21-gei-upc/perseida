@@ -79,7 +79,8 @@ frontend/
 ```bash
 cd frontend                       # des de l'arrel del repositori
 pnpm install --frozen-lockfile    # instal·la les dependències exactament com a pnpm-lock.yaml
-pnpm expo start                   # arrenca el servidor de desenvolupament d'Expo (emulador Android / dispositiu)
+pnpm expo start                   # arrenca el servidor de desenvolupament d'Expo (emulador Android / dispositiu; Expo Go ha de ser de l'SDK 58)
+pnpm web                          # la mateixa app al navegador (React Native Web)
 pnpm lint                         # ESLint + Prettier (també comprova el format)
 pnpm tsc                          # comprovació de tipus estricta (tsc --noEmit)
 pnpm test                         # Jest (preset jest-expo)
@@ -102,7 +103,7 @@ pnpm tsc                          # comprovació de tipus estricta
 pnpm test --coverage --ci         # Jest + informe de cobertura
 ```
 
-- **Versions:** la CI fa servir Node 22.23.3 (fixat al workflow) i pnpm 10.28.0 (fixat a `packageManager` de `package.json`, que el workflow llegeix); fes servir les mateixes en local per reproduir un error.
+- **Versions:** la CI fa servir Node 24.22.1 (fixat al workflow) i pnpm 12.15.0 (fixat a `packageManager` de `package.json`, que el workflow llegeix); fes servir les mateixes en local per reproduir un error. Per actualitzar pnpm: `pnpm self-update` (`pnpm add -g pnpm` es rebutja des de pnpm 11.10).
 - **Cobertura:** l'informe es publica com a artefacte `frontend-coverage` (`lcov.info`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
 - **Requisits:** el job no necessita secrets ni serveis.
 

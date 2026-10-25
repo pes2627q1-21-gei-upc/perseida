@@ -1,53 +1,18 @@
 import { useState } from 'react';
-import {
-  Image,
-  type ImageLoadEventData,
-  Linking,
-  type NativeSyntheticEvent,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { WebView, type WebViewProps } from 'react-native-webview';
+import { Image, type ImageLoadEvent, StyleSheet, Text, View } from 'react-native';
 
-import { hostOf, safeHttpsUrl } from '../../../shared/security/safeUrl';
+import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { useTheme } from '../../../shared/theme';
 import type { Apod } from '../api/getApodToday';
 import { apodStrings } from '../strings';
+import { ApodVideo } from './ApodVideo';
 
 /** Frame used until the image reports its real size. */
 const PLACEHOLDER_ASPECT_RATIO = 4 / 3;
 const VIDEO_ASPECT_RATIO = 16 / 9;
-/**
- * YouTube refuses embeds without a Referer (error 153) and a WebView sends none, so the app
- * identifies itself. Should match the Android package once the team fixes it in app.json.
- */
-export const PLAYER_REFERER = 'https://edu.upc.perseida';
-
-/** Not exported from the package root: derived from the public props instead of `lib/`. */
-type ShouldStartLoadRequest = Parameters<
-  NonNullable<WebViewProps['onShouldStartLoadWithRequest']>
->[0];
 
 interface Props {
   apod: Apod;
-}
-
-/**
- * The player only navigates within the video's own host. Links that leave it (logo, related
- * videos) open in the system browser instead of turning the player into a browser.
- * Inner frames (iOS `isTopFrame: false`) are the player's own resources and always load.
- * Other schemes (`intent:`, `tel:`, `about:`...) are blocked without leaving the app, and so
- * is anything that is not plain https: the system browser only gets https links.
- */
-export function keepInPlayer(request: ShouldStartLoadRequest, videoUrl: string): boolean {
-  if (request.isTopFrame === false) return true;
-  const host = hostOf(request.url);
-  if (host === hostOf(videoUrl)) return true;
-  // No app may be able to open the link: the rejection is ignored, the player just stays.
-  const link = safeHttpsUrl(request.url);
-  if (host && link) Linking.openURL(link).catch(() => undefined);
-  return false;
 }
 
 /** APOD media (TG-119): the image at its real proportions, or the video in an embedded player. */
@@ -91,28 +56,16 @@ export function ApodMedia({ apod }: Props) {
     // The wrapper is not `accessible`: grouping it would hide the player controls from screen readers.
     return (
       <View style={[frame, { aspectRatio: VIDEO_ASPECT_RATIO }]}>
-        <WebView
-          testID="apod-video"
-          accessibilityLabel={`${apodStrings.videoLabel}: ${apod.title}`}
-          source={{ uri: mediaUrl, headers: { Referer: PLAYER_REFERER } }}
-          originWhitelist={['https://*']}
-          mixedContentMode="never"
-          allowFileAccess={false}
-          allowUniversalAccessFromFileURLs={false}
-          thirdPartyCookiesEnabled={false}
-          setSupportMultipleWindows={false}
-          onShouldStartLoadWithRequest={(request) => keepInPlayer(request, mediaUrl)}
-          allowsFullscreenVideo
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction
+        <ApodVideo
+          url={mediaUrl}
+          label={`${apodStrings.videoLabel}: ${apod.title}`}
           onError={() => setFailed(true)}
-          onHttpError={() => setFailed(true)}
         />
       </View>
     );
   }
 
-  const onLoad = ({ nativeEvent }: NativeSyntheticEvent<ImageLoadEventData>) => {
+  const onLoad = ({ nativeEvent }: ImageLoadEvent) => {
     const { width, height } = nativeEvent.source;
     if (width > 0 && height > 0) setImageAspectRatio(width / height);
   };

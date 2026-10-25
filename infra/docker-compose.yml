@@ -33,7 +33,6 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       REDIS_HOST: ${REDIS_HOST:-cache}
       REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_URL: redis://${REDIS_HOST:-cache}:${REDIS_PORT:-6379}/0
       APP_ENV: ${APP_ENV:-production}
     volumes:
       - media_data:/app/media
