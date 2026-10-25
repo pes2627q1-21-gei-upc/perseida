@@ -74,6 +74,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     app.state.nasa_http = nasa_http
                     app.state.nasa_api_key = nasa_settings.nasa_api_key
                     app.state.nasa_timeout_seconds = nasa_timeout
+                    app.state.nasa_apod_feed_url = nasa_settings.nasa_apod_feed_url
+                    app.state.nasa_apod_api_url = nasa_settings.nasa_apod_api_url
                     try:
                         if scheduler:
                             register_jobs(scheduler)

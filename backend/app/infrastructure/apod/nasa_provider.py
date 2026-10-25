@@ -11,6 +11,7 @@ from app.domain.apod.models import Apod
 from app.domain.apod.ports import ApodRepository
 from app.domain.shared.ports import Cache
 from app.infrastructure.apod.nasa_client import NasaApodClient, NasaApodError
+from app.infrastructure.apod.nasa_feed_client import NasaApodFeedClient
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,14 @@ def _unavailable() -> ExternalServiceError:
 
 
 class NasaApodProvider:
-    """``ApodProvider`` that looks in Redis, then PostgreSQL, then the NASA API.
+    """``ApodProvider`` that looks in Redis, then PostgreSQL, then the NASA.
+
+    The NASA is the RSS feed first and, if it fails (e.g. a date older than its
+    30-day window), the JSON API.
 
     What comes from the NASA is stored in PostgreSQL and cached for 24 h. If the
     NASA fails, stored data is served; with nothing stored, ExternalServiceError.
-    A failed NASA call is not repeated for ``RETRY_AFTER_SECONDS``.
+    A call that fails on both sources is not repeated for ``RETRY_AFTER_SECONDS``.
     """
 
     def __init__(
@@ -61,8 +65,10 @@ class NasaApodProvider:
         cache: Cache,
         repository: ApodRepository,
         today: Callable[[], date] = _utc_today,
+        feed_client: NasaApodFeedClient | None = None,
     ) -> None:
         self._client = client
+        self._feed_client = feed_client
         self._cache = cache
         self._repository = repository
         self._today = today
@@ -129,10 +135,22 @@ class NasaApodProvider:
         return apod
 
     async def _fetch(self, day: date | None) -> Apod:
-        """Call the NASA unless the same call failed less than 15 min ago."""
+        """Call the NASA unless the same call failed less than 15 min ago.
+
+        Feed first, then the JSON API; only if both fail is the failure cached.
+        """
         failed = _failed_key(day)
         if await self._cache.get(failed) is not None:
             raise NasaApodError("NASA APOD failed recently, not retried yet")
+        if self._feed_client is not None:
+            try:
+                return await self._feed_client.fetch(day)
+            except NasaApodError:
+                logger.warning(
+                    "NASA APOD feed unavailable for %s, trying the API",
+                    day or "latest",
+                    exc_info=True,
+                )
         try:
             return await self._client.fetch(day)
         except NasaApodError:
