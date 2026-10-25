@@ -3,7 +3,7 @@ titol: "Errors transversals: RFC 9457 amb codis estables traduïts al frontend"
 tipus: adr
 estat: acceptada
 data: "2026-10-07"
-us: ["TG-205", "TG-304", "TG-91"]
+us: ["TG-205", "TG-304", "TG-91", "TG-43"]
 font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable; tasca TG-304 de Taiga (2026-10-09)"
 etiquetes: [adr, backend, frontend, errors, i18n]
 ---
@@ -39,6 +39,10 @@ Guia d'ús: secció «Errors» de `backend/README.md` i catàleg de codis a la s
 ## Actualització (TG-91)
 
 El frontend ja tradueix per `code` (`errors.<CODE>`, `errorMessage` a `src/shared/errors`; vegeu [[frontend]]). **Excepció temporal:** encara no hi ha component `Toast`, així que la pantalla de l'APOD mostra l'error en un quadre propi, amb reintent. «Sempre com a *toast*» continua sent la decisió; l'excepció desapareix quan existeixi el `Toast` i les pantalles el facin servir.
+
+## Actualització (TG-43)
+
+A la pantalla de `/login`, els errors d'autenticació i sessió es tradueixen per `code` mitjançant `errorMessage(i18n.t, code, retryable)` consumint les claus `errors.<CODE>` de `frontend/locales/{ca,es,en}.json` (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `EMAIL_ALREADY_REGISTERED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`). Com que encara no hi ha component `Toast`, `/login` mostra l'error en un quadre de text accessible dins del panell (rol `alert` i anunci d'accessibilitat a iOS). Els textos fixos de la interfície de login (`authStrings`: títol, lema, botó) continuen temporalment en català fins a la US #93.
 
 ## Conseqüències
 

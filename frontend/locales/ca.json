@@ -7,12 +7,19 @@
     "videoLabel": "Vídeo de l'APOD"
   },
   "errors": {
+    "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
+    "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
     "APOD_UNAVAILABLE": "Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona.",
+    "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
+    "IDENTITY_PROVIDER_UNAVAILABLE": "Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "INTERNAL_ERROR": "Alguna cosa ha anat malament. Torna-ho a provar.",
+    "INVALID_GOOGLE_TOKEN": "No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.",
     "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar el contingut.",
+    "INVALID_SESSION": "La teva sessió ha caducat. Torna a iniciar sessió.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
-    "NOT_FOUND": "No s'ha trobat el que busques."
+    "NOT_FOUND": "No s'ha trobat el que busques.",
+    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
   },
   "home": {
     "apodLink": "Imatge del dia"

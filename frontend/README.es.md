@@ -67,6 +67,13 @@ frontend/
 └── tsconfig.json
 ```
 
+## Autenticación y sesión (TG-43)
+
+- **Almacenamiento de tokens (`features/auth/tokenStorage.ts`)**: `saveTokens`, `getTokens`, `clearTokens`. Utiliza `expo-secure-store` en nativo (llavero/keystore) y `sessionStorage` en web (aislado por pestaña, ADR-0008). Nunca AsyncStorage.
+- **Limpieza de sesión (`features/auth/session.ts`)**: `clearSession()` borra tanto los tokens guardados como la caché en memoria de TanStack Query. Utilizada por `useLogout` y por la renovación de token ante 401 `INVALID_SESSION`.
+- **Renovación de sesión (`features/auth/api/refreshToken.ts`)**: `refreshSession()` renueva los tokens mediante `POST /api/auth/refresh`. Serializa las llamadas concurrentes para garantizar que los refresh tokens de un solo uso no se gasten dos veces.
+- **Guard de ruta (`app/(app)/_layout.tsx`)**: Redirige a usuarios sin sesión a `/login`; `/login` redirige a usuarios autenticados hacia la aplicación (`/(app)`).
+
 ## Ejecutar y testear
 
 ```bash
