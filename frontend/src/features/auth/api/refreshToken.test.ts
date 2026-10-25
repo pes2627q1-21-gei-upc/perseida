@@ -131,4 +131,21 @@ describe('refreshSession (#233)', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(clearSessionSpy).toHaveBeenCalled();
   });
+
+  it('discards refreshed tokens if logout occurred while request was in-flight (race condition)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementationOnce(async () => {
+      // Simulate logout happening while the refresh HTTP request is in-flight
+      await sessionModule.clearSession();
+      return new Response(JSON.stringify(refreshedResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    const result = await refreshSession();
+
+    expect(result).toBeNull();
+    // Tokens must remain cleared (session should not resurrect)
+    expect(await tokenStorage.getTokens()).toBeNull();
+  });
 });

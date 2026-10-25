@@ -45,6 +45,12 @@ export async function refreshSession(customRefreshToken?: string): Promise<Token
         return null;
       }
 
+      // Check if session was cleared or superseded while request was in-flight (e.g. logout)
+      const currentStoredTokens = await getTokens();
+      if (!currentStoredTokens || currentStoredTokens.refreshToken !== token) {
+        return null;
+      }
+
       await saveTokens({
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
