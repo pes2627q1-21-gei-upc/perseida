@@ -56,9 +56,16 @@ describe('googleConfig', () => {
     expect(getGoogleClientId('ios')).toBe('');
   });
 
-  it('generates redirect URI containing the perseida scheme', () => {
+  it('generates redirect URI containing the perseida scheme by default', () => {
+    delete process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME;
     const redirectUri = getGoogleRedirectUri();
-    expect(redirectUri).toBeDefined();
-    expect(typeof redirectUri).toBe('string');
+    expect(redirectUri).toBe('perseida://oauth/callback');
+  });
+
+  it('allows overriding redirect scheme via EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME', () => {
+    process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME = 'app.perseida';
+    const redirectUri = getGoogleRedirectUri();
+    expect(redirectUri).toBe('app.perseida://oauth/callback');
+    delete process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME;
   });
 });
