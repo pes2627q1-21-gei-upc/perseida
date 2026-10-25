@@ -22,23 +22,29 @@ export default function AppLayout() {
     let mounted = true;
 
     async function checkSession() {
-      const tokens = await getTokens();
-      if (!mounted) return;
-      if (!tokens) {
-        router.replace('/login');
-        return;
-      }
+      try {
+        const tokens = await getTokens();
+        if (!mounted) return;
+        if (!tokens) {
+          router.replace('/login');
+          return;
+        }
 
-      // Renew session on startup (TG-43 #233)
-      // If refresh token is expired or revoked (401), clearSession() clears local tokens
-      await refreshSession();
-      if (!mounted) return;
+        // Renew session on startup (TG-43 #233)
+        // If refresh token is expired or revoked (401), clearSession() clears local tokens
+        await refreshSession();
+        if (!mounted) return;
 
-      const currentTokens = await getTokens();
-      if (!currentTokens) {
-        router.replace('/login');
-      } else {
-        setIsReady(true);
+        const currentTokens = await getTokens();
+        if (!currentTokens) {
+          router.replace('/login');
+        } else {
+          setIsReady(true);
+        }
+      } catch {
+        if (mounted) {
+          router.replace('/login');
+        }
       }
     }
 

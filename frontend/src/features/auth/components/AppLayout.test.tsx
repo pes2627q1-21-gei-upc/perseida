@@ -116,4 +116,16 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
 
     expect(refreshSpy).toHaveBeenCalledTimes(2);
   });
+
+  it('redirects to /login if getTokens rejects with an unhandled storage failure', async () => {
+    jest.spyOn(tokenStorage, 'getTokens').mockRejectedValueOnce(new Error('Storage failure'));
+
+    await act(async () => {
+      render(<AppLayout />);
+    });
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/login');
+    });
+  });
 });
