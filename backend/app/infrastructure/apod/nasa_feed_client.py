@@ -17,11 +17,13 @@ FEED_URL = "https://science.nasa.gov/feed/apod-basic/"
 # Undocumented feed with the last ~30 APODs; ``apod:`` is its own namespace.
 _APOD_NS = "{https://science.nasa.gov/apod/}"
 _IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".webp")
-# The real feed is a few hundred KB; this only bounds a hostile or broken answer.
+# The real feed is a few hundred KB; this only bounds what is parsed (the body is
+# already in memory by then).
 _MAX_FEED_BYTES = 5 * 1024 * 1024
 _BLOCK_TAGS = {"br", "p", "div", "li", "h1", "h2", "h3"}
 _EXPLANATION_PREFIX = re.compile(r"^Explanation:\s*", re.IGNORECASE)
-_TOMORROW = re.compile(r"\s*Tomorrow's picture:.*\Z", re.IGNORECASE | re.DOTALL)
+# Cuts everything from "Tomorrow's picture:" on (curly or straight apostrophe).
+_TOMORROW = re.compile(r"\s*Tomorrow['’]s picture:.*\Z", re.IGNORECASE | re.DOTALL)
 
 
 class _TextExtractor(HTMLParser):

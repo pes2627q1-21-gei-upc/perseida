@@ -89,6 +89,19 @@ async def test_tg328_by_date_returns_that_entry_with_trimmed_copyright(
 
 
 @respx.mock
+async def test_tg328_curly_apostrophe_in_tomorrows_picture_is_cut(
+    client: NasaApodFeedClient,
+) -> None:
+    respx.get(FEED_URL).respond(
+        text=FEED.replace("Tomorrow's picture", "Tomorrow’s picture")
+    )
+
+    apod = await client.fetch(date(2026, 10, 25))
+
+    assert "Tomorrow" not in apod.explanation
+
+
+@respx.mock
 async def test_tg328_empty_copyright_is_none(client: NasaApodFeedClient) -> None:
     respx.get(FEED_URL).respond(text=FEED)
 

@@ -114,11 +114,26 @@ async def test_tg328_failure_is_cached_only_when_feed_and_api_both_fail(
 
     for _ in range(3):
         with pytest.raises(ExternalServiceError) as raised:
-            await provider.get_by_date(OLD)
+            await provider.get_by_date(IN_FEED)
         assert raised.value.code == APOD_UNAVAILABLE
 
     assert feed.call_count == api.call_count == 1
-    assert cache.ttls["apod:unavailable:2026-09-01"] == RETRY_AFTER_SECONDS
+    assert cache.ttls["apod:unavailable:2026-10-24"] == RETRY_AFTER_SECONDS
+
+
+@respx.mock
+async def test_tg328_date_older_than_the_feed_window_skips_the_feed(
+    http: httpx.AsyncClient, cache: FakeCache, repository: FakeApodRepository
+) -> None:
+    feed = respx.get(FEED_URL).respond(200, text=feed_xml())
+    api = respx.get(APOD_URL).respond(200, json=api_answer(OLD))
+    provider = build(http, cache, repository)
+
+    apod = await provider.get_by_date(OLD)
+
+    assert apod.apod_date == OLD
+    assert feed.call_count == 0
+    assert api.call_count == 1
 
 
 @respx.mock
