@@ -89,6 +89,24 @@ pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.
 
 Releases: a cada release fusionada a `main`, GitHub Actions publica l'**APK** en una release de GitHub.
 
+## Traduccions (i18n)
+
+L'app parla català (`ca`), castellà (`es`) i anglès (`en`). Arrenca en el primer d'aquests idiomes que el dispositiu tingui a la seva llista d'idiomes, i en català si no n'hi ha cap. Cap text s'escriu al codi: surt de `locales/<idioma>.json` mitjançant [i18next](https://www.i18next.com) (`src/shared/i18n`).
+
+**Afegir un text**
+
+1. Afegeix la mateixa clau a `locales/ca.json`, `locales/es.json` i `locales/en.json` (agrupada per funcionalitat, p. ex. `apod.retry`).
+2. Fes-la servir al component: `const { t } = useTranslation();` i `t('apod.retry')`.
+3. `pnpm test` falla si una clau existeix en un idioma i falta en un altre (`src/shared/i18n/locales.test.ts`).
+
+**Afegir el text d'un codi d'error**: afegeix `errors.<CODE>` als tres fitxers i mostra'l amb `errorMessage(t, error.code, error.retryable)` (`src/shared/errors`). Un codi sense text mostra el missatge genèric, mai el `detail` del servidor.
+
+**Afegir un idioma** (p. ex. `fr`)
+
+1. Crea `locales/fr.json` amb exactament les mateixes claus que `ca.json`.
+2. Afegeix-lo a `SUPPORTED_LANGUAGES` (`src/shared/i18n/detectLanguage.ts`) i a `resources` (`src/shared/i18n/index.ts`).
+3. Afegeix-lo a `locales` a `src/shared/i18n/locales.test.ts`.
+
 ## Integració contínua
 
 El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) executa el job `frontend` a cada pull request cap a `develop` o `main` i a cada push a `develop` o `main`. En una PR només s'executa si han canviat `frontend/**` o el propi workflow; si no, el job queda com a omès (*skipped*) i no bloqueja la PR. Un push nou a la mateixa PR cancel·la l'execució anterior.

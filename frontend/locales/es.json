@@ -1,13 +1,27 @@
 {
+  "apod": {
+    "loadingLabel": "Cargando el APOD",
+    "mediaError": "No se ha podido cargar la imagen o el vídeo.",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar el APOD",
+    "videoLabel": "Vídeo del APOD"
+  },
   "errors": {
-    "INVALID_GOOGLE_TOKEN": "No hemos podido verificar tu cuenta de Google. Vuelve a iniciar sesión.",
-    "INVALID_SESSION": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
-    "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
+    "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
+    "APOD_UNAVAILABLE": "Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato.",
     "EMAIL_ALREADY_REGISTERED": "Este correo ya está asociado a otra cuenta.",
+    "GENERIC_FINAL": "Algo ha salido mal.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
-    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
-    "NETWORK_ERROR": "No hay conexión. Comprueba la red y vuelve a intentarlo.",
-    "INTERNAL_ERROR": "Algo ha salido mal. Inténtalo de nuevo."
+    "INTERNAL_ERROR": "Algo ha salido mal. Inténtalo de nuevo.",
+    "INVALID_GOOGLE_TOKEN": "No hemos podido verificar tu cuenta de Google. Vuelve a iniciar sesión.",
+    "INVALID_RESPONSE": "Algo ha salido mal. No se ha podido cargar el contenido.",
+    "INVALID_SESSION": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+    "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo.",
+    "NOT_FOUND": "No se ha encontrado lo que buscas.",
+    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
+  },
+  "home": {
+    "apodLink": "Imagen del día"
   }
 }

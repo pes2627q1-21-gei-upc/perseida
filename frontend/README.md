@@ -89,6 +89,24 @@ pnpm test --coverage              # tests + coverage report (coverage/lcov.info)
 
 Releases: on each release merged into `main`, GitHub Actions publishes the **APK** as a GitHub release.
 
+## Translations (i18n)
+
+The app speaks Catalan (`ca`), Spanish (`es`) and English (`en`). It starts in the first of these that the device has in its language list, and in Catalan if none is. No text is written in the code: it comes from `locales/<language>.json` through [i18next](https://www.i18next.com) (`src/shared/i18n`).
+
+**Add a text**
+
+1. Add the same key to `locales/ca.json`, `locales/es.json` and `locales/en.json` (grouped by feature, e.g. `apod.retry`).
+2. Use it in the component: `const { t } = useTranslation();` and `t('apod.retry')`.
+3. `pnpm test` fails if a key exists in one language and not in another (`src/shared/i18n/locales.test.ts`).
+
+**Add a text for an error code**: add `errors.<CODE>` to the three files and show it with `errorMessage(t, error.code, error.retryable)` (`src/shared/errors`). A code without text shows the generic message, never the server `detail`.
+
+**Add a language** (e.g. `fr`)
+
+1. Create `locales/fr.json` with exactly the same keys as `ca.json`.
+2. Add it to `SUPPORTED_LANGUAGES` (`src/shared/i18n/detectLanguage.ts`) and to `resources` (`src/shared/i18n/index.ts`).
+3. Add it to `locales` in `src/shared/i18n/locales.test.ts`.
+
 ## Continuous integration
 
 The [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) workflow runs the `frontend` job on every pull request to `develop` or `main` and on every push to `develop` or `main`. In a PR it only runs if `frontend/**` or the workflow itself changed; otherwise the job shows as *skipped* and does not block the PR. A new push to the same PR cancels the previous run.

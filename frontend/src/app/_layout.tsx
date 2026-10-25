@@ -13,6 +13,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '../shared/api/queryClient';
+import '../shared/i18n';
 import { useTheme } from '../shared/theme';
 
 // Intercepts OAuth deep link redirection (perseida:// or web callback) and dismisses web browser

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -8,19 +9,20 @@ import {
   View,
 } from 'react-native';
 
+import { errorMessage } from '../../../shared/errors';
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel } from '../../../shared/ui';
-import { apodErrorMessage, apodStrings } from '../strings';
 
 /** `onRetry` is only given for retryable errors (gestio-errors): the rest show just the message. */
 type Props = { state: 'loading' } | { state: 'error'; code: string; onRetry?: () => void };
 
 /** Loading and error states of the APOD screen (TG-120). */
 export function ApodStatus(props: Props) {
+  const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   // `onRetry` is only given for retryable errors, so it also picks the generic message.
   const message =
-    props.state === 'error' ? apodErrorMessage(props.code, props.onRetry !== undefined) : undefined;
+    props.state === 'error' ? errorMessage(t, props.code, props.onRetry !== undefined) : undefined;
 
   useEffect(() => {
     // Android reads the live region by itself; iOS needs an explicit announcement.
@@ -33,7 +35,7 @@ export function ApodStatus(props: Props) {
         <ActivityIndicator
           size="large"
           color={colors.text.primary}
-          accessibilityLabel={apodStrings.loadingLabel}
+          accessibilityLabel={t('apod.loadingLabel')}
         />
       ) : (
         <View style={[styles.column, { maxWidth: readingMaxWidth }]}>
@@ -48,8 +50,8 @@ export function ApodStatus(props: Props) {
               </Text>
               {props.onRetry ? (
                 <GelButton
-                  label={apodStrings.retry}
-                  accessibilityHint={apodStrings.retryHint}
+                  label={t('apod.retry')}
+                  accessibilityHint={t('apod.retryHint')}
                   onPress={props.onRetry}
                 />
               ) : null}

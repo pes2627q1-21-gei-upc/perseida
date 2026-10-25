@@ -3,8 +3,8 @@ titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
 data: "2026-10-25"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58)"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -13,7 +13,7 @@ etiquetes: [arquitectura, frontend, react-native, expo, offline]
 App i panell d'administració de Perseida amb **React Native + Expo** i TypeScript. Pensada per a Android i iOS; de moment només es desplega la versió **Android** (APK).
 
 > [!warning] Estat
-> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Des de TG-119 i TG-120, la pantalla `/apod` mostra la imatge o el vídeo i els estats de càrrega i d'error amb reintent. Des de TG-43, la pantalla `/login` connecta el flux d'autenticació amb Google OAuth2 (PKCE S256 a natiu i OIDC amb nonce criptogràfic d'`expo-crypto` a web), desa els tokens segurament, gestiona errors amb toasts traduïts, suporta accessibilitat (`busy`/`disabled` segons WCAG 4.1.2) i implementa guards de ruta (`login.tsx` i `(app)/_layout.tsx`); el tancament de sessió amb `useLogout` i `LogoutButton`, i l'emmagatzematge de tokens (`src/features/auth`: `expo-secure-store` al mòbil i `sessionStorage` a web, `tokenStorage.web.ts`, amb memòria com a reserva) provenen de TG-45; el logotip de Google és l'asset oficial sense modificar (`assets/google`, amb el seu origen i un test de SHA-256); les accions secundàries fan servir `QuietButton` (`src/shared/ui`), no gel ni vidre; el fons `SkyBackground` és l'escena de Cel viu: cel, sol o lluna entre turons i un llac ovalat amb prat al voltant, nenúfars, joncs, flors, ones, centelleig i bombolles (`src/shared/ui/Lake.tsx`; la geometria, amb llavor fixa, a `lakeLayout.ts`); la pluja de Perseides de `/login` passa per darrere dels turons i de l'herba i és aleatòria dins de límits (mida, color, angle, velocitat, posició, ritme i quants n'hi ha alhora) i pren els colors de les variants `meteors` de cada tema; els tipus de l'API es generen ara de l'OpenAPI real del backend (`openapi/openapi.json`). Encara no hi ha i18n, ajustos de tema ni escena viva completa (només l'estàtica de `SkyBackground` i la pluja de Perseides del login). Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
+> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Des de TG-119 i TG-120, la pantalla `/apod` mostra la imatge o el vídeo i els estats de càrrega i d'error amb reintent. Des de TG-43, la pantalla `/login` connecta el flux d'autenticació amb Google OAuth2 (PKCE S256 a natiu i OIDC amb nonce criptogràfic d'`expo-crypto` a web), desa els tokens segurament, gestiona errors amb toasts traduïts, suporta accessibilitat (`busy`/`disabled` segons WCAG 4.1.2) i implementa guards de ruta (`login.tsx` i `(app)/_layout.tsx`); el tancament de sessió amb `useLogout` i `LogoutButton`, i l'emmagatzematge de tokens (`src/features/auth`: `expo-secure-store` al mòbil i `sessionStorage` a web, `tokenStorage.web.ts`, amb memòria com a reserva) provenen de TG-45; el logotip de Google és l'asset oficial sense modificar (`assets/google`, amb el seu origen i un test de SHA-256); les accions secundàries fan servir `QuietButton` (`src/shared/ui`), no gel ni vidre; el fons `SkyBackground` és l'escena de Cel viu: cel, sol o lluna entre turons i un llac ovalat amb prat al voltant, nenúfars, joncs, flors, ones, centelleig i bombolles (`src/shared/ui/Lake.tsx`; la geometria, amb llavor fixa, a `lakeLayout.ts`); la pluja de Perseides de `/login` passa per darrere dels turons i de l'herba i és aleatòria dins de límits (mida, color, angle, velocitat, posició, ritme i quants n'hi ha alhora) i pren els colors de les variants `meteors` de cada tema; els tipus de l'API es generen ara de l'OpenAPI real del backend (`openapi/openapi.json`). Des de TG-91 hi ha i18n (català, castellà i anglès; vegeu «Internacionalització»): la pantalla `/apod` i els errors per codi estan traduïts a `frontend/locales/`; el login i el tancament de sessió (`features/auth/strings.ts`) continuen en català fins a la US #93. Encara no hi ha ajustos de tema ni escena viva completa (només l'estàtica de `SkyBackground` i la pluja de Perseides del login). Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
 
 ## Stack
 
@@ -23,7 +23,7 @@ App i panell d'administració de Perseida amb **React Native + Expo** i TypeScri
 | Llenguatge | TypeScript 6.0 (`strict`), motor Hermes. Es manté a la 6.x: `typescript-eslint` encara no admet TypeScript 7 (peer `<6.1`) |
 | Estils | NativeWind + *tokens* de tema propis; estètica «Frutiger Cosmo · Cel viu» amb quatre temes (`dia`, `posta`, `nit`, `vermell`) i quatre modes ([[0020-frontend-expo-router-i-estetica-frutiger-cosmo]]) |
 | Tipografia | M PLUS Rounded 1c (títols i xifres) + Open Sans (cos), amb `expo-font` |
-| i18n | i18next (català, castellà i anglès; detecció d'idioma del dispositiu + selector) |
+| i18n | `i18next` 26.4.7 + `react-i18next` 17.1.0 + `expo-localization` 58.0.5 (català, castellà i anglès; detecció d'idioma del dispositiu; el selector és la US #92) |
 | Emmagatzematge local | SQLite (outbox + cache offline) |
 | Auth | Google OAuth2 + PKCE; tokens a `expo-secure-store` |
 | Animació i icones | `react-native-reanimated` (+ `react-native-worklets`), `react-native-svg`, `phosphor-react-native` |
@@ -79,6 +79,20 @@ frontend/
 ├── package.json
 └── tsconfig.json
 ```
+
+## Internacionalització (TG-91)
+
+L'app arrenca en català, castellà o anglès segons l'idioma del dispositiu, sense configurar res. Cap text d'interfície s'escriu al codi: surt de `frontend/locales/{ca,es,en}.json` per clau (p. ex. `apod.retry`, `errors.NETWORK_ERROR`).
+
+- **Detecció** (`src/shared/i18n/detectLanguage.ts`): `expo-localization` (`getLocales()`) dona els idiomes del dispositiu per ordre de preferència; s'usa el primer que sigui `ca`, `es` o `en`, i el català si no n'hi ha cap. `expo-localization` cal perquè `Intl` no diu quin és l'idioma actual del dispositiu (guia d'Expo).
+- **Inicialització** (`src/shared/i18n/index.ts`): els textos van dins de l'app i `i18next` s'inicialitza de manera síncrona (`initAsync: false`) en importar el mòdul des de `src/app/_layout.tsx`, abans de pintar res; per això `t()` no mostra mai claus sense traduir. `fallbackLng` és `ca`.
+- **Errors per codi** (`src/shared/errors/errorMessage.ts`): `errorMessage(t, code, retryable)` busca `errors.<CODE>`; si no hi és, mostra `errors.INTERNAL_ERROR` (reintentable) o `errors.GENERIC_FINAL` (no reintentable). El `detail` del servidor no hi participa mai i un codi que no segueix `SCREAMING_SNAKE` (p. ex. `constructor`) va directe al genèric ([[0018-errors-rfc-9457-amb-codis-estables]]). Encara no hi ha component Toast: l'APOD mostra l'error al seu quadre amb reintent.
+- **Dates:** `formatApodDate` rep l'idioma de l'app (`i18n.language`), no el del dispositiu.
+- **Proves:** `src/shared/i18n/locales.test.ts` falla si una clau existeix en un idioma i falta en un altre; `i18n.test.ts` comprova la detecció i el fallback. `jest.setup.js` fixa el català als tests.
+
+**Afegir un text:** la mateixa clau als tres `locales/*.json` i `t('clau')` amb `useTranslation()`. **Afegir un idioma:** `locales/<codi>.json` amb les mateixes claus, afegir-lo a `SUPPORTED_LANGUAGES` i a `resources`, i al test de claus. Pas a pas als README del frontend (ca/es/en).
+
+Fora d'abast de TG-91: el selector d'idioma i la preferència d'usuari (US #92), la resta de l'app i l'admin, inclòs el login (US #93), i la localització d'errors del backend.
 
 ## Seguretat (TG-45)
 
