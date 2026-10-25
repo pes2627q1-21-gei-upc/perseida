@@ -21,6 +21,7 @@ from sqlalchemy import text
 from alembic import command
 from app.application.apod.errors import APOD_UNAVAILABLE
 from app.infrastructure.apod.nasa_client import APOD_URL
+from app.infrastructure.apod.nasa_feed_client import FEED_URL
 from app.infrastructure.apod.repository import SqlApodRepository
 from app.infrastructure.scheduler.dependencies import get_scheduler_settings
 from app.main import create_app
@@ -92,6 +93,8 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
 @pytest.fixture
 def nasa() -> Iterator[respx.MockRouter]:
     with respx.mock(assert_all_called=False) as router:
+        # The feed is tried first: down here, so these tests keep using the API.
+        router.get(FEED_URL).respond(503)
         yield router
 
 

@@ -236,7 +236,7 @@ Los tests de integración (`tests/integration/test_redis.py`) se ejecutan si hay
 
 1. **Redis** (`cache:apod:<fecha>`, TTL 24 h).
 2. **PostgreSQL** (tabla `apod`, una fila por fecha): se guarda cada APOD recibido de la NASA y, si está, se vuelve a poner en Redis.
-3. **NASA** (`https://api.nasa.gov/planetary/apod`): la respuesta se guarda en PostgreSQL y en Redis.
+3. **NASA**: la respuesta se guarda en PostgreSQL y en Redis. La API de la NASA (`https://api.nasa.gov/planetary/apod`) ya no devuelve el APOD real (ver abajo), así que el adaptador lee primero el **feed RSS** `https://science.nasa.gov/feed/apod-basic/` (no documentado; solo guarda los últimos **30 días**, ignora cualquier filtro de fecha y aquí no trae vídeos) y, si falla, la API JSON como alternativa (p. ej. fechas de más de 30 días).
 
 Sin fecha, se busca el de hoy (UTC) en Redis y PostgreSQL; si no está, se pide a la NASA el último publicado. Si la NASA falla (error, timeout o respuesta inservible), se devuelve el dato guardado: el APOD de esa fecha o, para hoy, el último guardado. Sin nada guardado, la respuesta es 503 `APOD_UNAVAILABLE`. Si Redis cae, la petición sigue con PostgreSQL y la NASA.
 
@@ -249,10 +249,14 @@ Configuración (`.env`):
 | `NASA_API_KEY` | (obligatoria) | Clave de [api.nasa.gov](https://api.nasa.gov). En local vale `DEMO_KEY` (con límite de peticiones). Se envía en la cabecera `X-Api-Key`, nunca en la URL, para que no salga en los logs. |
 | `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Timeout de conexión |
 | `NASA_TIMEOUT_SECONDS` | `10` | Timeout total de una petición (sin reintentos) |
+| `NASA_APOD_FEED_URL` | `https://science.nasa.gov/feed/apod-basic/` | Feed RSS del APOD (se prueba primero). Opcional, solo https. |
+| `NASA_APOD_API_URL` | `https://api.nasa.gov/planetary/apod` | API JSON de la NASA (alternativa). Opcional, solo https. `NASA_API_KEY` se envía a esta URL: apúntala solo a un host de confianza. |
 
 La API no arranca sin `NASA_API_KEY`. En producción viene del secret de GitHub `NASA_API_KEY`; nunca hagas commit de una clave real.
 
-> Ahora mismo la API de la NASA responde con un relleno en lugar del APOD (el logo de NASA Science y un texto genérico, observado el 2026-10-21). El cliente lo rechaza como cualquier otra respuesta inservible, así que nunca se guarda.
+> Ahora mismo la API de la NASA responde con un relleno en lugar del APOD (el logo de NASA Science y un texto genérico, observado el 2026-10-21; el APOD se ha mudado a science.nasa.gov). Por eso el feed RSS va primero. El cliente sigue rechazando el relleno (también en el feed), así que nunca se guarda.
+>
+> Límites del feed: solo se guardan imágenes (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo se descarta (`APOD_UNAVAILABLE` si la API tampoco puede responder). La fecha de una entrada es el día UTC de su publicación y el texto de `explanation` y `copyright` se convierte de HTML a texto plano. El fallo de una llamada se guarda 15 minutos solo cuando fallan el feed **y** la API.
 
 ## Autenticación
 
