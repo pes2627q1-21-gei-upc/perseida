@@ -24,6 +24,7 @@ from app.domain.shared.ports import Cache
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.apod.dependencies import get_apod_provider
 from app.infrastructure.apod.nasa_client import APOD_URL, NasaApodClient
+from app.infrastructure.apod.nasa_feed_client import FEED_URL
 from app.infrastructure.apod.nasa_provider import (
     APOD_TTL_SECONDS,
     RETRY_AFTER_SECONDS,
@@ -312,6 +313,8 @@ async def test_tg46_c1_provider_is_built_from_the_lifespan_resources(
     app.state.nasa_http = http
     app.state.nasa_api_key = SecretStr("test-key")
     app.state.nasa_timeout_seconds = 1.0
+    app.state.nasa_apod_feed_url = FEED_URL
+    app.state.nasa_apod_api_url = APOD_URL
     app.state.session_factory = object()
     conn = HTTPConnection({"type": "http", "app": app, "headers": []})
 

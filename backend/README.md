@@ -282,7 +282,7 @@ Integration tests (`tests/integration/test_redis.py`) run when `REDIS_HOST` is s
 
 1. **Redis** (`cache:apod:<date>`, TTL 24 h).
 2. **PostgreSQL** (`apod` table, one row per date): every APOD received from NASA is stored, and a hit refills Redis.
-3. **NASA** (`https://api.nasa.gov/planetary/apod`): the answer is stored in PostgreSQL and Redis.
+3. **NASA**: the answer is stored in PostgreSQL and Redis. NASA's own API (`https://api.nasa.gov/planetary/apod`) no longer returns the real APOD (see below), so the adapter reads first the **RSS feed** `https://science.nasa.gov/feed/apod-basic/` (undocumented; it only keeps the latest **30 days**, ignores any date filter, and has no videos here) and, if that fails, the JSON API as a fallback (e.g. dates older than 30 days).
 
 Without a date, today (UTC) is looked up in Redis and PostgreSQL; if it is not there, NASA is asked for its latest published APOD. If NASA fails (error, timeout or an unusable answer), the stored data is returned: the APOD of that date or, for today, the latest stored one. With nothing stored the answer is 503 `APOD_UNAVAILABLE`. If Redis is down the request still works through PostgreSQL and NASA.
 
@@ -295,10 +295,14 @@ Configuration (`.env`):
 | `NASA_API_KEY` | (required) | Key from [api.nasa.gov](https://api.nasa.gov). Locally `DEMO_KEY` works (rate-limited). It is sent in the `X-Api-Key` header, never in the URL, so it does not show up in the logs. |
 | `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Connection timeout |
 | `NASA_TIMEOUT_SECONDS` | `10` | Total timeout of a request (no retries) |
+| `NASA_APOD_FEED_URL` | `https://science.nasa.gov/feed/apod-basic/` | APOD RSS feed (tried first). Optional, https only. |
+| `NASA_APOD_API_URL` | `https://api.nasa.gov/planetary/apod` | NASA JSON API (fallback). Optional, https only. `NASA_API_KEY` is sent to this URL: point it only at a host you trust. |
 
 The API does not start without `NASA_API_KEY`. In production it comes from the `NASA_API_KEY` GitHub secret; never commit a real key.
 
-> NASA's API currently answers with a placeholder instead of the APOD (the NASA Science logo and a generic text, seen on 2026-10-21). The client rejects it like any other unusable answer, so it is never stored.
+> NASA's API currently answers with a placeholder instead of the APOD (the NASA Science logo and a generic text, seen on 2026-10-21; APOD moved to science.nasa.gov). That is why the RSS feed goes first. The client still rejects the placeholder (also in the feed), so it is never stored.
+>
+> Feed limits: only images (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`) are kept; a video entry is discarded (`APOD_UNAVAILABLE` if the API cannot answer either). The date of an entry is the UTC day of its publication, and the text of `explanation` and `copyright` is converted from HTML to plain text. The failure of a call is cached 15 minutes only when the feed **and** the API fail.
 
 ## Authentication
 
