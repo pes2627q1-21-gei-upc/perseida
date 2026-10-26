@@ -87,17 +87,55 @@ pnpm test                         # Jest (jest-expo preset)
 pnpm test --coverage              # tests + coverage report (coverage/lcov.info)
 ```
 
-Google sign-in needs a native build: it does **not** work in Expo Go (the app shows a specific message). On Android run `pnpm expo run:android` (needs Android Studio/SDK); the Google Cloud Android client must have package `app.perseida` and the SHA-1 of `android/app/debug.keystore`, and `EXPO_PUBLIC_GOOGLE_*` set in `.env`.
-
-**Test on a phone without Android Studio (EAS Build).** The Expo organisation `perseida-fib-upc` builds the APK in the cloud, so it also works on Windows without the Android SDK:
-
-1. Ask an admin of the organisation to invite you, and sign in with `npx eas-cli@latest login`.
-2. From `frontend/`, run `npx eas-cli@latest build -p android --profile preview`. The profile is in `eas.json` and only carries public `EXPO_PUBLIC_*` values (production backend).
-3. When it finishes (10-20 min), open the link on the phone and install the APK.
-
-The signing keystore lives in Expo and is shared: **never generate a new one**, because its SHA-1 would change and Google sign-in would stop working until it is registered again in Google Cloud. Sign-in against production also needs the backend to accept the client id (`GOOGLE_CLIENT_IDS`), and while the Google app is in *Testing* only the listed test users can sign in.
-
 Releases: on each release merged into `main`, GitHub Actions publishes the **APK** as a GitHub release.
+
+## Test on a phone (Google sign-in)
+
+Google sign-in does **not** work in Expo Go (the app shows a specific message): it needs a native build with package `app.perseida`. There are two ways to get one:
+
+- **EAS Build (recommended).** The Expo organisation `perseida-fib-upc` builds the APK in the cloud. It needs no Android Studio and works on Windows.
+- **Local build.** `pnpm expo run:android` needs Android Studio and the Android SDK. On Windows it can fail in the C++ step because some paths exceed 260 characters (`ninja: error: manifest 'build.ninja' still dirty` or `mkdir(...)`), so prefer EAS there.
+
+### One-time setup (EAS Build)
+
+1. Create an account at [expo.dev](https://expo.dev) **with the same email** the invitation was sent to.
+2. Accept the invitation to the organisation `perseida-fib-upc` (email from Expo). Invitations are sent by an organisation owner from expo.dev → `perseida-fib-upc` → *Settings* → *Members* → *Invite member*, with the *Developer* role, which can build but not manage members.
+3. Sign in from the terminal and check that you see the organisation:
+
+   ```bash
+   npx eas-cli@latest login
+   npx eas-cli@latest whoami      # must list perseida-fib-upc
+   ```
+
+### Build and install
+
+```bash
+cd frontend
+npx eas-cli@latest build -p android --profile preview
+```
+
+1. The profile `preview` is in `eas.json`: an installable APK with the public `EXPO_PUBLIC_*` values (production backend, Google client ids, `app.perseida` scheme). No secret goes in that file.
+2. If the CLI warns about uncommitted changes, check with `git status` that they are yours and continue.
+3. It takes 10-20 minutes. When it ends it prints a link; all builds are also at `https://expo.dev/accounts/perseida-fib-upc/projects/frontend/builds`.
+4. Open the link on the phone, download the APK and allow the browser to install apps when Android asks.
+
+Do **not** run `eas init` (the project is already linked through `extra.eas.projectId` and `owner` in `app.json`; do not change them) and do **not** generate a new keystore if the CLI offers it: the shared one lives in Expo, and a new one has another SHA-1, so Google sign-in stops working until it is registered again.
+
+### What Google and the backend need
+
+- **Google Cloud (an administrator does this once):** an Android client with package `app.perseida`, the SHA-1 of the EAS keystore (`npx eas-cli@latest credentials -p android` shows it, interactively) and *Enable custom URI scheme* ticked. Changes can take from 5 minutes to a few hours.
+- **Production backend:** its `GOOGLE_CLIENT_IDS` variable must include that client id, and the CD must have deployed it.
+- **Google app in *Testing*:** only the listed test users can sign in until the consent screen is published.
+
+### If something fails
+
+| Symptom | Likely cause |
+|---|---|
+| `whoami` does not list `perseida-fib-upc`, or the build says you have no access | The invitation is not accepted yet, or you used another email. |
+| Google shows `invalid_request`, `redirect_uri_mismatch` or an invalid client | The SHA-1 or the package is not registered in the Android client, or the change has not propagated yet. |
+| Google says the app is not verified or you have no access | The app is in *Testing* and your account is not a test user. |
+| The app says Google sign-in does not work in Expo Go | You opened it in Expo Go; install the APK instead. |
+| Sign-in reaches the backend but fails there | The client id is not in the production `GOOGLE_CLIENT_IDS` yet. |
 
 ## Translations (i18n)
 

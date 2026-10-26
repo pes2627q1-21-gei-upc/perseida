@@ -87,17 +87,55 @@ pnpm test                         # Jest (preset jest-expo)
 pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.info)
 ```
 
-L'inici de sessió amb Google necessita una build nativa: **no** funciona a Expo Go (l'app mostra un missatge específic). A Android executa `pnpm expo run:android` (cal Android Studio/SDK); el client Android de Google Cloud ha de tenir el package `app.perseida` i el SHA-1 d'`android/app/debug.keystore`, i `EXPO_PUBLIC_GOOGLE_*` definit a `.env`.
-
-**Provar al mòbil sense Android Studio (EAS Build).** L'organització d'Expo `perseida-fib-upc` compila l'APK al núvol, així que també serveix a Windows sense l'SDK d'Android:
-
-1. Demana a un administrador de l'organització que t'hi convidi i inicia sessió amb `npx eas-cli@latest login`.
-2. Des de `frontend/`, executa `npx eas-cli@latest build -p android --profile preview`. El perfil és a `eas.json` i només porta valors públics `EXPO_PUBLIC_*` (backend de producció).
-3. Quan acabi (10-20 min), obre l'enllaç al mòbil i instal·la l'APK.
-
-El keystore de signatura viu a Expo i és compartit: **no en generis un de nou**, perquè el seu SHA-1 canviaria i el login amb Google deixaria de funcionar fins a registrar-lo de nou a Google Cloud. El login contra producció també necessita que el backend accepti el client id (`GOOGLE_CLIENT_IDS`), i mentre l'app de Google sigui a *Testing* només hi entren els usuaris de prova.
-
 Releases: a cada release fusionada a `main`, GitHub Actions publica l'**APK** en una release de GitHub.
+
+## Provar al mòbil (login amb Google)
+
+El login amb Google **no** funciona a Expo Go (l'app mostra un missatge específic): necessita una build nativa amb package `app.perseida`. Hi ha dues maneres d'aconseguir-la:
+
+- **EAS Build (recomanada).** L'organització d'Expo `perseida-fib-upc` compila l'APK al núvol. No necessita Android Studio i funciona a Windows.
+- **Build local.** `pnpm expo run:android` necessita Android Studio i l'SDK d'Android. A Windows pot fallar al pas de C++ perquè algunes rutes superen els 260 caràcters (`ninja: error: manifest 'build.ninja' still dirty` o `mkdir(...)`), així que allà és preferible EAS.
+
+### Preparació (una sola vegada, EAS Build)
+
+1. Crea un compte a [expo.dev](https://expo.dev) **amb el mateix correu** al qual es va enviar la invitació.
+2. Accepta la invitació a l'organització `perseida-fib-upc` (correu d'Expo). Les invitacions les envia un propietari de l'organització des d'expo.dev → `perseida-fib-upc` → *Settings* → *Members* → *Invite member*, amb el rol *Developer*, que pot compilar però no gestionar membres.
+3. Inicia sessió des del terminal i comprova que veus l'organització:
+
+   ```bash
+   npx eas-cli@latest login
+   npx eas-cli@latest whoami      # ha de llistar perseida-fib-upc
+   ```
+
+### Compilar i instal·lar
+
+```bash
+cd frontend
+npx eas-cli@latest build -p android --profile preview
+```
+
+1. El perfil `preview` és a `eas.json`: un APK instal·lable amb els valors públics `EXPO_PUBLIC_*` (backend de producció, client ids de Google, esquema `app.perseida`). En aquest fitxer no hi va cap secret.
+2. Si el CLI avisa de canvis sense commitejar, comprova amb `git status` que són teus i continua.
+3. Triga entre 10 i 20 minuts. En acabar imprimeix un enllaç; totes les builds són també a `https://expo.dev/accounts/perseida-fib-upc/projects/frontend/builds`.
+4. Obre l'enllaç al mòbil, descarrega l'APK i permet que el navegador instal·li apps quan Android ho demani.
+
+**No** executis `eas init` (el projecte ja està enllaçat amb `extra.eas.projectId` i `owner` a `app.json`; no els canviïs) i **no** generis un keystore nou si el CLI ho ofereix: el compartit viu a Expo, i un de nou té un altre SHA-1, de manera que el login amb Google deixaria de funcionar fins a registrar-lo de nou.
+
+### Què necessiten Google i el backend
+
+- **Google Cloud (ho fa un cop un administrador):** un client Android amb package `app.perseida`, el SHA-1 del keystore d'EAS (`npx eas-cli@latest credentials -p android` el mostra, de manera interactiva) i *Enable custom URI scheme* marcat. Els canvis poden trigar de 5 minuts a unes hores.
+- **Backend de producció:** la seva variable `GOOGLE_CLIENT_IDS` ha d'incloure aquest client id i el CD l'ha d'haver desplegat.
+- **App de Google en *Testing*:** només hi entren els usuaris de prova llistats fins que es publiqui la pantalla de consentiment.
+
+### Si alguna cosa falla
+
+| Símptoma | Causa probable |
+|---|---|
+| `whoami` no llista `perseida-fib-upc`, o la build diu que no tens accés | La invitació encara no està acceptada, o has fet servir un altre correu. |
+| Google mostra `invalid_request`, `redirect_uri_mismatch` o client no vàlid | El SHA-1 o el package no estan registrats al client Android, o el canvi encara no s'ha propagat. |
+| Google diu que l'app no està verificada o que no tens accés | L'app és a *Testing* i el teu compte no és usuari de prova. |
+| L'app diu que el login amb Google no funciona a Expo Go | L'has oberta a Expo Go; instal·la l'APK. |
+| El login arriba al backend però hi falla | El client id encara no és al `GOOGLE_CLIENT_IDS` de producció. |
 
 ## Traduccions (i18n)
 
