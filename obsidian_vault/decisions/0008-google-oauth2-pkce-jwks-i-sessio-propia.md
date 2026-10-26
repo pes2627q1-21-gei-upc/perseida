@@ -86,6 +86,7 @@ Correcció del flux mòbil. No canvia la decisió.
 
 - **Expo Go no és compatible:** la seva redirect `exp://` no es pot registrar a Google. L'app el detecta i mostra l'error `GOOGLE_SIGN_IN_EXPO_GO`; es prova amb una build nativa.
 - **Sense client id configurat** per a la plataforma: `GOOGLE_SIGN_IN_UNAVAILABLE` (abans sortia el missatge genèric).
+- **Builds de prova amb EAS:** per provar el login a un mòbil sense Android Studio, l'equip pot compilar un APK a EAS Build (organització d'Expo `perseida-fib-upc`, perfil `preview` de `frontend/eas.json`). El keystore és compartit i el guarda Expo: el seu SHA-1 és el que ha d'estar registrat al client Android de Google Cloud, i no se n'ha de generar cap de nou. No substitueix l'APK de release de la US TG-329 (GitHub Actions).
 - **Pantalla de consentiment en producció:** perquè entri qualsevol compte de Google (no només els usuaris de test), l'app ha d'estar publicada («In production») a Google Auth Platform. Amb els àmbits `openid`, `email` i `profile` no cal verificació.
 
 ## Alternatives descartades

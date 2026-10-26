@@ -89,6 +89,14 @@ pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.
 
 L'inici de sessió amb Google necessita una build nativa: **no** funciona a Expo Go (l'app mostra un missatge específic). A Android executa `pnpm expo run:android` (cal Android Studio/SDK); el client Android de Google Cloud ha de tenir el package `app.perseida` i el SHA-1 d'`android/app/debug.keystore`, i `EXPO_PUBLIC_GOOGLE_*` definit a `.env`.
 
+**Provar al mòbil sense Android Studio (EAS Build).** L'organització d'Expo `perseida-fib-upc` compila l'APK al núvol, així que també serveix a Windows sense l'SDK d'Android:
+
+1. Demana a un administrador de l'organització que t'hi convidi i inicia sessió amb `npx eas-cli@latest login`.
+2. Des de `frontend/`, executa `npx eas-cli@latest build -p android --profile preview`. El perfil és a `eas.json` i només porta valors públics `EXPO_PUBLIC_*` (backend de producció).
+3. Quan acabi (10-20 min), obre l'enllaç al mòbil i instal·la l'APK.
+
+El keystore de signatura viu a Expo i és compartit: **no en generis un de nou**, perquè el seu SHA-1 canviaria i el login amb Google deixaria de funcionar fins a registrar-lo de nou a Google Cloud. El login contra producció també necessita que el backend accepti el client id (`GOOGLE_CLIENT_IDS`), i mentre l'app de Google sigui a *Testing* només hi entren els usuaris de prova.
+
 Releases: a cada release fusionada a `main`, GitHub Actions publica l'**APK** en una release de GitHub.
 
 ## Traduccions (i18n)

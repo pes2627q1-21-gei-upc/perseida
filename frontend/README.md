@@ -89,6 +89,14 @@ pnpm test --coverage              # tests + coverage report (coverage/lcov.info)
 
 Google sign-in needs a native build: it does **not** work in Expo Go (the app shows a specific message). On Android run `pnpm expo run:android` (needs Android Studio/SDK); the Google Cloud Android client must have package `app.perseida` and the SHA-1 of `android/app/debug.keystore`, and `EXPO_PUBLIC_GOOGLE_*` set in `.env`.
 
+**Test on a phone without Android Studio (EAS Build).** The Expo organisation `perseida-fib-upc` builds the APK in the cloud, so it also works on Windows without the Android SDK:
+
+1. Ask an admin of the organisation to invite you, and sign in with `npx eas-cli@latest login`.
+2. From `frontend/`, run `npx eas-cli@latest build -p android --profile preview`. The profile is in `eas.json` and only carries public `EXPO_PUBLIC_*` values (production backend).
+3. When it finishes (10-20 min), open the link on the phone and install the APK.
+
+The signing keystore lives in Expo and is shared: **never generate a new one**, because its SHA-1 would change and Google sign-in would stop working until it is registered again in Google Cloud. Sign-in against production also needs the backend to accept the client id (`GOOGLE_CLIENT_IDS`), and while the Google app is in *Testing* only the listed test users can sign in.
+
 Releases: on each release merged into `main`, GitHub Actions publishes the **APK** as a GitHub release.
 
 ## Translations (i18n)

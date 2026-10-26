@@ -26,6 +26,7 @@ Que «Continua amb Google» funcioni al mòbil per a qualsevol usuari i que, si 
 - `googleAuth.ts`: detecció d'Expo Go (`GOOGLE_SIGN_IN_EXPO_GO`) i client id absent (`GOOGLE_SIGN_IN_UNAVAILABLE`); textos ca/es/en a `locales/` i al catàleg d'errors.
 - `googleConfig.ts`: esquema per defecte `app.perseida` (redirect `app.perseida:/oauth/callback`).
 - READMEs: arrencada per a desenvolupadors a l'arrel i nota sobre Expo Go al README del frontend.
+- EAS Build (organització d'Expo `perseida-fib-upc`): `frontend/eas.json` (perfil `preview`) i `projectId`/`owner` a `app.json`, perquè l'equip provi el login al mòbil sense Android Studio; a Windows `expo run:android` falla per rutes de més de 260 caràcters.
 - Vault: [[0008-google-oauth2-pkce-jwks-i-sessio-propia]] i [[frontend]].
 
 ## Decisions
@@ -38,6 +39,8 @@ Que «Continua amb Google» funcioni al mòbil per a qualsevol usuari i que, si 
 - [ ] Publicar l'app a «In production» (Audience).
 - [ ] Client Android amb package `app.perseida`, SHA-1 de debug i «Enable custom URI scheme».
 - [ ] Provar `pnpm expo run:android` amb un compte que no sigui de test.
+- [ ] Registrar el SHA-1 del keystore d'EAS al client «Perseida Android debug» (creat en aquesta sessió) i desplegar `GOOGLE_CLIENT_IDS` amb el CD.
+- [ ] Convidar els companys a l'organització d'Expo `perseida-fib-upc`.
 - [ ] Revisar a quina plataforma correspon el quart client id de `GOOGLE_CLIENT_IDS`.
 
 ## US de Taiga
