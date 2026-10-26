@@ -25,7 +25,7 @@ const BUILD_GRADLE = `android {
 
 const WRAPPER = `distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\\://services.gradle.org/distributions/gradle-9.4.1-bin.zip
+distributionUrl=https\\://services.gradle.org/distributions/gradle-9.0.0-bin.zip
 networkTimeout=10000
 validateDistributionUrl=true
 `;
@@ -59,17 +59,17 @@ describe('addReleaseSigning', () => {
 });
 
 describe('pinGradleVersion', () => {
-  it('pins Gradle 9.8.2 with its checksum and keeps the other properties', () => {
+  it('pins Gradle 9.4.1 with its checksum and keeps the other properties', () => {
     const result = pinGradleVersion(WRAPPER);
 
     expect(result).toContain(
-      'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.8.2-bin.zip',
+      'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.4.1-bin.zip',
     );
     expect(result).toContain(
-      'distributionSha256Sum=21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607',
+      'distributionSha256Sum=2ab2958f2a1e51120c326cad6f385153bb11ee93b3c216c5fccebfdfbb7ec6cb',
     );
     expect(result).toContain('networkTimeout=10000');
-    expect(result).not.toContain('9.4.1');
+    expect(result).not.toContain('9.0.0');
   });
 
   it('does not duplicate the checksum when run twice', () => {
