@@ -76,9 +76,17 @@ Detall de configuració decidit el 2026-10-22 en preparar el desplegament. No ca
 
 Detall d'implementació del flux d'inici de sessió segons la plataforma d'execució, confirmat a la US TG-43. No canvia la decisió.
 
-- **Mòbil natiu (Android i iOS):** segueix estrictament el flux RFC 7636 Authorization Code amb PKCE (`response_type=code`, repte SHA-256 `code_challenge_method=S256` i `code_verifier`). En rebre la redirecció pel deep link `perseida://oauth/callback`, l'app bescanvia directament el `code` i el `code_verifier` amb l'endpoint de tokens de Google (`https://oauth2.googleapis.com/token`) per obtenir l'`id_token`, sense requerir `client_secret` (client públic).
+- **Mòbil natiu (Android i iOS):** segueix estrictament el flux RFC 7636 Authorization Code amb PKCE (`response_type=code`, repte SHA-256 `code_challenge_method=S256` i `code_verifier`). En rebre la redirecció pel deep link `app.perseida:/oauth/callback` (l'esquema és l'identificador de l'app, l'únic que Google accepta als clients natius; es pot canviar amb `EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME`), l'app bescanvia directament el `code` i el `code_verifier` amb l'endpoint de tokens de Google (`https://oauth2.googleapis.com/token`) per obtenir l'`id_token`, sense requerir `client_secret` (client públic).
 - **Web / Panell d'administració (excepció OIDC):** l'endpoint de tokens de Google no admet bescanvi de codi sense secret per a clients Web (bloqueig per CORS i exigència de `client_secret` per part de Google Cloud a clients tipus Web Application). Per mantenir la regla de seguretat de no incrustar mai cap secret al bundle públic de frontend (NFR-SEC-02), a la plataforma web s'utilitza el flux OpenID Connect directe (`response_type=id_token`, OIDC implicit).
 - **Mitigació de replay a web:** per protegir el flux davant atacs de repetició sense PKCE, es genera un `nonce` criptogràfic únic mitjançant `expo-crypto` (`Crypto.randomUUID()`) que s'envia a la petició d'autorització i es valida estrictament contra el camp `nonce` del payload de l'`id_token` (decodificat al client) abans d'enviar el token a `POST /api/auth/google`.
+
+## Concreció (TG-342 · Expo Go i usuaris reals)
+
+Correcció del flux mòbil. No canvia la decisió.
+
+- **Expo Go no és compatible:** la seva redirect `exp://` no es pot registrar a Google. L'app el detecta i mostra l'error `GOOGLE_SIGN_IN_EXPO_GO`; es prova amb una build nativa.
+- **Sense client id configurat** per a la plataforma: `GOOGLE_SIGN_IN_UNAVAILABLE` (abans sortia el missatge genèric).
+- **Pantalla de consentiment en producció:** perquè entri qualsevol compte de Google (no només els usuaris de test), l'app ha d'estar publicada («In production») a Google Auth Platform. Amb els àmbits `openid`, `email` i `profile` no cal verificació.
 
 ## Alternatives descartades
 

@@ -55,6 +55,7 @@ flowchart LR
 ## Versions i execució
 
 - **Expo Go** de les botigues només admet l'SDK actual: si Expo Go no carrega l'app, primer s'ha de mirar que l'SDK del projecte coincideixi (TG-327: el salt a l'SDK 58 va deixar l'SDK 57 sense Expo Go).
+- **Inici de sessió amb Google i Expo Go** (TG-342): Expo Go usa una redirect `exp://` que Google no accepta mai, així que l'app detecta `ExecutionEnvironment.StoreClient` i mostra `GOOGLE_SIGN_IN_EXPO_GO`. Per provar-lo al mòbil cal una build nativa (`pnpm expo run:android`) amb el client Android de Google Cloud (package `app.perseida` + SHA-1 del keystore).
 - Node 24.22.1 (LTS) i pnpm 12.15.0 (`packageManager`; s'actualitza amb `pnpm self-update`, no amb `pnpm add -g pnpm`). Amb pnpm 12 els scripts de build de dependències s'aproven a `allowBuilds` de `pnpm-workspace.yaml` (ara `@parcel/watcher` i `unrs-resolver` denegats).
 - `react-native-css-interop@0.2.7` (motor de NativeWind) té un patch de pnpm que treu el registre d'`ImageBackground` (obsolet a RN 0.88); es retira quan NativeWind ho corregeixi.
 - Web: `pnpm web` serveix la mateixa app amb React Native Web; NativeWind necessita `darkMode: 'class'` a `tailwind.config.js` (amb `media` la web queda en blanc).
