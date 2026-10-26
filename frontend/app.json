@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "Perseida",
     "slug": "frontend",
     "version": "0.1.0",
     "scheme": ["perseida", "app.perseida"],
