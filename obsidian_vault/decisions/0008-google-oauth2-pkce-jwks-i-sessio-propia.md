@@ -2,9 +2,9 @@
 titol: "Google OAuth2 amb PKCE, validació JWKS i sessió pròpia"
 tipus: adr
 estat: acceptada
-data: "2026-10-25"
-us: ["TG-85", "TG-43", "TG-44", "TG-45", "TG-38"]
-font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87); Taiga: US TG-45 (criteris d'acceptació)"
+data: "2026-10-26"
+us: ["TG-85", "TG-43", "TG-44", "TG-45", "TG-38", "TG-342"]
+font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87); Taiga: US TG-45 (criteris d'acceptació); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52)"
 etiquetes: [adr, autenticacio, oauth2, pkce, jwks, seguretat]
 ---
 
