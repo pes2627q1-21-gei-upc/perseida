@@ -88,6 +88,8 @@ afterEach(() => {
   mockUseReducedMotion.mockReturnValue(false);
   mockParams = {};
   process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = originalWebClientId;
+  delete process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  delete process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 });
 
 describe('Login screen', () => {
@@ -107,7 +109,7 @@ describe('Login screen', () => {
   it('shows no notice until the button is pressed', async () => {
     await renderScreen();
 
-    expect(screen.queryByText(authStrings.loginUnavailable)).not.toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
   });
 
   it('TG-43 #233: redirects already authenticated users to /(app)', async () => {
@@ -388,6 +390,8 @@ describe('Login screen', () => {
   describe("TG-43 Criteri 8: Proves del flux d'inici de sessió amb mocks natius (expo-auth-session, fetch, expo-secure-store)", () => {
     beforeEach(() => {
       process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = 'test-google-web-client-id';
+      process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID = 'test-google-ios-client-id';
+      process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID = 'test-google-android-client-id';
     });
 
     it('completes the full authentication flow end-to-end, persists tokens, and redirects (TG-43 Criteris 1, 2, 3, 4, 6, 8)', async () => {

@@ -6,7 +6,6 @@ export const authStrings = {
   appName: 'Perseida',
   tagline: 'Mira cap amunt',
   continueWithGoogle: 'Continua amb Google',
-  loginUnavailable: "L'inici de sessió amb Google encara no està disponible.",
   logout: 'Tanca la sessió',
   // The device is always signed out; this tells the user when the server could not confirm it.
   logoutNotConfirmed:

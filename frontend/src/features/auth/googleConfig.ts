@@ -40,19 +40,19 @@ export function getGoogleClientId(platform: typeof Platform.OS = Platform.OS): s
       break;
   }
 
-  // Fallback to web client ID in development if platform-specific ID is not configured
-  return clientId || ids.web || '';
+  // No fallback to the web client on native: Google rejects the app.perseida redirect for it.
+  return clientId ?? '';
 }
 
 /**
  * Returns the redirect URI for the OAuth callback.
- * On native devices (iOS/Android), produces the deep link `perseida://oauth/callback`.
- * Allows overriding via EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME if Google Cloud OAuth Console
- * requires the package scheme (`app.perseida`) or reversed client ID.
+ * On native devices (iOS/Android), produces `app.perseida:/oauth/callback`: Google only
+ * accepts the app package/bundle id as a custom scheme for native clients.
+ * EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME overrides it (e.g. the reversed iOS client ID).
  * On web, resolves to the browser location.
  */
 export function getGoogleRedirectUri(): string {
-  const scheme = process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME || 'perseida';
+  const scheme = process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME || 'app.perseida';
   const uri = makeRedirectUri({
     scheme,
     path: 'oauth/callback',

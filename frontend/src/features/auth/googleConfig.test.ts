@@ -45,21 +45,20 @@ describe('googleConfig', () => {
     expect(getGoogleClientId('web')).toBe('web-client-id');
   });
 
-  it('falls back to web client ID when platform-specific ID is missing', () => {
-    delete process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-    expect(getGoogleClientId('ios')).toBe('web-client-id');
-  });
-
-  it('returns empty string if neither platform nor web client ID is defined', () => {
-    delete process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  it('TG-342: does not fall back to the web client ID on native platforms', () => {
     delete process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
     expect(getGoogleClientId('ios')).toBe('');
   });
 
-  it('generates redirect URI containing the perseida scheme by default', () => {
+  it('returns empty string if the web client ID is missing on web', () => {
+    delete process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+    expect(getGoogleClientId('web')).toBe('');
+  });
+
+  it('generates the app.perseida redirect URI by default', () => {
     delete process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME;
     const redirectUri = getGoogleRedirectUri();
-    expect(redirectUri).toBe('perseida://oauth/callback');
+    expect(redirectUri).toBe('app.perseida:/oauth/callback');
   });
 
   it('allows overriding redirect scheme via EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME and normalizes single slash for package schemes', () => {

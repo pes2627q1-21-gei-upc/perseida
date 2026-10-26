@@ -12,6 +12,8 @@
     "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
     "GENERIC_FINAL": "Something went wrong.",
+    "GOOGLE_SIGN_IN_EXPO_GO": "Google sign-in doesn't work in Expo Go. Use the installed app (development build).",
+    "GOOGLE_SIGN_IN_UNAVAILABLE": "Google sign-in isn't available yet.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google is unavailable right now. Please try again in a while.",
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
     "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
