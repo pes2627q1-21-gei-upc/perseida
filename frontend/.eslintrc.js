@@ -38,6 +38,12 @@ module.exports = {
       files: ['**/*.test.ts', '**/*.test.tsx'],
       rules: { 'no-script-url': 'off' },
     },
+    {
+      // Expo config plugins run in Node during prebuild and are loaded as CommonJS.
+      files: ['plugins/**/*.js'],
+      env: { jest: true },
+      rules: { '@typescript-eslint/no-require-imports': 'off' },
+    },
   ],
   settings: {
     react: {
