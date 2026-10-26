@@ -87,6 +87,8 @@ pnpm test                         # Jest (jest-expo preset)
 pnpm test --coverage              # tests + coverage report (coverage/lcov.info)
 ```
 
+Google sign-in needs a native build: it does **not** work in Expo Go (the app shows a specific message). On Android run `pnpm expo run:android` (needs Android Studio/SDK); the Google Cloud Android client must have package `app.perseida` and the SHA-1 of `android/app/debug.keystore`, and `EXPO_PUBLIC_GOOGLE_*` set in `.env`.
+
 Releases: on each release merged into `main`, GitHub Actions publishes the **APK** as a GitHub release.
 
 ## Translations (i18n)

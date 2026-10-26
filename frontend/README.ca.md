@@ -87,6 +87,8 @@ pnpm test                         # Jest (preset jest-expo)
 pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.info)
 ```
 
+L'inici de sessió amb Google necessita una build nativa: **no** funciona a Expo Go (l'app mostra un missatge específic). A Android executa `pnpm expo run:android` (cal Android Studio/SDK); el client Android de Google Cloud ha de tenir el package `app.perseida` i el SHA-1 d'`android/app/debug.keystore`, i `EXPO_PUBLIC_GOOGLE_*` definit a `.env`.
+
 Releases: a cada release fusionada a `main`, GitHub Actions publica l'**APK** en una release de GitHub.
 
 ## Traduccions (i18n)

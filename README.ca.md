@@ -78,6 +78,17 @@ Detalls: [infraestructura](infra/README.ca.md) · [arquitectura del backend](bac
 | Infraestructura | Docker Compose, nginx-proxy-manager, GitHub Actions, GHCR |
 | Qualitat | `ruff`, `mypy`, ESLint, Prettier, `pytest`, Jest, SonarQube Cloud |
 
+## Posada en marxa (desenvolupadors)
+
+Requisits: [Docker](https://docs.docker.com/get-docker/), [`uv`](https://docs.astral.sh/uv/) (instal·la Python 3.14 tot sol), Node.js amb [`pnpm`](https://pnpm.io) (versió fixada a `frontend/package.json`) i, per al mòbil, Android Studio/SDK o l'app Expo Go (sense inici de sessió amb Google).
+
+1. **Clonar i branca.** `git clone` del repositori i crea `feature/*` des de `develop` (vegeu [Flux de treball](#flux-de-treball-i-convencions)).
+2. **Base de dades i cache.** Des d'`infra/`: `cp .env.example .env`, omple els valors locals (mai facis commit de `.env`) i executa `docker compose up -d db cache` (o tot l'stack amb `docker compose up -d --build`; vegeu el [README d'infra](infra/README.ca.md)).
+3. **Backend.** Des de `backend/`: `cp .env.example .env` (amb `POSTGRES_HOST=localhost`), `uv sync`, `uv run alembic upgrade head` i `uv run uvicorn app.main:app --reload`. L'API queda a `http://127.0.0.1:8000/api/docs`. Detall i comprovacions: [README del backend](backend/README.ca.md).
+4. **Frontend.** Des de `frontend/`: `cp .env.example .env`, defineix `EXPO_PUBLIC_API_BASE_URL` (emulador Android: `http://10.0.2.2:8000`; mòbil físic: la IP LAN del teu ordinador) i, per a l'inici de sessió amb Google, els client ids `EXPO_PUBLIC_GOOGLE_*` (valors públics, a les *Actions variables* de GitHub). Després `pnpm install --frozen-lockfile` i `pnpm expo start` (o `pnpm web`).
+5. **L'inici de sessió amb Google al mòbil** necessita una build nativa, no Expo Go: `pnpm expo run:android`. Vegeu el [README del frontend](frontend/README.ca.md).
+6. **Abans d'obrir una PR:** `uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest` a `backend/`, i `pnpm lint && pnpm tsc && pnpm test` a `frontend/`.
+
 ## Desenvolupament amb PostgreSQL
 
 El backend utilitza PostgreSQL 18 amb PostGIS i s'hi connecta de manera asíncrona mitjançant `asyncpg`.
