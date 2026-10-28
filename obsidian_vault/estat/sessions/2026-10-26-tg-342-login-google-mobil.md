@@ -34,14 +34,22 @@ Que «Continua amb Google» funcioni al mòbil per a qualsevol usuari i que, si 
 - Textos dels dos codis nous aprovats per la persona responsable.
 - Cap dependència nova (`expo-constants` ja hi era).
 
-## Pendent (persona, a Google Cloud)
+## Estat a 2026-10-28
 
-- [ ] Publicar l'app a «In production» (Audience).
-- [ ] Client Android amb package `app.perseida`, SHA-1 de debug i «Enable custom URI scheme».
-- [ ] Provar `pnpm expo run:android` amb un compte que no sigui de test.
-- [ ] Registrar el SHA-1 del keystore d'EAS al client «Perseida Android debug» (creat en aquesta sessió) i desplegar `GOOGLE_CLIENT_IDS` amb el CD.
+Fet i comprovat:
+
+- [x] Client Android «Perseida Android debug» amb package `app.perseida` i «Enable custom URI scheme».
+- [x] SHA-1 del keystore d'EAS registrat al client (coincideix amb `eas credentials -p android`).
+- [x] Tres comptes més com a usuaris de prova a Google Auth Platform (Públic).
+- [x] Build d'EAS (perfil `preview`) des d'aquesta branca: l'APK s'instal·la i l'app funciona al mòbil. El build anterior (16e2647e) va fallar perquè `babel-preset-expo` no era dependència directa; ho va arreglar TG-329.
+- [x] L'script `tsc` passa a `typecheck` ([[2026-10-28-tg-342-renom-typecheck]]) i l'app té la icona de Perseida ([[2026-10-28-tg-342-icona-de-l-app]]).
+
+Pendent:
+
+- [ ] Provar el login amb Google de cap a cap al mòbil: encara no s'ha pogut, perquè necessita el backend de producció amb el `GOOGLE_CLIENT_IDS` desplegat pel CD (no comprovat).
 - [ ] Convidar els companys a l'organització d'Expo `perseida-fib-upc`.
 - [ ] Revisar a quina plataforma correspon el quart client id de `GOOGLE_CLIENT_IDS`.
+- [ ] Publicar l'app a «In production» (Audience): és la US TG-343. «Publicar app» està desactivat fins que s'ompli Branding (pàgina principal, privadesa i condicions).
 
 ## US de Taiga
 
