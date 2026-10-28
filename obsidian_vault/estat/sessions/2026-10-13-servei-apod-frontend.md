@@ -8,6 +8,9 @@ font: "treball de la tasca TG-117 de la US TG-48 (branca feature/TG-117-servei-a
 etiquetes: [sessio, frontend, tg-48]
 ---
 
+> [!note] Superada per l'ADR-0028
+> La regla «tests després del codi» que se segueix en aquesta sessió es va substituir a final de l'Sprint 1 pel TDD estricte ([[0028-tdd-estricte-i-politica-de-testing-avancada]]).
+
 # Sessió 2026-10-13 · Servei de connexió amb l'endpoint de l'APOD
 
 ## Objectiu

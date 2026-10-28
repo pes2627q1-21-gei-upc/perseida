@@ -8,6 +8,9 @@ font: "Tasca TG-234 i US TG-43 de Taiga; frontend/src/features/auth/"
 etiquetes: [sessio, frontend, auth, testing, tg-43, tg-234]
 ---
 
+> [!note] Superada per l'ADR-0028
+> La regla «tests després del codi» que se segueix en aquesta sessió es va substituir a final de l'Sprint 1 pel TDD estricte ([[0028-tdd-estricte-i-politica-de-testing-avancada]]).
+
 # Sessió 2026-10-23 · Proves de components i hooks del flux d'inici de sessió
 
 ## Objectiu

@@ -8,6 +8,9 @@ font: "treball de la tasca TG-113 de la US TG-47 (branca feature/TG-113-domini-a
 etiquetes: [sessio, backend, tg-47]
 ---
 
+> [!note] Superada per l'ADR-0028
+> La regla «tests després del codi» que se segueix en aquesta sessió es va substituir a final de l'Sprint 1 pel TDD estricte ([[0028-tdd-estricte-i-politica-de-testing-avancada]]).
+
 # Sessió 2026-10-14 · Domini i application de l'APOD
 
 ## Objectiu
