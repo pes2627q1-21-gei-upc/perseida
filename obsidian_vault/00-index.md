@@ -49,7 +49,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0016-ports-i-entitats-riques-al-domini|ADR-0016 Ports i entitats riques al domini]]
 - [[0017-injeccio-de-dependencies-i-services-singleton|ADR-0017 DI i services singleton]]
 - [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018 Errors RFC 9457]]
-- [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi]]
+- [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi (substituïda per ADR-0028)]]
 - [[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020 Frontend i Frutiger Cosmo]]
 - [[0021-subagents-agnostics-i-generador|ADR-0021 Subagents agnòstics]]
 - [[0022-logging-json-global-amb-stdlib|ADR-0022 Logging JSON global]]
@@ -58,6 +58,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions|ADR-0025 CD per SSH amb rollback i downgrade]]
 - [[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01|ADR-0026 Producció per ports NAT amb DuckDNS]]
 - [[0027-skills-de-disseny-de-tercers-subordinades-a-frutiger-cosmo|ADR-0027 Skills de disseny de tercers]]
+- [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028 TDD estricte i política de testing]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 
