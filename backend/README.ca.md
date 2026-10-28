@@ -98,7 +98,7 @@ El mòdul `health` és l'exemple de referència. Per a un mòdul nou `<nom>`:
 2. **Application** (`app/application/<nom>/`): el service que usa els ports (`HealthService`), sense FastAPI.
 3. **Infrastructure** (`app/infrastructure/<nom>/`): els adaptadors que implementen els ports (`checks.py`), el provider `get_<nom>_service` amb `@lru_cache` i `<Nom>ServiceDep` (`dependencies.py`), i el router amb el seu model de resposta (`router.py`).
 4. Registra el router a `create_app()` (`app/main.py`).
-5. **Tests**, després del codi: unitaris amb fakes (`tests/fakes/`), integració de l'API amb `dependency_overrides`; el test d'arquitectura continua verificant les capes.
+5. **Tests** primer (TDD estricte, test `test:` en vermell abans del `feat:`): unitaris amb fakes (`tests/fakes/`), integració de l'API amb `dependency_overrides`; el test d'arquitectura continua verificant les capes.
 
 ## Errors
 
@@ -311,8 +311,8 @@ Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED
 
 ## Testing i qualitat
 
-- Piràmide de proves: ~70 % unitàries, ~30 % d'integració (PostgreSQL/PostGIS i Redis efímers, API amb `httpx.AsyncClient`, APIs externes simulades amb `respx`). No hi ha proves end-to-end a l'app mòbil.
-- Objectius de cobertura: domini ≥ 80 %, aplicació ≥ 70 %, codi nou de cada PR ≥ 70 % (imposat pel Quality Gate de SonarQube Cloud).
+- Piràmide de proves: ~60 % unitàries, ~30 % d'integració (PostgreSQL/PostGIS i Redis efímers, API amb `httpx.AsyncClient`, APIs externes simulades amb `respx`) i ~10 % E2E (Maestro a l'app mòbil i Playwright a l'admin; previst, US #361).
+- Objectius de cobertura: domini ≥ 80 %, aplicació ≥ 70 %, codi nou de cada PR ≥ 90 % i global ≥ 80 % (imposats pel Quality Gate de SonarQube Cloud).
 - Llindars de requisits no funcionals verificats amb tests: recursos en cache ≤ 200 ms, consultes de proximitat ≤ 150 ms, endpoints privats rebutgen peticions sense sessió vàlida (401/403).
 
 ## Convencions

@@ -119,7 +119,7 @@ The `health` module is the reference example. For a new module `<name>`:
 2. **Application** (`app/application/<name>/`): the service that uses the ports (`HealthService`), with no FastAPI.
 3. **Infrastructure** (`app/infrastructure/<name>/`): the adapters implementing the ports (`checks.py`), the provider `get_<name>_service` with `@lru_cache` and `<Name>ServiceDep` (`dependencies.py`), and the router with its response model (`router.py`).
 4. Register the router in `create_app()` (`app/main.py`).
-5. **Tests**, after the code: unit tests with fakes (`tests/fakes/`), API integration tests with `dependency_overrides`; the architecture test keeps checking the layers.
+5. **Tests** first (strict TDD, red `test:` commit before `feat:`): unit tests with fakes (`tests/fakes/`), API integration tests with `dependency_overrides`; the architecture test keeps checking the layers.
 
 ## Errors
 
@@ -357,8 +357,8 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 
 ## Testing and quality
 
-- Test pyramid: ~70 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`). No end-to-end tests on the mobile app.
-- Coverage targets: domain ≥ 80 %, application ≥ 70 %, new code in each PR ≥ 70 % (enforced by the SonarQube Cloud Quality Gate).
+- Test pyramid: ~60 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`) and ~10 % E2E (Maestro on the mobile app and Playwright on the admin; planned, US #361).
+- Coverage targets: domain ≥ 80 %, application ≥ 70 %, new code in each PR ≥ 90 % and global ≥ 80 % (enforced by the SonarQube Cloud Quality Gate).
 - NFR thresholds verified by tests: cached resources ≤ 200 ms, proximity queries ≤ 150 ms, private endpoints reject requests without a valid session (401/403).
 
 ## Conventions

@@ -23,8 +23,8 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 |---|---|
 | <...> | <backend-service, frontend-pagina, estetica-frutiger-cosmo...> |
 
-## Tests (després del codi, derivats dels criteris)
-<criteri → test; quins queden exclosos de cobertura i per què>
+## Tests (primer, en vermell, derivats dels criteris)
+<criteri → test (nivell: unitari/integració/E2E) i commit `test:` abans del `feat:`; unitaris dels components modificats; regressió si és un bug; quins queden exclosos de cobertura i per què>
 
 ## Vault
 <ADR/arquitectura a actualitzar abans de fusionar, o «cap canvi d'arquitectura»> · Sessió al final.
@@ -62,7 +62,9 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 |---|---|---|
 | Lint i tipus | `<ordre>` | <sortida resumida> |
 | Tests | `<ordre>` | <passats/fallats> |
-| Cobertura codi nou ≥ 70 % | `<ordre>` | <xifra> |
+| Cobertura codi nou ≥ 90 % i global ≥ 80 % | `<ordre>` | <xifres> |
+| Historial `test:` abans de `feat:` | `git log --oneline` | <ordre dels commits> |
+| Mutation (domini canviat) ≥ 70 % | `<ordre o «pendent US #359-#362»>` | <score> |
 | Revisió `reviewer-arquitectura` | subagent | <troballes obertes> |
 | Vault + sessió | — | <fitxers> |
 | Sync skills/agents (si s'han tocat) | `--check` | <sortida> |
@@ -73,7 +75,7 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 ## Pendent humà (no marcat com a fet)
 - [ ] PR oberta per la persona (cap push/PR fet per l'agent)
 - [ ] Aprovada per algú que no sigui l'autora
-- [ ] CI verda i Quality Gate de SonarQube Cloud (0 bugs/vulnerabilitats, duplicació ≤3 %, cobertura ≥70 %, hotspots revisats, qualificació A)
+- [ ] CI verda i Quality Gate de SonarQube Cloud (0 bugs/vulnerabilitats, duplicació ≤3 %, cobertura del codi nou ≥90 %, hotspots revisats, qualificació A)
 - [ ] Fusió a `develop`
 - [ ] Subtasques tancades i US a `Done` a Taiga
 

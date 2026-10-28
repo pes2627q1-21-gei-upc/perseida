@@ -38,7 +38,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 8. **Reduced motion**: consulta la preferència del sistema; substitueix animacions per canvis d'estat estàtics o fundits d'opacitat curts, i desactiva partícules/hàptics si cal. Sempre amb alternativa funcional.
 9. Rendiment 60 fps: només animar `transform`/`opacity`; limita capes de blur; pausa el bucle en segon pla; mesura en un dispositiu modest.
 10. Accessibilitat: el joc ha de tenir alternativa sense gest, etiquetes, contrast, no dependre només del color/so; textos per i18n ca/es/en.
-11. Escriu els tests (després del codi) i passa la checklist.
+11. TDD estricte (skill `testing-tdd`): els tests de la lògica s'escriuen **abans**, en vermell (commit `test:`), i passa la checklist.
 
 ## Plantilla de codi (orientativa: el repo encara no té codi)
 ```tsx
@@ -55,11 +55,11 @@ export function QuizAnswer({ questionId, optionId }: { questionId: string; optio
 ```
 Noms i hooks d'exemple; confirma'ls amb el repo. Les llibreries s'han d'haver acordat amb l'humà.
 
-## Tests (després del codi)
+## Tests (primer, en vermell)
 - Jest + RNTL per a hooks de lògica de presentació (estat de la partida, temporitzador, mapatge del resultat de l'API); API simulada.
 - Que reduced motion tria la variant sense moviment; que els errors passen per `gestio-errors`.
 - Els components visuals (skia/animacions) queden exclosos de cobertura; verifica'ls manualment (rendiment i gestos en dispositiu) a la branca de release.
-- Cobertura de hooks >=70%.
+- Cobertura: 80 % global i 90 % del codi nou. Lògica crítica del client: `testing-property-based` (fast-check, previst).
 
 ## Checklist final
 - [ ] Protocol `vault-context` seguit; mecànica i contingut confirmats per l'humà.

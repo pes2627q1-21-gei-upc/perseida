@@ -180,7 +180,7 @@ pnpm test --coverage --ci         # Jest + informe de cobertura
 - Jest se ejecuta con el preset `jest-expo` (`jest.config.js`) y hay un test de humo en `__tests__/`. React Native Testing Library ya se usa para los hooks; los tests de componentes y los mocks de la API llegan con la US #83.
 - Prioridad para los custom hooks y la lógica de presentación (estados de carga / error / lista vacía, validación de formularios), componentes principales (tarjetas de evento, pantalla APOD, racha, formulario de denuncia, pantallas de admin) y la comprobación de que todos los textos de la UI tienen traducción en ca/es/en. El cliente de la API se simula.
 - El feedback de validación de los formularios debe aparecer en < 100 ms sin llamada a red.
-- Código nuevo de cada PR: cobertura ≥ 70 % y Quality Gate de SonarQube Cloud. Los componentes puramente visuales quedan excluidos de la cobertura.
+- Código nuevo de cada PR: cobertura ≥ 90 % y Quality Gate de SonarQube Cloud. Los componentes puramente visuales quedan excluidos de la cobertura.
 - Los criterios de aceptación dependientes de la UI se verifican manualmente en la rama release antes de cada sprint review. No hay pruebas end-to-end automatizadas.
 
 ## Convenciones

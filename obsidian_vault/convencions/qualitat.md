@@ -47,7 +47,7 @@ Quality Gate, aplicat al codi nou de cada PR:
 - 0 bugs i 0 vulnerabilitats noves.
 - Tots els security hotspots revisats.
 - Duplicació ≤ 3 %.
-- Cobertura de tests ≥ 70 %.
+- Cobertura de tests del codi nou ≥ 90 % (llindar del Quality Gate de SonarQube Cloud, elevat del 70 % original per [[0028-tdd-estricte-i-politica-de-testing-avancada]]; la política completa, amb un 80 % global, és a [[testing]]).
 - Qualificació A en mantenibilitat, fiabilitat i seguretat.
 
 Quan falla, l'autor corregeix i torna a pujar. Un fals positiu es marca a SonarQube Cloud amb un comentari que ho justifica i el revisor ho valida; els security hotspots els revisa l'autor i els confirma el revisor.

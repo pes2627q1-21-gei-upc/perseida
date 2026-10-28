@@ -31,9 +31,9 @@ Ets el revisor d'arquitectura i qualitat de Perseida. Només llegeixes i informe
 
 ### Checklist de PR (`convencions/qualitat.md` i `definition-of-done.md`)
 - Arquitectura hexagonal; tests per al codi nou; claredat i nomenclatura (codi en anglès); eficiència de les consultes PostgreSQL/PostGIS; absència de secrets; avisos de SonarQube Cloud; actualització del vault si hi ha canvi d'arquitectura o decisió.
-- DoD: criteris d'acceptació complerts, tests i Quality Gate (0 bugs/vulnerabilitats, duplicació <= 3 %, cobertura >= 70 % en codi nou), vault.
+- DoD: criteris d'acceptació complerts, tests i Quality Gate (0 bugs/vulnerabilitats, duplicació <= 3 %), cobertura 80 % global i 90 % en codi nou, vault.
 - `ruff` (complexitat <= 10), `mypy` strict, ESLint/Prettier/TS strict.
-- Tests: piràmide ~70/30, llindars de cobertura, traçabilitat per US.
+- Tests (TDD estricte, ADR-0028): a l'historial de la branca, el commit `test:` va **abans** del `feat:`/`fix:` corresponent (mira `git log`; no hi ha cap script que ho comprovi); el test no s'ha afeblit per fer-lo passar; hi ha unitaris de **tot** el codi modificat; test d'integració si toca persistència o externs; test de regressió si és un bug; cobertura 80 % global i 90 % del codi nou; mutation (>= 70 %) als fitxers de domini canviats (eina prevista, US #359-#362: si no és instal·lada, comprova que la PR ho anota com a pendent); piràmide 60/30/10; traçabilitat per US.
 
 ### Eficiència de consultes
 - N+1, eager loading explícit, `lazy="raise"`, filtres/agregats/ordenació/paginació keyset i PostGIS dins la query, índexs justificats, projeccions, `EXPLAIN` en consultes crítiques (proximitat <= 150 ms; cache <= 200 ms).

@@ -3,8 +3,8 @@ titol: "Ús d'assistents de codi d'IA"
 tipus: convencio
 estat: vigent
 data: "2026-10-28"
-us: ["TG-85", "TG-342"]
-font: "memòria §2.10, §2.4.4; PR #52 (TG-342)"
+us: ["TG-85", "TG-342", "TG-353"]
+font: "memòria §2.10, §2.4.4, §2.5; PR #52 (TG-342); ADR-0028 (TG-353)"
 etiquetes: [convencio, ia, agents, skills, claude-code]
 ---
 
@@ -30,18 +30,19 @@ Els assistents parteixen del vault d'Obsidian (arquitectura, decisions, convenci
 - Skills d'Obsidian obligatòries: `obsidian-markdown` per a tot fitxer del vault, `obsidian-bases` per a `.base` i `json-canvas` per a `.canvas`. Per llegir pàgines web s'usa `defuddle`.
 - Subagents especialitzats (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`): font única a `.agents/agents/`; `node .agents/scripts/sync-agents.mjs` genera els fitxers de cada eina ([[0021-subagents-agnostics-i-generador]]). Si tenen dubtes, s'aturen i retornen un bloc `PREGUNTES PER A L'HUMÀ`: no inventen res.
 - Skills de procés i disseny: `estetica-frutiger-cosmo` (tot el que sigui visual; orquestra `frontend-design` i `ui-ux-pro-max`) i `implementar-us` (porta una US de Taiga de cap a cap: llegeix per l'MCP de Taiga, pregunta, planifica en simple, espera aprovació, implementa i verifica criteris i DoD). Mai es posen credencials de Taiga al repo.
+- Skills de testing (TDD estricte, [[0028-tdd-estricte-i-politica-de-testing-avancada]]): `testing-tdd` (cicle red-green-refactor per capa, commit `test:` abans del `feat:`), `testing-integracio` (serveis reals, `respx`, stubs per port, migracions, contracte), `testing-mutation` (mutmut/Stryker, score ≥ 70 % al domini) i `testing-property-based` (hypothesis/fast-check). Les eines que encara no són al repo estan marcades com a previstes (US #359-#362). El subagent `qa-tester` escriu el test en vermell **abans** del codi i el lliura a `backend`/`frontend`; `reviewer-arquitectura` comprova l'ordre `test:` abans de `feat:`, els unitaris del codi modificat, la cobertura i el mutation.
 - Skills de review: `revisar-pr` (review d'una PR d'una altra persona: llegeix per `gh`, MCP de GitHub o en local; comprova CI, lint, tipus i tests; delega a `reviewer-arquitectura`; no publica res sense confirmació) i `rebre-review` (verifica cada comentari rebut contra el codi abans d'aplicar-lo o respondre'l, i comprova CI, lint, tipus i tests). Les dues poden llegir la US/tasca de Taiga com a context opcional.
 - `.agents/skills/` és la font única de les skills; `.claude/skills/` és una còpia generada amb `node .agents/scripts/sync-skills.mjs` i no s'edita a mà. El workflow `skills-sync-check` verifica la sincronització.
 
 ## Procés
 
 1. Inici: l'assistent llegeix el context compartit i la US i els criteris d'acceptació a Taiga.
-2. Desenvolupament: sempre en una branca `feature/*` (`release/*` i `hotfix/*` no es creen ni s'hi treballa llevat que la persona ho demani explícitament: criteri d'aquest repo, la memòria no els preveu per als agents); la persona revisa cada canvi abans del commit i executa tests i linters en local. Els tests s'escriuen just després del codi ([[0019-tests-despres-del-codi]]) i la persona revisa que es derivin dels criteris d'acceptació i no de la implementació.
+2. Desenvolupament: sempre en una branca `feature/*` (`release/*` i `hotfix/*` no es creen ni s'hi treballa llevat que la persona ho demani explícitament: criteri d'aquest repo, la memòria no els preveu per als agents); la persona revisa cada canvi abans del commit i executa tests i linters en local. TDD estricte ([[0028-tdd-estricte-i-politica-de-testing-avancada]]): l'assistent escriu el test en vermell abans del codi (commit `test:` abans de `feat:`) i la persona revisa que es derivi dels criteris d'acceptació i que l'assistent no hagi tocat el test per fer-lo passar.
 3. PR: mateixes portes que la resta (CI, Quality Gate, revisió d'una altra persona); la plantilla de PR té una casella per indicar si s'ha usat un assistent i en quines parts.
 4. Tancament: si s'ha pres una decisió nova, s'actualitza el vault.
 5. Retrospectiva: es valora en quines tasques han ajudat, quins errors s'han detectat i com millorar el context.
 
-Usos: planificació i disseny (esborranys revisats per l'equip), codi repetitiu i esquelet de tests, depuració i refactorització, tasques automatitzades dins d'una `feature/*` i documentació.
+Usos: planificació i disseny (esborranys revisats per l'equip), codi repetitiu, depuració i refactorització, tasques automatitzades dins d'una `feature/*` i documentació.
 
 ## Límits
 
@@ -54,6 +55,8 @@ Usos: planificació i disseny (esborranys revisats per l'equip), codi repetitiu 
 
 - [[definition-of-done]]
 - [[gitflow]]
+- [[testing]]
+- [[0028-tdd-estricte-i-politica-de-testing-avancada]]
 - [[actualitzacio-del-vault]]
 - [[notes-obsidian]]
 - [[llegir-el-vault-com-a-agent]]

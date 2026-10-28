@@ -34,6 +34,10 @@ node .agents/scripts/sync-skills.mjs --check  # verifica que les còpies coincid
 | `implementar-us` | Porta una US de Taiga de cap a cap: llegeix (MCP de Taiga), pregunta, planifica en simple, espera aprovació, implementa i verifica criteris + DoD. |
 | `revisar-pr` | Fa la review d'una PR d'una altra persona: CI, lint, tipus i tests, `reviewer-arquitectura` i troballes per severitat; no publica res sense confirmació. |
 | `rebre-review` | Atén els comentaris d'una review rebuda: verifica cadascun contra el codi, aplica o respon amb raons, i comprova CI, lint, tipus i tests. |
+| `testing-tdd` | Cicle TDD estricte (test `test:` en vermell abans del `feat:`), tests derivats dels criteris, regressió i cobertura 80 % / 90 %. |
+| `testing-integracio` | Integració amb PostgreSQL/PostGIS i Redis reals, `respx`, stubs per port, temps, WebSocket, migracions i contracte OpenAPI. |
+| `testing-mutation` | Mutation testing (mutmut al domini, Stryker al frontend) sobre fitxers canviats, score ≥ 70 %. Eines previstes (US #359-#362). |
+| `testing-property-based` | Tests basats en propietats (hypothesis, fast-check) per a la lògica crítica del domini. Eines previstes (US #359-#362). |
 | `frontend-component` | Crear components amb estètica Frutiger Cosmo i responsive. |
 | `frontend-crida-api` | Fer crides a l'API seguint el contracte OpenAPI. |
 | `frontend-pagina` | Crear pàgines (Expo Router) per a l'app mòbil i el panell d'admin. |
@@ -52,7 +56,7 @@ Les skills de disseny són vendoritzades:
 - `ui-ux-pro-max`: [`nextlevelbuilder/ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), carpeta `.claude/skills/ui-ux-pro-max`, commit `477bcb28c9812b385cb51a4605ddf30d7b2266e2`. Llicència MIT, (c) 2024 Next Level Builder: [`LICENSE-ui-ux-pro-max`](LICENSE-ui-ux-pro-max). **Modificacions:** s'ha eliminat `scripts/tests/` i, a `SKILL.md`, s'ha substituït el prefix `${CLAUDE_PLUGIN_ROOT}/.claude/skills/` per `.agents/skills/` (i el paràgraf que ho explica) perquè funcioni a qualsevol eina. Els scripts són Python sense dependències; no fan crides de xarxa i només escriuen amb `--persist`.
 - `frontend-design`: [`anthropics/skills`](https://github.com/anthropics/skills), carpeta `skills/frontend-design`, commit `683bc88e56f3e09ba94f7055977f3d3aa499f202`, sense modificacions. Llicència Apache-2.0: `frontend-design/LICENSE.txt`.
 
-Les skills `backend-*`, `frontend-*` (excepte `frontend-design`), `gestio-errors`, `estetica-frutiger-cosmo`, `implementar-us`, `revisar-pr` i `rebre-review` són pròpies del projecte (TG-205 per a les primeres; `estetica-frutiger-cosmo` i `implementar-us` vénen de la feina de millora de skills; `revisar-pr` i `rebre-review`, de TG-324) i les complementen els subagents de `.agents/agents/` (vegeu ADR-0021 al vault).
+Les skills `backend-*`, `frontend-*` (excepte `frontend-design`), `testing-*`, `gestio-errors`, `estetica-frutiger-cosmo`, `implementar-us`, `revisar-pr` i `rebre-review` són pròpies del projecte (TG-205 per a les primeres; `estetica-frutiger-cosmo` i `implementar-us` vénen de la feina de millora de skills; `revisar-pr` i `rebre-review`, de TG-324; `testing-*`, de TG-353) i les complementen els subagents de `.agents/agents/` (vegeu ADR-0021 al vault).
 
 ## Com actualitzar-les
 

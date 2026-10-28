@@ -98,7 +98,7 @@ El módulo `health` es el ejemplo de referencia. Para un módulo nuevo `<nombre>
 2. **Application** (`app/application/<nombre>/`): el service que usa los ports (`HealthService`), sin FastAPI.
 3. **Infrastructure** (`app/infrastructure/<nombre>/`): los adaptadores que implementan los ports (`checks.py`), el provider `get_<nombre>_service` con `@lru_cache` y `<Nombre>ServiceDep` (`dependencies.py`), y el router con su modelo de respuesta (`router.py`).
 4. Registra el router en `create_app()` (`app/main.py`).
-5. **Tests**, después del código: unitarios con fakes (`tests/fakes/`), integración de la API con `dependency_overrides`; el test de arquitectura sigue verificando las capas.
+5. **Tests** primero (TDD estricto, test `test:` en rojo antes del `feat:`): unitarios con fakes (`tests/fakes/`), integración de la API con `dependency_overrides`; el test de arquitectura sigue verificando las capas.
 
 ## Errores
 
@@ -311,8 +311,8 @@ Los códigos de error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPE
 
 ## Testing y calidad
 
-- Pirámide de pruebas: ~70 % unitarias, ~30 % de integración (PostgreSQL/PostGIS y Redis efímeros, API con `httpx.AsyncClient`, APIs externas simuladas con `respx`). No hay pruebas end-to-end en la app móvil.
-- Objetivos de cobertura: dominio ≥ 80 %, aplicación ≥ 70 %, código nuevo de cada PR ≥ 70 % (exigido por el Quality Gate de SonarQube Cloud).
+- Pirámide de pruebas: ~60 % unitarias, ~30 % de integración (PostgreSQL/PostGIS y Redis efímeros, API con `httpx.AsyncClient`, APIs externas simuladas con `respx`) y ~10 % E2E (Maestro en la app móvil y Playwright en el admin; previsto, US #361).
+- Objetivos de cobertura: dominio ≥ 80 %, aplicación ≥ 70 %, código nuevo de cada PR ≥ 90 % y global ≥ 80 % (exigidos por el Quality Gate de SonarQube Cloud).
 - Umbrales de requisitos no funcionales verificados con tests: recursos en caché ≤ 200 ms, consultas de proximidad ≤ 150 ms, endpoints privados rechazan peticiones sin sesión válida (401/403).
 
 ## Convenciones

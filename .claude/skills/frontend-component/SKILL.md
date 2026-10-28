@@ -35,7 +35,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 6. Accessibilitat: `accessibilityRole`, `accessibilityLabel`, `accessibilityState`; tàctil ≥44×44 pt (ampliar `hitSlop` si la icona és més petita); contrast text ≥4.5:1 sobre vidre translúcid, mesurat sobre el **pitjor fons** (`estetica-frutiger-cosmo/scripts/contrast.py`); icones decoratives amagades al lector.
 7. Moviment amb `react-native-reanimated` (molles de `so-i-moviment.md`); respecta `reduced motion` (alternativa sense moviment, no només més lenta). Sons: via el mòdul `sound`, amb interruptor a ajustos. El moviment **nou** passa per la «Porta per a moviment nou» de `so-i-moviment.md`; si `animate-expo` d'Emil Kowalski és instal·lada, usa-la per construir-lo (vegeu `estetica-frutiger-cosmo/references/skills-de-tercers.md`; si no ho és, suggereix-ho una sola vegada).
 8. Textos sempre per i18n (ca/es/en) rebuts per props o `t()`; cap text cru.
-9. Escriu els tests (després del codi) i passa la checklist.
+9. TDD estricte (skill `testing-tdd`): el test s'escriu **abans**, en vermell (commit `test:`); després el component fins al verd, i passa la checklist.
 
 ## Plantilla de codi (orientativa: el repo encara no té codi)
 Les receptes de `GlassPanel` (un únic `BlurTargetView` al cel) i `GlossyButton` (cos, reflex i vora separats perquè el reflex no passi sota el text) són a `../estetica-frutiger-cosmo/references/receptes.md`; no es dupliquen aquí. Forma mínima d'un component base:
@@ -48,7 +48,7 @@ const theme = useTheme(); // tokens semàntics només: cap color, radi o espai l
 ```
 Versions de llibreries: fixades amb pnpm; pregunta/verifica abans d'afegir-ne.
 
-## Tests (després del codi)
+## Tests (primer, en vermell)
 - Jest + React Native Testing Library per a la **lògica** (estats disabled/loading no disparen `onPress`, rols i etiquetes d'accessibilitat, ús de `t()`).
 - Els components purament visuals queden exclosos de cobertura (convencions/testing.md); no persegueixis cobertura amb snapshots buits.
 - Prova manual: mòbil petit, mòbil gran, tauleta, escriptori; els quatre temes (`dia`, `posta`, `nit`, `vermell`) i els quatre modes; reduced motion (vegeu `references/responsive.md`).

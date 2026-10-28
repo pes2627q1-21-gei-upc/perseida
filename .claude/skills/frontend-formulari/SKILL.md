@@ -35,7 +35,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 6. Gestió d'errors del servidor: si l'`AppError` porta `errors` (problem+json), **mapa'ls per camp** amb `setError(field, { message: <clau i18n derivada de code> })`. Camps desconeguts i qualsevol altre error global van al toast (`gestio-errors`); mai text cru del servidor.
 7. Accessibilitat: etiqueta per camp, `accessibilityHint`, error anunciat (`role="alert"` o equivalent), focus al primer camp amb error (i resum enllaçat si hi ha diversos), tipus de teclat i `autoComplete` adequats, tàctil >=44 pt, el teclat no tapa el camp enfocat; no depenguis només del color.
 8. Textos amb i18next (ca/es/en); sense valors de disseny hardcodejats.
-9. Escriu els tests (després del codi) i passa la checklist.
+9. TDD estricte (skill `testing-tdd`): el test s'escriu **abans**, en vermell (commit `test:`); després el formulari fins al verd, i passa la checklist.
 
 ## Plantilla de codi (orientativa: el repo encara no té codi)
 ```tsx
@@ -67,11 +67,11 @@ export function EventForm({ onSubmit }: { onSubmit: (v: FormValues) => Promise<v
 ```
 `@hookform/resolvers` és una llibreria addicional: pregunta/verifica abans d'afegir-la.
 
-## Tests (després del codi)
+## Tests (primer, en vermell)
 - Jest + RNTL: validació de comoditat (feedback < 100 ms sense crida de xarxa), camps obligatoris, estat loading/disabled, no hi ha doble enviament.
 - Mapatge dels `errors` d'un problem+json simulat als camps correctes; error global -> toast; cap text cru.
 - Existència de claus i18n ca/es/en dels missatges.
-- Cobertura de hooks i lògica >=70%; els components purament visuals queden exclosos.
+- Cobertura: 80 % global i 90 % del codi nou; els components purament visuals queden exclosos.
 
 ## Checklist final
 - [ ] Protocol `vault-context` seguit; camps i contracte presos de l'OpenAPI, cap invent.

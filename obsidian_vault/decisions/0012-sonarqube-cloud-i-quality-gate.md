@@ -10,6 +10,9 @@ etiquetes: [adr, qualitat, sonarqube, ci, quality-gate]
 
 # ADR-0012 · SonarQube Cloud i Quality Gate obligatori a la CI
 
+> [!warning] Llindar de cobertura actualitzat
+> Des del 2026-10-28, [[0028-tdd-estricte-i-politica-de-testing-avancada]] eleva el llindar de cobertura del codi nou del Quality Gate del 70 % d'aquesta decisió al **90 %**. La resta d'aquesta ADR (SonarQube Cloud, ordre de la CI i la resta de condicions del Quality Gate) continua vigent.
+
 ## Context
 
 La qualitat s'ha de construir de manera contínua i fer-se complir automàticament, amb regles homogènies per al frontend i el backend (memòria §2.4). El README indica que l'organització de SonarQube Cloud encara no s'ha creat (pendent).
