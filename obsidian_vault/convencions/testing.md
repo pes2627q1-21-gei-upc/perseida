@@ -85,7 +85,7 @@ Un test inestable es posa en quarantena (marcat i exclòs del bloc obligatori, a
 | Frontend: components purament visuals | Exclosos |
 | Mutation score (domini, fitxers canviats) | ≥ 70 % |
 
-La CI de la PR ha de fallar si no es compleixen la cobertura global ni la del codi nou; la implantació és **prevista (US #359-#362)**. Mentrestant, es mesura amb `pytest-cov` (`uv run pytest` ja porta `--cov`) i `jest --coverage` i els revisa la persona. El Quality Gate de SonarQube Cloud (cobertura del codi nou ≥ 70 %, vegeu [[qualitat]]) continua vigent com a llindar mínim.
+La CI de la PR ha de fallar si no es compleixen la cobertura global ni la del codi nou; la implantació és **prevista (US #359-#362)**. Mentrestant, es mesura amb `pytest-cov` (`uv run pytest` ja porta `--cov`) i `jest --coverage` i els revisa la persona. El Quality Gate de SonarQube Cloud s'alinea amb aquesta política: cobertura del codi nou ≥ 90 % (vegeu [[qualitat]] i [[0012-sonarqube-cloud-i-quality-gate]]).
 
 > [!note] Llindars anteriors
 > Els llindars per capa (domini ≥ 80 %, aplicació ≥ 70 %, infraestructura ≥ 50 %, global ≥ 70 %, hooks ≥ 70 %, codi nou ≥ 70 %) i la piràmide 70/30 d'[[0019-tests-despres-del-codi]] queden substituïts per aquesta política.

@@ -37,6 +37,8 @@ Es fa TDD estricte a totes les capes del backend i del frontend: el test en verm
 
 **Abast d'aquesta ADR:** la política, la documentació i les eines d'IA (skills `testing-*`, subagents, plantilla de PR). L'automatització a la CI (llindars de cobertura bloquejants, mutmut/Stryker, schemathesis, import-linter, E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`, test de migracions) **és pendent** i va a les US #359-#362 del backlog. L'ordre `test:` abans de `feat:` és una regla d'equip documentada a skills, subagents i plantilla de PR: no hi ha cap script de CI que la verifiqui; la comprova el revisor.
 
+**Quality Gate de SonarQube Cloud:** aquesta ADR n'eleva el llindar de cobertura del codi nou del 70 % ([[0012-sonarqube-cloud-i-quality-gate]]) al 90 %, alineat amb la política. La condició es configura a SonarQube Cloud quan arribi la integració a la CI (US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194)).
+
 ## Conseqüències
 
 ### Positives
