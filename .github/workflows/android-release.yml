@@ -1,4 +1,5 @@
 
+
 name: Android release
 
 on:
@@ -22,6 +23,7 @@ jobs:
     environment: android-release
     permissions:
       contents: write
+
     env:
       EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME: app.perseida
       EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID }}
@@ -90,25 +92,46 @@ jobs:
           EXPECTED_CERT_SHA1: ${{ secrets.ANDROID_RELEASE_CERT_SHA1 }}
         run: |
           set -euo pipefail
+
           APK="frontend/android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
+
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
           test -x "$APKSIGNER"
+
           "$APKSIGNER" verify --verbose "$APK"
-          ACTUAL="$( "$APKSIGNER" verify --print-certs "$APK" \
-            | awk -F': ' '/Signer #1 certificate SHA-1 digest:/ {print $2; exit}' \
-            | tr -d ':' | tr '[:upper:]' '[:lower:]' )"
-          EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA1" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+
+          CERT_OUTPUT="$("$APKSIGNER" verify --print-certs "$APK")"
+          ACTUAL="$(printf '%s\n' "$CERT_OUTPUT" \
+            | grep -i 'certificate SHA-1 digest:' \
+            | head -n 1 \
+            | sed 's/.*digest:[[:space:]]*//' \
+            | tr -d ':' \
+            | tr '[:upper:]' '[:lower:]')"
+
+          test -n "$ACTUAL" || {
+            echo "::error::Could not extract SHA-1 from APK certificate"
+            echo "$CERT_OUTPUT"
+            exit 1
+          }
+
+          EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA1" \
+            | tr -d ':' \
+            | tr '[:upper:]' '[:lower:]')"
+
           test -n "$EXPECTED" || {
             echo "::error::Missing ANDROID_RELEASE_CERT_SHA1 secret in android-release environment"
             exit 1
           }
+
           echo "APK certificate SHA-1: $ACTUAL"
           echo "Configured certificate SHA-1: $EXPECTED"
+
           test "$ACTUAL" = "$EXPECTED" || {
             echo "::error::APK certificate SHA-1 does not match the configured release certificate"
             exit 1
           }
+
           echo "APK signature and release certificate verified."
 
       - name: Upload APK artifact
