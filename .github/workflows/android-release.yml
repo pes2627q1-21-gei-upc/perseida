@@ -73,36 +73,28 @@ jobs:
           chmod 600 "$ANDROID_KEYSTORE_PATH"
           test -s "$ANDROID_KEYSTORE_PATH"
 
-      - name: Diagnose release keystore certificate
+      - name: Verify keystore certificate
         env:
           EXPECTED_CERT_SHA1: ${{ secrets.ANDROID_RELEASE_CERT_SHA1 }}
         run: |
           set -euo pipefail
-
-          KEYSTORE_SHA1="$(keytool -exportcert \
+          ACTUAL="$(keytool -exportcert \
             -keystore "$ANDROID_KEYSTORE_PATH" \
             -storepass "$ANDROID_KEYSTORE_PASSWORD" \
             -alias "$ANDROID_KEY_ALIAS" \
             | sha1sum | awk '{print $1}')"
-
           EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA1" \
-            | tr -d ':' \
-            | tr '[:upper:]' '[:lower:]')"
-
-          echo "Keystore SHA-1: $KEYSTORE_SHA1"
+            | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          echo "Keystore SHA-1: $ACTUAL"
           echo "Configured SHA-1: $EXPECTED"
-
-          if [ -z "$EXPECTED" ]; then
+          test -n "$EXPECTED" || {
             echo "::error::ANDROID_RELEASE_CERT_SHA1 is missing"
             exit 1
-          fi
-
-          if [ "$KEYSTORE_SHA1" != "$EXPECTED" ]; then
-            echo "::error::The keystore certificate does not match ANDROID_RELEASE_CERT_SHA1"
+          }
+          test "$ACTUAL" = "$EXPECTED" || {
+            echo "::error::Keystore certificate does not match configured SHA-1"
             exit 1
-          fi
-
-          echo "Keystore certificate matches the configured fingerprint."
+          }
 
       - name: Generate Android project
         working-directory: frontend
@@ -113,6 +105,53 @@ jobs:
           EXPO_PUBLIC_API_BASE_URL: ${{ env.EXPO_PUBLIC_API_BASE_URL }}
         run: pnpm exec expo prebuild --platform android --clean
 
+      - name: Configure release signing
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/android/app/build.gradle")
+          text = path.read_text()
+
+          marker = "android {"
+          if marker not in text:
+              raise SystemExit("Could not find android block in app/build.gradle")
+
+          signing = """
+              signingConfigs {
+                  release {
+                      storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                  }
+              }
+          """
+
+          build_type = """
+                  signingConfig signingConfigs.release
+          """
+
+          if "signingConfigs {" in text:
+              raise SystemExit("Existing signingConfigs found; refusing to create duplicate configuration")
+
+          text = text.replace(marker, marker + signing, 1)
+
+          release_marker = "buildTypes {"
+          if release_marker not in text:
+              raise SystemExit("Could not find buildTypes block in app/build.gradle")
+
+          text = text.replace(
+              release_marker,
+              release_marker + "\n            release {\n" + build_type + "\n            }",
+              1
+          )
+
+          path.write_text(text)
+          print("Configured release signing in app/build.gradle")
+          PY
+
       - name: Build release APK
         working-directory: frontend/android
         run: ./gradlew --no-daemon assembleRelease
@@ -122,13 +161,11 @@ jobs:
           EXPECTED_CERT_SHA1: ${{ secrets.ANDROID_RELEASE_CERT_SHA1 }}
         run: |
           set -euo pipefail
-
           APK="frontend/android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
           test -x "$APKSIGNER"
-
           "$APKSIGNER" verify --verbose "$APK"
 
           CERT_OUTPUT="$("$APKSIGNER" verify --print-certs "$APK")"
@@ -136,29 +173,19 @@ jobs:
             | grep -i 'certificate SHA-1 digest:' \
             | head -n 1 \
             | sed 's/.*digest:[[:space:]]*//' \
-            | tr -d ':' \
-            | tr '[:upper:]' '[:lower:]')"
-
-          test -n "$ACTUAL" || {
-            echo "::error::Could not extract SHA-1 from APK certificate"
-            echo "$CERT_OUTPUT"
-            exit 1
-          }
-
+            | tr -d ':' | tr '[:upper:]' '[:lower:]')"
           EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA1" \
-            | tr -d ':' \
-            | tr '[:upper:]' '[:lower:]')"
-
-          test -n "$EXPECTED" || {
-            echo "::error::Missing ANDROID_RELEASE_CERT_SHA1 secret in android-release environment"
-            exit 1
-          }
+            | tr -d ':' | tr '[:upper:]' '[:lower:]')"
 
           echo "APK certificate SHA-1: $ACTUAL"
           echo "Configured certificate SHA-1: $EXPECTED"
 
+          test -n "$ACTUAL" && test -n "$EXPECTED" || {
+            echo "::error::Could not read APK or configured certificate SHA-1"
+            exit 1
+          }
           test "$ACTUAL" = "$EXPECTED" || {
-            echo "::error::APK certificate SHA-1 does not match the configured release certificate"
+            echo "::error::APK certificate SHA-1 does not match configured release certificate"
             exit 1
           }
 
