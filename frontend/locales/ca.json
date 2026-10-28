@@ -12,6 +12,8 @@
     "APOD_UNAVAILABLE": "Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona.",
     "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
+    "GOOGLE_SIGN_IN_EXPO_GO": "L'inici de sessió amb Google no funciona a Expo Go. Usa l'app instal·lada (build de desenvolupament).",
+    "GOOGLE_SIGN_IN_UNAVAILABLE": "L'inici de sessió amb Google encara no està disponible.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "INTERNAL_ERROR": "Alguna cosa ha anat malament. Torna-ho a provar.",
     "INVALID_GOOGLE_TOKEN": "No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.",

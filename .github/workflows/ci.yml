@@ -133,8 +133,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint (eslint + prettier)
         run: pnpm lint
+      # L'script es diu `typecheck` i no `tsc`: expo-doctor (EAS Build) avisa si un script
+      # de package.json té el nom d'un binari de node_modules/.bin.
       - name: Tipus (tsc)
-        run: pnpm tsc
+        run: pnpm typecheck
       - name: Tests (jest amb cobertura)
         run: pnpm test --coverage --ci
       - name: Publicar informe de cobertura

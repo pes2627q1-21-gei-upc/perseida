@@ -68,7 +68,7 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
-    "tsc": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "api:generate": "openapi-typescript openapi/openapi.json -o src/shared/api/schema.d.ts && prettier --write src/shared/api/schema.d.ts",
     "test": "jest"
   },

@@ -141,3 +141,11 @@ opencode.local.json
 .DS_Store
 Thumbs.db
 *.log
+
+# ---------------------------------------------------------------------------
+# Skills de disseny de tercers (Taste, Impeccable, Emil Kowalski): fitxers de treball locals
+# ---------------------------------------------------------------------------
+.taste-skill/
+.impeccable/
+/plans/
+/animation-plans/

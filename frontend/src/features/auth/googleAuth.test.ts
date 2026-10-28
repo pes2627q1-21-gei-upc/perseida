@@ -4,6 +4,7 @@ import {
   ResponseType,
   CodeChallengeMethod,
 } from 'expo-auth-session';
+import Constants from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
@@ -183,6 +184,24 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     }
   });
 
+  it('TG-342: returns GOOGLE_SIGN_IN_EXPO_GO inside Expo Go without opening the browser', async () => {
+    const original = Constants.executionEnvironment;
+    // @ts-expect-error executionEnvironment is read-only in the typings
+    Constants.executionEnvironment = 'storeClient';
+    try {
+      const result = await performGoogleOAuthFlow();
+
+      expect(result.type).toBe('error');
+      if (result.type === 'error') {
+        expect(result.error.code).toBe('GOOGLE_SIGN_IN_EXPO_GO');
+        expect(result.error.retryable).toBe(false);
+      }
+      expect(mockPromptAsync).not.toHaveBeenCalled();
+    } finally {
+      Constants.executionEnvironment = original;
+    }
+  });
+
   it('TG-43 Criteri 1: returns error if client ID is missing for platform', async () => {
     jest.spyOn(googleConfig, 'getGoogleClientId').mockReturnValue('');
 
@@ -191,7 +210,7 @@ describe('googleAuth · performGoogleOAuthFlow', () => {
     expect(result.type).toBe('error');
     if (result.type === 'error') {
       expect(result.error).toBeInstanceOf(AppError);
-      expect(result.error.code).toBe('INTERNAL_ERROR');
+      expect(result.error.code).toBe('GOOGLE_SIGN_IN_UNAVAILABLE');
     }
     expect(mockPromptAsync).not.toHaveBeenCalled();
   });

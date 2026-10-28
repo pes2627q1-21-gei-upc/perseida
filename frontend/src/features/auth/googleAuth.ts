@@ -5,6 +5,7 @@ import {
   exchangeCodeAsync,
   type DiscoveryDocument,
 } from 'expo-auth-session';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
@@ -54,14 +55,27 @@ export function parseJwtPayload(token: string): Record<string, unknown> | null {
  *   rejecting code exchange for public web client IDs without client_secret.
  */
 export async function performGoogleOAuthFlow(): Promise<GoogleOAuthResult> {
+  // Expo Go uses an exp:// redirect that Google never accepts; it needs a development build.
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+    return {
+      type: 'error',
+      error: new AppError({
+        kind: 'http',
+        code: 'GOOGLE_SIGN_IN_EXPO_GO',
+        status: 0,
+        retryable: false,
+      }),
+    };
+  }
+
   const clientId = getGoogleClientId();
   if (!clientId) {
     return {
       type: 'error',
       error: new AppError({
         kind: 'http',
-        code: 'INTERNAL_ERROR',
-        status: 500,
+        code: 'GOOGLE_SIGN_IN_UNAVAILABLE',
+        status: 0,
         retryable: false,
       }),
     };

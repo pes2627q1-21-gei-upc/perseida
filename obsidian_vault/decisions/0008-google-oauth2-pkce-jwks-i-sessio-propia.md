@@ -2,9 +2,9 @@
 titol: "Google OAuth2 amb PKCE, validació JWKS i sessió pròpia"
 tipus: adr
 estat: acceptada
-data: "2026-10-25"
-us: ["TG-85", "TG-43", "TG-44", "TG-45", "TG-38"]
-font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87); Taiga: US TG-45 (criteris d'acceptació)"
+data: "2026-10-26"
+us: ["TG-85", "TG-43", "TG-44", "TG-45", "TG-38", "TG-342"]
+font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87); Taiga: US TG-45 (criteris d'acceptació); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52)"
 etiquetes: [adr, autenticacio, oauth2, pkce, jwks, seguretat]
 ---
 
@@ -76,9 +76,18 @@ Detall de configuració decidit el 2026-10-22 en preparar el desplegament. No ca
 
 Detall d'implementació del flux d'inici de sessió segons la plataforma d'execució, confirmat a la US TG-43. No canvia la decisió.
 
-- **Mòbil natiu (Android i iOS):** segueix estrictament el flux RFC 7636 Authorization Code amb PKCE (`response_type=code`, repte SHA-256 `code_challenge_method=S256` i `code_verifier`). En rebre la redirecció pel deep link `perseida://oauth/callback`, l'app bescanvia directament el `code` i el `code_verifier` amb l'endpoint de tokens de Google (`https://oauth2.googleapis.com/token`) per obtenir l'`id_token`, sense requerir `client_secret` (client públic).
+- **Mòbil natiu (Android i iOS):** segueix estrictament el flux RFC 7636 Authorization Code amb PKCE (`response_type=code`, repte SHA-256 `code_challenge_method=S256` i `code_verifier`). En rebre la redirecció pel deep link `app.perseida:/oauth/callback` (l'esquema és l'identificador de l'app, l'únic que Google accepta als clients natius; es pot canviar amb `EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME`), l'app bescanvia directament el `code` i el `code_verifier` amb l'endpoint de tokens de Google (`https://oauth2.googleapis.com/token`) per obtenir l'`id_token`, sense requerir `client_secret` (client públic).
 - **Web / Panell d'administració (excepció OIDC):** l'endpoint de tokens de Google no admet bescanvi de codi sense secret per a clients Web (bloqueig per CORS i exigència de `client_secret` per part de Google Cloud a clients tipus Web Application). Per mantenir la regla de seguretat de no incrustar mai cap secret al bundle públic de frontend (NFR-SEC-02), a la plataforma web s'utilitza el flux OpenID Connect directe (`response_type=id_token`, OIDC implicit).
 - **Mitigació de replay a web:** per protegir el flux davant atacs de repetició sense PKCE, es genera un `nonce` criptogràfic únic mitjançant `expo-crypto` (`Crypto.randomUUID()`) que s'envia a la petició d'autorització i es valida estrictament contra el camp `nonce` del payload de l'`id_token` (decodificat al client) abans d'enviar el token a `POST /api/auth/google`.
+
+## Concreció (TG-342 · Expo Go i usuaris reals)
+
+Correcció del flux mòbil. No canvia la decisió.
+
+- **Expo Go no és compatible:** la seva redirect `exp://` no es pot registrar a Google. L'app el detecta i mostra l'error `GOOGLE_SIGN_IN_EXPO_GO`; es prova amb una build nativa.
+- **Sense client id configurat** per a la plataforma: `GOOGLE_SIGN_IN_UNAVAILABLE` (abans sortia el missatge genèric).
+- **Builds de prova amb EAS:** per provar el login a un mòbil sense Android Studio, l'equip pot compilar un APK a EAS Build (organització d'Expo `perseida-fib-upc`, perfil `preview` de `frontend/eas.json`). El keystore és compartit i el guarda Expo: el seu SHA-1 és el que ha d'estar registrat al client Android de Google Cloud, i no se n'ha de generar cap de nou. No substitueix l'APK de release de la US TG-329 (GitHub Actions).
+- **Pantalla de consentiment en producció:** perquè entri qualsevol compte de Google (no només els usuaris de test), l'app ha d'estar publicada («In production») a Google Auth Platform. Amb els àmbits `openid`, `email` i `profile` no cal verificació.
 
 ## Alternatives descartades
 

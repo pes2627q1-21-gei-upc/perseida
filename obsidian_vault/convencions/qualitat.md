@@ -2,9 +2,9 @@
 titol: "Qualitat del codi i Quality Gate"
 tipus: convencio
 estat: vigent
-data: "2026-10-19"
-us: ["TG-85", "TG-34", "TG-35"]
-font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24)"
+data: "2026-10-28"
+us: ["TG-85", "TG-34", "TG-35", "TG-342"]
+font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24); frontend/package.json (script typecheck, TG-342)"
 etiquetes: [convencio, qualitat, ruff, mypy, eslint, sonarqube]
 ---
 
@@ -30,7 +30,7 @@ Des de TG-34, `.github/workflows/ci.yml` executa el job `backend` a cada PR i a 
 
 ## CI del frontend (implementada)
 
-Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `frontend/`): `pnpm install --frozen-lockfile`, `pnpm lint` (ESLint amb Prettier), `pnpm tsc` i `pnpm test --coverage --ci`. Cada ordre és un pas separat perquè es vegi quina falla. Node (al workflow) i pnpm (a `packageManager` de `frontend/package.json`) estan fixats. L'informe `lcov.info` es descarrega de l'execució, a *Artifacts*, amb el nom `frontend-coverage`. El job no necessita secrets ni serveis.
+Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `frontend/`): `pnpm install --frozen-lockfile`, `pnpm lint` (ESLint amb Prettier), `pnpm typecheck` i `pnpm test --coverage --ci`. Cada ordre és un pas separat perquè es vegi quina falla. L'script de tipus es diu `typecheck` i no `tsc`: `expo-doctor`, que EAS Build executa abans de compilar, avisa quan un script de `package.json` té el nom d'un binari de `node_modules/.bin`. Node (al workflow) i pnpm (a `packageManager` de `frontend/package.json`) estan fixats. L'informe `lcov.info` es descarrega de l'execució, a *Artifacts*, amb el nom `frontend-coverage`. El job no necessita secrets ni serveis.
 
 > [!note] Què falta
 > SonarQube Cloud i el Quality Gate encara no són al workflow: arriben amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194). Fins llavors, la CI (backend i frontend) només cobreix lint, format, tipus i tests.

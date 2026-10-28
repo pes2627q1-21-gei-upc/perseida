@@ -31,6 +31,17 @@ La fan servir qui crea UI (skills `frontend-*`) i qui la revisa (`reviewer-arqui
 - [ ] Cada fitxer de so té la seva entrada a `frontend/assets/sounds/LICENSES.md`; cap so de Nintendo/Microsoft/Apple.
 - [ ] Una sola escena viva per pantalla; sense parpelleig >3 Hz.
 
+## Moviment nou (porta de `so-i-moviment.md`)
+- [ ] Cada moviment **nou** té freqüència i propòsit dits en una paraula; el que no en té no s'ha construït.
+- [ ] Només `transform` i `opacity`; cap `ease-in`, cap `scale(0)`, cap `setState` per fotograma, cap pestanya que llisqui.
+- [ ] Un hàptic per acció com a màxim, mai l'únic feedback.
+- [ ] Jutjat en una *build* de release, no a Expo Go.
+
+## Reforç opcional (només si les skills de tercers són instal·lades)
+- [ ] Moviment revisat amb el llistó d'Emil Kowalski (`/review-animations`, manual) o, si no, amb la porta de dalt.
+- [ ] Llistes, targetes i formularis estressats amb dades pitjor cas (`break-ui`): textos llargs ca/es/en, cap element, números enormes, text al 200 %. Cap commutador «Worst case» queda al codi.
+- [ ] Passada d'Impeccable (`audit` natiu, `polish`) sense haver canviat paleta, tipografia ni materials. Si no hi són, es diu al lliurament i **no és motiu de bloqueig**.
+
 ## Rendiment
 - [ ] Com a màxim 2–3 `BlurView` per pantalla i cap dins d'ítems de llista.
 - [ ] Una sola `Canvas` de Skia; partícules ≤30; pausa sense focus/segon pla.
@@ -40,5 +51,5 @@ La fan servir qui crea UI (skills `frontend-*`) i qui la revisa (`reviewer-arqui
 - [ ] Mòbil petit, mòbil gran, tauleta i escriptori (admin); sense scroll horitzontal; safe areas.
 
 ## Procés
-- [ ] S'ha seguit `SKILL.md`: brief → `frontend-design` en dues passades → `ui-ux-pro-max` per a consultes concretes → aquesta checklist.
+- [ ] S'ha seguit `SKILL.md`: brief → `frontend-design` en dues passades → `ui-ux-pro-max` per a consultes concretes → reforç opcional (o suggeriment d'instal·lar-lo, una sola vegada) → aquesta checklist.
 - [ ] Cap valor «proposta a validar» s'ha fixat sense confirmació de la persona.

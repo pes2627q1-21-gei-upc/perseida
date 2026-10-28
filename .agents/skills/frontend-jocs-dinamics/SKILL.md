@@ -34,7 +34,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 4. Quiz diari/gamificació: pantalla amb estats loading/empty/error, resultat i recompensa animats; ratxes i assoliments llegits de l'API (mai calculats al client).
 5. Minijoc 2D: bucle amb `react-native-reanimated` (valors compartits, worklets) i dibuix amb skia; entrada amb `react-native-gesture-handler`; sense `setState` per fotograma; sense assignar objectes al bucle calent.
 6. Visualitzacions de cel/3D: skia per a 2D; `expo-gl` + three només amb permís exprés.
-7. Microinteraccions: hàptic en confirmar/encertar, partícules, brillantors Frutiger, molles i durades dels tokens `motion`; so de recompensa pel mòdul `sound` (amb interruptor a ajustos). Una sola escena viva per pantalla; sense parpelleig >3 Hz.
+7. Microinteraccions: hàptic en confirmar/encertar, partícules, brillantors Frutiger, molles i durades dels tokens `motion`; so de recompensa pel mòdul `sound` (amb interruptor a ajustos). Una sola escena viva per pantalla; sense parpelleig >3 Hz. Tot moviment **nou** passa per la «Porta per a moviment nou» de `estetica-frutiger-cosmo/references/so-i-moviment.md`; si `animate-expo` d'Emil Kowalski és instal·lada, usa-la per construir-lo (vegeu `skills-de-tercers.md`; si no ho és, suggereix-ho una sola vegada).
 8. **Reduced motion**: consulta la preferència del sistema; substitueix animacions per canvis d'estat estàtics o fundits d'opacitat curts, i desactiva partícules/hàptics si cal. Sempre amb alternativa funcional.
 9. Rendiment 60 fps: només animar `transform`/`opacity`; limita capes de blur; pausa el bucle en segon pla; mesura en un dispositiu modest.
 10. Accessibilitat: el joc ha de tenir alternativa sense gest, etiquetes, contrast, no dependre només del color/so; textos per i18n ca/es/en.
@@ -66,6 +66,7 @@ Noms i hooks d'exemple; confirma'ls amb el repo. Les llibreries s'han d'haver ac
 - [ ] Puntuació, premis i ratxes viuen al backend; el client només els mostra.
 - [ ] Dependències noves aprovades i amb versió fixada amb pnpm.
 - [ ] Reduced motion respectat amb alternativa funcional; alternativa als gestos.
+- [ ] Moviment nou passat per la porta de `so-i-moviment.md` (freqüència i propòsit dits); amb `animate-expo` si és instal·lada.
 - [ ] 60 fps verificats en dispositiu; només `transform`/`opacity` animats.
 - [ ] Hàptics/sons/partícules desactivables.
 - [ ] Textos per i18n ca/es/en; zero valors hardcodejats; `estetica-frutiger-cosmo/references/checklist.md` passada (quatre temes, rendiment de blur/Skia, entrada a `frontend/assets/sounds/LICENSES.md` per a cada so).

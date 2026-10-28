@@ -82,12 +82,62 @@ pnpm install --frozen-lockfile    # instala las dependencias exactamente como en
 pnpm expo start                   # arranca el servidor de desarrollo de Expo (emulador Android / dispositivo; Expo Go debe ser del SDK 58)
 pnpm web                          # la misma app en el navegador (React Native Web)
 pnpm lint                         # ESLint + Prettier (también comprueba el formato)
-pnpm tsc                          # comprobación de tipos estricta (tsc --noEmit)
+pnpm typecheck                    # comprobación de tipos estricta (tsc --noEmit)
 pnpm test                         # Jest (preset jest-expo)
 pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.info)
 ```
 
+El script de comprobación de tipos se llama `typecheck` y no `tsc`: `expo-doctor` (que EAS Build ejecuta primero) avisa cuando un script de `package.json` tiene el mismo nombre que un binario de `node_modules/.bin`, y `tsc` es el binario de TypeScript. `pnpm tsc` sigue funcionando porque pnpm recurre al binario y da el mismo resultado aquí (`expo/tsconfig.base` ya fija `noEmit`), pero usa `pnpm typecheck`, que es el comando documentado.
+
 Releases: en cada release fusionada en `main`, GitHub Actions publica el **APK** en una release de GitHub.
+
+## Probar en el móvil (login con Google)
+
+El login con Google **no** funciona en Expo Go (la app muestra un mensaje específico): necesita una build nativa con package `app.perseida`. Hay dos maneras de conseguirla:
+
+- **EAS Build (recomendada).** La organización de Expo `perseida-fib-upc` compila el APK en la nube. No necesita Android Studio y funciona en Windows.
+- **Build local.** `pnpm expo run:android` necesita Android Studio y el SDK de Android. En Windows puede fallar en el paso de C++ porque algunas rutas superan los 260 caracteres (`ninja: error: manifest 'build.ninja' still dirty` o `mkdir(...)`), así que allí es preferible EAS.
+
+### Preparación (una sola vez, EAS Build)
+
+1. Crea una cuenta en [expo.dev](https://expo.dev) **con el mismo email** al que se envió la invitación.
+2. Acepta la invitación a la organización `perseida-fib-upc` (correo de Expo). Las invitaciones las envía un propietario de la organización desde expo.dev → `perseida-fib-upc` → *Settings* → *Members* → *Invite member*, con el rol *Developer*, que puede compilar pero no gestionar miembros.
+3. Inicia sesión desde el terminal y comprueba que ves la organización:
+
+   ```bash
+   npx eas-cli@latest login
+   npx eas-cli@latest whoami      # debe listar perseida-fib-upc
+   ```
+
+### Compilar e instalar
+
+```bash
+cd frontend
+npx eas-cli@latest build -p android --profile preview
+```
+
+1. El perfil `preview` está en `eas.json`: un APK instalable con los valores públicos `EXPO_PUBLIC_*` (backend de producción, client ids de Google, esquema `app.perseida`). En ese fichero no va ningún secreto.
+2. Si el CLI avisa de cambios sin commitear, comprueba con `git status` que son tuyos y continúa.
+3. Tarda entre 10 y 20 minutos. Al acabar imprime un enlace; todas las builds están también en `https://expo.dev/accounts/perseida-fib-upc/projects/frontend/builds`.
+4. Abre el enlace en el móvil, descarga el APK y permite que el navegador instale apps cuando Android lo pida.
+
+**No** ejecutes `eas init` (el proyecto ya está enlazado con `extra.eas.projectId` y `owner` en `app.json`; no los cambies) y **no** generes un keystore nuevo si el CLI lo ofrece: el compartido vive en Expo, y uno nuevo tiene otro SHA-1, con lo que el login con Google dejaría de funcionar hasta registrarlo de nuevo.
+
+### Qué necesitan Google y el backend
+
+- **Google Cloud (lo hace una vez un administrador):** un cliente Android con package `app.perseida`, el SHA-1 del keystore de EAS (`npx eas-cli@latest credentials -p android` lo muestra, de forma interactiva) y *Enable custom URI scheme* marcado. Los cambios pueden tardar de 5 minutos a unas horas.
+- **Backend de producción:** su variable `GOOGLE_CLIENT_IDS` debe incluir ese client id y el CD debe haberla desplegado.
+- **App de Google en *Testing*:** solo entran los usuarios de prueba listados hasta que se publique la pantalla de consentimiento.
+
+### Si algo falla
+
+| Síntoma | Causa probable |
+|---|---|
+| `whoami` no lista `perseida-fib-upc`, o la build dice que no tienes acceso | La invitación aún no está aceptada, o usaste otro email. |
+| Google muestra `invalid_request`, `redirect_uri_mismatch` o cliente no válido | El SHA-1 o el package no están registrados en el cliente Android, o el cambio aún no se ha propagado. |
+| Google dice que la app no está verificada o que no tienes acceso | La app está en *Testing* y tu cuenta no es usuario de prueba. |
+| La app dice que el login con Google no funciona en Expo Go | La abriste en Expo Go; instala el APK. |
+| El login llega al backend pero falla allí | El client id aún no está en el `GOOGLE_CLIENT_IDS` de producción. |
 
 ## Traducciones (i18n)
 
@@ -117,7 +167,7 @@ Comandos exactos (desde `frontend/`, los mismos que el workflow, cada uno en un 
 cd frontend                       # desde la raíz del repositorio
 pnpm install --frozen-lockfile    # falla si pnpm-lock.yaml no está al día
 pnpm lint                         # ESLint + Prettier
-pnpm tsc                          # comprobación de tipos estricta
+pnpm typecheck                    # comprobación de tipos estricta
 pnpm test --coverage --ci         # Jest + informe de cobertura
 ```
 

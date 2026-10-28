@@ -2,9 +2,9 @@
 titol: "Ús d'assistents de codi d'IA"
 tipus: convencio
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85"]
-font: "memòria §2.10, §2.4.4"
+data: "2026-10-28"
+us: ["TG-85", "TG-342"]
+font: "memòria §2.10, §2.4.4; PR #52 (TG-342)"
 etiquetes: [convencio, ia, agents, skills, claude-code]
 ---
 
@@ -26,7 +26,7 @@ Els assistents parteixen del vault d'Obsidian (arquitectura, decisions, convenci
 
 - `AGENTS.md` és el fitxer canònic d'instruccions; `CLAUDE.md` l'importa i `GEMINI.md` hi apunta.
 - Skill `vault-context`: protocol de lectura i escriptura del vault.
-- Hook `SessionStart` de Claude Code (`.claude/settings.json`): injecta l'índex del vault.
+- Hooks `SessionStart` de Claude Code (`.claude/settings.json`): injecten l'índex del vault i executen `skills-de-tercers.mjs --hook`, que detecta les skills de disseny de tercers (opcionals) i suggereix instal·lar-les; `PERSEIDA_SKILLS_HINT=off` el silencia ([[0027-skills-de-disseny-de-tercers-subordinades-a-frutiger-cosmo]]).
 - Skills d'Obsidian obligatòries: `obsidian-markdown` per a tot fitxer del vault, `obsidian-bases` per a `.base` i `json-canvas` per a `.canvas`. Per llegir pàgines web s'usa `defuddle`.
 - Subagents especialitzats (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`): font única a `.agents/agents/`; `node .agents/scripts/sync-agents.mjs` genera els fitxers de cada eina ([[0021-subagents-agnostics-i-generador]]). Si tenen dubtes, s'aturen i retornen un bloc `PREGUNTES PER A L'HUMÀ`: no inventen res.
 - Skills de procés i disseny: `estetica-frutiger-cosmo` (tot el que sigui visual; orquestra `frontend-design` i `ui-ux-pro-max`) i `implementar-us` (porta una US de Taiga de cap a cap: llegeix per l'MCP de Taiga, pregunta, planifica en simple, espera aprovació, implementa i verifica criteris i DoD). Mai es posen credencials de Taiga al repo.

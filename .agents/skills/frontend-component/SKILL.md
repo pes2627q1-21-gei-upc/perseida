@@ -33,7 +33,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 4. Components base glossy: `GlossyButton`, `GlassPanel`, `Toast` (receptes a `estetica-frutiger-cosmo/references/receptes.md`), i els que es validin. Vidre només en capes flotants; gel només en accions; cap gradient decoratiu. NativeWind només per a layout/espaiat.
 5. Estats: pressed (80–150 ms, sense canviar la mida del layout), disabled (semàntica nativa), loading, focus visible (web/admin); comprovats als quatre temes.
 6. Accessibilitat: `accessibilityRole`, `accessibilityLabel`, `accessibilityState`; tàctil ≥44×44 pt (ampliar `hitSlop` si la icona és més petita); contrast text ≥4.5:1 sobre vidre translúcid, mesurat sobre el **pitjor fons** (`estetica-frutiger-cosmo/scripts/contrast.py`); icones decoratives amagades al lector.
-7. Moviment amb `react-native-reanimated` (molles de `so-i-moviment.md`); respecta `reduced motion` (alternativa sense moviment, no només més lenta). Sons: via el mòdul `sound`, amb interruptor a ajustos.
+7. Moviment amb `react-native-reanimated` (molles de `so-i-moviment.md`); respecta `reduced motion` (alternativa sense moviment, no només més lenta). Sons: via el mòdul `sound`, amb interruptor a ajustos. El moviment **nou** passa per la «Porta per a moviment nou» de `so-i-moviment.md`; si `animate-expo` d'Emil Kowalski és instal·lada, usa-la per construir-lo (vegeu `estetica-frutiger-cosmo/references/skills-de-tercers.md`; si no ho és, suggereix-ho una sola vegada).
 8. Textos sempre per i18n (ca/es/en) rebuts per props o `t()`; cap text cru.
 9. Escriu els tests (després del codi) i passa la checklist.
 
@@ -59,6 +59,7 @@ Versions de llibreries: fixades amb pnpm; pregunta/verifica abans d'afegir-ne.
 - [ ] Checklist de `estetica-frutiger-cosmo/references/checklist.md` i de `ui-ux-pro-max/references/pro-rules.md` passades.
 - [ ] Tàctil ≥44×44 pt, rols/etiquetes/estats d'accessibilitat, contrast ≥4.5:1, focus visible.
 - [ ] Reduced motion respectat; pressed sense canvi de layout.
+- [ ] Si les skills de tercers són instal·lades: component estressat amb `break-ui` (textos llargs ca/es/en, text al 200 %) i cap commutador «Worst case» al codi.
 - [ ] Textos via i18n ca/es/en.
 - [ ] Sense scroll horitzontal; comprovat als 4 dispositius de la matriu.
 - [ ] Tests de lògica escrits; cap dependència nova sense permís.

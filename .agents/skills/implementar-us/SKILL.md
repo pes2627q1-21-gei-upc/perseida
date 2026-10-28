@@ -96,7 +96,7 @@ Límit: **no moguis mai la US a `Done`** (requereix PR aprovada per una altra pe
 
 Dos portes, les dues han de passar:
 
-**A. Criteris d'acceptació.** Taula `criteri → evidència` (test que el cobreix, o comprovació manual descrita i feta). Cada criteri té una evidència; si no en té, no està complet. Els criteris visuals es passen amb `estetica-frutiger-cosmo/references/checklist.md`.
+**A. Criteris d'acceptació.** Taula `criteri → evidència` (test que el cobreix, o comprovació manual descrita i feta). Cada criteri té una evidència; si no en té, no està complet. Els criteris visuals es passen amb `estetica-frutiger-cosmo/references/checklist.md` (amb el reforç opcional de les skills de tercers si són instal·lades; si no ho són, no és motiu de bloqueig).
 
 **B. DoD verificable localment.**
 - Lint, tipus i tests als directoris tocats (ordres dels README); cap test en vermell.
