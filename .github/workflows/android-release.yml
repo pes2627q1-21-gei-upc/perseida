@@ -1,5 +1,4 @@
 
-
 name: Android release
 
 on:
@@ -73,16 +72,38 @@ jobs:
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
           chmod 600 "$ANDROID_KEYSTORE_PATH"
           test -s "$ANDROID_KEYSTORE_PATH"
+
       - name: Diagnose release keystore certificate
+        env:
+          EXPECTED_CERT_SHA1: ${{ secrets.ANDROID_RELEASE_CERT_SHA1 }}
         run: |
           set -euo pipefail
-          keytool -list -v \
+
+          KEYSTORE_SHA1="$(keytool -exportcert \
             -keystore "$ANDROID_KEYSTORE_PATH" \
             -storepass "$ANDROID_KEYSTORE_PASSWORD" \
             -alias "$ANDROID_KEY_ALIAS" \
-            | grep -E 'Alias name:|SHA1:|SHA256:'
-          echo "Diagnostic complete; stopping before the long build."
-          exit 1
+            | sha1sum | awk '{print $1}')"
+
+          EXPECTED="$(printf '%s' "$EXPECTED_CERT_SHA1" \
+            | tr -d ':' \
+            | tr '[:upper:]' '[:lower:]')"
+
+          echo "Keystore SHA-1: $KEYSTORE_SHA1"
+          echo "Configured SHA-1: $EXPECTED"
+
+          if [ -z "$EXPECTED" ]; then
+            echo "::error::ANDROID_RELEASE_CERT_SHA1 is missing"
+            exit 1
+          fi
+
+          if [ "$KEYSTORE_SHA1" != "$EXPECTED" ]; then
+            echo "::error::The keystore certificate does not match ANDROID_RELEASE_CERT_SHA1"
+            exit 1
+          fi
+
+          echo "Keystore certificate matches the configured fingerprint."
+
       - name: Generate Android project
         working-directory: frontend
         env:
