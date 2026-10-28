@@ -57,6 +57,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss|ADR-0024 Defensa contra injecció SQL i XSS]]
 - [[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions|ADR-0025 CD per SSH amb rollback i downgrade]]
 - [[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01|ADR-0026 Producció per ports NAT amb DuckDNS]]
+- [[0027-skills-de-disseny-de-tercers-subordinades-a-frutiger-cosmo|ADR-0027 Skills de disseny de tercers]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 
@@ -64,7 +65,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 
 **estat/**: les sessions de treball són a `estat/sessions/` (l'estat de les US és a Taiga)
 
-**guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]]
+**guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]], [[skills-de-disseny-de-tercers]]
 
 ## Plantilles
 
