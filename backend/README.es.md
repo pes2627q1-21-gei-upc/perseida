@@ -98,7 +98,7 @@ El módulo `health` es el ejemplo de referencia. Para un módulo nuevo `<nombre>
 2. **Application** (`app/application/<nombre>/`): el service que usa los ports (`HealthService`), sin FastAPI.
 3. **Infrastructure** (`app/infrastructure/<nombre>/`): los adaptadores que implementan los ports (`checks.py`), el provider `get_<nombre>_service` con `@lru_cache` y `<Nombre>ServiceDep` (`dependencies.py`), y el router con su modelo de respuesta (`router.py`).
 4. Registra el router en `create_app()` (`app/main.py`).
-5. **Tests**, después del código: unitarios con fakes (`tests/fakes/`), integración de la API con `dependency_overrides`; el test de arquitectura sigue verificando las capas.
+5. **Tests** primero (TDD estricto, test `test:` en rojo antes del `feat:`): unitarios con fakes (`tests/fakes/`), integración de la API con `dependency_overrides`; el test de arquitectura sigue verificando las capas.
 
 ## Errores
 
