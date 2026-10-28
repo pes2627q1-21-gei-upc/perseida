@@ -92,14 +92,11 @@ A l'app mòbil no s'aplica: Chrome no executa React Native. Allà les captures e
 
 `.taste-skill/`, `.impeccable/` i `plans/` (o `animation-plans/`) són **de treball local** i estan al `.gitignore`. Si una passada crea `PRODUCT.md` o `DESIGN.md` a l'arrel, no es fusionen: s'esborren o es demana a la persona.
 
-## Proposta a validar: moviment en el vocabulari d'Emil
+## Decisions preses (2026-10-28)
 
-Per no deixar dos lèxics, aquestes equivalències es poden fixar a `tokens.md` un cop validades per la persona (cap valor és al codi encara):
+- **Moviment**: les curves i les molles d'Emil són a `tokens.md` (`easing`, `springUi`, `pressScale`) com a *proposta a validar al dispositiu*: no es fixen al codi fins que la persona les hagi provat en una *build* de release. `duration.slow` (420 ms) és el sostre per a sheets i entrades de pantalla.
+- **Pàgines públiques de TG-343** (inici, privadesa i condicions): **versió sobria de Frutiger Cosmo**: mateixos colors i famílies tipogràfiques que els tokens, sense escena de cel ni vidre, per a una lectura neta. Taste s'hi aplica només amb el seu inspector i `--allow`.
+- **Impeccable**: sense `PRODUCT.md`/`DESIGN.md`; el brief és aquesta skill i s'omet `init`.
+- **Tot en una sola PR** (la #52, TG-342).
 
-| Ús | Valor d'Emil | Relació amb els nostres tokens |
-|---|---|---|
-| Entrada/sortida (ease-out fort) | `Easing.bezier(0.23, 1, 0.32, 1)` | Per a `duration.base` (220 ms) |
-| Moviment en pantalla | `Easing.bezier(0.77, 0, 0.175, 1)` | Per a `duration.base` |
-| Resposta de premut | `scale 0,97` en 100–150 ms | `duration.fast` (120 ms) ✔ |
-| Sheet/drawer | molla de ~300 ms, `dampingRatio 0,8` | Més suau que la molla del tile; `duration.slow` (420 ms) és el sostre |
-| Mai | `ease-in`, `scale(0)`, animar `height`/`width`/`elevation`/intensitat del blur | S'afegeix a la checklist |
+Continuen **pendents**: validar la *allow-list* de Taste executant l'inspector sobre l'admin web, i quina plataforma declararia Impeccable (el llenguatge visual és propi i igual a iOS i Android).

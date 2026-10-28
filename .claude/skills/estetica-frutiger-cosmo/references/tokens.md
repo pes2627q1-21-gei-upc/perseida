@@ -94,7 +94,10 @@ Verifica l'existència i fixa la versió amb `pnpm` abans d'afegir els paquets (
 | `iconSizes` | `sm 20, md 24, lg 32` |
 | Icones | **Phosphor** (`phosphor-react-native`, 3.0.6 verificada a npm el 2026-10-13; depèn de `react-native-svg`): pes `regular` a la UI, `duotone` a les icones d'acció principal i `fill` per a l'estat seleccionat. Verifica la versió abans d'afegir-la |
 | `duration` | `fast 120 ms`, `base 220 ms`, `slow 420 ms` |
-| `spring` | rebot suau: `damping 14, stiffness 160, mass 1` (tile que creix: escala 1 → 1.06) |
+| `spring` | rebot suau: `damping 14, stiffness 160, mass 1` (tile que creix: escala 1 → 1.06). Equival a `dampingRatio` ≈ 0,55 (14 / (2·√160)) |
+| `easing` *(proposta a validar al dispositiu)* | `out` `cubic-bezier(0.23, 1, 0.32, 1)` (entrada i sortida); `inOut` `cubic-bezier(0.77, 0, 0.175, 1)` (moviment en pantalla); `sheet` `cubic-bezier(0.32, 0.72, 0, 1)`. Mai `ease-in` |
+| `springUi` *(proposta a validar al dispositiu)* | forma de Reanimated 4 (`duration` + `dampingRatio`): `settle` 400 ms / 1 (sense rebot); `sheet` 300 ms / 0,8 amb la velocitat del gest; `snapBack` 400 ms / 0,8. Per a gestos. El tile continua amb `spring` |
+| `pressScale` *(proposta a validar al dispositiu)* | `0,97` en `duration.fast`; mai `scale(0)` (comença a 0,95 + opacitat 0) |
 | `breakpoints` | `phoneSmall 360`, `phone 390`, `tablet 768`, `desktop 1280`, `wide 1536` (vegeu `responsive.md` a `frontend-component`) |
 | `reducedMotion` | alternativa sense moviment (no només més lenta); l'ambient es congela |
 
