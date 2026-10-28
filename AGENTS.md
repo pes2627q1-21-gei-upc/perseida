@@ -41,6 +41,7 @@ Les skills es mantenen a `.agents/skills/` (font de veritat, per a tots els agen
 Per delegar feina especialitzada hi ha cinc subagents (`backend`, `frontend`, `devops`, `reviewer-arquitectura`, `qa-tester`) i skills per crear entitats, services, ports i adaptadors del backend (`backend-*`), components, pàgines, formularis, crides a l'API i jocs del frontend (`frontend-*`) i la gestió d'errors (`gestio-errors`). **Tot el que sigui visual passa per `estetica-frutiger-cosmo`**, que orquestra `ui-ux-pro-max` i `frontend-design`. Per portar una US de Taiga de cap a cap (llegir-la, planificar-la, implementar-la i verificar criteris i DoD), `implementar-us`.
 
 - **No inventis res:** davant qualsevol dubte o dada que falti, atura't abans d'escriure codi i pregunta a la persona. Un subagent que no pot preguntar retorna a l'agent principal un bloc `PREGUNTES PER A L'HUMÀ`.
+- **Skills de disseny de tercers (opcionals, a nivell d'usuari):** Emil Kowalski, Impeccable i Taste reforcen el frontend però **no són al repo ni tothom les té**. El hook d'inici (`node .agents/scripts/skills-de-tercers.mjs`) diu quines hi són: si hi són, usa-les segons `.agents/skills/estetica-frutiger-cosmo/references/skills-de-tercers.md`; si no, continua amb les del repo i suggereix a la persona, una sola vegada, instal·lar-les. **El brief de «Frutiger Cosmo» (ADR-0020) guanya sempre**: no deixis que cap d'elles canviï paleta, tipografia ni materials, i amb Impeccable no executis `init`, `document`, `extract`, `live`, `generate` ni `hooks` (crearien `PRODUCT.md`/`DESIGN.md` que competirien amb el vault). Decisió: ADR-0027.
 - Font única dels subagents: `.agents/agents/`. Els fitxers natius són generats i no s'editen a mà: `.claude/agents`, `.codex/agents`, `.opencode/agents`, `.github/agents` i `.gemini/agents` (Antigravity llegeix `.agents/agents/`; Cursor, `.claude/agents/`). Després de canviar `.agents/agents/`: `node .agents/scripts/sync-agents.mjs` i commit de tot. DeepSeek no té format propi: s'usa dins d'aquestes eines.
 - Arquitectura i convencions: ADR 0016–0021 al vault (acceptades). Estètica del frontend: «Frutiger Cosmo · Cel viu» (skill `estetica-frutiger-cosmo`); l'app és mobile-first i l'admin pensat per a portàtil, tot responsive. Accessibilitat WCAG 2.2 AA obligatòria a tot el frontend (guia a `.agents/skills/frontend-component/references/accessibilitat.md`).
 
@@ -61,6 +62,7 @@ node --test .agents/scripts/*.test.mjs     # tests dels scripts
 python -m unittest discover -s .agents/skills/estetica-frutiger-cosmo/scripts -p "test_*.py"  # tests dels scripts Python de la skill d'estètica
 node .agents/scripts/sync-skills.mjs --check # verifica que .claude/skills/ està sincronitzat
 node .agents/scripts/sync-agents.mjs         # genera els subagents natius de cada eina (--check per verificar)
+node .agents/scripts/skills-de-tercers.mjs   # quines skills de disseny de tercers tens instal·lades (--json per a màquines)
 ```
 
 ## Context de Taiga
