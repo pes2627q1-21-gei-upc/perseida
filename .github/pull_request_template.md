@@ -11,6 +11,16 @@
 - [ ] La PR ha estat aprovada com a mínim per una persona diferent de l'autora.
 - [ ] La CI és verda (linters, format, tipus i tests; Quality Gate quan estigui disponible).
 - [ ] Hi ha tests per al codi nou.
+
+## Testing (TDD estricte, ADR-0028)
+- [ ] Hi ha tests unitaris de tots els components modificats.
+- [ ] Si toca persistència o serveis externs, hi ha test d'integració (serveis reals, `respx`/stubs per als externs).
+- [ ] Si és un bug, hi ha un test de regressió que el reprodueix.
+- [ ] L'historial mostra el commit `test:` (en vermell) abans del `feat:`/`fix:` corresponent.
+- [ ] Cobertura: 80 % global i 90 % del codi nou (la CI de la PR ho exigirà quan s'implanti; mentre tant, comprovada en local).
+- [ ] Si toca el domini, mutation testing sobre els fitxers canviats amb score >= 70 % (o anotat com a pendent si l'eina encara no és instal·lada).
+
+## Resta de la DoD
 - [ ] El codi respecta l'arquitectura hexagonal i les convencions de nomenclatura.
 - [ ] Les consultes a PostgreSQL/PostGIS són eficients.
 - [ ] No s'han introduït secrets ni credencials al codi ni al vault.
