@@ -47,10 +47,12 @@ test('inclou índex sense frontmatter', () =>
   withTmp((root) => {
     write(root, {
       '00-index.md': '---\ntitol: x\n---\n# Índex\nhola',
+      'estat/estat-actual.md': '# Estat\nSENTINELLA-ESTAT',
     });
     const out = buildContext(root);
     assert.match(out, /# Índex/);
     assert.match(out, /hola/);
+    assert.doesNotMatch(out, /SENTINELLA-ESTAT/);
     assert.doesNotMatch(out, /titol:/);
   }));
 

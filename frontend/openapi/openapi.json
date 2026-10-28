@@ -1,0 +1,692 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Perseida API",
+    "description": "Backend oficial del projecte Perseida - Arquitectura Hexagonal i API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Comprovació de salut del sistema",
+        "description": "Retorna l'estat de salut de l'API i de tots els seus components subjacents (base de dades, cau, etc.) per a tasques de monitoratge i healthcheck.",
+        "operationId": "get_health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "L'estat de salut actual i el desglossament per components.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "ok",
+                  "components": {
+                    "app": "ok"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apod": {
+      "get": {
+        "tags": [
+          "apod"
+        ],
+        "summary": "Imatge astronòmica del dia (APOD)",
+        "description": "Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui.",
+        "operationId": "get_apod",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data de l'APOD (YYYY-MM-DD). Per defecte, avui.",
+              "examples": [
+                "2026-10-14"
+              ],
+              "title": "Date"
+            },
+            "description": "Data de l'APOD (YYYY-MM-DD). Per defecte, avui."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "L'APOD de la data demanada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApodResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Data amb format incorrecte, futura o anterior al 16/06/1995.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error inesperat.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La NASA no respon i no hi ha dada a la cache (code `APOD_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Inici de sessió amb Google",
+        "description": "Valida l'`id_token` de Google i retorna una sessió pròpia del backend (access i refresh token). El backend no desa cap contrasenya.",
+        "operationId": "login_with_google",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "La sessió: access token, refresh token i durada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "El token de Google no és vàlid (code `INVALID_GOOGLE_TOKEN`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El correu ja pertany a un altre compte (`EMAIL_ALREADY_REGISTERED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Cos de la petició incorrecte.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Google no respon (`IDENTITY_PROVIDER_UNAVAILABLE`) o no es pot desar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Renovació de la sessió",
+        "description": "Canvia un refresh token vigent per un parell nou. El refresh anterior queda revocat: reutilitzar-lo és un error.",
+        "operationId": "refresh_session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "El parell nou de tokens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token invàlid, caducat o ja utilitzat (code `INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Cos de la petició incorrecte.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Tancament de sessió",
+        "description": "Revoca la sessió sencera (access i refresh token) a la qual pertany el token `Bearer`. És idempotent: amb un token caducat, ja revocat, invàlid o sense token també respon 204.",
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Sessió tancada."
+          },
+          "503": {
+            "description": "No es pot revocar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Perfil de l'usuari autenticat",
+        "description": "Retorna les dades de l'usuari propietari de la sessió.",
+        "operationId": "get_current_user",
+        "responses": {
+          "200": {
+            "description": "El perfil de l'usuari.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApodResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "Data de l'APOD",
+            "examples": [
+              "2026-10-14"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Títol de la imatge o vídeo"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "description": "Explicació de la NASA"
+          },
+          "media_type": {
+            "$ref": "#/components/schemas/MediaType",
+            "description": "Tipus de contingut (image, video)"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "URL del contingut multimèdia"
+          },
+          "copyright": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copyright",
+            "description": "Autoria, si l'APOD no és de domini públic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "title",
+          "explanation",
+          "media_type",
+          "url"
+        ],
+        "title": "ApodResponse"
+      },
+      "FieldError": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "description": "Camp que ha fallat la validació"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Motiu tècnic de l'error"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Tipus d'error de validació"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "message",
+          "type"
+        ],
+        "title": "FieldError"
+      },
+      "GoogleLoginRequest": {
+        "properties": {
+          "id_token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id Token",
+            "description": "ID token que l'app obté de Google (OAuth2 amb PKCE)"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el compte; si falta o no és compatible, `ca`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_token"
+        ],
+        "title": "GoogleLoginRequest"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus",
+            "description": "Estat general de salut del sistema (ok, down)",
+            "examples": [
+              "ok"
+            ]
+          },
+          "components": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HealthStatus"
+            },
+            "type": "object",
+            "title": "Components",
+            "description": "Diccionari amb l'estat detallat de cada component o servei extern depenent",
+            "examples": [
+              {
+                "app": "ok"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "components"
+        ],
+        "title": "HealthResponse"
+      },
+      "HealthStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "down"
+        ],
+        "title": "HealthStatus"
+      },
+      "Language": {
+        "type": "string",
+        "enum": [
+          "ca",
+          "es",
+          "en"
+        ],
+        "title": "Language"
+      },
+      "MediaType": {
+        "type": "string",
+        "enum": [
+          "image",
+          "video"
+        ],
+        "title": "MediaType"
+      },
+      "ProblemDetails": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "examples": [
+              "about:blank"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Frase HTTP estàndard de l'estat"
+          },
+          "status": {
+            "type": "integer",
+            "title": "Status"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "Missatge tècnic, mai per a l'usuari"
+          },
+          "instance": {
+            "type": "string",
+            "title": "Instance",
+            "description": "Ruta de la petició"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Codi d'error estable que tradueix el frontend"
+          },
+          "correlation_id": {
+            "type": "string",
+            "title": "Correlation Id"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "type": "array",
+            "title": "Errors",
+            "description": "Només en errors de validació; en la resta, la clau no hi és"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance",
+          "code",
+          "correlation_id"
+        ],
+        "title": "ProblemDetails",
+        "description": "RFC 9457 error body, as built by ``problem_response``."
+      },
+      "RefreshRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Refresh Token",
+            "description": "Refresh token vigent de la sessió"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshRequest"
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "user",
+          "moderator",
+          "admin"
+        ],
+        "title": "Role"
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "Token d'accés (JWT) de curta durada"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "Token de renovació (JWT), d'un sol ús"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "bearer",
+            "title": "Token Type",
+            "description": "Tipus de token; sempre `bearer`",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Segons de vida de l'access token",
+            "examples": [
+              900
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in"
+        ],
+        "title": "TokenResponse"
+      },
+      "UserResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identificador intern de l'usuari (UUID)"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Correu del compte de Google"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Nom del perfil de Google"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "Avatar del perfil de Google"
+          },
+          "preferred_language": {
+            "$ref": "#/components/schemas/Language",
+            "description": "Idioma preferit"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Rol de l'usuari"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "avatar_url",
+          "preferred_language",
+          "role"
+        ],
+        "title": "UserResponse"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "description": "Access token (Bearer)",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

@@ -1,0 +1,162 @@
+name: CD
+
+# Desplegament continu al servidor de Virtech per SSH (US TG-38).
+# S'executa a cada push a `main` (fusió d'una release o d'un hotfix) o a mà
+# des de `main`. Un push o PR a `develop` o a una `feature/*` no el dispara.
+#
+# La imatge `perseida-api:sha-<commit>` la publica `backend-docker.yml` (job
+# `image`) i `infra/scripts/deploy.sh` la desplega al servidor amb Docker Compose:
+# pull, `up`, healthcheck amb temps d'espera i rollback automàtic.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Dos desplegaments mai en paral·lel, i mai se'n cancel·la un a mitges: deixaria
+# el servidor en un estat inconsistent.
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions: {}
+
+# El `.env` del servidor té les variables d'`infra/.env.example`, menys les que
+# no cal definir a GitHub: `API_IMAGE_TAG` el posa `deploy.sh` (git-sha del
+# commit), `NPM_ADMIN_PORT` usa el 81 per defecte (només a 127.0.0.1) i `PORT`
+# només és del Compose local.
+env:
+  ENV_TEMPLATE: infra/.env.example
+  ENV_EXCLUDE: API_IMAGE_TAG NPM_ADMIN_PORT PORT
+  # Han d'existir però no van al `.env`: són per a la connexió SSH.
+  ENV_EXTRA_REQUIRED: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS
+  # Només poden ser secrets (mai variables): una variable es veuria sense
+  # emmascarar als logs públics.
+  ENV_SECRET_ONLY: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS POSTGRES_PASSWORD POSTGRES_DB POSTGRES_USER JWT_SECRET NASA_API_KEY
+
+jobs:
+  # Falla abans de tocar el servidor si falta algun secret o variable requerit.
+  verify-config:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          sparse-checkout: infra
+          persist-credentials: false
+      - name: Comprovar secrets i variables requerits
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: python3 infra/scripts/render_env.py check
+
+  # Publica `perseida-api:sha-<commit>` a GHCR encara que no hagin canviat
+  # fitxers del backend (el workflow reutilitzat no filtra per rutes en aquest cas).
+  image:
+    needs: verify-config
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/backend-docker.yml
+
+  deploy:
+    needs: [verify-config, image]
+    # També limita el `workflow_dispatch` manual a `main`.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+    steps:
+      # Sense `persist-credentials`: el `GITHUB_TOKEN` no ha de quedar a `.git/config`
+      # mentre s'executen scripts amb la clau SSH.
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # La clau privada només viu al runner durant el job. La verificació de la
+      # clau del servidor usa `SSH_KNOWN_HOSTS`; mai `StrictHostKeyChecking=no`.
+      - name: Configurar SSH
+        shell: bash
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host virtech
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 4
+          EOF
+
+      - name: Comprovar la connexió amb el servidor
+        shell: bash
+        run: ssh virtech 'echo "Connectat com $(whoami)"'
+
+      # El `.env` es genera al runner i viatja per stdin: mai és un argument de
+      # comanda, ni queda a disc al runner, ni surt als logs. Al servidor s'escriu
+      # amb permisos 600 en un fitxer temporal i es mou de cop al seu lloc.
+      - name: Renderitzar el .env al servidor
+        shell: bash
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: |
+          python3 infra/scripts/render_env.py mask
+          python3 infra/scripts/render_env.py render | ssh virtech '
+            set -e
+            umask 077
+            mkdir -p /opt/perseida
+            cat > /opt/perseida/.env.tmp
+            # Si el render falla, no arriba res per stdin: no es pisa el .env bo.
+            test -s /opt/perseida/.env.tmp || { rm -f /opt/perseida/.env.tmp; exit 1; }
+            chmod 600 /opt/perseida/.env.tmp
+            mv /opt/perseida/.env.tmp /opt/perseida/.env
+          '
+
+      - name: Copiar el Compose i el script de desplegament
+        shell: bash
+        run: |
+          scp -q infra/docker-compose.yml infra/scripts/deploy.sh virtech:/opt/perseida/
+          ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
+
+      # El servidor baixa la imatge de GHCR (paquet privat) amb el token efímer
+      # del job, que viatja per stdin i es revoca en acabar; `docker logout` el
+      # treu del servidor igualment.
+      - name: Desplegar la imatge del commit
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          tag="sha-${GITHUB_SHA::7}"
+          # Cometes simples: ssh re-interpreta els arguments al servidor i un actor
+          # com `dependabot[bot]` faria glob amb els claudàtors.
+          printf '%s' "$GHCR_TOKEN" | ssh virtech docker login ghcr.io -u "'$GHCR_USER'" --password-stdin
+          # shellcheck disable=SC2029  # el tag s'expandeix al runner a propòsit
+          ssh virtech /opt/perseida/deploy.sh "$tag"
+
+      - name: Tancar la sessió de GHCR al servidor
+        if: always()
+        shell: bash
+        run: ssh virtech 'docker logout ghcr.io' || true

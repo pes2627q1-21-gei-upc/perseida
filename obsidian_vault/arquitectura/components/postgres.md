@@ -2,9 +2,9 @@
 titol: "Component: postgres"
 tipus: component
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-37", "TG-40", "TG-41", "TG-70"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07)"
+data: "2026-10-22"
+us: ["TG-85", "TG-37", "TG-40", "TG-41", "TG-70", "TG-46"]
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 (2026-10-22)"
 etiquetes: [component, postgres, postgis, base-de-dades]
 ---
 
@@ -27,6 +27,14 @@ PostgreSQL 18 amb l'extensió PostGIS (versió fixada). Dades al volum `pgdata`.
 
 Variables de `.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`. Els valors mai es versionen. Veure `.env.example`.
 
+## Taules
+
+| Taula | Contingut | Restriccions | Migració | US |
+|---|---|---|---|---|
+| `apod` | APOD rebuts de la NASA: `id` (UUIDv7), `apod_date`, `title`, `explanation`, `media_type`, `media_url`, `copyright` (opcional) | `pk_apod`, `uq_apod_apod_date` (una fila per data), `ck_apod_media_type` (`image`/`video`) | `8b892a8ae4b4_create_apod` | TG-46 |
+
+Segueix [[0023-convencions-del-model-de-dades]]: clau `uuid` generada per `uuidv7()` i `media_type` com a `VARCHAR` amb `CHECK`. El model és `ApodTable` (`app/infrastructure/persistence/apod_table.py`), d'infraestructura; l'entitat `Apod` del domini continua sent Pydantic pura ([[0016-ports-i-entitats-riques-al-domini]]). `SqlApodRepository` desa amb `ON CONFLICT (apod_date) DO NOTHING`: si la data ja hi és, es queda la primera fila. Si la NASA cau, `latest(until)` dona l'últim APOD desat per servir-lo com a APOD d'avui ([[serveis-externs]]).
+
 ## Decisions relacionades
 
 - [[0006-postgresql-postgis-font-de-veritat]]
@@ -39,13 +47,14 @@ Variables de `.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 - TG-40 (PostgreSQL async amb SQLModel)
 - TG-41 (Alembic)
 - TG-70 (PostGIS)
+- TG-46 (taula `apod`)
 
 ## Estat d'implementació
 
 implementat
 
 > [!note] Abast validat
-> TG-40 incorpora la configuració, l'engine i les sessions asíncrones de SQLModel/SQLAlchemy. Les proves locals passen, però la prova d'integració amb PostgreSQL real s'ha omès quan no hi ha `POSTGRES_HOST`. PostGIS i les migracions Alembic queden pendents de validació en les US corresponents.
+> TG-40 incorpora la configuració, l'engine i les sessions asíncrones de SQLModel/SQLAlchemy. TG-41 incorpora Alembic amb migracions asíncrones i activa PostGIS amb una migració reversible. La prova d'integració amb PostgreSQL/PostGIS real s'ha executat localment i passa; la suite completa passa amb 224 tests i 5 omesos. La validació dins del contenidor queda pendent de la infraestructura de la TG-36.
 
 > [!note]
 > No hi ha còpies de seguretat automàtiques (limitació acceptada, vegeu [[arquitectura-fisica]]).

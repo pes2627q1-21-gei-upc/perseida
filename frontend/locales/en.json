@@ -1,0 +1,27 @@
+{
+  "apod": {
+    "loadingLabel": "Loading the APOD",
+    "mediaError": "The image or video couldn't be loaded.",
+    "retry": "Try again",
+    "retryHint": "Reload the APOD",
+    "videoLabel": "APOD video"
+  },
+  "errors": {
+    "ACCOUNT_DELETED": "This account has been deleted.",
+    "ACCOUNT_SUSPENDED": "Your account is suspended.",
+    "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
+    "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
+    "GENERIC_FINAL": "Something went wrong.",
+    "IDENTITY_PROVIDER_UNAVAILABLE": "Google is unavailable right now. Please try again in a while.",
+    "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
+    "INVALID_RESPONSE": "Something went wrong. We couldn't load the content.",
+    "INVALID_SESSION": "Your session has expired. Please sign in again.",
+    "NETWORK_ERROR": "No connection. Check your network and try again.",
+    "NOT_FOUND": "We couldn't find what you were looking for.",
+    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
+  },
+  "home": {
+    "apodLink": "Picture of the day"
+  }
+}

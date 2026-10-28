@@ -1,15 +1,18 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "Perseida",
     "slug": "frontend",
-    "version": "1.0.0",
+    "version": "0.1.0",
+    "scheme": ["perseida", "app.perseida"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.perseida"
     },
     "android": {
+      "package": "app.perseida",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,6 +23,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": ["expo-router", "./plugins/withAndroidRelease"]
   }
 }

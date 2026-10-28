@@ -2,8 +2,8 @@
 titol: "GitFlow i política de pull requests"
 tipus: convencio
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85"]
+data: "2026-10-23"
+us: ["TG-85", "TG-33"]
 font: "memòria §2.2"
 etiquetes: [convencio, git, gitflow, pull-requests]
 ---
@@ -48,9 +48,37 @@ Els noms usen el prefix seguit d'un nom breu i descriptiu. Els missatges de comm
 
 Versionat semàntic (SemVer, `MAJOR.MINOR.PATCH`) a partir de `0.1.0`: patch per bugfixes, minor per funcionalitat nova compatible, major per canvis incompatibles. Una release per sprint; un push a `main` equival a fusionar una release o un hotfix i dispara la CD. L'assignació de versions i la creació de releases les automatitza el pipeline de GitHub Actions.
 
+## Enllaç amb Taiga
+
+La integració de GitHub amb Taiga permet relacionar els commits i les pull requests (PR) amb les tasques i les històries d'usuari (US).
+
+- Inclou la referència `TG-<ref>` al missatge del commit o al títol de la PR. Recomanem incloure-la també a la descripció.
+- Per canviar l'estat, afegeix `TG-<ref> #<slug>`. Cal fer servir el slug exacte de l'estat, no el nom visible.
+- Exemples: `TG-33 #ready-for-test` per a una US i `TG-306 #closed` per a una tasca.
+- Amb squash, el missatge del commit és la descripció de la PR en aquest repositori; per tant, la referència inclosa a la descripció arriba a Taiga.
+- Amb merge commit (releases i hotfixes), el missatge de fusió inclou el títol de la PR; per assegurar la referència, posa `TG-<ref>` al títol.
+
+Estats de les tasques:
+
+- `New` → `new`
+- `In progress` → `in-progress`
+- `Ready for test` → `ready-for-test`
+- `Closed` → `closed`
+- `Needs info` → `needs-info`
+
+Estats de les US:
+
+- `New` → `new`
+- `Ready` → `ready`
+- `In progress` → `in-progress`
+- `Ready for test` → `ready-for-test`
+- `Done` → `done`
+- `Archived` → `archived`
+
 ## US de Taiga relacionades
 
 - TG-85 (vault d'Obsidian)
+- TG-33 (convencions de GitFlow i pull requests)
 
 ## Enllaços
 

@@ -30,7 +30,7 @@ App mòbil i panell d'administració de **Perseida**, una aplicació multiplataf
 | Emmagatzematge local | SQLite (cua + cache offline)                                              |
 | Autenticació         | Google OAuth2 + PKCE                                                      |
 | Push                 | Firebase Cloud Messaging                                                  |
-| Tipus d'API          | Generats a partir de l'esquema OpenAPI del backend (`openapi-typescript`) |
+| Tipus d'API          | Generats a partir de l'esquema OpenAPI del backend (`openapi-typescript`; còpia de `/api/openapi.json` a `openapi/openapi.json`, i després `pnpm api:generate`) |
 | Web d'administració  | React Native Web (bundle estàtic servit per nginx-proxy-manager)          |
 | Dependències         | `pnpm`                                                                    |
 | Qualitat             | ESLint (TS, React, React Hooks), Prettier, SonarQube Cloud                |
@@ -67,21 +67,67 @@ frontend/
 └── tsconfig.json
 ```
 
-## Executar i testejar (previst)
+## Autenticació i sessió (TG-43)
+
+- **Emmagatzematge de tokens (`features/auth/tokenStorage.ts`)**: `saveTokens`, `getTokens`, `clearTokens`. Utilitza `expo-secure-store` a nativa (clauer/keystore) i `sessionStorage` a web (aïllat per pestanya, ADR-0008). Mai AsyncStorage.
+- **Neteja de sessió (`features/auth/session.ts`)**: `clearSession()` esborra tant els tokens desats com la memòria cau en memòria de TanStack Query. Utilitzada per `useLogout` i per la renovació de token davant 401 `INVALID_SESSION`.
+- **Renovació de sessió (`features/auth/api/refreshToken.ts`)**: `refreshSession()` renova els tokens mitjançant `POST /api/auth/refresh`. Serialitza les crides concurrents per garantir que els refresh tokens d'un sol ús no es cremin dues vegades.
+- **Guard de ruta (`app/(app)/_layout.tsx`)**: Redirigeix usuaris sense sessió a `/login`; `/login` redirigeix usuaris autenticats cap a l'aplicació (`/(app)`).
+
+## Executar i testejar
 
 ```bash
-pnpm install            # instal·la dependències
-pnpm expo start         # arrenca el servidor de desenvolupament d'Expo (emulador Android / dispositiu)
-pnpm lint               # ESLint + Prettier
-pnpm tsc --noEmit       # comprovació de tipus (strict)
-pnpm test               # Jest + React Native Testing Library
-pnpm test --coverage
+cd frontend                       # des de l'arrel del repositori
+pnpm install --frozen-lockfile    # instal·la les dependències exactament com a pnpm-lock.yaml
+pnpm expo start                   # arrenca el servidor de desenvolupament d'Expo (emulador Android / dispositiu; Expo Go ha de ser de l'SDK 58)
+pnpm web                          # la mateixa app al navegador (React Native Web)
+pnpm lint                         # ESLint + Prettier (també comprova el format)
+pnpm tsc                          # comprovació de tipus estricta (tsc --noEmit)
+pnpm test                         # Jest (preset jest-expo)
+pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.info)
 ```
 
 Releases: a cada release fusionada a `main`, GitHub Actions publica l'**APK** en una release de GitHub.
 
+## Traduccions (i18n)
+
+L'app parla català (`ca`), castellà (`es`) i anglès (`en`). Arrenca en el primer d'aquests idiomes que el dispositiu tingui a la seva llista d'idiomes, i en català si no n'hi ha cap. Cap text s'escriu al codi: surt de `locales/<idioma>.json` mitjançant [i18next](https://www.i18next.com) (`src/shared/i18n`).
+
+**Afegir un text**
+
+1. Afegeix la mateixa clau a `locales/ca.json`, `locales/es.json` i `locales/en.json` (agrupada per funcionalitat, p. ex. `apod.retry`).
+2. Fes-la servir al component: `const { t } = useTranslation();` i `t('apod.retry')`.
+3. `pnpm test` falla si una clau existeix en un idioma i falta en un altre (`src/shared/i18n/locales.test.ts`).
+
+**Afegir el text d'un codi d'error**: afegeix `errors.<CODE>` als tres fitxers i mostra'l amb `errorMessage(t, error.code, error.retryable)` (`src/shared/errors`). Un codi sense text mostra el missatge genèric, mai el `detail` del servidor.
+
+**Afegir un idioma** (p. ex. `fr`)
+
+1. Crea `locales/fr.json` amb exactament les mateixes claus que `ca.json`.
+2. Afegeix-lo a `SUPPORTED_LANGUAGES` (`src/shared/i18n/detectLanguage.ts`) i a `resources` (`src/shared/i18n/index.ts`).
+3. Afegeix-lo a `locales` a `src/shared/i18n/locales.test.ts`.
+
+## Integració contínua
+
+El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) executa el job `frontend` a cada pull request cap a `develop` o `main` i a cada push a `develop` o `main`. En una PR només s'executa si han canviat `frontend/**` o el propi workflow; si no, el job queda com a omès (*skipped*) i no bloqueja la PR. Un push nou a la mateixa PR cancel·la l'execució anterior.
+
+Ordres exactes (des de `frontend/`, les mateixes que el workflow, cada una en un pas separat perquè es vegi quina falla):
+
+```bash
+cd frontend                       # des de l'arrel del repositori
+pnpm install --frozen-lockfile    # falla si pnpm-lock.yaml no està al dia
+pnpm lint                         # ESLint + Prettier
+pnpm tsc                          # comprovació de tipus estricta
+pnpm test --coverage --ci         # Jest + informe de cobertura
+```
+
+- **Versions:** la CI fa servir Node 24.22.1 (fixat al workflow) i pnpm 12.15.0 (fixat a `packageManager` de `package.json`, que el workflow llegeix); fes servir les mateixes en local per reproduir un error. Per actualitzar pnpm: `pnpm self-update` (`pnpm add -g pnpm` es rebutja des de pnpm 11.10).
+- **Cobertura:** l'informe es publica com a artefacte `frontend-coverage` (`lcov.info`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
+- **Requisits:** el job no necessita secrets ni serveis.
+
 ## Testing i qualitat
 
+- Jest s'executa amb el preset `jest-expo` (`jest.config.js`) i hi ha un test de fum a `__tests__/`. React Native Testing Library ja s'usa per als hooks; els tests de components i els mocks de l'API arriben amb la US #83.
 - Prioritat per als custom hooks i la lògica de presentació (estats de càrrega / error / llista buida, validació de formularis), components principals (targetes d'esdeveniment, pantalla APOD, ràtxa, formulari de denúncia, pantalles d'admin) i la comprovació que tots els textos de la UI tenen traducció en ca/es/en. El client de l'API se simula.
 - El feedback de validació dels formularis ha d'aparèixer en < 100 ms sense crida a la xarxa.
 - Codi nou de cada PR: cobertura ≥ 70 % i Quality Gate de SonarQube Cloud. Els components purament visuals queden exclosos de la cobertura.

@@ -2,7 +2,7 @@
 
 [English](README.md) | **Català** | [Español](README.es.md)
 
-> 🚧 **En construcció.** El projecte és al primer sprint. `app/` i `tests/` ja són reals (el mòdul `health` és l'exemple de referència), però la majoria de mòduls (persistència, autenticació, xat, planificador) encara no estan implementats.
+> 🚧 **En construcció.** El projecte és al primer sprint. `app/` i `tests/` ja són reals (el mòdul `health` és l'exemple de referència), però la majoria de mòduls (persistència, autenticació, xat) encara no estan implementats.
 
 Backend de **Perseida**, una aplicació mòbil multiplataforma de divulgació, exploració i seguiment de fenòmens astronòmics, desenvolupada com a projecte de PES (UPC-FIB). Exposa l'API REST i el xat en temps real que fan servir l'app mòbil i el panell d'administració, i integra les NASA Open APIs i altres proveïdors externs.
 
@@ -143,6 +143,30 @@ Tot error es respon com a `application/problem+json` (RFC 9457):
 
 Afegir un codi: llença la classe existent amb el `code` nou des de `domain`/`application`, registra'l al [catàleg de codis](../.agents/skills/gestio-errors/references/cataleg-codis.md) i afegeix-ne els textos ca/es/en al frontend. Mai es reanomena un `code` publicat.
 
+## Planificador
+
+APScheduler (`AsyncIOScheduler`) s'executa dins del procés de l'API: s'inicia al *lifespan* de FastAPI i s'atura a l'aturada. No hi ha *job store*: les tasques es registren a l'arrencada.
+
+| Variable | Per defecte | Significat |
+|---|---|---|
+| `SCHEDULER_ENABLED` | `true` | amb `false` no s'inicia el planificador ni apareix a `/api/health` |
+| `SCHEDULER_TIMEZONE` | `UTC` | fus horari IANA del planificador |
+
+**Registrar una tasca** (l'únic lloc): afegeix una línia a `register_jobs` de `app/infrastructure/scheduler/jobs.py`, amb el port `JobScheduler` (`app/domain/scheduler/ports.py`):
+
+```python
+def register_jobs(scheduler: JobScheduler) -> None:
+    scheduler.add_interval_job("purge-expired-posts", purge_service.run, seconds=3600)
+```
+
+- La tasca és una `async def` sense arguments (construeix-ne el service amb els mateixos providers que l'API, [ADR-0017](../obsidian_vault/decisions/0017-injeccio-de-dependencies-i-services-singleton.md)); s'executa al bucle d'esdeveniments, per tant no ha de bloquejar.
+- Cada tasca s'executa amb `max_instances=1` i `coalesce=True`: una tasca lenta no se solapa amb si mateixa i les execucions perdudes es fusionen.
+- Una excepció es registra al log (JSON, camp `job` amb el nom) i no atura ni el planificador ni l'API.
+- `/api/health` informa del component `scheduler` mentre està activat.
+- Se suposa un únic procés d'API; amb diverses rèpliques caldria un bloqueig distribuït.
+
+Els logs (també els d'uvicorn) s'escriuen a stderr com un objecte JSON per línia, amb `correlation_id` quan n'hi ha (`app/infrastructure/logging.py`). Un `SCHEDULER_TIMEZONE` desconegut falla a l'arrencada amb un error de configuració.
+
 ## Contractes de servei (Spotwise, grup 21B)
 
 - **Proveïm:** `GET /api/events/active` i `GET /api/events/upcoming` retornen els esdeveniments astronòmics rellevants (títol, descripció breu, categoria com `lunar`, `solar`, `meteor_shower`).
@@ -150,7 +174,7 @@ Afegir un codi: llença la classe existent amb el `code` nou des de `domain`/`ap
 
 ## Executar i testejar
 
-Prerequisit: [`uv`](https://docs.astral.sh/uv/). La versió de Python (3.14) la fixa `.python-version` i `uv` la instal·la si cal.
+Prerequisit: [`uv`](https://docs.astral.sh/uv/). La versió de Python (3.14.9) la fixa `.python-version` i `uv` la instal·la si cal.
 
 ```bash
 cd backend                    # des de l'arrel del repositori
@@ -185,6 +209,105 @@ uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 
 - **Cobertura:** l'informe es publica com a artefacte `backend-coverage` (`coverage.xml`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
 - **Serveis:** PostgreSQL (PostGIS 18) i Redis 8 s'aixequen sols com a service containers a la CI. No cal Docker Compose ni `.env`.
+
+## Redis
+
+Redis només és una cache amb TTL i el bus pub/sub del xat WebSocket; no hi viu res que hagi de sobreviure (la font de veritat és PostgreSQL). El client asíncron es crea al `lifespan` de FastAPI i es tanca en aturar l'aplicació. Configuració (vegeu `.env.example`):
+
+- `REDIS_HOST`, `REDIS_PORT`: adreça del servidor (`redis://host:port`).
+- `CACHE_DEFAULT_TTL_SECONDS`: TTL per defecte en segons (3600 si no es defineix).
+- `REDIS_SOCKET_TIMEOUT_SECONDS`: timeout de connexió i de socket en segons (2 si no es defineix); un Redis penjat es comporta com un miss.
+
+Per executar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 redis:8` i `REDIS_HOST=localhost`.
+
+**Ports** (`app/domain/shared/ports.py`): `Cache` (`get`, `set` amb un `ttl_seconds` opcional per clau) i `PubSub` (`publish`, `subscribe`). Els adaptadors Redis són a `app/infrastructure/cache/`; s'injecten amb `CacheDep` i `PubSubDep` (també funcionen en endpoints WebSocket).
+
+**Cache lazy:** `get_or_load(cache, key, load, adapter, ttl_seconds=None)` (`app/application/shared/cache.py`) retorna el valor de la cache o crida `load`, el desa i el retorna. Si Redis cau, `RedisCache` registra un avís i es comporta com una fallada, de manera que la dada s'obté igualment de la font (cap HTTP 500).
+
+**Convenció de claus:** qui crida fa servir `<domini>:<id>` i l'adaptador ho desa com `cache:<domini>:<id>`, p. ex. `cache:apod:2026-10-05`. Cada funcionalitat tria el seu TTL.
+
+**Pub/sub:** `async with pubsub.subscribe(canal) as missatges:` dona els missatges publicats després d'entrar al bloc; tots els subscriptors del canal reben cada missatge i els d'altres canals no. Si Redis falla es llança `ExternalServiceError` (`PUBSUB_UNAVAILABLE`, HTTP 503).
+
+Els tests d'integració (`tests/integration/test_redis.py`) s'executen si hi ha `REDIS_HOST`; la CI aixeca Redis 8.
+
+## APOD (NASA)
+
+`GET /api/apod` retorna la imatge astronòmica del dia de la NASA; `GET /api/apod?date=AAAA-MM-DD`, la d'aquella data. L'adaptador (`app/infrastructure/apod/nasa_provider.py`) la busca en aquest ordre:
+
+1. **Redis** (`cache:apod:<data>`, TTL 24 h).
+2. **PostgreSQL** (taula `apod`, una fila per data): s'hi desa cada APOD rebut de la NASA, i si hi és, es torna a posar a Redis.
+3. **NASA**: la resposta es desa a PostgreSQL i a Redis. L'API de la NASA (`https://api.nasa.gov/planetary/apod`) ja no retorna l'APOD real (vegeu a sota), així que l'adaptador llegeix primer el **feed RSS** `https://science.nasa.gov/feed/apod-basic/` (no documentat; només conserva els últims **30 dies**, ignora qualsevol filtre de data i aquí no porta vídeos) i, si falla, l'API JSON com a alternativa (p. ex. dates de més de 30 dies).
+
+Sense data, es busca el d'avui (UTC) a Redis i PostgreSQL; si no hi és, es demana a la NASA l'últim publicat. Si la NASA falla (error, timeout o resposta inservible), es retorna la dada guardada: l'APOD d'aquella data o, per a avui, l'últim desat. Sense res guardat, la resposta és 503 `APOD_UNAVAILABLE`. Si Redis cau, la petició continua amb PostgreSQL i la NASA.
+
+Perquè no es cridi la NASA a cada petició, dues respostes es guarden a Redis **15 minuts** (`RETRY_AFTER_SECONDS`): el resultat d'avui mentre la NASA encara no l'ha publicat (`cache:apod:today:<data>`) i una crida fallida a la NASA (`cache:apod:unavailable:<data|latest>`), que no es repeteix fins que caduca.
+
+Configuració (`.env`):
+
+| Variable | Per defecte | Significat |
+|---|---|---|
+| `NASA_API_KEY` | (obligatòria) | Clau d'[api.nasa.gov](https://api.nasa.gov). En local val `DEMO_KEY` (amb límit de peticions). S'envia a la capçalera `X-Api-Key`, mai a la URL, perquè no surti als logs. |
+| `NASA_CONNECT_TIMEOUT_SECONDS` | `3` | Timeout de connexió |
+| `NASA_TIMEOUT_SECONDS` | `10` | Timeout total d'una petició (sense reintents) |
+| `NASA_APOD_FEED_URL` | `https://science.nasa.gov/feed/apod-basic/` | Feed RSS de l'APOD (es prova primer). Opcional, només https. |
+| `NASA_APOD_API_URL` | `https://api.nasa.gov/planetary/apod` | API JSON de la NASA (alternativa). Opcional, només https. `NASA_API_KEY` s'envia a aquesta URL: apunta-la només a un host de confiança. |
+
+L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NASA_API_KEY`; mai facis commit d'una clau real.
+
+> Ara mateix l'API de la NASA respon amb un farciment en lloc de l'APOD (el logotip de NASA Science i un text genèric, observat el 2026-10-21; l'APOD s'ha mudat a science.nasa.gov). Per això el feed RSS va primer. El client continua rebutjant el farciment (també al feed), així que mai es desa.
+>
+> Límits del feed: només es guarden imatges (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo es descarta (`APOD_UNAVAILABLE` si l'API tampoc pot respondre). La data d'una entrada és el dia UTC de la publicació i el text d'`explanation` i `copyright` es converteix d'HTML a text pla. La fallada d'una crida es guarda 15 minuts només quan fallen el feed **i** l'API.
+
+## Autenticació
+
+L'app inicia la sessió amb Google (OAuth2 + PKCE) i envia l'`id_token` de Google al backend, que mai rep el codi d'autorització ni desa cap contrasenya ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). El backend en comprova el token i emet una sessió pròpia.
+
+**Flux:**
+
+1. `POST /api/auth/google` amb `{"id_token": "<token de Google>", "language": "ca"}` (`language` és opcional).
+2. `GoogleJwksVerifier` comprova la signatura RS256 amb les claus públiques de Google (JWKS, en memòria durant 1 hora; un `kid` desconegut provoca una descàrrega nova, com a màxim un cop per minut), l'emissor, l'audiència (un dels clients de `GOOGLE_CLIENT_IDS`), la caducitat i que el correu estigui verificat. Si no: 401 `INVALID_GOOGLE_TOKEN`. Si Google no respon i no hi ha claus en memòria: 503 `IDENTITY_PROVIDER_UNAVAILABLE`.
+3. El port `AccountGateway` dona d'alta el compte al primer accés i retorna el seu estat: suspès o banejat → 403 `ACCOUNT_SUSPENDED`; esborrat → 403 `ACCOUNT_DELETED`.
+4. El backend emet dos JWT signats amb HS256 i `JWT_SECRET`: un access token (15 minuts) i un refresh token (30 dies), amb les claims `sub` (el `google_sub`), `jti` (únic per token), `sid` (identificador de sessió, compartit per l'access i el refresh d'un parell i mantingut per `refresh`), `type` (`access` o `refresh`), `iat` i `exp`. Cadascun es registra a Redis com a `session:<type>:<jti>` amb un TTL igual a la seva durada, i s'apunta a l'índex de l'usuari `user_sessions:<sub>` (membres `<sid>:<type>:<jti>`).
+5. Resposta `200`: `{"access_token", "refresh_token", "token_type": "bearer", "expires_in"}` (`expires_in` en segons).
+
+Un token és vàlid només si la signatura i la caducitat són correctes **i** la seva clau existeix a Redis. Esborrar la clau revoca el token a l'instant; si Redis es reinicia, les sessions es perden i els usuaris tornen a iniciar sessió amb Google. Si Redis no està disponible, els endpoints responen 503 `SESSION_UNAVAILABLE`.
+
+**Renovació:** `POST /api/auth/refresh` amb `{"refresh_token": "..."}` retorna un parell nou i esborra el refresh anterior de Redis; tornar-lo a usar retorna 401 `INVALID_SESSION`.
+
+**Configuració** (`.env.example`; `AuthSettings` a `app/infrastructure/auth/config.py`):
+
+| Variable | Significat |
+|---|---|
+| `GOOGLE_CLIENT_IDS` | Audiències (`aud`) acceptades del token de Google: els clients OAuth de l'app (web, Android, iOS), separats per comes |
+| `JWT_SECRET` | Clau HS256, d'almenys 32 caràcters; mai no se'n versiona una de real |
+| `ACCESS_TOKEN_MINUTES` | Durada de l'access token (15 per defecte) |
+| `REFRESH_TOKEN_DAYS` | Durada del refresh token (30 per defecte) |
+
+**Protegir un endpoint:** afegeix `CurrentSessionDep`. Llegeix `Authorization: Bearer <access token>` i retorna les `SessionClaims`. Sense capçalera, amb un token invàlid o revocat, o amb un refresh token, respon 401 `INVALID_SESSION`.
+
+```python
+from app.infrastructure.auth.dependencies import CurrentSessionDep
+
+
+@router.get("/me")
+async def me(session: CurrentSessionDep) -> MeResponse:
+    return MeResponse(google_sub=session.sub)  # sub is the user's google_sub
+```
+
+**Usuaris i alta (US #45).** El port `AccountGateway` l'implementa `UserAccountGateway` (`app/infrastructure/users/`), que delega a `UserService.sign_in` (`app/application/users/`):
+
+- **Primer accés:** un `google_sub` que no existeix crea l'usuari (rol `user`, nom i avatar del perfil de Google). L'`language` opcional del cos del login (`ca`, `es` o `en`; qualsevol altre valor o l'absència vol dir `ca`) només es desa llavors. L'insert és `INSERT … ON CONFLICT DO NOTHING`, de manera que dos primers accessos simultanis deixen un sol usuari.
+- **Accés recurrent:** no es crea cap usuari nou; s'actualitza `last_login_at`.
+- **Correu d'un altre compte:** si el correu ja pertany a un usuari vinculat a un altre `google_sub`, 409 `EMAIL_ALREADY_REGISTERED` (les identitats no es vinculen automàticament).
+- **Esborrat, suspès o banejat:** 403 i no es crea ni s'actualitza res; el `google_sub` d'un compte esborrat queda reservat.
+
+**Usuari actual:** `GET /api/users/me` retorna `id`, `email`, `display_name`, `avatar_url`, `preferred_language` i `role` del propietari de la sessió. 401 `INVALID_SESSION` sense sessió vàlida; 403 `ACCOUNT_SUSPENDED` o `ACCOUNT_DELETED` si el compte no es pot fer servir.
+
+**Tancament de sessió:** `POST /api/auth/logout` (capçalera `Authorization: Bearer <token>`) revoca la sessió sencera, l'access i el refresh, amb el `sid` que comparteixen (`SessionStore.revoke_session`) i respon 204. És idempotent: un token caducat, invàlid o ja revocat, o cap token, també respon 204. La suspensió i el baneig (#78, #102) usen `SessionStore.revoke_all(sub)`; el refresh falla llavors amb 401 perquè la seva clau ja no hi és.
+
+Als tests fes servir `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` mostra el flux complet amb Google simulat amb `respx`.
+
+Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) són a `app/application/auth/errors.py` i al catàleg d'errors. Els tres que també llança `users` (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) es defineixen a `app/application/shared/error_codes.py` i `AccountStatus` a `app/domain/shared/account.py`, de manera que `auth` i `users` no s'importen mai entre ells a `domain` ni a `application` (`tests/architecture`); `main.py` els compon passant `UserAccountGateway` a `build_auth_service`.
 
 ## Testing i qualitat
 
