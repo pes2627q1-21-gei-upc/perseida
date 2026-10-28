@@ -103,6 +103,8 @@ jobs:
             echo "::error::Missing ANDROID_RELEASE_CERT_SHA1 secret in android-release environment"
             exit 1
           }
+          t          echo "APK certificate SHA-1: $ACTUAL"
+          echo "Configured certificate SHA-1: $EXPECTED"
           test "$ACTUAL" = "$EXPECTED" || {
             echo "::error::APK certificate SHA-1 does not match the configured release certificate"
             exit 1
