@@ -73,7 +73,16 @@ jobs:
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
           chmod 600 "$ANDROID_KEYSTORE_PATH"
           test -s "$ANDROID_KEYSTORE_PATH"
-
+      - name: Diagnose release keystore certificate
+        run: |
+          set -euo pipefail
+          keytool -list -v \
+            -keystore "$ANDROID_KEYSTORE_PATH" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" \
+            | grep -E 'Alias name:|SHA1:|SHA256:'
+          echo "Diagnostic complete; stopping before the long build."
+          exit 1
       - name: Generate Android project
         working-directory: frontend
         env:
