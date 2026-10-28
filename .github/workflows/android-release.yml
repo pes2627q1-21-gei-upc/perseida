@@ -113,33 +113,16 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          
           from pathlib import Path
           import re
 
           path = Path("frontend/android/app/build.gradle")
           text = path.read_text()
 
-          if "signingConfigs {" not in text:
-              android_match = re.search(r'\bandroid\s*\{', text)
-              if not android_match:
-                  raise SystemExit("No se encuentra el bloque android")
-
-              signing = """
-              signingConfigs {
-                  release {
-                      storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
-                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
-                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
-                  }
-              }
-          """
-              pos = android_match.end()
-              text = text[:pos] + signing + text[pos:]
-
-          build_match = re.search(r'\bbuildTypes\s*\{', text)
-          if not build_match:
-              raise SystemExit("No se encuentra buildTypes")
+          signing_match = re.search(r'\bsigningConfigs\s*\{', text)
+          if not signing_match:
+              raise SystemExit("No se encuentra signingConfigs")
 
           def find_block_end(source, opening):
               depth = 1
@@ -151,6 +134,52 @@ jobs:
                       if depth == 0:
                           return i
               raise SystemExit("Bloque Gradle sin cerrar")
+
+          signing_open = text.find("{", signing_match.start())
+          signing_end = find_block_end(text, signing_open)
+          signing_body = text[signing_open + 1:signing_end]
+
+          release_signing = re.search(r'\brelease\s*\{', signing_body)
+          if release_signing:
+              release_open = signing_body.find("{", release_signing.start())
+              release_end = find_block_end(signing_body, release_open)
+              release_body = signing_body[release_open + 1:release_end]
+              release_body = re.sub(
+                  r'^\s*(storeFile|storePassword|keyAlias|keyPassword)\s+.*$',
+                  '',
+                  release_body,
+                  flags=re.MULTILINE,
+              )
+              release_body += """
+                      storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+              """
+              signing_body = (
+                  signing_body[:release_open + 1]
+                  + release_body
+                  + signing_body[release_end:]
+              )
+          else:
+              signing_body += """
+              release {
+                  storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                  storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                  keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                  keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+              }
+          """
+
+          text = (
+              text[:signing_open + 1]
+              + signing_body
+              + text[signing_end:]
+          )
+
+          build_match = re.search(r'\bbuildTypes\s*\{', text)
+          if not build_match:
+              raise SystemExit("No se encuentra buildTypes")
 
           build_open = text.find("{", build_match.start())
           build_end = find_block_end(text, build_open)
@@ -164,28 +193,23 @@ jobs:
           release_end = find_block_end(build_body, release_open)
           release_body = build_body[release_open + 1:release_end]
 
-          if "signingConfig" in release_body:
-              release_body = re.sub(
-                  r'^\s*signingConfig\s+.*$',
-                  '',
-                  release_body,
-                  flags=re.MULTILINE,
-              )
+          release_body = re.sub(
+              r'^\s*signingConfig\s+signingConfigs\.\w+\s*$',
+              '',
+              release_body,
+              flags=re.MULTILINE,
+          )
+          release_body += "\n            signingConfig signingConfigs.release\n"
 
-          release_body += "\n                signingConfig signingConfigs.release\n"
           build_body = (
               build_body[:release_open + 1]
               + release_body
               + build_body[release_end:]
           )
-          text = (
-              text[:build_open + 1]
-              + build_body
-              + text[build_end:]
-          )
+          text = text[:build_open + 1] + build_body + text[build_end:]
 
           path.write_text(text)
-          print("Configuración de firma release aplicada")
+          print("Release signing configurado con el keystore esperado")
           PY
 
       - name: Build release APK
