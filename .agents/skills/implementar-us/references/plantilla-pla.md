@@ -75,7 +75,7 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 ## Pendent humà (no marcat com a fet)
 - [ ] PR oberta per la persona (cap push/PR fet per l'agent)
 - [ ] Aprovada per algú que no sigui l'autora
-- [ ] CI verda i Quality Gate de SonarQube Cloud (0 bugs/vulnerabilitats, duplicació ≤3 %, cobertura ≥70 %, hotspots revisats, qualificació A)
+- [ ] CI verda i Quality Gate de SonarQube Cloud (0 bugs/vulnerabilitats, duplicació ≤3 %, cobertura del codi nou ≥90 %, hotspots revisats, qualificació A)
 - [ ] Fusió a `develop`
 - [ ] Subtasques tancades i US a `Done` a Taiga
 
