@@ -112,7 +112,28 @@ jobs:
           EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
           EXPO_PUBLIC_API_BASE_URL: ${{ env.EXPO_PUBLIC_API_BASE_URL }}
         run: pnpm exec expo prebuild --platform android --clean
+      - name: Configure release signing
+        run: |
+          set -euo pipefail
 
+          cat >> frontend/android/app/build.gradle <<'GRADLE'
+
+          android {
+            signingConfigs {
+              release {
+                storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+              }
+            }
+          }
+          GRADLE
       - name: Build release APK
         working-directory: frontend/android
         run: ./gradlew --no-daemon assembleRelease
