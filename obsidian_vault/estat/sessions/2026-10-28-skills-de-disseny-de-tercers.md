@@ -27,10 +27,10 @@ Que el frontend aprofiti les skills d'Emil Kowalski, Impeccable i Taste **sense 
 
 - Opcionals i a nivell d'usuari, mai copiades al repo; les instal·la la persona.
 - El brief guanya sempre; Taste no dissenya, Impeccable no escriu `PRODUCT.md`/`DESIGN.md` i Emil no toca el que l'equip va decidir el 2026-10-13.
+- Decidit amb la persona: pàgines públiques de TG-343 en versió sobria de Frutiger; sense `PRODUCT.md`/`DESIGN.md`; curves i molles d'Emil a `tokens.md`; tot a la PR #52.
 
 ## Pendent
 
 - [ ] Validar l'ADR-0027 (estat «proposada») amb l'equip a la revisió de la PR #52.
-- [ ] Validar els valors marcats *(proposta a validar)*: equivalències de moviment, allow-list de Taste i plataforma d'Impeccable.
+- [ ] Validar al dispositiu les curves i molles de `tokens.md` (`easing`, `springUi`, `pressScale`), l'allow-list de Taste i la plataforma d'Impeccable.
 - [ ] Provar l'inspector de Taste sobre l'admin web (`--allow` no provat en aquest repo).
-- [ ] Decidir si les pàgines públiques de TG-343 segueixen Frutiger Cosmo (recomanat).

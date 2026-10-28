@@ -51,9 +51,16 @@ Revisades una a una, no s'hi poden afegir sense més:
 - **Fer d'Impeccable la font de veritat** (`PRODUCT.md`/`DESIGN.md`): duplicaria el vault i `tokens.md`.
 - **No integrar-ne cap**: es renuncia a una millora de moviment i d'auditoria gairebé gratuïta.
 
+## Decisions preses amb la persona (2026-10-28)
+
+- **Pàgines públiques de TG-343**: versió sobria de Frutiger Cosmo (mateixos colors i tipografies, sense cel ni vidre).
+- **Impeccable**: sense `PRODUCT.md`/`DESIGN.md`; només la instrucció a `AGENTS.md`.
+- **Moviment**: les curves i molles d'Emil s'afegeixen a `tokens.md` com a proposta a validar al dispositiu.
+- **Abast**: s'inclou a la PR #52 (TG-342) en lloc d'una PR pròpia.
+
 ## Pendent de validar per l'equip
 
-Valors marcats *(proposta a validar)* a `skills-de-tercers.md`: equivalències de moviment amb Emil; allow-list de Taste; si les pàgines públiques de TG-343 (inici, privadesa, condicions) segueixen Frutiger Cosmo (recomanat); quina plataforma declararia Impeccable (el llenguatge visual és propi i igual a iOS i Android); i si cal una `PRODUCT.md`/`DESIGN.md` prima que apunti al vault.
+La *allow-list* de Taste (no provada en aquest repo), la plataforma que declararia Impeccable (el llenguatge visual és propi i igual a iOS i Android) i els valors de moviment, un cop provats en una *build* de release.
 
 ## US de Taiga relacionades
 
