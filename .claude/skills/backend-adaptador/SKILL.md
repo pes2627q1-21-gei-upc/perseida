@@ -39,7 +39,7 @@ Preguntes d'aquesta skill:
 3. Recursos amb cicle de vida (engine, pool Redis, client httpx): crea'ls al `lifespan` i injecta'ls; no els creïs per petició ni com a global mutable.
 4. Provider `@lru_cache` + `Annotated[..., Depends(...)]`; en routers/WebSocket la DI és sempre `Depends()`.
 5. Errors: l'adaptador tradueix errors tècnics a errors de domini/aplicació documentats al port. Les respostes HTTP (RFC 9457, `code`, 500 sense detalls, `correlation_id`) i els exception handlers es defineixen segons la skill `gestio-errors`; no els dupliquis. Cap `HTTPException` fora d'infrastructure.
-6. Escriu els tests d'integració (DESPRÉS del codi).
+6. Els tests d'integració s'escriuen **abans**, en vermell (commit `test:`), amb la skill `testing-integracio`; després l'adaptador fins al verd.
 7. Passa `ruff`, `mypy` strict i `pytest`.
 
 ## Subsecció A: repositori SQLModel async
@@ -156,7 +156,7 @@ async def subscribe(
 - Client extern: èxit, cache hit/miss, extern caigut amb cache (sense 500), extern caigut sense cache, timeout.
 - Router: camí feliç, validació, 401/403 sense sessió, format d'error (`gestio-errors`).
 - NFR: proximitat ≤ 150 ms i cache ≤ 200 ms (mediana de diverses peticions).
-- Cobertura infrastructure ≥ 50 % (codi nou ≥ 70 %). Fixtures a `backend/tests/fixtures/`.
+- Cobertura: 80 % global i 90 % del codi nou (política TDD, `testing-tdd`). Fixtures a `backend/tests/fixtures/`.
 
 ## Checklist final
 

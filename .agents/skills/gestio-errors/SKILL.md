@@ -45,7 +45,7 @@ Preguntes d'aquesta skill (abans d'escriure):
 4. **Handler** a `infrastructure/api/error_handlers.py`: tradueix la jerarquia a resposta RFC 9457 (vegeu més avall). Cap `HTTPException` fora d'infrastructure.
 5. **OpenAPI**: documenta les respostes d'error de l'endpoint perquè `openapi-typescript` generi els tipus.
 6. **Frontend**: afegeix les claus i18n de cada `code` (ca/es/en) i comprova el mapatge (vegeu més avall).
-7. **Tests** (després del codi) i **checklist**.
+7. **Tests** (escrits abans, en vermell, amb `testing-tdd`) i **checklist**.
 
 ## Backend
 
@@ -110,7 +110,7 @@ L'app és "tonta": no decideix res, només mostra bé l'error.
 6. **Offline/xarxa**: toast d'error de xarxa; la cua/cache SQLite segueix ADR-0011 (outbox, last-write-wins). Quina UX tenen les mutacions encuades fallides: pregunta a l'humà.
 7. Tots els textos nous, en ca/es/en (test que ho verifica).
 
-## Tests (després del codi)
+## Tests (primer, en vermell)
 
 - Domini: l'entitat llança el `DomainError` amb el `code` esperat (sense mocks).
 - Handlers: `httpx.AsyncClient` comprova status, `Content-Type: application/problem+json`, camps i `code`; el 500 no filtra detalls ni traça i porta `correlation_id`.
@@ -118,7 +118,7 @@ L'app és "tonta": no decideix res, només mostra bé l'error.
 - Endpoints privats sense sessió: 401/403.
 - Frontend (Jest + RNTL): middleware -> `AppError`; mapatge `code` -> text per als 3 idiomes; `code` desconegut -> genèric; toast amb `role="alert"`; tots els `code` del catàleg tenen clau ca/es/en.
 
-Nota: tests després del codi (ADR-0019, que supera la part TDD d'ADR-0004). Si l'humà prefereix TDD, segueix-lo.
+Nota: TDD estricte (ADR-0028, que substitueix ADR-0019): el test en vermell va en un commit `test:` abans del `feat:`. Skill `testing-tdd`.
 
 ## Checklist final
 

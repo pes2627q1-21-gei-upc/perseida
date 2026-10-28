@@ -18,7 +18,7 @@ Segueix `AGENTS.md` i la skill `vault-context`. Aquesta skill orquestra; no subs
 5. **Diff petit.** Un criteri → el canvi mínim que el fa passar. Cap refactor ni neteja aliena a la US.
 6. **Una dependència nova és l'últim recurs** i sempre es pregunta (regla 7 d'AGENTS.md; versió fixada i existència verificada).
 7. **Plans d'una pàgina.** Si el pla toca més fitxers o capes del que la US justifica, retalla'l i torna-ho a mirar.
-8. **Els tests surten dels criteris** (ADR-0019: després del codi). No es fan tests per fer volum de cobertura.
+8. **Els tests surten dels criteris i van primer** (TDD estricte, ADR-0028: test en vermell en un commit `test:` abans del `feat:`). No es fan tests per fer volum de cobertura.
 
 ## Protocol de dubtes (OBLIGATORI)
 
@@ -70,11 +70,12 @@ Escriu el pla amb `references/plantilla-pla.md`: criteris → canvi mínim → f
 | Joc, quiz, gamificació, animació | `frontend-jocs-dinamics` |
 | **Qualsevol cosa visual** | `estetica-frutiger-cosmo` (que orquestra `frontend-design` i `ui-ux-pro-max`) |
 | Docker, CI/CD, desplegament | subagent `devops` |
-| Tests un cop hi ha codi | subagent `qa-tester` |
+| Tests: **abans del codi** (test en vermell, commit `test:`), cicle i capes | subagent `qa-tester` + skill `testing-tdd` (després, `backend`/`frontend` fan el verd) |
+| Integració, mutants, propietats | `testing-integracio`, `testing-mutation`, `testing-property-based` |
 | Revisió abans de lliurar | subagent `reviewer-arquitectura` |
 | Vault | `obsidian-markdown` (`obsidian-bases` per a `.base`, `json-canvas` per a `.canvas`) |
 
-Subagents especialitzats: `backend`, `frontend`, `devops`. **Si la part visual de la US té aspecte nou, el pla inclou les decisions de disseny que calgui preguntar** (element memorable, motiu natural, icones, sons).
+Subagents especialitzats: `backend`, `frontend`, `devops`. **Ordre per a cada criteri: `qa-tester` escriu el test en vermell i el comita (`test:`); després `backend`/`frontend` implementen fins al verd (`feat:`) sense tocar el test; després refactor.** **Si la part visual de la US té aspecte nou, el pla inclou les decisions de disseny que calgui preguntar** (element memorable, motiu natural, icones, sons).
 
 > **PORTA:** presenta el pla a la persona i **espera la seva aprovació explícita**. No escriguis ni una línia de codi abans. Si el canvia, actualitza'l i torna-ho a presentar.
 
@@ -88,6 +89,7 @@ Límit: **no moguis mai la US a `Done`** (requereix PR aprovada per una altra pe
 
 - Treballa a `feature/*` (GitFlow; màxim una US per branca). **No treballis a `main`, `develop`, `release/*` ni `hotfix/*`.** Si ets en una altra branca, pregunta.
 - Delega als subagents/skills de la taula; cada skill porta el seu propi protocol de dubtes i la seva checklist.
+- **TDD estricte:** per a cada criteri, primer el test en vermell (comprova que falla pel motiu correcte) i commit `test:`; després el codi (`feat:`/`fix:`) i el refactor (`refactor:`). El `test:` va sempre abans del `feat:`; no hi ha cap script que ho verifiqui: ho comprova el revisor.
 - Commits atòmics `TG-NN tipus(àmbit): resum`, un canvi lògic per commit, seguint les instruccions de la persona sobre l'atribució. **Si no saps el `TG-NN`, pregunta-ho.** Cap secret, `.env`, token ni dada personal (regla 6).
 - **Mai push, merge ni PR** si la persona no ho demana explícitament.
 - Si canvia l'arquitectura o es pren una decisió rellevant, actualitza el vault **abans** de fusionar (DoD), amb `obsidian-markdown`.
@@ -100,7 +102,9 @@ Dos portes, les dues han de passar:
 
 **B. DoD verificable localment.**
 - Lint, tipus i tests als directoris tocats (ordres dels README); cap test en vermell.
-- Cobertura del codi nou ≥ 70 % i Quality Gate local raonable: 0 bugs/vulnerabilitats, duplicació ≤ 3 % (`convencions/qualitat.md`).
+- Cobertura: **≥ 90 % del codi nou i ≥ 80 % global** (la CI de la PR ha de fallar si no es compleix; implantació prevista a les US #359-#362, mentre tant es mesura en local) i Quality Gate local raonable: 0 bugs/vulnerabilitats, duplicació ≤ 3 % (`convencions/qualitat.md`).
+- Tests unitaris de tots els components modificats; test d'integració si toca persistència o externs; test de regressió si és un bug; mutation testing (≥ 70 %) als fitxers de domini canviats (`testing-mutation`; eina prevista).
+- L'historial mostra `test:` abans de `feat:`.
 - `reviewer-arquitectura` sobre el diff: cap troballa CRÍTICA ni ALTA oberta.
 - Vault actualitzat si cal; entrada a `obsidian_vault/estat/sessions/` (regla 4).
 - Si tens tocat skills o subagents: `node .agents/scripts/sync-skills.mjs` i `node .agents/scripts/sync-agents.mjs` (i els `--check`).
