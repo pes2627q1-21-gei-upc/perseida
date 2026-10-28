@@ -82,10 +82,12 @@ pnpm install --frozen-lockfile    # instala las dependencias exactamente como en
 pnpm expo start                   # arranca el servidor de desarrollo de Expo (emulador Android / dispositivo; Expo Go debe ser del SDK 58)
 pnpm web                          # la misma app en el navegador (React Native Web)
 pnpm lint                         # ESLint + Prettier (también comprueba el formato)
-pnpm tsc                          # comprobación de tipos estricta (tsc --noEmit)
+pnpm typecheck                    # comprobación de tipos estricta (tsc --noEmit)
 pnpm test                         # Jest (preset jest-expo)
 pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.info)
 ```
+
+El script de comprobación de tipos se llama `typecheck` y no `tsc`: `expo-doctor` (que EAS Build ejecuta primero) avisa cuando un script de `package.json` tiene el mismo nombre que un binario de `node_modules/.bin`, y `tsc` es el binario de TypeScript. `pnpm tsc` sigue funcionando porque pnpm recurre al binario y da el mismo resultado aquí (`expo/tsconfig.base` ya fija `noEmit`), pero usa `pnpm typecheck`, que es el comando documentado.
 
 Releases: en cada release fusionada en `main`, GitHub Actions publica el **APK** en una release de GitHub.
 
@@ -165,7 +167,7 @@ Comandos exactos (desde `frontend/`, los mismos que el workflow, cada uno en un 
 cd frontend                       # desde la raíz del repositorio
 pnpm install --frozen-lockfile    # falla si pnpm-lock.yaml no está al día
 pnpm lint                         # ESLint + Prettier
-pnpm tsc                          # comprobación de tipos estricta
+pnpm typecheck                    # comprobación de tipos estricta
 pnpm test --coverage --ci         # Jest + informe de cobertura
 ```
 

@@ -87,7 +87,7 @@ Prerequisites: [Docker](https://docs.docker.com/get-docker/), [`uv`](https://doc
 3. **Backend.** From `backend/`: `cp .env.example .env` (with `POSTGRES_HOST=localhost`), `uv sync`, `uv run alembic upgrade head` and `uv run uvicorn app.main:app --reload`. The API is at `http://127.0.0.1:8000/api/docs`. Details and checks: [backend README](backend/README.md#run-and-test).
 4. **Frontend.** From `frontend/`: `cp .env.example .env`, set `EXPO_PUBLIC_API_BASE_URL` (Android emulator: `http://10.0.2.2:8000`; physical phone: your computer's LAN IP) and, for Google sign-in, the `EXPO_PUBLIC_GOOGLE_*` client ids (public values, listed in the GitHub *Actions variables*). Then `pnpm install --frozen-lockfile` and `pnpm expo start` (or `pnpm web`).
 5. **Google sign-in on the phone** needs a native build, not Expo Go: `pnpm expo run:android`. See the [frontend README](frontend/README.md#run-and-test), which also explains how to build the APK in the cloud with EAS (no Android Studio).
-6. **Before opening a PR:** `uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest` in `backend/`, and `pnpm lint && pnpm tsc && pnpm test` in `frontend/`.
+6. **Before opening a PR:** `uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest` in `backend/`, and `pnpm lint && pnpm typecheck && pnpm test` in `frontend/`.
 
 ## PostgreSQL development
 
