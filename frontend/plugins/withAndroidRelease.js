@@ -4,13 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { withAppBuildGradle, withDangerousMod } = require('expo/config-plugins');
 
-// Known risk: 9.4.1 is affected by GHSA-j5m7-59rp-24f5, GHSA-xwqc-3h47-hg64 and GHSA-mvvg-497x-hmj8
-// (fixed in 8.14.6 and 9.8.1), but no fixed version builds this app: the AGP of React Native 0.88
-// needs Gradle >= 9.4.1, and Gradle 9.8 ships Kotlin 2.4, which the React Native and Expo Gradle
-// plugins (Kotlin 2.2.0) cannot read. Move to >= 9.8.1 when they upgrade Kotlin.
-// Checksum from services.gradle.org.
-const GRADLE_VERSION = '9.4.1';
-const GRADLE_SHA256 = '2ab2958f2a1e51120c326cad6f385153bb11ee93b3c216c5fccebfdfbb7ec6cb';
+// Gradle 9.8.2 is the target required by TG-334. Validate the full Android build in CI.
+// Checksum obtained from services.gradle.org.
+const GRADLE_VERSION = '9.8.2';
+const GRADLE_SHA256 = '21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607';
 
 // Gradle reads the keystore and its passwords from the environment at build time: no value is
 // ever written into build.gradle. Without ANDROID_KEYSTORE_PATH the release keeps the debug key.

@@ -59,14 +59,14 @@ describe('addReleaseSigning', () => {
 });
 
 describe('pinGradleVersion', () => {
-  it('pins Gradle 9.4.1 with its checksum and keeps the other properties', () => {
+  it('pins Gradle 9.8.2 with its checksum and keeps the other properties', () => {
     const result = pinGradleVersion(WRAPPER);
 
     expect(result).toContain(
-      'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.4.1-bin.zip',
+      'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.8.2-bin.zip',
     );
     expect(result).toContain(
-      'distributionSha256Sum=2ab2958f2a1e51120c326cad6f385153bb11ee93b3c216c5fccebfdfbb7ec6cb',
+      'distributionSha256Sum=21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607',
     );
     expect(result).toContain('networkTimeout=10000');
     expect(result).not.toContain('9.0.0');
