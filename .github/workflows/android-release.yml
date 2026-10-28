@@ -105,7 +105,10 @@ jobs:
           EXPO_PUBLIC_API_BASE_URL: ${{ env.EXPO_PUBLIC_API_BASE_URL }}
         run: pnpm exec expo prebuild --platform android --clean
 
-      
+      - name: Inspect generated Gradle signing configuration
+        run: |
+          nl -ba frontend/android/app/build.gradle | sed -n '90,145p'
+          
       - name: Configure release signing
         run: |
           set -euo pipefail
