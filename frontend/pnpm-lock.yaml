@@ -54,6 +54,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: 8.71.1
         version: 8.71.1(eslint@8.57.1(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      babel-preset-expo:
+        specifier: 57.0.14
+        version: 57.0.14(69a2845ebd9df6b847e36fb317f3d99a)
       eslint:
         specifier: 8.57.1
         version: 8.57.1(supports-color@10.2.2)
@@ -2104,6 +2107,7 @@ packages:
     resolution: {integrity: sha512-Jc3nByHsmzjakvIrqV3/3viVj+jFw1OCfMc+WpClemwL3/hSrS7ktkVCACSTI7/j+1uH+eHmBJwe1kujDLMnbQ==}
     hasBin: true
     peerDependencies:
+      '@expo/dom-webview': '*'
       '@expo/metro-runtime': '*'
       react: '*'
       react-dom: '*'
@@ -2111,6 +2115,8 @@ packages:
       react-native-web: '*'
       react-native-webview: '*'
     peerDependenciesMeta:
+      '@expo/dom-webview':
+        optional: true
       '@expo/metro-runtime':
         optional: true
       react-dom:
