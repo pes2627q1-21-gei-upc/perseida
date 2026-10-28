@@ -38,7 +38,7 @@ Només els directoris tocats per la PR. Ordres exactes dels README (no les supos
 | Directori | Ordres |
 |---|---|
 | `backend/` | `uv run ruff check .` · `uv run ruff format --check .` · `uv run mypy .` · `uv run pytest` |
-| `frontend/` | `pnpm install --frozen-lockfile` · `pnpm lint` · `pnpm tsc` · `pnpm test --coverage --ci` |
+| `frontend/` | `pnpm install --frozen-lockfile` · `pnpm lint` · `pnpm typecheck` · `pnpm test --coverage --ci` |
 | `.agents/` | `node --test .agents/scripts/*.test.mjs` · `node .agents/scripts/sync-skills.mjs --check` · `node .agents/scripts/sync-agents.mjs --check` |
 
 Informa de cada ordre amb el seu resultat real. Si no pots executar-ne alguna (falten dependències, versions diferents, sense xarxa), digues-ho i no donis la PR per verificada.
