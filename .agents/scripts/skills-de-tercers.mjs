@@ -15,14 +15,14 @@ export const COLLECTIONS = [
     label: 'Emil Kowalski',
     skills: ['emil-design-eng', 'animate-expo'],
     use: 'criteri de moviment i construcció d\'animacions a React Native (animate-expo)',
-    install: 'npx skills@latest add emilkowalski/skills -g -a claude-code -s "*" -y --copy',
+    install: 'npx skills@1.7.4 add emilkowalski/skills -g -a claude-code -s "*" -y --copy',
   },
   {
     id: 'impeccable',
     label: 'Impeccable',
     skills: ['impeccable'],
     use: 'auditoria, crítica UX i passada final (audit, critique, polish)',
-    install: 'npx impeccable@latest install --yes --providers=claude --user --no-hooks',
+    install: 'npx impeccable@4.8.0 install --yes --providers=claude --user --no-hooks',
   },
   {
     id: 'taste',
@@ -30,7 +30,7 @@ export const COLLECTIONS = [
     skills: ['design-taste-frontend'],
     use: 'inspector de navegador per a l\'admin web i les pàgines públiques',
     install:
-      'npx skills@latest add https://github.com/Leonxlnx/taste-skill -g -a claude-code -s design-taste-frontend -y --copy',
+      'npx skills@1.7.4 add https://github.com/Leonxlnx/taste-skill -g -a claude-code -s design-taste-frontend -y --copy',
   },
 ];
 

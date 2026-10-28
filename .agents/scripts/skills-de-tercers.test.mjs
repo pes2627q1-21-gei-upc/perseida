@@ -79,7 +79,7 @@ test('l\'informe llista les ordres només de les pendents', () => {
   const text = buildReport(results);
   assert.match(text, /✔ Emil Kowalski/);
   assert.match(text, /✘ Taste/);
-  assert.match(text, /npx skills@latest add https:\/\/github.com\/Leonxlnx\/taste-skill/);
+  assert.match(text, /npx skills@1.7.4 add https:\/\/github.com\/Leonxlnx\/taste-skill/);
   assert.doesNotMatch(text, /emilkowalski\/skills/);
 });
 

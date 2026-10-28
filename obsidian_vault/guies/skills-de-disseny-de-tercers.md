@@ -26,15 +26,17 @@ Si no les tens, **no et falta res per treballar**: l'agent continua amb les skil
 
 Comprova primer què tens: `node .agents/scripts/skills-de-tercers.mjs`. Les ordres exactes que et manquen les imprimeix ell mateix. Totes instal·len a nivell d'usuari (`~/.claude/skills`):
 
+Les CLI van fixades per versió (`skills@1.7.4`, `impeccable@4.8.0`, comprovades el 2026-10-28). Les skills dels repos s'instal·len de la branca per defecte perquè la CLI `skills add` no documenta com fixar una referència; revisades: Emil `2d22863` (sense tags), Impeccable `skill-v4.8.0` i Taste `v2.1.5`. Revisa'n el contingut abans d'instal·lar.
+
 ```bash
 # Emil Kowalski (15 skills)
-npx skills@latest add emilkowalski/skills -g -a claude-code -s "*" -y --copy
+npx skills@1.7.4 add emilkowalski/skills -g -a claude-code -s "*" -y --copy
 
 # Impeccable (sense hooks)
-npx impeccable@latest install --yes --providers=claude --user --no-hooks
+npx impeccable@4.8.0 install --yes --providers=claude --user --no-hooks
 
 # Taste
-npx skills@latest add https://github.com/Leonxlnx/taste-skill -g -a claude-code -s design-taste-frontend -y --copy
+npx skills@1.7.4 add https://github.com/Leonxlnx/taste-skill -g -a claude-code -s design-taste-frontend -y --copy
 ```
 
 - **Impeccable amb `--no-hooks`**: sense els hooks de disseny, que s'executarien a cada edició. També instal·la quatre agents a `~/.claude/agents`.

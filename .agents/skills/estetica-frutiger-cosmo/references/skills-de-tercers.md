@@ -18,7 +18,7 @@ Són al `~/.claude/skills` de cada persona, no al repo, i **no tothom les té**.
 
 **Si no hi són:**
 1. Continua amb les skills del repo, sense perdre cap pas.
-2. **Suggereix-ho a la persona una sola vegada per sessió**, només si fa feina visual de frontend (no per a backend, infra ni documentació), amb una frase i l'ordre exacta que imprimeix l'script. Exemple: «Pots potenciar el resultat instal·lant les skills d'Emil Kowalski (moviment): `npx skills@latest add emilkowalski/skills -g -a claude-code -s "*" -y --copy`. És opcional».
+2. **Suggereix-ho a la persona una sola vegada per sessió**, només si fa feina visual de frontend (no per a backend, infra ni documentació), amb una frase i l'ordre exacta que imprimeix l'script. Exemple: «Pots potenciar el resultat instal·lant les skills d'Emil Kowalski (moviment): `npx skills@1.7.4 add emilkowalski/skills -g -a claude-code -s "*" -y --copy`. És opcional».
 3. No insisteixis si diu que no. `PERSEIDA_SKILLS_HINT=off` silencia el hook.
 4. **Subagent** (no pot preguntar): afegeix a la sortida un bloc **`SUGGERIMENT PER A L'HUMÀ`** amb la mateixa frase i ordre, al costat de `PREGUNTES PER A L'HUMÀ` si n'hi ha.
 5. No instal·lis res tu mateix sense que ho demani la persona: instal·lar és codi de tercers al seu usuari (vegeu la guia).
