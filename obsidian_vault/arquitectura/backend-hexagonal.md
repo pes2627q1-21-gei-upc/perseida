@@ -43,7 +43,7 @@ flowchart LR
     FCM -.implements.-> PORTS
 ```
 
-- `domain`: entitats riques (validen invariants i multiplicitats), value objects, errors de domini i **ports**. Sense dependència de frameworks, BD ni serveis externs; l'única llibreria externa permesa és Pydantic ([[0016-ports-i-entitats-riques-al-domini]]). Els tests s'escriuen després del codi ([[0019-tests-despres-del-codi]]; vegeu [[0004-arquitectura-hexagonal-i-tdd-al-domini]]).
+- `domain`: entitats riques (validen invariants i multiplicitats), value objects, errors de domini i **ports**. Sense dependència de frameworks, BD ni serveis externs; l'única llibreria externa permesa és Pydantic ([[0016-ports-i-entitats-riques-al-domini]]). Els tests s'escriuen abans del codi, amb TDD estricte ([[0028-tdd-estricte-i-politica-de-testing-avancada]]; vegeu [[0004-arquitectura-hexagonal-i-tdd-al-domini]]).
 - `application`: casos d'ús com a **services singleton** injectats amb `Depends` ([[0017-injeccio-de-dependencies-i-services-singleton]]); orquestren el domini a través dels ports.
 - `infrastructure`: tot el que toca l'exterior: endpoints, WebSockets, persistència, Redis, clients externs i *exception handlers* ([[0018-errors-rfc-9457-amb-codis-estables]]). Implementa els ports del domini.
 
@@ -91,7 +91,7 @@ backend/
 
 ## Qualitat i proves
 
-`ruff` (complexitat màxima 10), `mypy` strict, SonarQube Cloud. Piràmide de tests ~70 % unitaris / ~30 % integració. Cobertura: domini ≥ 80 %, aplicació ≥ 70 %, codi nou de cada PR ≥ 70 %. Llindars NFR: recursos en cache ≤ 200 ms, consultes de proximitat ≤ 150 ms, endpoints privats rebutgen peticions sense sessió vàlida (401/403). Detalls a [[testing]] i [[qualitat]].
+`ruff` (complexitat màxima 10), `mypy` strict, SonarQube Cloud. Piràmide de tests 60 % unitàries / 30 % integració / 10 % E2E. Cobertura: 80 % global i 90 % del codi nou (la CI de la PR ho exigirà; implantació a les US #359-#362); mutation testing al domini (score ≥ 70 %). Llindars NFR: recursos en cache ≤ 200 ms, consultes de proximitat ≤ 150 ms, endpoints privats rebutgen peticions sense sessió vàlida (401/403). Detalls a [[testing]] i [[qualitat]].
 
 ## Enllaços
 
