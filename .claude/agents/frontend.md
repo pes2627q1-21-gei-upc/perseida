@@ -43,11 +43,12 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 - `frontend-formulari`: en qualsevol formulari.
 - `frontend-jocs-dinamics`: en quiz, gamificació, minijocs, visualitzacions i microinteraccions.
 - `gestio-errors`: en tractar errors, toasts, `ErrorBoundary`, offline i claus i18n de `code`.
+- `testing-tdd`: sempre, per al cicle de tests; `testing-property-based` per a lògica crítica del client.
 - **Skills de tercers (opcionals, a nivell d'usuari):** Emil Kowalski, Impeccable i Taste. Mira si hi són (`node .agents/scripts/skills-de-tercers.mjs` o el que digui el hook d'inici) i, si hi són, usa-les només com a reforç i **sota el brief de Perseida**, segons `.agents/skills/estetica-frutiger-cosmo/references/skills-de-tercers.md` (moviment amb `animate-expo`, estrès amb `break-ui`, auditoria amb Impeccable). Si no hi són, continua amb les del repo i inclou a la sortida un `SUGGERIMENT PER A L'HUMÀ` per instal·lar-les. Mai les instal·lis tu.
 
 ## Tests
 
-S'escriuen DESPRÉS del codi (ADR-0019; si l'humà prefereix TDD, segueix-lo): Jest + React Native Testing Library per a hooks i lògica (>= 70% als hooks); components purament visuals exclosos de cobertura; API simulada a `__mocks__`; comprova que tot text UI té ca/es/en. Sense e2e.
+TDD estricte (ADR-0028, que substitueix ADR-0019): el test en vermell s'escriu **abans** del codi (normalment el lliura `qa-tester`) i va en un commit `test:` previ al `feat:`. Implementa el mínim fins al verd i **no toquis el test per fer-lo passar**; si creus que és incorrecte, pregunta. Jest + React Native Testing Library amb queries per rol i etiqueta (`getByRole`, `getByLabelText`); hooks i client simulats amb `jest.mock`; API simulada a `__mocks__`; comprova que tot text UI té ca/es/en. Cada PR inclou unitaris dels components modificats. Cobertura 80 % global i 90 % del codi nou (CI prevista, US #359-#362); components purament visuals exclosos. E2E (Maestro) només als fluxos crítics, previst. Skills: `testing-tdd`, `testing-property-based` (fast-check, previst).
 
 ## Protocol de dubtes (OBLIGATORI)
 
