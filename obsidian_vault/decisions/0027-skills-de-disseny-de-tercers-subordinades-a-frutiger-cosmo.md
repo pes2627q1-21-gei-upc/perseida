@@ -1,10 +1,10 @@
 ---
 titol: "Skills de disseny de tercers, opcionals i subordinades a Frutiger Cosmo"
 tipus: adr
-estat: proposada
+estat: acceptada
 data: "2026-10-28"
 us: ["TG-342"]
-font: "emilkowalski/skills (MIT), pbakaus/impeccable (Apache-2.0), Leonxlnx/taste-skill (MIT); .agents/skills/estetica-frutiger-cosmo/references/skills-de-tercers.md; .agents/scripts/skills-de-tercers.mjs"
+font: "PR #52 (TG-342); emilkowalski/skills (MIT), pbakaus/impeccable (Apache-2.0), Leonxlnx/taste-skill (MIT); .agents/skills/estetica-frutiger-cosmo/references/skills-de-tercers.md; .agents/scripts/skills-de-tercers.mjs"
 etiquetes: [adr, frontend, skills, estetica, agents]
 ---
 
@@ -39,7 +39,7 @@ Revisades una a una, no s'hi poden afegir sense més:
 
 ### Negatives (assumides)
 
-- **Dependència externa no versionada**: el resultat varia segons qui té què i pot canviar quan aquelles skills s'actualitzin. S'ha de revisar `skills-de-tercers.md` si canvien noms o ordres.
+- **Dependència externa només parcialment versionada**: les CLI van fixades (`skills@1.7.4`, `impeccable@4.8.0`, regla 7 d'AGENTS.md), però el contingut de les skills dels repos s'instal·la de la branca per defecte, perquè la CLI `skills add` no documenta com fixar una referència. **Excepció acceptada** a la regla 7 i a l'[[0015-skills-agnostiques-i-vault-en-catala|ADR-0015]] (versió flotant), amb aquest motiu: són opcionals, d'usuari, instal·lades per la persona i mai al repo. Referències revisades el 2026-10-28: Emil `2d22863`, Impeccable `skill-v4.8.0`, Taste `v2.1.5`. El resultat varia segons qui té què i pot canviar quan s'actualitzin. S'ha de revisar `skills-de-tercers.md` si canvien noms o ordres.
 - Impeccable descarrega un binari en el primer ús (verificat amb un *checksum* del seu repo). La instal·lació es fa **sense hooks**.
 - L'allow-list de Taste i l'equivalència de molles amb Emil són un punt de partida **no provat en aquest repo**.
 - Les skills d'usuari poden activar-se soles: per això la regla és a `AGENTS.md` (sempre carregat).
