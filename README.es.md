@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Perseida" width="320">
+  <img src="assets/logo-wordmark.png" alt="Perseida" width="320">
 </p>
 
 # Perseida
