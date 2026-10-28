@@ -37,7 +37,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 6. Tots els textos amb `t()` d'i18next (ca/es/en); cap text hardcodejat.
 7. Accessibilitat: ordre de focus = ordre visual, títols de pantalla, etiquetes, tàctil >=44 pt, reduced motion.
 8. `(app)`: pensat per a mòbils actuals; `(admin)`: pensat per a escriptori (aprox. 1280-1536 px) però usable en qualsevol mòbil i PC.
-9. Escriu els tests (després del codi) i passa la checklist.
+9. Escriu els tests (després del codi) i passa la checklist, inclòs el **reforç opcional** si les skills de tercers són instal·lades (`break-ui` a llistes i estats, `audit` natiu d'Impeccable; vegeu `estetica-frutiger-cosmo/references/skills-de-tercers.md`). Si no ho són, suggereix-ho una sola vegada.
 
 ## Plantilla de codi (orientativa: el repo encara no té codi)
 ```tsx
