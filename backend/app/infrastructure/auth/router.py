@@ -94,6 +94,7 @@ class TokenResponse(BaseModel):
     ),
     response_description="La sessió: access token, refresh token i durada.",
     responses={
+        400: _problem("El cos de la petició no és JSON vàlid."),
         401: _problem(
             f"El token de Google no és vàlid (code `{INVALID_GOOGLE_TOKEN}`)."
         ),
@@ -130,6 +131,7 @@ async def login_with_google(
     ),
     response_description="El parell nou de tokens.",
     responses={
+        400: _problem("El cos de la petició no és JSON vàlid."),
         401: _problem(
             f"Refresh token invàlid, caducat o ja utilitzat (code `{INVALID_SESSION}`)."
         ),
@@ -155,6 +157,8 @@ async def refresh_session(
         "o sense token també respon 204."
     ),
     response_description="Sessió tancada.",
+    # The Bearer token is optional here: `{}` lets the schema accept no credentials.
+    openapi_extra={"security": [{"HTTPBearer": []}, {}]},
     responses={
         503: _problem(f"No es pot revocar la sessió (`{SESSION_UNAVAILABLE}`)."),
     },

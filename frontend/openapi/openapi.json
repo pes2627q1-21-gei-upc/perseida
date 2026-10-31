@@ -139,6 +139,16 @@
               }
             }
           },
+          "400": {
+            "description": "El cos de la petició no és JSON vàlid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "El token de Google no és vàlid (code `INVALID_GOOGLE_TOKEN`).",
             "content": {
@@ -221,6 +231,16 @@
               }
             }
           },
+          "400": {
+            "description": "El cos de la petició no és JSON vàlid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Refresh token invàlid, caducat o ja utilitzat (code `INVALID_SESSION`).",
             "content": {
@@ -280,7 +300,11 @@
         "security": [
           {
             "HTTPBearer": []
-          }
+          },
+          {
+            "HTTPBearer": []
+          },
+          {}
         ]
       }
     },
