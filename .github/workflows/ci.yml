@@ -99,6 +99,9 @@ jobs:
         run: uv run ruff format --check .
       - name: Tipus (mypy)
         run: uv run mypy .
+      - name: Arquitectura (import-linter)
+        run: uv run lint-imports
+      # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
       - name: Tests (pytest amb cobertura)
         run: uv run pytest --cov-report=xml:coverage.xml
       - name: Publicar informe de cobertura
@@ -137,6 +140,10 @@ jobs:
       # de package.json té el nom d'un binari de node_modules/.bin.
       - name: Tipus (tsc)
         run: pnpm typecheck
+      - name: Client d'API regenerat (openapi-typescript)
+        run: |
+          pnpm api:generate
+          git diff --exit-code -- src/shared/api/schema.d.ts
       - name: Tests (jest amb cobertura)
         run: pnpm test --coverage --ci
       - name: Publicar informe de cobertura
