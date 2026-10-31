@@ -439,6 +439,15 @@ export interface operations {
           'application/json': components['schemas']['TokenResponse'];
         };
       };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description El token de Google no és vàlid (code `INVALID_GOOGLE_TOKEN`). */
       401: {
         headers: {
@@ -506,6 +515,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['TokenResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Refresh token invàlid, caducat o ja utilitzat (code `INVALID_SESSION`). */

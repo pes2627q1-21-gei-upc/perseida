@@ -139,6 +139,16 @@
               }
             }
           },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "El token de Google no és vàlid (code `INVALID_GOOGLE_TOKEN`).",
             "content": {
@@ -221,6 +231,16 @@
               }
             }
           },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Refresh token invàlid, caducat o ja utilitzat (code `INVALID_SESSION`).",
             "content": {
@@ -280,7 +300,8 @@
         "security": [
           {
             "HTTPBearer": []
-          }
+          },
+          {}
         ]
       }
     },
@@ -427,6 +448,7 @@
         "properties": {
           "id_token": {
             "type": "string",
+            "maxLength": 4096,
             "minLength": 1,
             "title": "Id Token",
             "description": "ID token que l'app obté de Google (OAuth2 amb PKCE)"
@@ -434,7 +456,8 @@
           "language": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 16
               },
               {
                 "type": "null"
@@ -568,6 +591,7 @@
         "properties": {
           "refresh_token": {
             "type": "string",
+            "maxLength": 4096,
             "minLength": 1,
             "title": "Refresh Token",
             "description": "Refresh token vigent de la sessió"

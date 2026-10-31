@@ -20,12 +20,14 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "import-linter==2.15",
     "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
     "respx==0.23.1",
     "ruff==0.16.10",
+    "schemathesis==4.32.7",
 ]
 
 [tool.ruff]
@@ -57,3 +59,26 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=app --cov-report=term-missing"
+
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Domain does not import frameworks or drivers"
+type = "forbidden"
+source_modules = ["app.domain"]
+forbidden_modules = ["fastapi", "sqlmodel", "sqlalchemy", "redis", "asyncpg", "httpx"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Application does not import infrastructure or FastAPI"
+type = "forbidden"
+source_modules = ["app.application"]
+forbidden_modules = ["app.infrastructure", "fastapi"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Dependencies go infrastructure -> application -> domain"
+type = "layers"
+layers = ["app.infrastructure", "app.application", "app.domain"]

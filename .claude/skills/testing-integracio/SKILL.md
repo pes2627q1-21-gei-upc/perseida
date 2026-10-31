@@ -10,7 +10,7 @@ La integració és el ~30 % de la piràmide (60/30/10). Verifica que els adaptad
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció: `obsidian_vault/convencions/testing.md`.
 
 > [!note] Estat de les eines
-> Instal·lades: pytest, pytest-asyncio, pytest-cov, respx i httpx. El job de CI del backend ja aixeca PostgreSQL (PostGIS) i Redis com a *service containers* (`.github/workflows/ci.yml`). **Previstes (US #359-#362)**: schemathesis, test d'OpenAPI sense regenerar, test de migracions a la CI, `freezegun`/`time-machine`, pytest-randomly i pytest-xdist. No les afegeixis sense preguntar a la persona.
+> Instal·lades: pytest, pytest-asyncio, pytest-cov, respx i httpx. El job de CI del backend ja aixeca PostgreSQL (PostGIS) i Redis com a *service containers* (`.github/workflows/ci.yml`). **Instal·lats (TG-360)**: schemathesis (`tests/integration/test_api_contract.py`), test de la còpia d'OpenAPI (`tests/unit/infrastructure/test_openapi_copy.py`), test de migracions (`tests/integration/test_alembic.py`) i import-linter (`uv run lint-imports`), tots a la CI. **Previstos (US #359, #361 i #362)**: `freezegun`/`time-machine`, pytest-randomly i pytest-xdist; no els afegeixis sense preguntar a la persona.
 
 ## Quan usar-la / quan NO
 
@@ -62,13 +62,12 @@ Els tests que depenen de l'hora (TTL, ratxes diàries, finestres horàries, last
 
 ## Migracions
 
-Cada migració nova es prova **upgrade -> downgrade -> upgrade** sobre PostgreSQL real, i el resultat ha de coincidir amb el model (cap diferència en autogenerar). Alineat amb el downgrade del CD (ADR-0025). Test automàtic a la CI: **previst (US #359-#362)**; fins llavors, executa-ho en local i anota-ho a la PR.
+Cada migració nova es prova **upgrade -> downgrade -> upgrade** sobre PostgreSQL real, i el resultat ha de coincidir amb el model (cap diferència en autogenerar). Alineat amb el downgrade del CD (ADR-0025). Test automàtic a la CI: **instal·lat (TG-360)**, `tests/integration/test_alembic.py::test_every_revision_can_be_undone` (només s'executa amb `POSTGRES_HOST` definit; en local fa `downgrade base` i **esborra la base de dades** a la qual apunta).
 
-## Contracte OpenAPI (previst US #359-#362)
+## Contracte OpenAPI (instal·lat, TG-360)
 
-- **schemathesis** contra l'OpenAPI (casos generats; cap 500 ni resposta fora d'esquema).
-- Test que regenera l'OpenAPI i falla si difereix del versionat (el frontend genera tipus amb `openapi-typescript`: el contracte no pot derivar sense avisar).
-- Mentre no hi siguin, revisa a mà la PR si canvia un endpoint.
+- **schemathesis** contra l'OpenAPI (casos generats; cap 5xx ni resposta fora d'esquema; errors RFC 9457 amb el check propi `problem_check.py`): `tests/integration/test_api_contract.py`.
+- Test que regenera l'OpenAPI i falla si difereix del versionat (`tests/unit/infrastructure/test_openapi_copy.py`; el frontend genera tipus amb `openapi-typescript`). Si canvies un endpoint: `cd backend && uv run python -m scripts.export_openapi && cd ../frontend && pnpm api:generate`.
 
 ## Rendiment (NFR)
 

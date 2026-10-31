@@ -3,7 +3,7 @@ titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
 data: "2026-10-28"
-us: ["TG-85", "TG-35", "TG-353"]
+us: ["TG-85", "TG-35", "TG-353", "TG-360"]
 font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24); ADR-0028 (TG-353)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
@@ -15,7 +15,7 @@ etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-testing-avancada]]): el test en vermell s'escriu **abans** del codi. Les proves segueixen la piràmide 60/30/10. Cap US arriba a Done sense les seves proves.
 
 > [!info] Estat de la implantació
-> La política és vigent per a l'equip des del 2026-10-28. L'automatització a la CI de les eines marcades com a «previst» (llindars de cobertura bloquejants, mutation testing, schemathesis, import-linter, E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`, test de migracions) és pendent i va a les US #359-#362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
+> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter) i les migracions reversibles. L'automatització de la resta d'eines marcades com a «previst» (llindars de cobertura bloquejants, mutation testing, E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`) és pendent i va a les US #359, #361 i #362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
 
 ## TDD
 
@@ -47,13 +47,21 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 | Temps | Rellotge injectat o temps congelat | `freezegun`/`time-machine` | Previst |
 | Property-based | Invariants de la lògica crítica (ràtxes, puntuació de zones, proximitat, last-write-wins) | hypothesis (backend), fast-check (frontend) | Previst |
 | Mutation | Que els tests detecten errors; obligatori al domini, només fitxers canviats, score ≥ 70 % | mutmut (backend), Stryker (frontend) | Previst |
-| Contracte | OpenAPI: casos generats i test que no es pot regenerar sense diferències | schemathesis | Previst |
-| Arquitectura | Capes del backend; import-linter bloquejant | `backend/tests/architecture`; import-linter | Test propi instal·lat; import-linter previst |
+| Contracte | OpenAPI: casos generats (cap 5xx, respostes segons l'esquema, errors RFC 9457) i còpia `frontend/openapi/openapi.json` igual a l'esquema del backend; el job `frontend` falla si `schema.d.ts` no està regenerat | schemathesis, `pytest`, `pnpm api:generate` | Instal·lat |
+| Arquitectura | Capes del backend; import-linter bloquejant | `backend/tests/architecture`; import-linter (`[tool.importlinter]` a `pyproject.toml`) | Instal·lat |
 | E2E | Fluxos crítics | Maestro, Playwright | Previst |
 | Accessibilitat | Queries per rol/etiqueta als tests; lint d'a11y | RNTL; `eslint-plugin-jsx-a11y` | RNTL instal·lat; lint previst |
 | Robustesa | Ordre aleatori i execució en paral·lel; quarantena sense reintents | pytest-randomly, pytest-xdist | Previst |
 | Seguretat | Anàlisi estàtica i dependències | bandit, pip-audit, `pnpm audit` | Previst |
-| Migracions | upgrade -> downgrade -> upgrade sobre PostgreSQL real | Alembic + pytest | Previst (test a la CI) |
+| Migracions | Cada revisió fa upgrade -> downgrade -> upgrade i l'esquema torna a ser el mateix (coherent amb el rollback d'[[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]) | Alembic + pytest | Instal·lat |
+
+### Contracte, arquitectura i migracions (TG-360)
+
+- **schemathesis** (`tests/integration/test_api_contract.py`): l'app corre en procés (ASGI, amb el lifespan) sobre PostgreSQL i Redis reals; Google i la NASA, simulats amb `respx`; els endpoints privats s'autentiquen amb un login real amb un token de Google signat amb una clau de prova. Llavor fixa (`360`) i 25 exemples per operació. El check propi `tests/integration/problem_check.py` exigeix `application/problem+json` i els camps `type`, `title`, `status`, `detail`, `code` a tot 4xx/5xx. A `GET /api/apod` s'accepta el 422 de dates fora de rang com a resposta esperada del check `positive_data_acceptance`: el límit superior (avui) no es pot escriure a OpenAPI.
+- **Còpia d'OpenAPI**: `tests/unit/infrastructure/test_openapi_copy.py` compara `create_app().openapi()` amb `frontend/openapi/openapi.json`. Per regenerar-la: `cd backend && uv run python -m scripts.export_openapi && cd ../frontend && pnpm api:generate`. El job `frontend` fa `pnpm api:generate` i falla si `src/shared/api/schema.d.ts` canvia.
+- **import-linter** (`uv run lint-imports`, pas obligatori del job `backend`): el domini no importa FastAPI, SQLModel/SQLAlchemy, Redis, asyncpg ni httpx; l'aplicació no importa `app.infrastructure` ni FastAPI; capes `infrastructure` -> `application` -> `domain`. El test propi `tests/architecture/test_layer_dependencies.py` es manté (llista blanca, imports relatius i aïllament users/auth).
+- **Migracions** (`tests/integration/test_alembic.py::test_every_revision_can_be_undone`): per a cada revisió, instantània de l'esquema, `upgrade`, `downgrade` a l'anterior i comparació. **En local fa `downgrade base` i esborra la base de dades a la qual apunta `POSTGRES_HOST`**; només s'executa si `POSTGRES_HOST` està definit. No és compatible amb `pytest-xdist` (previst a #362) mentre comparteixi la base de dades amb la resta de tests d'integració.
+- En local, els tests d'integració i de contracte necessiten PostgreSQL/PostGIS i Redis (`POSTGRES_*`, `REDIS_*`); sense aquestes variables es salten.
 
 ### Tests inestables
 
