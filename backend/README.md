@@ -204,6 +204,7 @@ uv lock --check               # verify uv.lock is up to date with pyproject.toml
 uv run ruff check .           # lint
 uv run ruff format --check .   # check formatting without modifying files
 uv run mypy .                 # strict type checking
+uv run lint-imports           # architecture contracts (import-linter)
 uv run pytest                 # tests (with coverage)
 uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api/docs)
 ```
@@ -225,6 +226,7 @@ uv sync --locked                           # fails if uv.lock is out of date
 uv run ruff check .                        # lint
 uv run ruff format --check .               # formatting
 uv run mypy .                              # strict type checking
+uv run lint-imports                        # architecture contracts (import-linter)
 uv run pytest --cov-report=xml:coverage.xml  # tests + coverage report
 ```
 
@@ -359,6 +361,8 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 
 - Test pyramid: ~60 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`) and ~10 % E2E (Maestro on the mobile app and Playwright on the admin; planned, US #361).
 - Coverage targets: domain ≥ 80 %, application ≥ 70 %, new code in each PR ≥ 90 % and global ≥ 80 % (enforced by the SonarQube Cloud Quality Gate).
+- Contract tests (TG-360): `tests/integration/test_api_contract.py` fuzzes the API with schemathesis (needs PostgreSQL and Redis; skipped without `POSTGRES_HOST`/`REDIS_HOST`), and `tests/unit/infrastructure/test_openapi_copy.py` fails if `frontend/openapi/openapi.json` is stale. Regenerate it with `uv run python -m scripts.export_openapi` and then `pnpm api:generate` in `frontend/`.
+- `test_every_revision_can_be_undone` (`tests/integration/test_alembic.py`) downgrades to `base`: **locally it wipes the database `POSTGRES_HOST` points at**.
 - NFR thresholds verified by tests: cached resources ≤ 200 ms, proximity queries ≤ 150 ms, private endpoints reject requests without a valid session (401/403).
 
 ## Conventions
