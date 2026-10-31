@@ -42,7 +42,7 @@ def test_a_valid_problem_passes(status: int) -> None:
 
 
 def test_an_error_that_is_not_problem_json_fails() -> None:
-    with pytest.raises(AssertionError, match="application/problem\+json"):
+    with pytest.raises(AssertionError, match=r"application/problem\+json"):
         check_problem_details(None, response(content_type="application/json"), None)
 
 
