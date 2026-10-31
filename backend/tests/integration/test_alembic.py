@@ -153,8 +153,8 @@ def test_every_revision_can_be_undone() -> None:
     config = _alembic_config()
     revisions = list(ScriptDirectory.from_config(config).walk_revisions())
 
-    command.downgrade(config, "base")
     try:
+        command.downgrade(config, "base")
         for revision in reversed(revisions):
             # The history is linear (see test_alembic_has_single_head).
             previous = str(revision.down_revision or "base")

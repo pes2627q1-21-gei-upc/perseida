@@ -65,7 +65,7 @@ async def _clean_state() -> None:
     redis = Redis.from_url(RedisSettings().redis_url)
     try:
         await connection.execute("TRUNCATE users, user_identities, apod CASCADE")
-        for pattern in ("session:*", "sessions:*", "cache:apod:*"):
+        for pattern in ("session:*", "user_sessions:*", "cache:apod:*"):
             async for key in redis.scan_iter(match=pattern):
                 await redis.delete(key)
     finally:
@@ -82,6 +82,7 @@ def api_schema() -> Iterator[Any]:
     mp.setenv("NASA_API_KEY", "contract-test-key")
     get_scheduler_settings.cache_clear()
     _migrate()
+    asyncio.run(_clean_state())
     apod = json.loads((FIXTURES / "nasa_apod_image.json").read_text(encoding="utf-8"))
     with respx.mock(assert_all_called=False) as external:
         external.get(GOOGLE_CERTS_URL).respond(json={"keys": [jwk(KEY, "k1")]})
@@ -118,7 +119,9 @@ def api_schema() -> Iterator[Any]:
 schema = schemathesis.pytest.from_fixture("api_schema")
 
 
-@schemathesis.auth()
+# No caching: a fuzzed logout revokes its session and must not leave the next
+# private requests answering 401.
+@schemathesis.auth(refresh_interval=None)
 class SessionAuth:
     """Real login against the app with a throwaway-key Google token."""
 

@@ -140,7 +140,7 @@
             }
           },
           "400": {
-            "description": "El cos de la petició no és JSON vàlid.",
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -232,7 +232,7 @@
             }
           },
           "400": {
-            "description": "El cos de la petició no és JSON vàlid.",
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -298,9 +298,6 @@
           }
         },
         "security": [
-          {
-            "HTTPBearer": []
-          },
           {
             "HTTPBearer": []
           },

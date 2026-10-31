@@ -439,7 +439,7 @@ export interface operations {
           'application/json': components['schemas']['TokenResponse'];
         };
       };
-      /** @description El cos de la petició no és JSON vàlid. */
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
       400: {
         headers: {
           [name: string]: unknown;
@@ -517,7 +517,7 @@ export interface operations {
           'application/json': components['schemas']['TokenResponse'];
         };
       };
-      /** @description El cos de la petició no és JSON vàlid. */
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
       400: {
         headers: {
           [name: string]: unknown;

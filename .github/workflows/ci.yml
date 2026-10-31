@@ -35,6 +35,7 @@ jobs:
           filters: |
             backend:
               - "backend/**"
+              - "frontend/openapi/**"
               - ".github/workflows/ci.yml"
             frontend:
               - "frontend/**"
