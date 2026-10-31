@@ -63,12 +63,32 @@ def test_categories_are_the_ones_agreed_with_spotwise() -> None:
     }
 
 
+def _published_schema() -> dict[str, Any]:
+    """The schema FastAPI publishes for responses (serialization mode)."""
+    return EventResponse.model_json_schema(mode="serialization")
+
+
 def test_every_field_is_required_in_the_openapi_schema() -> None:
     """Nullable fields are sent as ``null``, never omitted (#351 criteri 3)."""
-    schema = EventResponse.model_json_schema()
+    schema = _published_schema()
 
     assert set(schema["properties"]) == FIELDS
     assert set(schema["required"]) == FIELDS
+
+
+@pytest.mark.parametrize("field", ["starts_at", "ends_at"])
+def test_dates_are_published_as_date_time(field: str) -> None:
+    prop = _published_schema()["properties"][field]
+
+    assert prop["type"] == "string"
+    assert prop["format"] == "date-time"
+
+
+def test_id_is_published_with_a_standard_uuid_format() -> None:
+    prop = _published_schema()["properties"]["id"]
+
+    assert prop["type"] == "string"
+    assert prop["format"] == "uuid"
 
 
 def test_rejects_end_before_start() -> None:
