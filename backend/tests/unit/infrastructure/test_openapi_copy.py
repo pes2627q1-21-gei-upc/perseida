@@ -8,7 +8,7 @@ from app.main import create_app
 
 COPY = Path(__file__).resolve().parents[4] / "frontend" / "openapi" / "openapi.json"
 REGENERATE = (
-    "cd backend && uv run python scripts/export_openapi.py "
+    "cd backend && uv run python -m scripts.export_openapi "
     "&& cd ../frontend && pnpm api:generate"
 )
 
