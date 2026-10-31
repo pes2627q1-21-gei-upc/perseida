@@ -427,6 +427,7 @@
         "properties": {
           "id_token": {
             "type": "string",
+            "maxLength": 4096,
             "minLength": 1,
             "title": "Id Token",
             "description": "ID token que l'app obté de Google (OAuth2 amb PKCE)"
@@ -434,7 +435,8 @@
           "language": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 16
               },
               {
                 "type": "null"
@@ -568,6 +570,7 @@
         "properties": {
           "refresh_token": {
             "type": "string",
+            "maxLength": 4096,
             "minLength": 1,
             "title": "Refresh Token",
             "description": "Refresh token vigent de la sessió"
