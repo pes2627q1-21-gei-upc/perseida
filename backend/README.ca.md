@@ -183,6 +183,7 @@ uv lock --check               # verifica que uv.lock està al dia amb pyproject.
 uv run ruff check .           # lint
 uv run ruff format --check .  # comprova el format sense modificar fitxers
 uv run mypy .                 # tipatge estricte
+uv run lint-imports           # contractes d'arquitectura (import-linter)
 uv run pytest                 # tests (amb cobertura)
 uv run uvicorn app.main:app --reload  # arrenca l'API (http://127.0.0.1:8000/api/docs)
 ```
@@ -204,6 +205,7 @@ uv sync --locked                           # falla si uv.lock no està al dia
 uv run ruff check .                        # lint
 uv run ruff format --check .               # format
 uv run mypy .                              # tipatge estricte
+uv run lint-imports                        # contractes d'arquitectura (import-linter)
 uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 ```
 
@@ -313,6 +315,8 @@ Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED
 
 - Piràmide de proves: ~60 % unitàries, ~30 % d'integració (PostgreSQL/PostGIS i Redis efímers, API amb `httpx.AsyncClient`, APIs externes simulades amb `respx`) i ~10 % E2E (Maestro a l'app mòbil i Playwright a l'admin; previst, US #361).
 - Objectius de cobertura: domini ≥ 80 %, aplicació ≥ 70 %, codi nou de cada PR ≥ 90 % i global ≥ 80 % (imposats pel Quality Gate de SonarQube Cloud).
+- Tests de contracte (TG-360): `tests/integration/test_api_contract.py` fa fuzzing de l'API amb schemathesis (necessita PostgreSQL i Redis; es salta sense `POSTGRES_HOST`/`REDIS_HOST`) i `tests/unit/infrastructure/test_openapi_copy.py` falla si `frontend/openapi/openapi.json` està desfasat. Es regenera amb `uv run python -m scripts.export_openapi` i després `pnpm api:generate` a `frontend/`.
+- `test_every_revision_can_be_undone` (`tests/integration/test_alembic.py`) fa `downgrade` fins a `base`: **en local esborra la base de dades a la qual apunta `POSTGRES_HOST`**.
 - Llindars de requisits no funcionals verificats amb tests: recursos en cache ≤ 200 ms, consultes de proximitat ≤ 150 ms, endpoints privats rebutgen peticions sense sessió vàlida (401/403).
 
 ## Convencions

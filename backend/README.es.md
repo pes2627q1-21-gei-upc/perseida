@@ -183,6 +183,7 @@ uv lock --check               # verifica que uv.lock está al día con pyproject
 uv run ruff check .           # lint
 uv run ruff format --check .  # comprueba el formato sin modificar archivos
 uv run mypy .                 # tipado estricto
+uv run lint-imports           # contratos de arquitectura (import-linter)
 uv run pytest                 # tests (con cobertura)
 uv run uvicorn app.main:app --reload  # arranca la API (http://127.0.0.1:8000/api/docs)
 ```
@@ -204,6 +205,7 @@ uv sync --locked                           # falla si uv.lock no está al día
 uv run ruff check .                        # lint
 uv run ruff format --check .               # formato
 uv run mypy .                              # tipado estricto
+uv run lint-imports                        # contratos de arquitectura (import-linter)
 uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 ```
 
@@ -313,6 +315,8 @@ Los códigos de error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPE
 
 - Pirámide de pruebas: ~60 % unitarias, ~30 % de integración (PostgreSQL/PostGIS y Redis efímeros, API con `httpx.AsyncClient`, APIs externas simuladas con `respx`) y ~10 % E2E (Maestro en la app móvil y Playwright en el admin; previsto, US #361).
 - Objetivos de cobertura: dominio ≥ 80 %, aplicación ≥ 70 %, código nuevo de cada PR ≥ 90 % y global ≥ 80 % (exigidos por el Quality Gate de SonarQube Cloud).
+- Tests de contrato (TG-360): `tests/integration/test_api_contract.py` hace fuzzing de la API con schemathesis (necesita PostgreSQL y Redis; se omite sin `POSTGRES_HOST`/`REDIS_HOST`) y `tests/unit/infrastructure/test_openapi_copy.py` falla si `frontend/openapi/openapi.json` está desactualizado. Se regenera con `uv run python -m scripts.export_openapi` y luego `pnpm api:generate` en `frontend/`.
+- `test_every_revision_can_be_undone` (`tests/integration/test_alembic.py`) hace `downgrade` hasta `base`: **en local borra la base de datos a la que apunta `POSTGRES_HOST`**.
 - Umbrales de requisitos no funcionales verificados con tests: recursos en caché ≤ 200 ms, consultas de proximidad ≤ 150 ms, endpoints privados rechazan peticiones sin sesión válida (401/403).
 
 ## Convenciones
