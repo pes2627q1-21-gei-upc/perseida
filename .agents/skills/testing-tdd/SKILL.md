@@ -10,7 +10,7 @@ Des del final de l'Sprint 1 el projecte fa **TDD estricte a tot el backend i el 
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció de referència: `obsidian_vault/convencions/testing.md`.
 
 > [!note] Estat de les eines
-> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx (backend); Jest, jest-expo i React Native Testing Library (frontend). La resta d'eines que anomenen les skills `testing-*` (mutmut, Stryker, hypothesis, fast-check, schemathesis, import-linter, pytest-randomly, pytest-xdist, llindars de cobertura a la CI...) són **previstes (US #359-#362)**: no les facis servir ni les afegeixis sense preguntar a la persona.
+> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx (backend); Jest, jest-expo i React Native Testing Library (frontend). La resta d'eines que anomenen les skills `testing-*` (mutmut, Stryker, hypothesis, fast-check, pytest-randomly, pytest-xdist, llindars de cobertura a la CI...) són **previstes (US #359, #361 i #362)**: no les facis servir ni les afegeixis sense preguntar a la persona. Des de TG-360 són **instal·lats** i a la CI schemathesis, import-linter (`uv run lint-imports`), el test de la còpia d'OpenAPI i el de migracions.
 
 ## Quan usar-la / quan NO
 
