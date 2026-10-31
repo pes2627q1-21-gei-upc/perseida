@@ -3,7 +3,7 @@ titol: "Contracte de l'esdeveniment"
 tipus: arquitectura
 estat: vigent
 data: "2026-10-31"
-us: ["TG-50", "TG-351", "TG-52"]
+us: ["TG-50", "TG-351", "TG-52", "TG-51", "TG-53"]
 font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/"
 etiquetes: [arquitectura, contracte, esdeveniments, api, spotwise]
 ---
@@ -14,7 +14,11 @@ Forma única d'un esdeveniment astronòmic a l'API de Perseida. La fan servir el
 
 - **Codi:** `EventResponse` a `backend/app/infrastructure/events/schemas.py`; categories a `EventCategory` (`backend/app/domain/events/models.py`).
 - **Exemples (mocks):** `backend/tests/fixtures/events/` (un per categoria, amb i sense ubicació). El test `tests/unit/infrastructure/events/test_event_response_contract.py` comprova que compleixen el contracte.
-- **Endpoints:** `GET /api/events/active` i `GET /api/events/upcoming` els declara TG-351 amb aquest esquema; després es regenera `frontend/src/shared/api/schema.d.ts` (`pnpm api:generate`).
+- **Endpoints:** `GET /api/events/active` i `GET /api/events/upcoming` els declara TG-351 amb aquest esquema; després es regeneren la còpia `frontend/openapi/openapi.json` (la comprova `tests/unit/infrastructure/test_openapi_copy.py`) i els tipus `frontend/src/shared/api/schema.d.ts`:
+
+```bash
+cd backend && uv run python -m scripts.export_openapi && cd ../frontend && pnpm api:generate
+```
 
 ## Camps
 
@@ -22,7 +26,7 @@ Tots els camps hi són sempre: els opcionals valen `null`, mai s'ometen.
 
 | Camp | Tipus | Regles |
 |---|---|---|
-| `id` | UUID | UUIDv7 ([[0023-convencions-del-model-de-dades]]); estable, s'hi lliguen subscripcions i sales de xat |
+| `id` | UUID (`format: uuid` a l'OpenAPI) | UUIDv7 ([[0023-convencions-del-model-de-dades]]); estable, s'hi lliguen subscripcions i sales de xat |
 | `title` | text | No buit; en l'idioma de la font |
 | `summary` | text | Descripció breu, no buida; en l'idioma de la font |
 | `category` | `lunar` \| `solar` \| `meteor_shower` \| `launch` | Valors tancats acordats amb Spotwise |
