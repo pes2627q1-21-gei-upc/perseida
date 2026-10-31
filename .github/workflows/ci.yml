@@ -101,7 +101,7 @@ jobs:
       - name: Tipus (mypy)
         run: uv run mypy .
       - name: Arquitectura (import-linter)
-        run: uv run lint-imports
+        run: uv run --locked --no-build lint-imports
       # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
       - name: Tests (pytest amb cobertura)
         run: uv run pytest --cov-report=xml:coverage.xml
