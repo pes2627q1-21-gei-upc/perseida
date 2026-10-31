@@ -13,4 +13,6 @@ TARGET = Path(__file__).resolve().parents[2] / "frontend" / "openapi" / "openapi
 
 if __name__ == "__main__":
     schema = create_app().openapi()
-    TARGET.write_text(json.dumps(schema, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    TARGET.write_text(
+        json.dumps(schema, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
