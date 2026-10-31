@@ -91,3 +91,81 @@ def test_models_match_migrations() -> None:
     config = _alembic_config()
     command.upgrade(config, "head")
     command.check(config)
+
+
+SNAPSHOT_QUERIES = {
+    "extensions": "SELECT extname FROM pg_extension ORDER BY 1",
+    "columns": """
+        SELECT c.relname, a.attname, format_type(a.atttypid, a.atttypmod),
+               a.attnotnull, pg_get_expr(d.adbin, d.adrelid)
+        FROM pg_attribute a
+        JOIN pg_class c ON c.oid = a.attrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+        WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')
+          AND c.relname <> 'alembic_version' AND a.attnum > 0
+          AND NOT a.attisdropped
+          AND NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = c.oid
+                          AND deptype = 'e')
+        ORDER BY 1, 2""",
+    "indexes": """
+        SELECT tablename, indexname, indexdef FROM pg_indexes
+        WHERE schemaname = 'public' AND tablename <> 'alembic_version'
+          AND tablename <> 'spatial_ref_sys'
+        ORDER BY 1, 2""",
+    "constraints": """
+        SELECT c.relname, k.conname, pg_get_constraintdef(k.oid)
+        FROM pg_constraint k
+        JOIN pg_class c ON c.oid = k.conrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relname <> 'alembic_version'
+          AND c.relname <> 'spatial_ref_sys'
+        ORDER BY 1, 2""",
+}
+
+
+async def _schema_snapshot() -> dict[str, list[tuple[object, ...]]]:
+    settings = DatabaseSettings()
+    connection = await asyncpg.connect(
+        host=settings.postgres_host,
+        port=settings.postgres_port,
+        user=settings.postgres_user,
+        password=settings.postgres_password,
+        database=settings.postgres_db,
+    )
+    try:
+        return {
+            name: [tuple(row) for row in await connection.fetch(query)]
+            for name, query in SNAPSHOT_QUERIES.items()
+        }
+    finally:
+        await connection.close()
+
+
+@pytest.mark.skipif(
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires POSTGRES_HOST",
+)
+def test_every_revision_can_be_undone() -> None:
+    # TG-360 / US #360 criteri 8: CD rollback (ADR-0025) runs `alembic downgrade`
+    # to the previous image's revision, so each revision must undo cleanly.
+    # WARNING: it downgrades to base; it wipes the database it points at.
+    config = _alembic_config()
+    revisions = list(ScriptDirectory.from_config(config).walk_revisions())
+
+    command.downgrade(config, "base")
+    try:
+        for revision in reversed(revisions):
+            # The history is linear (see test_alembic_has_single_head).
+            previous = str(revision.down_revision or "base")
+            before = asyncio.run(_schema_snapshot())
+
+            command.upgrade(config, revision.revision)
+            command.downgrade(config, previous)
+
+            assert asyncio.run(_schema_snapshot()) == before, (
+                f"downgrade of {revision.revision} does not restore the schema"
+            )
+            command.upgrade(config, revision.revision)
+    finally:
+        command.upgrade(config, "head")
