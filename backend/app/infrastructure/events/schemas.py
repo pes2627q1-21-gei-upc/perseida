@@ -14,8 +14,8 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PlainSerializer,
     StringConstraints,
+    WithJsonSchema,
     model_validator,
 )
 
@@ -29,13 +29,10 @@ def _require_https(value: str | None) -> str | None:
     return value
 
 
-UtcDatetime = Annotated[
-    AwareDatetime,
-    PlainSerializer(
-        lambda value: value.astimezone(UTC).isoformat().replace("+00:00", "Z"),
-        return_type=str,
-    ),
-]
+UtcDatetime = Annotated[AwareDatetime, AfterValidator(lambda v: v.astimezone(UTC))]
+# UUIDv7 is validated, but published as the standard ``uuid`` format so that
+# generated clients (openapi-typescript, schemathesis) understand it.
+EventId = Annotated[UUID7, WithJsonSchema({"type": "string", "format": "uuid"})]
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
@@ -49,7 +46,9 @@ class EventLocation(BaseModel):
 class EventResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    id: UUID7 = Field(..., description="Identificador estable de l'esdeveniment")
+    id: EventId = Field(
+        ..., description="Identificador estable de l'esdeveniment (UUIDv7)"
+    )
     title: Text = Field(..., description="Títol, en l'idioma de la font")
     summary: Text = Field(..., description="Descripció breu, en l'idioma de la font")
     category: EventCategory = Field(..., description="Tipus d'esdeveniment")
@@ -61,7 +60,7 @@ class EventResponse(BaseModel):
         ..., description="Ubicació concreta; null si és visible des de qualsevol lloc"
     )
     source_url: Annotated[str | None, AfterValidator(_require_https)] = Field(
-        ..., description="Enllaç https a la font; null si no n'hi ha"
+        ..., description="Enllaç a la font (només https); null si no n'hi ha"
     )
 
     @model_validator(mode="after")
