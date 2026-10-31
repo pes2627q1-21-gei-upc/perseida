@@ -25,7 +25,7 @@ Implantar les peces «previstes» de contracte, arquitectura i migracions de [[0
 
 ## Troballes del fuzzing (corregides)
 
-- Cos JSON malformat a `/api/auth/google` i `/api/auth/refresh` responia 400 no documentat: ara és a l'OpenAPI.
+- Cos amb una codificació no vàlida a `/api/auth/google` i `/api/auth/refresh` responia 400 no documentat: ara és a l'OpenAPI (el JSON malformat dona 422).
 - `/api/auth/logout` accepta la petició sense token (és idempotent), però l'esquema deia que `Authorization` era obligatori: ara el Bearer és opcional a l'esquema.
 - `GET /api/apod`: el 422 per dates fora de rang és vàlid i declarat, però no expressable com a restricció d'esquema; s'accepta al check `positive_data_acceptance` d'aquella operació.
 
