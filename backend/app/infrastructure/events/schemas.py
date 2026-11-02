@@ -24,9 +24,12 @@ from app.domain.shared.text import safe_https_url
 
 
 def _require_https(value: str | None) -> str | None:
-    if value is not None and safe_https_url(value) is None:
+    if value is None:
+        return None
+    url = safe_https_url(value)
+    if url is None:
         raise ValueError("source_url must be a plain https URL")
-    return value
+    return url
 
 
 UtcDatetime = Annotated[AwareDatetime, AfterValidator(lambda v: v.astimezone(UTC))]
