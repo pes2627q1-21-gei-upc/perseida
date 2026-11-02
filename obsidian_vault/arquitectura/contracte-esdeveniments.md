@@ -4,7 +4,7 @@ tipus: arquitectura
 estat: vigent
 data: "2026-11-02"
 us: ["TG-50", "TG-351", "TG-52", "TG-51", "TG-53"]
-font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/; review de la PR #76 (02/11/2026)"
+font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/; review de la PR #76 i comentari de TG-50 (02/11/2026)"
 etiquetes: [arquitectura, contracte, esdeveniments, api, spotwise]
 ---
 
@@ -38,7 +38,7 @@ Tots els camps hi són sempre: els opcionals valen `null`, mai s'ometen.
 Qualsevol altre camp es rebutja.
 
 > [!info] Idioma dels textos
-> `title` i `summary` arriben en l'idioma de la font (Launch Library 2 és en anglès) i els esdeveniments calculats per Perseida es generen en anglès. L'app tradueix la `category`. Decisió de Manel (SM) per a TG-50, sense registre a Taiga a data de 02/11/2026.
+> `title` i `summary` arriben en l'idioma de la font (Launch Library 2 és en anglès) i els esdeveniments calculats per Perseida es generen en anglès. L'app tradueix la `category`. Decisió de Manel (SM), registrada en un comentari de TG-50 a Taiga (02/11/2026).
 
 ## Exemple
 
