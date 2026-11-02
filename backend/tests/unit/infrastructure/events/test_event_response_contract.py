@@ -168,6 +168,19 @@ def test_rejects_non_https_source_url() -> None:
         EventResponse.model_validate(raw)
 
 
+@pytest.mark.parametrize(
+    "raw_url",
+    ["  https://example.com/a  ", "https://example.com/a\n"],
+)
+def test_source_url_is_published_normalised(raw_url: str) -> None:
+    """Regressió de la review de la PR #76: l'URL no surt mai sense normalitzar."""
+    raw = _load("launch") | {"source_url": raw_url}
+
+    event = EventResponse.model_validate(raw)
+
+    assert event.source_url == "https://example.com/a"
+
+
 def test_rejects_unknown_fields() -> None:
     raw = _load("launch") | {"type": "launch"}
 
