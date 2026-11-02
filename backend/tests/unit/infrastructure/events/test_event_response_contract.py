@@ -54,7 +54,7 @@ def test_examples_cover_every_category_with_and_without_location() -> None:
     assert any(e["location"] is None for e in examples)
 
 
-def test_categories_are_the_ones_agreed_with_spotwise() -> None:
+def test_categories_are_the_published_contract_values() -> None:
     assert {c.value for c in EventCategory} == {
         "lunar",
         "solar",

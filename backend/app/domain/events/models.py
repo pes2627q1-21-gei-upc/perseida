@@ -2,7 +2,7 @@ from enum import StrEnum
 
 
 class EventCategory(StrEnum):
-    """Kinds of astronomical event, as agreed with Spotwise (TG-50, task #387)."""
+    """Kinds of astronomical event, fixed by TG-50 (task #387)."""
 
     LUNAR = "lunar"
     SOLAR = "solar"
