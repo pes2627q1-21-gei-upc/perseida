@@ -2,9 +2,9 @@
 titol: "Contracte de l'esdeveniment"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-31"
+data: "2026-11-02"
 us: ["TG-50", "TG-351", "TG-52", "TG-51", "TG-53"]
-font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/"
+font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/; review de la PR #76 (02/11/2026)"
 etiquetes: [arquitectura, contracte, esdeveniments, api, spotwise]
 ---
 
@@ -29,16 +29,16 @@ Tots els camps hi són sempre: els opcionals valen `null`, mai s'ometen.
 | `id` | UUID (`format: uuid` a l'OpenAPI) | UUIDv7 ([[0023-convencions-del-model-de-dades]]); estable, s'hi lliguen subscripcions i sales de xat |
 | `title` | text | No buit; en l'idioma de la font |
 | `summary` | text | Descripció breu, no buida; en l'idioma de la font |
-| `category` | `lunar` \| `solar` \| `meteor_shower` \| `launch` | Valors tancats acordats amb Spotwise |
+| `category` | `lunar` \| `solar` \| `meteor_shower` \| `launch` | Valors tancats fixats per TG-50; pendents de notificar a Spotwise |
 | `starts_at` | data i hora | ISO 8601 amb zona horària; es retorna en UTC (`Z`) |
 | `ends_at` | data i hora | Igual que `starts_at`; mai anterior. Igual a l'inici si l'esdeveniment és instantani (p. ex. lluna plena) |
 | `location` | `{latitude, longitude}` o `null` | Latitud −90..90 i longitud −180..180; `null` si és visible des de qualsevol lloc |
-| `source_url` | text o `null` | Només `https` |
+| `source_url` | text o `null` | Només `https`; es publica normalitzat, sense blancs als extrems |
 
 Qualsevol altre camp es rebutja.
 
 > [!info] Idioma dels textos
-> `title` i `summary` arriben en l'idioma de la font (Launch Library 2 és en anglès) i els esdeveniments calculats per Perseida es generen en anglès. L'app tradueix la `category`. Decisió de Manel (SM) a l'especificació de TG-50, 31/10/2026.
+> `title` i `summary` arriben en l'idioma de la font (Launch Library 2 és en anglès) i els esdeveniments calculats per Perseida es generen en anglès. L'app tradueix la `category`. Decisió de Manel (SM) per a TG-50, sense registre a Taiga a data de 02/11/2026.
 
 ## Exemple
 
@@ -58,6 +58,9 @@ Dades d'exemple, no reals:
 ```
 
 ## Regla de canvis
+
+> [!todo] Pendent de notificar a Spotwise
+> No hi ha cap acord amb Spotwise sobre els valors de `category`: els fixa TG-50. El README en cita `lunar`, `solar` i `meteor_shower` com a exemples; `launch` és nou. Cal notificar-ho (vegeu [[contracte-spotwise#Regla de canvis]]).
 
 > [!warning] Canvis del contracte
 > Un canvi d'aquest esquema canvia el contracte amb Spotwise: s'ha de notificar i justificar (vegeu [[contracte-spotwise#Regla de canvis]]) i s'han d'actualitzar els exemples i aquesta nota a la mateixa PR.
