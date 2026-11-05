@@ -110,6 +110,10 @@ L'app mai tracta una cadena externa com a codi ni com a enllaç de confiança: `
 - Jest fa servir el preset `jest-expo` (`jest.config.js`); hi ha un test de fum a `frontend/__tests__/smoke.test.ts` que també comprova la resolució de mòduls important codi de `src/`. Els tests de components i els mocks de l'API arriben amb la US #83.
 - En cada release fusionada a `main`, GitHub Actions publica l'**APK** com a release de GitHub.
 
+## Distribució a Android (TG-329)
+
+L'APK de release es compila amb `android-release.yml` i es publica a GitHub Releases: vegeu [[0029-apk-android-a-github-releases-amb-obtainium]] i [[instal-lar-app-android]]. El config plugin `withAndroidRelease` aplica la signatura, la versió i Gradle.
+
 ## Enllaços
 
 - [[visio-general]], [[backend-hexagonal]], [[serveis-externs]]

@@ -59,6 +59,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01|ADR-0026 Producció per ports NAT amb DuckDNS]]
 - [[0027-skills-de-disseny-de-tercers-subordinades-a-frutiger-cosmo|ADR-0027 Skills de disseny de tercers]]
 - [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028 TDD estricte i política de testing]]
+- [[0029-apk-android-a-github-releases-amb-obtainium|ADR-0029 APK d'Android a GitHub Releases amb Obtainium]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 

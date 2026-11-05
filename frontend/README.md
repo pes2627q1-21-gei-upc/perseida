@@ -139,6 +139,20 @@ Do **not** run `eas init` (the project is already linked through `extra.eas.proj
 | The app says Google sign-in does not work in Expo Go | You opened it in Expo Go; install the APK instead. |
 | Sign-in reaches the backend but fails there | The client id is not in the production `GOOGLE_CLIENT_IDS` yet. |
 
+## Build the release APK locally
+
+Requires JDK 17 and the Android SDK. `android/` is not versioned: it is regenerated every time.
+
+```bash
+export ANDROID_KEYSTORE_PATH=/path/to/perseida-release.keystore
+export ANDROID_KEYSTORE_PASSWORD=... ANDROID_KEY_ALIAS=perseida ANDROID_KEY_PASSWORD=...
+export EXPO_PUBLIC_API_BASE_URL=https://perseida.duckdns.org:40431
+pnpm exec expo prebuild --platform android --clean
+cd android && ./gradlew assembleRelease
+```
+
+The APK is at `android/app/build/outputs/apk/release/app-release.apk`. Without `ANDROID_KEYSTORE_PATH` it is signed with the debug key. To install the app on a phone, see the [installation guide](../obsidian_vault/guies/instal-lar-app-android.md).
+
 ## Translations (i18n)
 
 The app speaks Catalan (`ca`), Spanish (`es`) and English (`en`). It starts in the first of these that the device has in its language list, and in Catalan if none is. No text is written in the code: it comes from `locales/<language>.json` through [i18next](https://www.i18next.com) (`src/shared/i18n`).

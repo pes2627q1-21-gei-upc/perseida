@@ -139,6 +139,20 @@ npx eas-cli@latest build -p android --profile preview
 | L'app diu que el login amb Google no funciona a Expo Go | L'has oberta a Expo Go; instal·la l'APK. |
 | El login arriba al backend però hi falla | El client id encara no és al `GOOGLE_CLIENT_IDS` de producció. |
 
+## Compilar l'APK de release en local
+
+Cal JDK 17 i l'Android SDK. `android/` no es versiona: es regenera cada vegada.
+
+```bash
+export ANDROID_KEYSTORE_PATH=/ruta/a/perseida-release.keystore
+export ANDROID_KEYSTORE_PASSWORD=... ANDROID_KEY_ALIAS=perseida ANDROID_KEY_PASSWORD=...
+export EXPO_PUBLIC_API_BASE_URL=https://perseida.duckdns.org:40431
+pnpm exec expo prebuild --platform android --clean
+cd android && ./gradlew assembleRelease
+```
+
+L'APK és a `android/app/build/outputs/apk/release/app-release.apk`. Sense `ANDROID_KEYSTORE_PATH` es signa amb la clau de debug. Per instal·lar l'app en un mòbil, consulta la [guia d'instal·lació](../obsidian_vault/guies/instal-lar-app-android.md).
+
 ## Traduccions (i18n)
 
 L'app parla català (`ca`), castellà (`es`) i anglès (`en`). Arrenca en el primer d'aquests idiomes que el dispositiu tingui a la seva llista d'idiomes, i en català si no n'hi ha cap. Cap text s'escriu al codi: surt de `locales/<idioma>.json` mitjançant [i18next](https://www.i18next.com) (`src/shared/i18n`).

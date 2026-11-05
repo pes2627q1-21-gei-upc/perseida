@@ -220,6 +220,23 @@ If the target image is no longer on the server, log in to GHCR first (`docker lo
 
 The VM only accepts keys (password login is disabled). Everyone who has access adds a teammate's **public** key with `infra/scripts/add-team-key.sh`: it asks for a name and the public key, rejects private keys and RSA keys below 3072 bits and appends it to `authorized_keys` without duplicates. The deploy key (`SSH_PRIVATE_KEY`) is separate from personal keys.
 
+## Android app (APK)
+
+The workflow `.github/workflows/android-release.yml` builds, signs and publishes the APK ([ADR-0029](../obsidian_vault/decisions/0029-apk-android-a-github-releases-amb-obtainium.md)).
+
+**GitHub configuration**, in the `android-release` environment (restricted to `main` and to `v*.*.*` tags):
+
+| Type | Name |
+|---|---|
+| Secret | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_RELEASE_CERT_SHA1` |
+| Variable | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` |
+
+**Create a release:** after merging the `release/*` branch into `main`, run `git tag vX.Y.Z <main commit>` and `git push origin vX.Y.Z`.
+
+**Test without publishing:** Actions → Android release → Run workflow, with a version such as `0.1.0-test` and `publish` off. The APK stays as an artifact.
+
+**If the keystore is lost:** new versions cannot be installed over old ones. Generate a new keystore, register its SHA-1 in the Google Cloud Android OAuth client, update the secrets and ask everyone to reinstall the app.
+
 ## Configuration and secrets
 
 - Secrets and variables live in GitHub **Secrets and variables**; the CD job generates `.env` on the server. `.env` is **never** committed; a value-free `.env.example` is the template.
