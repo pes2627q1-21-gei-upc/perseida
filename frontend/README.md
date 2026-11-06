@@ -89,7 +89,7 @@ pnpm test --coverage              # tests + coverage report (coverage/lcov.info)
 
 The type-check script is called `typecheck`, not `tsc`: `expo-doctor` (which EAS Build runs first) warns when a `package.json` script has the same name as a binary in `node_modules/.bin`, and `tsc` is the TypeScript binary. Running `pnpm tsc` still works because pnpm falls back to the binary and gives the same result here (`expo/tsconfig.base` already sets `noEmit`), but use `pnpm typecheck`, which is the documented command.
 
-Releases: on each release merged into `main`, GitHub Actions publishes the **APK** as a GitHub release.
+Releases: on each `vX.Y.Z` tag on `main`, GitHub Actions publishes the **APK** as a GitHub release.
 
 ## Test on a phone (Google sign-in)
 
@@ -138,6 +138,20 @@ Do **not** run `eas init` (the project is already linked through `extra.eas.proj
 | Google says the app is not verified or you have no access | The app is in *Testing* and your account is not a test user. |
 | The app says Google sign-in does not work in Expo Go | You opened it in Expo Go; install the APK instead. |
 | Sign-in reaches the backend but fails there | The client id is not in the production `GOOGLE_CLIENT_IDS` yet. |
+
+## Build the release APK locally
+
+Requires JDK 17 and the Android SDK. `android/` is not versioned: it is regenerated every time.
+
+```bash
+export ANDROID_KEYSTORE_PATH=/path/to/perseida-release.keystore
+export ANDROID_KEYSTORE_PASSWORD=... ANDROID_KEY_ALIAS=perseida ANDROID_KEY_PASSWORD=...
+export EXPO_PUBLIC_API_BASE_URL=https://perseida.duckdns.org:40431
+pnpm exec expo prebuild --platform android --clean
+cd android && ./gradlew assembleRelease
+```
+
+The APK is at `android/app/build/outputs/apk/release/app-release.apk`. Without `ANDROID_KEYSTORE_PATH` it is signed with the debug key. To install the app on a phone, see the [installation guide](../obsidian_vault/guies/instal-lar-app-android.md).
 
 ## Translations (i18n)
 

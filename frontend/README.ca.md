@@ -89,7 +89,7 @@ pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.
 
 L'script de comprovació de tipus es diu `typecheck` i no `tsc`: `expo-doctor` (que EAS Build executa primer) avisa quan un script de `package.json` té el mateix nom que un binari de `node_modules/.bin`, i `tsc` és el binari de TypeScript. `pnpm tsc` continua funcionant perquè pnpm recorre al binari i dona el mateix resultat aquí (`expo/tsconfig.base` ja fixa `noEmit`), però fes servir `pnpm typecheck`, que és l'ordre documentada.
 
-Releases: a cada release fusionada a `main`, GitHub Actions publica l'**APK** en una release de GitHub.
+Releases: amb cada tag `vX.Y.Z` sobre `main`, GitHub Actions publica l'**APK** en una release de GitHub.
 
 ## Provar al mòbil (login amb Google)
 
@@ -138,6 +138,20 @@ npx eas-cli@latest build -p android --profile preview
 | Google diu que l'app no està verificada o que no tens accés | L'app és a *Testing* i el teu compte no és usuari de prova. |
 | L'app diu que el login amb Google no funciona a Expo Go | L'has oberta a Expo Go; instal·la l'APK. |
 | El login arriba al backend però hi falla | El client id encara no és al `GOOGLE_CLIENT_IDS` de producció. |
+
+## Compilar l'APK de release en local
+
+Cal JDK 17 i l'Android SDK. `android/` no es versiona: es regenera cada vegada.
+
+```bash
+export ANDROID_KEYSTORE_PATH=/ruta/a/perseida-release.keystore
+export ANDROID_KEYSTORE_PASSWORD=... ANDROID_KEY_ALIAS=perseida ANDROID_KEY_PASSWORD=...
+export EXPO_PUBLIC_API_BASE_URL=https://perseida.duckdns.org:40431
+pnpm exec expo prebuild --platform android --clean
+cd android && ./gradlew assembleRelease
+```
+
+L'APK és a `android/app/build/outputs/apk/release/app-release.apk`. Sense `ANDROID_KEYSTORE_PATH` es signa amb la clau de debug. Per instal·lar l'app en un mòbil, consulta la [guia d'instal·lació](../obsidian_vault/guies/instal-lar-app-android.md).
 
 ## Traduccions (i18n)
 

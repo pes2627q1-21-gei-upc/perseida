@@ -220,6 +220,23 @@ Si la imatge de destí ja no és al servidor, cal fer abans `docker login ghcr.i
 
 La VM només accepta claus (l'accés per contrasenya està desactivat). Qui ja hi té accés afegeix la clau **pública** d'un company amb `infra/scripts/add-team-key.sh`: demana un nom i la clau pública, rebutja claus privades i claus RSA de menys de 3072 bits i l'afegeix a `authorized_keys` sense duplicar. La clau de desplegament (`SSH_PRIVATE_KEY`) és independent de les claus personals.
 
+## App Android (APK)
+
+El workflow `.github/workflows/android-release.yml` compila, signa i publica l'APK ([ADR-0029](../obsidian_vault/decisions/0029-apk-android-a-github-releases-amb-obtainium.md)).
+
+**Configuració de GitHub**, a l'environment `android-release` (restringit a `main` i als tags `v*.*.*`):
+
+| Tipus | Nom |
+|---|---|
+| Secret | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_RELEASE_CERT_SHA1` |
+| Variable | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` |
+
+**Crear una release:** després de fusionar la branca `release/*` a `main`, executa `git tag vX.Y.Z <commit de main>` i `git push origin vX.Y.Z`.
+
+**Provar sense publicar:** només des de `main`, perquè l'environment `android-release` rebutja qualsevol altra branca. Actions → Android release → Run workflow, amb `main` seleccionada, una versió com `0.1.0-test` i `publish` desactivat. L'APK queda com a artifact.
+
+**Si es perd la keystore:** les versions noves no es podran instal·lar a sobre de les antigues. Cal generar-ne una de nova, registrar-ne l'SHA-1 al client OAuth d'Android de Google Cloud, actualitzar els secrets i demanar a tothom que reinstal·li l'app.
+
 ## Configuració i secrets
 
 - Els secrets i variables viuen a **Secrets and variables** de GitHub; el job de CD genera el `.env` al servidor. El `.env` **mai** es versiona; un `.env.example` sense valors fa de plantilla.

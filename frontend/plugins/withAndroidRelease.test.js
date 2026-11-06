@@ -1,4 +1,8 @@
-const { addReleaseSigning, pinGradleVersion } = require('./withAndroidRelease');
+const {
+  addReleaseSigning,
+  applyVersionFromEnv,
+  pinGradleVersion,
+} = require('./withAndroidRelease');
 
 // Excerpt of the app/build.gradle that `expo prebuild` generates with React Native 0.88.
 const BUILD_GRADLE = `android {
@@ -76,5 +80,32 @@ describe('pinGradleVersion', () => {
     const twice = pinGradleVersion(pinGradleVersion(WRAPPER));
 
     expect(twice.match(/distributionSha256Sum=/g)).toHaveLength(1);
+  });
+});
+
+describe('applyVersionFromEnv', () => {
+  const CONFIG = { version: '0.1.0', android: { package: 'app.perseida' } };
+
+  it('sets versionName and versionCode from the environment and keeps the rest', () => {
+    const result = applyVersionFromEnv(CONFIG, {
+      ANDROID_VERSION_NAME: '1.2.3',
+      ANDROID_VERSION_CODE: '42',
+    });
+
+    expect(result.version).toBe('1.2.3');
+    expect(result.android).toEqual({ package: 'app.perseida', versionCode: 42 });
+  });
+
+  it('keeps app.json as it is without the variables (local builds)', () => {
+    expect(applyVersionFromEnv(CONFIG, {})).toBe(CONFIG);
+  });
+
+  it.each([
+    [{ ANDROID_VERSION_NAME: '1.2.3' }],
+    [{ ANDROID_VERSION_CODE: '42' }],
+    [{ ANDROID_VERSION_NAME: '1.2.3', ANDROID_VERSION_CODE: '0' }],
+    [{ ANDROID_VERSION_NAME: '1.2.3', ANDROID_VERSION_CODE: 'abc' }],
+  ])('fails loudly with incomplete or invalid values: %j', (env) => {
+    expect(() => applyVersionFromEnv(CONFIG, env)).toThrow('invalid ANDROID_VERSION');
   });
 });
