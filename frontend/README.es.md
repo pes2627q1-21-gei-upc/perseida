@@ -89,7 +89,7 @@ pnpm test --coverage              # tests + informe de cobertura (coverage/lcov.
 
 El script de comprobación de tipos se llama `typecheck` y no `tsc`: `expo-doctor` (que EAS Build ejecuta primero) avisa cuando un script de `package.json` tiene el mismo nombre que un binario de `node_modules/.bin`, y `tsc` es el binario de TypeScript. `pnpm tsc` sigue funcionando porque pnpm recurre al binario y da el mismo resultado aquí (`expo/tsconfig.base` ya fija `noEmit`), pero usa `pnpm typecheck`, que es el comando documentado.
 
-Releases: en cada release fusionada en `main`, GitHub Actions publica el **APK** en una release de GitHub.
+Releases: con cada tag `vX.Y.Z` sobre `main`, GitHub Actions publica el **APK** en una release de GitHub.
 
 ## Probar en el móvil (login con Google)
 

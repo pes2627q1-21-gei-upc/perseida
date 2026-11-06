@@ -1,7 +1,7 @@
 ---
 titol: "ADR-0029: APK d'Android a GitHub Releases amb Obtainium"
 tipus: adr
-estat: proposada
+estat: acceptada
 data: "2026-11-05"
 us: ["TG-329", "TG-334", "TG-335", "TG-336", "TG-337"]
 font: "US TG-329 de Taiga i tasques #334-#337; .github/workflows/android-release.yml; frontend/plugins/withAndroidRelease.js"

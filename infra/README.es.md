@@ -233,7 +233,7 @@ El workflow `.github/workflows/android-release.yml` compila, firma y publica el 
 
 **Crear una release:** después de fusionar la rama `release/*` en `main`, ejecuta `git tag vX.Y.Z <commit de main>` y `git push origin vX.Y.Z`.
 
-**Probar sin publicar:** Actions → Android release → Run workflow, con una versión como `0.1.0-test` y `publish` desactivado. El APK queda como artifact.
+**Probar sin publicar:** solo desde `main`, porque el environment `android-release` rechaza cualquier otra rama. Actions → Android release → Run workflow, con `main` seleccionada, una versión como `0.1.0-test` y `publish` desactivado. El APK queda como artifact.
 
 **Si se pierde la keystore:** las versiones nuevas no podrán instalarse encima de las antiguas. Hay que generar una nueva, registrar su SHA-1 en el cliente OAuth de Android de Google Cloud, actualizar los secrets y pedir a todos que reinstalen la app.
 

@@ -233,7 +233,7 @@ The workflow `.github/workflows/android-release.yml` builds, signs and publishes
 
 **Create a release:** after merging the `release/*` branch into `main`, run `git tag vX.Y.Z <main commit>` and `git push origin vX.Y.Z`.
 
-**Test without publishing:** Actions → Android release → Run workflow, with a version such as `0.1.0-test` and `publish` off. The APK stays as an artifact.
+**Test without publishing:** only from `main`, because the `android-release` environment rejects any other branch. Actions → Android release → Run workflow, with `main` selected, a version such as `0.1.0-test` and `publish` off. The APK stays as an artifact.
 
 **If the keystore is lost:** new versions cannot be installed over old ones. Generate a new keystore, register its SHA-1 in the Google Cloud Android OAuth client, update the secrets and ask everyone to reinstall the app.
 

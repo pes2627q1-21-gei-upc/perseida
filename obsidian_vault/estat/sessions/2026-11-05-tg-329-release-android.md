@@ -33,8 +33,8 @@ Portar a `develop` el workflow de release de l'APK, complint els criteris de la 
 
 ## Pendent / següents passos
 
-- [ ] Execució manual del workflow des d'aquesta branca amb `publish=false`.
-- [ ] Restringir l'environment `android-release` a `main` i als tags `v*.*.*`.
+- [x] Execució manual del workflow des d'aquesta branca amb `publish=false`, abans de restringir l'environment.
+- [x] Restringir l'environment `android-release` a `main` i als tags `v*.*.*`. A partir d'ara, la prova manual només es pot llançar des de `main`.
 - [ ] Còpia de seguretat de la keystore en poder de dues persones.
 - [ ] Primera release `v0.1.0`, que depèn de la `release/*` de l'SM.
 - [ ] Prova en un mòbil real i actualització amb Obtainium de `v0.1.0` a `v0.1.1`.
