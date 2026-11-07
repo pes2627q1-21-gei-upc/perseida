@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
-from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -1053,7 +1052,7 @@ class ExpiringPubSub(FakePubSub):
         self._store = store
         self._jti = jti
 
-    def subscribe(self, channel: str) -> AbstractAsyncContextManager[Any]:
+    def subscribe(self, channel: str) -> Any:
         if channel == revocation_channel(SUB):
             self._store.expire(TokenType.ACCESS, self._jti)
         return super().subscribe(channel)
