@@ -36,12 +36,14 @@ Portar la US TG-63 a una branca llesta per a PR: `/api/ws` autenticat pel primer
 
 ## Pendent / següents passos
 
-- [ ] Provar el `101` a través d'un NPM real en local (#430): només s'ha verificat contra uvicorn.
-- [ ] `mutmut` no genera mutants al domini `realtime` (només constants i f-strings): el 70 % s'ha comprovat amb mutació manual (37/37 mutants no equivalents morts). Cal decidir com es documenta a la PR.
-- [ ] Timeout d'enviament sota el `Lock` de `RealtimeSession` i buidat de `_tasks` (troballes MITJANA i BAIXA del revisor, no corregides).
 - [ ] PR cap a `develop`, aprovació d'una altra persona, CI i Quality Gate.
 - [ ] Acceptar l'ADR-0030 a la PR.
-- [ ] Avisar #64 i #65 del catàleg d'errors i de les variables `WS_*`.
+
+Resolt a la mateixa sessió: el timeout d'enviament sota el `Lock` (`WS_SEND_TIMEOUT_SECONDS`, tanca amb 1013) i el buidat de `_tasks`; el `101` a través d'un NPM real en local (#430); l'avís a #64 i #65 amb el catàleg d'errors i les variables `WS_*`.
+
+## Excepció de mutation testing
+
+`mutmut==3.8.1` no genera cap mutant a `app/domain/realtime/`: només muta cossos de funcions i aquí hi ha constants, un enum, camps de Pydantic i dues funcions que retornen un f-string. El llindar del 70 % s'ha comprovat amb 39 mutants manuals sobre `models.py` (37 morts i 2 equivalents), un 100 % sobre els no equivalents. Aquest script no és al repo.
 
 ## US de Taiga
 
