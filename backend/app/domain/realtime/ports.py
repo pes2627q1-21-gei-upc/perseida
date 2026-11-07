@@ -1,7 +1,7 @@
 from typing import Protocol
 
 
-class ConnectionClosed(Exception):
+class ConnectionClosed(Exception):  # noqa: N818  (name fixed by the port contract)
     """The peer is gone or the connection was already closed."""
 
 
