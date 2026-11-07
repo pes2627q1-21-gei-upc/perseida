@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -894,3 +895,180 @@ async def test_run_leaves_no_pending_tasks_after_a_server_side_close(
 
     assert env.pubsub.active_channels() == []
     assert pending_tasks(env) == set()
+
+
+# --- limits and hostile input (TG-63 review findings) -------------------------
+
+
+def limits(**kwargs: Any) -> RealtimeConfig:
+    return RealtimeConfig(auth_timeout_seconds=1.0, heartbeat_seconds=30.0, **kwargs)
+
+
+def test_limits_default_to_twenty_rooms_and_64_kib_frames() -> None:
+    config = RealtimeConfig(auth_timeout_seconds=1.0, heartbeat_seconds=30.0)
+
+    assert config.max_rooms == 20
+    assert config.max_frame_bytes == 65536
+
+
+async def test_subscribing_past_max_rooms_is_rate_limited_and_keeps_the_connection(
+    env: Env,
+) -> None:
+    client = await connect(env, config=limits(max_rooms=2))
+    await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
+    await request(client, {"type": "subscribe", "room": "sala-b", "id": "s2"})
+
+    reply = await request(client, {"type": "subscribe", "room": "sala-c", "id": "s3"})
+
+    assert reply["type"] == "error"
+    assert reply["payload"]["code"] == errors.RATE_LIMITED
+    assert reply["payload"]["status"] == 429
+    assert reply["id"] == "s3"
+    assert reply["room"] == "sala-c"
+    assert env.pubsub.subscriber_count(room_channel("sala-c")) == 0
+    await assert_alive(client)
+
+
+async def test_resubscribing_to_a_joined_room_does_not_count_against_the_limit(
+    env: Env,
+) -> None:
+    client = await connect(env, config=limits(max_rooms=2))
+    await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
+    await request(client, {"type": "subscribe", "room": "sala-b", "id": "s2"})
+
+    reply = await request(client, {"type": "subscribe", "room": "sala-a", "id": "s4"})
+
+    assert pick(reply, "type", "room", "id") == {
+        "type": "subscribe",
+        "room": "sala-a",
+        "id": "s4",
+    }
+    assert env.pubsub.subscriber_count(room_channel("sala-a")) == 1
+
+
+async def test_unsubscribing_frees_a_slot_for_a_new_room(env: Env) -> None:
+    client = await connect(env, config=limits(max_rooms=2))
+    await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
+    await request(client, {"type": "subscribe", "room": "sala-b", "id": "s2"})
+    await request(client, {"type": "unsubscribe", "room": "sala-a", "id": "u1"})
+
+    reply = await request(client, {"type": "subscribe", "room": "sala-c", "id": "s3"})
+
+    assert pick(reply, "type", "room", "id") == {
+        "type": "subscribe",
+        "room": "sala-c",
+        "id": "s3",
+    }
+    await wait_until(lambda: env.pubsub.subscriber_count(room_channel("sala-c")) == 1)
+
+
+def padded_ping(total_length: int) -> str:
+    base = json.dumps({"type": "ping", "id": "b", "payload": {"p": ""}})
+    pad = total_length - len(base)
+    assert pad >= 0
+    raw = json.dumps({"type": "ping", "id": "b", "payload": {"p": "x" * pad}})
+    assert len(raw) == total_length
+    return raw
+
+
+async def test_a_frame_of_exactly_max_frame_bytes_is_accepted(env: Env) -> None:
+    client = await connect(env, config=limits(max_frame_bytes=200))
+    before = len(client.conn.sent)
+
+    client.conn.feed(padded_ping(200))
+    await client.conn.wait_for_sent(before + 1)
+
+    assert pick(client.frames()[before], "type", "id") == {"type": "pong", "id": "b"}
+
+
+async def test_an_oversized_frame_is_a_validation_error_and_is_not_published(
+    env: Env,
+) -> None:
+    client = await connect(env, config=limits(max_frame_bytes=200))
+    await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
+    raw = json.dumps(
+        {"type": "message", "room": "sala-a", "id": "m1", "payload": {"p": "x" * 300}}
+    )
+    before = len(client.conn.sent)
+
+    client.conn.feed(raw)
+    await client.conn.wait_for_sent(before + 1)
+
+    reply = client.frames()[before]
+    assert reply["type"] == "error"
+    assert reply["payload"]["code"] == errors.VALIDATION_ERROR
+    assert env.pubsub.published == []
+    await assert_alive(client)
+
+
+async def test_an_oversized_first_frame_closes_with_4401(env: Env) -> None:
+    access, _, _ = await env.login()
+    client = start(env, config=limits(max_frame_bytes=200))
+
+    client.conn.feed(json.dumps({"type": "auth", "token": access, "pad": "x" * 300}))
+
+    assert await client.conn.wait_closed() == errors.CLOSE_UNAUTHENTICATED
+    assert client.conn.sent == []
+    await client.finished()
+
+
+@pytest.mark.parametrize("unit", ["[", '{"a":'])
+async def test_deeply_nested_json_after_auth_is_a_validation_error(
+    env: Env, unit: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    client = await connect(env, config=limits(max_frame_bytes=10_000_000))
+    before = len(client.conn.sent)
+
+    client.conn.feed(unit * 100_000)
+    await client.conn.wait_for_sent(before + 1)
+
+    reply = client.frames()[before]
+    assert reply["type"] == "error"
+    assert reply["payload"]["code"] == errors.VALIDATION_ERROR
+    assert not any(r.levelno >= logging.ERROR for r in caplog.records)
+    await assert_alive(client)
+
+
+@pytest.mark.parametrize("unit", ["[", '{"a":'])
+async def test_deeply_nested_json_as_first_frame_closes_with_4401_without_logging(
+    env: Env, unit: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    client = start(env, config=limits(max_frame_bytes=10_000_000))
+
+    client.conn.feed(unit * 100_000)
+
+    assert await client.conn.wait_closed() == errors.CLOSE_UNAUTHENTICATED
+    await client.finished()
+    assert client.conn.sent == []
+    assert not any(r.levelno >= logging.ERROR for r in caplog.records)
+
+
+class ExpiringPubSub(FakePubSub):
+    """Expires the access token the moment the revocation channel is subscribed."""
+
+    def __init__(self, store: FlakySessionStore, jti: str) -> None:
+        super().__init__()
+        self._store = store
+        self._jti = jti
+
+    def subscribe(self, channel: str) -> AbstractAsyncContextManager[Any]:
+        if channel == revocation_channel(SUB):
+            self._store.expire(TokenType.ACCESS, self._jti)
+        return super().subscribe(channel)
+
+
+async def test_token_expiring_during_the_revocation_subscription_closes_with_4401(
+    env: Env,
+) -> None:
+    access, _, claims = await env.login()
+    env.pubsub = ExpiringPubSub(env.store, claims.jti)
+    client = start(env, config=CONFIG)
+
+    client.conn.feed_frame({"type": "auth", "token": access})
+
+    # the heartbeat is 30 s: closing now means the token was re-checked
+    assert await client.conn.wait_closed() == errors.CLOSE_UNAUTHENTICATED
+    await client.finished()
+    assert env.pubsub.active_channels() == []

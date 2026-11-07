@@ -1,11 +1,14 @@
+import logging
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 
+from app.application.realtime.realtime_session import RealtimeConfig, RealtimeSession
 from app.domain.realtime.ports import ConnectionClosed
 from app.infrastructure.realtime.router import WebSocketConnection
+from tests.fakes.pubsub import FakePubSub
 
 
 def make_connection(
@@ -62,3 +65,34 @@ async def test_close_ignores_a_socket_closed_in_the_meantime() -> None:
     websocket.close.side_effect = RuntimeError("already closed")
 
     await connection.close(1011)
+
+
+async def test_a_binary_frame_closes_with_1003_and_is_connection_closed() -> None:
+    connection, websocket = make_connection()
+    websocket.receive_text.side_effect = KeyError("text")  # Starlette on binary
+
+    with pytest.raises(ConnectionClosed):
+        await connection.receive_text()
+
+    websocket.close.assert_awaited_once_with(1003)
+
+
+async def test_a_binary_frame_ends_the_session_without_an_error_log(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    connection, websocket = make_connection()
+    websocket.receive_text.side_effect = KeyError("text")
+    session = RealtimeSession(
+        connection,
+        MagicMock(),
+        MagicMock(),
+        FakePubSub(),
+        RealtimeConfig(auth_timeout_seconds=1.0, heartbeat_seconds=30.0),
+        "conn-1",
+    )
+
+    await session.run()
+
+    assert not any(r.levelno >= logging.ERROR for r in caplog.records)
+    assert not any(r.exc_info for r in caplog.records)
