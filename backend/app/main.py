@@ -20,6 +20,8 @@ from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
+from app.infrastructure.realtime.config import RealtimeSettings
+from app.infrastructure.realtime.router import router as realtime_router
 from app.infrastructure.scheduler.dependencies import (
     get_job_scheduler,
     get_scheduler_settings,
@@ -51,6 +53,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         app.state.redis = redis
         app.state.cache_default_ttl_seconds = redis_settings.cache_default_ttl_seconds
+        app.state.realtime_config = RealtimeSettings().config()
         async with httpx.AsyncClient(timeout=GOOGLE_HTTP_TIMEOUT_SECONDS) as client:
             engine = create_async_engine(settings.database_url)
             try:
@@ -109,6 +112,7 @@ def create_app() -> FastAPI:
     app.include_router(apod_router, prefix="/api")
     app.include_router(auth_router, prefix="/api")
     app.include_router(users_router, prefix="/api")
+    app.include_router(realtime_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 
