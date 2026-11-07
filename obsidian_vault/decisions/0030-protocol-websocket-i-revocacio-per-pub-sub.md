@@ -1,7 +1,7 @@
 ---
 titol: "ADR-0030: Protocol WebSocket i revocació de sessió per pub/sub"
 tipus: adr
-estat: proposada
+estat: acceptada
 data: "2026-11-07"
 us: ["TG-63"]
 font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime"
@@ -50,6 +50,9 @@ Un endpoint `/api/ws` amb un embolcall JSON únic, un catàleg d'errors comparti
 
 - Si Redis cau, la revocació en viu no arriba i el tancament depèn del heartbeat (com a màxim `WS_HEARTBEAT_SECONDS`).
 - Sense `message` persistit ni garantia d'entrega: els missatges publicats mentre un client és desconnectat es perden.
+- Mentre #64 i #65 no afegeixin permisos per sala, qualsevol usuari autenticat es pot subscriure i publicar a qualsevol sala amb un nom vàlid (`FORBIDDEN` està definit però encara no s'emet). L'endpoint és infraestructura genèrica, no s'hi han de lligar sales sensibles abans d'aquests permisos.
+- Sense límit de freqüència de frames `message` per connexió: només hi ha el límit de mida (`WS_MAX_FRAME_BYTES`) i de sales (`WS_MAX_ROOMS`). El rate limit de frames queda per a #64 i #65.
+- uvicorn no configura `--ws-max-size` (16 MiB per defecte): la llibreria rep el frame sencer abans que s'apliqui `WS_MAX_FRAME_BYTES`, de manera que un client encara no autenticat pot fer que el servidor en memoritzi fins a 16 MiB per connexió.
 
 ## Alternatives descartades
 

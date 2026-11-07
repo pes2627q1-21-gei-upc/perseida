@@ -25,7 +25,7 @@ Portar la US TG-63 a una branca llesta per a PR: `/api/ws` autenticat pel primer
 
 ## Decisions preses
 
-- [[0030-protocol-websocket-i-revocacio-per-pub-sub]] (proposada): embolcall, codis de tancament, catàleg d'errors i revocació per pub/sub.
+- [[0030-protocol-websocket-i-revocacio-per-pub-sub]] (acceptada): embolcall, codis de tancament, catàleg d'errors i revocació per pub/sub.
 - Acusament = eco del mateix `type`; sales a `room:<room>`; heartbeat 1001 sense `pong` amb revalidació de l'access token a cada tic; `message` a sala no subscrita → `NOT_SUBSCRIBED`.
 - `RedisSessionStore` publica la revocació sempre, també amb l'índex buit (la descripció de #425 deia que no; desviació coneguda).
 - Autorització per sala (`FORBIDDEN`) i rate limit de frames: per a #64 i #65.
