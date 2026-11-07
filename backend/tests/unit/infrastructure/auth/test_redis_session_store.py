@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -9,7 +10,9 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from app.application.auth.errors import SESSION_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
 from app.domain.auth.models import SessionClaims, TokenType
+from app.domain.realtime.models import revocation_channel
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
+from tests.fakes.pubsub import FakePubSub
 
 EXP = datetime(2026, 10, 20, tzinfo=UTC)
 ACCESS = SessionClaims(
@@ -34,8 +37,8 @@ def make_redis(execute_result: list[Any] | None = None) -> MagicMock:
     return redis
 
 
-def make_store(redis: MagicMock) -> RedisSessionStore:
-    return RedisSessionStore(cast(Any, redis))
+def make_store(redis: MagicMock, pubsub: FakePubSub | None = None) -> RedisSessionStore:
+    return RedisSessionStore(cast(Any, redis), pubsub or FakePubSub())
 
 
 async def test_save_sets_the_key_and_indexes_it_by_user_in_one_transaction() -> None:
@@ -146,3 +149,98 @@ async def test_a_redis_failure_is_session_unavailable_and_never_logs_a_token(
     assert exc.value.code == SESSION_UNAVAILABLE
     if operation in ("save", "exists", "delete"):
         assert "jti-1" in caplog.text or "jti-2" in caplog.text
+
+
+# --- TG-63 / US #63, tasca #425: revocation is announced on pub/sub ----------
+
+
+async def test_revoke_session_publishes_the_sid_on_the_revocation_channel() -> None:
+    redis = make_redis()
+    redis.smembers.return_value = {"sid-1:access:jti-1", "sid-2:access:jti-3"}
+    pubsub = FakePubSub()
+
+    await make_store(redis, pubsub).revoke_session("g-1", "sid-1")
+
+    assert [(c, json.loads(m)) for c, m in pubsub.published] == [
+        (revocation_channel("g-1"), {"sid": "sid-1"})
+    ]
+
+
+async def test_revoke_all_publishes_a_null_sid() -> None:
+    redis = make_redis()
+    redis.smembers.return_value = {"sid-1:access:jti-1"}
+    pubsub = FakePubSub()
+
+    await make_store(redis, pubsub).revoke_all("g-1")
+
+    assert [(c, json.loads(m)) for c, m in pubsub.published] == [
+        (revocation_channel("g-1"), {"sid": None})
+    ]
+
+
+@pytest.mark.parametrize("operation", ["revoke_session", "revoke_all"])
+async def test_it_publishes_even_when_the_user_index_is_empty(operation: str) -> None:
+    redis = make_redis()
+    pubsub = FakePubSub()
+    args = ("g-1", "sid-1") if operation == "revoke_session" else ("g-1",)
+
+    await getattr(make_store(redis, pubsub), operation)(*args)
+
+    assert [c for c, _ in pubsub.published] == [revocation_channel("g-1")]
+
+
+@pytest.mark.parametrize("operation", ["revoke_session", "revoke_all"])
+async def test_it_publishes_only_after_the_keys_were_deleted(operation: str) -> None:
+    redis = make_redis()
+    redis.smembers.return_value = {"sid-1:access:jti-1"}
+    events: list[str] = []
+    redis.pipe.execute.side_effect = lambda: _record(events, "deleted")
+    pubsub = FakePubSub()
+    original = pubsub.publish
+
+    async def publish(channel: str, message: str) -> None:
+        events.append("published")
+        await original(channel, message)
+
+    pubsub.publish = publish  # type: ignore[method-assign]
+    args = ("g-1", "sid-1") if operation == "revoke_session" else ("g-1",)
+
+    await getattr(make_store(redis, pubsub), operation)(*args)
+
+    assert events == ["deleted", "published"]
+
+
+async def _record(events: list[str], name: str) -> list[Any]:
+    events.append(name)
+    return []
+
+
+@pytest.mark.parametrize("operation", ["revoke_session", "revoke_all"])
+async def test_a_pubsub_failure_is_logged_and_never_raised(
+    operation: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    redis = make_redis()
+    redis.smembers.return_value = {"sid-1:access:jti-1"}
+    pubsub = FakePubSub()
+    pubsub.fail(True)
+    args = ("g-1", "sid-1") if operation == "revoke_session" else ("g-1",)
+
+    with caplog.at_level(logging.WARNING):
+        await getattr(make_store(redis, pubsub), operation)(*args)
+
+    redis.pipe.delete.assert_called_once_with("session:access:jti-1")
+    assert any(r.levelno == logging.WARNING for r in caplog.records)
+
+
+@pytest.mark.parametrize("operation", ["revoke_session", "revoke_all"])
+async def test_a_redis_failure_publishes_nothing(operation: str) -> None:
+    redis = make_redis()
+    redis.smembers.side_effect = RedisConnectionError("redis:6379 refused")
+    pubsub = FakePubSub()
+    args = ("g-1", "sid-1") if operation == "revoke_session" else ("g-1",)
+
+    with pytest.raises(ExternalServiceError) as exc:
+        await getattr(make_store(redis, pubsub), operation)(*args)
+
+    assert exc.value.code == SESSION_UNAVAILABLE
+    assert pubsub.published == []
