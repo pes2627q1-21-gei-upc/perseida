@@ -16,6 +16,8 @@ from app.infrastructure.realtime.dependencies import get_realtime_config
 
 logger = logging.getLogger(__name__)
 
+CLOSE_UNSUPPORTED_DATA = 1003
+
 router = APIRouter(tags=["realtime"])
 
 
@@ -29,6 +31,9 @@ class WebSocketConnection:
         try:
             return await self._ws.receive_text()
         except (WebSocketDisconnect, RuntimeError) as exc:
+            raise ConnectionClosed from exc
+        except (KeyError, TypeError) as exc:  # Starlette on a binary frame
+            await self.close(CLOSE_UNSUPPORTED_DATA)
             raise ConnectionClosed from exc
 
     async def send_text(self, data: str) -> None:

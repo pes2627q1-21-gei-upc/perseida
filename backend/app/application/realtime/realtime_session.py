@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 class RealtimeConfig:
     auth_timeout_seconds: float
     heartbeat_seconds: float
+    max_rooms: int = 20
+    max_frame_bytes: int = 65536
 
 
 class _BadFrameError(Exception):
@@ -96,9 +98,11 @@ class RealtimeSession:
                 raw = await self._conn.receive_text()
         except TimeoutError:
             return None
+        if self._too_big(raw):
+            return None
         try:
             data = json.loads(raw)
-        except ValueError:
+        except ValueError, RecursionError:
             return None
         if not isinstance(data, dict) or data.get("type") != FrameType.AUTH:
             return None
@@ -110,6 +114,10 @@ class RealtimeSession:
             revocation_channel(claims.sub),
             lambda raw: self._on_revocation(raw, claims),
         )
+        # the token may have been revoked before the subscription was active
+        if not await self._store.exists(TokenType.ACCESS, claims.jti):
+            await self._close(errors.CLOSE_UNAUTHENTICATED)
+            return
         self._spawn(self._heartbeat(claims))
         await self._send(Frame(type=FrameType.AUTH))
         while True:
@@ -125,11 +133,15 @@ class RealtimeSession:
         else:
             await self._dispatch(frame)
 
-    @staticmethod
-    def _parse(raw: str) -> Frame:
+    def _too_big(self, raw: str) -> bool:
+        return len(raw.encode()) > self._config.max_frame_bytes
+
+    def _parse(self, raw: str) -> Frame:
+        if self._too_big(raw):
+            raise _BadFrameError(errors.VALIDATION_ERROR, "Frame is too large.")
         try:
             data = json.loads(raw)
-        except ValueError:
+        except ValueError, RecursionError:
             raise _BadFrameError(
                 errors.VALIDATION_ERROR, "Frame is not valid JSON."
             ) from None
@@ -184,6 +196,10 @@ class RealtimeSession:
 
     async def _room_action(self, frame: Frame, room: str) -> Frame:
         if frame.type == FrameType.SUBSCRIBE:
+            if room not in self._rooms and len(self._rooms) >= self._config.max_rooms:
+                return error_frame(
+                    errors.RATE_LIMITED, "Too many rooms.", frame.id, room
+                )
             await self._join(room)
         elif frame.type == FrameType.UNSUBSCRIBE:
             await self._leave(room)
