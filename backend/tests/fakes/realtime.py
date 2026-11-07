@@ -39,6 +39,7 @@ class FakeConnection:
         self.sent: list[str] = []
         self.closed_code: int | None = None
         self.auto_pong = auto_pong
+        self._sends_blocked = False
 
     # client -> server
     def feed(self, text: str) -> None:
@@ -46,6 +47,10 @@ class FakeConnection:
 
     def feed_frame(self, frame: dict[str, Any]) -> None:
         self.feed(json.dumps(frame))
+
+    def block_sends(self) -> None:
+        """The client stops reading: ``send_text`` waits forever from now on."""
+        self._sends_blocked = True
 
     def disconnect(self) -> None:
         """The client goes away: the next ``receive_text`` raises."""
@@ -65,6 +70,8 @@ class FakeConnection:
     async def send_text(self, data: str) -> None:
         if self._disconnected or self.closed_code is not None:
             raise ConnectionClosed
+        if self._sends_blocked:
+            await asyncio.Event().wait()  # never set: only cancellation ends it
         self.sent.append(data)
         if self.auto_pong:
             frame = json.loads(data)

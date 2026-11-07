@@ -71,6 +71,7 @@ class Client:
     task: asyncio.Task[None]
     token: str = ""
     claims: SessionClaims | None = None
+    session: RealtimeSession | None = None
 
     async def finished(self) -> None:
         await asyncio.wait_for(self.task, SAFETY_TIMEOUT)
@@ -115,7 +116,7 @@ def start(
     )
     task = asyncio.create_task(session.run())
     env.tasks.append(task)
-    return Client(conn, task)
+    return Client(conn, task, session=session)
 
 
 async def connect(
@@ -1071,3 +1072,107 @@ async def test_token_expiring_during_the_revocation_subscription_closes_with_440
     assert await client.conn.wait_closed() == errors.CLOSE_UNAUTHENTICATED
     await client.finished()
     assert env.pubsub.active_channels() == []
+
+
+# --- send timeout and finished tasks (TG-63 review findings) -------------------
+
+
+def slow_client(heartbeat_seconds: float = 30.0) -> RealtimeConfig:
+    return RealtimeConfig(
+        auth_timeout_seconds=1.0,
+        heartbeat_seconds=heartbeat_seconds,
+        send_timeout_seconds=0.05,
+    )
+
+
+def test_send_timeout_defaults_to_five_seconds() -> None:
+    config = RealtimeConfig(auth_timeout_seconds=1.0, heartbeat_seconds=30.0)
+
+    assert config.send_timeout_seconds == 5.0
+
+
+async def test_a_blocked_auth_echo_closes_with_1013_and_releases_subscriptions(
+    env: Env, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    access, _, _ = await env.login()
+    client = start(env, config=slow_client())
+    client.conn.block_sends()
+
+    client.conn.feed_frame({"type": "auth", "token": access})
+
+    assert await client.conn.wait_closed() == errors.CLOSE_TRY_AGAIN_LATER
+    await client.finished()
+    assert client.task.exception() is None
+    assert env.pubsub.subscriber_count(revocation_channel(SUB)) == 0
+    assert env.pubsub.active_channels() == []
+    assert not any(r.levelno >= logging.ERROR for r in caplog.records)
+
+
+async def test_a_blocked_pong_closes_with_1013_and_releases_subscriptions(
+    env: Env, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    client = await connect(env, config=slow_client())
+    await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
+    client.conn.block_sends()
+
+    client.conn.feed_frame({"type": "ping", "id": "p1"})
+
+    assert await client.conn.wait_closed() == errors.CLOSE_TRY_AGAIN_LATER
+    await client.finished()
+    assert client.task.exception() is None
+    assert env.pubsub.subscriber_count(revocation_channel(SUB)) == 0
+    assert env.pubsub.active_channels() == []
+    assert not any(r.levelno >= logging.ERROR for r in caplog.records)
+
+
+async def test_a_blocked_send_does_not_hang_the_heartbeat_forever(
+    env: Env, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    client = await connect(
+        env, config=slow_client(heartbeat_seconds=0.05), auto_pong=False
+    )
+    client.conn.block_sends()
+
+    # the heartbeat ping is blocked; the send timeout must free the session
+    assert await client.conn.wait_closed() == errors.CLOSE_TRY_AGAIN_LATER
+    await client.finished()
+    assert env.pubsub.active_channels() == []
+    assert not any(r.levelno >= logging.ERROR for r in caplog.records)
+
+
+async def test_a_fast_client_is_not_affected_by_the_send_timeout(env: Env) -> None:
+    client = await connect(env, config=slow_client())
+
+    await assert_alive(client)
+
+
+async def test_finished_tasks_are_dropped_after_subscribe_unsubscribe_cycles(
+    env: Env,
+) -> None:
+    client = await connect(env)
+    session = client.session
+    assert session is not None
+    baseline = len(session._tasks)  # noqa: SLF001 - private by design, see TG-63
+
+    for index in range(5):
+        room = f"sala-{index}"
+        await request(client, {"type": "subscribe", "room": room, "id": f"s{index}"})
+        await request(client, {"type": "unsubscribe", "room": room, "id": f"u{index}"})
+        await wait_until(lambda: len(session._tasks) == baseline)  # noqa: SLF001
+
+    assert len(session._tasks) == baseline  # noqa: SLF001
+
+
+async def test_no_task_is_left_in_the_session_once_run_ends(env: Env) -> None:
+    client = await connect(env)
+    session = client.session
+    assert session is not None
+    await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
+
+    client.conn.disconnect()
+    await client.finished()
+
+    assert len(session._tasks) == 0  # noqa: SLF001

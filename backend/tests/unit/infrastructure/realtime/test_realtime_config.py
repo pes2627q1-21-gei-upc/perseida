@@ -34,7 +34,10 @@ def test_it_builds_the_application_config() -> None:
     )
 
 
-@pytest.mark.parametrize("field", ["ws_auth_timeout_seconds", "ws_heartbeat_seconds"])
+@pytest.mark.parametrize(
+    "field",
+    ["ws_auth_timeout_seconds", "ws_heartbeat_seconds", "ws_send_timeout_seconds"],
+)
 @pytest.mark.parametrize("value", [0, -1, -0.5])
 def test_zero_and_negative_values_are_rejected(field: str, value: float) -> None:
     with pytest.raises(ValidationError):
@@ -82,3 +85,32 @@ def test_the_limits_reach_the_application_config() -> None:
 def test_zero_and_negative_limits_are_rejected(field: str, value: int) -> None:
     with pytest.raises(ValidationError):
         RealtimeSettings(_env_file=None, **{field: value})  # type: ignore[arg-type]
+
+
+def test_send_timeout_defaults_to_five_seconds() -> None:
+    settings = RealtimeSettings(_env_file=None)
+
+    assert settings.ws_send_timeout_seconds == 5.0
+
+
+def test_send_timeout_is_read_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WS_SEND_TIMEOUT_SECONDS", "2.5")
+
+    settings = RealtimeSettings(_env_file=None)
+
+    assert settings.ws_send_timeout_seconds == 2.5
+
+
+def test_send_timeout_reaches_the_application_config() -> None:
+    settings = RealtimeSettings(
+        ws_auth_timeout_seconds=2,
+        ws_heartbeat_seconds=5,
+        ws_send_timeout_seconds=1.5,
+        _env_file=None,
+    )
+
+    assert settings.config() == RealtimeConfig(
+        auth_timeout_seconds=2, heartbeat_seconds=5, send_timeout_seconds=1.5
+    )
