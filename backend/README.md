@@ -384,8 +384,9 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 | `WS_HEARTBEAT_SECONDS` | Heartbeat interval in seconds (30 by default) |
 | `WS_MAX_ROOMS` | Maximum rooms per connection (20 by default) |
 | `WS_MAX_FRAME_BYTES` | Maximum size of an incoming frame in bytes (65536 by default) |
+| `WS_SEND_TIMEOUT_SECONDS` | Maximum seconds to send a frame to a client (5 by default) |
 
-Subscribing to a new room past `WS_MAX_ROOMS` is answered with the `RATE_LIMITED` error and the connection stays open. A frame larger than `WS_MAX_FRAME_BYTES` is answered with `VALIDATION_ERROR` (or closes with 4401 if it is the first frame) and is not processed. A binary frame closes with 1003.
+Subscribing to a new room past `WS_MAX_ROOMS` is answered with the `RATE_LIMITED` error and the connection stays open. A frame larger than `WS_MAX_FRAME_BYTES` is answered with `VALIDATION_ERROR` (or closes with 4401 if it is the first frame) and is not processed. A binary frame closes with 1003. A client that does not read (a send exceeding `WS_SEND_TIMEOUT_SECONDS`) is closed with 1013.
 
 `uvicorn` needs a WebSocket library (`websockets`, pinned in `pyproject.toml`); without one it answers the handshake with 404. `tests/integration/test_websocket_uvicorn.py` checks the 101 against a real server. Other tests: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) and `tests/integration/test_websocket_redis.py` (real Redis, two clients, revocation and Redis down through a cuttable TCP proxy).
 
