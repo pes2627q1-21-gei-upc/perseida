@@ -2,12 +2,12 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
-from app.infrastructure.realtime.dependencies import get_realtime_config
 from starlette.requests import HTTPConnection
 
 from app.application.realtime.realtime_session import RealtimeConfig
 from app.infrastructure.auth.dependencies import get_session_store
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
+from app.infrastructure.realtime.dependencies import get_realtime_config
 
 
 def _conn(**state: Any) -> HTTPConnection:
