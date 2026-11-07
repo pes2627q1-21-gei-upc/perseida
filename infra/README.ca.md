@@ -349,7 +349,7 @@ El panell només escolta a `127.0.0.1`, mai des de fora. El primer cop que hi en
    # HTTP/1.1 101 Switching Protocols  (curl then waits until --max-time)
    ```
 
-   Un client real (p. ex. `wscat -n -c wss://perseida.localhost/api/ws`) ha d'enviar després, com a primer frame, `{"type":"auth","token":"<access token>"}`: el servidor tanca amb el codi 4401 si aquest frame no arriba en `WS_AUTH_TIMEOUT_SECONDS` (per defecte 10) o el token no és vàlid. Un cop autenticat, el servidor envia un `ping` cada `WS_HEARTBEAT_SECONDS` (per defecte 30). Totes dues són variables opcionals d'`api` (són a `.env.example`). El *heartbeat* ha de ser molt menor que `proxy_read_timeout` (3600 s a `websocket.conf`) perquè el proxy no vegi mai la connexió com a inactiva.
+   Un client real (p. ex. `wscat -n -c wss://perseida.localhost/api/ws`) ha d'enviar després, com a primer frame, `{"type":"auth","token":"<access token>"}`: el servidor tanca amb el codi 4401 si aquest frame no arriba en `WS_AUTH_TIMEOUT_SECONDS` (per defecte 10) o el token no és vàlid. Un cop autenticat, el servidor envia un `ping` cada `WS_HEARTBEAT_SECONDS` (per defecte 30). Totes dues són variables opcionals d'`api` (són a `.env.example`), igual que `WS_MAX_ROOMS` (per defecte 20), `WS_MAX_FRAME_BYTES` (per defecte 65536) i `WS_SEND_TIMEOUT_SECONDS` (per defecte 5). El *heartbeat* ha de ser molt menor que `proxy_read_timeout` (3600 s a `websocket.conf`) perquè el proxy no vegi mai la connexió com a inactiva.
 
 ### Volums
 

@@ -349,7 +349,7 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
    # HTTP/1.1 101 Switching Protocols  (curl then waits until --max-time)
    ```
 
-   A real client (e.g. `wscat -n -c wss://perseida.localhost/api/ws`) then has to send, as its first frame, `{"type":"auth","token":"<access token>"}`: the server closes with code 4401 if that frame does not arrive within `WS_AUTH_TIMEOUT_SECONDS` (default 10) or the token is not valid. After authenticating, the server sends a `ping` every `WS_HEARTBEAT_SECONDS` (default 30). Both are optional variables of `api` (they are in `.env.example`). The heartbeat must stay well below `proxy_read_timeout` (3600 s in `websocket.conf`) so the proxy never sees the connection as idle.
+   A real client (e.g. `wscat -n -c wss://perseida.localhost/api/ws`) then has to send, as its first frame, `{"type":"auth","token":"<access token>"}`: the server closes with code 4401 if that frame does not arrive within `WS_AUTH_TIMEOUT_SECONDS` (default 10) or the token is not valid. After authenticating, the server sends a `ping` every `WS_HEARTBEAT_SECONDS` (default 30). Both are optional variables of `api` (they are in `.env.example`), as are `WS_MAX_ROOMS` (default 20), `WS_MAX_FRAME_BYTES` (default 65536) and `WS_SEND_TIMEOUT_SECONDS` (default 5). The heartbeat must stay well below `proxy_read_timeout` (3600 s in `websocket.conf`) so the proxy never sees the connection as idle.
 
 ### Volumes
 
