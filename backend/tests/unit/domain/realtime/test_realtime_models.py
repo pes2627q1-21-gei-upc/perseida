@@ -27,7 +27,8 @@ def test_frame_type_values_are_the_wire_contract() -> None:
 
 
 def test_frame_type_is_a_str_enum() -> None:
-    assert FrameType.PING == "ping"
+    assert isinstance(FrameType.PING, str)
+    assert str(FrameType.PING) == "ping"
     assert FrameType("pong") is FrameType.PONG
 
 
