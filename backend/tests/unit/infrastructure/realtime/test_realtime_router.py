@@ -9,14 +9,11 @@ import json
 import logging
 from collections.abc import Iterator
 from contextlib import ExitStack
-from typing import Any
 
 import pytest
-from app.infrastructure.realtime.dependencies import get_realtime_config
-from app.infrastructure.realtime.router import router
 from fastapi import FastAPI
-from fastapi.routing import APIWebSocketRoute
 from fastapi.testclient import TestClient
+from starlette.routing import Match
 from starlette.testclient import WebSocketTestSession
 from starlette.websockets import WebSocketDisconnect
 
@@ -26,6 +23,8 @@ from app.domain.auth.models import GoogleIdentity
 from app.domain.realtime.models import revocation_channel
 from app.infrastructure.auth.dependencies import get_auth_service, get_session_store
 from app.infrastructure.cache.dependencies import get_pubsub
+from app.infrastructure.realtime.dependencies import get_realtime_config
+from app.infrastructure.realtime.router import router
 from tests.fakes.auth import (
     FakeAccountGateway,
     FakeGoogleTokenVerifier,
@@ -249,8 +248,11 @@ def test_revoking_another_session_keeps_the_socket_open(
 def test_the_application_mounts_the_websocket_under_api_ws() -> None:
     from app.main import create_app
 
-    routes: list[Any] = create_app().routes
+    routes = create_app().routes
 
-    ws_routes = [r for r in routes if getattr(r, "path", None) == "/api/ws"]
-    assert len(ws_routes) == 1
-    assert isinstance(ws_routes[0], APIWebSocketRoute)
+    def matching(path: str) -> list[Match]:
+        scope = {"type": "websocket", "path": path, "root_path": "", "headers": []}
+        return [route.matches(scope)[0] for route in routes]
+
+    assert matching("/api/ws").count(Match.FULL) == 1
+    assert Match.FULL not in matching("/api/ws/other")

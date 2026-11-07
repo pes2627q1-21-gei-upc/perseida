@@ -194,7 +194,11 @@ async def test_it_publishes_only_after_the_keys_were_deleted(operation: str) -> 
     redis = make_redis()
     redis.smembers.return_value = {"sid-1:access:jti-1"}
     events: list[str] = []
-    redis.pipe.execute.side_effect = lambda: _record(events, "deleted")
+
+    async def execute() -> list[Any]:
+        return await _record(events, "deleted")
+
+    redis.pipe.execute.side_effect = execute
     pubsub = FakePubSub()
     original = pubsub.publish
 
