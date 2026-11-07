@@ -336,6 +336,10 @@ Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED
 |---|---|
 | `WS_AUTH_TIMEOUT_SECONDS` | Segons per enviar el frame `auth` (10 per defecte) |
 | `WS_HEARTBEAT_SECONDS` | Interval del heartbeat en segons (30 per defecte) |
+| `WS_MAX_ROOMS` | Màxim de sales per connexió (20 per defecte) |
+| `WS_MAX_FRAME_BYTES` | Mida màxima d'un frame entrant en bytes (65536 per defecte) |
+
+Subscriure's a una sala nova passat `WS_MAX_ROOMS` es respon amb l'error `RATE_LIMITED` i la connexió continua oberta. Un frame més gran que `WS_MAX_FRAME_BYTES` es respon amb `VALIDATION_ERROR` (o tanca amb 4401 si és el primer frame) i no es processa. Un frame binari tanca amb 1003.
 
 `uvicorn` necessita una llibreria WebSocket (`websockets`, fixada a `pyproject.toml`); sense ella respon 404 al handshake. `tests/integration/test_websocket_uvicorn.py` comprova el 101 contra un servidor real. Altres proves: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) i `tests/integration/test_websocket_redis.py` (Redis real, dos clients, revocació i Redis caigut amb un proxy TCP que es pot tallar).
 
