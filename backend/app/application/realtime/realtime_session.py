@@ -31,6 +31,7 @@ class RealtimeConfig:
     heartbeat_seconds: float
     max_rooms: int = 20
     max_frame_bytes: int = 65536
+    send_timeout_seconds: float = 5.0
 
 
 class _BadFrameError(Exception):
@@ -296,8 +297,16 @@ class RealtimeSession:
     # --- plumbing ----------------------------------------------------------
 
     async def _send(self, frame: Frame) -> None:
-        async with self._send_lock:
-            await self._conn.send_text(frame.model_dump_json(exclude_none=True))
+        try:
+            async with (
+                self._send_lock,
+                asyncio.timeout(self._config.send_timeout_seconds),
+            ):
+                await self._conn.send_text(frame.model_dump_json(exclude_none=True))
+        except TimeoutError:
+            # the client is not reading: free the session instead of hanging
+            await self._close(errors.CLOSE_TRY_AGAIN_LATER)
+            raise ConnectionClosed from None
 
     async def _close(self, code: int) -> None:
         if self._close_code is None:
@@ -314,7 +323,12 @@ class RealtimeSession:
     def _spawn(self, coro: Coroutine[Any, Any, None]) -> asyncio.Task[None]:
         task = asyncio.create_task(self._supervised(coro))
         self._tasks.append(task)
+        task.add_done_callback(self._forget)
         return task
+
+    def _forget(self, task: asyncio.Task[None]) -> None:
+        if task in self._tasks:
+            self._tasks.remove(task)
 
     async def _supervised(self, coro: Coroutine[Any, Any, None]) -> None:
         try:
@@ -331,6 +345,8 @@ class RealtimeSession:
             await task
 
     async def _stop_tasks(self) -> None:
-        for task in self._tasks:
+        tasks = list(self._tasks)
+        for task in tasks:
             task.cancel()
-        await asyncio.gather(*self._tasks, return_exceptions=True)
+        await asyncio.gather(*tasks, return_exceptions=True)
+        self._tasks.clear()
