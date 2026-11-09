@@ -127,7 +127,7 @@ Python dependencies are managed with `uv`. Dependency versions must be pinned ex
 
 - Repository: [pes2627q1-21-gei-upc/perseida](https://github.com/pes2627q1-21-gei-upc/perseida)
 - Backlog (Taiga): [alexga03-astronomia-pes](https://tree.taiga.io/project/alexga03-astronomia-pes)
-- SonarQube Cloud: **not created yet** (pending).
+- SonarQube Cloud: [pes2627q1-21-gei-upc_perseida](https://sonarcloud.io/project/overview?id=pes2627q1-21-gei-upc_perseida)
 
 ## License
 

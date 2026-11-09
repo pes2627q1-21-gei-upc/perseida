@@ -50,7 +50,7 @@ Aplicat al codi nou (**New Code**) de cada PR:
 - **Mantenibilitat (Code Smells):** Qualificació **A**.
 - **Security Hotspots:** 100 % revisats.
 - **Duplicació de línies:** ≤ 3.0 %.
-- **Cobertura en codi nou:** ≥ 70 % (o ≥ 90 % segons política TDD avançada; excloent rutes i components visuals purs: `frontend/src/shared/ui/**`, `frontend/src/app/**`).
+- **Cobertura en codi nou:** ≥ 90 % (d'acord amb [[0028-tdd-estricte-i-politica-de-testing-avancada]] i [[testing]]; excloent només components purament visuals: `frontend/src/shared/ui/**`).
 
 ### Com interpretar fallades i analitzar línies no cobertes
 
@@ -58,10 +58,10 @@ Aplicat al codi nou (**New Code**) de cada PR:
 2. **Línies no cobertes:** Al panell del projecte, entra a la pestanya **Measures** → **Coverage** (o fes clic directament sobre el percentatge vermell de New Code). Clicant sobre cada fitxer s'obre la vista de codi amb franges vermelles a les línies no executades pels tests.
 3. **Resolució:** Afegeix les proves unitàries o d'integració que cobreixin les branques/línies assenyalades abans de fer un nou push a la branca de la PR.
 
-### Resolució d'incidències d'importació d'informes
+### Resolució d'incidències d'informes de cobertura
 
-- **Rutes no resoltes (*Could not resolve path*):** Comprova que `backend/coverage.xml` té `relative_files = true` a `pyproject.toml` i que `frontend/coverage/lcov.info` té camins relatius al monorepo.
-- **PRs sense canvis a backend o frontend:** El job `sonar` tolera l'absència d'un dels informes si el job corresponent s'ha saltat mitjançant `continue-on-error: true` i condicions `if` sobre la detecció de canvis.
+- **Rutes no resoltes (*Could not resolve path*):** `backend/pyproject.toml` configura `relative_files = true` a `[tool.coverage.run]` i `frontend/coverage/lcov.info` té camins relatius al monorepo.
+- **PRs sense canvis a backend o frontend:** El job `sonar` descarrega els informes només si el job corresponent s'ha executat (`if: needs.changes.outputs.<job> == 'true' || github.event_name == 'push'`). Si un job s'ha saltat per manca de canvis, l'informe absent no fa fallar la CI.
 
 Quan falla, l'autor corregeix i torna a pujar. Un fals positiu es marca a SonarQube Cloud amb un comentari que ho justifica i el revisor ho valida; els security hotspots els revisa l'autor i els confirma el revisor.
 

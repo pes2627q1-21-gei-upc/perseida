@@ -22,7 +22,12 @@ Integrar SonarQube Cloud al pipeline de GitHub Actions per analitzar backend i f
 - Configuració i assignació del Quality Gate `perseida` a SonarQube Cloud amb llindar de cobertura ≥ 70%, duplicació ≤ 3% i nota A en bugs/seguretat/mantenibilitat (#198).
 - Afegit el job `sonar` a `.github/workflows/ci.yml` descarregant els artifacts `backend-coverage` (#199) i `frontend-coverage` (#200) amb tolerància per a PRs amb canvis només a una part del repo (`continue-on-error: true`).
 - Execució de l'escàner `SonarSource/sonarqube-scan-action@v8.4.1` amb `-Dsonar.qualitygate.wait=true` (#201).
-- Documentació al vault (`qualitat.md` i `ADR-0012`) sobre l'accés al panell, la interpretació de fallades i la resolució d'informes (#204).
+- Resolució de la review de la PR #79 (Xavier Pascual i Raquel Rubio):
+  - Ajustat el Quality Gate i la documentació a cobertura ≥ 90 % en codi nou (ADR-0028).
+  - Eliminat `frontend/src/app/**` de `sonar.coverage.exclusions` (només s'exclou `frontend/src/shared/ui/**`).
+  - Eliminat `continue-on-error: true` a les descàrregues del job `sonar` i afegit `if-no-files-found: error` a l'upload del backend.
+  - Afegit `[tool.coverage.run] relative_files = true` a `backend/pyproject.toml`.
+  - Actualitzats els enllaços de SonarQube Cloud als READMEs del monorepo.
 
 ## Decisions preses
 
