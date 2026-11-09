@@ -1,34 +1,22 @@
 import datetime as dt
-import re
 from typing import Annotated, Any, Self
 
 from fastapi import APIRouter, Query, status
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, Field
 
 from app.application.apod.errors import APOD_UNAVAILABLE
 from app.domain.apod.models import Apod, MediaType
+from app.infrastructure.api.params import IsoDate
 from app.infrastructure.api.schemas import ProblemDetails
 from app.infrastructure.apod.dependencies import ApodServiceDep
 
 router = APIRouter(tags=["apod"])
-
-_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 
 _PROBLEM_CONTENT: dict[str, Any] = {
     "application/problem+json": {
         "schema": {"$ref": "#/components/schemas/ProblemDetails"}
     }
 }
-
-
-def _require_iso_format(value: object) -> object:
-    """Reject anything but YYYY-MM-DD; Pydantic's lax mode also takes more."""
-    if not isinstance(value, str) or not _ISO_DATE.fullmatch(value):
-        raise ValueError("Date must use the YYYY-MM-DD format")
-    return value
-
-
-IsoDate = Annotated[dt.date, BeforeValidator(_require_iso_format)]
 
 
 class ApodResponse(BaseModel):

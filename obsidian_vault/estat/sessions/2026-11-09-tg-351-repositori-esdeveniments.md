@@ -1,10 +1,10 @@
 ---
-titol: "Sessió 2026-11-09: repositori d'esdeveniments (TG-351, tasca #474)"
+titol: "Sessió 2026-11-09: repositori, service i routers d'esdeveniments (TG-351, tasques #474 i #475)"
 tipus: sessio
 estat: vigent
 data: "2026-11-09"
 us: ["TG-351", "TG-50"]
-font: "Taiga: TG-351 i tasca #474; decisions de Raquel en aquesta sessió (09/11/2026); revisió de reviewer-arquitectura"
+font: "Taiga: TG-351 i tasques #474 i #475; decisions de Raquel en aquesta sessió (09/11/2026); revisió de reviewer-arquitectura"
 etiquetes: [sessio, backend, esdeveniments, persistencia, spotwise]
 ---
 
@@ -21,6 +21,7 @@ Fer la tasca 1/6 de TG-351 (#474): un adaptador de repositori que llegeixi els e
 - Taula `astronomical_events` i migració `create_astronomical_events` amb upgrade i downgrade.
 - `SqlEventRepository`, només de lectura.
 - Primer el commit `test:` en vermell i després el `feat:` (ADR-0028).
+- Tasca #475: `EventService` (`active_on`, `upcoming`) i els routers `GET /api/events/active` i `GET /api/events/upcoming`, públics, amb 422 RFC 9457 per als paràmetres invàlids. `IsoDate` passa de l'APOD a `app/infrastructure/api/params.py` per reutilitzar-lo. S'han regenerat `frontend/openapi/openapi.json` i `schema.d.ts`.
 
 ## Decisions preses
 
@@ -36,21 +37,24 @@ Cap ADR nova. Totes les decisions són de Raquel:
   - `days` accepta de 1 a 30 i per defecte val 7.
 - **`source`:** CHECK amb `launch_library_2`, `usno`, `skyfield` i `catalog`, pendent de confirmar amb Manel i l'ADR-0030.
 - **Marques de temps:** `created_at` i `updated_at`.
+- **Resposta:** array JSON directe, sense embolcall; els endpoints fan servir `EventResponse` des de la tasca #475.
 - **`source_url` i textos buits:** es validen a TG-50 i a `EventResponse`, no a l'entitat.
 
 ## Canvis al vault
 
 - [[model-de-domini]]: nova secció de l'esdeveniment astronòmic i pendents per a TG-50.
-- [[contracte-esdeveniments]]: nota sobre la persistència.
+- [[contracte-esdeveniments]]: nota sobre la persistència, i els endpoints amb els seus paràmetres i la forma de la resposta.
 
 ## Pendent / següents passos
 
 - [ ] Confirmar amb Manel els valors de `source` (ADR-0030).
-- [ ] Tasca 2/6 (#475): service i routers.
+- [ ] Tasca 3/6 (#476): descripcions, exemples i respostes 422 a l'OpenAPI.
+- [ ] `pnpm` 12.15.0 està trencat en local; els tipus s'han generat amb `openapi-typescript` i `prettier` directament.
 - [ ] Validar a la CI els tests d'integració i la migració. En local no hi ha Postgres.
 - [ ] Textos ca/es/en d'`EVENT_ENDS_BEFORE_START`.
+- [ ] TG-50: validar les dades en desar-les. Ara, si una fila de `astronomical_events` no compleix `EventResponse` (títol buit o `source_url` que no és https), l'endpoint respon 500 per a tota la llista. Raquel ho accepta fins a TG-50.
 
 ## US de Taiga
 
-- TG-351 (tasca #474)
+- TG-351 (tasques #474 i #475)
 - TG-50

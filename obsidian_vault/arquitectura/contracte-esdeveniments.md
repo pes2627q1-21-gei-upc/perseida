@@ -15,7 +15,11 @@ Forma única d'un esdeveniment astronòmic a l'API de Perseida. La fan servir el
 - **Codi:** `EventResponse` a `backend/app/infrastructure/events/schemas.py`; categories a `EventCategory` (`backend/app/domain/events/models.py`).
 - **Persistència:** taula `astronomical_events` (TG-351, tasca #474); la ubicació es desa en dues columnes `latitude`/`longitude`. Detall a [[model-de-domini#Esdeveniment astronòmic (implementat)]].
 - **Exemples (mocks):** `backend/tests/fixtures/events/` (un per categoria, amb i sense ubicació). El test `tests/unit/infrastructure/events/test_event_response_contract.py` comprova que compleixen el contracte.
-- **Endpoints:** `GET /api/events/active` i `GET /api/events/upcoming` els declara TG-351 amb aquest esquema; després es regeneren la còpia `frontend/openapi/openapi.json` (la comprova `tests/unit/infrastructure/test_openapi_copy.py`) i els tipus `frontend/src/shared/api/schema.d.ts`:
+- **Endpoints (TG-351, tasca #475):** públics; responen un array JSON directe d'esdeveniments, ordenat per `starts_at`.
+  - `GET /api/events/active?date=AAAA-MM-DD`: esdeveniments que se solapen amb el dia UTC indicat (per defecte, avui).
+  - `GET /api/events/upcoming?days=N`: esdeveniments que comencen dins de `[ara, ara + N dies)`; `N` de 1 a 30, per defecte 7.
+  - Una data que no sigui `AAAA-MM-DD` vàlida o un `days` fora de rang responen 422 `VALIDATION_ERROR` (RFC 9457).
+- **Regenerar l'OpenAPI:** en canviar els endpoints o aquest esquema, es regeneren la còpia `frontend/openapi/openapi.json` (la comprova `tests/unit/infrastructure/test_openapi_copy.py`) i els tipus `frontend/src/shared/api/schema.d.ts`:
 
 ```bash
 cd backend && uv run python -m scripts.export_openapi && cd ../frontend && pnpm api:generate

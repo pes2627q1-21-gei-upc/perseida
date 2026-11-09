@@ -124,6 +124,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/events/active': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Esdeveniments actius en una data */
+    get: operations['get_active_events'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/upcoming': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Esdeveniments que comencen els N dies vinents */
+    get: operations['get_upcoming_events'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -160,6 +194,65 @@ export interface components {
        */
       copyright?: string | null;
     };
+    /**
+     * EventCategory
+     * @description Kinds of astronomical event, fixed by TG-50 (task #387).
+     * @enum {string}
+     */
+    EventCategory: 'lunar' | 'solar' | 'meteor_shower' | 'launch';
+    /** EventLocation */
+    EventLocation: {
+      /**
+       * Latitude
+       * @example 28.5618
+       */
+      latitude: number;
+      /**
+       * Longitude
+       * @example -80.577
+       */
+      longitude: number;
+    };
+    /** EventResponse */
+    EventResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador estable de l'esdeveniment (UUIDv7)
+       */
+      id: string;
+      /**
+       * Title
+       * @description Títol, en l'idioma de la font
+       */
+      title: string;
+      /**
+       * Summary
+       * @description Descripció breu, en l'idioma de la font
+       */
+      summary: string;
+      /** @description Tipus d'esdeveniment */
+      category: components['schemas']['EventCategory'];
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601, UTC)
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601, UTC); igual a l'inici si és instantani
+       */
+      ends_at: string;
+      /** @description Ubicació concreta; null si és visible des de qualsevol lloc */
+      location: components['schemas']['EventLocation'] | null;
+      /**
+       * Source Url
+       * @description Enllaç a la font (només https); null si no n'hi ha
+       */
+      source_url: string | null;
+    };
     /** FieldError */
     FieldError: {
       /**
@@ -190,6 +283,11 @@ export interface components {
        * @description Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el compte; si falta o no és compatible, `ca`.
        */
       language?: string | null;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][];
     };
     /** HealthResponse */
     HealthResponse: {
@@ -329,6 +427,19 @@ export interface components {
       preferred_language: components['schemas']['Language'];
       /** @description Rol de l'usuari */
       role: components['schemas']['Role'];
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
     };
   };
   responses: never;
@@ -625,6 +736,70 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_active_events: {
+    parameters: {
+      query?: {
+        /** @description Dia UTC (YYYY-MM-DD). Per defecte, avui. */
+        date?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_upcoming_events: {
+    parameters: {
+      query?: {
+        /** @description Nombre de dies vinents (1-30). */
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };

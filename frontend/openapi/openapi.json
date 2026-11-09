@@ -361,6 +361,113 @@
           }
         ]
       }
+    },
+    "/api/events/active": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Esdeveniments actius en una data",
+        "operationId": "get_active_events",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Dia UTC (YYYY-MM-DD). Per defecte, avui.",
+              "title": "Date"
+            },
+            "description": "Dia UTC (YYYY-MM-DD). Per defecte, avui."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventResponse"
+                  },
+                  "title": "Response Get Active Events"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/upcoming": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Esdeveniments que comencen els N dies vinents",
+        "operationId": "get_upcoming_events",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "description": "Nombre de dies vinents (1-30).",
+              "default": 7,
+              "title": "Days"
+            },
+            "description": "Nombre de dies vinents (1-30)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventResponse"
+                  },
+                  "title": "Response Get Upcoming Events"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -418,6 +525,120 @@
         ],
         "title": "ApodResponse"
       },
+      "EventCategory": {
+        "type": "string",
+        "enum": [
+          "lunar",
+          "solar",
+          "meteor_shower",
+          "launch"
+        ],
+        "title": "EventCategory",
+        "description": "Kinds of astronomical event, fixed by TG-50 (task #387)."
+      },
+      "EventLocation": {
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude",
+            "examples": [
+              28.5618
+            ]
+          },
+          "longitude": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude",
+            "examples": [
+              -80.577
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "title": "EventLocation"
+      },
+      "EventResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador estable de l'esdeveniment (UUIDv7)"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Title",
+            "description": "Títol, en l'idioma de la font"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Summary",
+            "description": "Descripció breu, en l'idioma de la font"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EventCategory",
+            "description": "Tipus d'esdeveniment"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts At",
+            "description": "Inici (ISO 8601, UTC)"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At",
+            "description": "Fi (ISO 8601, UTC); igual a l'inici si és instantani"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventLocation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ubicació concreta; null si és visible des de qualsevol lloc"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Enllaç a la font (només https); null si no n'hi ha"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "category",
+          "starts_at",
+          "ends_at",
+          "location",
+          "source_url"
+        ],
+        "title": "EventResponse"
+      },
       "FieldError": {
         "properties": {
           "field": {
@@ -472,6 +693,19 @@
           "id_token"
         ],
         "title": "GoogleLoginRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "HealthResponse": {
         "properties": {
@@ -703,6 +937,46 @@
           "role"
         ],
         "title": "UserResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     },
     "securitySchemes": {
