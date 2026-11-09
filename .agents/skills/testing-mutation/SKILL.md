@@ -9,8 +9,8 @@ La cobertura diu quines línies s'executen, no si els tests detecten errors. El 
 
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció: `obsidian_vault/convencions/testing.md`.
 
-> [!warning] Eines previstes (US #359-#362)
-> `mutmut` i Stryker **no estan instal·lats** al repo ni hi ha job de CI. La política (obligatori al domini, només sobre fitxers canviats, score >= 70 %) és vigent per a l'equip, però l'automatització és pendent. Fins llavors: si la persona ho aprova, instal·la l'eina amb `uv`/`pnpm` i versió fixada i executa-la en local; si no, deixa-ho anotat a la PR com a pendent. **Pregunta abans d'afegir cap dependència.**
+> [!info] Eines instal·lades i integrades (TG-359)
+> `mutmut` (backend) i Stryker (frontend) estan instal·lats amb versions fixades i integrats a la CI de GitHub Actions. S'executen automàticament sobre els fitxers canviats a la PR (`backend/scripts/run_mutmut_diff.py` i `frontend/scripts/run-stryker-diff.mjs` / `pnpm test:mutation`) amb llindar bloquejant de score ≥ 70 %.
 
 ## Quan usar-la / quan NO
 
@@ -32,13 +32,13 @@ Preguntes d'aquesta skill:
 
 1. Acaba el cicle TDD (`testing-tdd`) amb tot en verd.
 2. Obtén els fitxers de domini canviats a la PR (`git diff --name-only origin/develop...HEAD -- backend/app/domain`).
-3. Executa mutmut **només sobre aquests fitxers** (mutmut 3.x: `[tool.mutmut] paths_to_mutate` o l'argument de fitxer; verifica la sintaxi a la versió instal·lada, no la suposis) i guarda l'informe (`mutmut results`).
+3. Executa mutmut **només sobre aquests fitxers** amb l'script de diff (`uv run python scripts/run_mutmut_diff.py`, o manualment `mutmut run --paths-to-mutate <files>`) i guarda l'informe (`mutmut results`).
 4. Calcula el score: `mutants morts / (morts + supervivents)`, sense comptar els equivalents justificats. **Llindar: >= 70 %.**
 5. Per a cada superviu: llegeix el mutant (`mutmut show <id>`), decideix si és equivalent o forat.
 6. Forat: escriu un test que el mati (**primer en vermell** contra el mutant, commit `test:`), no canviïs el codi de producció per matar-lo.
 7. Repeteix fins al llindar. Documenta a la PR el score i els equivalents.
 
-Frontend: Stryker (`@stryker-mutator/core` amb el runner de Jest; **previst**, cal verificar la compatibilitat amb `jest-expo`) sobre els fitxers de lògica canviats, mateix llindar.
+Frontend: Stryker (`@stryker-mutator/core` amb el runner `@stryker-mutator/jest-runner`) configurat a `frontend/stryker.config.json` sobre els fitxers de lògica canviats (`pnpm test:mutation` que executa `node scripts/run-stryker-diff.mjs`), mateix llindar (score >= 70 %).
 
 ## Interpretar supervivents
 
