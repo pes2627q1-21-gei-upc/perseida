@@ -37,6 +37,7 @@ def test_close_codes_are_the_agreed_ones() -> None:
     assert errors.CLOSE_INTERNAL_ERROR == 1011
     assert errors.CLOSE_TRY_AGAIN_LATER == 1013
     assert errors.CLOSE_UNAUTHENTICATED == 4401
+    assert errors.CLOSE_TOO_MANY_CONNECTIONS == 4429
 
 
 @pytest.mark.parametrize(("code", "status"), STATUS.items())

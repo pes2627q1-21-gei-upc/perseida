@@ -273,3 +273,19 @@ def test_the_error_frames_carry_the_correlation_id_of_the_handshake(
         reply = ws.receive_json()
 
     assert reply["payload"]["correlation_id"] == "handshake-1"
+
+
+def test_a_connection_over_the_per_user_limit_closes_with_4429(
+    env: Env, client: TestClient, token: str
+) -> None:
+    env.config = RealtimeConfig(
+        auth_timeout_seconds=0.3, heartbeat_seconds=60, max_connections_per_user=1
+    )
+    with ExitStack() as stack:
+        authed(client, token, stack)
+        second = stack.enter_context(client.websocket_connect(URL))
+        second.send_json({"type": "auth", "token": token})
+        with pytest.raises(WebSocketDisconnect) as exc:
+            second.receive_json()
+
+    assert exc.value.code == 4429

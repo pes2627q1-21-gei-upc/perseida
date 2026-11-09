@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
+from app.application.realtime.connection_limiter import ConnectionLimiter
 
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.realtime import errors
@@ -104,6 +105,7 @@ def start(
     config: RealtimeConfig = CONFIG,
     auto_pong: bool = True,
     correlation_id: str | None = None,
+    limiter: ConnectionLimiter | None = None,
 ) -> Client:
     """Start a session on a fresh connection, before any frame is sent."""
     conn = FakeConnection(auto_pong=auto_pong)
@@ -115,6 +117,7 @@ def start(
         config=config,
         conn_id=conn_id,
         correlation_id=correlation_id,
+        limiter=limiter,
     )
     task = asyncio.create_task(session.run())
     env.tasks.append(task)
@@ -128,9 +131,10 @@ async def connect(
     config: RealtimeConfig = CONFIG,
     auto_pong: bool = True,
     correlation_id: str | None = None,
+    limiter: ConnectionLimiter | None = None,
 ) -> Client:
     """Start a session and authenticate it with a real access token."""
-    client = start(env, conn_id, config, auto_pong, correlation_id)
+    client = start(env, conn_id, config, auto_pong, correlation_id, limiter)
     client.token, _, client.claims = await env.login(sub)
     client.conn.feed_frame({"type": "auth", "token": client.token})
     await client.conn.wait_for_sent(1)
@@ -396,6 +400,107 @@ async def test_unknown_frame_type_gets_an_error_and_keeps_the_connection(
     assert reply["payload"]["status"] == 422
     assert reply["id"] == "u1"
     await assert_alive(client)
+
+
+# --- connections per user (review PR #78) -----------------------------------
+
+
+async def try_connect(
+    env: Env, limiter: ConnectionLimiter, conn_id: str, sub: str = SUB
+) -> Client:
+    """Authenticate a session and wait for either the ack or the close."""
+    client = start(env, conn_id, limiter=limiter)
+    client.token, _, client.claims = await env.login(sub)
+    client.conn.feed_frame({"type": "auth", "token": client.token})
+    await wait_until(
+        lambda: bool(client.conn.sent) or client.conn.closed_code is not None
+    )
+    return client
+
+
+async def test_a_connection_over_the_per_user_limit_is_closed_with_4429(
+    env: Env,
+) -> None:
+    limiter = ConnectionLimiter(max_per_user=2)
+    await try_connect(env, limiter, "c1")
+    await try_connect(env, limiter, "c2")
+
+    third = await try_connect(env, limiter, "c3")
+
+    assert await third.conn.wait_closed() == errors.CLOSE_TOO_MANY_CONNECTIONS
+    assert third.conn.sent == []
+    await third.finished()
+
+
+async def test_the_connections_within_the_limit_stay_open(env: Env) -> None:
+    limiter = ConnectionLimiter(max_per_user=2)
+    first = await try_connect(env, limiter, "c1")
+    second = await try_connect(env, limiter, "c2")
+    await try_connect(env, limiter, "c3")
+
+    await assert_alive(first)
+    await assert_alive(second)
+
+
+async def test_a_rejected_connection_is_not_subscribed_to_anything(env: Env) -> None:
+    limiter = ConnectionLimiter(max_per_user=1)
+    await try_connect(env, limiter, "c1")
+
+    await try_connect(env, limiter, "c2")
+
+    assert env.pubsub.subscriber_count(revocation_channel(SUB)) == 1
+
+
+async def test_another_user_is_not_affected_by_the_limit(env: Env) -> None:
+    limiter = ConnectionLimiter(max_per_user=1)
+    await try_connect(env, limiter, "c1", sub="user-a")
+
+    other = await try_connect(env, limiter, "c2", sub="user-b")
+
+    assert other.conn.closed_code is None
+    assert pick(other.frames()[0], "type") == {"type": "auth"}
+
+
+async def test_closing_a_connection_frees_its_slot(env: Env) -> None:
+    limiter = ConnectionLimiter(max_per_user=1)
+    first = await try_connect(env, limiter, "c1")
+    first.conn.disconnect()
+    await first.finished()
+
+    second = await try_connect(env, limiter, "c2")
+
+    assert second.conn.closed_code is None
+    assert pick(second.frames()[0], "type") == {"type": "auth"}
+
+
+async def test_a_revoked_connection_frees_its_slot(env: Env) -> None:
+    limiter = ConnectionLimiter(max_per_user=1)
+    first = await try_connect(env, limiter, "c1")
+    await wait_until(lambda: env.pubsub.subscriber_count(revocation_channel(SUB)) >= 1)
+    await revoke(env, SUB, "{}")
+    await first.finished()
+
+    second = await try_connect(env, limiter, "c2")
+
+    assert second.conn.closed_code is None
+
+
+async def test_a_failed_authentication_does_not_use_a_slot(env: Env) -> None:
+    limiter = ConnectionLimiter(max_per_user=1)
+    bad = start(env, "c0", limiter=limiter)
+    bad.conn.feed_frame({"type": "auth", "token": "nope"})
+    await bad.finished()
+
+    good = await try_connect(env, limiter, "c1")
+
+    assert good.conn.closed_code is None
+
+
+async def test_a_session_without_a_limiter_has_no_limit(env: Env) -> None:
+    for index in range(5):
+        client = await connect(env, conn_id=f"c{index}")
+
+    assert client.conn.closed_code is None
 
 
 # --- correlation_id in the error frames (ADR-0018) ---------------------------

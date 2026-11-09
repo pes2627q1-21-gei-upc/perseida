@@ -114,3 +114,38 @@ def test_send_timeout_reaches_the_application_config() -> None:
     assert settings.config() == RealtimeConfig(
         auth_timeout_seconds=2, heartbeat_seconds=5, send_timeout_seconds=1.5
     )
+
+
+def test_connections_per_user_default_to_three() -> None:
+    settings = RealtimeSettings(_env_file=None)
+
+    assert settings.ws_max_connections_per_user == 3
+
+
+def test_connections_per_user_are_read_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WS_MAX_CONNECTIONS_PER_USER", "7")
+
+    settings = RealtimeSettings(_env_file=None)
+
+    assert settings.ws_max_connections_per_user == 7
+
+
+@pytest.mark.parametrize("value", [0, -1])
+def test_zero_and_negative_connections_per_user_are_rejected(value: int) -> None:
+    with pytest.raises(ValidationError):
+        RealtimeSettings(_env_file=None, ws_max_connections_per_user=value)
+
+
+def test_connections_per_user_reach_the_application_config() -> None:
+    settings = RealtimeSettings(
+        ws_auth_timeout_seconds=2,
+        ws_heartbeat_seconds=5,
+        ws_max_connections_per_user=2,
+        _env_file=None,
+    )
+
+    assert settings.config() == RealtimeConfig(
+        auth_timeout_seconds=2, heartbeat_seconds=5, max_connections_per_user=2
+    )
