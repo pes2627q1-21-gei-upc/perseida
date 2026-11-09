@@ -182,3 +182,12 @@ jobs:
         with:
           name: frontend-coverage
           path: frontend/coverage
+
+      - name: Executar anàlisi de SonarQube Cloud
+        uses: SonarSource/sonarqube-scan-action@v8.4.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
