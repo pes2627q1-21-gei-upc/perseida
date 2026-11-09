@@ -2,7 +2,7 @@
 titol: "Contracte de l'esdeveniment"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-02"
+data: "2026-11-09"
 us: ["TG-50", "TG-351", "TG-52", "TG-51", "TG-53"]
 font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/; review de la PR #76 i comentari de TG-50 (02/11/2026)"
 etiquetes: [arquitectura, contracte, esdeveniments, api, spotwise]
@@ -13,8 +13,14 @@ etiquetes: [arquitectura, contracte, esdeveniments, api, spotwise]
 Forma única d'un esdeveniment astronòmic a l'API de Perseida. La fan servir el mapa (TG-52), els endpoints per a Spotwise (TG-351, vegeu [[contracte-spotwise]]), el llistat (TG-51) i les subscripcions (TG-53). Es va publicar a la tasca #387 de TG-50 perquè aquestes US poguessin treballar amb mocks des del primer dia.
 
 - **Codi:** `EventResponse` a `backend/app/infrastructure/events/schemas.py`; categories a `EventCategory` (`backend/app/domain/events/models.py`).
+- **Persistència:** taula `astronomical_events` (TG-351, tasca #474); la ubicació es desa en dues columnes `latitude`/`longitude`. Detall a [[model-de-domini#Esdeveniment astronòmic (implementat)]].
 - **Exemples (mocks):** `backend/tests/fixtures/events/` (un per categoria, amb i sense ubicació). El test `tests/unit/infrastructure/events/test_event_response_contract.py` comprova que compleixen el contracte.
-- **Endpoints:** `GET /api/events/active` i `GET /api/events/upcoming` els declara TG-351 amb aquest esquema; després es regeneren la còpia `frontend/openapi/openapi.json` (la comprova `tests/unit/infrastructure/test_openapi_copy.py`) i els tipus `frontend/src/shared/api/schema.d.ts`:
+- **Endpoints (TG-351, tasca #475):** públics; responen un array JSON directe d'esdeveniments, ordenat per `starts_at`.
+  - `GET /api/events/active?date=AAAA-MM-DD`: esdeveniments que se solapen amb el dia UTC indicat (per defecte, avui).
+  - `GET /api/events/upcoming?days=N`: esdeveniments que comencen dins de `[ara, ara + N dies)`; `N` de 1 a 30, per defecte 7.
+  - Una data que no sigui `AAAA-MM-DD` vàlida o un `days` fora de rang responen 422 `VALIDATION_ERROR` (RFC 9457).
+- **OpenAPI (`/api/docs`, tasca #476):** cada endpoint documenta la semàntica, els paràmetres i les respostes 422 i 500 en problem+json. L'exemple de resposta (les fixtures `launch` i `lunar`, a `EVENT_EXAMPLES`) va dins la descripció i no al camp `example`, perquè FastAPI genera l'OpenAPI amb `exclude_none` i hi esborraria els `null`. Un test comprova que és igual a les fixtures.
+- **Regenerar l'OpenAPI:** en canviar els endpoints o aquest esquema, es regeneren la còpia `frontend/openapi/openapi.json` (la comprova `tests/unit/infrastructure/test_openapi_copy.py`) i els tipus `frontend/src/shared/api/schema.d.ts`:
 
 ```bash
 cd backend && uv run python -m scripts.export_openapi && cd ../frontend && pnpm api:generate

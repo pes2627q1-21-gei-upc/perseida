@@ -5,7 +5,7 @@ Any change here changes the contract: it must be notified to Spotwise
 """
 
 from datetime import UTC
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
 from pydantic import (
     UUID7,
@@ -71,3 +71,35 @@ class EventResponse(BaseModel):
         if self.ends_at < self.starts_at:
             raise ValueError("ends_at must not be before starts_at")
         return self
+
+
+# Example response published in the OpenAPI description: the same data as the
+# contract fixtures tests/fixtures/events/launch.json and lunar.json (a test
+# keeps them equal).
+EVENT_EXAMPLES: list[dict[str, Any]] = [
+    {
+        "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+        "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+        "summary": (
+            "A batch of Starlink satellites launched from Cape Canaveral SLC-40."
+        ),
+        "category": "launch",
+        "starts_at": "2026-11-03T21:15:00Z",
+        "ends_at": "2026-11-03T23:45:00Z",
+        "location": {"latitude": 28.5618, "longitude": -80.577},
+        "source_url": (
+            "https://ll.thespacedevs.com/2.3.0/launches/"
+            "00000000-0000-4000-8000-000000000000/"
+        ),
+    },
+    {
+        "id": "01a19288-a3f6-7576-a37b-89276502d574",
+        "title": "Full Moon",
+        "summary": "The Moon is fully illuminated as seen from Earth.",
+        "category": "lunar",
+        "starts_at": "2026-11-24T14:53:00Z",
+        "ends_at": "2026-11-24T14:53:00Z",
+        "location": None,
+        "source_url": None,
+    },
+]

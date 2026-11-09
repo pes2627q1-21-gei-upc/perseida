@@ -361,6 +361,145 @@
           }
         ]
       }
+    },
+    "/api/events/active": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Esdeveniments actius en una data",
+        "description": "Retorna els esdeveniments que estan en curs en algun moment del dia indicat (dia UTC, de 00:00Z a 24:00Z) o, si no se'n dona cap, d'avui. Un esdeveniment instantani compta com a actiu el dia en què passa, i un que acaba just a les 00:00Z també compta aquell dia. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.\n\nExemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):\n\n```json\n[\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-8926ca81b8fe\",\n    \"title\": \"Falcon 9 Block 5 | Starlink Group 10-12\",\n    \"summary\": \"A batch of Starlink satellites launched from Cape Canaveral SLC-40.\",\n    \"category\": \"launch\",\n    \"starts_at\": \"2026-11-03T21:15:00Z\",\n    \"ends_at\": \"2026-11-03T23:45:00Z\",\n    \"location\": {\n      \"latitude\": 28.5618,\n      \"longitude\": -80.577\n    },\n    \"source_url\": \"https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/\"\n  },\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-89276502d574\",\n    \"title\": \"Full Moon\",\n    \"summary\": \"The Moon is fully illuminated as seen from Earth.\",\n    \"category\": \"lunar\",\n    \"starts_at\": \"2026-11-24T14:53:00Z\",\n    \"ends_at\": \"2026-11-24T14:53:00Z\",\n    \"location\": null,\n    \"source_url\": null\n  }\n]\n```",
+        "operationId": "get_active_events",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Dia UTC (YYYY-MM-DD). Per defecte, avui.",
+              "title": "Date"
+            },
+            "description": "Dia UTC (YYYY-MM-DD). Per defecte, avui.",
+            "examples": {
+              "full_moon": {
+                "value": "2026-11-24"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Els esdeveniments actius aquell dia.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventResponse"
+                  },
+                  "title": "Response Get Active Events"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Paràmetre invàlid (code `VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error inesperat (code `INTERNAL_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/upcoming": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Esdeveniments que comencen els N dies vinents",
+        "description": "Retorna els esdeveniments que comencen des d'ara fins d'aquí a `days` dies; els que ja han començat no hi surten (vegeu `/api/events/active`). Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.\n\nExemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):\n\n```json\n[\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-8926ca81b8fe\",\n    \"title\": \"Falcon 9 Block 5 | Starlink Group 10-12\",\n    \"summary\": \"A batch of Starlink satellites launched from Cape Canaveral SLC-40.\",\n    \"category\": \"launch\",\n    \"starts_at\": \"2026-11-03T21:15:00Z\",\n    \"ends_at\": \"2026-11-03T23:45:00Z\",\n    \"location\": {\n      \"latitude\": 28.5618,\n      \"longitude\": -80.577\n    },\n    \"source_url\": \"https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/\"\n  },\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-89276502d574\",\n    \"title\": \"Full Moon\",\n    \"summary\": \"The Moon is fully illuminated as seen from Earth.\",\n    \"category\": \"lunar\",\n    \"starts_at\": \"2026-11-24T14:53:00Z\",\n    \"ends_at\": \"2026-11-24T14:53:00Z\",\n    \"location\": null,\n    \"source_url\": null\n  }\n]\n```",
+        "operationId": "get_upcoming_events",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "description": "Nombre de dies vinents (1-30).",
+              "default": 7,
+              "title": "Days"
+            },
+            "description": "Nombre de dies vinents (1-30).",
+            "examples": {
+              "week": {
+                "value": 7
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Els esdeveniments que comencen dins la finestra.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventResponse"
+                  },
+                  "title": "Response Get Upcoming Events"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Paràmetre invàlid (code `VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error inesperat (code `INTERNAL_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -417,6 +556,120 @@
           "url"
         ],
         "title": "ApodResponse"
+      },
+      "EventCategory": {
+        "type": "string",
+        "enum": [
+          "lunar",
+          "solar",
+          "meteor_shower",
+          "launch"
+        ],
+        "title": "EventCategory",
+        "description": "Kinds of astronomical event, fixed by TG-50 (task #387)."
+      },
+      "EventLocation": {
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude",
+            "examples": [
+              28.5618
+            ]
+          },
+          "longitude": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude",
+            "examples": [
+              -80.577
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "title": "EventLocation"
+      },
+      "EventResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador estable de l'esdeveniment (UUIDv7)"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Title",
+            "description": "Títol, en l'idioma de la font"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Summary",
+            "description": "Descripció breu, en l'idioma de la font"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EventCategory",
+            "description": "Tipus d'esdeveniment"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts At",
+            "description": "Inici (ISO 8601, UTC)"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At",
+            "description": "Fi (ISO 8601, UTC); igual a l'inici si és instantani"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventLocation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ubicació concreta; null si és visible des de qualsevol lloc"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url",
+            "description": "Enllaç a la font (només https); null si no n'hi ha"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "category",
+          "starts_at",
+          "ends_at",
+          "location",
+          "source_url"
+        ],
+        "title": "EventResponse"
       },
       "FieldError": {
         "properties": {
