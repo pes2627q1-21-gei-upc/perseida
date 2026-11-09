@@ -39,11 +39,15 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
 
-## Codis de Redis pub/sub (TG-87)
+## Codis de Redis pub/sub i WebSocket (TG-87, TG-63)
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
 | `PUBSUB_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | El xat no està disponible ara mateix. Torna-ho a provar. | El chat no está disponible ahora mismo. Inténtalo de nuevo. | Chat is unavailable right now. Please try again. | infrastructure/cache |
+| `UNKNOWN_FRAME_TYPE` | 422 | frame `error` del WebSocket | Sí | No entenem aquest missatge. | No entendemos este mensaje. | We don't understand this message. | application/realtime (TG-63) |
+| `NOT_SUBSCRIBED` | 409 | frame `error` del WebSocket | Sí | Primer t'has d'unir a la sala. | Primero debes unirte a la sala. | You need to join the room first. | application/realtime (TG-63) |
+| `FORBIDDEN` | 403 | frame `error` del WebSocket | No | No tens permís per fer això. | No tienes permiso para hacer esto. | You don't have permission to do that. | application/realtime (TG-63; l'emeten #64 i #65) |
+| `RATE_LIMITED` | 429 | frame `error` del WebSocket | Sí | Massa missatges seguits. Espera una mica. | Demasiados mensajes seguidos. Espera un poco. | Too many messages. Please wait a moment. | application/realtime (TG-63; límit de sales) |
 
 ## Codis d'autenticació (TG-44)
 
