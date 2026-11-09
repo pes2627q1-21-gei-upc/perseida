@@ -3,7 +3,7 @@ titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
 data: "2026-10-21"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135"]
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-60"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
@@ -90,6 +90,18 @@ Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.
 | `deleted_at` | nul = actiu; soft delete |
 
 `user_identities(provider, subject, user_id, created_at)`: identitat externa (`google_sub` = `subject`), PK `(provider, subject)`, FK a `users`. A l'entitat de domini, `google_sub` és un camp de `User`; el repositori ho mapeja.
+
+## Quiz diari (implementat)
+
+Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.py` (migracions `create_quiz` i `seed_quiz_questions`, TG-60). `DailyQuiz` no té taula: la pregunta del dia es calcula a partir de la data ([[contracte-quiz]]).
+
+| Taula | Camps |
+|---|---|
+| `quiz_questions` | `id` UUIDv7, `position` (única, ordre de rotació), `correct_option` 0-3, `source_url` |
+| `quiz_question_translations` | PK `(question_id, language)`, `statement`, `options` (4 textos), `explanation`; FK a `quiz_questions` amb `CASCADE` |
+| `quiz_answers` (`QuizResult`) | `id` UUIDv7, `user_id` (FK a `users`, `CASCADE`), `quiz_date`, `question_id` (FK, `RESTRICT`), `chosen_option`, `correct`, `answered_at`; única `(user_id, quiz_date)` |
+
+`score` del diagrama és `correct` (cert o fals): hi ha una sola pregunta per dia.
 
 ## Diagrama (transcripció)
 

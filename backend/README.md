@@ -306,6 +306,23 @@ The API does not start without `NASA_API_KEY`. In production it comes from the `
 >
 > Feed limits: only images (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`) are kept; a video entry is discarded (`APOD_UNAVAILABLE` if the API cannot answer either). The date of an entry is the UTC day of its publication, and the text of `explanation` and `copyright` is converted from HTML to plain text. The failure of a call is cached 15 minutes only when the feed **and** the API fail.
 
+## Daily quiz
+
+One astrophysics question per UTC day, the same for everyone, in Catalan, Spanish or English (TG-60). Contract: `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/quiz/today?lang=ca\|es\|en` | Today's question, without its solution. Without `lang`, the user's preferred language. If the user already answered, `result` holds their result |
+| `POST /api/quiz/today/answer` | Stores the answer (`date`, `question_id`, `chosen_option` 0-3) and returns whether it is right, the right option, the explanation and the source. 201; 409 `QUIZ_ALREADY_ANSWERED` or `QUIZ_EXPIRED`; 422 `QUIZ_QUESTION_MISMATCH` |
+
+Both need a session (401 `INVALID_SESSION`).
+
+- **Bank:** 100 questions in `alembic/seed/quiz_questions.json`, each with 4 options, the right one, an explanation and an https source, in the three languages. The migration `a6e1d58c0b92` loads them into `quiz_questions` and `quiz_question_translations`; `tests/unit/infrastructure/quiz/test_quiz_seed.py` validates the file.
+- **Question of the day:** the bank is walked in `position` order from `ROTATION_START` (`app/domain/quiz/rules.py`), so no question repeats within 100 days.
+- **Cache:** `cache:quiz:daily:<date>:<lang>` in Redis until midnight UTC. If Redis is down, the question is read from PostgreSQL.
+- **Answers:** `quiz_answers`, one per user and day (unique constraint `uq_quiz_answers_user_id`, also with two requests at once).
+- **Adding questions:** append them at the end of the JSON file **and** add a new data migration that inserts them after the last position. Editing the file alone does not change a database that is already migrated, and reordering it changes the calendar.
+
 ## Authentication
 
 The app signs the user in with Google (OAuth2 + PKCE) and sends the Google `id_token` to the backend, which never receives the authorization code and never stores a password ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). The backend checks the token and issues its own session.
