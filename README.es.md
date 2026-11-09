@@ -127,7 +127,7 @@ Las dependencias de Python se gestionan con `uv`. Las versiones de las dependenc
 
 - Repositorio: [pes2627q1-21-gei-upc/perseida](https://github.com/pes2627q1-21-gei-upc/perseida)
 - Backlog (Taiga): [alexga03-astronomia-pes](https://tree.taiga.io/project/alexga03-astronomia-pes)
-- SonarQube Cloud: **aún no creado** (pendiente).
+- SonarQube Cloud: [pes2627q1-21-gei-upc_perseida](https://sonarcloud.io/project/overview?id=pes2627q1-21-gei-upc_perseida)
 
 ## Licencia
 

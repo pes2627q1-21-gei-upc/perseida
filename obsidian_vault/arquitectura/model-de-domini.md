@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-21"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07)"
+data: "2026-11-09"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -90,6 +90,33 @@ Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.
 | `deleted_at` | nul = actiu; soft delete |
 
 `user_identities(provider, subject, user_id, created_at)`: identitat externa (`google_sub` = `subject`), PK `(provider, subject)`, FK a `users`. A l'entitat de domini, `google_sub` és un camp de `User`; el repositori ho mapeja.
+
+## Esdeveniment astronòmic (implementat)
+
+Entitat `AstronomicalEvent` a `app/domain/events/models.py`; port `EventRepository` a `app/domain/events/ports.py`; taula `astronomical_events` a `app/infrastructure/events/tables.py` (migració `create_astronomical_events`) i repositori de lectura `SqlEventRepository`. La va crear TG-351 en lloc de TG-50 (acord entre Raquel i Manel, 09/11/2026). Forma pública: [[contracte-esdeveniments]].
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, clau primària interna i estable |
+| `source`, `external_id` | origen de l'esdeveniment; `UNIQUE (source, external_id)`. `source`: `launch_library_2`, `usno`, `skyfield`, `catalog` (criteri 2 de TG-50; pendent de confirmar a l'ADR-0030) |
+| `title`, `summary` | text, en l'idioma de la font; que no sigui buit ho comprova `EventResponse` en publicar-lo |
+| `category` | `lunar`, `solar`, `meteor_shower`, `launch` |
+| `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` (a l'entitat, `EVENT_ENDS_BEFORE_START`). Índex a cadascuna |
+| `latitude`, `longitude` | `double precision`, opcionals però totes dues o cap; índex GiST d'expressió `geography` (sense `geoalchemy2`) |
+| `source_url` | opcional |
+| `created_at`, `updated_at` | `timestamptz`, `now()` per defecte |
+
+Consultes del port, ordenades per `starts_at`:
+
+- `list_between(start, end)`: els esdeveniments que se solapen amb `[start, end)`, és a dir, `starts_at < end` i `ends_at >= start`. Un esdeveniment instantani a `start` hi surt.
+- `list_starting_between(start, end)`: els que compleixen `start <= starts_at < end`.
+
+L'escriptura (upsert per `(source, external_id)`) és de TG-50.
+
+> [!todo] Pendent per a TG-50
+> - Validar `source_url` (només https, `safe_https_url`) quan les dades entrin pels proveïdors. Ara només la valida `EventResponse` en publicar-la.
+> - `updated_at` només té valor per defecte a l'INSERT. L'upsert l'ha d'actualitzar explícitament (`now()`).
+> - L'índex GiST és parcial (`WHERE latitude IS NOT NULL`). La consulta de proximitat ha de fer servir la mateixa expressió, `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`, i el mateix predicat.
 
 ## Diagrama (transcripció)
 
