@@ -77,8 +77,8 @@ def upgrade() -> None:
         "astronomical_events",
         ["ends_at"],
     )
-    # Spatial index for proximity queries (TG-50). Expression index, so it is
-    # not in the SQLModel metadata and autogenerate ignores it.
+    # Spatial index for proximity queries (TG-50); also declared in
+    # AstronomicalEventRow so that ``alembic check`` matches.
     op.create_index(
         "ix_astronomical_events_location",
         "astronomical_events",

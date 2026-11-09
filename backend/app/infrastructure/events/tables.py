@@ -6,6 +6,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Double,
+    Index,
     String,
     Text,
     UniqueConstraint,
@@ -45,6 +46,14 @@ class AstronomicalEventRow(SQLModel, table=True):
         CheckConstraint("longitude BETWEEN -180 AND 180", name="longitude_range"),
         # Stable id: fetching an event again from its source keeps the row (TG-50).
         UniqueConstraint("source", "external_id"),
+        # Spatial index for proximity queries (TG-50); same expression as the
+        # migration so that ``alembic check`` sees no difference.
+        Index(
+            "ix_astronomical_events_location",
+            text("(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography)"),
+            postgresql_using="gist",
+            postgresql_where=text("latitude IS NOT NULL"),
+        ),
     )
 
     id: uuid.UUID = Field(
