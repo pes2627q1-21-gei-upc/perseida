@@ -22,6 +22,7 @@ dependencies = [
 dev = [
     "diff-cover==11.0.1",
     "import-linter==2.15",
+    "mutmut==3.8.0",
     "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
@@ -61,15 +62,18 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80"
 
-[tool.coverage.run]
-relative_files = true
-
 [tool.coverage.report]
 fail_under = 80
 show_missing = true
 
 [tool.diff_cover]
 fail_under = 90
+
+[tool.mutmut]
+source_paths = ["app/domain"]
+also_copy = ["app/application", "app/infrastructure", "tests/"]
+pytest_add_cli_args = ["-o", "addopts="]
+pytest_add_cli_args_test_selection = ["tests/unit/domain"]
 
 [tool.importlinter]
 root_package = "app"
