@@ -32,23 +32,36 @@ Des de TG-34, `.github/workflows/ci.yml` executa el job `backend` a cada PR i a 
 
 Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `frontend/`): `pnpm install --frozen-lockfile`, `pnpm lint` (ESLint amb Prettier), `pnpm typecheck` i `pnpm test --coverage --ci`. Cada ordre és un pas separat perquè es vegi quina falla. L'script de tipus es diu `typecheck` i no `tsc`: `expo-doctor`, que EAS Build executa abans de compilar, avisa quan un script de `package.json` té el nom d'un binari de `node_modules/.bin`. Node (al workflow) i pnpm (a `packageManager` de `frontend/package.json`) estan fixats. L'informe `lcov.info` es descarrega de l'execució, a *Artifacts*, amb el nom `frontend-coverage`. El job no necessita secrets ni serveis.
 
-> [!note] Què falta
-> SonarQube Cloud i el Quality Gate encara no són al workflow: arriben amb la US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194). Fins llavors, la CI (backend i frontend) només cobreix lint, format, tipus i tests.
+## SonarQube Cloud (implementat a TG-194)
 
-## SonarQube Cloud
+El workflow de CI, a cada PR cap a `develop` o `main`, executa el job `sonar` després dels jobs de `backend` i `frontend`. Aquest job descarrega els informes de cobertura (`backend/coverage.xml` i `frontend/coverage/lcov.info`) i executa l'escaneig de SonarQube Cloud amb `-Dsonar.qualitygate.wait=true`. Si el Quality Gate no se supera, el job falla i la PR no es pot fusionar.
 
-> [!info] Descripció objectiu
-> El que segueix descriu el workflow objectiu. Ara per ara el workflow només fa lint, format, tipus i tests als dos jobs; vegeu "CI del backend (implementada)" i "CI del frontend (implementada)" més amunt.
+- **Organització:** `pes2627q1-21-gei-upc`
+- **Projecte:** `pes2627q1-21-gei-upc_perseida`
+- **Panell d'accés:** [Panell de SonarQube Cloud](https://sonarcloud.io/project/overview?id=pes2627q1-21-gei-upc_perseida)
+- **Token:** El secret `SONAR_TOKEN` als Secrets de GitHub Actions.
 
-El workflow de CI, a cada PR cap a `develop` o `main`, executa per ordre: (1) format, linters i tipus; (2) tests amb cobertura; (3) anàlisi de SonarQube Cloud; (4) comprovació del Quality Gate. Si falla, la PR no es pot fusionar. També s'analitzen `develop` i `main` després de cada fusió. El token és el secret `SONAR_TOKEN`.
+### Quality Gate (`perseida`)
 
-Quality Gate, aplicat al codi nou de cada PR:
+Aplicat al codi nou (**New Code**) de cada PR:
 
-- 0 bugs i 0 vulnerabilitats noves.
-- Tots els security hotspots revisats.
-- Duplicació ≤ 3 %.
-- Cobertura de tests del codi nou ≥ 90 % (llindar del Quality Gate de SonarQube Cloud, elevat del 70 % original per [[0028-tdd-estricte-i-politica-de-testing-avancada]]; la política completa, amb un 80 % global, és a [[testing]]).
-- Qualificació A en mantenibilitat, fiabilitat i seguretat.
+- **Fiabilitat (Bugs):** Qualificació **A** (0 bugs nous).
+- **Seguretat (Vulnerabilitats):** Qualificació **A** (0 vulnerabilitats noves).
+- **Mantenibilitat (Code Smells):** Qualificació **A**.
+- **Security Hotspots:** 100 % revisats.
+- **Duplicació de línies:** ≤ 3.0 %.
+- **Cobertura en codi nou:** ≥ 90 % (d'acord amb [[0028-tdd-estricte-i-politica-de-testing-avancada]] i [[testing]]; excloent només components purament visuals: `frontend/src/shared/ui/**`).
+
+### Com interpretar fallades i analitzar línies no cobertes
+
+1. **Navegació a fallades:** Des del fil de la PR, el bot de SonarQube o el check fallit enllaça directament al resum de l'anàlisi.
+2. **Línies no cobertes:** Al panell del projecte, entra a la pestanya **Measures** → **Coverage** (o fes clic directament sobre el percentatge vermell de New Code). Clicant sobre cada fitxer s'obre la vista de codi amb franges vermelles a les línies no executades pels tests.
+3. **Resolució:** Afegeix les proves unitàries o d'integració que cobreixin les branques/línies assenyalades abans de fer un nou push a la branca de la PR.
+
+### Resolució d'incidències d'informes de cobertura
+
+- **Rutes no resoltes (*Could not resolve path*):** El `coverage.xml` del backend (generat amb pytest-cov sense `relative_files`) i el `frontend/coverage/lcov.info` contenen camins que SonarQube Cloud resol directament des de l'arrel del monorepo.
+- **PRs sense canvis a backend o frontend:** El job `sonar` descarrega els informes només si el job corresponent s'ha executat (`if: needs.changes.outputs.<job> == 'true' || github.event_name == 'push'`). Si un job s'ha saltat per manca de canvis, l'informe absent no fa fallar la CI.
 
 Quan falla, l'autor corregeix i torna a pujar. Un fals positiu es marca a SonarQube Cloud amb un comentari que ho justifica i el revisor ho valida; els security hotspots els revisa l'autor i els confirma el revisor.
 
