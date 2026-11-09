@@ -349,7 +349,7 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
    # HTTP/1.1 101 Switching Protocols  (curl then waits until --max-time)
    ```
 
-   Un cliente real (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe enviar después, como primer frame, `{"type":"auth","token":"<access token>"}`: el servidor cierra con el código 4401 si ese frame no llega en `WS_AUTH_TIMEOUT_SECONDS` (por defecto 10) o el token no es válido. Una vez autenticado, el servidor envía un `ping` cada `WS_HEARTBEAT_SECONDS` (por defecto 30). Ambas son variables opcionales de `api` (están en `.env.example`), igual que `WS_MAX_ROOMS` (por defecto 20), `WS_MAX_FRAME_BYTES` (por defecto 65536) y `WS_SEND_TIMEOUT_SECONDS` (por defecto 5). El *heartbeat* debe ser mucho menor que `proxy_read_timeout` (3600 s en `websocket.conf`) para que el proxy nunca vea la conexión como inactiva.
+   Un cliente real (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe enviar después, como primer frame, `{"type":"auth","token":"<access token>"}`: el servidor cierra con el código 4401 si ese frame no llega en `WS_AUTH_TIMEOUT_SECONDS` (por defecto 10) o el token no es válido. Una vez autenticado, el servidor envía un `ping` cada `WS_HEARTBEAT_SECONDS` (por defecto 30). Ambas son variables opcionales de `api` (están en `.env.example`), igual que `WS_MAX_ROOMS` (por defecto 20), `WS_MAX_FRAME_BYTES` (por defecto 65536) y `WS_SEND_TIMEOUT_SECONDS` (por defecto 5) y `WS_MAX_CONNECTIONS_PER_USER` (por defecto 3). El *heartbeat* debe ser mucho menor que `proxy_read_timeout` (3600 s en `websocket.conf`) para que el proxy nunca vea la conexión como inactiva.
 
 ### Volúmenes
 
