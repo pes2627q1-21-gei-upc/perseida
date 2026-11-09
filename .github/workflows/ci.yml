@@ -169,7 +169,7 @@ jobs:
 
       - name: Descarregar cobertura del backend
         if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
-        uses: actions/download-artifact@v7.0.1
+        uses: actions/download-artifact@v8.0.2
         continue-on-error: true
         with:
           name: backend-coverage
@@ -177,7 +177,7 @@ jobs:
 
       - name: Descarregar cobertura del frontend
         if: needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
-        uses: actions/download-artifact@v7.0.1
+        uses: actions/download-artifact@v8.0.2
         continue-on-error: true
         with:
           name: frontend-coverage
