@@ -131,6 +131,8 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - name: Instal·lar pnpm
         uses: pnpm/action-setup@v6.1.0
         with:
@@ -155,6 +157,9 @@ jobs:
           git diff --exit-code -- src/shared/api/schema.d.ts
       - name: Tests (jest amb cobertura)
         run: pnpm test --coverage --ci
+      - name: Mutation testing al frontend (Stryker >= 70%)
+        if: github.event_name == 'pull_request'
+        run: pnpm test:mutation --base-branch origin/${{ github.base_ref }}
       - name: Publicar informe de cobertura
         uses: actions/upload-artifact@v7.0.1
         with:
