@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from app.application.auth.auth_service import AuthService
 from app.application.realtime import errors
+from app.application.realtime.connection_limiter import ConnectionLimiter
 from app.application.realtime.errors import error_frame
 from app.application.shared.errors import ExternalServiceError, UnauthorizedError
 from app.domain.auth.models import SessionClaims, TokenType
@@ -32,6 +33,7 @@ class RealtimeConfig:
     max_rooms: int = 20
     max_frame_bytes: int = 65536
     send_timeout_seconds: float = 5.0
+    max_connections_per_user: int = 3
 
 
 class _BadFrameError(Exception):
@@ -58,6 +60,7 @@ class RealtimeSession:
         config: RealtimeConfig,
         conn_id: str,
         correlation_id: str | None = None,
+        limiter: ConnectionLimiter | None = None,
     ) -> None:
         self._conn = conn
         self._auth = auth
@@ -66,6 +69,8 @@ class RealtimeSession:
         self._config = config
         self._conn_id = conn_id
         self._correlation_id = correlation_id or conn_id
+        self._limiter = limiter
+        self._slot: str | None = None
         self._send_lock = asyncio.Lock()
         self._close_code: int | None = None
         self._pong_pending = False
@@ -83,6 +88,7 @@ class RealtimeSession:
             await self._fail(exc)
         finally:
             await self._stop_tasks()
+            self._release_slot()
 
     # --- handshake ---------------------------------------------------------
 
@@ -115,6 +121,9 @@ class RealtimeSession:
         return token if isinstance(token, str) else None
 
     async def _serve(self, claims: SessionClaims) -> None:
+        if not self._acquire_slot(claims.sub):
+            await self._close(errors.CLOSE_TOO_MANY_CONNECTIONS)
+            return
         await self._start_subscription(
             revocation_channel(claims.sub),
             lambda raw: self._on_revocation(raw, claims),
@@ -127,6 +136,19 @@ class RealtimeSession:
         await self._send(Frame(type=FrameType.AUTH))
         while True:
             await self._handle(await self._conn.receive_text())
+
+    def _acquire_slot(self, sub: str) -> bool:
+        if self._limiter is None:
+            return True
+        if not self._limiter.try_acquire(sub):
+            return False
+        self._slot = sub
+        return True
+
+    def _release_slot(self) -> None:
+        if self._limiter is not None and self._slot is not None:
+            self._limiter.release(self._slot)
+            self._slot = None
 
     # --- inbound frames ----------------------------------------------------
 

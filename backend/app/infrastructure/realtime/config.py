@@ -16,6 +16,7 @@ class RealtimeSettings(BaseSettings):
     ws_send_timeout_seconds: float = Field(default=5.0, gt=0)
     ws_max_rooms: int = Field(default=20, gt=0)
     ws_max_frame_bytes: int = Field(default=65536, gt=0)
+    ws_max_connections_per_user: int = Field(default=3, gt=0)
 
     def config(self) -> RealtimeConfig:
         return RealtimeConfig(
@@ -24,4 +25,5 @@ class RealtimeSettings(BaseSettings):
             send_timeout_seconds=self.ws_send_timeout_seconds,
             max_rooms=self.ws_max_rooms,
             max_frame_bytes=self.ws_max_frame_bytes,
+            max_connections_per_user=self.ws_max_connections_per_user,
         )

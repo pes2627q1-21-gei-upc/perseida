@@ -6,13 +6,17 @@ from fastapi import APIRouter, Depends, WebSocket
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from app.application.auth.auth_service import AuthService
+from app.application.realtime.connection_limiter import ConnectionLimiter
 from app.application.realtime.realtime_session import RealtimeConfig, RealtimeSession
 from app.domain.auth.ports import SessionStore
 from app.domain.realtime.ports import ConnectionClosed
 from app.domain.shared.ports import PubSub
 from app.infrastructure.auth.dependencies import get_auth_service, get_session_store
 from app.infrastructure.cache.dependencies import get_pubsub
-from app.infrastructure.realtime.dependencies import get_realtime_config
+from app.infrastructure.realtime.dependencies import (
+    get_connection_limiter,
+    get_realtime_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +64,7 @@ async def realtime_endpoint(
     store: Annotated[SessionStore, Depends(get_session_store)],
     pubsub: Annotated[PubSub, Depends(get_pubsub)],
     config: Annotated[RealtimeConfig, Depends(get_realtime_config)],
+    limiter: Annotated[ConnectionLimiter, Depends(get_connection_limiter)],
 ) -> None:
     await websocket.accept()
     conn_id = str(uuid4())
@@ -73,5 +78,6 @@ async def realtime_endpoint(
         config,
         conn_id,
         correlation_id if isinstance(correlation_id, str) else None,
+        limiter,
     )
     await session.run()
