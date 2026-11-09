@@ -153,3 +153,24 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage/lcov.info
           if-no-files-found: error
+
+  sonar:
+    needs: [changes, backend, frontend]
+    if: |
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Descarregar cobertura del backend
+        if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
+        uses: actions/download-artifact@v7.0.1
+        continue-on-error: true
+        with:
+          name: backend-coverage
+          path: backend
