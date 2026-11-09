@@ -101,13 +101,10 @@ def main() -> int:
 
     try:
         from mutmut import configuration
-        from mutmut.__main__ import (
-            SourceFileMutationData,
-            _run,
-            calculate_summary_stats,
-            save_cicd_stats,
-            walk_mutatable_files,
-        )
+        from mutmut.__main__ import _run, save_cicd_stats
+        from mutmut.mutation.data import SourceFileMutationData
+        from mutmut.stats import calculate_summary_stats
+        from mutmut.utils.file_utils import walk_mutatable_files
     except ImportError as err:
         print(f"❌ Error importants mòduls de mutmut: {err}", file=sys.stderr)
         return 1

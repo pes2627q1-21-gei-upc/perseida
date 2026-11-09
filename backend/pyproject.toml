@@ -61,6 +61,12 @@ ignore_missing_imports = true
 # mutmut ships no type information.
 module = ["mutmut.*"]
 ignore_missing_imports = true
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+# CI helper script calling mutmut internals.
+module = ["scripts.run_mutmut_diff"]
+disable_error_code = ["attr-defined"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
