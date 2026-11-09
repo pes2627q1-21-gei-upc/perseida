@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, date, datetime
+from typing import Any
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
@@ -60,7 +61,7 @@ def test_translation_rejects_repeated_options() -> None:
         {"options": ("a", "b", "c", "\n")},
     ],
 )
-def test_translation_rejects_empty_texts(changes: dict[str, object]) -> None:
+def test_translation_rejects_empty_texts(changes: dict[str, Any]) -> None:
     with pytest.raises(ValidationError) as error:
         make_translation(**changes)
 
