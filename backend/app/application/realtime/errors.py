@@ -35,10 +35,15 @@ _TITLE = {
 def error_frame(
     code: str,
     detail: str,
+    *,
+    correlation_id: str,
     frame_id: str | None = None,
     room: str | None = None,
 ) -> Frame:
-    """Error frame whose payload is an RFC 9457 problem with a stable ``code``."""
+    """Error frame whose payload is an RFC 9457 problem with a stable ``code``.
+
+    ``correlation_id`` identifies the connection in the logs (ADR-0018).
+    """
     status = _STATUS[code]
     return Frame(
         type=FrameType.ERROR,
@@ -50,5 +55,6 @@ def error_frame(
             "status": status,
             "detail": detail,
             "code": code,
+            "correlation_id": correlation_id,
         },
     )

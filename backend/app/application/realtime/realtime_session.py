@@ -36,7 +36,9 @@ class RealtimeConfig:
 
 class _BadFrameError(Exception):
     def __init__(self, code: str, detail: str, frame_id: str | None = None) -> None:
-        self.reply = error_frame(code, detail, frame_id)
+        self.code = code
+        self.detail = detail
+        self.frame_id = frame_id
         super().__init__(code)
 
 
@@ -55,6 +57,7 @@ class RealtimeSession:
         pubsub: PubSub,
         config: RealtimeConfig,
         conn_id: str,
+        correlation_id: str | None = None,
     ) -> None:
         self._conn = conn
         self._auth = auth
@@ -62,6 +65,7 @@ class RealtimeSession:
         self._pubsub = pubsub
         self._config = config
         self._conn_id = conn_id
+        self._correlation_id = correlation_id or conn_id
         self._send_lock = asyncio.Lock()
         self._close_code: int | None = None
         self._pong_pending = False
@@ -130,7 +134,7 @@ class RealtimeSession:
         try:
             frame = self._parse(raw)
         except _BadFrameError as bad:
-            await self._send(bad.reply)
+            await self._send(self._error(bad.code, bad.detail, bad.frame_id))
         else:
             await self._dispatch(frame)
 
@@ -171,7 +175,7 @@ class RealtimeSession:
                 await self._room_frame(frame)
             case _:
                 await self._send(
-                    error_frame(
+                    self._error(
                         errors.VALIDATION_ERROR,
                         "Frame not allowed at this point.",
                         frame.id,
@@ -180,14 +184,14 @@ class RealtimeSession:
 
     async def _room_frame(self, frame: Frame) -> None:
         if frame.room is None:
-            reply = error_frame(
+            reply = self._error(
                 errors.VALIDATION_ERROR, "The frame needs a room.", frame.id
             )
         else:
             try:
                 reply = await self._room_action(frame, frame.room)
             except ExternalServiceError:
-                reply = error_frame(
+                reply = self._error(
                     errors.PUBSUB_UNAVAILABLE,
                     "Real-time bus unavailable.",
                     frame.id,
@@ -198,14 +202,14 @@ class RealtimeSession:
     async def _room_action(self, frame: Frame, room: str) -> Frame:
         if frame.type == FrameType.SUBSCRIBE:
             if room not in self._rooms and len(self._rooms) >= self._config.max_rooms:
-                return error_frame(
+                return self._error(
                     errors.RATE_LIMITED, "Too many rooms.", frame.id, room
                 )
             await self._join(room)
         elif frame.type == FrameType.UNSUBSCRIBE:
             await self._leave(room)
         elif room not in self._rooms:
-            return error_frame(
+            return self._error(
                 errors.NOT_SUBSCRIBED, "Subscribe to the room first.", frame.id, room
             )
         else:
@@ -295,6 +299,21 @@ class RealtimeSession:
             await self._send(Frame(type=FrameType.PING, id=str(uuid4())))
 
     # --- plumbing ----------------------------------------------------------
+
+    def _error(
+        self,
+        code: str,
+        detail: str,
+        frame_id: str | None = None,
+        room: str | None = None,
+    ) -> Frame:
+        return error_frame(
+            code,
+            detail,
+            correlation_id=self._correlation_id,
+            frame_id=frame_id,
+            room=room,
+        )
 
     async def _send(self, frame: Frame) -> None:
         try:

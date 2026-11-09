@@ -62,7 +62,16 @@ async def realtime_endpoint(
     config: Annotated[RealtimeConfig, Depends(get_realtime_config)],
 ) -> None:
     await websocket.accept()
+    conn_id = str(uuid4())
+    # the correlation middleware binds the id of the handshake to the connection
+    correlation_id = getattr(websocket.state, "correlation_id", None)
     session = RealtimeSession(
-        WebSocketConnection(websocket), auth, store, pubsub, config, str(uuid4())
+        WebSocketConnection(websocket),
+        auth,
+        store,
+        pubsub,
+        config,
+        conn_id,
+        correlation_id if isinstance(correlation_id, str) else None,
     )
     await session.run()
