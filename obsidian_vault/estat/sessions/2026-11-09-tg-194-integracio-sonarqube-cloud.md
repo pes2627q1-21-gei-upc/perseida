@@ -33,7 +33,7 @@ Integrar SonarQube Cloud al pipeline de GitHub Actions per analitzar backend i f
 ## Decisions preses
 
 - **Pla OSS vs Free:** El pla Free estàndard bloquejava el Quality Gate a *Sonar way* (80% rígid) i només permetia PRs cap a la branca principal. Amb el professor s'ha configurat el pla OSS que desbloqueja el Quality Gate propi (`perseida`) i l'anàlisi completa de branques i PRs.
-- **Tolerància d'artifacts:** Per evitar que el job `sonar` falli quan una PR no toca una de les dues carpetes (backend o frontend), la descàrrega d'artifacts té condicions `if` i `continue-on-error: true`.
+- **Tolerància d'artifacts:** Per evitar que el job `sonar` falli quan una PR no toca una de les dues carpetes (backend o frontend), la descàrrega d'artifacts depèn de les condicions `if` de canvis detectats (retirant `continue-on-error` per evitar que silencii errors inesperats en branques d'integració).
 
 ## Canvis al vault
 
@@ -44,7 +44,7 @@ Integrar SonarQube Cloud al pipeline de GitHub Actions per analitzar backend i f
 ## Pendent / següents passos
 
 - [x] Commits atòmics de cada tasca (#197, #199, #200, #201, #204).
-- [ ] Obrir la PR de la branca `feature/TG-194-sonarqube-cloud` cap a `develop`.
-- [ ] Verificar que la CI és verda a GitHub i que el bot de SonarQube Cloud comenta la PR (#203).
-- [ ] Afegir el check `sonar` als rulesets de GitHub (#202) un cop executat el primer escaneig.
-- [ ] Revisió per part d'un company (peer review) i fusió a `develop`.
+- [x] Obrir la PR de la branca `feature/TG-194-sonarqube-cloud` cap a `develop` (#79).
+- [x] Verificar que la CI és verda a GitHub i que el bot de SonarQube Cloud comenta la PR (#203).
+- [x] Afegir els checks `backend`, `frontend` i `sonar` als rulesets de GitHub (#202).
+- [ ] Aprovació final de la revisió per part d'un company (peer review) i fusió a `develop`.
