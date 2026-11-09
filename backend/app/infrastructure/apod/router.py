@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Annotated, Any, Self
+from typing import Annotated, Self
 
 from fastapi import APIRouter, Query, status
 from pydantic import BaseModel, Field
@@ -7,16 +7,10 @@ from pydantic import BaseModel, Field
 from app.application.apod.errors import APOD_UNAVAILABLE
 from app.domain.apod.models import Apod, MediaType
 from app.infrastructure.api.params import IsoDate
-from app.infrastructure.api.schemas import ProblemDetails
+from app.infrastructure.api.schemas import PROBLEM_CONTENT, ProblemDetails
 from app.infrastructure.apod.dependencies import ApodServiceDep
 
 router = APIRouter(tags=["apod"])
-
-_PROBLEM_CONTENT: dict[str, Any] = {
-    "application/problem+json": {
-        "schema": {"$ref": "#/components/schemas/ProblemDetails"}
-    }
-}
 
 
 class ApodResponse(BaseModel):
@@ -57,18 +51,18 @@ class ApodResponse(BaseModel):
             "model": ProblemDetails,
             "description": "Data amb format incorrecte, futura o anterior al "
             "16/06/1995.",
-            "content": _PROBLEM_CONTENT,
+            "content": PROBLEM_CONTENT,
         },
         500: {
             "model": ProblemDetails,
             "description": "Error inesperat.",
-            "content": _PROBLEM_CONTENT,
+            "content": PROBLEM_CONTENT,
         },
         503: {
             "model": ProblemDetails,
             "description": "La NASA no respon i no hi ha dada a la cache "
             f"(code `{APOD_UNAVAILABLE}`).",
-            "content": _PROBLEM_CONTENT,
+            "content": PROBLEM_CONTENT,
         },
     },
 )

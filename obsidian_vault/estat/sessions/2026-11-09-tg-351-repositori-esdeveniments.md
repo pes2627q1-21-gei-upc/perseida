@@ -1,10 +1,10 @@
 ---
-titol: "Sessió 2026-11-09: repositori, service i routers d'esdeveniments (TG-351, tasques #474 i #475)"
+titol: "Sessió 2026-11-09: repositori, service i routers d'esdeveniments (TG-351, tasques #474 a #476)"
 tipus: sessio
 estat: vigent
 data: "2026-11-09"
 us: ["TG-351", "TG-50"]
-font: "Taiga: TG-351 i tasques #474 i #475; decisions de Raquel en aquesta sessió (09/11/2026); revisió de reviewer-arquitectura"
+font: "Taiga: TG-351 i tasques #474 a #476; decisions de Raquel en aquesta sessió (09/11/2026); revisió de reviewer-arquitectura"
 etiquetes: [sessio, backend, esdeveniments, persistencia, spotwise]
 ---
 
@@ -22,6 +22,7 @@ Fer la tasca 1/6 de TG-351 (#474): un adaptador de repositori que llegeixi els e
 - `SqlEventRepository`, només de lectura.
 - Primer el commit `test:` en vermell i després el `feat:` (ADR-0028).
 - Tasca #475: `EventService` (`active_on`, `upcoming`) i els routers `GET /api/events/active` i `GET /api/events/upcoming`, públics, amb 422 RFC 9457 per als paràmetres invàlids. `IsoDate` passa de l'APOD a `app/infrastructure/api/params.py` per reutilitzar-lo. S'han regenerat `frontend/openapi/openapi.json` i `schema.d.ts`.
+- Tasca #476: documentació dels dos endpoints a l'OpenAPI (descripció, paràmetres amb exemples, 422 i 500 en problem+json). L'exemple de resposta va a la descripció perquè FastAPI esborra els `null` del camp `example`. `PROBLEM_CONTENT` passa a `app/infrastructure/api/schemas.py`, compartit amb l'APOD i l'auth (decisió de Raquel, tot i ser fora de TG-351). L'exemple s'anuncia com la forma de cada element, no com la resposta a uns paràmetres concrets.
 
 ## Decisions preses
 
@@ -43,12 +44,12 @@ Cap ADR nova. Totes les decisions són de Raquel:
 ## Canvis al vault
 
 - [[model-de-domini]]: nova secció de l'esdeveniment astronòmic i pendents per a TG-50.
-- [[contracte-esdeveniments]]: nota sobre la persistència, i els endpoints amb els seus paràmetres i la forma de la resposta.
+- [[contracte-esdeveniments]]: nota sobre la persistència, els endpoints amb els seus paràmetres i la forma de la resposta, i la documentació a l'OpenAPI.
 
 ## Pendent / següents passos
 
 - [ ] Confirmar amb Manel els valors de `source` (ADR-0030).
-- [ ] Tasca 3/6 (#476): descripcions, exemples i respostes 422 a l'OpenAPI.
+- [ ] PR 1 (tasques 1-3) cap a `develop`; PR 2 (tasques 4-5) després.
 - [ ] `pnpm` 12.15.0 està trencat en local; els tipus s'han generat amb `openapi-typescript` i `prettier` directament.
 - [ ] Validar a la CI els tests d'integració i la migració. En local no hi ha Postgres.
 - [ ] Textos ca/es/en d'`EVENT_ENDS_BEFORE_START`.
@@ -56,5 +57,5 @@ Cap ADR nova. Totes les decisions són de Raquel:
 
 ## US de Taiga
 
-- TG-351 (tasques #474 i #475)
+- TG-351 (tasques #474, #475 i #476)
 - TG-50

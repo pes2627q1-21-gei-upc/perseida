@@ -131,7 +131,40 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Esdeveniments actius en una data */
+    /**
+     * Esdeveniments actius en una data
+     * @description Retorna els esdeveniments que estan en curs en algun moment del dia indicat (dia UTC, de 00:00Z a 24:00Z) o, si no se'n dona cap, d'avui. Un esdeveniment instantani compta com a actiu el dia en què passa, i un que acaba just a les 00:00Z també compta aquell dia. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
     get: operations['get_active_events'];
     put?: never;
     post?: never;
@@ -148,7 +181,40 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Esdeveniments que comencen els N dies vinents */
+    /**
+     * Esdeveniments que comencen els N dies vinents
+     * @description Retorna els esdeveniments que comencen des d'ara fins d'aquí a `days` dies; els que ja han començat no hi surten (vegeu `/api/events/active`). Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
     get: operations['get_upcoming_events'];
     put?: never;
     post?: never;
@@ -283,11 +349,6 @@ export interface components {
        * @description Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el compte; si falta o no és compatible, `ca`.
        */
       language?: string | null;
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][];
     };
     /** HealthResponse */
     HealthResponse: {
@@ -427,19 +488,6 @@ export interface components {
       preferred_language: components['schemas']['Language'];
       /** @description Rol de l'usuari */
       role: components['schemas']['Role'];
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-      /** Input */
-      input?: unknown;
-      /** Context */
-      ctx?: Record<string, never>;
     };
   };
   responses: never;
@@ -752,7 +800,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Successful Response */
+      /** @description Els esdeveniments actius aquell dia. */
       200: {
         headers: {
           [name: string]: unknown;
@@ -761,13 +809,22 @@ export interface operations {
           'application/json': components['schemas']['EventResponse'][];
         };
       };
-      /** @description Validation Error */
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
       422: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
     };
@@ -784,7 +841,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Successful Response */
+      /** @description Els esdeveniments que comencen dins la finestra. */
       200: {
         headers: {
           [name: string]: unknown;
@@ -793,13 +850,22 @@ export interface operations {
           'application/json': components['schemas']['EventResponse'][];
         };
       };
-      /** @description Validation Error */
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
       422: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
     };

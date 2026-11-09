@@ -1,4 +1,13 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
+
+# OpenAPI content of an error response: only problem+json (ADR-0018).
+PROBLEM_CONTENT: dict[str, Any] = {
+    "application/problem+json": {
+        "schema": {"$ref": "#/components/schemas/ProblemDetails"}
+    }
+}
 
 
 class FieldError(BaseModel):

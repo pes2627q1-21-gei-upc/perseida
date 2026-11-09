@@ -19,6 +19,7 @@ Forma única d'un esdeveniment astronòmic a l'API de Perseida. La fan servir el
   - `GET /api/events/active?date=AAAA-MM-DD`: esdeveniments que se solapen amb el dia UTC indicat (per defecte, avui).
   - `GET /api/events/upcoming?days=N`: esdeveniments que comencen dins de `[ara, ara + N dies)`; `N` de 1 a 30, per defecte 7.
   - Una data que no sigui `AAAA-MM-DD` vàlida o un `days` fora de rang responen 422 `VALIDATION_ERROR` (RFC 9457).
+- **OpenAPI (`/api/docs`, tasca #476):** cada endpoint documenta la semàntica, els paràmetres i les respostes 422 i 500 en problem+json. L'exemple de resposta (les fixtures `launch` i `lunar`, a `EVENT_EXAMPLES`) va dins la descripció i no al camp `example`, perquè FastAPI genera l'OpenAPI amb `exclude_none` i hi esborraria els `null`. Un test comprova que és igual a les fixtures.
 - **Regenerar l'OpenAPI:** en canviar els endpoints o aquest esquema, es regeneren la còpia `frontend/openapi/openapi.json` (la comprova `tests/unit/infrastructure/test_openapi_copy.py`) i els tipus `frontend/src/shared/api/schema.d.ts`:
 
 ```bash

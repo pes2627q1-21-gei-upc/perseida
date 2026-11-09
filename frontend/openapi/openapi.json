@@ -368,6 +368,7 @@
           "events"
         ],
         "summary": "Esdeveniments actius en una data",
+        "description": "Retorna els esdeveniments que estan en curs en algun moment del dia indicat (dia UTC, de 00:00Z a 24:00Z) o, si no se'n dona cap, d'avui. Un esdeveniment instantani compta com a actiu el dia en què passa, i un que acaba just a les 00:00Z també compta aquell dia. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.\n\nExemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):\n\n```json\n[\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-8926ca81b8fe\",\n    \"title\": \"Falcon 9 Block 5 | Starlink Group 10-12\",\n    \"summary\": \"A batch of Starlink satellites launched from Cape Canaveral SLC-40.\",\n    \"category\": \"launch\",\n    \"starts_at\": \"2026-11-03T21:15:00Z\",\n    \"ends_at\": \"2026-11-03T23:45:00Z\",\n    \"location\": {\n      \"latitude\": 28.5618,\n      \"longitude\": -80.577\n    },\n    \"source_url\": \"https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/\"\n  },\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-89276502d574\",\n    \"title\": \"Full Moon\",\n    \"summary\": \"The Moon is fully illuminated as seen from Earth.\",\n    \"category\": \"lunar\",\n    \"starts_at\": \"2026-11-24T14:53:00Z\",\n    \"ends_at\": \"2026-11-24T14:53:00Z\",\n    \"location\": null,\n    \"source_url\": null\n  }\n]\n```",
         "operationId": "get_active_events",
         "parameters": [
           {
@@ -387,12 +388,17 @@
               "description": "Dia UTC (YYYY-MM-DD). Per defecte, avui.",
               "title": "Date"
             },
-            "description": "Dia UTC (YYYY-MM-DD). Per defecte, avui."
+            "description": "Dia UTC (YYYY-MM-DD). Per defecte, avui.",
+            "examples": {
+              "full_moon": {
+                "value": "2026-11-24"
+              }
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Els esdeveniments actius aquell dia.",
             "content": {
               "application/json": {
                 "schema": {
@@ -406,11 +412,21 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Paràmetre invàlid (code `VALIDATION_ERROR`).",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error inesperat (code `INTERNAL_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -424,6 +440,7 @@
           "events"
         ],
         "summary": "Esdeveniments que comencen els N dies vinents",
+        "description": "Retorna els esdeveniments que comencen des d'ara fins d'aquí a `days` dies; els que ja han començat no hi surten (vegeu `/api/events/active`). Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.\n\nExemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):\n\n```json\n[\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-8926ca81b8fe\",\n    \"title\": \"Falcon 9 Block 5 | Starlink Group 10-12\",\n    \"summary\": \"A batch of Starlink satellites launched from Cape Canaveral SLC-40.\",\n    \"category\": \"launch\",\n    \"starts_at\": \"2026-11-03T21:15:00Z\",\n    \"ends_at\": \"2026-11-03T23:45:00Z\",\n    \"location\": {\n      \"latitude\": 28.5618,\n      \"longitude\": -80.577\n    },\n    \"source_url\": \"https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/\"\n  },\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-89276502d574\",\n    \"title\": \"Full Moon\",\n    \"summary\": \"The Moon is fully illuminated as seen from Earth.\",\n    \"category\": \"lunar\",\n    \"starts_at\": \"2026-11-24T14:53:00Z\",\n    \"ends_at\": \"2026-11-24T14:53:00Z\",\n    \"location\": null,\n    \"source_url\": null\n  }\n]\n```",
         "operationId": "get_upcoming_events",
         "parameters": [
           {
@@ -438,12 +455,17 @@
               "default": 7,
               "title": "Days"
             },
-            "description": "Nombre de dies vinents (1-30)."
+            "description": "Nombre de dies vinents (1-30).",
+            "examples": {
+              "week": {
+                "value": 7
+              }
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Els esdeveniments que comencen dins la finestra.",
             "content": {
               "application/json": {
                 "schema": {
@@ -457,11 +479,21 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Paràmetre invàlid (code `VALIDATION_ERROR`).",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error inesperat (code `INTERNAL_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -694,19 +726,6 @@
         ],
         "title": "GoogleLoginRequest"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
       "HealthResponse": {
         "properties": {
           "status": {
@@ -937,46 +956,6 @@
           "role"
         ],
         "title": "UserResponse"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
       }
     },
     "securitySchemes": {
