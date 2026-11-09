@@ -174,3 +174,11 @@ jobs:
         with:
           name: backend-coverage
           path: backend
+
+      - name: Descarregar cobertura del frontend
+        if: needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
+        uses: actions/download-artifact@v7.0.1
+        continue-on-error: true
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
