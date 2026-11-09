@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Executa mutation testing amb mutmut únicament sobre els fitxers de domini modificats a la PR.
+"""Mutation testing amb mutmut sobre els fitxers de domini modificats a la PR.
 
 Requisit ADR-0028 i TG-359 (#370):
-- Només s'aplica sobre els fitxers canviats a `backend/app/domain/` respecte a la branca base.
+- Només s'aplica sobre els fitxers canviats a backend/app/domain/.
 - Llindar bloquejant: mutation score >= 70%.
 """
 
@@ -10,18 +10,20 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Mutation testing del backend sobre el git diff.")
+    parser = argparse.ArgumentParser(
+        description="Mutation testing del backend sobre el git diff."
+    )
     parser.add_argument(
         "--base-branch",
         default="origin/develop",
-        help="Branca base contra la qual calcular el diff (per defecte origin/develop).",
+        help="Branca base contra la qual calcular el diff (defecte origin/develop).",
     )
     parser.add_argument(
         "--threshold",
@@ -33,7 +35,10 @@ def parse_args() -> argparse.Namespace:
         "--files",
         nargs="*",
         default=[],
-        help="Llista explícita de fitxers a mutar (opcional; si s'omet es dedueixen de git diff).",
+        help=(
+            "Llista explícita de fitxers a mutar "
+            "(opcional; si s'omet es dedueixen de git diff)."
+        ),
     )
     return parser.parse_args()
 
@@ -51,7 +56,10 @@ def get_changed_domain_files(base_branch: str) -> list[str]:
         ]
         proc = subprocess.run(diff_cmd, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as err:
-        print(f"⚠️ Error obtenint git diff contra {base_branch}: {err.stderr}", file=sys.stderr)
+        print(
+            f"⚠️ Error obtenint git diff contra {base_branch}: {err.stderr}",
+            file=sys.stderr,
+        )
         return []
 
     files: list[str] = []
@@ -70,12 +78,17 @@ def get_changed_domain_files(base_branch: str) -> list[str]:
 def main() -> int:
     args = parse_args()
 
-    changed_files = [f[len("backend/") :] if f.startswith("backend/") else f for f in args.files]
+    changed_files = [
+        f[len("backend/") :] if f.startswith("backend/") else f for f in args.files
+    ]
     if not changed_files:
         changed_files = get_changed_domain_files(args.base_branch)
 
     if not changed_files:
-        print("ℹ️ Cap fitxer de domini (backend/app/domain) modificat a la PR. Mutation testing del backend omès.")
+        print(
+            "ℹ️ Cap fitxer de domini (backend/app/domain) modificat a la PR. "
+            "Mutation testing del backend omès."
+        )
         return 0
 
     print(f"🧬 Fitxers de domini a analitzar amb mutmut ({len(changed_files)}):")
@@ -127,7 +140,9 @@ def main() -> int:
     total_tested = killed + survived + timeout
 
     if total_tested == 0:
-        print("ℹ️ Tots els mutants generats s'han descartat o no tenien tests associats.")
+        print(
+            "ℹ️ Tots els mutants generats s'han descartat o no tenien tests associats."
+        )
         return 0
 
     score = ((killed + timeout) / total_tested) * 100.0
@@ -139,11 +154,17 @@ def main() -> int:
     print(f"   Mutants supervivents (surv):  {survived}")
     print(f"   Mutants timeout (timeout):    {timeout}")
     print(f"   Total efectiu:                {total_tested}")
-    print(f"   Mutation score:               {score:.2f}% (llindar requerit: {args.threshold:.2f}%)")
+    print(
+        f"   Mutation score:               {score:.2f}% "
+        f"(llindar requerit: {args.threshold:.2f}%)"
+    )
     print("=" * 60)
 
     if score < args.threshold:
-        print(f"❌ ERROR: Mutation score {score:.2f}% inferior al llindar bloquejant ({args.threshold:.2f}%).")
+        print(
+            f"❌ ERROR: Mutation score {score:.2f}% inferior al llindar bloquejant "
+            f"({args.threshold:.2f}%)."
+        )
         return 1
 
     print(f"✅ Mutation score {score:.2f}% >= {args.threshold:.2f}% superat amb èxit!")

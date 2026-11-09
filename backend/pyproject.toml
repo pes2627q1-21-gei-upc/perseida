@@ -57,6 +57,11 @@ exclude = ["^\\.venv/"]
 module = ["apscheduler.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# mutmut ships no type information.
+module = ["mutmut.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
