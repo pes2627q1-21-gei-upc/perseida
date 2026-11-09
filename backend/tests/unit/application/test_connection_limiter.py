@@ -1,6 +1,7 @@
 """Per-user cap on simultaneous WebSocket connections. TG-63 (review PR #78)."""
 
 import pytest
+
 from app.application.realtime.connection_limiter import ConnectionLimiter
 
 

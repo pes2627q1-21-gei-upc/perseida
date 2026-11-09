@@ -2,9 +2,9 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
-from app.application.realtime.connection_limiter import ConnectionLimiter
 from starlette.requests import HTTPConnection
 
+from app.application.realtime.connection_limiter import ConnectionLimiter
 from app.application.realtime.realtime_session import RealtimeConfig
 from app.infrastructure.auth.dependencies import get_session_store
 from app.infrastructure.auth.redis_session_store import RedisSessionStore

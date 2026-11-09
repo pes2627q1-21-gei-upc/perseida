@@ -8,10 +8,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-from app.application.realtime.connection_limiter import ConnectionLimiter
 
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.realtime import errors
+from app.application.realtime.connection_limiter import ConnectionLimiter
 from app.application.realtime.realtime_session import RealtimeConfig, RealtimeSession
 from app.domain.auth.models import (
     AccountStatus,
