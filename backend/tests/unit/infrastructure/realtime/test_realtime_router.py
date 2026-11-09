@@ -21,6 +21,7 @@ from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.realtime.realtime_session import RealtimeConfig
 from app.domain.auth.models import GoogleIdentity
 from app.domain.realtime.models import revocation_channel
+from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.auth.dependencies import get_auth_service, get_session_store
 from app.infrastructure.cache.dependencies import get_pubsub
 from app.infrastructure.realtime.dependencies import get_realtime_config
@@ -66,6 +67,7 @@ async def token(env: Env) -> str:
 @pytest.fixture
 def client(env: Env) -> Iterator[TestClient]:
     app = FastAPI()
+    app.add_middleware(CorrelationIdMiddleware)
     app.include_router(router, prefix="/api")
     app.dependency_overrides[get_auth_service] = lambda: env.service
     app.dependency_overrides[get_pubsub] = lambda: env.pubsub
@@ -256,3 +258,18 @@ def test_the_application_mounts_the_websocket_under_api_ws() -> None:
 
     assert matching("/api/ws").count(Match.FULL) == 1
     assert Match.FULL not in matching("/api/ws/other")
+
+
+def test_the_error_frames_carry_the_correlation_id_of_the_handshake(
+    client: TestClient, token: str
+) -> None:
+    # ADR-0018: correlation_id a tots els errors
+    with client.websocket_connect(
+        URL, headers={"X-Correlation-ID": "handshake-1"}
+    ) as ws:
+        ws.send_json({"type": "auth", "token": token})
+        ws.receive_json()
+        ws.send_json({"type": "teleport", "id": "u1"})
+        reply = ws.receive_json()
+
+    assert reply["payload"]["correlation_id"] == "handshake-1"

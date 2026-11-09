@@ -103,6 +103,7 @@ def start(
     conn_id: str = "conn-1",
     config: RealtimeConfig = CONFIG,
     auto_pong: bool = True,
+    correlation_id: str | None = None,
 ) -> Client:
     """Start a session on a fresh connection, before any frame is sent."""
     conn = FakeConnection(auto_pong=auto_pong)
@@ -113,6 +114,7 @@ def start(
         pubsub=env.pubsub,
         config=config,
         conn_id=conn_id,
+        correlation_id=correlation_id,
     )
     task = asyncio.create_task(session.run())
     env.tasks.append(task)
@@ -125,9 +127,10 @@ async def connect(
     sub: str = SUB,
     config: RealtimeConfig = CONFIG,
     auto_pong: bool = True,
+    correlation_id: str | None = None,
 ) -> Client:
     """Start a session and authenticate it with a real access token."""
-    client = start(env, conn_id, config, auto_pong)
+    client = start(env, conn_id, config, auto_pong, correlation_id)
     client.token, _, client.claims = await env.login(sub)
     client.conn.feed_frame({"type": "auth", "token": client.token})
     await client.conn.wait_for_sent(1)
@@ -144,6 +147,14 @@ async def request(client: Client, frame: dict[str, Any]) -> dict[str, Any]:
     """Send a frame and return the next frame the server sends back."""
     before = len(client.conn.sent)
     client.conn.feed_frame(frame)
+    await client.conn.wait_for_sent(before + 1)
+    return client.frames()[before]
+
+
+async def request_raw(client: Client, raw: str) -> dict[str, Any]:
+    """Like ``request`` for text that is not a JSON frame."""
+    before = len(client.conn.sent)
+    client.conn.feed(raw)
     await client.conn.wait_for_sent(before + 1)
     return client.frames()[before]
 
@@ -385,6 +396,48 @@ async def test_unknown_frame_type_gets_an_error_and_keeps_the_connection(
     assert reply["payload"]["status"] == 422
     assert reply["id"] == "u1"
     await assert_alive(client)
+
+
+# --- correlation_id in the error frames (ADR-0018) ---------------------------
+
+
+async def test_every_error_frame_carries_the_correlation_id_of_the_connection(
+    env: Env,
+) -> None:
+    client = await connect(env, correlation_id="corr-42")
+
+    bad_json = await request_raw(client, "{not json")
+    unknown = await request(client, {"type": "teleport", "id": "u1"})
+    not_subscribed = await request(
+        client, {"type": "message", "room": "sala-a", "id": "m1", "payload": {}}
+    )
+
+    for reply in (bad_json, unknown, not_subscribed):
+        assert reply["type"] == "error"
+        assert reply["payload"]["correlation_id"] == "corr-42"
+
+
+async def test_the_rooms_limit_error_carries_the_correlation_id(env: Env) -> None:
+    config = RealtimeConfig(
+        auth_timeout_seconds=1.0, heartbeat_seconds=30.0, max_rooms=1
+    )
+    client = await connect(env, config=config, correlation_id="corr-7")
+    await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
+
+    reply = await request(client, {"type": "subscribe", "room": "sala-b", "id": "s2"})
+
+    assert reply["payload"]["code"] == errors.RATE_LIMITED
+    assert reply["payload"]["correlation_id"] == "corr-7"
+
+
+async def test_without_an_explicit_correlation_id_the_connection_id_is_used(
+    env: Env,
+) -> None:
+    client = await connect(env, conn_id="conn-xyz")
+
+    reply = await request(client, {"type": "teleport", "id": "u1"})
+
+    assert reply["payload"]["correlation_id"] == "conn-xyz"
 
 
 async def test_a_second_auth_frame_is_a_validation_error(env: Env) -> None:
