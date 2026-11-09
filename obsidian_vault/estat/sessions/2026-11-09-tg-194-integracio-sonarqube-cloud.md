@@ -26,7 +26,8 @@ Integrar SonarQube Cloud al pipeline de GitHub Actions per analitzar backend i f
   - Ajustat el Quality Gate i la documentació a cobertura ≥ 90 % en codi nou (ADR-0028).
   - Eliminat `frontend/src/app/**` de `sonar.coverage.exclusions` (només s'exclou `frontend/src/shared/ui/**`).
   - Eliminat `continue-on-error: true` a les descàrregues del job `sonar` i afegit `if-no-files-found: error` a l'upload del backend.
-  - Afegit `[tool.coverage.run] relative_files = true` a `backend/pyproject.toml`.
+  - Reversió de `relative_files = true` a `backend/pyproject.toml` (provocava errors de resolució de 93 fitxers a SonarCloud pel fet de truncar les rutes a basenames) i correcció de la documentació a [[qualitat]].
+  - Eliminades les notes de sessions d'altres US que s'havien commitejat per error a la branca de TG-194.
   - Actualitzats els enllaços de SonarQube Cloud als READMEs del monorepo.
 
 ## Decisions preses

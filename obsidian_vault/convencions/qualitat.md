@@ -60,7 +60,7 @@ Aplicat al codi nou (**New Code**) de cada PR:
 
 ### Resolució d'incidències d'informes de cobertura
 
-- **Rutes no resoltes (*Could not resolve path*):** `backend/pyproject.toml` configura `relative_files = true` a `[tool.coverage.run]` i `frontend/coverage/lcov.info` té camins relatius al monorepo.
+- **Rutes no resoltes (*Could not resolve path*):** El `coverage.xml` del backend (generat amb pytest-cov sense `relative_files`) i el `frontend/coverage/lcov.info` contenen camins que SonarQube Cloud resol directament des de l'arrel del monorepo.
 - **PRs sense canvis a backend o frontend:** El job `sonar` descarrega els informes només si el job corresponent s'ha executat (`if: needs.changes.outputs.<job> == 'true' || github.event_name == 'push'`). Si un job s'ha saltat per manca de canvis, l'informe absent no fa fallar la CI.
 
 Quan falla, l'autor corregeix i torna a pujar. Un fals positiu es marca a SonarQube Cloud amb un comentari que ho justifica i el revisor ho valida; els security hotspots els revisa l'autor i els confirma el revisor.
