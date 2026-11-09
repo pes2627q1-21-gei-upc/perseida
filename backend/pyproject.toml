@@ -74,10 +74,10 @@ forbidden_modules = ["fastapi", "sqlmodel", "sqlalchemy", "redis", "asyncpg", "h
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
-name = "Application does not import infrastructure or FastAPI"
+name = "Application does not import infrastructure, FastAPI, Starlette or Redis"
 type = "forbidden"
 source_modules = ["app.application"]
-forbidden_modules = ["app.infrastructure", "fastapi"]
+forbidden_modules = ["app.infrastructure", "fastapi", "starlette", "redis"]
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
