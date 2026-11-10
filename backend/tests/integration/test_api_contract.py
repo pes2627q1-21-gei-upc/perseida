@@ -1,8 +1,8 @@
 """Contract fuzzing of the whole API with schemathesis (TG-360, US #360).
 
 The app runs in process (ASGI, with its lifespan) over PostgreSQL and Redis for
-real; Google, the NASA and Launch Library 2 are simulated with respx, so nothing
-leaves the machine. The seed is fixed: a failure reproduces.
+real; Google, the NASA, Launch Library 2 and the USNO are simulated with respx,
+so nothing leaves the machine. The seed is fixed: a failure reproduces.
 """
 
 import asyncio
@@ -17,6 +17,7 @@ import pytest
 import respx
 import schemathesis
 from alembic.config import Config
+from app.infrastructure.events.usno import USNO_SOLAR_URL
 from redis.asyncio import Redis
 from schemathesis.config import SchemathesisConfig
 from schemathesis.python import asgi
@@ -85,6 +86,9 @@ def api_schema() -> Iterator[Any]:
     _migrate()
     asyncio.run(_clean_state())
     apod = json.loads((FIXTURES / "nasa_apod_image.json").read_text(encoding="utf-8"))
+    eclipses = json.loads(
+        (FIXTURES / "usno_solar_eclipses_2026.json").read_text(encoding="utf-8")
+    )
     launches = json.loads(
         (FIXTURES / "launch_library_2_upcoming.json").read_text(encoding="utf-8")
     )
@@ -93,6 +97,7 @@ def api_schema() -> Iterator[Any]:
         external.get(FEED_URL).respond(503)
         external.get(APOD_URL).respond(json=apod)
         external.get(LAUNCH_LIBRARY_URL).respond(json=launches)
+        external.get(USNO_SOLAR_URL).respond(json=eclipses)
         config = SchemathesisConfig.from_dict(
             {
                 "seed": SEED,
