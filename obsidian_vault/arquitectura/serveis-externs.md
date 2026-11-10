@@ -2,10 +2,10 @@
 titol: "Serveis externs"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-25"
-us: ["TG-85", "TG-44", "TG-46", "TG-328"]
-font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 i codi de backend/app/infrastructure/apod/ (2026-10-22); Taiga TG-328, crides a api.nasa.gov i al feed de science.nasa.gov (2026-10-25)"
-etiquetes: [arquitectura, integracions, nasa, google, fcm]
+data: "2026-11-10"
+us: ["TG-85", "TG-44", "TG-46", "TG-328", "TG-50"]
+font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 i codi de backend/app/infrastructure/apod/ (2026-10-22); Taiga TG-328, crides a api.nasa.gov i al feed de science.nasa.gov (2026-10-25); Taiga TG-50, crides a ll.thespacedevs.com i codi de backend/app/infrastructure/events/ (2026-11-10)"
+etiquetes: [arquitectura, integracions, nasa, google, fcm, esdeveniments]
 ---
 
 # Serveis externs
@@ -18,6 +18,7 @@ Serveis de tercers que Perseida no reimplementa. L'API els consulta des del back
 | Meteorologia i contaminació lumínica | Dades per a la recomanació de zones d'observació (juntament amb PostGIS) | API |
 | Google Identity | Inici de sessió: OAuth2 + PKCE; validació de tokens via JWKS | App (OAuth2 + PKCE), API (JWKS) |
 | Firebase Cloud Messaging (FCM) | Notificacions push | API |
+| Launch Library 2 (The Space Devs) | Llançaments de coets (esdeveniments `launch`) | API |
 
 ## NASA
 
@@ -39,6 +40,17 @@ Patró d'accés: primera petició a l'API externa, resultat a Redis, i les segü
 
 > [!info] Feed RSS (TG-328)
 > Font no documentada per la NASA, que pot canviar. Només porta els últims ~30 dies i ignora qualsevol filtre per data. La imatge és `apod:hdurl` (`apod:url` és la pàgina de l'article); la data és el dia UTC del `pubDate`; `explanation` i `copyright` venen en HTML i es passen a text pla, traient el prefix `Explanation:` i la cua `Tomorrow's picture:`. Només s'accepten imatges (extensió de `hdurl`): els vídeos es descarten. No s'ha verificat que l'API JSON torni contingut real per a dates de fa més de 30 dies.
+
+## Esdeveniments astronòmics (TG-50)
+
+Fonts i regles a [[0031-fonts-d-esdeveniments-sota-demanda]]. Implementat fins ara:
+
+- **Launch Library 2:** `GET https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=100&mode=normal` (`LAUNCH_LIBRARY_URL`, opcional, només https), sense clau. Client `LaunchLibraryEventSource` a `app/infrastructure/events/launch_library.py`, amb un `httpx.AsyncClient` propi creat al `lifespan` (timeout de connexió de 3 s i total de 10 s, `EVENTS_CONNECT_TIMEOUT_SECONDS` i `EVENTS_TIMEOUT_SECONDS`); sense reintents.
+- **Frescor:** marca `cache:events:launch_library_2` d'1 h a [[redis]]; si la crida falla, la marca dura 15 min i es serveixen els esdeveniments de [[postgres]].
+- **Quota:** com a molt una crida per hora per procés, encara que Redis estigui caigut (el límit gratuït és de 15 per hora).
+- **Fixture:** `backend/tests/fixtures/launch_library_2_upcoming.json`, amb dos llançaments reals (10/11/2026, retallats als camps que es llegeixen) i dos d'incomplets.
+
+L'USNO (eclipsis solars), Skyfield (lluna) i el catàleg de pluges d'estels arriben a la segona PR de TG-50.
 
 ## Meteorologia i contaminació lumínica
 
