@@ -60,6 +60,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0027-skills-de-disseny-de-tercers-subordinades-a-frutiger-cosmo|ADR-0027 Skills de disseny de tercers]]
 - [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028 TDD estricte i política de testing]]
 - [[0029-apk-android-a-github-releases-amb-obtainium|ADR-0029 APK d'Android a GitHub Releases amb Obtainium]]
+- [[0031-leaflet-per-al-mapa-web-i-webview|ADR-0031 Leaflet per al mapa (web i WebView)]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 
