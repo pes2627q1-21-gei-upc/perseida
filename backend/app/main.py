@@ -16,6 +16,7 @@ from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
 from app.infrastructure.auth.router import router as auth_router
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.events.router import router as events_router
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
@@ -113,6 +114,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api")
     app.include_router(users_router, prefix="/api")
     app.include_router(realtime_router, prefix="/api")
+    app.include_router(events_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 

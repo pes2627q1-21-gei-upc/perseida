@@ -14,7 +14,7 @@ from app.application.auth.errors import (
 )
 from app.application.users.errors import EMAIL_ALREADY_REGISTERED
 from app.domain.auth.models import SessionTokens
-from app.infrastructure.api.schemas import ProblemDetails
+from app.infrastructure.api.schemas import PROBLEM_CONTENT, ProblemDetails
 from app.infrastructure.auth.dependencies import BEARER, AuthServiceDep
 
 # Generous for a JWT (about 1 KB), small enough to refuse payloads that exhaust memory.
@@ -22,18 +22,12 @@ MAX_TOKEN_LENGTH = 4096
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-_PROBLEM_CONTENT: dict[str, Any] = {
-    "application/problem+json": {
-        "schema": {"$ref": "#/components/schemas/ProblemDetails"}
-    }
-}
-
 
 def _problem(description: str) -> dict[str, Any]:
     return {
         "model": ProblemDetails,
         "description": description,
-        "content": _PROBLEM_CONTENT,
+        "content": PROBLEM_CONTENT,
     }
 
 

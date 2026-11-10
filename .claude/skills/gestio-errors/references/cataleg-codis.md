@@ -39,6 +39,12 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
 
+## Codis dels esdeveniments (TG-351)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `EVENT_ENDS_BEFORE_START` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/events (`ends_at` anterior a `starts_at`) |
+
 ## Codis de Redis pub/sub i WebSocket (TG-87, TG-63)
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
