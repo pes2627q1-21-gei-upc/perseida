@@ -351,7 +351,7 @@ Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 60 petic
 
 - La zona (`limit_req_zone`) ha d'anar al bloc `http` de nginx, on la pestanya *Advanced* no arriba. És a `nginx-proxy-manager/http_top.conf`, que el Compose munta en lectura a `/data/nginx/custom/http_top.conf` (NPM l'inclou) i el CD copia a `/opt/perseida/nginx-proxy-manager/`.
 - La ubicació que l'aplica és `nginx-proxy-manager/rate-limit.conf` (pestanya *Advanced*).
-- Si només canvia el contingut d'`http_top.conf`, recarrega nginx: `docker compose exec reverse-proxy nginx -s reload`.
+- `docker compose up` no recrea el proxy si només canvia el contingut d'`http_top.conf`, així que el CD valida i recarrega nginx després de cada desplegament (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (cal Docker; l'executa el job `proxy` de la CI).
 - El límit compta la IP que nginx veu com a `$remote_addr`. Després d'un desplegament, comprova al registre d'accessos d'NPM que és la IP pública del client i no una de privada del NAT o de Docker: si no, tots els clients compartirien un sol comptador.
 

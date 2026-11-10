@@ -159,6 +159,12 @@ jobs:
           # shellcheck disable=SC2029  # el tag s'expandeix al runner a propòsit
           ssh virtech /opt/perseida/deploy.sh "$tag"
 
+      # `docker compose up` no recrea el proxy si només canvia el contingut
+      # d'`http_top.conf` (límit de peticions, TG-351): es valida i es recarrega.
+      - name: Recarregar nginx-proxy-manager
+        shell: bash
+        run: ssh virtech 'cd /opt/perseida && docker compose exec -T reverse-proxy sh -c "nginx -t && nginx -s reload"'
+
       - name: Tancar la sessió de GHCR al servidor
         if: always()
         shell: bash

@@ -31,7 +31,15 @@ Cap ADR nova (configuració del proxy dins de [[0009-nginx-proxy-manager-serveix
 - **Desplegament de la zona:** muntatge al Compose i còpia al CD, en lloc d'una còpia manual al volum `npm_data`.
 - **Evidència:** script de test amb nginx i un upstream de prova, executat a la CI.
 
+## Revisió d'arquitectura
+
+Sense troballes crítiques. Aplicades: el CD valida i recarrega nginx després de desplegar, el test inclou totes les confs d'«Advanced» i comprova l'HSTS del 200, i el 429 porta `Cache-Control: no-store` i es registra a nivell `warn`. Oberta (ALTA, no bloqueja la fusió però sí el tancament del criteri 5): la IP real del client a producció.
+
 ## Pendents
+
+- Mirar `$realip_remote_addr` al registre d'NPM a producció. Si és privada, decidir: acceptar el risc, usar-la com a clau (sense spoofing, però amb comptador compartit si hi ha SNAT) o demanar a Virtech que conservi la IP d'origen.
+- Afegir el job `proxy` als *required checks* de `develop`.
+- L'HSTS de la resta de `/api/*` es perd perquè el `location /` d'NPM fa `add_header X-Served-By` (preexistent, fora d'abast): obrir una incidència.
 
 - Enganxar `rate-limit.conf` a la pestanya «Advanced» del proxy host de producció.
 - Comprovar al registre d'NPM que `$remote_addr` és la IP pública del client (vegeu l'avís a [[nginx-proxy-manager]]).

@@ -351,7 +351,7 @@ The public events endpoints (`/api/events/`, TG-351) allow 60 requests per minut
 
 - The zone (`limit_req_zone`) must be in nginx's `http` block, which the *Advanced* tab cannot reach. It lives in `nginx-proxy-manager/http_top.conf`, which the Compose mounts read-only at `/data/nginx/custom/http_top.conf` (NPM includes it) and the CD copies to `/opt/perseida/nginx-proxy-manager/`.
 - The location that applies it is `nginx-proxy-manager/rate-limit.conf` (*Advanced* tab).
-- If only the content of `http_top.conf` changes, reload nginx: `docker compose exec reverse-proxy nginx -s reload`.
+- `docker compose up` does not recreate the proxy when only the content of `http_top.conf` changes, so the CD validates and reloads nginx after each deploy (`nginx -t && nginx -s reload`). Locally: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it).
 - The limit counts the IP that nginx sees as `$remote_addr`. After a deploy, check in NPM's access log that it is the client's public IP and not a private one from the NAT or Docker: otherwise every client would share one counter.
 
