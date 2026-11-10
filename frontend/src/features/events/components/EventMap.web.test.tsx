@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 
 import { EventMap } from './EventMap.web';
-import { CARTO_DARK_ATTRIBUTION, CARTO_DARK_TILES } from './mapTiles';
+import { BASE_MAP_ATTRIBUTION, BASE_MAP_TILES } from './mapTiles';
 
 // Leaflet needs a real DOM, which Jest's React Native environment does not have: each
 // react-leaflet component becomes a View that keeps its props for the assertions.
@@ -22,12 +22,12 @@ const MARKERS = [
 const LABEL = "Mapa d'esdeveniments";
 
 describe('EventMap (web)', () => {
-  it('draws the CARTO Dark Matter tiles with their attribution', async () => {
+  it('draws the base map tiles with their attribution', async () => {
     await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
 
     const tiles = screen.getByTestId('tiles');
-    expect(tiles.props.url).toBe(CARTO_DARK_TILES);
-    expect(tiles.props.attribution).toBe(CARTO_DARK_ATTRIBUTION);
+    expect(tiles.props.url).toBe(BASE_MAP_TILES);
+    expect(tiles.props.attribution).toBe(BASE_MAP_ATTRIBUTION);
   });
 
   it('labels the map region for screen readers', async () => {

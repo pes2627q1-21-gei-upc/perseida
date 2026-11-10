@@ -1,5 +1,5 @@
 import { buildLeafletHtml } from './leafletHtml';
-import { CARTO_DARK_ATTRIBUTION, CARTO_DARK_TILES } from './mapTiles';
+import { BASE_MAP_ATTRIBUTION, BASE_MAP_TILES } from './mapTiles';
 
 const MARKERS = [
   { id: 'e1', latitude: 28.5618, longitude: -80.577, label: 'Falcon 9 launch' },
@@ -17,11 +17,11 @@ describe('buildLeafletHtml', () => {
     expect(html).toContain('crossorigin=""');
   });
 
-  it('uses the CARTO Dark Matter tiles with their attribution', () => {
+  it('uses the base map tiles with their attribution', () => {
     const html = buildLeafletHtml(MARKERS, 'Mapa');
 
-    expect(html).toContain(JSON.stringify(CARTO_DARK_TILES));
-    expect(html).toContain(JSON.stringify(CARTO_DARK_ATTRIBUTION));
+    expect(html).toContain(JSON.stringify(BASE_MAP_TILES));
+    expect(html).toContain(JSON.stringify(BASE_MAP_ATTRIBUTION));
   });
 
   it('embeds every marker with its position and accessible label', () => {
