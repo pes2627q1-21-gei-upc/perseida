@@ -176,3 +176,16 @@ async def test_tg50_c7_exists_tells_stored_events_apart(
 
     assert await repository.exists(stored.id) is True
     assert await repository.exists(uuid.uuid7()) is False
+
+
+async def test_tg50_c4_a_batch_with_a_repeated_event_keeps_the_last_one(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    repository = SqlEventRepository(session_factory)
+    first = make_draft(DAY + timedelta(hours=10), title="First")
+    last = make_draft(DAY + timedelta(hours=11), title="Last")
+
+    await repository.upsert_many([first, last])
+
+    [event] = await repository.list_between(DAY, NEXT_DAY)
+    assert event.title == "Last"

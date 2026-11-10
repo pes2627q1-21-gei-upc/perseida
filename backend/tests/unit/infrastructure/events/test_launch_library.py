@@ -164,11 +164,10 @@ async def test_tg50_c8_never_calls_more_than_once_per_hour(
     source = make_source()
     await source.fetch()
 
+    # Called less than an hour ago: nothing new, and no error (it is not a
+    # failure, e.g. a concurrent request or Redis down).
     clock.now = HOUR - 1
-    with pytest.raises(ExternalServiceError) as exc_info:
-        await source.fetch()
-
-    assert exc_info.value.code == "EVENT_SOURCE_QUOTA"
+    assert await source.fetch() == []
     assert route.call_count == 1
 
     clock.now = HOUR
@@ -186,10 +185,8 @@ async def test_tg50_c8_a_failed_call_also_counts_towards_the_quota(
         await source.fetch()
 
     clock.now = HOUR / 2
-    with pytest.raises(ExternalServiceError) as exc_info:
-        await source.fetch()
 
-    assert exc_info.value.code == "EVENT_SOURCE_QUOTA"
+    assert await source.fetch() == []
     assert route.call_count == 1
 
 
