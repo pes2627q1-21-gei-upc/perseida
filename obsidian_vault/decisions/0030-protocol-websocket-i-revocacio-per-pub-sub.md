@@ -1,7 +1,7 @@
 ---
 titol: "ADR-0030: Protocol WebSocket i revocació de sessió per pub/sub"
 tipus: adr
-estat: acceptada
+estat: proposada
 data: "2026-11-07"
 us: ["TG-63"]
 font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime"
@@ -36,7 +36,7 @@ Un endpoint `/api/ws` amb un embolcall JSON únic, un catàleg d'errors comparti
 
 **Catàleg d'errors.** El frame `error` porta un `payload` RFC 9457 (`type`, `title`, `status`, `detail`, `code`, `correlation_id`) amb codis estables ([[0018-errors-rfc-9457-amb-codis-estables]]): `VALIDATION_ERROR`, `UNKNOWN_FRAME_TYPE`, `NOT_SUBSCRIBED`, `PUBSUB_UNAVAILABLE`, `INTERNAL_ERROR`, `FORBIDDEN` i `RATE_LIMITED`, amb els textos ca/es/en al catàleg de la skill `gestio-errors`. El `correlation_id` és el de la petició del handshake (`X-Correlation-ID` o generat), igual per a tots els errors d'una connexió i present als logs; el tancament amb 1011 no porta cos, i el seu `correlation_id` queda només al log. Els reutilitzen #64 i #65, i qualsevol canvi s'ha de comunicar a aquestes US.
 
-**Servidor.** uvicorn només accepta el handshake si hi ha una llibreria WebSocket instal·lada; sense ella respon 404 encara que els tests amb `TestClient` passin. Es fixa `websockets==17.4` a `backend/pyproject.toml` i un test d'integració comprova el `101` contra un uvicorn real.
+**Servidor.** uvicorn només accepta el handshake si hi ha una llibreria WebSocket instal·lada; sense ella respon 404 encara que els tests amb `TestClient` passin. Es fixa `websockets==17.4` a `backend/pyproject.toml` i un test d'integració comprova el `101` contra un uvicorn real. L'entrypoint fixa `UVICORN_WS_MAX_SIZE` al valor de `WS_MAX_FRAME_BYTES` (65536 per defecte): uvicorn rebutja els missatges que el superen amb el codi 1009 abans que arribin a l'aplicació.
 
 ## Conseqüències
 
@@ -55,7 +55,7 @@ Un endpoint `/api/ws` amb un embolcall JSON únic, un catàleg d'errors comparti
 - Cada `subscribe` obre una connexió pub/sub de Redis pròpia, més la de revocació: fins a `WS_MAX_ROOMS + 1` (21) per socket. Amb `WS_MAX_CONNECTIONS_PER_USER` (3) un sol usuari en pot ocupar fins a 63, i amb molts usuaris es pot arribar al `maxclients` de Redis, que també serveix les sessions ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]). El límit per usuari ho acota però no ho elimina. Feina futura: una sola connexió pub/sub per socket i un límit global de connexions.
 - El límit per usuari és en memòria i per procés: si l'API passés a diverses rèpliques, cada una tindria el seu comptador.
 - `mutmut` genera 0 mutants al domini realtime (només hi ha constants de mòdul, cossos de classe i f-strings, que no muta); el llindar del 70 % s'ha comprovat amb 39 mutants manuals (vegeu la nota de sessió i la PR), sense un script reproduïble al repositori.
-- uvicorn no configura `--ws-max-size` (16 MiB per defecte): la llibreria rep el frame sencer abans que s'apliqui `WS_MAX_FRAME_BYTES`, de manera que un client encara no autenticat pot fer que el servidor en memoritzi fins a 16 MiB per connexió.
+- En el contenidor, els missatges que superen `WS_MAX_FRAME_BYTES` es tanquen amb 1009 a uvicorn; no reben el frame `VALIDATION_ERROR` ni el tancament 4401 de l'aplicació. Una ordre uvicorn alternativa ha de mantenir aquest límit.
 
 ## Alternatives descartades
 

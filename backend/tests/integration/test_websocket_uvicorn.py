@@ -15,6 +15,8 @@ from collections.abc import Iterator
 import pytest
 import uvicorn
 from fastapi import FastAPI
+from websockets.exceptions import ConnectionClosedError
+from websockets.sync.client import connect
 
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.realtime.realtime_session import RealtimeConfig
@@ -60,7 +62,13 @@ def port() -> Iterator[int]:
         probe.bind((LOCALHOST, 0))
         free_port: int = probe.getsockname()[1]
     server = uvicorn.Server(
-        uvicorn.Config(_build_app(), host=LOCALHOST, port=free_port, log_level="error")
+        uvicorn.Config(
+            _build_app(),
+            host=LOCALHOST,
+            port=free_port,
+            log_level="error",
+            ws_max_size=65536,
+        )
     )
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
@@ -91,3 +99,12 @@ def test_a_real_uvicorn_switches_the_handshake_to_a_websocket(port: int) -> None
         status_line = client.recv(1024).split(b"\r\n", 1)[0].decode()
 
     assert status_line == "HTTP/1.1 101 Switching Protocols"
+
+
+def test_oversized_first_message_is_rejected_by_real_uvicorn(port: int) -> None:
+    with connect(f"ws://{LOCALHOST}:{port}/api/ws") as client:
+        client.send("x" * 65537)
+        with pytest.raises(ConnectionClosedError) as exc:
+            client.recv()
+        assert exc.value.rcvd is not None
+        assert exc.value.rcvd.code == 1009

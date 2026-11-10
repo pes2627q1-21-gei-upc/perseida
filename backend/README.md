@@ -389,6 +389,8 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 
 Subscribing to a new room past `WS_MAX_ROOMS` is answered with the `RATE_LIMITED` error and the connection stays open. A frame larger than `WS_MAX_FRAME_BYTES` is answered with `VALIDATION_ERROR` (or closes with 4401 if it is the first frame) and is not processed. A binary frame closes with 1003. A client that does not read (a send exceeding `WS_SEND_TIMEOUT_SECONDS`) is closed with 1013. The connection of a user who already has `WS_MAX_CONNECTIONS_PER_USER` is closed with 4429 on authenticating, without sending anything; the user's other connections are untouched. The `correlation_id` of the errors is the one of the handshake request (`X-Correlation-ID`) and is also in the logs.
 
+In the container, uvicorn enforces `WS_MAX_FRAME_BYTES` before the application receives a message and closes oversized messages with code 1009; the application-level errors described above apply when a server does not enforce that limit first.
+
 `uvicorn` needs a WebSocket library (`websockets`, pinned in `pyproject.toml`); without one it answers the handshake with 404. `tests/integration/test_websocket_uvicorn.py` checks the 101 against a real server. Other tests: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) and `tests/integration/test_websocket_redis.py` (real Redis, two clients, revocation and Redis down through a cuttable TCP proxy).
 
 ## Testing and quality
