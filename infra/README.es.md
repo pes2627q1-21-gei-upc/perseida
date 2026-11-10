@@ -302,6 +302,7 @@ Un solo *proxy host* lo sirve todo desde el mismo origen:
 |---|---|
 | `/api/...` | `api:8000` (API REST; comprobación de salud en `/api/health`) |
 | `/api/ws` | `api:8000` con el upgrade de WebSocket (chat, TG-63) |
+| `/api/events/` | `api:8000` con un límite de peticiones por IP (endpoints públicos para Spotwise, TG-351) |
 | `/media/` | El propio NPM, desde el volumen `media_data` (multimedia de los usuarios) |
 | `/admin/` | El propio NPM, desde el volumen `admin_dist` (SPA del panel de administración) |
 
@@ -332,7 +333,7 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
 
 1. **Details:** dominio `perseida.duckdns.org` (en local, `perseida.localhost`; no `localhost`, que NPM ya se reserva en el puerto 443 y rechaza el *handshake* TLS), esquema `http`, *forward hostname* `api`, *forward port* `8000`. Activa *Block Common Exploits* y *Websockets Support*; deja *Cache Assets* desactivado.
 2. **SSL:** el certificado de antes, con *Force SSL* y *HTTP/2 Support*. Deja desactivada la opción *HSTS* de NPM, porque ya la envía `security-headers.conf`.
-3. **Advanced:** pega `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` y `nginx-proxy-manager/websocket.conf`, uno detrás de otro.
+3. **Advanced:** pega `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf`, `nginx-proxy-manager/websocket.conf` y `nginx-proxy-manager/rate-limit.conf`, uno detrás de otro.
 4. **Compruébalo** (en local, con `-k` porque el certificado es autofirmado):
 
    ```bash
@@ -343,6 +344,16 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
    ```
 
    Un cliente de WebSocket (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe recibir `101 Switching Protocols` cuando exista el endpoint del chat.
+
+### Límite de peticiones por IP
+
+Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 60 peticiones por minuto e IP, con una ráfaga de 20 servida de golpe. Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED` y `Retry-After: 1`, sin llegar a la API.
+
+- La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en lectura en `/data/nginx/custom/http_top.conf` (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/`.
+- La ubicación que lo aplica es `nginx-proxy-manager/rate-limit.conf` (pestaña *Advanced*).
+- Si solo cambia el contenido de `http_top.conf`, recarga nginx: `docker compose exec reverse-proxy nginx -s reload`.
+- Test: `bash infra/scripts/test-rate-limit.sh` (requiere Docker; lo ejecuta el job `proxy` de la CI).
+- El límite cuenta la IP que nginx ve como `$remote_addr`. Tras un despliegue, comprueba en el registro de accesos de NPM que es la IP pública del cliente y no una privada del NAT o de Docker: si no, todos los clientes compartirían un solo contador.
 
 ### Volúmenes
 
