@@ -28,14 +28,15 @@ class _Eclipse(BaseModel):
 
 
 class _Year(BaseModel):
-    eclipses_in_year: list[dict[str, Any]]
+    # Each item is validated alone: a broken one is discarded, not the year.
+    eclipses_in_year: list[Any]
 
 
 def _utc_today() -> date:
     return datetime.now(UTC).date()
 
 
-def _to_draft(record: dict[str, Any]) -> EventDraft | None:
+def _to_draft(record: Any) -> EventDraft | None:
     """Return the draft of ``record``, or None (logged) if it is incomplete.
 
     The API gives only the date: the eclipse lasts its whole UTC day and has no
