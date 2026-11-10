@@ -2,8 +2,8 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-10-23"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38"]
+data: "2026-11-07"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
@@ -81,6 +81,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - TG-45 (model d'usuari, alta automàtica i tancament de sessió)
 - TG-46 (cache APOD)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
+- TG-63 (endpoint WebSocket `/api/ws`)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
 
 ## Estat d'implementació
@@ -92,6 +93,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - **Contenidorització i pipeline GHCR (TG-36)**: implementat (Dockerfile multi-stage, workflow GitHub Actions, proves locals a `infra/scripts/test-backend-docker.sh`).
 - **Validació de tokens de Google i sessió pròpia (TG-44)**: implementat (JWKS, JWT HS256, sessions a Redis, `/api/auth/google`, `/api/auth/refresh`, `CurrentSessionDep`).
 - **Usuari, alta automàtica i tancament de sessió (TG-45)**: implementat (`UserService`, `SqlUserRepository` amb alta concurrent segura, `/api/auth/logout`, `/api/users/me`, error `EMAIL_ALREADY_REGISTERED`).
+- **WebSocket `/api/ws` (TG-63)**: implementat (`RealtimeSession` a `application/realtime`, router a `infrastructure/realtime`, embolcall `{type, room?, payload, id}`, autenticació pel primer frame, heartbeat i revocació per pub/sub; vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Requereix la llibreria `websockets` perquè uvicorn accepti el handshake. Les sales concretes són de TG-64 i TG-65.
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 
