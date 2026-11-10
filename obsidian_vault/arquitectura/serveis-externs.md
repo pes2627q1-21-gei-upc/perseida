@@ -47,7 +47,7 @@ Fonts i regles a [[0031-fonts-d-esdeveniments-sota-demanda]]. Implementat fins a
 
 - **Launch Library 2:** `GET https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=100&mode=normal` (`LAUNCH_LIBRARY_URL`, opcional, només https), sense clau. Client `LaunchLibraryEventSource` a `app/infrastructure/events/launch_library.py`, amb un `httpx.AsyncClient` propi creat al `lifespan` (timeout de connexió de 3 s i de 10 s per operació, `EVENTS_CONNECT_TIMEOUT_SECONDS` i `EVENTS_TIMEOUT_SECONDS`); sense reintents.
 - **Frescor:** marca `cache:events:launch_library_2` d'1 h a [[redis]]; si la crida falla, la marca dura 15 min i es serveixen els esdeveniments de [[postgres]].
-- **Quota:** com a molt una crida per hora per procés, encara que Redis estigui caigut o hi hagi peticions concurrents (el límit gratuït és de 15 per hora). Una crida refusada per la quota no és una fallada: no torna res de nou.
+- **Quota:** com a molt una crida per hora per procés, encara que Redis estigui caigut o hi hagi peticions concurrents (el límit gratuït és de 15 per hora). Una crida refusada per la quota no és una fallada: torna els llançaments de l'última crida, perquè una consulta concurrent també els desi.
 - **Fixture:** `backend/tests/fixtures/launch_library_2_upcoming.json`, amb dos llançaments reals (10/11/2026, retallats als camps que es llegeixen) i dos d'incomplets.
 
 L'USNO (eclipsis solars), Skyfield (lluna) i el catàleg de pluges d'estels arriben a la segona PR de TG-50.

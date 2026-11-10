@@ -23,6 +23,10 @@ Portar la primera meitat de TG-50 (fonts, cache, upsert i `exists`) i, com a SM,
   - `EventService` refresca les fonts sota demanda amb la marca `events:<font>`; si una font falla, es deixa 15 min.
   - `SqlEventRepository.upsert_many` (`ON CONFLICT (source, external_id)`, conserva l'`id`) i `exists`.
   - `LaunchLibraryEventSource` amb una fixture real, com a molt una crida per hora, i `EventsSettings` al `lifespan`.
+  - Review de l'Oriol a la PR #84 (canvis demanats), corregida:
+    - un registre amb NUL o amb un `external_id` de més de 255 caràcters feia fallar tot l'upsert: ara `EventDraft` el rebutja;
+    - un element que no era un objecte invalidava la pàgina: ara els elements es validen d'un en un;
+    - amb dues consultes concurrents, la segona podia respondre sense els llançaments: ara, amb la quota, la font torna els de l'última crida.
 
 ## Decisions preses
 
