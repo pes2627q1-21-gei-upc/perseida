@@ -15,6 +15,7 @@ Forma única d'un esdeveniment astronòmic a l'API de Perseida. La fan servir el
 - **Codi:** `EventResponse` a `backend/app/infrastructure/events/schemas.py`; categories a `EventCategory` (`backend/app/domain/events/models.py`).
 - **Persistència:** taula `astronomical_events` (TG-351, tasca #474); la ubicació es desa en dues columnes `latitude`/`longitude`. Detall a [[model-de-domini#Esdeveniment astronòmic (implementat)]].
 - **Exemples (mocks):** `backend/tests/fixtures/events/` (un per categoria, amb i sense ubicació). El test `tests/unit/infrastructure/events/test_event_response_contract.py` comprova que compleixen el contracte.
+- **Proves d'integració (TG-351, tasca #478):** `tests/integration/test_events_api.py` desa aquests exemples a PostgreSQL i comprova que `active` i `upcoming` els retornen exactament (camps, `null` explícits, dates en UTC i ordre), i que els paràmetres invàlids responen 422 en problem+json.
 - **Endpoints (TG-351, tasca #475):** públics; responen un array JSON directe d'esdeveniments, ordenat per `starts_at`.
   - `GET /api/events/active?date=AAAA-MM-DD`: esdeveniments que se solapen amb el dia UTC indicat (per defecte, avui).
   - `GET /api/events/upcoming?days=N`: esdeveniments que comencen dins de `[ara, ara + N dies)`; `N` de 1 a 30, per defecte 7.

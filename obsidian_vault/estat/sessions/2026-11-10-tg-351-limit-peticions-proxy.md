@@ -1,5 +1,5 @@
 ---
-titol: "Sessió 2026-11-10: límit de peticions per IP al proxy (TG-351, tasca #477)"
+titol: "Sessió 2026-11-10: límit de peticions per IP al proxy i proves d'integració (TG-351, tasques #477 i #478)"
 tipus: sessio
 estat: vigent
 data: "2026-11-10"
@@ -35,6 +35,12 @@ Cap ADR nova (configuració del proxy dins de [[0009-nginx-proxy-manager-serveix
 
 Sense troballes crítiques. Aplicades: el CD valida i recarrega nginx després de desplegar, el test inclou totes les confs d'«Advanced» i comprova l'HSTS del 200, i el 429 porta `Cache-Control: no-store` i es registra a nivell `warn`. Oberta (ALTA, no bloqueja la fusió però sí el tancament del criteri 5): la IP real del client a producció.
 
+## Tasca #478: proves d'integració
+
+- `backend/tests/integration/test_events_api.py`: cadena sencera HTTP, service, repositori i PostgreSQL. Desa les fixtures del contracte i comprova que `active` i `upcoming` les retornen exactament, i que els paràmetres invàlids responen 422 en problem+json. El rellotge es fixa amb `dependency_overrides`.
+- Decisió de Raquel: el «format acordat amb Spotwise» són les fixtures de [[contracte-esdeveniments]]; la tasca #479 l'envia a Spotwise.
+- Són proves de caracterització del codi de les tasques 1-3: han passat a la primera, així que només hi ha commit `test:` i cap `feat:`.
+
 ## Pendents
 
 - Mirar `$realip_remote_addr` al registre d'NPM a producció. Si és privada, decidir: acceptar el risc, usar-la com a clau (sense spoofing, però amb comptador compartit si hi ha SNAT) o demanar a Virtech que conservi la IP d'origen.
@@ -43,4 +49,4 @@ Sense troballes crítiques. Aplicades: el CD valida i recarrega nginx després d
 
 - Enganxar `rate-limit.conf` a la pestanya «Advanced» del proxy host de producció.
 - Comprovar al registre d'NPM que `$remote_addr` és la IP pública del client (vegeu l'avís a [[nginx-proxy-manager]]).
-- Tasques #478 (proves d'integració contra el format de Spotwise) i #479 (comunicació a Spotwise, que ha de conèixer el límit).
+- Tasca #479 (comunicació a Spotwise, que ha de conèixer el límit).
