@@ -33,7 +33,9 @@ describe('EventMap (web)', () => {
   it('labels the map region for screen readers', async () => {
     await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
 
-    expect(screen.getByTestId('map').props['aria-label']).toBe(LABEL);
+    // MapContainer passes its props to Leaflet, not to the DOM: a wrapping region carries the label.
+    expect(screen.root!.props.role).toBe('region');
+    expect(screen.root!.props['aria-label']).toBe(LABEL);
   });
 
   it('places one marker per event, with an accessible label', async () => {
