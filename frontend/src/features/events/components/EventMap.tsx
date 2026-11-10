@@ -1,0 +1,63 @@
+import { useMemo } from 'react';
+import { Linking } from 'react-native';
+import { WebView, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview';
+
+import { safeHttpsUrl } from '../../../shared/security/safeUrl';
+import { buildLeafletHtml } from './leafletHtml';
+import type { EventMapProps } from './mapTiles';
+
+type ShouldStartLoadRequest = Parameters<
+  NonNullable<WebViewProps['onShouldStartLoadWithRequest']>
+>[0];
+
+/**
+ * The WebView only shows the map page itself (loaded from a string, so `about:blank`).
+ * Links on the map (the tile attribution) open in the system browser if they are plain https;
+ * anything else is blocked without leaving the app.
+ */
+function onlyMapPage(request: ShouldStartLoadRequest): boolean {
+  if (request.url === 'about:blank') return true;
+  const link = safeHttpsUrl(request.url);
+  if (link) Linking.openURL(link).catch(() => undefined);
+  return false;
+}
+
+function selectedId(data: string): string | undefined {
+  try {
+    const message: unknown = JSON.parse(data);
+    if (typeof message === 'object' && message !== null && 'select' in message) {
+      const { select } = message as { select: unknown };
+      return typeof select === 'string' ? select : undefined;
+    }
+  } catch {
+    // Not a message from the map page.
+  }
+  return undefined;
+}
+
+/**
+ * Mobile events map (TG-52, ADR-0031): the web's Leaflet runs inside a WebView, so both
+ * platforms show the same map. Only taps on markers that were passed in are reported.
+ */
+export function EventMap({ markers, label, onSelect }: EventMapProps) {
+  const html = useMemo(() => buildLeafletHtml(markers, label), [markers, label]);
+  const ids = useMemo(() => new Set(markers.map((m) => m.id)), [markers]);
+
+  function onMessage(event: WebViewMessageEvent) {
+    const id = selectedId(event.nativeEvent.data);
+    if (id !== undefined && ids.has(id)) onSelect(id);
+  }
+
+  return (
+    <WebView
+      accessibilityLabel={label}
+      source={{ html }}
+      originWhitelist={['*']}
+      javaScriptEnabled
+      setSupportMultipleWindows={false}
+      onShouldStartLoadWithRequest={onlyMapPage}
+      onMessage={onMessage}
+      style={{ flex: 1, backgroundColor: '#020510' }}
+    />
+  );
+}
