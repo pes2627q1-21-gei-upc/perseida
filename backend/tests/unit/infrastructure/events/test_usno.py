@@ -96,6 +96,22 @@ async def test_tg50_c3_discards_and_logs_an_incomplete_eclipse(
 
 
 @respx.mock
+async def test_tg50_c3_an_item_that_is_not_an_object_is_discarded_alone(
+    make_source: Callable[[], UsnoSolarEclipseSource],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mixed = eclipses(2026)
+    mixed["eclipses_in_year"] += [42, None, "eclipse"]
+    mock_years(first=httpx.Response(200, json=mixed))
+
+    with caplog.at_level(logging.WARNING):
+        drafts = await make_source().fetch()
+
+    assert len(drafts) == 4
+    assert "Discarded" in caplog.text
+
+
+@respx.mock
 @pytest.mark.parametrize(
     "response",
     [
