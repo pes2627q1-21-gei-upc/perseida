@@ -1,10 +1,10 @@
 ---
 titol: "ADR-0030: Protocol WebSocket i revocació de sessió per pub/sub"
 tipus: adr
-estat: proposada
+estat: acceptada
 data: "2026-11-07"
 us: ["TG-63"]
-font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime"
+font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime; aprovació de la PR 78"
 etiquetes: [adr, backend, websocket, redis, pubsub, seguretat]
 ---
 
