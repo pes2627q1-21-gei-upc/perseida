@@ -3,9 +3,10 @@
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
+
 from app.infrastructure.events.config import EventsSettings
 from app.infrastructure.events.launch_library import LAUNCH_LIBRARY_URL
-from pydantic import ValidationError
 
 
 def settings(**values: Any) -> EventsSettings:

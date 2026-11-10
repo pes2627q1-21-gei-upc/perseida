@@ -15,20 +15,21 @@ from typing import Any
 import httpx
 import pytest
 import respx
+
+from app.application.shared.errors import ExternalServiceError
+from app.domain.events.models import EventCategory, EventSourceName, Location
 from app.infrastructure.events.launch_library import (
     LAUNCH_LIBRARY_URL,
     LaunchLibraryEventSource,
 )
 
-from app.application.shared.errors import ExternalServiceError
-from app.domain.events.models import EventCategory, EventSourceName, Location
-
-FIXTURE = Path(__file__).resolve().parents[3] / "fixtures" / "events"
+# Outside fixtures/events/, which holds only EventResponse examples.
+FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
 HOUR = 3600.0
 
 
 def upcoming_page() -> Any:
-    path = FIXTURE / "launch_library_2_upcoming.json"
+    path = FIXTURES / "launch_library_2_upcoming.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
