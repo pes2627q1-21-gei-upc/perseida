@@ -58,6 +58,11 @@ exclude = ["^\\.venv/"]
 module = ["apscheduler.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# Skyfield and jplephem (TG-50) ship no type information.
+module = ["skyfield.*", "jplephem.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

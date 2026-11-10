@@ -9,13 +9,13 @@ import asyncio
 from datetime import UTC, date, datetime
 
 import pytest
+
+from app.application.shared.errors import ExternalServiceError
+from app.domain.events.models import EventCategory, EventDraft, EventSourceName
 from app.infrastructure.events.skyfield_source import (
     EPHEMERIS_PATH,
     SkyfieldLunarSource,
 )
-
-from app.application.shared.errors import ExternalServiceError
-from app.domain.events.models import EventCategory, EventDraft, EventSourceName
 
 TODAY = date(2026, 11, 10)
 

@@ -7,12 +7,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+
+from app.domain.events.models import EventCategory, EventSourceName
 from app.infrastructure.events.meteor_catalog import (
     CATALOG_PATH,
     MeteorShowerCatalogSource,
 )
-
-from app.domain.events.models import EventCategory, EventSourceName
 
 MAIN_SHOWERS = {"QUA", "LYR", "ETA", "SDA", "PER", "ORI", "LEO", "GEM", "URS"}
 

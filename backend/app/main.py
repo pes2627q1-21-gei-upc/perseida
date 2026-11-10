@@ -18,7 +18,10 @@ from app.infrastructure.auth.router import router as auth_router
 from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.events.config import EventsSettings
 from app.infrastructure.events.launch_library import LaunchLibraryEventSource
+from app.infrastructure.events.meteor_catalog import MeteorShowerCatalogSource
 from app.infrastructure.events.router import router as events_router
+from app.infrastructure.events.skyfield_source import SkyfieldLunarSource
+from app.infrastructure.events.usno import UsnoSolarEclipseSource
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
@@ -86,11 +89,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                         )
                     ) as events_http,
                 ):
-                    # One instance per process: it enforces the LL2 quota.
+                    # One instance per process: LL2 enforces its quota and
+                    # Skyfield loads the ephemeris once (ADR-0031).
                     app.state.event_sources = [
                         LaunchLibraryEventSource(
                             events_http, events_settings.launch_library_url
-                        )
+                        ),
+                        UsnoSolarEclipseSource(events_http),
+                        SkyfieldLunarSource(),
+                        MeteorShowerCatalogSource(),
                     ]
                     app.state.nasa_http = nasa_http
                     app.state.nasa_api_key = nasa_settings.nasa_api_key

@@ -13,10 +13,10 @@ from typing import Any
 import httpx
 import pytest
 import respx
-from app.infrastructure.events.usno import USNO_SOLAR_URL, UsnoSolarEclipseSource
 
 from app.application.shared.errors import ExternalServiceError
 from app.domain.events.models import EventCategory, EventSourceName
+from app.infrastructure.events.usno import USNO_SOLAR_URL, UsnoSolarEclipseSource
 
 FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
 TODAY = date(2026, 11, 10)

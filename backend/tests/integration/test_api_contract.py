@@ -17,7 +17,6 @@ import pytest
 import respx
 import schemathesis
 from alembic.config import Config
-from app.infrastructure.events.usno import USNO_SOLAR_URL
 from redis.asyncio import Redis
 from schemathesis.config import SchemathesisConfig
 from schemathesis.python import asgi
@@ -28,6 +27,7 @@ from app.infrastructure.apod.nasa_feed_client import FEED_URL
 from app.infrastructure.auth.google_verifier import GOOGLE_CERTS_URL
 from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.events.launch_library import LAUNCH_LIBRARY_URL
+from app.infrastructure.events.usno import USNO_SOLAR_URL
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.scheduler.dependencies import get_scheduler_settings
 from app.main import create_app
