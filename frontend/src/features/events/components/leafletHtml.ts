@@ -1,7 +1,7 @@
 import {
-  CARTO_DARK_ATTRIBUTION,
-  CARTO_DARK_SUBDOMAINS,
-  CARTO_DARK_TILES,
+  BASE_MAP_ATTRIBUTION,
+  BASE_MAP_MAX_ZOOM,
+  BASE_MAP_TILES,
   type MapMarker,
   WORLD_CENTER,
   WORLD_ZOOM,
@@ -50,10 +50,9 @@ export function buildLeafletHtml(markers: MapMarker[], label: string): string {
 <script>
 var markers = ${scriptJson(markers)};
 var map = L.map('map', { worldCopyJump: true }).setView(${scriptJson(WORLD_CENTER)}, ${WORLD_ZOOM});
-L.tileLayer(${JSON.stringify(CARTO_DARK_TILES)}, {
-  attribution: ${JSON.stringify(CARTO_DARK_ATTRIBUTION)},
-  subdomains: ${JSON.stringify(CARTO_DARK_SUBDOMAINS)},
-  maxZoom: 19
+L.tileLayer(${JSON.stringify(BASE_MAP_TILES)}, {
+  attribution: ${JSON.stringify(BASE_MAP_ATTRIBUTION)},
+  maxZoom: ${BASE_MAP_MAX_ZOOM}
 }).addTo(map);
 var points = [];
 markers.forEach(function (m) {

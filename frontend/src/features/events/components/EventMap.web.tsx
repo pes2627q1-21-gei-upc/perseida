@@ -3,9 +3,9 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 
 import {
-  CARTO_DARK_ATTRIBUTION,
-  CARTO_DARK_SUBDOMAINS,
-  CARTO_DARK_TILES,
+  BASE_MAP_ATTRIBUTION,
+  BASE_MAP_MAX_ZOOM,
+  BASE_MAP_TILES,
   type EventMapProps,
   WORLD_CENTER,
   WORLD_ZOOM,
@@ -26,10 +26,9 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
         style={{ height: '100%', width: '100%', background: '#020510' }}
       >
         <TileLayer
-          url={CARTO_DARK_TILES}
-          attribution={CARTO_DARK_ATTRIBUTION}
-          subdomains={CARTO_DARK_SUBDOMAINS}
-          maxZoom={19}
+          url={BASE_MAP_TILES}
+          attribution={BASE_MAP_ATTRIBUTION}
+          maxZoom={BASE_MAP_MAX_ZOOM}
         />
         {markers.map((m) => (
           <Marker
