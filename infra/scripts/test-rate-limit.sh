@@ -27,6 +27,12 @@ BASE="http://127.0.0.1:$PORT"
 BURST=20
 
 WORK_DIR="$(mktemp -d)"
+
+# Git Bash a Windows: Docker Desktop necessita camins de Windows per als volums, i
+# MSYS no ha de reescriure els camins del contenidor (/etc/nginx/...) a `docker run`.
+host_path() {
+  if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi
+}
 cleanup() {
   docker rm -f "$NAME" >/dev/null 2>&1 || true
   rm -rf "$WORK_DIR"
@@ -74,9 +80,9 @@ http {
 EOF
 
 docker rm -f "$NAME" >/dev/null 2>&1 || true
-docker run -d --name "$NAME" \
-  -v "$WORK_DIR/nginx.conf:/etc/nginx/nginx.conf:ro" \
-  -v "$CONF_DIR:/etc/nginx/perseida:ro" \
+MSYS_NO_PATHCONV=1 docker run -d --name "$NAME" \
+  -v "$(host_path "$WORK_DIR/nginx.conf"):/etc/nginx/nginx.conf:ro" \
+  -v "$(host_path "$CONF_DIR"):/etc/nginx/perseida:ro" \
   -p "127.0.0.1:$PORT:8080" \
   "$IMAGE" >/dev/null
 
