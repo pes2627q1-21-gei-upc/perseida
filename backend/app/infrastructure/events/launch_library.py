@@ -52,7 +52,8 @@ class _Launch(BaseModel):
 
 
 class _Page(BaseModel):
-    results: list[dict[str, Any]]
+    # Each item is validated alone: a broken one is discarded, not the page.
+    results: list[Any]
 
 
 def _location(pad: _Pad | None) -> Location | None:
@@ -61,7 +62,7 @@ def _location(pad: _Pad | None) -> Location | None:
     return Location(latitude=pad.latitude, longitude=pad.longitude)
 
 
-def _to_draft(record: dict[str, Any]) -> EventDraft | None:
+def _to_draft(record: Any) -> EventDraft | None:
     """Return the draft of ``record``, or None (logged) if it is incomplete."""
     try:
         launch = _Launch.model_validate(record)
@@ -77,7 +78,8 @@ def _to_draft(record: dict[str, Any]) -> EventDraft | None:
             source_url=safe_https_url(launch.url),
         )
     except PydanticValidationError, DomainError:
-        logger.warning("Discarded incomplete launch %s", record.get("id", "?"))
+        launch_id = record.get("id", "?") if isinstance(record, dict) else "?"
+        logger.warning("Discarded incomplete launch %s", launch_id)
         return None
 
 
@@ -98,13 +100,16 @@ class LaunchLibraryEventSource:
         self._clock = clock
         self._lock = asyncio.Lock()
         self._last_call: float | None = None
+        self._last_drafts: list[EventDraft] = []
 
     async def fetch(self) -> list[EventDraft]:
-        """Return the upcoming launches, or nothing new if Launch Library 2 was
-        called less than an hour ago.
+        """Return the upcoming launches; if Launch Library 2 was called less
+        than an hour ago, those of that call again.
 
         The cache marks already space the calls; this holds even without Redis
-        or with concurrent requests, and a skipped call is not a failure.
+        or with concurrent requests, and a skipped call is not a failure. A
+        request that arrives while another stores the launches stores them too,
+        so it never answers without them, and it retries a failed store.
         """
         async with self._lock:
             now = self._clock()
@@ -113,10 +118,13 @@ class LaunchLibraryEventSource:
                 and now - self._last_call < _MIN_SECONDS_BETWEEN_CALLS
             ):
                 logger.debug("Launch Library 2 called less than 1 h ago; skipped")
-                return []
+                return list(self._last_drafts)
             self._last_call = now
             page = await self._get_page()
-        return [draft for record in page.results if (draft := _to_draft(record))]
+            self._last_drafts = [
+                draft for record in page.results if (draft := _to_draft(record))
+            ]
+            return list(self._last_drafts)
 
     async def _get_page(self) -> _Page:
         try:

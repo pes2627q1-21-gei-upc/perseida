@@ -41,7 +41,13 @@ class EventSourceName(StrEnum):
     CATALOG = "catalog"
 
 
-NonBlank = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+# Text without NUL: PostgreSQL rejects it, and one such row fails the batch.
+NonBlank = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, pattern=r"^[^\x00]*$"),
+]
+# Length of the ``external_id`` column.
+EXTERNAL_ID_MAX_LENGTH = 255
 
 
 class _EventData(BaseModel):
@@ -83,4 +89,4 @@ class EventDraft(_EventData):
     """
 
     source: EventSourceName
-    external_id: NonBlank
+    external_id: Annotated[NonBlank, Field(max_length=EXTERNAL_ID_MAX_LENGTH)]
