@@ -16,8 +16,9 @@ from app.domain.shared.errors import ConflictError, ValidationError
 TODAY = date(2026, 11, 9)
 
 
-def test_the_same_day_always_gets_the_same_question() -> None:
-    assert question_position(TODAY, 100) == question_position(TODAY, 100)
+def test_the_day_decides_the_question() -> None:
+    # 2026-11-09 is 312 days after ROTATION_START: 312 % 100 = 12.
+    assert question_position(TODAY, 100) == 12
 
 
 def test_no_question_repeats_within_the_size_of_the_bank() -> None:
