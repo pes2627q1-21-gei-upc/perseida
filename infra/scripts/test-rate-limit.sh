@@ -45,7 +45,7 @@ fail() {
   exit 1
 }
 
-for f in http_top.conf rate-limit.conf; do
+for f in http_top.conf rate-limit.conf security-headers.conf static.conf websocket.conf; do
   [ -f "$CONF_DIR/$f" ] || fail "falta infra/nginx-proxy-manager/$f"
 done
 
@@ -61,6 +61,10 @@ http {
         set $server 127.0.0.1;
         set $port 9000;
 
+        # Tot el que s'enganxa a «Advanced», en l'ordre del README.
+        include /etc/nginx/perseida/security-headers.conf;
+        include /etc/nginx/perseida/static.conf;
+        include /etc/nginx/perseida/websocket.conf;
         include /etc/nginx/perseida/rate-limit.conf;
 
         location / {
@@ -97,8 +101,11 @@ for _ in $(seq 1 30); do
 done
 [ "$ready" = 1 ] || fail "nginx no arrenca amb les confs versionades"
 
-# 1. La ràfega passa sencera: la primera petició i les 20 de la ràfega.
-for i in $(seq 1 $((BURST + 1))); do
+# 1. La ràfega passa sencera: la primera petició i les 20 de la ràfega. La primera
+#    també comprova que el camí bo conserva l'HSTS del `server`.
+curl -s -D "$WORK_DIR/ok-headers" -o /dev/null "$BASE/api/events/upcoming?days=7"
+grep -qi '^strict-transport-security: ' "$WORK_DIR/ok-headers" || fail "el 200 de /api/events/ no porta HSTS"
+for i in $(seq 2 $((BURST + 1))); do
   code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/events/upcoming?days=7")"
   [ "$code" = "200" ] || fail "la petició $i dins del límit ha retornat $code (s'esperava 200)"
 done
@@ -121,6 +128,7 @@ grep -qi '^retry-after: 1' "$WORK_DIR/headers" || fail "el 429 no porta Retry-Af
 grep -qi '^x-correlation-id: [0-9a-f]\{32\}' "$WORK_DIR/headers" \
   || fail "el 429 no porta X-Correlation-ID"
 grep -qi '^strict-transport-security: ' "$WORK_DIR/headers" || fail "el 429 no porta HSTS"
+grep -qi '^cache-control: no-store' "$WORK_DIR/headers" || fail "el 429 no porta Cache-Control: no-store"
 
 python3 - "$WORK_DIR/body" <<'EOF' || fail "el cos del 429 no és el problem+json esperat"
 import json, sys
