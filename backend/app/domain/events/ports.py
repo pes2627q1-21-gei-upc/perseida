@@ -53,6 +53,6 @@ class EventSource(Protocol):
         left out.
 
         Raises:
-            ExternalServiceError: the source failed or cannot be called now.
+            ExternalServiceError: the source failed.
         """
         ...

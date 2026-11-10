@@ -89,8 +89,11 @@ class SqlEventRepository:
     async def upsert_many(self, drafts: Sequence[EventDraft]) -> None:
         if not drafts:
             return
+        # One row per key, the last one wins: ON CONFLICT cannot update a row
+        # twice in the same statement.
+        unique = {(draft.source, draft.external_id): draft for draft in drafts}
         statement = insert(AstronomicalEventRow).values(
-            [_to_values(draft) for draft in drafts]
+            [_to_values(draft) for draft in unique.values()]
         )
         statement = statement.on_conflict_do_update(
             index_elements=["source", "external_id"],

@@ -99,11 +99,11 @@ Entitat `AstronomicalEvent` a `app/domain/events/models.py`; port `EventReposito
 |---|---|
 | `id` | `uuid` UUIDv7, clau primària interna i estable |
 | `source`, `external_id` | origen de l'esdeveniment; `UNIQUE (source, external_id)`. `source`: `launch_library_2`, `usno`, `skyfield`, `catalog` (fixats a [[0031-fonts-d-esdeveniments-sota-demanda|ADR-0031]]) |
-| `title`, `summary` | text, en l'idioma de la font; que no sigui buit ho comprova `EventResponse` en publicar-lo |
+| `title`, `summary` | text, en l'idioma de la font; no buit (ho comproven l'entitat i `EventResponse`) |
 | `category` | `lunar`, `solar`, `meteor_shower`, `launch` |
 | `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` (a l'entitat, `EVENT_ENDS_BEFORE_START`). Índex a cadascuna |
 | `latitude`, `longitude` | `double precision`, opcionals però totes dues o cap; índex GiST d'expressió `geography` (sense `geoalchemy2`) |
-| `source_url` | opcional |
+| `source_url` | opcional; només https (l'adaptador hi aplica `safe_https_url`) |
 | `created_at`, `updated_at` | `timestamptz`, `now()` per defecte |
 
 Consultes del port, ordenades per `starts_at`:
@@ -113,14 +113,12 @@ Consultes del port, ordenades per `starts_at`:
 
 Escriptura i consulta per id (TG-50):
 
-- `upsert_many(drafts)`: desa els `EventDraft` (l'esdeveniment tal com el dona una font, amb `source` i `external_id` i sense `id`). Si `(source, external_id)` ja hi és, n'actualitza les dades i `updated_at` i en conserva l'`id` i `created_at`.
+- `upsert_many(drafts)`: desa els `EventDraft` (l'esdeveniment tal com el dona una font, amb `source` i `external_id` i sense `id`). Si `(source, external_id)` ja hi és, n'actualitza les dades i `updated_at` (`now()`) i en conserva l'`id` i `created_at`. Si el lot repeteix una clau, es desa l'últim.
 - `exists(event_id)`: si l'esdeveniment existeix (el fa servir TG-64 per a la sala de xat).
 
 Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventService` les refresca sota demanda abans de cada consulta ([[0031-fonts-d-esdeveniments-sota-demanda]]).
 
-> [!todo] Pendent per a TG-50
-> - Validar `source_url` (només https, `safe_https_url`) quan les dades entrin pels proveïdors. Ara només la valida `EventResponse` en publicar-la.
-> - `updated_at` només té valor per defecte a l'INSERT. L'upsert l'ha d'actualitzar explícitament (`now()`).
+> [!todo] Pendent per a TG-51 (proximitat)
 > - L'índex GiST és parcial (`WHERE latitude IS NOT NULL`). La consulta de proximitat ha de fer servir la mateixa expressió, `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`, i el mateix predicat.
 
 ## Diagrama (transcripció)

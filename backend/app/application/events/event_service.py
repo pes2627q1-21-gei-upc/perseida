@@ -62,9 +62,10 @@ class EventService:
                 drafts = await source.fetch()
             except ExternalServiceError as exc:
                 logger.warning(
-                    "Event source %s failed (%s); serving stored events",
+                    "Event source %s failed (%s: %s); serving stored events",
                     source.name,
                     exc.code,
+                    exc.message,
                 )
                 await self._cache.set(key, "failed", FAILURE_PAUSE_SECONDS)
                 continue

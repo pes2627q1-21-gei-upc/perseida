@@ -29,7 +29,7 @@ Cada categoria té la seva font, darrere del port `EventSource` (nom, TTL i `fet
 - **Id estable:** l'upsert va per `(source, external_id)` i conserva l'`id` (UUIDv7) i `created_at`. Un llançament reprogramat actualitza les dades del mateix esdeveniment.
 - **Font caiguda:** timeout, error HTTP o JSON inservible fan que la font llanci `ExternalServiceError`. El servei ho registra (amb el correlation id), posa la marca durant 15 min perquè no es torni a cridar i respon amb el que hi ha a PostgreSQL. Una font que falla no atura les altres i no provoca mai un 5xx.
 - **Registres incomplets:** es descarten d'un en un i es registren al log, sense fer fallar la resta. A Launch Library 2, un llançament sense `mission.description`, sense `window_start` o `window_end`, o que acaba abans de començar, es descarta. `starts_at` i `ends_at` són la finestra de llançament; la ubicació és la de la plataforma; `source_url` és l'URL del llançament a l'API (només si és `https`).
-- **Quota de Launch Library 2:** a més de la marca d'1 h, l'adaptador (una sola instància per procés, [[0003-un-sol-proces-fastapi]]) no fa mai més d'una crida per hora, encara que Redis estigui caigut. Una crida fallida també compta.
+- **Quota de Launch Library 2:** a més de la marca d'1 h, l'adaptador (una sola instància per procés, [[0003-un-sol-proces-fastapi]]) no fa mai més d'una crida per hora, encara que Redis estigui caigut o arribin peticions concurrents. Una crida fallida també compta. Si l'han cridat fa menys d'una hora, no torna res de nou i no és una fallada: la font queda fresca.
 - **Eclipsis solars:** l'API de l'USNO només dona la data. L'eclipsi ocupa tot el dia UTC (de 00:00 a 23:59:59) i no té ubicació (`location` és `null`).
 - **Idioma:** els textos arriben en l'idioma de la font (anglès) i els calculats es generen en anglès (vegeu [[contracte-esdeveniments]]).
 
@@ -43,7 +43,8 @@ Cada categoria té la seva font, darrere del port `EventSource` (nom, TTL i `fet
 
 ### Negatives (assumides)
 
-- La primera consulta després que caduqui una marca espera la crida a la font (timeout de 3 s de connexió i 10 s en total).
+- La primera consulta després que caduqui una marca espera la crida a la font (timeout de 3 s de connexió i de 10 s per operació de lectura o escriptura, no en total).
+- Un error de PostgreSQL en desar el que retorna una font fa fallar la consulta, igual que la lectura posterior; no s'aïlla com una font caiguda.
 - Skyfield afegeix dependències (`numpy`, `jplephem`, `sgp4`) i uns 17 MB d'efemèrides a la imatge.
 - Els eclipsis solars no tenen hora ni ubicació.
 - Amb més d'un procés, la quota de Launch Library 2 es comptaria per procés (avui n'hi ha un, ADR-0003).

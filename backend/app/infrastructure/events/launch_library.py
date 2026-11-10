@@ -100,25 +100,23 @@ class LaunchLibraryEventSource:
         self._last_call: float | None = None
 
     async def fetch(self) -> list[EventDraft]:
+        """Return the upcoming launches, or nothing new if Launch Library 2 was
+        called less than an hour ago.
+
+        The cache marks already space the calls; this holds even without Redis
+        or with concurrent requests, and a skipped call is not a failure.
+        """
         async with self._lock:
-            self._claim_call()
+            now = self._clock()
+            if (
+                self._last_call is not None
+                and now - self._last_call < _MIN_SECONDS_BETWEEN_CALLS
+            ):
+                logger.debug("Launch Library 2 called less than 1 h ago; skipped")
+                return []
+            self._last_call = now
             page = await self._get_page()
         return [draft for record in page.results if (draft := _to_draft(record))]
-
-    def _claim_call(self) -> None:
-        """Count a call, or refuse it if the last one was less than an hour ago.
-
-        The cache marks already space the calls; this holds even without Redis.
-        """
-        now = self._clock()
-        if (
-            self._last_call is not None
-            and now - self._last_call < _MIN_SECONDS_BETWEEN_CALLS
-        ):
-            raise ExternalServiceError(
-                "EVENT_SOURCE_QUOTA", "Launch Library 2 was called less than 1 h ago"
-            )
-        self._last_call = now
 
     async def _get_page(self) -> _Page:
         try:
