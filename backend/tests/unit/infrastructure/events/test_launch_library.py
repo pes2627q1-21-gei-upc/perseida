@@ -5,9 +5,11 @@ to the fields Perseida reads) and adds two broken ones: without mission and
 without ``window_end``.
 """
 
+import asyncio
 import json
 import logging
-from collections.abc import AsyncIterator, Callable
+import uuid
+from collections.abc import AsyncIterator, Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -16,12 +18,20 @@ import httpx
 import pytest
 import respx
 
+from app.application.events.event_service import EventService
 from app.application.shared.errors import ExternalServiceError
-from app.domain.events.models import EventCategory, EventSourceName, Location
+from app.domain.events.models import (
+    AstronomicalEvent,
+    EventCategory,
+    EventDraft,
+    EventSourceName,
+    Location,
+)
 from app.infrastructure.events.launch_library import (
     LAUNCH_LIBRARY_URL,
     LaunchLibraryEventSource,
 )
+from tests.fakes.cache import FakeCache
 
 # Outside fixtures/events/, which holds only EventResponse examples.
 FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
@@ -162,12 +172,12 @@ async def test_tg50_c8_never_calls_more_than_once_per_hour(
 ) -> None:
     route = respx.get(LAUNCH_LIBRARY_URL).respond(json=upcoming_page())
     source = make_source()
-    await source.fetch()
+    first = await source.fetch()
 
-    # Called less than an hour ago: nothing new, and no error (it is not a
-    # failure, e.g. a concurrent request or Redis down).
+    # Called less than an hour ago: the launches of that call again, and no
+    # error (it is not a failure, e.g. a concurrent request or Redis down).
     clock.now = HOUR - 1
-    assert await source.fetch() == []
+    assert await source.fetch() == first
     assert route.call_count == 1
 
     clock.now = HOUR
@@ -197,3 +207,89 @@ async def test_tg50_c5_the_launch_freshness_lasts_one_hour(
 
     assert source.name is EventSourceName.LAUNCH_LIBRARY_2
     assert source.ttl_seconds == 3600
+
+
+@respx.mock
+async def test_tg50_c3_a_launch_the_database_would_reject_is_discarded_alone(
+    make_source: Callable[[], LaunchLibraryEventSource],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    page = upcoming_page()
+    page["results"][0]["name"] = "Falcon 9\x00"
+    page["results"][1]["id"] = "x" * 256
+    page["results"].append(page["results"][0] | {"id": "kept", "name": "Kept"})
+    respx.get(LAUNCH_LIBRARY_URL).respond(json=page)
+
+    with caplog.at_level(logging.WARNING):
+        drafts = await make_source().fetch()
+
+    assert [draft.external_id for draft in drafts] == ["kept"]
+    assert "6aa7b90b-e5ed-45d8-a52e-04fbf399d178" in caplog.text
+
+
+@respx.mock
+async def test_tg50_c3_an_item_that_is_not_an_object_is_discarded_alone(
+    make_source: Callable[[], LaunchLibraryEventSource],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    page = upcoming_page()
+    page["results"] += [42, None, "launch"]
+    respx.get(LAUNCH_LIBRARY_URL).respond(json=page)
+
+    with caplog.at_level(logging.WARNING):
+        drafts = await make_source().fetch()
+
+    assert len(drafts) == 2
+    assert "Discarded incomplete launch" in caplog.text
+
+
+class _StoringRepository:
+    """Keeps the upserted drafts; the first upsert waits for ``gate``."""
+
+    def __init__(self) -> None:
+        self.stored: dict[str, EventDraft] = {}
+        self.gate = asyncio.Event()
+        self.first_started = asyncio.Event()
+        self._first = True
+
+    async def upsert_many(self, drafts: Sequence[EventDraft]) -> None:
+        if self._first:
+            self._first = False
+            self.first_started.set()
+            await self.gate.wait()
+            raise RuntimeError("database down")
+        self.stored |= {draft.external_id: draft for draft in drafts}
+
+    async def list_starting_between(
+        self, start: datetime, end: datetime
+    ) -> list[AstronomicalEvent]:
+        return [
+            AstronomicalEvent(id=uuid.uuid7(), **draft.model_dump())
+            for draft in self.stored.values()
+        ]
+
+
+@respx.mock
+async def test_tg50_c8_concurrent_queries_never_answer_without_the_launches(
+    make_source: Callable[[], LaunchLibraryEventSource],
+) -> None:
+    respx.get(LAUNCH_LIBRARY_URL).respond(json=upcoming_page())
+    repository = _StoringRepository()
+    service = EventService(
+        repository,  # type: ignore[arg-type]
+        [make_source()],
+        FakeCache(),
+        now=lambda: datetime(2026, 11, 10, tzinfo=UTC),
+    )
+
+    first = asyncio.create_task(service.upcoming(30))
+    await repository.first_started.wait()
+    # The second query arrives while the first is storing: the quota skips the
+    # call, but it still stores and answers the launches.
+    second = await service.upcoming(30)
+    repository.gate.set()
+
+    assert len(second) == 2
+    with pytest.raises(RuntimeError):
+        await first
+    assert len(repository.stored) == 2

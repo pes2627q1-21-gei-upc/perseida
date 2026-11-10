@@ -63,3 +63,16 @@ def test_tg50_c3_draft_cannot_end_before_it_starts() -> None:
 def test_tg50_c3_draft_needs_non_blank_text(field: str) -> None:
     with pytest.raises(PydanticValidationError):
         EventDraft.model_validate(make_draft(START).model_dump() | {field: "  "})
+
+
+def test_tg50_c3_draft_external_id_fits_its_column() -> None:
+    assert make_draft(START, external_id="x" * 255).external_id == "x" * 255
+    with pytest.raises(PydanticValidationError):
+        make_draft(START, external_id="x" * 256)
+
+
+@pytest.mark.parametrize("field", ["external_id", "title", "summary"])
+def test_tg50_c3_draft_text_cannot_contain_nul(field: str) -> None:
+    # PostgreSQL rejects NUL in text, which would fail the whole batch.
+    with pytest.raises(PydanticValidationError):
+        EventDraft.model_validate(make_draft(START).model_dump() | {field: "a\x00b"})
