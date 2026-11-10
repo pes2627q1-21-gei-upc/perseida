@@ -124,6 +124,106 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/events/active': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Esdeveniments actius en una data
+     * @description Retorna els esdeveniments que estan en curs en algun moment del dia indicat (dia UTC, de 00:00Z a 24:00Z) o, si no se'n dona cap, d'avui. Un esdeveniment instantani compta com a actiu el dia en què passa, i un que acaba just a les 00:00Z també compta aquell dia. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
+    get: operations['get_active_events'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/upcoming': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Esdeveniments que comencen els N dies vinents
+     * @description Retorna els esdeveniments que comencen des d'ara fins d'aquí a `days` dies; els que ja han començat no hi surten (vegeu `/api/events/active`). Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
+    get: operations['get_upcoming_events'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/quiz/today': {
     parameters: {
       query?: never;
@@ -199,6 +299,65 @@ export interface components {
        * @description Autoria, si l'APOD no és de domini públic
        */
       copyright?: string | null;
+    };
+    /**
+     * EventCategory
+     * @description Kinds of astronomical event, fixed by TG-50 (task #387).
+     * @enum {string}
+     */
+    EventCategory: 'lunar' | 'solar' | 'meteor_shower' | 'launch';
+    /** EventLocation */
+    EventLocation: {
+      /**
+       * Latitude
+       * @example 28.5618
+       */
+      latitude: number;
+      /**
+       * Longitude
+       * @example -80.577
+       */
+      longitude: number;
+    };
+    /** EventResponse */
+    EventResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador estable de l'esdeveniment (UUIDv7)
+       */
+      id: string;
+      /**
+       * Title
+       * @description Títol, en l'idioma de la font
+       */
+      title: string;
+      /**
+       * Summary
+       * @description Descripció breu, en l'idioma de la font
+       */
+      summary: string;
+      /** @description Tipus d'esdeveniment */
+      category: components['schemas']['EventCategory'];
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601, UTC)
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601, UTC); igual a l'inici si és instantani
+       */
+      ends_at: string;
+      /** @description Ubicació concreta; null si és visible des de qualsevol lloc */
+      location: components['schemas']['EventLocation'] | null;
+      /**
+       * Source Url
+       * @description Enllaç a la font (només https); null si no n'hi ha
+       */
+      source_url: string | null;
     };
     /** FieldError */
     FieldError: {
@@ -743,6 +902,88 @@ export interface operations {
       };
       /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_active_events: {
+    parameters: {
+      query?: {
+        /** @description Dia UTC (YYYY-MM-DD). Per defecte, avui. */
+        date?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els esdeveniments actius aquell dia. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_upcoming_events: {
+    parameters: {
+      query?: {
+        /** @description Nombre de dies vinents (1-30). */
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els esdeveniments que comencen dins la finestra. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
         headers: {
           [name: string]: unknown;
         };
