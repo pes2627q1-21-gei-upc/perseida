@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import { EventMap } from './EventMap';
 import { buildLeafletHtml } from './leafletHtml';
@@ -47,12 +48,17 @@ describe('EventMap (mobile)', () => {
     },
   );
 
-  it('only loads the map page itself: any link opens outside or is blocked', async () => {
+  it('only loads the map page itself: https links open outside, anything else is blocked', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
     const allow = screen.getByLabelText(LABEL).props.onShouldStartLoadWithRequest;
 
     expect(allow({ url: 'about:blank', isTopFrame: true })).toBe(true);
     expect(allow({ url: 'https://carto.com/attributions', isTopFrame: true })).toBe(false);
+    expect(openURL).toHaveBeenCalledWith('https://carto.com/attributions');
+
+    openURL.mockClear();
     expect(allow({ url: 'javascript:alert(1)', isTopFrame: true })).toBe(false);
+    expect(openURL).not.toHaveBeenCalled();
   });
 });
