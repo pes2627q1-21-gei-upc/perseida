@@ -26,6 +26,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      proxy: ${{ steps.filter.outputs.proxy }}
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Detectar canvis al backend i al frontend
@@ -40,10 +41,27 @@ jobs:
             frontend:
               - "frontend/**"
               - ".github/workflows/ci.yml"
+            proxy:
+              - "infra/nginx-proxy-manager/**"
+              - "infra/scripts/test-rate-limit.sh"
+              - ".github/workflows/ci.yml"
       - name: Mostrar resultat de la detecció
         run: |
           echo "backend changed = ${{ steps.filter.outputs.backend }}"
           echo "frontend changed = ${{ steps.filter.outputs.frontend }}"
+          echo "proxy changed = ${{ steps.filter.outputs.proxy }}"
+
+  # Límit de peticions per IP del proxy (TG-351): nginx amb les confs versionades
+  # d'nginx-proxy-manager i un upstream de prova.
+  proxy:
+    needs: changes
+    if: needs.changes.outputs.proxy == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Límit de peticions per IP a /api/events/
+        run: bash infra/scripts/test-rate-limit.sh
 
   backend:
     needs: changes
