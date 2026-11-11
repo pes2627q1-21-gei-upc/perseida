@@ -6,6 +6,7 @@ plain image, a video (no image URL) and an image with an empty copyright.
 """
 
 import asyncio
+import xml.etree.ElementTree as ET
 from collections.abc import AsyncIterator
 from datetime import date
 from pathlib import Path
@@ -25,6 +26,30 @@ ORION = (
     "october/orion.png"
 )
 LOGO = "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png"
+
+
+@pytest.mark.parametrize(
+    ("explanation", "expected"),
+    [
+        ("Explanation: Stars. Tomorrow's picture: next", "Stars."),
+        ("Stars.\u2003tOmOrRoW’s PiCtUrE: next\nmore", "Stars."),
+        ("Stars. Tomorrow's picture: first Tomorrow's picture: second", "Stars."),
+        ("Stars. Tomorrow's picture", "Stars. Tomorrow's picture"),
+        ("Stars without a marker.", "Stars without a marker."),
+        ("Stars." + " " * 100000 + "Tomorrow's picture: next", "Stars."),
+    ],
+    ids=["straight", "unicode", "first", "incomplete", "absent", "large"],
+)
+async def test_tg536_feed_explanation_marker_preserves_existing_output(
+    explanation: str, expected: str
+) -> None:
+    item = ET.fromstring(FEED).find("./channel/item")
+    assert item is not None
+    field = item.find("{https://science.nasa.gov/apod/}explanation")
+    assert field is not None
+    field.text = explanation
+    apod = NasaApodFeedClient._to_apod(date(2026, 10, 25), item)
+    assert apod.explanation == expected
 
 
 @pytest.fixture
