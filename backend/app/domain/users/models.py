@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.domain.shared.account import AccountStatus as AccessStatus
 from app.domain.shared.errors import ValidationError
+from app.domain.shared.language import Language
 from app.domain.shared.text import clean_text, safe_https_url
 
 # Same limits as the columns of ``users`` (infrastructure/users/tables.py).
@@ -17,12 +18,6 @@ class Role(StrEnum):
     USER = "user"
     MODERATOR = "moderator"
     ADMIN = "admin"
-
-
-class Language(StrEnum):
-    CA = "ca"
-    ES = "es"
-    EN = "en"
 
 
 class AccountStatus(StrEnum):

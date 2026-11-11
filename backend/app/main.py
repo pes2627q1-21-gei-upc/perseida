@@ -23,6 +23,7 @@ from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
+from app.infrastructure.quiz.router import router as quiz_router
 from app.infrastructure.realtime.config import RealtimeSettings
 from app.infrastructure.realtime.router import router as realtime_router
 from app.infrastructure.scheduler.dependencies import (
@@ -132,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router, prefix="/api")
     app.include_router(realtime_router, prefix="/api")
     app.include_router(events_router, prefix="/api")
+    app.include_router(quiz_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 

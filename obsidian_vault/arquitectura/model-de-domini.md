@@ -3,7 +3,7 @@ titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-10"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351"]
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
@@ -120,6 +120,21 @@ Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventServic
 
 > [!todo] Pendent per a TG-51 (proximitat)
 > - L'índex GiST és parcial (`WHERE latitude IS NOT NULL`). La consulta de proximitat ha de fer servir la mateixa expressió, `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`, i el mateix predicat.
+
+## Quiz diari (implementat)
+
+Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.py` (migracions `create_quiz` i `seed_quiz_questions`, TG-60). `DailyQuiz` és la taula `quiz_days`: la primera vegada que es demana un dia s'hi desa la primera pregunta que encara no ha sortit o, si ja han sortit totes, la que fa més temps que va sortir (`next_question`). El dia no canvia si el banc creix, i les preguntes noves surten abans de cap repetició ([[contracte-quiz]]).
+
+| Taula | Camps |
+|---|---|
+| `quiz_questions` | `id` UUIDv7 fix (ve del fitxer del seed), `position` (única, ordre de rotació), `correct_option` 0-3, `source_url` |
+| `quiz_question_translations` | PK `(question_id, language)`, `statement`, `options` (4 textos), `explanation`; FK a `quiz_questions` amb `CASCADE` |
+| `quiz_days` (`DailyQuiz`) | PK `quiz_date`, `question_id` (FK, `RESTRICT`) |
+| `quiz_answers` (`QuizResult`) | `id` UUIDv7, `user_id` (FK a `users`, `CASCADE`), `quiz_date`, `question_id` (FK, `RESTRICT`), `chosen_option`, `correct`, `answered_at`; única `(user_id, quiz_date)` |
+
+`score` del diagrama és `correct` (cert o fals): hi ha una sola pregunta per dia.
+
+Desfer la migració `seed_quiz_questions` només esborra les preguntes sense respostes ni dies; tornar-la a aplicar insereix la resta amb els mateixos `id`. `Language` és a `app/domain/shared/language.py` perquè el fan servir users i quiz.
 
 ## Diagrama (transcripció)
 

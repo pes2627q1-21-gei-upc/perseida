@@ -26,7 +26,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 
 ## Mapa per carpetes
 
-**arquitectura/**: [[visio-general]], [[arquitectura-fisica]], [[backend-hexagonal]], [[frontend]], [[model-de-domini]], [[serveis-externs]], [[contracte-spotwise]], [[contracte-esdeveniments]]
+**arquitectura/**: [[visio-general]], [[arquitectura-fisica]], [[backend-hexagonal]], [[frontend]], [[model-de-domini]], [[serveis-externs]], [[contracte-spotwise]], [[contracte-esdeveniments]], [[contracte-quiz]]
 
 **arquitectura/components/**: [[api]], [[postgres]], [[redis]], [[nginx-proxy-manager]], [[moderation]]
 

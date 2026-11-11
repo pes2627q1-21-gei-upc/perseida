@@ -44,6 +44,9 @@ MAX_EXAMPLES = 25
 # The valid APOD dates (1995-06-16 .. today) cannot be written in OpenAPI: the upper
 # bound moves, so the declared 422 for a date outside them is an expected answer.
 APOD_EXPECTED_STATUSES = ["2xx", "3xx", "401", "403", "404", "409", "422", "429", "5xx"]
+# A valid body still answers 409 (already answered or another day) or 422 (a
+# question_id that is not today's): the schema cannot express "today's question".
+QUIZ_ANSWER_EXPECTED_STATUSES = ["2xx", "401", "403", "409", "422", "5xx"]
 
 
 def _migrate() -> None:
@@ -66,7 +69,7 @@ async def _clean_state() -> None:
     redis = Redis.from_url(RedisSettings().redis_url)
     try:
         await connection.execute("TRUNCATE users, user_identities, apod CASCADE")
-        for pattern in ("session:*", "user_sessions:*", "cache:apod:*"):
+        for pattern in ("session:*", "user_sessions:*", "cache:apod:*", "cache:quiz:*"):
             async for key in redis.scan_iter(match=pattern):
                 await redis.delete(key)
     finally:
@@ -105,7 +108,15 @@ def api_schema() -> Iterator[Any]:
                                 "expected-statuses": APOD_EXPECTED_STATUSES
                             }
                         },
-                    }
+                    },
+                    {
+                        "include-name": "POST /api/quiz/today/answer",
+                        "checks": {
+                            "positive_data_acceptance": {
+                                "expected-statuses": QUIZ_ANSWER_EXPECTED_STATUSES
+                            }
+                        },
+                    },
                 ],
             }
         )
