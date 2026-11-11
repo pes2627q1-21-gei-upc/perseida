@@ -90,10 +90,10 @@ def test_message_is_frozen() -> None:
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("a‮b", "ab"),  # bidi override: pot suplantar visualment un text
-        ("a​b", "ab"),  # zero-width space
-        ("a­b", "ab"),  # soft hyphen
-        ("a‎b‏", "ab"),  # marques LRM/RLM
+        ("a\u202eb", "ab"),  # bidi override: pot suplantar visualment un text
+        ("a\u200bb", "ab"),  # zero-width space
+        ("a\u00adb", "ab"),  # soft hyphen
+        ("a\u200eb\u200f", "ab"),  # marques LRM/RLM
     ],
 )
 def test_invisible_format_characters_are_removed(text: str, expected: str) -> None:
@@ -101,7 +101,7 @@ def test_invisible_format_characters_are_removed(text: str, expected: str) -> No
     assert _message(text).text == expected
 
 
-@pytest.mark.parametrize("text", ["​", "‮​", " ‍ ", "‌‍"])
+@pytest.mark.parametrize("text", ["\u200b", "\u202e\u200b", " \u200d ", "\u200c\u200d"])
 def test_text_without_visible_characters_is_rejected(text: str) -> None:
     # Només invisibles (també ZWJ/ZWNJ, que es conserven dins d'un text) = buit
     with pytest.raises(ValidationError) as exc_info:
@@ -110,7 +110,7 @@ def test_text_without_visible_characters_is_rejected(text: str) -> None:
     assert exc_info.value.code == "CHAT_MESSAGE_EMPTY"
 
 
-@pytest.mark.parametrize("text", ["👩‍🚀", "👨‍👩‍👧", "می‌خواهم"])
+@pytest.mark.parametrize("text", ["👩\u200d🚀", "👨\u200d👩\u200d👧", "می\u200cخواهم"])
 def test_zero_width_joiners_inside_a_text_are_kept(text: str) -> None:
     # Els emojis compostos i alguns scripts necessiten ZWJ/ZWNJ
     assert _message(text).text == text
@@ -134,7 +134,9 @@ def test_any_text_is_either_accepted_clean_or_rejected_with_a_stable_code(
         unicodedata.category(char) not in ("Cc", "Cs", "Co", "Cn") or char in "\n\t"
         for char in saved
     )
-    assert all(unicodedata.category(char) != "Cf" or char in "‌‍" for char in saved)
+    assert all(
+        unicodedata.category(char) != "Cf" or char in "\u200c\u200d" for char in saved
+    )
     # Netejar un text ja net no el canvia
     assert _message(saved).text == saved
 

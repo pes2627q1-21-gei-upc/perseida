@@ -17,8 +17,8 @@ from app.domain.shared.errors import ValidationError
 _DROPPED_CATEGORIES = ("Cc", "Cs", "Co", "Cn", "Cf")
 # ``\n`` and ``\t`` are kept because a chat has them. ZWJ and ZWNJ are format
 # characters too, but they glue composed emoji and some scripts together.
-_KEPT_CHARACTERS = "\n\t‌‍"
-_JOINERS = "‌‍"
+_KEPT_CHARACTERS = "\n\t\u200c\u200d"
+_JOINERS = "\u200c\u200d"
 
 
 def _clean_message_text(value: str) -> str:
