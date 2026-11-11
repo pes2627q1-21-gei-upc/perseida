@@ -123,26 +123,26 @@ GBENG_OPEN = "\U0001f3f4\U000e0067\U000e0062\U000e0065\U000e006e\U000e0067"
 @pytest.mark.parametrize(
     "char",
     [
-        "‪",
-        "‫",
-        "‬",
-        "‭",
-        "‮",
-        "⁦",
-        "⁧",
-        "⁨",
-        "⁩",
-        "​",
-        "⁠",
-        "⁢",
-        "⁪",
-        "﻿",
-        "­",
+        "\u202a",
+        "\u202b",
+        "\u202c",
+        "\u202d",
+        "\u202e",
+        "\u2066",
+        "\u2067",
+        "\u2068",
+        "\u2069",
+        "\u200b",
+        "\u2060",
+        "\u2062",
+        "\u206a",
+        "\ufeff",
+        "\u00ad",
         "͏",
         "ㅤ",
-        "᠎",
-        " ",
-        " ",
+        "\u180e",
+        "\u2028",
+        "\u2029",
         "︀",
         "\U000e0100",
         "\U000e0041",
@@ -158,7 +158,7 @@ def test_every_dangerous_code_point_is_removed() -> None:
         assert _message(f"a{char}b").text == "ab", f"U+{ord(char):04X}"
 
 
-@pytest.mark.parametrize("char", ["‎", "‏", "؜"])
+@pytest.mark.parametrize("char", ["\u200e", "\u200f", "\u061c"])
 def test_directional_marks_are_kept(char: str) -> None:
     # LRM, RLM i ALM: marques d'un sol caràcter, necessàries per a l'àrab i l'hebreu
     assert _message(f"a{char}b").text == f"a{char}b"
@@ -166,7 +166,7 @@ def test_directional_marks_are_kept(char: str) -> None:
 
 def test_unassigned_code_points_are_kept() -> None:
     # Un emoji posterior a la versió d'Unicode de Python seria «no assignat»
-    char = "͸"
+    char = "\u0378"
     assert unicodedata.category(char) == "Cn"
 
     assert _message(f"a{char}b").text == f"a{char}b"
@@ -179,9 +179,9 @@ def test_unassigned_code_points_are_kept() -> None:
         "1️⃣",  # keycap
         "\U0001f44d\U0001f3fd",  # tonalitat de pell
         "\U0001f1ea\U0001f1f8",  # bandera d'Espanya (indicadors regionals)
-        "\U0001f469‍\U0001f680",  # dona astronauta (ZWJ)
-        "\U0001f468‍\U0001f469‍\U0001f467",
-        "می‌خواهم",  # ZWNJ persa
+        "\U0001f469\u200d\U0001f680",  # dona astronauta (ZWJ)
+        "\U0001f468\u200d\U0001f469\u200d\U0001f467",
+        "می\u200cخواهم",  # ZWNJ persa
         *FLAGS,
     ],
 )
@@ -211,7 +211,7 @@ def test_tag_sequences_that_are_not_a_known_flag_are_stripped(smuggled: str) -> 
     assert _message("a" + smuggled).text == "a\U0001f3f4"
 
 
-@pytest.mark.parametrize("text", ["‎", "؜", "️", "⠀", " ‏ "])
+@pytest.mark.parametrize("text", ["\u200e", "\u061c", "️", "⠀", " \u200f "])
 def test_text_with_only_marks_is_rejected(text: str) -> None:
     # Marques direccionals, selectors o el braille en blanc no es veuen: buit
     with pytest.raises(ValidationError) as exc_info:
@@ -220,7 +220,7 @@ def test_text_with_only_marks_is_rejected(text: str) -> None:
     assert exc_info.value.code == "CHAT_MESSAGE_EMPTY"
 
 
-@pytest.mark.parametrize("text", ["​", "‮​", " ‍ ", "‌‍"])
+@pytest.mark.parametrize("text", ["\u200b", "\u202e\u200b", " \u200d ", "\u200c\u200d"])
 def test_text_without_visible_characters_is_rejected(text: str) -> None:
     # Només invisibles (també ZWJ/ZWNJ, que es conserven dins d'un text) = buit
     with pytest.raises(ValidationError) as exc_info:
@@ -229,7 +229,7 @@ def test_text_without_visible_characters_is_rejected(text: str) -> None:
     assert exc_info.value.code == "CHAT_MESSAGE_EMPTY"
 
 
-@pytest.mark.parametrize("text", ["\U0001f469‍\U0001f680", "می‌خ"])
+@pytest.mark.parametrize("text", ["\U0001f469\u200d\U0001f680", "می\u200cخ"])
 def test_zero_width_joiners_inside_a_text_are_kept(text: str) -> None:
     # Els emojis compostos i alguns scripts necessiten ZWJ/ZWNJ
     assert _message(text).text == text
