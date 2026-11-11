@@ -32,8 +32,8 @@ Fer les tasques #435 (tests en vermell) i #437 (entitats i ports) de la US #64, 
 
 - [ ] #439 i següents: `ChatService` i els codis d'accés, rate limit i esdeveniment inexistent; llavors el contracte d'import-linter ha d'incloure `app.application.chat`.
 - [ ] El codi d'«esdeveniment no existeix» no està fixat: el defineix el service.
-- [ ] Mutation testing d'`app/domain/chat/` (mutmut no funciona a Windows natiu): `source_paths` de `[tool.mutmut]` encara apunta només a `realtime`.
-- [ ] `ports.py` surt a 0 % de cobertura fins que el service l'importi.
+- [x] Mutation testing d'`app/domain/chat/` fet a Docker: 35/35 mutants morts. `[tool.mutmut]` ara inclou el xat.
+- [x] Cobertura del codi nou al 100 %: `ports.py` es cobreix amb fakes en memòria (`tests/unit/domain/chat/fakes.py`), que reutilitzarà #439.
 
 ## US de Taiga
 
