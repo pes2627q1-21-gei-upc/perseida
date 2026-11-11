@@ -1,4 +1,5 @@
 import os
+import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -13,7 +14,7 @@ from app.domain.events.models import AstronomicalEvent, Location
 from app.infrastructure.events.repository import SqlEventRepository
 from app.infrastructure.events.tables import AstronomicalEventRow
 from app.infrastructure.persistence.config import DatabaseSettings
-from tests.factories.events import make_event
+from tests.factories.events import make_draft, make_event
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("POSTGRES_HOST"),
@@ -123,3 +124,68 @@ async def test_tg351_location_is_read_back_and_may_be_null(
     events = await SqlEventRepository(session_factory).list_between(DAY, NEXT_DAY)
 
     assert events == [located, everywhere]
+
+
+async def test_tg50_c4_upsert_inserts_new_events_with_a_uuidv7(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    repository = SqlEventRepository(session_factory)
+    draft = make_draft(DAY + timedelta(hours=10))
+
+    await repository.upsert_many([draft])
+
+    [event] = await repository.list_between(DAY, NEXT_DAY)
+    assert event.id.version == 7
+    assert event.title == draft.title
+    assert event.location == draft.location
+    assert event.source_url == draft.source_url
+
+
+async def test_tg50_c4_fetching_an_event_again_updates_it_and_keeps_its_id(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    repository = SqlEventRepository(session_factory)
+    await repository.upsert_many([make_draft(DAY + timedelta(hours=10))])
+    [before] = await repository.list_between(DAY, NEXT_DAY)
+
+    rescheduled = make_draft(DAY + timedelta(hours=14), title="Falcon 9 | Delayed")
+    await repository.upsert_many([rescheduled])
+
+    [after] = await repository.list_between(DAY, NEXT_DAY)
+    assert after.id == before.id
+    assert after.title == "Falcon 9 | Delayed"
+    assert after.starts_at == rescheduled.starts_at
+
+
+async def test_tg50_c4_upsert_with_nothing_does_nothing(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    repository = SqlEventRepository(session_factory)
+
+    await repository.upsert_many([])
+
+    assert await repository.list_between(DAY, NEXT_DAY) == []
+
+
+async def test_tg50_c7_exists_tells_stored_events_apart(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    stored = make_event(DAY)
+    await _store(session_factory, stored)
+    repository = SqlEventRepository(session_factory)
+
+    assert await repository.exists(stored.id) is True
+    assert await repository.exists(uuid.uuid7()) is False
+
+
+async def test_tg50_c4_a_batch_with_a_repeated_event_keeps_the_last_one(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    repository = SqlEventRepository(session_factory)
+    first = make_draft(DAY + timedelta(hours=10), title="First")
+    last = make_draft(DAY + timedelta(hours=11), title="Last")
+
+    await repository.upsert_many([first, last])
+
+    [event] = await repository.list_between(DAY, NEXT_DAY)
+    assert event.title == "Last"

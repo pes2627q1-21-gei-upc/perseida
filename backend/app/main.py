@@ -16,11 +16,17 @@ from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
 from app.infrastructure.auth.router import router as auth_router
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.events.config import EventsSettings
+from app.infrastructure.events.launch_library import LaunchLibraryEventSource
+from app.infrastructure.events.meteor_catalog import MeteorShowerCatalogSource
 from app.infrastructure.events.router import router as events_router
+from app.infrastructure.events.skyfield_source import SkyfieldLunarSource
+from app.infrastructure.events.usno import UsnoSolarEclipseSource
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
+from app.infrastructure.quiz.router import router as quiz_router
 from app.infrastructure.realtime.config import RealtimeSettings
 from app.infrastructure.realtime.router import router as realtime_router
 from app.infrastructure.scheduler.dependencies import (
@@ -41,6 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     auth_settings = AuthSettings()
     settings = DatabaseSettings()
     nasa_settings = NasaSettings()
+    events_settings = EventsSettings()
     scheduler = (
         get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
     )
@@ -69,12 +76,30 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     auth_settings, redis, client, UserAccountGateway(user_service)
                 )
                 nasa_timeout = nasa_settings.nasa_timeout_seconds
-                async with httpx.AsyncClient(
-                    timeout=httpx.Timeout(
-                        nasa_timeout,
-                        connect=nasa_settings.nasa_connect_timeout_seconds,
-                    )
-                ) as nasa_http:
+                async with (
+                    httpx.AsyncClient(
+                        timeout=httpx.Timeout(
+                            nasa_timeout,
+                            connect=nasa_settings.nasa_connect_timeout_seconds,
+                        )
+                    ) as nasa_http,
+                    httpx.AsyncClient(
+                        timeout=httpx.Timeout(
+                            events_settings.events_timeout_seconds,
+                            connect=events_settings.events_connect_timeout_seconds,
+                        )
+                    ) as events_http,
+                ):
+                    # One instance per process: LL2 enforces its quota and
+                    # Skyfield loads the ephemeris once (ADR-0031).
+                    app.state.event_sources = [
+                        LaunchLibraryEventSource(
+                            events_http, events_settings.launch_library_url
+                        ),
+                        UsnoSolarEclipseSource(events_http),
+                        SkyfieldLunarSource(),
+                        MeteorShowerCatalogSource(),
+                    ]
                     app.state.nasa_http = nasa_http
                     app.state.nasa_api_key = nasa_settings.nasa_api_key
                     app.state.nasa_timeout_seconds = nasa_timeout
@@ -115,6 +140,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router, prefix="/api")
     app.include_router(realtime_router, prefix="/api")
     app.include_router(events_router, prefix="/api")
+    app.include_router(quiz_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 

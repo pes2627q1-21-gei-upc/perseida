@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings==2.16.0",
     "pyjwt[crypto]==2.15.1",
     "redis==8.1.0",
+    "skyfield==1.55",
     "sqlalchemy[asyncio]==2.1.4",
     "sqlmodel==0.0.48",
     "uvicorn==0.54.0",
@@ -57,6 +58,11 @@ exclude = ["^\\.venv/"]
 module = ["apscheduler.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# Skyfield and jplephem (TG-50) ship no type information.
+module = ["skyfield.*", "jplephem.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
@@ -84,6 +90,28 @@ allow_indirect_imports = true
 name = "Dependencies go infrastructure -> application -> domain"
 type = "layers"
 layers = ["app.infrastructure", "app.application", "app.domain"]
+
+[[tool.importlinter.contracts]]
+# backend-hexagonal.md: no imports between features in domain and application;
+# what they share lives in app.domain.shared / app.application.shared.
+name = "The quiz does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.quiz", "app.application.quiz"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.realtime",
+    "app.application.users",
+]
 
 [tool.mutmut]
 # Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.

@@ -1,0 +1,166 @@
+import uuid
+from datetime import date
+
+from sqlalchemy import ColumnElement, func, select
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlmodel import col
+
+from app.domain.quiz.models import QuizAnswer, QuizQuestion
+from app.domain.quiz.rules import QUIZ_ALREADY_ANSWERED
+from app.domain.shared.errors import ConflictError
+from app.infrastructure.quiz.tables import (
+    QuizAnswerRow,
+    QuizDayRow,
+    QuizQuestionRow,
+    QuizQuestionTranslationRow,
+)
+
+
+class SqlQuizQuestionRepository:
+    """``QuizQuestionRepository`` on PostgreSQL. Each call uses its own session."""
+
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def count(self) -> int:
+        async with self._session_factory() as session:
+            total = await session.scalar(
+                select(func.count()).select_from(QuizQuestionRow)
+            )
+        return total or 0
+
+    async def ids(self) -> list[uuid.UUID]:
+        async with self._session_factory() as session:
+            rows = await session.scalars(
+                select(col(QuizQuestionRow.id)).order_by(col(QuizQuestionRow.position))
+            )
+            return list(rows)
+
+    async def at_position(self, position: int) -> QuizQuestion:
+        return await self._one(
+            col(QuizQuestionRow.position) == position, f"position {position}"
+        )
+
+    async def get(self, question_id: uuid.UUID) -> QuizQuestion:
+        return await self._one(
+            col(QuizQuestionRow.id) == question_id, f"id {question_id}"
+        )
+
+    async def _one(self, condition: ColumnElement[bool], what: str) -> QuizQuestion:
+        async with self._session_factory() as session:
+            row = await session.scalar(select(QuizQuestionRow).where(condition))
+            if row is None:
+                raise LookupError(f"No quiz question with {what}")
+            translations = await session.scalars(
+                select(QuizQuestionTranslationRow).where(
+                    col(QuizQuestionTranslationRow.question_id) == row.id
+                )
+            )
+            return QuizQuestion.model_validate(
+                {
+                    "id": row.id,
+                    "correct_option": row.correct_option,
+                    "source_url": row.source_url,
+                    "translations": {
+                        translation.language: {
+                            "statement": translation.statement,
+                            "options": translation.options,
+                            "explanation": translation.explanation,
+                        }
+                        for translation in translations
+                    },
+                }
+            )
+
+
+class SqlQuizDayRepository:
+    """``QuizDayRepository`` on PostgreSQL. Each call is its own transaction."""
+
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def get(self, quiz_date: date) -> uuid.UUID | None:
+        async with self._session_factory() as session:
+            return await session.scalar(
+                select(col(QuizDayRow.question_id)).where(
+                    col(QuizDayRow.quiz_date) == quiz_date
+                )
+            )
+
+    async def last_days(self) -> dict[uuid.UUID, date]:
+        statement = select(
+            col(QuizDayRow.question_id), func.max(col(QuizDayRow.quiz_date))
+        ).group_by(col(QuizDayRow.question_id))
+        async with self._session_factory() as session:
+            rows = (await session.execute(statement)).all()
+        return {question_id: last for question_id, last in rows}
+
+    async def assign(self, quiz_date: date, question_id: uuid.UUID) -> uuid.UUID:
+        # The first request of the day wins; the others read what it stored.
+        statement = (
+            insert(QuizDayRow)
+            .values(quiz_date=quiz_date, question_id=question_id)
+            .on_conflict_do_nothing(index_elements=["quiz_date"])
+        )
+        async with self._session_factory() as session, session.begin():
+            await session.execute(statement)
+            stored = await session.execute(
+                select(col(QuizDayRow.question_id)).where(
+                    col(QuizDayRow.quiz_date) == quiz_date
+                )
+            )
+            return stored.scalar_one()
+
+
+def _to_answer(row: QuizAnswerRow) -> QuizAnswer:
+    return QuizAnswer(
+        user_id=row.user_id,
+        quiz_date=row.quiz_date,
+        question_id=row.question_id,
+        chosen_option=row.chosen_option,
+        correct=row.correct,
+        answered_at=row.answered_at,
+    )
+
+
+class SqlQuizAnswerRepository:
+    """``QuizAnswerRepository`` on PostgreSQL. Each call is its own transaction."""
+
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def get(self, user_id: uuid.UUID, quiz_date: date) -> QuizAnswer | None:
+        async with self._session_factory() as session:
+            row = await session.scalar(
+                select(QuizAnswerRow).where(
+                    col(QuizAnswerRow.user_id) == user_id,
+                    col(QuizAnswerRow.quiz_date) == quiz_date,
+                )
+            )
+        return None if row is None else _to_answer(row)
+
+    async def add(self, answer: QuizAnswer) -> None:
+        # ON CONFLICT DO NOTHING instead of insert + catch: with two requests at
+        # once, the second one waits for the first and then skips.
+        statement = (
+            insert(QuizAnswerRow)
+            .values(
+                user_id=answer.user_id,
+                quiz_date=answer.quiz_date,
+                question_id=answer.question_id,
+                chosen_option=answer.chosen_option,
+                correct=answer.correct,
+                answered_at=answer.answered_at,
+            )
+            .on_conflict_do_nothing(index_elements=["user_id", "quiz_date"])
+            .returning(col(QuizAnswerRow.id))
+        )
+        async with self._session_factory() as session, session.begin():
+            inserted = (await session.execute(statement)).scalar_one_or_none()
+        if inserted is None:
+            raise ConflictError(
+                QUIZ_ALREADY_ANSWERED,
+                f"User {answer.user_id} already answered the quiz of "
+                f"{answer.quiz_date}",
+            )
