@@ -64,7 +64,9 @@ async def _clean_state() -> None:
     )
     redis = Redis.from_url(RedisSettings().redis_url)
     try:
-        await connection.execute("TRUNCATE users, user_identities, apod CASCADE")
+        await connection.execute(
+            "TRUNCATE users, user_identities, daily_streaks, apod CASCADE"
+        )
         for pattern in ("session:*", "user_sessions:*", "cache:apod:*"):
             async for key in redis.scan_iter(match=pattern):
                 await redis.delete(key)
