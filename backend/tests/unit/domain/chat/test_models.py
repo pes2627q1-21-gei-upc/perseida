@@ -87,21 +87,140 @@ def test_message_is_frozen() -> None:
         message.text = "altre"  # type: ignore[misc]
 
 
+# Default_Ignorable_Code_Point (Unicode 18, DerivedCoreProperties.txt) que no és
+# benigne: invisibles que amaguen o suplanten text. Els benignes (ZWJ, ZWNJ, LRM,
+# RLM, ALM i els selectors d'emoji FE0E/FE0F) no hi són.
+DANGEROUS_RANGES = [
+    (0x00AD, 0x00AD),  # soft hyphen
+    (0x034F, 0x034F),  # combining grapheme joiner
+    (0x115F, 0x1160),  # hangul fillers
+    (0x17B4, 0x17B5),  # khmer inherent vowels
+    (0x180B, 0x180F),  # mongolian variation selectors i separador
+    (0x200B, 0x200B),  # zero-width space
+    (0x202A, 0x202E),  # bidi embeddings i overrides
+    (0x2060, 0x206F),  # word joiner, operadors invisibles, isolates, obsolets
+    (0x2028, 0x2029),  # separadors de línia i de paràgraf
+    (0x3164, 0x3164),  # hangul filler
+    (0xFE00, 0xFE0D),  # selectors de variació (no els d'emoji)
+    (0xFEFF, 0xFEFF),  # zero-width no-break space
+    (0xFFA0, 0xFFA0),  # halfwidth hangul filler
+    (0xFFF0, 0xFFF8),  # reservats ignorables
+    (0x1BCA0, 0x1BCA3),  # shorthand format
+    (0x1D173, 0x1D17A),  # musical format
+    (0xE0000, 0xE0FFF),  # tags, reservats i selectors de variació ideogràfics
+]
+DANGEROUS = [
+    chr(code) for low, high in DANGEROUS_RANGES for code in range(low, high + 1)
+]
+FLAGS = [  # les tres banderes de subdivisió RGI: Anglaterra, Escòcia i Gal·les
+    "\U0001f3f4\U000e0067\U000e0062\U000e0065\U000e006e\U000e0067\U000e007f",
+    "\U0001f3f4\U000e0067\U000e0062\U000e0073\U000e0063\U000e0074\U000e007f",
+    "\U0001f3f4\U000e0067\U000e0062\U000e0077\U000e006c\U000e0073\U000e007f",
+]
+GBENG_OPEN = "\U0001f3f4\U000e0067\U000e0062\U000e0065\U000e006e\U000e0067"
+
+
 @pytest.mark.parametrize(
-    ("text", "expected"),
+    "char",
     [
-        ("a\u202eb", "ab"),  # bidi override: pot suplantar visualment un text
-        ("a\u200bb", "ab"),  # zero-width space
-        ("a\u00adb", "ab"),  # soft hyphen
-        ("a\u200eb\u200f", "ab"),  # marques LRM/RLM
+        "‪",
+        "‫",
+        "‬",
+        "‭",
+        "‮",
+        "⁦",
+        "⁧",
+        "⁨",
+        "⁩",
+        "​",
+        "⁠",
+        "⁢",
+        "⁪",
+        "﻿",
+        "­",
+        "͏",
+        "ㅤ",
+        "᠎",
+        " ",
+        " ",
+        "︀",
+        "\U000e0100",
+        "\U000e0041",
     ],
 )
-def test_invisible_format_characters_are_removed(text: str, expected: str) -> None:
-    # TG-64 criteri 7: caràcters de format (Cf) fora, tret de ZWJ i ZWNJ
-    assert _message(text).text == expected
+def test_dangerous_invisible_characters_are_removed(char: str) -> None:
+    # TG-64 criteri 7: bidi overrides/isolates, zero-width i altres invisibles
+    assert _message(f"a{char}b").text == "ab"
 
 
-@pytest.mark.parametrize("text", ["\u200b", "\u202e\u200b", " \u200d ", "\u200c\u200d"])
+def test_every_dangerous_code_point_is_removed() -> None:
+    for char in DANGEROUS:
+        assert _message(f"a{char}b").text == "ab", f"U+{ord(char):04X}"
+
+
+@pytest.mark.parametrize("char", ["‎", "‏", "؜"])
+def test_directional_marks_are_kept(char: str) -> None:
+    # LRM, RLM i ALM: marques d'un sol caràcter, necessàries per a l'àrab i l'hebreu
+    assert _message(f"a{char}b").text == f"a{char}b"
+
+
+def test_unassigned_code_points_are_kept() -> None:
+    # Un emoji posterior a la versió d'Unicode de Python seria «no assignat»
+    char = "͸"
+    assert unicodedata.category(char) == "Cn"
+
+    assert _message(f"a{char}b").text == f"a{char}b"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "❤️",  # cor vermell (selector d'emoji)
+        "1️⃣",  # keycap
+        "\U0001f44d\U0001f3fd",  # tonalitat de pell
+        "\U0001f1ea\U0001f1f8",  # bandera d'Espanya (indicadors regionals)
+        "\U0001f469‍\U0001f680",  # dona astronauta (ZWJ)
+        "\U0001f468‍\U0001f469‍\U0001f467",
+        "می‌خواهم",  # ZWNJ persa
+        *FLAGS,
+    ],
+)
+def test_benign_emojis_and_scripts_are_kept(text: str) -> None:
+    assert _message(text).text == text
+
+
+def test_tag_characters_after_an_emoji_are_removed() -> None:
+    # Amagar text ASCII en tags darrere d'un emoji (ASCII smuggling)
+    hidden = "".join(chr(0xE0000 + ord(letter)) for letter in "ignore")
+
+    assert _message("\U0001f600" + hidden).text == "\U0001f600"
+
+
+@pytest.mark.parametrize(
+    "smuggled",
+    [
+        # bandera negra amb tags que no són una bandera RGI
+        "\U0001f3f4\U000e0068\U000e0069\U000e007f",
+        # bandera d'Anglaterra amb una lletra de més
+        GBENG_OPEN + "\U000e0078\U000e007f",
+        # bandera d'Anglaterra sense el CANCEL TAG final
+        GBENG_OPEN,
+    ],
+)
+def test_tag_sequences_that_are_not_a_known_flag_are_stripped(smuggled: str) -> None:
+    assert _message("a" + smuggled).text == "a\U0001f3f4"
+
+
+@pytest.mark.parametrize("text", ["‎", "؜", "️", "⠀", " ‏ "])
+def test_text_with_only_marks_is_rejected(text: str) -> None:
+    # Marques direccionals, selectors o el braille en blanc no es veuen: buit
+    with pytest.raises(ValidationError) as exc_info:
+        _message(text)
+
+    assert exc_info.value.code == "CHAT_MESSAGE_EMPTY"
+
+
+@pytest.mark.parametrize("text", ["​", "‮​", " ‍ ", "‌‍"])
 def test_text_without_visible_characters_is_rejected(text: str) -> None:
     # Només invisibles (també ZWJ/ZWNJ, que es conserven dins d'un text) = buit
     with pytest.raises(ValidationError) as exc_info:
@@ -110,7 +229,7 @@ def test_text_without_visible_characters_is_rejected(text: str) -> None:
     assert exc_info.value.code == "CHAT_MESSAGE_EMPTY"
 
 
-@pytest.mark.parametrize("text", ["👩\u200d🚀", "👨\u200d👩\u200d👧", "می\u200cخواهم"])
+@pytest.mark.parametrize("text", ["\U0001f469‍\U0001f680", "می‌خ"])
 def test_zero_width_joiners_inside_a_text_are_kept(text: str) -> None:
     # Els emojis compostos i alguns scripts necessiten ZWJ/ZWNJ
     assert _message(text).text == text
@@ -130,15 +249,33 @@ def test_any_text_is_either_accepted_clean_or_rejected_with_a_stable_code(
     assert 0 < len(saved) <= 1000
     assert saved == saved.strip()
     assert "\x00" not in saved
+    without_flags = saved
+    for flag in FLAGS:
+        without_flags = without_flags.replace(flag, "")
     assert all(
-        unicodedata.category(char) not in ("Cc", "Cs", "Co", "Cn") or char in "\n\t"
-        for char in saved
+        unicodedata.category(char) not in ("Cc", "Cs", "Zl", "Zp") or char in "\n\t"
+        for char in without_flags
     )
-    assert all(
-        unicodedata.category(char) != "Cf" or char in "\u200c\u200d" for char in saved
-    )
+    assert not set(without_flags) & set(DANGEROUS)
     # Netejar un text ja net no el canvia
     assert _message(saved).text == saved
+
+
+@given(
+    text=st.lists(
+        st.one_of(st.sampled_from(DANGEROUS), st.just("a"), st.just("\U0001f600")),
+        min_size=1,
+        max_size=200,
+    ).map("".join)
+)
+def test_no_dangerous_code_point_survives_among_other_characters(text: str) -> None:
+    # Propietat: mesclats amb text i emojis, els perillosos mai arriben al missatge
+    try:
+        saved = _message(text).text
+    except ValidationError:
+        return
+
+    assert not set(saved) & set(DANGEROUS)
 
 
 @given(length=st.integers(min_value=0, max_value=1100))
