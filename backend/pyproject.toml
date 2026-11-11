@@ -114,6 +114,28 @@ forbidden_modules = [
     "app.application.users",
 ]
 
+[[tool.importlinter.contracts]]
+name = "The chat does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.chat"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.users",
+]
+
 [tool.mutmut]
 # Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.
 # Nota: mutmut no muta constants de mòdul, cossos de classe ni f-strings, i el domini realtime
