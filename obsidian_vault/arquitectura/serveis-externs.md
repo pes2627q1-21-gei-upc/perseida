@@ -4,7 +4,7 @@ tipus: arquitectura
 estat: vigent
 data: "2026-11-10"
 us: ["TG-85", "TG-44", "TG-46", "TG-328", "TG-50"]
-font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 i codi de backend/app/infrastructure/apod/ (2026-10-22); Taiga TG-328, crides a api.nasa.gov i al feed de science.nasa.gov (2026-10-25); Taiga TG-50, crides a ll.thespacedevs.com i codi de backend/app/infrastructure/events/ (2026-11-10)"
+font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 i codi de backend/app/infrastructure/apod/ (2026-10-22); Taiga TG-328, crides a api.nasa.gov i al feed de science.nasa.gov (2026-10-25); Taiga TG-50, crides a ll.thespacedevs.com i aa.usno.navy.mil i codi de backend/app/infrastructure/events/ (2026-11-10)"
 etiquetes: [arquitectura, integracions, nasa, google, fcm, esdeveniments]
 ---
 
@@ -19,6 +19,7 @@ Serveis de tercers que Perseida no reimplementa. L'API els consulta des del back
 | Google Identity | Inici de sessió: OAuth2 + PKCE; validació de tokens via JWKS | App (OAuth2 + PKCE), API (JWKS) |
 | Firebase Cloud Messaging (FCM) | Notificacions push | API |
 | Launch Library 2 (The Space Devs) | Llançaments de coets (esdeveniments `launch`) | API |
+| USNO (US Naval Observatory) | Eclipsis solars (esdeveniments `solar`) | API |
 
 ## NASA
 
@@ -50,7 +51,8 @@ Fonts i regles a [[0031-fonts-d-esdeveniments-sota-demanda]]. Implementat fins a
 - **Quota:** com a molt una crida per hora per procés, encara que Redis estigui caigut o hi hagi peticions concurrents (el límit gratuït és de 15 per hora). Una crida refusada per la quota no és una fallada: torna els llançaments de l'última crida, perquè una consulta concurrent també els desi.
 - **Fixture:** `backend/tests/fixtures/launch_library_2_upcoming.json`, amb dos llançaments reals (10/11/2026, retallats als camps que es llegeixen) i dos d'incomplets.
 
-L'USNO (eclipsis solars), Skyfield (lluna) i el catàleg de pluges d'estels arriben a la segona PR de TG-50.
+- **USNO:** `GET https://aa.usno.navy.mil/api/eclipses/solar/year?year=<any>` per a l'any en curs i el següent, sense clau, amb el mateix client HTTP i timeouts que Launch Library 2. Client `UsnoSolarEclipseSource` (`usno.py`). Si falla un dels dos anys, falla la font. Fixtures: `usno_solar_eclipses_2026.json` i `_2027.json` (reals, 10/11/2026).
+- **Skyfield i catàleg:** no criden cap servei extern; són càlculs i dades del repositori (vegeu [[0031-fonts-d-esdeveniments-sota-demanda]]).
 
 ## Meteorologia i contaminació lumínica
 
