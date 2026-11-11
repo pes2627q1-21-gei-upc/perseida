@@ -100,7 +100,7 @@ Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i cod
 | `EventChatRoom` | `id` (UUIDv7), `event_id`, `created_at` | una sala com a màxim per esdeveniment (0..1); immutable |
 | `ChatMessage` | `id` (UUIDv7), `room_id`, `author_id`, `text`, `sent_at` | immutable; el servidor assigna `id` i `sent_at` (UTC) |
 
-Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (el NUL fa fallar PostgreSQL), excepte el salt de línia i la tabulació. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
+Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`), els d'ús privat (`Co`), els no assignats (`Cn`) i els de format invisibles (`Cf`: zero-width, bidi overrides, guionet suau), excepte el salt de línia, la tabulació i ZWJ/ZWNJ (enganxen els emojis compostos). Efecte conegut: un emoji que la versió d'Unicode de Python no coneix (`Cn`) i les tag sequences (p. ex. la bandera d'Anglaterra, `Cf`) es degraden o es perden. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
 
 Ports: `ChatRepository` (sala per esdeveniment, desar missatge, pàgina d'històric amb cursor = id del missatge, sales d'un usuari), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (que implementarà #53). El publicador és el `PubSub` de `domain/shared/ports.py`.
 
