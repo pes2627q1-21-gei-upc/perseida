@@ -17,7 +17,7 @@ Automatitzar a la CI els llindars de cobertura bloquejants (backend i frontend) 
 ## Tasques dutes a terme
 
 ### 1. Backend: cobertura bloquejant (Tasca #368)
-- Afegit `--cov-fail-under=80` a `backend/pyproject.toml` (`[tool.pytest.ini_options] addopts`): `uv run pytest` falla automàticament si la cobertura global del backend és inferior al 80 %.
+- Configurat el llindar de cobertura global al 80 % al pas de CI de pytest (`--cov-fail-under=80` a `.github/workflows/ci.yml`), deixant `addopts` de `backend/pyproject.toml` net per permetre l'execució de tests individuals o filtrats (`-k`) durant el cicle TDD en local.
 - Instal·lat `diff-cover==11.0.1` com a dependència de desenvolupament (`pyproject.toml` i `uv.lock`).
 - Configurat `[tool.diff_cover]` a `backend/pyproject.toml` amb `fail_under = 90`.
 - Afegit pas a `.github/workflows/ci.yml`: `Verificar cobertura del codi nou al backend (diff-cover >= 90%)` que executa `uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90`.
@@ -59,8 +59,9 @@ Automatitzar a la CI els llindars de cobertura bloquejants (backend i frontend) 
   - Afegida nota d'execució en local a Windows (requisit de WSL per a mutmut i codificació `PYTHONIOENCODING=utf-8`).
 - Actualitzat [[qualitat]]: documentats els nous passos bloquejants de la CI de backend i frontend.
 - Actualitzat [[definition-of-done]]: actualitzat el requisit de cobertura i mutation a la CI com a implementat i automatitzat.
-- Actualitzada la skill `testing-mutation` (`.agents/skills/testing-mutation/SKILL.md`) i sincronitzada a `.claude/skills/`.
-- Afegits a `.gitignore`: `mutants/`, `.mutmut-cache/`, `reports/` i `.stryker-tmp/`.
+- Actualitzada [[0028-tdd-estricte-i-politica-de-testing-avancada]]: anotada la implantació a la CI dels llindars i mutation testing des d'aquesta US.
+- Actualitzats textos de cobertura i mutation a agents (`qa-tester`), skills (`testing-tdd`, `implementar-us`) i arquitectura (`frontend`, `backend-hexagonal`), sincronitzats amb `sync-skills.mjs` i `sync-agents.mjs`.
+- Actualitzat `.gitignore` amb `frontend/reports/`, `.stryker-tmp/`, `backend/mutants/` i `.mutmut-cache/`.
 - Creada aquesta nota de sessió.
 
 ## Decisions d'enginyeria i aprenentatges
@@ -72,6 +73,7 @@ Automatitzar a la CI els llindars de cobertura bloquejants (backend i frontend) 
 5. **Robustesa davant fallades de procés:** Tant a `run_mutmut_diff.py` com a `run-stryker-diff.mjs`, qualsevol fallada en obtenir el git diff o qualsevol interrupció anòmala del procés fill (senyals) surt explícitament amb codi d'error per evitar falsos positius a la CI.
 6. **Conflicte d'Haste map amb Stryker:** `jest-expo` utilitza l'escaneig Haste map de React Native. Durant l'execució de Stryker es crea el directori `.stryker-tmp`, que duplicava mòduls i provocava fallades a Jest. L'exclusió a `modulePathIgnorePatterns` a `frontend/jest.config.js` resol la incidència.
 7. **Git history complet a la CI:** Perquè tant `diff-cover` com els scripts de mutació puguin calcular el diff contra `origin/${{ github.base_ref }}`, el checkout requereix `fetch-depth: 0` tant al job `backend` com al job `frontend`.
+8. **Cobertura global a la CI vs cicle TDD local:** Situar `--cov-fail-under=80` a `addopts` impedia executar proves unitàries soltes o filtrades (`-k`) en local durant el cicle red-green de TDD (ja que un sol fitxer de test no cobreix el 80 % del backend). Es deixa la verificació bloquejant del llindar global de pytest exclusivament al pas de CI de GitHub Actions.
 
 ## Enllaços
 
