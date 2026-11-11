@@ -24,7 +24,7 @@ Fer les tasques #435 (tests en vermell) i #437 (entitats i ports) de la US #64, 
 ## Decisions preses (Oriol)
 
 - **hypothesis** s'afegeix amb versió fixada.
-- **Neteja del text:** strip i eliminar caràcters de control (excepte `\n` i `\t`); mai truncar; el límit es comprova després de netejar.
+- **Neteja del text:** strip i eliminar caràcters de control i de format invisibles (excepte `\n`, `\t`, ZWJ i ZWNJ, que mantenen els emojis compostos); mai truncar; el límit es comprova després de netejar.
 - **Atributs:** `EventChatRoom(id, event_id, created_at)` i `ChatMessage(id, room_id, author_id, text, sent_at)`.
 - **Cursor de l'històric:** l'id del missatge (UUIDv7 és ordenable per temps).
 
