@@ -2,7 +2,9 @@ import uuid
 from datetime import date, timedelta
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+from app.domain.shared.errors import ValidationError
 
 
 class DailyStreak(BaseModel):
@@ -14,6 +16,16 @@ class DailyStreak(BaseModel):
     user_id: uuid.UUID
     current_count: int
     last_activity_date: date
+
+    @field_validator("current_count")
+    @classmethod
+    def _require_positive_count(cls, value: int) -> int:
+        # Same rule as the CHECK of the ``daily_streaks`` table.
+        if value < 1:
+            raise ValidationError(
+                "STREAK_COUNT_INVALID", "Streak count must be at least 1"
+            )
+        return value
 
     @classmethod
     def start(cls, user_id: uuid.UUID, today: date) -> Self:
