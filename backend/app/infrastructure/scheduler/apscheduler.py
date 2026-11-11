@@ -37,9 +37,9 @@ class ApschedulerJobScheduler:
             try:
                 await func()
             except asyncio.CancelledError:
-                # Shutdown cancels in-flight jobs; end quietly instead of letting
-                # APScheduler log the cancellation as a job error.
+                # Preserve cancellation after logging the shutdown of an in-flight job.
                 logger.info("Scheduled job %s cancelled on shutdown", name)
+                raise
             except Exception:
                 logger.exception("Scheduled job %s failed", name, extra={"job": name})
 
