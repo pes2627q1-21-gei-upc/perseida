@@ -2,8 +2,8 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-10-24"
-us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-351"]
+data: "2026-11-07"
+us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351"]
 font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
 ---
@@ -58,6 +58,8 @@ Variables a `.env.example`: `HTTP_PORT`, `HTTPS_PORT` i `NPM_ADMIN_PORT`. El tok
 ## Estat d'implementació
 
 implementat (TG-89): en local i a producció. A producció, `/admin/` funcionarà quan la VM tingui el compose amb el volum `admin_dist` i el paquet de la TG-77.
+
+`/api/ws` ja té endpoint (TG-63): amb `websocket.conf` el handshake arriba a l'API i dona `101 Switching Protocols`. El primer frame ha de ser `auth` i el `proxy_read_timeout` de 3600 s és molt superior al heartbeat de l'app (30 s). Vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]].
 
 > [!warning] El panell es serveix a `/admin/`
 > L'export web d'Expo ha de tenir `experiments.baseUrl: "/admin"` a `frontend/app.json` (TG-77). Sense això, el paquet demana `/_expo/static/...` des de l'arrel, que va a l'API i dona 404.

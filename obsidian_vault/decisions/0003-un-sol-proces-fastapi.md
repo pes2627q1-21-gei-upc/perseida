@@ -16,7 +16,7 @@ El backend ha d'atendre peticions REST de l'app mòbil i del panell d'administra
 
 ## Decisió
 
-L'API s'executa en un únic contenidor FastAPI que integra tres responsabilitats en un sol procés: REST, WebSocket del xat (amb Redis pub/sub) i un planificador intern APScheduler, sense processos worker dedicats.
+L'API s'executa en un únic contenidor FastAPI que integra tres responsabilitats en un sol procés: REST, WebSocket del xat (amb Redis pub/sub) i un planificador intern APScheduler, sense processos worker dedicats. El protocol del WebSocket (TG-63) és a [[0030-protocol-websocket-i-revocacio-per-pub-sub]].
 
 ## Conseqüències
 
