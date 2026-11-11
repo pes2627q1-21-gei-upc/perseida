@@ -28,7 +28,7 @@ Automatitzar a la CI els llindars de cobertura bloquejants (backend i frontend) 
 - El llindar de cobertura per al codi nou (≥ 90 %) queda garantit pel Quality Gate de SonarQube Cloud ([[0012-sonarqube-cloud-i-quality-gate]]).
 
 ### 3. Backend: mutation testing al domini sobre el diff (Tasca #370)
-- Instal·lat `mutmut==3.8.0` a `backend/pyproject.toml` i sincronitzat `uv.lock`.
+- Instal·lat `mutmut==3.8.1` a `backend/pyproject.toml` i sincronitzat `uv.lock`.
 - Configurada la secció `[tool.mutmut]` a `pyproject.toml` amb `source_paths = ["app/domain"]`, `also_copy = ["app/application", "app/infrastructure", "tests/"]`, `pytest_add_cli_args = ["-o", "addopts="]` i `pytest_add_cli_args_test_selection = ["tests/unit/domain"]`.
 - Creat l'script `backend/scripts/run_mutmut_diff.py`:
   - Detecta fitxers canviats a `app/domain` respecte a `--base-branch` (`origin/develop` per defecte, o `origin/${{ github.base_ref }}` a la CI).
