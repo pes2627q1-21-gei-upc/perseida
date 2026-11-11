@@ -110,4 +110,24 @@ name = "Dependencies go infrastructure -> application -> domain"
 type = "layers"
 layers = ["app.infrastructure", "app.application", "app.domain"]
 
-
+[[tool.importlinter.contracts]]
+# backend-hexagonal.md: no imports between features in domain and application;
+# what they share lives in app.domain.shared / app.application.shared.
+name = "The quiz does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.quiz", "app.application.quiz"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.realtime",
+    "app.application.users",
+]
