@@ -1,8 +1,8 @@
 """Contract fuzzing of the whole API with schemathesis (TG-360, US #360).
 
 The app runs in process (ASGI, with its lifespan) over PostgreSQL and Redis for
-real; Google and the NASA are simulated with respx, so nothing leaves the
-machine. The seed is fixed: a failure reproduces.
+real; Google, the NASA and Launch Library 2 are simulated with respx, so nothing
+leaves the machine. The seed is fixed: a failure reproduces.
 """
 
 import asyncio
@@ -26,6 +26,7 @@ from app.infrastructure.apod.nasa_client import APOD_URL
 from app.infrastructure.apod.nasa_feed_client import FEED_URL
 from app.infrastructure.auth.google_verifier import GOOGLE_CERTS_URL
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.events.launch_library import LAUNCH_LIBRARY_URL
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.scheduler.dependencies import get_scheduler_settings
 from app.main import create_app
@@ -87,10 +88,14 @@ def api_schema() -> Iterator[Any]:
     _migrate()
     asyncio.run(_clean_state())
     apod = json.loads((FIXTURES / "nasa_apod_image.json").read_text(encoding="utf-8"))
+    launches = json.loads(
+        (FIXTURES / "launch_library_2_upcoming.json").read_text(encoding="utf-8")
+    )
     with respx.mock(assert_all_called=False) as external:
         external.get(GOOGLE_CERTS_URL).respond(json={"keys": [jwk(KEY, "k1")]})
         external.get(FEED_URL).respond(503)
         external.get(APOD_URL).respond(json=apod)
+        external.get(LAUNCH_LIBRARY_URL).respond(json=launches)
         config = SchemathesisConfig.from_dict(
             {
                 "seed": SEED,

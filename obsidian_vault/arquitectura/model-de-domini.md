@@ -4,7 +4,7 @@ tipus: arquitectura
 estat: vigent
 data: "2026-11-10"
 us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026)"
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -98,12 +98,12 @@ Entitat `AstronomicalEvent` a `app/domain/events/models.py`; port `EventReposito
 | Camp | Notes |
 |---|---|
 | `id` | `uuid` UUIDv7, clau primària interna i estable |
-| `source`, `external_id` | origen de l'esdeveniment; `UNIQUE (source, external_id)`. `source`: `launch_library_2`, `usno`, `skyfield`, `catalog` (criteri 2 de TG-50; pendent de confirmar a l'ADR-0030) |
-| `title`, `summary` | text, en l'idioma de la font; que no sigui buit ho comprova `EventResponse` en publicar-lo |
+| `source`, `external_id` | origen de l'esdeveniment; `UNIQUE (source, external_id)`. `source`: `launch_library_2`, `usno`, `skyfield`, `catalog` (fixats a [[0031-fonts-d-esdeveniments-sota-demanda|ADR-0031]]) |
+| `title`, `summary` | text, en l'idioma de la font; no buit (ho comproven l'entitat i `EventResponse`) |
 | `category` | `lunar`, `solar`, `meteor_shower`, `launch` |
 | `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` (a l'entitat, `EVENT_ENDS_BEFORE_START`). Índex a cadascuna |
 | `latitude`, `longitude` | `double precision`, opcionals però totes dues o cap; índex GiST d'expressió `geography` (sense `geoalchemy2`) |
-| `source_url` | opcional |
+| `source_url` | opcional; només https (l'adaptador hi aplica `safe_https_url`) |
 | `created_at`, `updated_at` | `timestamptz`, `now()` per defecte |
 
 Consultes del port, ordenades per `starts_at`:
@@ -111,24 +111,30 @@ Consultes del port, ordenades per `starts_at`:
 - `list_between(start, end)`: els esdeveniments que se solapen amb `[start, end)`, és a dir, `starts_at < end` i `ends_at >= start`. Un esdeveniment instantani a `start` hi surt.
 - `list_starting_between(start, end)`: els que compleixen `start <= starts_at < end`.
 
-L'escriptura (upsert per `(source, external_id)`) és de TG-50.
+Escriptura i consulta per id (TG-50):
 
-> [!todo] Pendent per a TG-50
-> - Validar `source_url` (només https, `safe_https_url`) quan les dades entrin pels proveïdors. Ara només la valida `EventResponse` en publicar-la.
-> - `updated_at` només té valor per defecte a l'INSERT. L'upsert l'ha d'actualitzar explícitament (`now()`).
+- `upsert_many(drafts)`: desa els `EventDraft` (l'esdeveniment tal com el dona una font, amb `source` i `external_id` i sense `id`). Si `(source, external_id)` ja hi és, n'actualitza les dades i `updated_at` (`now()`) i en conserva l'`id` i `created_at`. Si el lot repeteix una clau, es desa l'últim.
+- `exists(event_id)`: si l'esdeveniment existeix (el fa servir TG-64 per a la sala de xat).
+
+Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventService` les refresca sota demanda abans de cada consulta ([[0031-fonts-d-esdeveniments-sota-demanda]]).
+
+> [!todo] Pendent per a TG-51 (proximitat)
 > - L'índex GiST és parcial (`WHERE latitude IS NOT NULL`). La consulta de proximitat ha de fer servir la mateixa expressió, `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`, i el mateix predicat.
 
 ## Quiz diari (implementat)
 
-Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.py` (migracions `create_quiz` i `seed_quiz_questions`, TG-60). `DailyQuiz` no té taula: la pregunta del dia es calcula a partir de la data ([[contracte-quiz]]).
+Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.py` (migracions `create_quiz` i `seed_quiz_questions`, TG-60). `DailyQuiz` és la taula `quiz_days`: la pregunta d'un dia es calcula per rotació la primera vegada que es demana i s'hi desa, de manera que no canvia si el banc creix ([[contracte-quiz]]).
 
 | Taula | Camps |
 |---|---|
-| `quiz_questions` | `id` UUIDv7, `position` (única, ordre de rotació), `correct_option` 0-3, `source_url` |
+| `quiz_questions` | `id` UUIDv7 fix (ve del fitxer del seed), `position` (única, ordre de rotació), `correct_option` 0-3, `source_url` |
 | `quiz_question_translations` | PK `(question_id, language)`, `statement`, `options` (4 textos), `explanation`; FK a `quiz_questions` amb `CASCADE` |
+| `quiz_days` (`DailyQuiz`) | PK `quiz_date`, `question_id` (FK, `RESTRICT`) |
 | `quiz_answers` (`QuizResult`) | `id` UUIDv7, `user_id` (FK a `users`, `CASCADE`), `quiz_date`, `question_id` (FK, `RESTRICT`), `chosen_option`, `correct`, `answered_at`; única `(user_id, quiz_date)` |
 
 `score` del diagrama és `correct` (cert o fals): hi ha una sola pregunta per dia.
+
+Desfer la migració `seed_quiz_questions` només esborra les preguntes sense respostes ni dies; tornar-la a aplicar insereix la resta amb els mateixos `id`. `Language` és a `app/domain/shared/language.py` perquè el fan servir users i quiz.
 
 ## Diagrama (transcripció)
 

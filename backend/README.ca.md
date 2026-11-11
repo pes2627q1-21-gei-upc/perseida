@@ -328,6 +328,41 @@ Als tests fes servir `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integr
 
 Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) són a `app/application/auth/errors.py` i al catàleg d'errors. Els tres que també llança `users` (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) es defineixen a `app/application/shared/error_codes.py` i `AccountStatus` a `app/domain/shared/account.py`, de manera que `auth` i `users` no s'importen mai entre ells a `domain` ni a `application` (`tests/architecture`); `main.py` els compon passant `UserAccountGateway` a `build_auth_service`.
 
+## WebSocket (temps real)
+
+`/api/ws` (`wss://` darrere nginx-proxy-manager) és l'endpoint de temps real del xat i dels esdeveniments, dins el mateix procés FastAPI i sobre el pub/sub de Redis ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). Les sales concretes són de les funcionalitats que l'usen (US #64 i #65).
+
+**Handshake i autenticació.** El handshake no porta cap token ni paràmetre de consulta. El primer frame ha de ser `{"type":"auth","token":"<access token>"}`; si és vàlid i no està revocat, el servidor respon `{"type":"auth","payload":{}}`. Qualsevol altre primer frame, un token invàlid, caducat, de refresh o revocat, o no rebre cap frame en `WS_AUTH_TIMEOUT_SECONDS`, tanca amb 4401. El token no surt mai a la URL ni als logs. L'endpoint crida `AuthService.authenticate` directament (`CurrentSessionDep` usa `HTTPBearer`, que no funciona per WebSocket).
+
+**Embolcall.** Tots els frames, en tots dos sentits, són JSON `{type, room?, payload, id}` (`app/domain/realtime/models.py`) amb `type` entre `auth`, `subscribe`, `unsubscribe`, `message`, `error`, `ping`, `pong`. `room` compleix `^[a-z0-9_-]+(:[a-z0-9_-]+)*$` (màxim 64) i viatja pel canal Redis `room:<room>`.
+
+| El client envia | El servidor respon |
+|---|---|
+| `subscribe` (+`room`) / `unsubscribe` | Eco del mateix `type`, `room` i `id` amb `payload: {}`. Subscriure's dues vegades no duplica missatges; donar-se de baixa d'una sala desconeguda no és un error. |
+| `message` (+`room`, `payload`) | Eco com a acusament; la resta de subscriptors de la sala el reben, l'emissor no. |
+| `ping` | `pong` amb el mateix `id`. |
+| `pong` | Res (resposta al `ping` del heartbeat del servidor). |
+
+**Heartbeat.** Cada `WS_HEARTBEAT_SECONDS` el servidor envia un `ping`; si al tic següent no ha arribat cap `pong`, tanca amb 1001. En cada tic també comprova que l'access token encara existeix, de manera que una sessió caducada o revocada tanca amb 4401.
+
+**Revocació.** `RedisSessionStore` publica `{"sid": ...}` (`null` per a `revoke_all`) a `session-revoked:<sub>` després de revocar; el WebSocket subscrit a aquest canal tanca a l'instant amb 4401 si el `sid` és el seu o `null`. Si la publicació falla (Redis caigut) la revocació del token es manté, es registra un avís i l'error no es propaga; el socket es tanca al tic de heartbeat següent.
+
+**Errors.** Un frame incorrecte (no és JSON, surt de l'embolcall, `type` desconegut, `room` invàlida) rep un frame `error` i la connexió continua oberta. El `payload` és RFC 9457 (`type`, `title`, `status`, `detail`, `code`, `correlation_id`) amb codis estables (`app/application/realtime/errors.py`), el catàleg que reutilitzen #64 i #65: `VALIDATION_ERROR` (422), `UNKNOWN_FRAME_TYPE` (422), `NOT_SUBSCRIBED` (409, `message` a una sala on el client no és subscrit), `PUBSUB_UNAVAILABLE` (503, Redis caigut en subscriure o publicar), `INTERNAL_ERROR` (500), `FORBIDDEN` (403) i `RATE_LIMITED` (429). Codis de tancament: 4401 no autenticada, revocada o caducada; 1013 Redis falla a mitja connexió; 1011 error intern; 1003 frame binari; 1001 heartbeat sense resposta; 4429 massa connexions simultànies de l'usuari.
+
+| Variable | Significat |
+|---|---|
+| `WS_AUTH_TIMEOUT_SECONDS` | Segons per enviar el frame `auth` (10 per defecte) |
+| `WS_HEARTBEAT_SECONDS` | Interval del heartbeat en segons (30 per defecte) |
+| `WS_MAX_ROOMS` | Màxim de sales per connexió (20 per defecte) |
+| `WS_MAX_FRAME_BYTES` | Mida màxima d'un frame entrant en bytes (65536 per defecte) |
+| `WS_SEND_TIMEOUT_SECONDS` | Màxim de segons per enviar un frame a un client (5 per defecte) |
+
+Subscriure's a una sala nova passat `WS_MAX_ROOMS` es respon amb l'error `RATE_LIMITED` i la connexió continua oberta. Un frame més gran que `WS_MAX_FRAME_BYTES` es respon amb `VALIDATION_ERROR` (o tanca amb 4401 si és el primer frame) i no es processa. Un frame binari tanca amb 1003. Un client que no llegeix (un enviament que supera `WS_SEND_TIMEOUT_SECONDS`) es tanca amb 1013. La connexió d'un usuari que ja en té `WS_MAX_CONNECTIONS_PER_USER` es tanca amb 4429 en autenticar-se, sense enviar res; la resta de connexions de l'usuari no es toquen. El `correlation_id` dels errors és el de la petició del handshake (`X-Correlation-ID`) i també és als logs.
+
+Al contenidor, uvicorn aplica `WS_MAX_FRAME_BYTES` abans que l'aplicació rebi el missatge i tanca els missatges massa grans amb el codi 1009; els errors d'aplicació descrits més amunt corresponen a servidors que no apliquen abans aquest límit.
+
+`uvicorn` necessita una llibreria WebSocket (`websockets`, fixada a `pyproject.toml`); sense ella respon 404 al handshake. `tests/integration/test_websocket_uvicorn.py` comprova el 101 contra un servidor real. Altres proves: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) i `tests/integration/test_websocket_redis.py` (Redis real, dos clients, revocació i Redis caigut amb un proxy TCP que es pot tallar).
+
 ## Testing i qualitat
 
 - Piràmide de proves: ~60 % unitàries, ~30 % d'integració (PostgreSQL/PostGIS i Redis efímers, API amb `httpx.AsyncClient`, APIs externes simulades amb `respx`) i ~10 % E2E (Maestro a l'app mòbil i Playwright a l'admin; previst, US #361).

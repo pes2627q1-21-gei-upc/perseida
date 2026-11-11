@@ -374,6 +374,42 @@ For tests use `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/t
 
 The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) are in `app/application/auth/errors.py` and in the error catalog. The three that `users` also raises (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) are defined in `app/application/shared/error_codes.py` and `AccountStatus` in `app/domain/shared/account.py`, so `auth` and `users` never import each other in `domain` or `application` (`tests/architecture`); `main.py` composes them by handing `UserAccountGateway` to `build_auth_service`.
 
+## WebSocket (real time)
+
+`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The concrete rooms belong to the features that use it (US #64 and #65).
+
+**Handshake and auth.** The handshake takes no token or query parameter. The first frame must be `{"type":"auth","token":"<access token>"}`; if it is valid and not revoked, the server answers `{"type":"auth","payload":{}}`. Any other first frame, an invalid, expired, refresh or revoked token, or no frame within `WS_AUTH_TIMEOUT_SECONDS` closes with 4401. The token never appears in the URL or the logs. The endpoint calls `AuthService.authenticate` directly (`CurrentSessionDep` uses `HTTPBearer`, which does not work over WebSocket).
+
+**Envelope.** Every frame, both ways, is JSON `{type, room?, payload, id}` (`app/domain/realtime/models.py`) with `type` one of `auth`, `subscribe`, `unsubscribe`, `message`, `error`, `ping`, `pong`. `room` matches `^[a-z0-9_-]+(:[a-z0-9_-]+)*$` (max 64) and travels on Redis channel `room:<room>`.
+
+| Client sends | Server answers |
+|---|---|
+| `subscribe` (+`room`) / `unsubscribe` | Echo of the same `type`, `room` and `id` with `payload: {}`. Subscribing twice does not duplicate messages; unsubscribing from an unknown room is not an error. |
+| `message` (+`room`, `payload`) | Echo as acknowledgement; the other subscribers of the room receive it, the sender does not. |
+| `ping` | `pong` with the same `id`. |
+| `pong` | Nothing (answer to the server's heartbeat `ping`). |
+
+**Heartbeat.** Every `WS_HEARTBEAT_SECONDS` the server sends a `ping`; without a `pong` by the next tick it closes with 1001. At each tick it also checks that the access token still exists, so an expired or revoked session closes with 4401.
+
+**Revocation.** `RedisSessionStore` publishes `{"sid": ...}` (`null` for `revoke_all`) to `session-revoked:<sub>` after revoking; the WebSocket subscribed to that channel closes with 4401 at once if the `sid` is its own or `null`. If the publish fails (Redis down) the token revocation stands, a warning is logged and the error is not raised; the socket closes at the next heartbeat tick.
+
+**Errors.** A bad frame (not JSON, outside the envelope, unknown `type`, invalid `room`) gets an `error` frame and the connection stays open. Its `payload` is RFC 9457 (`type`, `title`, `status`, `detail`, `code`, `correlation_id`) with stable codes (`app/application/realtime/errors.py`), the catalog that #64 and #65 reuse: `VALIDATION_ERROR` (422), `UNKNOWN_FRAME_TYPE` (422), `NOT_SUBSCRIBED` (409, `message` to a room the client has not subscribed to), `PUBSUB_UNAVAILABLE` (503, Redis down on subscribe or publish), `INTERNAL_ERROR` (500), `FORBIDDEN` (403) and `RATE_LIMITED` (429). Close codes: 4401 not authenticated, revoked or expired; 1013 Redis fails mid-connection; 1011 internal error; 1003 binary frame; 1001 heartbeat without reply; 4429 too many simultaneous connections for the user.
+
+| Variable | Meaning |
+|---|---|
+| `WS_AUTH_TIMEOUT_SECONDS` | Seconds to send the `auth` frame (10 by default) |
+| `WS_HEARTBEAT_SECONDS` | Heartbeat interval in seconds (30 by default) |
+| `WS_MAX_ROOMS` | Maximum rooms per connection (20 by default) |
+| `WS_MAX_FRAME_BYTES` | Maximum size of an incoming frame in bytes (65536 by default) |
+| `WS_SEND_TIMEOUT_SECONDS` | Maximum seconds to send a frame to a client (5 by default) |
+| `WS_MAX_CONNECTIONS_PER_USER` | Maximum simultaneous connections per user (3 by default) |
+
+Subscribing to a new room past `WS_MAX_ROOMS` is answered with the `RATE_LIMITED` error and the connection stays open. A frame larger than `WS_MAX_FRAME_BYTES` is answered with `VALIDATION_ERROR` (or closes with 4401 if it is the first frame) and is not processed. A binary frame closes with 1003. A client that does not read (a send exceeding `WS_SEND_TIMEOUT_SECONDS`) is closed with 1013. The connection of a user who already has `WS_MAX_CONNECTIONS_PER_USER` is closed with 4429 on authenticating, without sending anything; the user's other connections are untouched. The `correlation_id` of the errors is the one of the handshake request (`X-Correlation-ID`) and is also in the logs.
+
+In the container, uvicorn enforces `WS_MAX_FRAME_BYTES` before the application receives a message and closes oversized messages with code 1009; the application-level errors described above apply when a server does not enforce that limit first.
+
+`uvicorn` needs a WebSocket library (`websockets`, pinned in `pyproject.toml`); without one it answers the handshake with 404. `tests/integration/test_websocket_uvicorn.py` checks the 101 against a real server. Other tests: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) and `tests/integration/test_websocket_redis.py` (real Redis, two clients, revocation and Redis down through a cuttable TCP proxy).
+
 ## Testing and quality
 
 - Test pyramid: ~60 % unit, ~30 % integration (ephemeral PostgreSQL/PostGIS and Redis, API with `httpx.AsyncClient`, external APIs mocked with `respx`) and ~10 % E2E (Maestro on the mobile app and Playwright on the admin; planned, US #361).

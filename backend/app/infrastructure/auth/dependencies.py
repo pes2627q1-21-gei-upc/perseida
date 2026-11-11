@@ -10,11 +10,12 @@ from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.auth.errors import INVALID_SESSION
 from app.application.shared.errors import UnauthorizedError
 from app.domain.auth.models import SessionClaims
-from app.domain.auth.ports import AccountGateway
+from app.domain.auth.ports import AccountGateway, SessionStore
 from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.google_verifier import GoogleJwksVerifier
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
+from app.infrastructure.cache.redis_pubsub import RedisPubSub
 
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_DAY = 24 * 60 * 60
@@ -30,7 +31,7 @@ def build_auth_service(
     return AuthService(
         verifier=GoogleJwksVerifier(client, settings.google_client_ids),
         codec=JwtTokenCodec(settings.jwt_secret),
-        store=RedisSessionStore(redis),
+        store=RedisSessionStore(redis, RedisPubSub(redis)),
         accounts=accounts,
         durations=SessionDurations(
             access_seconds=settings.access_token_minutes * SECONDS_PER_MINUTE,
@@ -44,6 +45,11 @@ def get_auth_service(conn: HTTPConnection) -> AuthService:
     # clients (ADR-0017) and the verifier keeps Google's keys in memory.
     service: AuthService = conn.app.state.auth_service
     return service
+
+
+def get_session_store(conn: HTTPConnection) -> SessionStore:
+    redis = conn.app.state.redis
+    return RedisSessionStore(redis, RedisPubSub(redis))
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]

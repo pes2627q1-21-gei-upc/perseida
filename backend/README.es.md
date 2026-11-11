@@ -328,6 +328,42 @@ En los tests usa `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integratio
 
 Los códigos de error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) están en `app/application/auth/errors.py` y en el catálogo de errores. Los tres que también lanza `users` (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) se definen en `app/application/shared/error_codes.py` y `AccountStatus` en `app/domain/shared/account.py`, de modo que `auth` y `users` nunca se importan entre sí en `domain` ni en `application` (`tests/architecture`); `main.py` los compone pasando `UserAccountGateway` a `build_auth_service`.
 
+## WebSocket (tiempo real)
+
+`/api/ws` (`wss://` detrás de nginx-proxy-manager) es el endpoint de tiempo real del chat y de los eventos, dentro del mismo proceso FastAPI y sobre el pub/sub de Redis ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). Las salas concretas son de las funcionalidades que lo usan (US #64 y #65).
+
+**Handshake y autenticación.** El handshake no lleva ningún token ni parámetro de consulta. El primer frame debe ser `{"type":"auth","token":"<access token>"}`; si es válido y no está revocado, el servidor responde `{"type":"auth","payload":{}}`. Cualquier otro primer frame, un token inválido, caducado, de refresh o revocado, o no recibir ningún frame en `WS_AUTH_TIMEOUT_SECONDS`, cierra con 4401. El token nunca aparece en la URL ni en los logs. El endpoint llama a `AuthService.authenticate` directamente (`CurrentSessionDep` usa `HTTPBearer`, que no funciona por WebSocket).
+
+**Envoltorio.** Todos los frames, en ambos sentidos, son JSON `{type, room?, payload, id}` (`app/domain/realtime/models.py`) con `type` entre `auth`, `subscribe`, `unsubscribe`, `message`, `error`, `ping`, `pong`. `room` cumple `^[a-z0-9_-]+(:[a-z0-9_-]+)*$` (máximo 64) y viaja por el canal Redis `room:<room>`.
+
+| El cliente envía | El servidor responde |
+|---|---|
+| `subscribe` (+`room`) / `unsubscribe` | Eco del mismo `type`, `room` e `id` con `payload: {}`. Suscribirse dos veces no duplica mensajes; darse de baja de una sala desconocida no es un error. |
+| `message` (+`room`, `payload`) | Eco como acuse; el resto de suscriptores de la sala lo reciben, el emisor no. |
+| `ping` | `pong` con el mismo `id`. |
+| `pong` | Nada (respuesta al `ping` del heartbeat del servidor). |
+
+**Heartbeat.** Cada `WS_HEARTBEAT_SECONDS` el servidor envía un `ping`; si en el tic siguiente no ha llegado ningún `pong`, cierra con 1001. En cada tic también comprueba que el access token sigue existiendo, de modo que una sesión caducada o revocada cierra con 4401.
+
+**Revocación.** `RedisSessionStore` publica `{"sid": ...}` (`null` para `revoke_all`) en `session-revoked:<sub>` tras revocar; el WebSocket suscrito a ese canal cierra al instante con 4401 si el `sid` es el suyo o `null`. Si la publicación falla (Redis caído) la revocación del token se mantiene, se registra un aviso y el error no se propaga; el socket se cierra en el tic de heartbeat siguiente.
+
+**Errores.** Un frame incorrecto (no es JSON, sale del envoltorio, `type` desconocido, `room` inválida) recibe un frame `error` y la conexión sigue abierta. El `payload` es RFC 9457 (`type`, `title`, `status`, `detail`, `code`, `correlation_id`) con códigos estables (`app/application/realtime/errors.py`), el catálogo que reutilizan #64 y #65: `VALIDATION_ERROR` (422), `UNKNOWN_FRAME_TYPE` (422), `NOT_SUBSCRIBED` (409, `message` a una sala en la que el cliente no está suscrito), `PUBSUB_UNAVAILABLE` (503, Redis caído al suscribirse o publicar), `INTERNAL_ERROR` (500), `FORBIDDEN` (403) y `RATE_LIMITED` (429). Códigos de cierre: 4401 no autenticada, revocada o caducada; 1013 Redis falla a mitad de conexión; 1011 error interno; 1003 frame binario; 1001 heartbeat sin respuesta; 4429 demasiadas conexiones simultáneas del usuario.
+
+| Variable | Significado |
+|---|---|
+| `WS_AUTH_TIMEOUT_SECONDS` | Segundos para enviar el frame `auth` (10 por defecto) |
+| `WS_HEARTBEAT_SECONDS` | Intervalo del heartbeat en segundos (30 por defecto) |
+| `WS_MAX_ROOMS` | Máximo de salas por conexión (20 por defecto) |
+| `WS_MAX_FRAME_BYTES` | Tamaño máximo de un frame entrante en bytes (65536 por defecto) |
+| `WS_SEND_TIMEOUT_SECONDS` | Máximo de segundos para enviar un frame a un cliente (5 por defecto) |
+| `WS_MAX_CONNECTIONS_PER_USER` | Máximo de conexiones simultáneas por usuario (3 por defecto) |
+
+Suscribirse a una sala nueva pasado `WS_MAX_ROOMS` se responde con el error `RATE_LIMITED` y la conexión sigue abierta. Un frame mayor que `WS_MAX_FRAME_BYTES` se responde con `VALIDATION_ERROR` (o cierra con 4401 si es el primer frame) y no se procesa. Un frame binario cierra con 1003. Un cliente que no lee (un envío que supera `WS_SEND_TIMEOUT_SECONDS`) se cierra con 1013. La conexión de un usuario que ya tiene `WS_MAX_CONNECTIONS_PER_USER` se cierra con 4429 al autenticarse, sin enviar nada; el resto de conexiones del usuario no se tocan. El `correlation_id` de los errores es el de la petición del handshake (`X-Correlation-ID`) y también está en los logs.
+
+En el contenedor, uvicorn aplica `WS_MAX_FRAME_BYTES` antes de que la aplicación reciba el mensaje y cierra los mensajes demasiado grandes con el código 1009; los errores de aplicación descritos arriba corresponden a servidores que no aplican antes ese límite.
+
+`uvicorn` necesita una librería WebSocket (`websockets`, fijada en `pyproject.toml`); sin ella responde 404 al handshake. `tests/integration/test_websocket_uvicorn.py` comprueba el 101 contra un servidor real. Otras pruebas: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) y `tests/integration/test_websocket_redis.py` (Redis real, dos clientes, revocación y Redis caído con un proxy TCP que se puede cortar).
+
 ## Testing y calidad
 
 - Pirámide de pruebas: ~60 % unitarias, ~30 % de integración (PostgreSQL/PostGIS y Redis efímeros, API con `httpx.AsyncClient`, APIs externas simuladas con `respx`) y ~10 % E2E (Maestro en la app móvil y Playwright en el admin; previsto, US #361).

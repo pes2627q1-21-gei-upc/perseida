@@ -16,11 +16,13 @@ dependencies = [
     "sqlalchemy[asyncio]==2.1.4",
     "sqlmodel==0.0.48",
     "uvicorn==0.54.0",
+    "websockets==17.4",
 ]
 
 [dependency-groups]
 dev = [
     "import-linter==2.15",
+    "mutmut==3.8.1",
     "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
@@ -72,13 +74,21 @@ forbidden_modules = ["fastapi", "sqlmodel", "sqlalchemy", "redis", "asyncpg", "h
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
-name = "Application does not import infrastructure or FastAPI"
+name = "Application does not import infrastructure, FastAPI, Starlette or Redis"
 type = "forbidden"
 source_modules = ["app.application"]
-forbidden_modules = ["app.infrastructure", "fastapi"]
+forbidden_modules = ["app.infrastructure", "fastapi", "starlette", "redis"]
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
 name = "Dependencies go infrastructure -> application -> domain"
 type = "layers"
 layers = ["app.infrastructure", "app.application", "app.domain"]
+
+[tool.mutmut]
+# Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.
+# Nota: mutmut no muta constants de mòdul, cossos de classe ni f-strings, i el domini realtime
+# només en té; per això genera 0 mutants (vegeu la PR: mutació manual dels mateixos punts).
+source_paths = ["app/domain/realtime/"]
+pytest_add_cli_args = ["--no-cov"]
+pytest_add_cli_args_test_selection = ["tests/unit/domain/realtime/"]
