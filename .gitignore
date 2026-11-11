@@ -21,6 +21,8 @@ __pycache__/
 .coverage.*
 htmlcov/
 coverage.xml
+mutants/
+.mutmut-cache/
 
 # ---------------------------------------------------------------------------
 # Node / Expo (frontend)
@@ -32,6 +34,8 @@ node_modules/
 dist/
 web-build/
 coverage/
+reports/
+.stryker-tmp/
 .nyc_output/
 *.tsbuildinfo
 npm-debug.log*
