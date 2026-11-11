@@ -501,6 +501,210 @@
         }
       }
     },
+    "/api/quiz/today": {
+      "get": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Pregunta del quiz diari",
+        "description": "Retorna la pregunta del dia (UTC) en l'idioma demanat, sense la solució. Si l'usuari ja ha respost, inclou el seu resultat.",
+        "operationId": "get_quiz_today",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Language"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari.",
+              "title": "Lang"
+            },
+            "description": "Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La pregunta del dia.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizTodayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`lang` no suportat o dades mal formades (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/today/answer": {
+      "post": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Respon la pregunta del quiz diari",
+        "description": "Desa la resposta de l'usuari a la pregunta d'avui (UTC) i retorna si és correcta, amb l'explicació i la font. Només s'hi pot respondre un cop.",
+        "operationId": "answer_quiz_today",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Language"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari.",
+              "title": "Lang"
+            },
+            "description": "Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuizAnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "El resultat de la resposta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizResultResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "La pregunta no és la del dia (`QUIZ_QUESTION_MISMATCH`), `lang` no suportat o dades mal formades (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ja s'ha respost avui (`QUIZ_ALREADY_ANSWERED`) o la data no és la d'avui (`QUIZ_EXPIRED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/streaks/me/activity": {
       "post": {
         "tags": [
@@ -885,7 +1089,8 @@
           "es",
           "en"
         ],
-        "title": "Language"
+        "title": "Language",
+        "description": "The languages of the app. Shared by several features (users, quiz)."
       },
       "MediaType": {
         "type": "string",
@@ -953,6 +1158,142 @@
         ],
         "title": "ProblemDetails",
         "description": "RFC 9457 error body, as built by ``problem_response``."
+      },
+      "QuizAnswerRequest": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "Dia UTC de la pregunta que es respon"
+          },
+          "question_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Question Id",
+            "description": "Identificador de la pregunta"
+          },
+          "chosen_option": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Chosen Option",
+            "description": "Opció triada (0-3)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "question_id",
+          "chosen_option"
+        ],
+        "title": "QuizAnswerRequest"
+      },
+      "QuizResultResponse": {
+        "properties": {
+          "chosen_option": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Chosen Option",
+            "description": "Opció triada (0-3)"
+          },
+          "correct": {
+            "type": "boolean",
+            "title": "Correct",
+            "description": "Si l'opció triada és la correcta"
+          },
+          "correct_option": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Correct Option",
+            "description": "Opció correcta (0-3)"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "description": "Explicació de la resposta"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url",
+            "description": "Font que confirma la resposta (https)"
+          },
+          "answered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Answered At",
+            "description": "Moment de la resposta (UTC)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chosen_option",
+          "correct",
+          "correct_option",
+          "explanation",
+          "source_url",
+          "answered_at"
+        ],
+        "title": "QuizResultResponse"
+      },
+      "QuizTodayResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "Dia UTC de la pregunta"
+          },
+          "question_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Question Id",
+            "description": "Identificador de la pregunta"
+          },
+          "language": {
+            "$ref": "#/components/schemas/Language",
+            "description": "Idioma dels textos"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement",
+            "description": "Enunciat de la pregunta"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Options",
+            "description": "Les 4 opcions, en ordre"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuizResultResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Resultat de l'usuari, o null si encara no ha respost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "question_id",
+          "language",
+          "statement",
+          "options",
+          "result"
+        ],
+        "title": "QuizTodayResponse"
       },
       "RefreshRequest": {
         "properties": {

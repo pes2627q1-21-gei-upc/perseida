@@ -44,6 +44,7 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
 | `EVENT_ENDS_BEFORE_START` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/events (`ends_at` anterior a `starts_at`) |
+| `EVENT_SOURCE_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | (no arriba al client) | (no arriba al client) | (no arriba al client) | infrastructure/events (TG-50; una font d'esdeveniments ha fallat: `EventService` l'absorbeix, ho registra i serveix el que hi ha a PostgreSQL, ADR-0031) |
 
 ## Codis de Redis pub/sub i WebSocket (TG-87, TG-63)
 
@@ -69,6 +70,16 @@ Textos aprovats per la persona responsable (TG-44). Un compte banejat respon `AC
 | `SESSION_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona. | No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato. | We can't check your session right now. Please try again in a while. | infrastructure/auth (Redis no disponible) |
 | `EMAIL_ALREADY_REGISTERED` | 409 | `ConflictError` | No | Aquest correu ja està associat a un altre compte. | Este correo ya está asociado a otra cuenta. | This email is already linked to another account. | infrastructure/users |
 
+## Codis del quiz diari (TG-60)
+
+Textos aprovats per la persona responsable (TG-60, 09/11/2026). Contracte a `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `QUIZ_ALREADY_ANSWERED` | 409 | `ConflictError` | No | Ja has respost la pregunta d'avui. Torna demà per a una de nova! | Ya has respondido la pregunta de hoy. ¡Vuelve mañana para una nueva! | You've already answered today's question. Come back tomorrow for a new one! | domain/quiz |
+| `QUIZ_EXPIRED` | 409 | `ConflictError` | Sí | Aquesta pregunta ja ha caducat. Carrega la d'avui. | Esta pregunta ya ha caducado. Carga la de hoy. | This question has expired. Load today's question. | domain/quiz |
+| `QUIZ_QUESTION_MISMATCH` | 422 | `ValidationError` | Sí | Aquesta no és la pregunta d'avui. Torna-ho a provar. | Esta no es la pregunta de hoy. Inténtalo de nuevo. | This isn't today's question. Please try again. | domain/quiz |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
@@ -91,6 +102,7 @@ Textos aprovats per la persona responsable (TG-44). Un compte banejat respon `AC
 |---|---|---|
 | NASA (APOD...) | Retorna la cache (Redis), sense 500 | `ExternalServiceError` (503) amb codi propi |
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
+| Fonts d'esdeveniments (Launch Library 2, USNO, Skyfield, catàleg) | Es serveixen els esdeveniments desats a PostgreSQL; la font no es torna a cridar en 15 min | Igual: `EVENT_SOURCE_UNAVAILABLE` no arriba al client, mai un 5xx (TG-50, ADR-0031) |
 | Altres (meteo, contaminació lumínica, Spotwise, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
 Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.

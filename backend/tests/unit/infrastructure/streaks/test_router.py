@@ -5,8 +5,6 @@ from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime
 
 import pytest
-from app.infrastructure.streaks.dependencies import get_streak_service
-from app.infrastructure.streaks.router import router
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient, Response
 
@@ -19,6 +17,8 @@ from app.domain.streaks.models import DailyStreak
 from app.domain.users.models import User
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.auth.dependencies import get_auth_service
+from app.infrastructure.streaks.dependencies import get_streak_service
+from app.infrastructure.streaks.router import router
 from app.infrastructure.users.dependencies import get_user_service
 from tests.fakes.auth import (
     FakeAccountGateway,

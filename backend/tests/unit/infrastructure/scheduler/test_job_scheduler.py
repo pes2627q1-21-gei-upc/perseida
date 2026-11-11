@@ -129,7 +129,7 @@ async def test_registering_same_name_replaces_the_job(
     assert "first" not in calls
 
 
-async def test_shutdown_cancels_running_job_without_logging_an_error(
+async def test_tg536_shutdown_waits_for_cancelled_job_cleanup(
     scheduler: ApschedulerJobScheduler, caplog: pytest.LogCaptureFixture
 ) -> None:
     started = asyncio.Event()
@@ -153,6 +153,30 @@ async def test_shutdown_cancels_running_job_without_logging_an_error(
     assert cleaned_up is True
     assert [t for t in asyncio.all_tasks() if t is not asyncio.current_task()] == []
     assert [r for r in caplog.records if r.levelno >= logging.ERROR] == []
+
+
+async def test_tg536_job_cancellation_propagates_after_async_cleanup(
+    scheduler: ApschedulerJobScheduler,
+) -> None:
+    started = asyncio.Event()
+    cleaned = asyncio.Event()
+
+    async def job() -> None:
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            await asyncio.sleep(0)
+            cleaned.set()
+
+    scheduler.add_interval_job("cancel", job, seconds=60)
+    wrapped = scheduler._scheduler.get_job("cancel").func  # noqa: SLF001
+    task = asyncio.create_task(wrapped())
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert cleaned.is_set()
 
 
 async def settle() -> None:

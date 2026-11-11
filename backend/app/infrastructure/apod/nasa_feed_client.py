@@ -23,7 +23,7 @@ _MAX_FEED_BYTES = 5 * 1024 * 1024
 _BLOCK_TAGS = {"br", "p", "div", "li", "h1", "h2", "h3"}
 _EXPLANATION_PREFIX = re.compile(r"^Explanation:\s*", re.IGNORECASE)
 # Cuts everything from "Tomorrow's picture:" on (curly or straight apostrophe).
-_TOMORROW = re.compile(r"\s*Tomorrow['’]s picture:.*\Z", re.IGNORECASE | re.DOTALL)
+_TOMORROW = re.compile(r"Tomorrow['’]s picture:", re.IGNORECASE)
 
 
 class _TextExtractor(HTMLParser):
@@ -135,12 +135,11 @@ class NasaApodFeedClient:
             raise NasaApodError("NASA APOD feed entry is not an image")
         if _is_placeholder(media_url):
             raise NasaApodError("NASA APOD feed entry is the placeholder logo")
-        explanation = _TOMORROW.sub(
-            "",
-            _EXPLANATION_PREFIX.sub(
-                "", _plain_text(_child_text(item, f"{_APOD_NS}explanation"))
-            ),
+        explanation = _EXPLANATION_PREFIX.sub(
+            "", _plain_text(_child_text(item, f"{_APOD_NS}explanation"))
         )
+        if marker := _TOMORROW.search(explanation):
+            explanation = explanation[: marker.start()].rstrip()
         try:
             return Apod(
                 apod_date=apod_date,
