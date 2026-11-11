@@ -7,6 +7,20 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 logger = logging.getLogger(__name__)
 
+_EXECUTOR_LOGGER = "apscheduler.executors.default"
+
+
+class _ShutdownCancellationFilter(logging.Filter):
+    """Drop APScheduler's ERROR record for a job cancelled on shutdown.
+
+    APScheduler logs any ``BaseException`` from a job, including the
+    ``CancelledError`` we re-raise to keep cancellation propagating.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        exc = record.exc_info[1] if record.exc_info else None
+        return not isinstance(exc, asyncio.CancelledError)
+
 
 class ApschedulerJobScheduler:
     """``JobScheduler`` adapter on top of APScheduler's ``AsyncIOScheduler``."""
@@ -14,6 +28,10 @@ class ApschedulerJobScheduler:
     def __init__(self, timezone: str = "UTC") -> None:
         self._timezone = timezone
         self._running_jobs: set[asyncio.Task[object]] = set()
+        executor_logger = logging.getLogger(_EXECUTOR_LOGGER)
+        filters = executor_logger.filters
+        if not any(isinstance(f, _ShutdownCancellationFilter) for f in filters):
+            executor_logger.addFilter(_ShutdownCancellationFilter())
         self._scheduler = AsyncIOScheduler(
             timezone=timezone,
             job_defaults={"max_instances": 1, "coalesce": True},
