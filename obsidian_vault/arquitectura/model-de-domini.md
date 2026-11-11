@@ -123,7 +123,7 @@ Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventServic
 
 ## Quiz diari (implementat)
 
-Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.py` (migracions `create_quiz` i `seed_quiz_questions`, TG-60). `DailyQuiz` és la taula `quiz_days`: la pregunta d'un dia es calcula per rotació la primera vegada que es demana i s'hi desa, de manera que no canvia si el banc creix ([[contracte-quiz]]).
+Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.py` (migracions `create_quiz` i `seed_quiz_questions`, TG-60). `DailyQuiz` és la taula `quiz_days`: la primera vegada que es demana un dia s'hi desa la primera pregunta que encara no ha sortit o, si ja han sortit totes, la que fa més temps que va sortir (`next_question`). El dia no canvia si el banc creix, i les preguntes noves surten abans de cap repetició ([[contracte-quiz]]).
 
 | Taula | Camps |
 |---|---|

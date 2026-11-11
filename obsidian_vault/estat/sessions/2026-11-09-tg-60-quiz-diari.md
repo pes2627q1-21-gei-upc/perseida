@@ -59,3 +59,9 @@ Canvis demanats a la revisió de la PR #80:
 - **Pregunta estable per data:** taula `quiz_days`; la primera petició del dia hi desa la pregunta i la resta (tots els idiomes) la llegeixen. Provat amb un banc que creix i la cache.
 - **Redis caigut:** es manté el 503 `SESSION_UNAVAILABLE` per l'ADR-0008, documentat a [[contracte-quiz]] i provat amb l'endpoint complet.
 - **Aïllament:** `Language` passa a `app/domain/shared/language.py`; import-linter prohibeix que quiz importi altres funcionalitats.
+
+## Segona revisió (11/11/2026)
+
+- **Sense repeticions quan creix el banc:** cada dia nou pren la primera pregunta que encara no ha sortit o, si ja han sortit totes, la que fa més temps que va sortir (`next_question`). Ja no depèn de la data ni del nombre de preguntes, de manera que `ROTATION_START` desapareix. Hi ha test de regressió amb el cas del dia 100 → 101.
+- **Tests d'integració aïllats:** l'API corre dins d'una transacció revertida (savepoints) i amb una base de Redis pròpia (DB 15). El test de rollback i els del repositori només esborren les seves files. Cada mòdul comprova que el nombre de files de la base queda igual.
+- El downgrade del seed només toca les preguntes del fitxer.
