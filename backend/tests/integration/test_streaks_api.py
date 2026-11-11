@@ -8,6 +8,7 @@ lifespan does it, with the real session store, user repository and the real
 import os
 import uuid
 from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -176,3 +177,97 @@ async def test_a_user_does_not_see_the_streak_of_another(client: AsyncClient) ->
 
     assert ana_streak.json() == {"current_count": 1}
     assert bob_streak.json() == {"current_count": 0}
+
+
+# --- TG-541 (US TG-56): casos limit d'acceptacio de punta a punta ---------------
+# S'afegeixen DESPRES del codi (TG-539/TG-540), per tant no han passat per vermell:
+# son tests d'acceptacio dels criteris 2, 3, 4 i 5 a nivell d'API. El temps no es
+# congela: es sembra la fila de ``daily_streaks`` amb una data relativa a avui UTC.
+
+
+async def seed_streak(
+    engine: AsyncEngine, *, count: int, days_ago: int
+) -> tuple[uuid.UUID, Any]:
+    """Insert the streak of the only user in the DB; return (user_id, date)."""
+    last_date = datetime.now(UTC).date() - timedelta(days=days_ago)
+    async with engine.begin() as connection:
+        user_id = (await connection.execute(text("SELECT id FROM users"))).scalar_one()
+        await connection.execute(
+            text(
+                "INSERT INTO daily_streaks (user_id, current_count, last_activity_date)"
+                " VALUES (:user_id, :count, :last_date)"
+            ),
+            {"user_id": user_id, "count": count, "last_date": last_date},
+        )
+    return user_id, last_date
+
+
+async def stored_streak(engine: AsyncEngine, user_id: uuid.UUID) -> tuple[int, Any]:
+    async with engine.connect() as connection:
+        row = (
+            await connection.execute(
+                text(
+                    "SELECT current_count, last_activity_date FROM daily_streaks"
+                    " WHERE user_id = :user_id"
+                ),
+                {"user_id": user_id},
+            )
+        ).one()
+    return row[0], row[1]
+
+
+async def test_activity_the_day_after_increments_the_streak(
+    client: AsyncClient, engine: AsyncEngine
+) -> None:
+    # TG-541 / US TG-56 criteri 2: ahir amb ratxa 4 -> avui 5
+    headers = await login_headers(client)
+    await seed_streak(engine, count=4, days_ago=1)
+
+    registered = await client.post(ACTIVITY, headers=headers)
+    after = await client.get(STREAK, headers=headers)
+
+    assert registered.status_code == 200
+    assert registered.json() == {"current_count": 5}
+    assert after.json() == {"current_count": 5}
+
+
+async def test_query_of_a_broken_streak_is_0_and_does_not_write(
+    client: AsyncClient, engine: AsyncEngine
+) -> None:
+    # TG-541 / US TG-56 criteri 4: fa 3 dies -> GET 0 sense modificar la fila
+    headers = await login_headers(client)
+    user_id, last_date = await seed_streak(engine, count=4, days_ago=3)
+
+    response = await client.get(STREAK, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == {"current_count": 0}
+    assert await stored_streak(engine, user_id) == (4, last_date)
+
+
+async def test_activity_after_a_gap_restarts_the_streak(
+    client: AsyncClient, engine: AsyncEngine
+) -> None:
+    # TG-541 / US TG-56 criteri 4: fa 3 dies -> POST reinicia a 1
+    headers = await login_headers(client)
+    await seed_streak(engine, count=4, days_ago=3)
+
+    registered = await client.post(ACTIVITY, headers=headers)
+    after = await client.get(STREAK, headers=headers)
+
+    assert registered.json() == {"current_count": 1}
+    assert after.json() == {"current_count": 1}
+
+
+async def test_activity_the_same_day_does_not_raise_the_streak(
+    client: AsyncClient, engine: AsyncEngine
+) -> None:
+    # TG-541 / US TG-56 criteri 3: ja registrada avui -> no puja
+    headers = await login_headers(client)
+    await seed_streak(engine, count=4, days_ago=0)
+
+    registered = await client.post(ACTIVITY, headers=headers)
+    after = await client.get(STREAK, headers=headers)
+
+    assert registered.json() == {"current_count": 4}
+    assert after.json() == {"current_count": 4}
