@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -24,6 +24,7 @@ from app.infrastructure.quiz.repository import (
     SqlQuizQuestionRepository,
 )
 from app.infrastructure.users.repository import SqlUserRepository
+from tests.integration.isolation import row_counts
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("POSTGRES_HOST"),
@@ -31,6 +32,21 @@ pytestmark = pytest.mark.skipif(
 )
 
 DAY = date(2026, 11, 9)
+# Days of the calendar only for these tests, far from any real use.
+CALENDAR = (date(2099, 1, 1), date(2099, 1, 2), date(2099, 1, 5))
+CALENDAR_DAY = CALENDAR[1]
+PREFIX = "quiz-repo"
+DAYS_IN_USE = text(
+    "SELECT EXISTS (SELECT 1 FROM quiz_days WHERE quiz_date = ANY(:days))"
+)
+DELETE_DAYS = text("DELETE FROM quiz_days WHERE quiz_date = ANY(:days)")
+DELETE_USERS = (
+    text(
+        "DELETE FROM user_identities WHERE user_id IN"
+        " (SELECT id FROM users WHERE email LIKE :prefix)"
+    ),
+    text("DELETE FROM users WHERE email LIKE :prefix"),
+)
 SEED = Path(__file__).resolve().parents[2] / "alembic" / "seed" / "quiz_questions.json"
 AT = datetime(2026, 11, 9, 12, 0, tzinfo=UTC)
 
@@ -44,21 +60,33 @@ def _schema_at_head() -> None:
     command.upgrade(config, "head")
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _preexisting_data_is_kept(_schema_at_head: None) -> Iterator[None]:
+    # The tests must leave the configured database as they found it.
+    before = row_counts()
+    yield
+    assert row_counts() == before
+
+
 @pytest.fixture
 async def engine() -> AsyncIterator[AsyncEngine]:
+    """Real commits (some tests need two requests at once), cleaned per test.
+
+    The cleaning removes only rows of this module: its users (their answers go
+    with them) and the days of CALENDAR, which must be free before the test.
+    """
     engine = create_async_engine(DatabaseSettings().database_url)
+    days = {"days": list(CALENDAR)}
+    async with engine.connect() as connection:
+        if await connection.scalar(DAYS_IN_USE, days):
+            pytest.fail(f"The test days {CALENDAR} already have a question")
     try:
         yield engine
     finally:
         async with engine.begin() as connection:
-            await connection.execute(text("DELETE FROM quiz_answers"))
-            await connection.execute(text("DELETE FROM quiz_days"))
-            await connection.execute(
-                text("DELETE FROM user_identities WHERE subject LIKE 'quiz-%'")
-            )
-            await connection.execute(
-                text("DELETE FROM users WHERE email LIKE 'quiz-%'")
-            )
+            await connection.execute(DELETE_DAYS, days)
+            for statement in DELETE_USERS:
+                await connection.execute(statement, {"prefix": f"{PREFIX}-%"})
         await engine.dispose()
 
 
@@ -79,10 +107,10 @@ def days(engine: AsyncEngine) -> SqlQuizDayRepository:
 
 @pytest.fixture
 async def user(engine: AsyncEngine) -> User:
-    unique = uuid.uuid4().hex
+    unique = f"{PREFIX}-{uuid.uuid4().hex}"
     users = SqlUserRepository(async_sessionmaker(engine, expire_on_commit=False))
     return await users.add(
-        User.create(google_sub=f"quiz-{unique}", email=f"quiz-{unique}@example.test")
+        User.create(google_sub=unique, email=f"{unique}@example.test")
     )
 
 
@@ -178,7 +206,10 @@ async def test_quiz_tables_follow_the_data_model_conventions(
     await answers.add(await _answer(questions, user))
     async with engine.connect() as connection:
         version = await connection.scalar(
-            text("SELECT uuid_extract_version(id) FROM quiz_answers")
+            text(
+                "SELECT uuid_extract_version(id) FROM quiz_answers WHERE user_id = :u"
+            ),
+            {"u": user.id},
         )
         unique = await connection.scalar(
             text(
@@ -217,7 +248,7 @@ async def test_an_unknown_id_is_an_error(questions: SqlQuizQuestionRepository) -
 async def test_tg60_c3_a_day_without_question_returns_none(
     days: SqlQuizDayRepository,
 ) -> None:
-    assert await days.get(DAY) is None
+    assert await days.get(CALENDAR_DAY) is None
 
 
 async def test_tg60_c3_the_first_question_given_to_a_day_stays(
@@ -225,9 +256,9 @@ async def test_tg60_c3_the_first_question_given_to_a_day_stays(
 ) -> None:
     first, second = await questions.at_position(0), await questions.at_position(1)
 
-    assert await days.assign(DAY, first.id) == first.id
-    assert await days.assign(DAY, second.id) == first.id
-    assert await days.get(DAY) == first.id
+    assert await days.assign(CALENDAR_DAY, first.id) == first.id
+    assert await days.assign(CALENDAR_DAY, second.id) == first.id
+    assert await days.get(CALENDAR_DAY) == first.id
 
 
 async def test_tg60_c3_two_requests_at_once_agree_on_the_day_s_question(
@@ -236,7 +267,31 @@ async def test_tg60_c3_two_requests_at_once_agree_on_the_day_s_question(
     first, second = await questions.at_position(0), await questions.at_position(1)
 
     results = await asyncio.gather(
-        days.assign(DAY, first.id), days.assign(DAY, second.id)
+        days.assign(CALENDAR_DAY, first.id), days.assign(CALENDAR_DAY, second.id)
     )
 
-    assert results[0] == results[1] == await days.get(DAY)
+    assert results[0] == results[1] == await days.get(CALENDAR_DAY)
+
+
+async def test_tg60_c3_the_ids_come_in_bank_order(
+    questions: SqlQuizQuestionRepository,
+) -> None:
+    seed = json.loads(SEED.read_text(encoding="utf-8"))
+
+    assert [str(question_id) for question_id in await questions.ids()] == [
+        question["id"] for question in seed
+    ]
+
+
+async def test_tg60_c3_the_calendar_gives_the_last_day_of_each_question(
+    questions: SqlQuizQuestionRepository, days: SqlQuizDayRepository
+) -> None:
+    first, second = await questions.at_position(0), await questions.at_position(1)
+    await days.assign(CALENDAR[0], first.id)
+    await days.assign(CALENDAR[1], second.id)
+    await days.assign(CALENDAR[2], first.id)
+
+    last_days = await days.last_days()
+
+    assert last_days[first.id] == CALENDAR[2]
+    assert last_days[second.id] == CALENDAR[1]

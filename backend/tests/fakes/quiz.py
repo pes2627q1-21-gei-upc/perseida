@@ -8,20 +8,17 @@ from app.domain.shared.errors import ConflictError
 
 
 class FakeQuizQuestionRepository:
-    """In-memory bank. Records the positions it was asked for."""
+    """In-memory bank. Records the questions it was asked for."""
 
     def __init__(self, questions: Iterable[QuizQuestion]) -> None:
         self._questions = list(questions)
-        self.requested: list[int] = []
+        self.requested: list[uuid.UUID] = []
 
-    async def count(self) -> int:
-        return len(self._questions)
-
-    async def at_position(self, position: int) -> QuizQuestion:
-        self.requested.append(position)
-        return self._questions[position]
+    async def ids(self) -> list[uuid.UUID]:
+        return [question.id for question in self._questions]
 
     async def get(self, question_id: uuid.UUID) -> QuizQuestion:
+        self.requested.append(question_id)
         for question in self._questions:
             if question.id == question_id:
                 return question
@@ -40,6 +37,12 @@ class FakeQuizDayRepository:
 
     async def get(self, quiz_date: date) -> uuid.UUID | None:
         return self.stored.get(quiz_date)
+
+    async def last_days(self) -> dict[uuid.UUID, date]:
+        last: dict[uuid.UUID, date] = {}
+        for day, question_id in sorted(self.stored.items()):
+            last[question_id] = day
+        return last
 
     async def assign(self, quiz_date: date, question_id: uuid.UUID) -> uuid.UUID:
         return self.stored.setdefault(quiz_date, question_id)

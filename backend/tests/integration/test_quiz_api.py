@@ -8,6 +8,7 @@ import asyncio
 import os
 import uuid
 from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -20,7 +21,12 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient, Response
 from redis.asyncio import Redis
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from alembic import command
 from app.application.auth.auth_service import AuthService, SessionDurations
@@ -51,6 +57,7 @@ from app.infrastructure.users.account_gateway import UserAccountGateway
 from app.infrastructure.users.dependencies import build_user_service
 from app.main import create_app
 from tests.factories.google import CLIENT_ID, KEY, jwk, token
+from tests.integration.isolation import row_counts
 
 pytestmark = pytest.mark.skipif(
     not (os.getenv("POSTGRES_HOST") and os.getenv("REDIS_HOST")),
@@ -64,6 +71,26 @@ SOLUTION_FIELDS = {"correct_option", "explanation", "source_url"}
 EXTRA_ID = uuid.UUID("01a1bd9a-ffff-7000-8000-000000000000")
 # Nothing listens on port 1: every call to this Redis fails, as when it is down.
 DOWN_REDIS_URL = "redis://127.0.0.1:1/0"
+# Redis database only for these tests (the app uses 0), emptied before and after.
+TEST_REDIS_DB = 15
+ROLLBACK_PREFIX = "quiz-rollback"
+DAY_EXISTS = text("SELECT EXISTS (SELECT 1 FROM quiz_days WHERE quiz_date = :day)")
+DELETE_DAY = text("DELETE FROM quiz_days WHERE quiz_date = :day")
+COUNT_ANSWERS = text(
+    "SELECT count(*) FROM quiz_answers a JOIN users u ON u.id = a.user_id"
+    " WHERE u.email LIKE :prefix"
+)
+CLEAN_ROLLBACK_USERS = (
+    text(
+        "DELETE FROM quiz_answers WHERE user_id IN"
+        " (SELECT id FROM users WHERE email LIKE :prefix)"
+    ),
+    text(
+        "DELETE FROM user_identities WHERE user_id IN"
+        " (SELECT id FROM users WHERE email LIKE :prefix)"
+    ),
+    text("DELETE FROM users WHERE email LIKE :prefix"),
+)
 
 
 def _alembic_config() -> Config:
@@ -85,39 +112,57 @@ def google_certs() -> Iterator[respx.Route]:
         yield mock.get(GOOGLE_CERTS_URL).respond(json={"keys": [jwk(KEY, "k1")]})
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _preexisting_data_is_kept(_schema_at_head: None) -> Iterator[None]:
+    # The tests must leave the configured database as they found it.
+    before = row_counts()
+    yield
+    assert row_counts() == before
+
+
 @pytest.fixture
-async def engine() -> AsyncIterator[AsyncEngine]:
+async def connection() -> AsyncIterator[AsyncConnection]:
+    """One connection inside a transaction that is rolled back after the test."""
     engine = create_async_engine(DatabaseSettings().database_url)
     try:
-        yield engine
+        async with engine.connect() as connection:
+            transaction = await connection.begin()
+            try:
+                yield connection
+            finally:
+                await transaction.rollback()
     finally:
-        async with engine.begin() as connection:
-            await connection.execute(text("DELETE FROM quiz_answers"))
-            await connection.execute(text("DELETE FROM quiz_days"))
-            await connection.execute(
-                text("DELETE FROM quiz_questions WHERE id = :id"), {"id": EXTRA_ID}
-            )
-            await connection.execute(text("DELETE FROM user_identities"))
-            await connection.execute(text("DELETE FROM users"))
         await engine.dispose()
 
 
 @pytest.fixture
+def factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
+    # Each commit of the app becomes a savepoint of the test's transaction.
+    return async_sessionmaker(
+        bind=connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+    )
+
+
+@pytest.fixture
 async def redis() -> AsyncIterator[Redis]:
-    client = Redis.from_url(RedisSettings().redis_url, decode_responses=True)
+    """A Redis database only for these tests, emptied before and after."""
+    client = Redis.from_url(
+        RedisSettings().redis_url, db=TEST_REDIS_DB, decode_responses=True
+    )
     try:
-        async for key in client.scan_iter(match="cache:quiz:*"):
-            await client.delete(key)
+        await client.flushdb()
         yield client
     finally:
-        async for key in client.scan_iter(match="cache:quiz:*"):
-            await client.delete(key)
+        await client.flushdb()
         await client.aclose()
 
 
-def build_app(engine: AsyncEngine, redis: Redis, google: httpx.AsyncClient) -> FastAPI:
+def build_app(
+    factory: async_sessionmaker[AsyncSession], redis: Redis, google: httpx.AsyncClient
+) -> FastAPI:
     """The real app, with sessions and the quiz cache on ``redis``."""
-    factory = async_sessionmaker(engine, expire_on_commit=False)
     users = build_user_service(factory)
     quiz = QuizService(
         SqlQuizQuestionRepository(factory),
@@ -139,20 +184,30 @@ def build_app(engine: AsyncEngine, redis: Redis, google: httpx.AsyncClient) -> F
     return app
 
 
-@pytest.fixture
-async def client(
-    google_certs: respx.Route, engine: AsyncEngine, redis: Redis
+@asynccontextmanager
+async def serve(
+    factory: async_sessionmaker[AsyncSession], redis: Redis
 ) -> AsyncIterator[AsyncClient]:
     async with httpx.AsyncClient() as google:
-        app = build_app(engine, redis, google)
+        app = build_app(factory, redis, google)
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as http:
             yield http
 
 
-async def login(client: AsyncClient, **body: Any) -> dict[str, str]:
-    sub = f"quiz-{uuid.uuid4().hex}"
+@pytest.fixture
+async def client(
+    google_certs: respx.Route, factory: async_sessionmaker[AsyncSession], redis: Redis
+) -> AsyncIterator[AsyncClient]:
+    async with serve(factory, redis) as http:
+        yield http
+
+
+async def login(
+    client: AsyncClient, prefix: str = "quiz", **body: Any
+) -> dict[str, str]:
+    sub = f"{prefix}-{uuid.uuid4().hex}"
     id_token = token(sub=sub, email=f"{sub}@example.test", name="Ana")
     response = await client.post(
         "/api/auth/google", json={"id_token": id_token, **body}
@@ -303,18 +358,17 @@ async def test_tg60_c11_the_question_of_the_day_is_cached_in_redis(
 
 
 async def test_tg60_c2_a_day_keeps_its_question_when_the_bank_grows(
-    client: AsyncClient, engine: AsyncEngine
+    client: AsyncClient, connection: AsyncConnection
 ) -> None:
     headers = await login(client)
     cached = (await client.get("/api/quiz/today?lang=ca", headers=headers)).json()
-    async with engine.begin() as connection:
-        await connection.execute(
-            text(
-                "INSERT INTO quiz_questions (id, position, correct_option, source_url)"
-                " VALUES (:id, 100, 0, 'https://science.nasa.gov/')"
-            ),
-            {"id": EXTRA_ID},
-        )
+    await connection.execute(
+        text(
+            "INSERT INTO quiz_questions (id, position, correct_option, source_url)"
+            " VALUES (:id, 100, 0, 'https://science.nasa.gov/')"
+        ),
+        {"id": EXTRA_ID},
+    )
 
     # English was not cached yet: it is read from PostgreSQL with 101 questions.
     fresh = (await client.get("/api/quiz/today?lang=en", headers=headers)).json()
@@ -324,29 +378,59 @@ async def test_tg60_c2_a_day_keeps_its_question_when_the_bank_grows(
     assert response.status_code == 201
 
 
+@pytest.fixture
+async def committed() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
+    """Sessions that really commit, for the migration test that needs it.
+
+    It removes only what the test creates: its users (with their answers) and
+    the day of NOW in the calendar if it was not there before.
+    """
+    engine = create_async_engine(DatabaseSettings().database_url)
+    async with engine.connect() as connection:
+        day_existed = await connection.scalar(DAY_EXISTS, {"day": NOW.date()})
+    try:
+        yield async_sessionmaker(engine, expire_on_commit=False)
+    finally:
+        async with engine.begin() as connection:
+            for statement in CLEAN_ROLLBACK_USERS:
+                await connection.execute(statement, {"prefix": f"{ROLLBACK_PREFIX}-%"})
+            if not day_existed:
+                await connection.execute(DELETE_DAY, {"day": NOW.date()})
+        await engine.dispose()
+
+
 async def test_tg60_c13_a_rollback_of_the_bank_keeps_answers_and_cached_ids(
-    client: AsyncClient, engine: AsyncEngine
+    google_certs: respx.Route,
+    committed: async_sessionmaker[AsyncSession],
+    redis: Redis,
 ) -> None:
-    answered_headers = await login(client)
-    answered = (await answer(client, answered_headers)).json()
-    other = await login(client)
-    cached = (await client.get("/api/quiz/today", headers=other)).json()
+    async with serve(committed, redis) as client:
+        answered_headers = await login(client, ROLLBACK_PREFIX)
+        answered = (await answer(client, answered_headers)).json()
+        other = await login(client, ROLLBACK_PREFIX)
+        cached = (await client.get("/api/quiz/today", headers=other)).json()
 
-    # Alembic runs its own event loop, so it goes to another thread.
-    await asyncio.to_thread(command.downgrade, _alembic_config(), "4f2c9a1b7d3e")
-    async with engine.connect() as connection:
-        kept = await connection.scalar(text("SELECT count(*) FROM quiz_answers"))
-    await asyncio.to_thread(command.upgrade, _alembic_config(), "head")
-    async with engine.connect() as connection:
-        bank = await connection.scalar(text("SELECT count(*) FROM quiz_questions"))
+        # Alembic runs its own event loop, so it goes to another thread.
+        await asyncio.to_thread(command.downgrade, _alembic_config(), "4f2c9a1b7d3e")
+        async with committed() as session:
+            kept = await session.scalar(
+                COUNT_ANSWERS, {"prefix": f"{ROLLBACK_PREFIX}-%"}
+            )
+        await asyncio.to_thread(command.upgrade, _alembic_config(), "head")
+        async with committed() as session:
+            bank = await session.scalar(text("SELECT count(*) FROM quiz_questions"))
 
-    # Redis still holds the question of the day with its id: it must still work.
-    response = await client.post(
-        "/api/quiz/today/answer",
-        headers=other,
-        json={"date": TODAY, "question_id": cached["question_id"], "chosen_option": 0},
-    )
-    today = (await client.get("/api/quiz/today", headers=answered_headers)).json()
+        # Redis still holds the question of the day with its id: it must work.
+        response = await client.post(
+            "/api/quiz/today/answer",
+            headers=other,
+            json={
+                "date": TODAY,
+                "question_id": cached["question_id"],
+                "chosen_option": 0,
+            },
+        )
+        today = (await client.get("/api/quiz/today", headers=answered_headers)).json()
 
     assert kept == 1
     assert bank == 100
@@ -355,7 +439,7 @@ async def test_tg60_c13_a_rollback_of_the_bank_keeps_answers_and_cached_ids(
 
 
 async def test_tg60_c12_with_redis_down_the_quiz_fails_safely_with_a_503(
-    client: AsyncClient, google_certs: respx.Route, engine: AsyncEngine
+    client: AsyncClient, factory: async_sessionmaker[AsyncSession]
 ) -> None:
     # Decision of the team (contracte-quiz.md): the cache falls back to
     # PostgreSQL, but the session cannot be checked without Redis and ADR-0008
@@ -363,23 +447,19 @@ async def test_tg60_c12_with_redis_down_the_quiz_fails_safely_with_a_503(
     headers = await login(client)
     down = Redis.from_url(DOWN_REDIS_URL, decode_responses=True)
     try:
-        async with httpx.AsyncClient() as google:
-            app = build_app(engine, down, google)
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as http:
-                responses = [
-                    await http.get("/api/quiz/today", headers=headers),
-                    await http.post(
-                        "/api/quiz/today/answer",
-                        headers=headers,
-                        json={
-                            "date": TODAY,
-                            "question_id": str(uuid.UUID(int=1)),
-                            "chosen_option": 0,
-                        },
-                    ),
-                ]
+        async with serve(factory, down) as http:
+            responses = [
+                await http.get("/api/quiz/today", headers=headers),
+                await http.post(
+                    "/api/quiz/today/answer",
+                    headers=headers,
+                    json={
+                        "date": TODAY,
+                        "question_id": str(uuid.UUID(int=1)),
+                        "chosen_option": 0,
+                    },
+                ),
+            ]
     finally:
         await down.aclose()
 

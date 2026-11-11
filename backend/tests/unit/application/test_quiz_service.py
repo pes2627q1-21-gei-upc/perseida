@@ -8,7 +8,6 @@ from app.domain.quiz.rules import (
     QUIZ_ALREADY_ANSWERED,
     QUIZ_EXPIRED,
     QUIZ_QUESTION_MISMATCH,
-    question_position,
 )
 from app.domain.shared.errors import ConflictError, ValidationError
 from app.domain.shared.language import Language
@@ -25,7 +24,7 @@ TODAY = NOW.date()
 ALICE = uuid.UUID(int=1)
 BOB = uuid.UUID(int=2)
 BANK = [make_question(uuid.UUID(int=100 + n), correct_option=n % 4) for n in range(5)]
-TODAYS = BANK[question_position(TODAY, len(BANK))]
+TODAYS = BANK[0]  # an empty calendar starts with the first question
 
 
 class MissingCache:
@@ -82,13 +81,12 @@ async def test_tg60_c2_everybody_gets_the_same_question_in_any_language() -> Non
 
 
 async def test_tg60_c3_the_next_day_brings_the_next_question() -> None:
-    tomorrow = NOW + timedelta(days=1)
-    service, _, _ = make_service(now=tomorrow)
+    days = FakeQuizDayRepository()
+    questions = FakeQuizQuestionRepository(BANK)
 
-    quiz = await service.today(ALICE, Language.CA)
+    picked = await walk(range(2), days, questions)
 
-    position = question_position(tomorrow.date(), len(BANK))
-    assert quiz.question.question_id == BANK[position].id
+    assert picked == [BANK[0].id, BANK[1].id]
 
 
 async def test_tg60_c11_the_question_comes_from_the_cache_until_midnight() -> None:
@@ -243,9 +241,6 @@ async def test_tg60_c2_a_day_keeps_its_question_when_the_bank_grows() -> None:
     before = await service.today(ALICE, Language.CA)
 
     questions.grow(make_question(uuid.UUID(int=999), correct_option=3))
-    assert question_position(TODAY, len(BANK) + 1) != question_position(
-        TODAY, len(BANK)
-    )
     after = await service.today(BOB, Language.EN)
     result = await service.answer(
         user_id=BOB,
@@ -302,3 +297,43 @@ async def test_when_two_requests_race_both_get_the_question_stored_first() -> No
     quiz = await service.today(ALICE, Language.CA)
 
     assert quiz.question.question_id == other.id
+
+
+async def walk(
+    days_ahead: range,
+    days: FakeQuizDayRepository,
+    questions: FakeQuizQuestionRepository,
+) -> list[uuid.UUID]:
+    """Ask for the question of each day, as the first user of that day would."""
+    picked = []
+    for offset in days_ahead:
+        service, _, _ = make_service(
+            now=NOW + timedelta(days=offset), days=days, questions=questions
+        )
+        picked.append((await service.today(ALICE, Language.CA)).question.question_id)
+    return picked
+
+
+async def test_tg60_c3_no_question_repeats_when_the_bank_grows() -> None:
+    # Regression (PR #80): growing the bank must keep the order of the calendar.
+    days = FakeQuizDayRepository()
+    questions = FakeQuizQuestionRepository(BANK)
+    before = await walk(range(5), days, questions)
+    new = make_question(uuid.UUID(int=999))
+    questions.grow(new)
+
+    after = await walk(range(5, 12), days, questions)
+
+    picked = before + after
+    assert after[0] == new.id
+    assert all(len(set(picked[i : i + 6])) == 6 for i in range(len(picked) - 5))
+
+
+async def test_days_without_requests_do_not_break_the_order() -> None:
+    days = FakeQuizDayRepository()
+    questions = FakeQuizQuestionRepository(BANK)
+
+    first, later = await walk(range(0, 4, 3), days, questions)
+
+    position = BANK.index(next(q for q in BANK if q.id == first))
+    assert later == BANK[(position + 1) % len(BANK)].id
