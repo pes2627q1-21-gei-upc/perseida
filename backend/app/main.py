@@ -28,6 +28,7 @@ from app.infrastructure.scheduler.dependencies import (
     get_scheduler_settings,
 )
 from app.infrastructure.scheduler.jobs import register_jobs
+from app.infrastructure.streaks.router import router as streaks_router
 from app.infrastructure.users.account_gateway import UserAccountGateway
 from app.infrastructure.users.dependencies import build_user_service
 from app.infrastructure.users.router import router as users_router
@@ -115,6 +116,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router, prefix="/api")
     app.include_router(realtime_router, prefix="/api")
     app.include_router(events_router, prefix="/api")
+    app.include_router(streaks_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 
