@@ -90,14 +90,14 @@ Un test inestable es posa en quarantena (marcat i exclòs del bloc obligatori, a
 |---|---|---|
 | Global backend | ≥ 80 % | `pytest.ini_options` (`--cov-fail-under=80`) |
 | Codi nou backend a la PR | ≥ 90 % | `diff-cover` a la CI (`--fail-under=90`) |
-| Global frontend | ≥ 70 % | Jest `coverageThreshold` a `jest.config.js` |
+| Global frontend | ≥ 80 % | Jest `coverageThreshold` a `jest.config.js` |
 | Codi nou frontend a la PR | ≥ 90 % | Quality Gate de SonarQube Cloud ([[qualitat]]) |
 | Frontend: components purament visuals | Exclosos | Cobertura centrada en lògica, hooks i serveis |
 | Mutation score (fitxers canviats) | ≥ 70 % | `mutmut` (backend) i `Stryker` (frontend) a la CI |
 
 La CI de la PR falla si no es compleixen els llindars establerts (implantat a TG-359):
 - **Backend:** `uv run pytest` executa la suite amb `--cov-fail-under=80` a `backend/pyproject.toml`. A més, a cada PR el pas de CI executa `uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90` per garantir que el codi afegit o modificat té com a mínim un 90 % de cobertura de línies.
-- **Frontend:** `pnpm test --coverage --ci` valida el `coverageThreshold` del 70 % definit a `frontend/jest.config.js` (línies, sentències, funcions i branques). El llindar de codi nou (≥ 90 %) s'assegura mitjançant el Quality Gate de SonarQube Cloud ([[0012-sonarqube-cloud-i-quality-gate]]).
+- **Frontend:** `pnpm test --coverage --ci` valida el `coverageThreshold` del 80 % definit a `frontend/jest.config.js` (línies, sentències, funcions i branques). El llindar de codi nou (≥ 90 %) s'assegura mitjançant el Quality Gate de SonarQube Cloud ([[0012-sonarqube-cloud-i-quality-gate]]).
 
 > [!note] Llindars anteriors
 > Els llindars per capa (domini ≥ 80 %, aplicació ≥ 70 %, infraestructura ≥ 50 %, global ≥ 70 %, hooks ≥ 70 %, codi nou ≥ 70 %) i la piràmide 70/30 d'[[0019-tests-despres-del-codi]] queden substituïts per aquesta política.
@@ -106,8 +106,11 @@ La CI de la PR falla si no es compleixen els llindars establerts (implantat a TG
 
 El mutation testing audita que els tests detectin canvis intencionats en el codi, avaluant exclusivament els fitxers canviats a la PR per mantenir un temps d'execució àgil a la CI:
 
-- **Backend (`mutmut`):** configurat a `backend/pyproject.toml` (`source_paths = ["app/domain"]`, `also_copy = ["app/application", "app/infrastructure", "tests/"]`, `pytest_add_cli_args = ["-o", "addopts="]` i `pytest_add_cli_args_test_selection = ["tests/unit/domain"]`). S'executa amb `uv run python scripts/run_mutmut_diff.py`, que determina quins fitxers de `app/domain` han canviat respecte a la branca base (`origin/${GITHUB_BASE_REF:-develop}`). Si n'hi ha, executa `mutmut` només sobre aquests fitxers i exigeix un mutation score ≥ 70 % (`killed / (killed + survived)`). Si no s'ha tocat el domini, passa automàticament sense computar mutacions innecessàries.
-- **Frontend (`Stryker`):** configurat a `frontend/stryker.config.json` amb el runner `@stryker-mutator/jest-runner`, `coverageAnalysis: "perTest"` i `thresholds: { high: 80, low: 70, break: 70 }`. Per evitar col·lisions d'escaneig amb el Haste map de React Native/Jest, `frontend/jest.config.js` ignora `.stryker-tmp`. S'executa amb `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`), que filtra els fitxers de lògica a `frontend/src/` (excloent components purament visuals, temes, estils, tipus i mocks) i muta només el diff de la PR. Si el score cau per sota del 70 %, el procés falla per `break: 70`. Si no s'ha modificat lògica, el pas finalitza amb èxit immediatament.
+- **Backend (`mutmut`):** configurat a `backend/pyproject.toml` (`source_paths = ["app/domain"]`, `also_copy = ["app/application", "app/infrastructure", "tests/"]`, `pytest_add_cli_args = ["-o", "addopts="]` i `pytest_add_cli_args_test_selection = ["tests/unit/domain"]`). S'executa amb `uv run python scripts/run_mutmut_diff.py --base-branch <branca>`, que detecta fitxers de `app/domain` modificats respecte a la branca base (`origin/develop` per defecte, o `origin/${{ github.base_ref }}` a la CI). Calcula el mutation score amb la fórmula `(killed + timeout) / (killed + timeout + survived + no_tests + suspicious)`, on els mutants sense tests associats (`no_tests`) computen com a supervivents; si es generen mutants però no se'n prova cap, el pas falla. Si no s'ha tocat el domini, passa automàticament sense computar mutacions innecessàries.
+- **Frontend (`Stryker`):** configurat a `frontend/stryker.config.json` amb el runner `@stryker-mutator/jest-runner`, `coverageAnalysis: "perTest"` i `thresholds: { high: 80, low: 70, break: 70 }`. Per evitar col·lisions d'escaneig amb el Haste map de React Native/Jest, `frontend/jest.config.js` ignora `.stryker-tmp`. S'executa amb `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs --base-branch <branca>`), que filtra els fitxers de lògica a `frontend/src/` excloent fitxers de test (`.test.`, `.spec.`), tipus (`.d.ts`), fitxers de barril (`index.ts`) i components visuals purs (`src/shared/ui/`). Si el score cau per sota del 70 %, el procés falla per `break: 70`. Si no s'ha modificat lògica, el pas finalitza amb èxit immediatament.
+
+> [!note] Execució en local a Windows
+> `mutmut` requereix WSL a Windows natiu a causa de l'aïllament de processos de Python en entorns Unix. Per a terminals o consoles Windows que no tinguin codificació UTF-8 activa per defecte, cal definir `PYTHONIOENCODING=utf-8` perquè la sortida de consola amb emojis no causi un `UnicodeEncodeError`.
 
 ## Requisits no funcionals mesurables
 
@@ -124,7 +127,7 @@ Els tests de temps prenen la mediana de diverses peticions consecutives.
 
 ## Execució
 
-En local: `uv run pytest` (backend, llindar global 80 %) i `pnpm test` (frontend, llindar global 70 %); per comprovar mutation testing sobre el diff local: `uv run python scripts/run_mutmut_diff.py` (backend) i `pnpm test:mutation` (frontend). O amb Docker Compose.
+En local: `uv run pytest` (backend, llindar global 80 %) i `pnpm test` (frontend, llindar global 80 %); per comprovar mutation testing sobre el diff local: `uv run python scripts/run_mutmut_diff.py` (backend, requereix WSL a Windows) i `pnpm test:mutation` (frontend). O amb Docker Compose.
 
 A la CI, GitHub Actions executa els tests a cada PR cap a `develop` o `main` i a cada push a aquestes branques, amb filtres per ruta i memòria cau de dependències:
 

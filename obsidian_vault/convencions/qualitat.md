@@ -38,8 +38,8 @@ Des de TG-359 (US #359), la CI afegeix comprovacions bloquejants de cobertura i 
 Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `frontend/`): `pnpm install --frozen-lockfile`, `pnpm lint` (ESLint amb Prettier), `pnpm typecheck` i `pnpm test --coverage --ci`. Cada ordre és un pas separat perquè es vegi quina falla. L'script de tipus es diu `typecheck` i no `tsc`: `expo-doctor`, que EAS Build executa abans de compilar, avisa quan un script de `package.json` té el nom d'un binari de `node_modules/.bin`. Node (al workflow) i pnpm (a `packageManager` de `frontend/package.json`) estan fixats. L'informe `lcov.info` es descarrega de l'execució, a *Artifacts*, amb el nom `frontend-coverage`. El job no necessita secrets ni serveis.
 
 Des de TG-359 (US #359), s'activen comprovacions de cobertura i mutation testing:
-- **Cobertura global:** `pnpm test --coverage --ci` fa complir el `coverageThreshold` del 70 % (línies, sentències, funcions i branques) definit a `jest.config.js`.
-- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent UI/visuals, tipus i mocks) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament.
+- **Cobertura global:** `pnpm test --coverage --ci` fa complir el `coverageThreshold` del 80 % (línies, sentències, funcions i branques) definit a `jest.config.js`.
+- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament.
 
 ## SonarQube Cloud (implementat a TG-194)
 

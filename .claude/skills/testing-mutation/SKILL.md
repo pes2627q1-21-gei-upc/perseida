@@ -32,8 +32,8 @@ Preguntes d'aquesta skill:
 
 1. Acaba el cicle TDD (`testing-tdd`) amb tot en verd.
 2. Obtén els fitxers de domini canviats a la PR (`git diff --name-only origin/develop...HEAD -- backend/app/domain`).
-3. Executa mutmut **només sobre aquests fitxers** amb l'script de diff (`uv run python scripts/run_mutmut_diff.py`, o manualment `mutmut run --paths-to-mutate <files>`) i guarda l'informe (`mutmut results`).
-4. Calcula el score: `mutants morts / (morts + supervivents)`, sense comptar els equivalents justificats. **Llindar: >= 70 %.**
+3. Executa mutmut **només sobre aquests fitxers** amb l'script de diff (`uv run python scripts/run_mutmut_diff.py --base-branch <branca>`) i guarda l'informe (`mutmut results`). A Windows cal fer servir WSL i definir `PYTHONIOENCODING=utf-8` si la consola no admet UTF-8.
+4. Calcula el score: `(killed + timeout) / (killed + timeout + survived + no_tests + suspicious)`, on els mutants sense tests associats (`no_tests`) computen com a supervivents. **Llindar: >= 70 %.** Si hi ha mutants generats però no se'n prova cap, el pas falla.
 5. Per a cada superviu: llegeix el mutant (`mutmut show <id>`), decideix si és equivalent o forat.
 6. Forat: escriu un test que el mati (**primer en vermell** contra el mutant, commit `test:`), no canviïs el codi de producció per matar-lo.
 7. Repeteix fins al llindar. Documenta a la PR el score i els equivalents.
