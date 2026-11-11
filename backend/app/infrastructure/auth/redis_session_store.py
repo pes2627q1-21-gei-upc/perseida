@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import NoReturn, cast
 
@@ -7,6 +8,8 @@ from redis.exceptions import RedisError
 from app.application.auth.errors import SESSION_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
 from app.domain.auth.models import SessionClaims, TokenType
+from app.domain.realtime.models import revocation_channel
+from app.domain.shared.ports import PubSub
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +32,14 @@ class RedisSessionStore:
 
     Unlike the cache, a Redis failure is raised, never treated as a miss: a
     session that cannot be checked must not be reported as revoked or valid.
+
+    Revoking also announces it on ``revocation_channel(sub)`` so open WebSockets
+    close; a pub/sub failure is logged, not raised (the heartbeat is the fallback).
     """
 
-    def __init__(self, redis: Redis) -> None:
+    def __init__(self, redis: Redis, pubsub: PubSub) -> None:
         self._redis = redis
+        self._pubsub = pubsub
 
     @staticmethod
     def _key(kind: TokenType, jti: str) -> str:
@@ -81,24 +88,33 @@ class RedisSessionStore:
             _unavailable(claims.jti, exc)
 
     async def revoke_session(self, sub: str, sid: str) -> None:
-        await self._revoke(sub, f"{sid}:")
+        await self._revoke(sub, f"{sid}:", sid)
 
     async def revoke_all(self, sub: str) -> None:
-        await self._revoke(sub, "")
+        await self._revoke(sub, "", None)
 
-    async def _revoke(self, sub: str, member_prefix: str) -> None:
+    async def _revoke(self, sub: str, member_prefix: str, sid: str | None) -> None:
         index = self._index(sub)
         try:
             # The client is created with ``decode_responses=True`` (see main.py).
             listed = cast(set[str], await self._redis.smembers(index))
             members = [m for m in listed if m.startswith(member_prefix)]
-            if not members:
-                return
-            # SREM (not DEL of the index) so a token saved meanwhile stays listed.
-            async with self._redis.pipeline(transaction=True) as pipe:
-                pipe.delete(*(self._key_of_member(m) for m in members))
-                pipe.srem(index, *members)
-                await pipe.execute()
+            if members:
+                # SREM (not DEL of the index) so a token saved meanwhile stays listed.
+                async with self._redis.pipeline(transaction=True) as pipe:
+                    pipe.delete(*(self._key_of_member(m) for m in members))
+                    pipe.srem(index, *members)
+                    await pipe.execute()
         except RedisError as exc:
             logger.warning("Redis unavailable revoking sessions", exc_info=exc)
             raise ExternalServiceError(SESSION_UNAVAILABLE) from exc
+        await self._announce(sub, sid)
+
+    async def _announce(self, sub: str, sid: str | None) -> None:
+        try:
+            await self._pubsub.publish(
+                revocation_channel(sub), json.dumps({"sid": sid})
+            )
+        except ExternalServiceError:
+            # Already logged by the pub/sub adapter; the revocation itself stands.
+            logger.warning("Revocation of a session was not announced")

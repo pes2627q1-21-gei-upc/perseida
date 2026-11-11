@@ -38,6 +38,7 @@ from app.infrastructure.auth.google_verifier import (
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.account_gateway import UserAccountGateway
 from app.infrastructure.users.dependencies import build_user_service
@@ -99,7 +100,7 @@ async def client(
         app.state.auth_service = AuthService(
             GoogleJwksVerifier(google, [CLIENT_ID]),
             JwtTokenCodec("i" * 40),
-            RedisSessionStore(redis),
+            RedisSessionStore(redis, RedisPubSub(redis)),
             UserAccountGateway(users),
             SessionDurations(access_seconds=900, refresh_seconds=2_592_000),
         )
