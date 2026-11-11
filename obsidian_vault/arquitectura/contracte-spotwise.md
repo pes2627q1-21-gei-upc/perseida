@@ -3,8 +3,8 @@ titol: "Contracte de serveis amb Spotwise"
 tipus: arquitectura
 estat: vigent
 data: "2026-10-31"
-us: ["TG-85", "TG-50"]
-font: "README.md (arrel), backend/README.md, incepció 2 §8; Taiga TG-50, tasca #387 (31/10/2026)"
+us: ["TG-85", "TG-50", "TG-351"]
+font: "README.md (arrel), backend/README.md, incepció 2 §8; Taiga TG-50, tasca #387 (31/10/2026); TG-351, tasca #477 (10/11/2026)"
 etiquetes: [arquitectura, integracions, spotwise, contracte]
 ---
 
@@ -16,6 +16,7 @@ Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren e
 
 - `GET /api/events/active` i `GET /api/events/upcoming`: esdeveniments astronòmics rellevants actius en una data concreta o durant els dies vinents (pluges d'estrelles, eclipsis, superlluna, llançaments espacials).
 - El JSON inclou metadades clau de cada fenomen: **títol**, **descripció breu** i **categoria** (p. ex. `lunar`, `solar`, `meteor_shower`). El format exacte de cada esdeveniment és a [[contracte-esdeveniments]] (TG-50, tasca #387).
+- **Límit de peticions:** els endpoints són públics i el proxy admet 60 peticions per minut i IP (ràfega de 20). Per sobre, respon `429` en problem+json amb `code: RATE_LIMITED` i `Retry-After` ([[nginx-proxy-manager]], TG-351). Si Spotwise ens crida des d'un únic servidor, tot el seu trànsit compta com una sola IP.
 - Ús per a Spotwise: personalitzar la seva interfície segons el context astronòmic (temes visuals, petites notificacions o pop-ups mentre cerquen locals).
 - Les dades provenen de la base de dades de Perseida, alimentada per les APIs de la NASA i altres fonts ([[serveis-externs]]). L'endpoint el serveix l'[[api]].
 

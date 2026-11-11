@@ -302,6 +302,7 @@ A single proxy host serves everything from the same origin:
 |---|---|
 | `/api/...` | `api:8000` (REST API; health check at `/api/health`) |
 | `/api/ws` | `api:8000` with the WebSocket upgrade (chat, TG-63) |
+| `/api/events/` | `api:8000` with a per-IP request limit (public endpoints for Spotwise, TG-351) |
 | `/media/` | NPM itself, from the `media_data` volume (user media) |
 | `/admin/` | NPM itself, from the `admin_dist` volume (admin panel SPA) |
 
@@ -332,7 +333,7 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
 
 1. **Details:** domain `perseida.duckdns.org` (local: `perseida.localhost`; not `localhost`, which NPM already reserves on port 443 and rejects the TLS handshake), scheme `http`, forward hostname `api`, forward port `8000`. Turn on *Block Common Exploits* and *Websockets Support*; leave *Cache Assets* off.
 2. **SSL:** the certificate above, with *Force SSL* and *HTTP/2 Support*. Leave NPM's *HSTS* option off, because `security-headers.conf` already sends it.
-3. **Advanced:** paste `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf` and `nginx-proxy-manager/websocket.conf`, one after another.
+3. **Advanced:** paste `nginx-proxy-manager/security-headers.conf`, `nginx-proxy-manager/static.conf`, `nginx-proxy-manager/websocket.conf` and `nginx-proxy-manager/rate-limit.conf`, one after another.
 4. **Check** (locally, with `-k` because the certificate is self-signed):
 
    ```bash
@@ -350,6 +351,16 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
    ```
 
    A real client (e.g. `wscat -n -c wss://perseida.localhost/api/ws`) then has to send, as its first frame, `{"type":"auth","token":"<access token>"}`: the server closes with code 4401 if that frame does not arrive within `WS_AUTH_TIMEOUT_SECONDS` (default 10) or the token is not valid. After authenticating, the server sends a `ping` every `WS_HEARTBEAT_SECONDS` (default 30). Both are optional variables of `api` (they are in `.env.example`), as are `WS_MAX_ROOMS` (default 20), `WS_MAX_FRAME_BYTES` (default 65536) and `WS_SEND_TIMEOUT_SECONDS` (default 5) and `WS_MAX_CONNECTIONS_PER_USER` (default 3). The heartbeat must stay well below `proxy_read_timeout` (3600 s in `websocket.conf`) so the proxy never sees the connection as idle.
+
+### Request limit per IP
+
+The public events endpoints (`/api/events/`, TG-351) allow 60 requests per minute per IP, with a burst of 20 served at once. Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED` and `Retry-After: 1`, without reaching the API.
+
+- The zone (`limit_req_zone`) must be in nginx's `http` block, which the *Advanced* tab cannot reach. It lives in `nginx-proxy-manager/http_top.conf`, which the Compose mounts read-only at `/data/nginx/custom/http_top.conf` (NPM includes it) and the CD copies to `/opt/perseida/nginx-proxy-manager/`.
+- The location that applies it is `nginx-proxy-manager/rate-limit.conf` (*Advanced* tab).
+- `docker compose up` does not recreate the proxy when only the content of `http_top.conf` changes, so the CD validates and reloads nginx after each deploy (`nginx -t && nginx -s reload`). Locally: `docker compose exec reverse-proxy nginx -s reload`.
+- Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it).
+- The limit counts the IP that nginx sees as `$remote_addr`. After a deploy, check in NPM's access log that it is the client's public IP and not a private one from the NAT or Docker: otherwise every client would share one counter.
 
 ### Volumes
 
