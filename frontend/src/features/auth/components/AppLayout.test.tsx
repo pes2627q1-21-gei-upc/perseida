@@ -117,6 +117,99 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     expect(refreshSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('TG-536 keeps a valid session when periodic renewal rejects', async () => {
+    jest.useFakeTimers();
+    jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
+    const refresh = jest
+      .spyOn(refreshTokenModule, 'refreshSession')
+      .mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(new Error('transient failure'));
+    await act(async () => {
+      render(<AppLayout />);
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(SESSION_REFRESH_INTERVAL_MS);
+    });
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('TG-536 does not redirect after unmount while checking restored tokens', async () => {
+    let finish!: (value: null) => void;
+    jest
+      .spyOn(tokenStorage, 'getTokens')
+      .mockResolvedValueOnce(validTokens)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      );
+    jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
+    const view = await render(<AppLayout />);
+    await act(async () => {});
+    await view.unmount();
+    await act(async () => {
+      finish(null);
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it.each(['initial read', 'final read'])(
+    'TG-536 catches periodic %s failure and retains the session',
+    async (failedRead) => {
+      jest.useFakeTimers();
+      const getTokens = jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
+      jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
+      await act(async () => {
+        render(<AppLayout />);
+      });
+      if (failedRead === 'final read') getTokens.mockResolvedValueOnce(validTokens);
+      getTokens.mockRejectedValueOnce(new Error('storage'));
+      await act(async () => {
+        jest.advanceTimersByTime(SESSION_REFRESH_INTERVAL_MS);
+      });
+      expect(mockReplace).not.toHaveBeenCalled();
+    },
+  );
+
+  it('TG-536 redirects on periodic revoked session', async () => {
+    jest.useFakeTimers();
+    const getTokens = jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
+    jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
+    await act(async () => {
+      render(<AppLayout />);
+    });
+    getTokens.mockResolvedValueOnce(validTokens).mockResolvedValueOnce(null);
+    await act(async () => {
+      jest.advanceTimersByTime(SESSION_REFRESH_INTERVAL_MS);
+    });
+    expect(mockReplace).toHaveBeenCalledWith('/login');
+  });
+
+  it('TG-536 does not redirect after unmount during periodic final token read', async () => {
+    jest.useFakeTimers();
+    const getTokens = jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
+    jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
+    const view = await render(<AppLayout />);
+    await act(async () => {});
+    let finish!: (value: null) => void;
+    getTokens.mockResolvedValueOnce(validTokens).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    await act(async () => {
+      jest.advanceTimersByTime(SESSION_REFRESH_INTERVAL_MS);
+    });
+    await view.unmount();
+    await act(async () => {
+      finish(null);
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   it('redirects to /login if getTokens rejects with an unhandled storage failure', async () => {
     jest.spyOn(tokenStorage, 'getTokens').mockRejectedValueOnce(new Error('Storage failure'));
 

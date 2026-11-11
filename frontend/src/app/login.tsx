@@ -47,11 +47,17 @@ export default function LoginScreen() {
   // Route guard: if the user already has a valid session, redirect to the app (TG-43 #233)
   useEffect(() => {
     let mounted = true;
-    getTokens().then((tokens) => {
-      if (mounted && tokens) {
-        router.replace('/(app)');
-      }
-    });
+    void getTokens()
+      .then((tokens) => {
+        if (mounted && tokens) {
+          router.replace('/(app)');
+        }
+      })
+      .catch((error: unknown) => {
+        if (mounted) {
+          setPressedNotice(toAuthErrorMessage(error));
+        }
+      });
     return () => {
       mounted = false;
     };
@@ -60,7 +66,11 @@ export default function LoginScreen() {
   // Launches Google OAuth2 + PKCE authorization flow
   const handleContinue = async () => {
     if (isAuthenticating) return;
-    await signIn();
+    try {
+      await signIn();
+    } catch (error: unknown) {
+      setPressedNotice(toAuthErrorMessage(error));
+    }
   };
 
   return (
