@@ -4,6 +4,7 @@ Only Google is simulated (respx + a throwaway RSA key). The clock of the quiz
 service is fixed so that "today" is known.
 """
 
+import asyncio
 import os
 import uuid
 from collections.abc import AsyncIterator, Iterator
@@ -23,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 
 from alembic import command
 from app.application.auth.auth_service import AuthService, SessionDurations
-from app.application.auth.errors import INVALID_SESSION
+from app.application.auth.errors import INVALID_SESSION, SESSION_UNAVAILABLE
 from app.application.quiz.quiz_service import QuizService
 from app.domain.quiz.rules import (
     QUIZ_ALREADY_ANSWERED,
@@ -38,10 +39,12 @@ from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_cache import RedisCache
+from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.quiz.dependencies import get_quiz_service
 from app.infrastructure.quiz.repository import (
     SqlQuizAnswerRepository,
+    SqlQuizDayRepository,
     SqlQuizQuestionRepository,
 )
 from app.infrastructure.users.account_gateway import UserAccountGateway
@@ -58,15 +61,22 @@ PROBLEM_JSON = "application/problem+json"
 NOW = datetime(2026, 11, 9, 10, 0, tzinfo=UTC)
 TODAY = NOW.date().isoformat()
 SOLUTION_FIELDS = {"correct_option", "explanation", "source_url"}
+EXTRA_ID = uuid.UUID("01a1bd9a-ffff-7000-8000-000000000000")
+# Nothing listens on port 1: every call to this Redis fails, as when it is down.
+DOWN_REDIS_URL = "redis://127.0.0.1:1/0"
 
 
-@pytest.fixture(scope="module", autouse=True)
-def _schema_at_head() -> None:
+def _alembic_config() -> Config:
     backend_dir = Path(__file__).resolve().parents[2]
     config = Config(str(backend_dir / "alembic.ini"))
     config.set_main_option("script_location", str(backend_dir / "alembic"))
     config.attributes["configure_logger"] = False
-    command.upgrade(config, "head")
+    return config
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _schema_at_head() -> None:
+    command.upgrade(_alembic_config(), "head")
 
 
 @pytest.fixture
@@ -83,6 +93,10 @@ async def engine() -> AsyncIterator[AsyncEngine]:
     finally:
         async with engine.begin() as connection:
             await connection.execute(text("DELETE FROM quiz_answers"))
+            await connection.execute(text("DELETE FROM quiz_days"))
+            await connection.execute(
+                text("DELETE FROM quiz_questions WHERE id = :id"), {"id": EXTRA_ID}
+            )
             await connection.execute(text("DELETE FROM user_identities"))
             await connection.execute(text("DELETE FROM users"))
         await engine.dispose()
@@ -101,29 +115,36 @@ async def redis() -> AsyncIterator[Redis]:
         await client.aclose()
 
 
-@pytest.fixture
-async def client(
-    google_certs: respx.Route, engine: AsyncEngine, redis: Redis
-) -> AsyncIterator[AsyncClient]:
+def build_app(engine: AsyncEngine, redis: Redis, google: httpx.AsyncClient) -> FastAPI:
+    """The real app, with sessions and the quiz cache on ``redis``."""
     factory = async_sessionmaker(engine, expire_on_commit=False)
     users = build_user_service(factory)
     quiz = QuizService(
         SqlQuizQuestionRepository(factory),
+        SqlQuizDayRepository(factory),
         SqlQuizAnswerRepository(factory),
         RedisCache(redis, 3600),
         now=lambda: NOW,
     )
+    app: FastAPI = create_app()
+    app.state.user_service = users
+    app.state.auth_service = AuthService(
+        GoogleJwksVerifier(google, [CLIENT_ID]),
+        JwtTokenCodec("q" * 40),
+        RedisSessionStore(redis, RedisPubSub(redis)),
+        UserAccountGateway(users),
+        SessionDurations(access_seconds=900, refresh_seconds=2_592_000),
+    )
+    app.dependency_overrides[get_quiz_service] = lambda: quiz
+    return app
+
+
+@pytest.fixture
+async def client(
+    google_certs: respx.Route, engine: AsyncEngine, redis: Redis
+) -> AsyncIterator[AsyncClient]:
     async with httpx.AsyncClient() as google:
-        app: FastAPI = create_app()
-        app.state.user_service = users
-        app.state.auth_service = AuthService(
-            GoogleJwksVerifier(google, [CLIENT_ID]),
-            JwtTokenCodec("q" * 40),
-            RedisSessionStore(redis),
-            UserAccountGateway(users),
-            SessionDurations(access_seconds=900, refresh_seconds=2_592_000),
-        )
-        app.dependency_overrides[get_quiz_service] = lambda: quiz
+        app = build_app(engine, redis, google)
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as http:
@@ -279,3 +300,88 @@ async def test_tg60_c11_the_question_of_the_day_is_cached_in_redis(
     key = f"cache:quiz:daily:{TODAY}:ca"
     assert await redis.exists(key)
     assert 0 < await redis.ttl(key) <= 14 * 60 * 60
+
+
+async def test_tg60_c2_a_day_keeps_its_question_when_the_bank_grows(
+    client: AsyncClient, engine: AsyncEngine
+) -> None:
+    headers = await login(client)
+    cached = (await client.get("/api/quiz/today?lang=ca", headers=headers)).json()
+    async with engine.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO quiz_questions (id, position, correct_option, source_url)"
+                " VALUES (:id, 100, 0, 'https://science.nasa.gov/')"
+            ),
+            {"id": EXTRA_ID},
+        )
+
+    # English was not cached yet: it is read from PostgreSQL with 101 questions.
+    fresh = (await client.get("/api/quiz/today?lang=en", headers=headers)).json()
+    response = await answer(client, headers)
+
+    assert fresh["question_id"] == cached["question_id"]
+    assert response.status_code == 201
+
+
+async def test_tg60_c13_a_rollback_of_the_bank_keeps_answers_and_cached_ids(
+    client: AsyncClient, engine: AsyncEngine
+) -> None:
+    answered_headers = await login(client)
+    answered = (await answer(client, answered_headers)).json()
+    other = await login(client)
+    cached = (await client.get("/api/quiz/today", headers=other)).json()
+
+    # Alembic runs its own event loop, so it goes to another thread.
+    await asyncio.to_thread(command.downgrade, _alembic_config(), "4f2c9a1b7d3e")
+    async with engine.connect() as connection:
+        kept = await connection.scalar(text("SELECT count(*) FROM quiz_answers"))
+    await asyncio.to_thread(command.upgrade, _alembic_config(), "head")
+    async with engine.connect() as connection:
+        bank = await connection.scalar(text("SELECT count(*) FROM quiz_questions"))
+
+    # Redis still holds the question of the day with its id: it must still work.
+    response = await client.post(
+        "/api/quiz/today/answer",
+        headers=other,
+        json={"date": TODAY, "question_id": cached["question_id"], "chosen_option": 0},
+    )
+    today = (await client.get("/api/quiz/today", headers=answered_headers)).json()
+
+    assert kept == 1
+    assert bank == 100
+    assert response.status_code == 201
+    assert today["result"] == answered
+
+
+async def test_tg60_c12_with_redis_down_the_quiz_fails_safely_with_a_503(
+    client: AsyncClient, google_certs: respx.Route, engine: AsyncEngine
+) -> None:
+    # Decision of the team (contracte-quiz.md): the cache falls back to
+    # PostgreSQL, but the session cannot be checked without Redis and ADR-0008
+    # asks to fail safely, so the endpoint answers 503 SESSION_UNAVAILABLE.
+    headers = await login(client)
+    down = Redis.from_url(DOWN_REDIS_URL, decode_responses=True)
+    try:
+        async with httpx.AsyncClient() as google:
+            app = build_app(engine, down, google)
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as http:
+                responses = [
+                    await http.get("/api/quiz/today", headers=headers),
+                    await http.post(
+                        "/api/quiz/today/answer",
+                        headers=headers,
+                        json={
+                            "date": TODAY,
+                            "question_id": str(uuid.UUID(int=1)),
+                            "chosen_option": 0,
+                        },
+                    ),
+                ]
+    finally:
+        await down.aclose()
+
+    for response in responses:
+        assert_problem(response, 503, SESSION_UNAVAILABLE)

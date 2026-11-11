@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 
 from app.domain.quiz.models import QuizQuestion
-from app.domain.users.models import Language
+from app.domain.shared.language import Language
 
 SEED = Path(__file__).resolve().parents[4] / "alembic" / "seed" / "quiz_questions.json"
 
@@ -26,8 +26,17 @@ def test_tg60_c13_every_question_is_valid_in_every_language(
 ) -> None:
     # The domain checks the three languages, the 4 different options, the right
     # answer and the https source.
-    for number, question in enumerate(bank, start=1):
-        QuizQuestion.model_validate({"id": uuid.UUID(int=number), **question})
+    for question in bank:
+        QuizQuestion.model_validate(question)
+
+
+def test_every_question_has_a_fixed_uuid7(bank: list[dict[str, Any]]) -> None:
+    # Fixed ids: a downgrade and an upgrade of the seed keep the same ids, so
+    # a question of the day cached in Redis is still valid afterwards.
+    ids = [uuid.UUID(question["id"]) for question in bank]
+
+    assert all(question_id.version == 7 for question_id in ids)
+    assert len(set(ids)) == len(ids)
 
 
 def test_tg60_c13_no_question_is_repeated(bank: list[dict[str, Any]]) -> None:

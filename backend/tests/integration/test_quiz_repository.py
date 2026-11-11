@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import uuid
 from collections.abc import AsyncIterator
@@ -14,10 +15,12 @@ from alembic import command
 from app.domain.quiz.models import QuizAnswer
 from app.domain.quiz.rules import QUIZ_ALREADY_ANSWERED
 from app.domain.shared.errors import ConflictError
-from app.domain.users.models import Language, User
+from app.domain.shared.language import Language
+from app.domain.users.models import User
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.quiz.repository import (
     SqlQuizAnswerRepository,
+    SqlQuizDayRepository,
     SqlQuizQuestionRepository,
 )
 from app.infrastructure.users.repository import SqlUserRepository
@@ -28,6 +31,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 DAY = date(2026, 11, 9)
+SEED = Path(__file__).resolve().parents[2] / "alembic" / "seed" / "quiz_questions.json"
 AT = datetime(2026, 11, 9, 12, 0, tzinfo=UTC)
 
 
@@ -48,6 +52,7 @@ async def engine() -> AsyncIterator[AsyncEngine]:
     finally:
         async with engine.begin() as connection:
             await connection.execute(text("DELETE FROM quiz_answers"))
+            await connection.execute(text("DELETE FROM quiz_days"))
             await connection.execute(
                 text("DELETE FROM user_identities WHERE subject LIKE 'quiz-%'")
             )
@@ -65,6 +70,11 @@ def questions(engine: AsyncEngine) -> SqlQuizQuestionRepository:
 @pytest.fixture
 def answers(engine: AsyncEngine) -> SqlQuizAnswerRepository:
     return SqlQuizAnswerRepository(async_sessionmaker(engine, expire_on_commit=False))
+
+
+@pytest.fixture
+def days(engine: AsyncEngine) -> SqlQuizDayRepository:
+    return SqlQuizDayRepository(async_sessionmaker(engine, expire_on_commit=False))
 
 
 @pytest.fixture
@@ -179,3 +189,54 @@ async def test_quiz_tables_follow_the_data_model_conventions(
 
     assert version == 7
     assert unique == "uq_quiz_answers_user_id"
+
+
+async def test_the_stored_ids_are_the_fixed_ids_of_the_seed(
+    questions: SqlQuizQuestionRepository,
+) -> None:
+    seed = json.loads(SEED.read_text(encoding="utf-8"))
+
+    stored = [await questions.at_position(n) for n in range(len(seed))]
+
+    assert [str(question.id) for question in stored] == [q["id"] for q in seed]
+
+
+async def test_a_question_is_read_by_its_id(
+    questions: SqlQuizQuestionRepository,
+) -> None:
+    first = await questions.at_position(0)
+
+    assert await questions.get(first.id) == first
+
+
+async def test_an_unknown_id_is_an_error(questions: SqlQuizQuestionRepository) -> None:
+    with pytest.raises(LookupError):
+        await questions.get(uuid.UUID(int=1))
+
+
+async def test_tg60_c3_a_day_without_question_returns_none(
+    days: SqlQuizDayRepository,
+) -> None:
+    assert await days.get(DAY) is None
+
+
+async def test_tg60_c3_the_first_question_given_to_a_day_stays(
+    questions: SqlQuizQuestionRepository, days: SqlQuizDayRepository
+) -> None:
+    first, second = await questions.at_position(0), await questions.at_position(1)
+
+    assert await days.assign(DAY, first.id) == first.id
+    assert await days.assign(DAY, second.id) == first.id
+    assert await days.get(DAY) == first.id
+
+
+async def test_tg60_c3_two_requests_at_once_agree_on_the_day_s_question(
+    questions: SqlQuizQuestionRepository, days: SqlQuizDayRepository
+) -> None:
+    first, second = await questions.at_position(0), await questions.at_position(1)
+
+    results = await asyncio.gather(
+        days.assign(DAY, first.id), days.assign(DAY, second.id)
+    )
+
+    assert results[0] == results[1] == await days.get(DAY)

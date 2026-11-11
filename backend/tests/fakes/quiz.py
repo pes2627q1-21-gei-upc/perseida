@@ -21,6 +21,29 @@ class FakeQuizQuestionRepository:
         self.requested.append(position)
         return self._questions[position]
 
+    async def get(self, question_id: uuid.UUID) -> QuizQuestion:
+        for question in self._questions:
+            if question.id == question_id:
+                return question
+        raise LookupError(question_id)
+
+    def grow(self, question: QuizQuestion) -> None:
+        """Add a question at the end of the bank, as a new seed would."""
+        self._questions.append(question)
+
+
+class FakeQuizDayRepository:
+    """In-memory calendar: the first question given to a day stays."""
+
+    def __init__(self) -> None:
+        self.stored: dict[date, uuid.UUID] = {}
+
+    async def get(self, quiz_date: date) -> uuid.UUID | None:
+        return self.stored.get(quiz_date)
+
+    async def assign(self, quiz_date: date, question_id: uuid.UUID) -> uuid.UUID:
+        return self.stored.setdefault(quiz_date, question_id)
+
 
 class FakeQuizAnswerRepository:
     """In-memory answers, at most one per user and day."""

@@ -11,10 +11,14 @@ from app.domain.quiz.rules import (
     question_position,
 )
 from app.domain.shared.errors import ConflictError, ValidationError
-from app.domain.users.models import Language
+from app.domain.shared.language import Language
 from tests.factories.quiz import make_question, make_translation
 from tests.fakes.cache import FakeCache
-from tests.fakes.quiz import FakeQuizAnswerRepository, FakeQuizQuestionRepository
+from tests.fakes.quiz import (
+    FakeQuizAnswerRepository,
+    FakeQuizDayRepository,
+    FakeQuizQuestionRepository,
+)
 
 NOW = datetime(2026, 11, 9, 10, 0, tzinfo=UTC)
 TODAY = NOW.date()
@@ -35,11 +39,20 @@ class MissingCache:
 
 
 def make_service(
-    now: datetime = NOW, cache: FakeCache | MissingCache | None = None
+    now: datetime = NOW,
+    cache: FakeCache | MissingCache | None = None,
+    days: FakeQuizDayRepository | None = None,
+    questions: FakeQuizQuestionRepository | None = None,
 ) -> tuple[QuizService, FakeQuizQuestionRepository, FakeQuizAnswerRepository]:
-    questions = FakeQuizQuestionRepository(BANK)
+    questions = questions or FakeQuizQuestionRepository(BANK)
     answers = FakeQuizAnswerRepository()
-    service = QuizService(questions, answers, cache or FakeCache(), now=lambda: now)
+    service = QuizService(
+        questions,
+        days or FakeQuizDayRepository(),
+        answers,
+        cache or FakeCache(),
+        now=lambda: now,
+    )
     return service, questions, answers
 
 
@@ -210,3 +223,82 @@ async def test_tg60_c9_another_question_is_rejected() -> None:
 
     assert error.value.code == QUIZ_QUESTION_MISMATCH
     assert answers.stored == {}
+
+
+async def test_tg60_c3_the_question_of_a_day_is_stored_in_the_calendar() -> None:
+    days = FakeQuizDayRepository()
+    service, _, _ = make_service(days=days)
+
+    await service.today(ALICE, Language.CA)
+
+    assert days.stored == {TODAY: TODAYS.id}
+
+
+async def test_tg60_c2_a_day_keeps_its_question_when_the_bank_grows() -> None:
+    # One language is cached before the bank grows and the other is not:
+    # both must still show the same question, with its own solution.
+    days = FakeQuizDayRepository()
+    questions = FakeQuizQuestionRepository(BANK)
+    service, _, _ = make_service(days=days, questions=questions)
+    before = await service.today(ALICE, Language.CA)
+
+    questions.grow(make_question(uuid.UUID(int=999), correct_option=3))
+    assert question_position(TODAY, len(BANK) + 1) != question_position(
+        TODAY, len(BANK)
+    )
+    after = await service.today(BOB, Language.EN)
+    result = await service.answer(
+        user_id=BOB,
+        language=Language.EN,
+        quiz_date=TODAY,
+        question_id=before.question.question_id,
+        chosen_option=TODAYS.correct_option,
+    )
+
+    assert after.question.question_id == before.question.question_id == TODAYS.id
+    assert result.answer.correct is True
+    assert result.question.correct_option == TODAYS.correct_option
+
+
+async def test_tg60_c12_without_redis_a_grown_bank_keeps_the_day_s_question() -> None:
+    days = FakeQuizDayRepository()
+    questions = FakeQuizQuestionRepository(BANK)
+    first, _, _ = make_service(cache=MissingCache(), days=days, questions=questions)
+    await first.today(ALICE, Language.CA)
+    questions.grow(make_question(uuid.UUID(int=999)))
+
+    quiz = await first.today(BOB, Language.ES)
+
+    assert quiz.question.question_id == TODAYS.id
+
+
+async def test_a_day_set_by_another_request_wins_over_the_rotation() -> None:
+    other = next(question for question in BANK if question.id != TODAYS.id)
+    days = FakeQuizDayRepository()
+    days.stored[TODAY] = other.id
+    service, _, _ = make_service(days=days)
+
+    quiz = await service.today(ALICE, Language.CA)
+
+    assert quiz.question.question_id == other.id
+
+
+class RacingDays(FakeQuizDayRepository):
+    """A calendar where another request fixes the day just before this one."""
+
+    def __init__(self, winner: uuid.UUID) -> None:
+        super().__init__()
+        self._winner = winner
+
+    async def assign(self, quiz_date: date, question_id: uuid.UUID) -> uuid.UUID:
+        self.stored.setdefault(quiz_date, self._winner)
+        return await super().assign(quiz_date, question_id)
+
+
+async def test_when_two_requests_race_both_get_the_question_stored_first() -> None:
+    other = next(question for question in BANK if question.id != TODAYS.id)
+    service, _, _ = make_service(days=RacingDays(other.id))
+
+    quiz = await service.today(ALICE, Language.CA)
+
+    assert quiz.question.question_id == other.id
