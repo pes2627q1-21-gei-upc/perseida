@@ -87,29 +87,56 @@ def test_message_is_frozen() -> None:
         message.text = "altre"  # type: ignore[misc]
 
 
-def _expected(text: str) -> str:
-    kept = "".join(
-        char
-        for char in text
-        if char in "\n\t" or unicodedata.category(char) not in ("Cc", "Cs", "Co", "Cn")
-    )
-    return kept.strip()
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("a‮b", "ab"),  # bidi override: pot suplantar visualment un text
+        ("a​b", "ab"),  # zero-width space
+        ("a­b", "ab"),  # soft hyphen
+        ("a‎b‏", "ab"),  # marques LRM/RLM
+    ],
+)
+def test_invisible_format_characters_are_removed(text: str, expected: str) -> None:
+    # TG-64 criteri 7: caràcters de format (Cf) fora, tret de ZWJ i ZWNJ
+    assert _message(text).text == expected
+
+
+@pytest.mark.parametrize("text", ["​", "‮​", " ‍ ", "‌‍"])
+def test_text_without_visible_characters_is_rejected(text: str) -> None:
+    # Només invisibles (també ZWJ/ZWNJ, que es conserven dins d'un text) = buit
+    with pytest.raises(ValidationError) as exc_info:
+        _message(text)
+
+    assert exc_info.value.code == "CHAT_MESSAGE_EMPTY"
+
+
+@pytest.mark.parametrize("text", ["👩‍🚀", "👨‍👩‍👧", "می‌خواهم"])
+def test_zero_width_joiners_inside_a_text_are_kept(text: str) -> None:
+    # Els emojis compostos i alguns scripts necessiten ZWJ/ZWNJ
+    assert _message(text).text == text
 
 
 @given(text=st.text(max_size=1200))
-def test_any_text_is_either_cleaned_within_the_limit_or_rejected(text: str) -> None:
-    # TG-64 criteri 7 (propietat): mai es desa res buit ni de més de 1000
-    expected = _expected(text)
-    if not expected:
-        with pytest.raises(ValidationError) as exc_info:
-            _message(text)
-        assert exc_info.value.code == "CHAT_MESSAGE_EMPTY"
-    elif len(expected) > 1000:
-        with pytest.raises(ValidationError) as exc_info:
-            _message(text)
-        assert exc_info.value.code == "CHAT_MESSAGE_TOO_LONG"
-    else:
-        assert _message(text).text == expected
+def test_any_text_is_either_accepted_clean_or_rejected_with_a_stable_code(
+    text: str,
+) -> None:
+    # TG-64 criteri 7 (propietat): el que es desa és sempre net, no buit i <= 1000
+    try:
+        saved = _message(text).text
+    except ValidationError as error:
+        assert error.code in {"CHAT_MESSAGE_EMPTY", "CHAT_MESSAGE_TOO_LONG"}
+        return
+
+    assert 0 < len(saved) <= 1000
+    assert saved == saved.strip()
+    assert "\x00" not in saved
+    assert all(
+        unicodedata.category(char) not in ("Cc", "Cs", "Co", "Cn") or char in "\n\t"
+        for char in saved
+    )
+    assert all(unicodedata.category(char) != "Cf" or char in "‌‍" for char in saved)
+    # Netejar un text ja net no el canvia
+    assert _message(saved).text == saved
 
 
 @given(length=st.integers(min_value=0, max_value=1100))
