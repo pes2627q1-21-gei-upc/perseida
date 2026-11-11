@@ -24,7 +24,7 @@ Fer les tasques #435 (tests en vermell) i #437 (entitats i ports) de la US #64, 
 ## Decisions preses (Oriol)
 
 - **hypothesis** s'afegeix amb versió fixada.
-- **Neteja del text:** strip i eliminar caràcters de control i de format invisibles (excepte `\n`, `\t`, ZWJ i ZWNJ, que mantenen els emojis compostos); mai truncar; el límit es comprova després de netejar.
+- **Neteja del text:** strip i eliminar els caràcters de control i **només els invisibles perillosos** (`Default_Ignorable_Code_Point` de l'UCD 18 menys ZWJ, ZWNJ, LRM, RLM, ALM, `FE0E`/`FE0F` i les banderes d'Anglaterra, Escòcia i Gal·les); no es treu cap `Cn`; mai truncar; el límit es comprova després de netejar. Llista verificada contra el fitxer `DerivedCoreProperties.txt` (cap ignorable sense cobrir). Veure [[model-de-domini]].
 - **Atributs:** `EventChatRoom(id, event_id, created_at)` i `ChatMessage(id, room_id, author_id, text, sent_at)`.
 - **Cursor de l'històric:** l'id del missatge (UUIDv7 és ordenable per temps).
 
