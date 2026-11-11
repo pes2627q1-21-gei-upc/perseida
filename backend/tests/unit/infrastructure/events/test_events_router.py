@@ -11,6 +11,7 @@ from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.events.dependencies import get_event_service
 from app.infrastructure.events.router import router
 from tests.factories.events import make_event
+from tests.fakes.cache import FakeCache
 from tests.fakes.events import FakeEventRepository
 
 NOW = datetime(2026, 11, 17, 21, 30, tzinfo=UTC)
@@ -33,7 +34,7 @@ async def client(repository: FakeEventRepository) -> AsyncIterator[AsyncClient]:
     register_error_handlers(app)
     app.include_router(router, prefix="/api")
     app.dependency_overrides[get_event_service] = lambda: EventService(
-        repository, now=lambda: NOW
+        repository, [], FakeCache(), now=lambda: NOW
     )
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"

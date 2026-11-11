@@ -16,6 +16,8 @@ from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
 from app.infrastructure.auth.router import router as auth_router
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.events.config import EventsSettings
+from app.infrastructure.events.launch_library import LaunchLibraryEventSource
 from app.infrastructure.events.router import router as events_router
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
@@ -41,6 +43,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     auth_settings = AuthSettings()
     settings = DatabaseSettings()
     nasa_settings = NasaSettings()
+    events_settings = EventsSettings()
     scheduler = (
         get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
     )
@@ -69,12 +72,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     auth_settings, redis, client, UserAccountGateway(user_service)
                 )
                 nasa_timeout = nasa_settings.nasa_timeout_seconds
-                async with httpx.AsyncClient(
-                    timeout=httpx.Timeout(
-                        nasa_timeout,
-                        connect=nasa_settings.nasa_connect_timeout_seconds,
-                    )
-                ) as nasa_http:
+                async with (
+                    httpx.AsyncClient(
+                        timeout=httpx.Timeout(
+                            nasa_timeout,
+                            connect=nasa_settings.nasa_connect_timeout_seconds,
+                        )
+                    ) as nasa_http,
+                    httpx.AsyncClient(
+                        timeout=httpx.Timeout(
+                            events_settings.events_timeout_seconds,
+                            connect=events_settings.events_connect_timeout_seconds,
+                        )
+                    ) as events_http,
+                ):
+                    # One instance per process: it enforces the LL2 quota.
+                    app.state.event_sources = [
+                        LaunchLibraryEventSource(
+                            events_http, events_settings.launch_library_url
+                        )
+                    ]
                     app.state.nasa_http = nasa_http
                     app.state.nasa_api_key = nasa_settings.nasa_api_key
                     app.state.nasa_timeout_seconds = nasa_timeout
