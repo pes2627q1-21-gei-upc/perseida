@@ -130,7 +130,7 @@ async def test_registering_same_name_replaces_the_job(
 
 
 async def test_tg536_shutdown_waits_for_cancelled_job_cleanup(
-    scheduler: ApschedulerJobScheduler,
+    scheduler: ApschedulerJobScheduler, caplog: pytest.LogCaptureFixture
 ) -> None:
     started = asyncio.Event()
     cleaned_up = False
@@ -147,10 +147,12 @@ async def test_tg536_shutdown_waits_for_cancelled_job_cleanup(
     scheduler.start()
     await asyncio.wait_for(started.wait(), TIMEOUT)
 
-    await scheduler.shutdown()
+    with caplog.at_level(logging.WARNING):
+        await scheduler.shutdown()
 
     assert cleaned_up is True
     assert [t for t in asyncio.all_tasks() if t is not asyncio.current_task()] == []
+    assert [r for r in caplog.records if r.levelno >= logging.ERROR] == []
 
 
 async def test_tg536_job_cancellation_propagates_after_async_cleanup(
