@@ -60,14 +60,19 @@ function getChangedFrontendFiles(baseBranch) {
 
     return [...new Set(files)].sort();
   } catch (err) {
-    console.warn(`⚠️ Error calculant el diff contra ${baseBranch}:`, err.message);
-    return [];
+    console.error(`❌ Error calculant el diff contra ${baseBranch}:`, err.message);
+    return null;
   }
 }
 
 function main() {
   const { baseBranch } = getArgs();
   const changedFiles = getChangedFrontendFiles(baseBranch);
+
+  if (changedFiles === null) {
+    console.error(`❌ ERROR: No s'ha pogut obtenir el git diff contra '${baseBranch}'.`);
+    process.exit(1);
+  }
 
   if (changedFiles.length === 0) {
     console.log(
@@ -89,7 +94,19 @@ function main() {
     env: process.env,
   });
 
-  process.exit(result.status ?? 0);
+  if (result.error) {
+    console.error('❌ ERROR executant Stryker:', result.error.message);
+    process.exit(1);
+  }
+
+  if (result.signal) {
+    console.error(
+      `❌ ERROR: Stryker ha finalitzat de forma anòmala per senyal (${result.signal}).`,
+    );
+    process.exit(1);
+  }
+
+  process.exit(result.status ?? 1);
 }
 
 main();

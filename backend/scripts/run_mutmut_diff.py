@@ -14,6 +14,19 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mutmut.stats import Stat
+
+# Assegurar UTF-8 a sortida estàndard (p. ex. Windows/consoles sense UTF-8)
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    reconfig_out = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfig_out):
+        reconfig_out(encoding="utf-8")
+    reconfig_err = getattr(sys.stderr, "reconfigure", None)
+    if callable(reconfig_err):
+        reconfig_err(encoding="utf-8")
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,7 +56,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def get_changed_domain_files(base_branch: str) -> list[str]:
+def get_changed_domain_files(base_branch: str) -> list[str] | None:
     try:
         diff_cmd = [
             "git",
@@ -57,10 +70,10 @@ def get_changed_domain_files(base_branch: str) -> list[str]:
         proc = subprocess.run(diff_cmd, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as err:
         print(
-            f"⚠️ Error obtenint git diff contra {base_branch}: {err.stderr}",
+            f"❌ Error obtenint git diff contra {base_branch}: {err.stderr}",
             file=sys.stderr,
         )
-        return []
+        return None
 
     files: list[str] = []
     for line in proc.stdout.splitlines():
@@ -75,14 +88,67 @@ def get_changed_domain_files(base_branch: str) -> list[str]:
     return sorted(set(files))
 
 
+def evaluate_mutation_results(stats: Stat, threshold: float) -> int:
+    killed = stats.killed
+    survived = stats.survived
+    timeout = stats.timeout
+    no_tests = stats.no_tests
+    suspicious = stats.suspicious
+
+    # Els mutants sense tests (no_tests) i sospitosos compten com a supervivents
+    effective_survived = survived + no_tests + suspicious
+    total_evaluated = killed + timeout + effective_survived
+
+    if total_evaluated == 0:
+        print(
+            "❌ ERROR: S'han generat mutants al domini pero cap s'ha provat "
+            "(sense tests associats)."
+        )
+        return 1
+
+    score = ((killed + timeout) / total_evaluated) * 100.0
+
+    print("\n" + "=" * 60)
+    print("📊 RESULTAT DEL MUTATION TESTING (backend)")
+    print("=" * 60)
+    print(f"   Mutants morts (killed):       {killed}")
+    print(f"   Mutants supervivents (surv):  {survived}")
+    print(f"   Mutants sense tests (no_tst): {no_tests}")
+    print(f"   Mutants sospitosos (susp):    {suspicious}")
+    print(f"   Mutants timeout (timeout):    {timeout}")
+    print(f"   Total avaluat:                {total_evaluated}")
+    print(
+        f"   Mutation score:               {score:.2f}% "
+        f"(llindar requerit: {threshold:.2f}%)"
+    )
+    print("=" * 60)
+
+    if score < threshold:
+        print(
+            f"❌ ERROR: Mutation score {score:.2f}% inferior al llindar bloquejant "
+            f"({threshold:.2f}%)."
+        )
+        return 1
+
+    print(f"✅ Mutation score {score:.2f}% >= {threshold:.2f}% superat amb èxit!")
+    return 0
+
+
 def main() -> int:
     args = parse_args()
 
-    changed_files = [
-        f[len("backend/") :] if f.startswith("backend/") else f for f in args.files
-    ]
-    if not changed_files:
+    if args.files:
+        changed_files: list[str] | None = [
+            f[len("backend/") :] if f.startswith("backend/") else f for f in args.files
+        ]
+    else:
         changed_files = get_changed_domain_files(args.base_branch)
+
+    if changed_files is None:
+        print(
+            f"❌ ERROR: No s'ha pogut obtenir el git diff contra '{args.base_branch}'."
+        )
+        return 1
 
     if not changed_files:
         print(
@@ -96,8 +162,7 @@ def main() -> int:
         print(f"   - {f}")
 
     # Netejar residus d'execucions prèvies
-    mutants_dir = Path("mutants")
-    shutil.rmtree(mutants_dir, ignore_errors=True)
+    shutil.rmtree(Path("mutants"), ignore_errors=True)
 
     try:
         from mutmut import configuration
@@ -130,42 +195,7 @@ def main() -> int:
 
     save_cicd_stats(source_file_mutation_data_by_path)
     stats = calculate_summary_stats(source_file_mutation_data_by_path)
-
-    killed = stats.killed
-    survived = stats.survived
-    timeout = stats.timeout
-    total_tested = killed + survived + timeout
-
-    if total_tested == 0:
-        print(
-            "ℹ️ Tots els mutants generats s'han descartat o no tenien tests associats."
-        )
-        return 0
-
-    score = ((killed + timeout) / total_tested) * 100.0
-
-    print("\n" + "=" * 60)
-    print("📊 RESULTAT DEL MUTATION TESTING (backend)")
-    print("=" * 60)
-    print(f"   Mutants morts (killed):       {killed}")
-    print(f"   Mutants supervivents (surv):  {survived}")
-    print(f"   Mutants timeout (timeout):    {timeout}")
-    print(f"   Total efectiu:                {total_tested}")
-    print(
-        f"   Mutation score:               {score:.2f}% "
-        f"(llindar requerit: {args.threshold:.2f}%)"
-    )
-    print("=" * 60)
-
-    if score < args.threshold:
-        print(
-            f"❌ ERROR: Mutation score {score:.2f}% inferior al llindar bloquejant "
-            f"({args.threshold:.2f}%)."
-        )
-        return 1
-
-    print(f"✅ Mutation score {score:.2f}% >= {args.threshold:.2f}% superat amb èxit!")
-    return 0
+    return evaluate_mutation_results(stats, args.threshold)
 
 
 if __name__ == "__main__":
