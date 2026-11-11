@@ -1,6 +1,9 @@
 import uuid
 from datetime import date, timedelta
 
+import pytest
+
+from app.domain.shared.errors import ValidationError
 from app.domain.streaks.models import DailyStreak
 
 TODAY = date(2026, 11, 10)
@@ -68,3 +71,17 @@ def test_count_on_day_after_last_activity_returns_current_count() -> None:
 
 def test_count_on_two_days_after_last_activity_returns_zero() -> None:
     assert _streak(4, TODAY - timedelta(days=2)).count_on(TODAY) == 0
+
+
+# TG-56 invariant: current_count >= 1 validat al domini
+@pytest.mark.parametrize("count", [0, -1, -3])
+def test_streak_with_non_positive_count_is_rejected(count: int) -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        _streak(count, TODAY)
+
+    assert exc_info.value.code == "STREAK_COUNT_INVALID"
+
+
+@pytest.mark.parametrize("count", [1, 2, 365])
+def test_streak_with_positive_count_is_accepted(count: int) -> None:
+    assert _streak(count, TODAY).current_count == count
