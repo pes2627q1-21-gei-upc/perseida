@@ -100,6 +100,7 @@ type = "forbidden"
 source_modules = ["app.domain.quiz", "app.application.quiz"]
 forbidden_modules = [
     "app.domain.apod",
+    "app.domain.chat",
     "app.domain.auth",
     "app.domain.events",
     "app.domain.health",
@@ -107,6 +108,7 @@ forbidden_modules = [
     "app.domain.scheduler",
     "app.domain.users",
     "app.application.apod",
+    "app.application.chat",
     "app.application.auth",
     "app.application.events",
     "app.application.health",

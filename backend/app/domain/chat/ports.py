@@ -30,10 +30,12 @@ class ChatRepository(Protocol):
     async def page(
         self, room_id: uuid.UUID, before: uuid.UUID | None, limit: int
     ) -> ChatMessagePage:
-        """Return up to ``limit`` messages of the room, newest first.
+        """Return up to ``limit`` messages of the room, ordered by id descending.
 
-        With ``before`` (a message id from a previous page's ``next_cursor``),
-        only the messages older than that one. No gaps, no repeats.
+        UUIDv7 ids sort by creation time, so this is newest first. With
+        ``before`` (a message id from a previous page's ``next_cursor``), only
+        the messages with a smaller id: the cursor is exclusive. Order and
+        cursor use the same key, so there are no gaps and no repeats.
         """
         ...
 
