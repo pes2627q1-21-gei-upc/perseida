@@ -8,7 +8,7 @@
  * - Llindar bloquejant: mutation score >= 70% (gestionat via thresholds.break = 70 a stryker.config.json).
  */
 
-import { execSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -26,10 +26,14 @@ function getArgs() {
 
 function getChangedFrontendFiles(baseBranch) {
   try {
-    const output = execSync(`git diff --name-only ${baseBranch}...HEAD -- src frontend/src`, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'ignore'],
-    });
+    const output = execFileSync(
+      'git',
+      ['diff', '--name-only', `${baseBranch}...HEAD`, '--', 'src', 'frontend/src'],
+      {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'ignore'],
+      },
+    );
 
     const files = output
       .split('\n')
@@ -89,9 +93,11 @@ function main() {
   const mutateArg = changedFiles.join(',');
   console.log('🚀 Executant Stryker sobre els fitxers modificats...');
 
-  const result = spawnSync('pnpm', ['exec', 'stryker', 'run', '--mutate', mutateArg], {
+  const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+  const result = spawnSync(pnpmCmd, ['exec', 'stryker', 'run', '--mutate', mutateArg], {
     stdio: 'inherit',
     env: process.env,
+    shell: process.platform === 'win32',
   });
 
   if (result.error) {

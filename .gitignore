@@ -35,7 +35,7 @@ node_modules/
 dist/
 web-build/
 coverage/
-reports/
+frontend/reports/
 .stryker-tmp/
 .nyc_output/
 *.tsbuildinfo
