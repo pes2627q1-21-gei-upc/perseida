@@ -37,8 +37,19 @@ LOGO = "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa
         ("Stars. Tomorrow's picture", "Stars. Tomorrow's picture"),
         ("Stars without a marker.", "Stars without a marker."),
         ("Stars." + " " * 100000 + "Tomorrow's picture: next", "Stars."),
+        ("Stars." + " " * 100000 + "Tomorrow's picture", "Stars. Tomorrow's picture"),
+        ("Stars." + " " * 100000 + "next", "Stars. next"),
     ],
-    ids=["straight", "unicode", "first", "incomplete", "absent", "large"],
+    ids=[
+        "straight",
+        "unicode",
+        "first",
+        "incomplete",
+        "absent",
+        "large",
+        "large-incomplete",
+        "large-absent",
+    ],
 )
 async def test_tg536_feed_explanation_marker_preserves_existing_output(
     explanation: str, expected: str

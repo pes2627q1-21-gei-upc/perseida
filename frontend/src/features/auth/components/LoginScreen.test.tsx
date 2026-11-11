@@ -96,9 +96,13 @@ describe('Login screen', () => {
   it('TG-536 reports a storage failure and keeps sign in usable', async () => {
     jest.spyOn(tokenStorage, 'getTokens').mockRejectedValueOnce(new Error('storage'));
     const signIn = jest.fn();
-    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockReturnValue({ signIn, isAuthenticating: false });
+    jest
+      .spyOn(googleAuthHook, 'useGoogleAuth')
+      .mockReturnValue({ signIn, isAuthenticating: false });
     await renderScreen();
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(authErrorMessage('INTERNAL_ERROR')));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(authErrorMessage('INTERNAL_ERROR')),
+    );
     await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
     expect(signIn).toHaveBeenCalled();
   });
@@ -410,7 +414,9 @@ describe('Login screen', () => {
         await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
       });
       expect(screen.getByRole('alert')).toHaveTextContent(authErrorMessage('INTERNAL_ERROR'));
-      expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).not.toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: authStrings.continueWithGoogle }),
+      ).not.toBeDisabled();
     });
 
     it('completes the full authentication flow end-to-end, persists tokens, and redirects (TG-43 Criteris 1, 2, 3, 4, 6, 8)', async () => {
