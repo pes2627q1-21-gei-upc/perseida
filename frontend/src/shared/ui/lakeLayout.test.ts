@@ -18,6 +18,16 @@ import {
 
 describe('lake layout is deterministic', () => {
   it.each([
+    [0, [1144304738, 1416247, 958946056, 627933444]],
+    [1, [2693262067, 11749833, 2265367787, 4213581821]],
+    [2147483647, [1842962257, 546041740, 1654754255, 1702490205]],
+    [-2147483648, [3524353788, 1924613307, 3365584844, 2199219949]],
+    [4294967295, [3850105811, 813802916, 3073704848, 4054706436]],
+  ])('TG-536 preserves the existing random sequence for seed %i', (seed, expected) => {
+    const random = seeded(seed);
+    expect(expected.map(() => random() * 4294967296)).toEqual(expected);
+  });
+  it.each([
     ['waves', () => waves()],
     ['glints', () => glints()],
     ['bubbles', () => bubbles()],

@@ -117,6 +117,31 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     expect(refreshSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('TG-536 keeps a valid session when periodic renewal rejects', async () => {
+    jest.useFakeTimers();
+    jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
+    const refresh = jest.spyOn(refreshTokenModule, 'refreshSession')
+      .mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(new Error('transient failure'));
+    await act(async () => { render(<AppLayout />); });
+    await act(async () => { jest.advanceTimersByTime(SESSION_REFRESH_INTERVAL_MS); });
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('TG-536 does not redirect after unmount while checking restored tokens', async () => {
+    let finish!: (value: null) => void;
+    jest.spyOn(tokenStorage, 'getTokens')
+      .mockResolvedValueOnce(validTokens)
+      .mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
+    const view = render(<AppLayout />);
+    await act(async () => {});
+    view.unmount();
+    await act(async () => { finish(null); });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   it('redirects to /login if getTokens rejects with an unhandled storage failure', async () => {
     jest.spyOn(tokenStorage, 'getTokens').mockRejectedValueOnce(new Error('Storage failure'));
 

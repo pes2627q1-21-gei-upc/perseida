@@ -93,6 +93,15 @@ afterEach(() => {
 });
 
 describe('Login screen', () => {
+  it('TG-536 reports a storage failure and keeps sign in usable', async () => {
+    jest.spyOn(tokenStorage, 'getTokens').mockRejectedValueOnce(new Error('storage'));
+    const signIn = jest.fn();
+    jest.spyOn(googleAuthHook, 'useGoogleAuth').mockReturnValue({ signIn, isAuthenticating: false });
+    await renderScreen();
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(authErrorMessage('INTERNAL_ERROR')));
+    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    expect(signIn).toHaveBeenCalled();
+  });
   it('shows the app name as the screen heading and the tagline', async () => {
     await renderScreen();
 
@@ -392,6 +401,16 @@ describe('Login screen', () => {
       process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = 'test-google-web-client-id';
       process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID = 'test-google-ios-client-id';
       process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID = 'test-google-android-client-id';
+    });
+
+    it('TG-536 reports a rejected OAuth prompt and re-enables sign in', async () => {
+      mockPromptAsync.mockRejectedValueOnce(new Error('prompt failed'));
+      await renderScreen();
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent(authErrorMessage('INTERNAL_ERROR'));
+      expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).not.toBeDisabled();
     });
 
     it('completes the full authentication flow end-to-end, persists tokens, and redirects (TG-43 Criteris 1, 2, 3, 4, 6, 8)', async () => {
