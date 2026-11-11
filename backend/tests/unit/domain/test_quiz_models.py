@@ -7,7 +7,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from app.domain.quiz.models import QuizAnswer
 from app.domain.shared.errors import ValidationError
-from app.domain.users.models import Language
+from app.domain.shared.language import Language
 from tests.factories.quiz import QUESTION_ID, make_question, make_translation
 
 USER_ID = uuid.UUID("01a19288-a3f6-7576-a37b-000000000001")

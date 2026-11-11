@@ -18,7 +18,7 @@ from app.domain.quiz.rules import (
     QUIZ_EXPIRED,
     QUIZ_QUESTION_MISMATCH,
 )
-from app.domain.users.models import Language
+from app.domain.shared.language import Language
 from app.infrastructure.api.schemas import ProblemDetails
 from app.infrastructure.auth.dependencies import CurrentSessionDep
 from app.infrastructure.quiz.dependencies import QuizServiceDep

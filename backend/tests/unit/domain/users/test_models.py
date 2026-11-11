@@ -6,7 +6,8 @@ from pydantic import ValidationError as PydanticValidationError
 
 from app.domain.auth.models import AccountStatus as AuthAccountStatus
 from app.domain.shared.errors import ValidationError
-from app.domain.users.models import AccountStatus, Language, Role, User
+from app.domain.shared.language import Language
+from app.domain.users.models import AccountStatus, Role, User
 
 
 def _user(**overrides: object) -> User:

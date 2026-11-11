@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 from app.domain.quiz.models import QuizQuestion, QuizTranslation
-from app.domain.users.models import Language
+from app.domain.shared.language import Language
 
 QUESTION_ID = uuid.UUID("01a19288-a3f6-7576-a37b-8926ca81b8fe")
 

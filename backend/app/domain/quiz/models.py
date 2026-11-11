@@ -5,8 +5,8 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.domain.shared.errors import ValidationError
+from app.domain.shared.language import Language
 from app.domain.shared.text import clean_text, safe_https_url
-from app.domain.users.models import Language
 
 OPTION_COUNT = 4
 TEXT_MAX_LENGTH = 1000
