@@ -11,21 +11,33 @@ from app.domain.chat.errors import (
 )
 from app.domain.shared.errors import ValidationError
 
-# Control characters, surrogates, private-use and unassigned code points. NUL
-# would make PostgreSQL fail; ``\n`` and ``\t`` are kept because a chat has them.
-_DROPPED_CATEGORIES = ("Cc", "Cs", "Co", "Cn")
-_KEPT_CONTROLS = "\n\t"
+# Control characters, surrogates, private-use, unassigned and format code points
+# (zero-width space, bidi overrides, soft hyphen...). NUL would make PostgreSQL
+# fail and the format ones can hide text or spoof it.
+_DROPPED_CATEGORIES = ("Cc", "Cs", "Co", "Cn", "Cf")
+# ``\n`` and ``\t`` are kept because a chat has them. ZWJ and ZWNJ are format
+# characters too, but they glue composed emoji and some scripts together.
+_KEPT_CHARACTERS = "\n\t‌‍"
+_JOINERS = "‌‍"
 
 
 def _clean_message_text(value: str) -> str:
-    """Drop control characters and surrounding blanks. Never truncates."""
+    """Drop invisible and control characters and surrounding blanks.
+
+    Never truncates.
+    """
     kept = "".join(
         char
         for char in value
-        if char in _KEPT_CONTROLS
+        if char in _KEPT_CHARACTERS
         or unicodedata.category(char) not in _DROPPED_CATEGORIES
     )
     return kept.strip()
+
+
+def _has_visible_text(value: str) -> bool:
+    """Whether ``value`` is more than blanks and joiners."""
+    return bool(value.translate(str.maketrans("", "", _JOINERS)).strip())
 
 
 class EventChatRoom(BaseModel):
@@ -58,7 +70,7 @@ class ChatMessage(BaseModel):
     @classmethod
     def _clean_text(cls, value: str) -> str:
         cleaned = _clean_message_text(value)
-        if not cleaned:
+        if not _has_visible_text(cleaned):
             raise ValidationError(CHAT_MESSAGE_EMPTY, "Message must not be empty")
         if len(cleaned) > MESSAGE_MAX_LENGTH:
             raise ValidationError(
