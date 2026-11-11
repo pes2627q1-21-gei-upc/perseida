@@ -13,6 +13,7 @@ SQLModel.metadata.naming_convention = {
 from app.infrastructure.events.tables import AstronomicalEventRow  # noqa: E402, F401
 from app.infrastructure.quiz.tables import (  # noqa: E402, F401
     QuizAnswerRow,
+    QuizDayRow,
     QuizQuestionRow,
     QuizQuestionTranslationRow,
 )

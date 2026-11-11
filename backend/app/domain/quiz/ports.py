@@ -20,6 +20,33 @@ class QuizQuestionRepository(Protocol):
         """
         ...
 
+    async def get(self, question_id: uuid.UUID) -> QuizQuestion:
+        """Return the question with ``question_id``.
+
+        Raises:
+            LookupError: if there is no such question.
+        """
+        ...
+
+
+class QuizDayRepository(Protocol):
+    """The calendar of the quiz: which question each day has.
+
+    A day keeps its question once it has one, even if the bank grows later.
+    """
+
+    async def get(self, quiz_date: date) -> uuid.UUID | None:
+        """Return the id of the question of ``quiz_date``, or None if not set yet."""
+        ...
+
+    async def assign(self, quiz_date: date, question_id: uuid.UUID) -> uuid.UUID:
+        """Give ``question_id`` to ``quiz_date`` unless the day already has one.
+
+        Returns the question the day ends up with: the existing one if another
+        request set it first, also when two requests arrive at once.
+        """
+        ...
+
 
 class QuizAnswerRepository(Protocol):
     """Durable storage of the answers, at most one per user and day."""

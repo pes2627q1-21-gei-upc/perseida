@@ -53,6 +53,18 @@ def upgrade() -> None:
         ),
     )
     op.create_table(
+        "quiz_days",
+        sa.Column("quiz_date", sa.Date(), nullable=False),
+        sa.Column("question_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["question_id"],
+            ["quiz_questions.id"],
+            name=op.f("fk_quiz_days_question_id_quiz_questions"),
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("quiz_date", name=op.f("pk_quiz_days")),
+    )
+    op.create_table(
         "quiz_answers",
         sa.Column("id", sa.Uuid(), server_default=sa.text("uuidv7()"), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
@@ -90,5 +102,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("quiz_answers")
+    op.drop_table("quiz_days")
     op.drop_table("quiz_question_translations")
     op.drop_table("quiz_questions")

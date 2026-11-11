@@ -975,7 +975,8 @@
           "es",
           "en"
         ],
-        "title": "Language"
+        "title": "Language",
+        "description": "The languages of the app. Shared by several features (users, quiz)."
       },
       "MediaType": {
         "type": "string",

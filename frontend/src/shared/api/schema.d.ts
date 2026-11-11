@@ -415,6 +415,7 @@ export interface components {
     HealthStatus: 'ok' | 'down';
     /**
      * Language
+     * @description The languages of the app. Shared by several features (users, quiz).
      * @enum {string}
      */
     Language: 'ca' | 'es' | 'en';

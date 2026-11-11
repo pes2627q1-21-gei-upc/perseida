@@ -7,6 +7,7 @@ from app.application.quiz.quiz_service import QuizService
 from app.infrastructure.cache.dependencies import CacheDep
 from app.infrastructure.quiz.repository import (
     SqlQuizAnswerRepository,
+    SqlQuizDayRepository,
     SqlQuizQuestionRepository,
 )
 
@@ -16,6 +17,7 @@ def get_quiz_service(conn: HTTPConnection, cache: CacheDep) -> QuizService:
     session_factory = conn.app.state.session_factory
     return QuizService(
         SqlQuizQuestionRepository(session_factory),
+        SqlQuizDayRepository(session_factory),
         SqlQuizAnswerRepository(session_factory),
         cache,
     )

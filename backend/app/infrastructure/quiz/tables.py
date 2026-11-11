@@ -59,6 +59,24 @@ class QuizQuestionTranslationRow(SQLModel, table=True):
     explanation: str = Field(sa_column=Column(Text(), nullable=False))
 
 
+class QuizDayRow(SQLModel, table=True):
+    """Table ``quiz_days``: the question of each day, fixed the first time it is asked.
+
+    Once a day has its question, adding questions to the bank does not change it.
+    """
+
+    __tablename__ = "quiz_days"
+
+    quiz_date: date = Field(sa_column=Column(Date(), primary_key=True))
+    question_id: uuid.UUID = Field(
+        sa_column=Column(
+            Uuid(),
+            ForeignKey("quiz_questions.id", ondelete="RESTRICT"),
+            nullable=False,
+        )
+    )
+
+
 class QuizAnswerRow(SQLModel, table=True):
     """Table ``quiz_answers`` (``QuizResult``): at most one per user and day."""
 

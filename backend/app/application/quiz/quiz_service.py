@@ -5,15 +5,19 @@ from datetime import UTC, date, datetime, time, timedelta
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from app.application.shared.cache import get_or_load
-from app.domain.quiz.models import QuizAnswer
-from app.domain.quiz.ports import QuizAnswerRepository, QuizQuestionRepository
+from app.domain.quiz.models import QuizAnswer, QuizQuestion
+from app.domain.quiz.ports import (
+    QuizAnswerRepository,
+    QuizDayRepository,
+    QuizQuestionRepository,
+)
 from app.domain.quiz.rules import (
     ensure_answerable,
     ensure_question_of_the_day,
     question_position,
 )
+from app.domain.shared.language import Language
 from app.domain.shared.ports import Cache
-from app.domain.users.models import Language
 
 
 def _utc_now() -> datetime:
@@ -66,16 +70,23 @@ _DAILY_QUESTION = TypeAdapter(DailyQuestion)
 
 
 class QuizService:
-    """The daily quiz: one question per UTC day, the same for everyone."""
+    """The daily quiz: one question per UTC day, the same for everyone.
+
+    The question of a day is stored in the calendar (``QuizDayRepository``) the
+    first time it is asked, so every language, user and cache entry of that day
+    agrees on it, even if the bank grows during the day.
+    """
 
     def __init__(
         self,
         questions: QuizQuestionRepository,
+        days: QuizDayRepository,
         answers: QuizAnswerRepository,
         cache: Cache,
         now: Callable[[], datetime] = _utc_now,
     ) -> None:
         self._questions = questions
+        self._days = days
         self._answers = answers
         self._cache = cache
         self._now = now
@@ -130,8 +141,7 @@ class QuizService:
         )
 
     async def _load(self, day: date, language: Language) -> DailyQuestion:
-        position = question_position(day, await self._questions.count())
-        question = await self._questions.at_position(position)
+        question = await self._question_of(day)
         texts = question.in_language(language)
         return DailyQuestion(
             quiz_date=day,
@@ -143,3 +153,14 @@ class QuizService:
             explanation=texts.explanation,
             source_url=question.source_url,
         )
+
+    async def _question_of(self, day: date) -> QuizQuestion:
+        question_id = await self._days.get(day)
+        if question_id is not None:
+            return await self._questions.get(question_id)
+        position = question_position(day, await self._questions.count())
+        candidate = await self._questions.at_position(position)
+        question_id = await self._days.assign(day, candidate.id)
+        if question_id == candidate.id:
+            return candidate
+        return await self._questions.get(question_id)
