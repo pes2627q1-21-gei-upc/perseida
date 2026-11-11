@@ -111,3 +111,82 @@ async def test_clock_with_another_offset_is_converted_to_utc_day() -> None:
     streak = await _service(repo, clock).register_activity(USER_ID)
 
     assert streak.last_activity_date == date(2026, 11, 10)
+
+
+def _seeded(last_activity: date, count: int = 5) -> DailyStreak:
+    return DailyStreak(
+        id=uuid.uuid7(),
+        user_id=USER_ID,
+        current_count=count,
+        last_activity_date=last_activity,
+    )
+
+
+# TG-56 criteri 4: sense ratxa, el recompte és 0 i no s'escriu res
+async def test_get_current_streak_without_streak_is_zero() -> None:
+    repo = FakeStreakRepository()
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+
+    count = await _service(repo, clock).get_current_streak(USER_ID)
+
+    assert count == 0
+    assert repo.saved == []
+
+
+# TG-56 criteri 4: activitat d'avui, la ratxa és viva
+async def test_get_current_streak_with_activity_today_returns_count() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 10), count=3))
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+
+    count = await _service(repo, clock).get_current_streak(USER_ID)
+
+    assert count == 3
+    assert repo.saved == []
+
+
+# TG-56 criteri 4: activitat d'ahir, la ratxa encara és viva
+async def test_get_current_streak_with_activity_yesterday_returns_count() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 9), count=5))
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+
+    count = await _service(repo, clock).get_current_streak(USER_ID)
+
+    assert count == 5
+    assert repo.saved == []
+
+
+# TG-56 criteri 4: activitat d'abans d'ahir, ratxa trencada; no es modifica
+async def test_get_current_streak_with_activity_before_yesterday_is_zero() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 8), count=5))
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+
+    count = await _service(repo, clock).get_current_streak(USER_ID)
+
+    assert count == 0
+    assert repo.saved == []
+    assert repo.streaks[USER_ID].current_count == 5
+
+
+# TG-56 criteri 5: l'«avui» és el dia UTC (viva a UTC, trencada si fos el dia local)
+async def test_get_current_streak_uses_utc_day_alive() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 11), count=5))
+    # 01:00 del dia 13 a UTC+2 són les 23:00 del dia 12 a UTC: ahir UTC = 11.
+    clock = _Clock(datetime(2026, 11, 13, 1, 0, tzinfo=timezone(timedelta(hours=2))))
+
+    count = await _service(repo, clock).get_current_streak(USER_ID)
+
+    assert count == 5
+    assert repo.saved == []
+
+
+# TG-56 criteri 5: l'«avui» és el dia UTC (trencada a UTC, viva si fos el dia local)
+async def test_get_current_streak_uses_utc_day_broken() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 10), count=5))
+    # 23:00 del dia 11 a UTC-2 són les 01:00 del dia 12 a UTC: ahir UTC = 11 > 10.
+    # Amb el dia local (11) la ratxa encara seria viva.
+    clock = _Clock(datetime(2026, 11, 11, 23, 0, tzinfo=timezone(timedelta(hours=-2))))
+
+    count = await _service(repo, clock).get_current_streak(USER_ID)
+
+    assert count == 0
+    assert repo.saved == []
