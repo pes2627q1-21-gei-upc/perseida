@@ -44,6 +44,7 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
 | `EVENT_ENDS_BEFORE_START` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/events (`ends_at` anterior a `starts_at`) |
+| `EVENT_SOURCE_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | (no arriba al client) | (no arriba al client) | (no arriba al client) | infrastructure/events (TG-50; una font d'esdeveniments ha fallat: `EventService` l'absorbeix, ho registra i serveix el que hi ha a PostgreSQL, ADR-0031) |
 
 ## Codis de Redis pub/sub i WebSocket (TG-87, TG-63)
 
@@ -91,6 +92,7 @@ Textos aprovats per la persona responsable (TG-44). Un compte banejat respon `AC
 |---|---|---|
 | NASA (APOD...) | Retorna la cache (Redis), sense 500 | `ExternalServiceError` (503) amb codi propi |
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
+| Fonts d'esdeveniments (Launch Library 2, USNO, Skyfield, catàleg) | Es serveixen els esdeveniments desats a PostgreSQL; la font no es torna a cridar en 15 min | Igual: `EVENT_SOURCE_UNAVAILABLE` no arriba al client, mai un 5xx (TG-50, ADR-0031) |
 | Altres (meteo, contaminació lumínica, Spotwise, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
 Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.
