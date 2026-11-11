@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import Callable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
@@ -54,20 +55,23 @@ class EventService:
         )
 
     async def _refresh(self) -> None:
-        for source in self._sources:
-            key = f"events:{source.name}"
-            if await self._cache.get(key) is not None:
-                continue
-            try:
-                drafts = await source.fetch()
-            except ExternalServiceError as exc:
-                logger.warning(
-                    "Event source %s failed (%s: %s); serving stored events",
-                    source.name,
-                    exc.code,
-                    exc.message,
-                )
-                await self._cache.set(key, "failed", FAILURE_PAUSE_SECONDS)
-                continue
-            await self._repository.upsert_many(drafts)
-            await self._cache.set(key, "fresh", source.ttl_seconds)
+        # In parallel: the slowest source sets the wait, not their sum.
+        await asyncio.gather(*(self._refresh_source(s) for s in self._sources))
+
+    async def _refresh_source(self, source: EventSource) -> None:
+        key = f"events:{source.name}"
+        if await self._cache.get(key) is not None:
+            return
+        try:
+            drafts = await source.fetch()
+        except ExternalServiceError as exc:
+            logger.warning(
+                "Event source %s failed (%s: %s); serving stored events",
+                source.name,
+                exc.code,
+                exc.message,
+            )
+            await self._cache.set(key, "failed", FAILURE_PAUSE_SECONDS)
+            return
+        await self._repository.upsert_many(drafts)
+        await self._cache.set(key, "fresh", source.ttl_seconds)
