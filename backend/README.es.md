@@ -271,9 +271,9 @@ Una pregunta de astrofísica por día UTC, la misma para todos, en catalán, cas
 
 Los dos piden sesión (401 `INVALID_SESSION`).
 
-- **Banco:** 100 preguntas en `alembic/seed/quiz_questions.json`, cada una con 4 opciones, la correcta, una explicación y una fuente https, en los tres idiomas. La migración `a6e1d58c0b92` las carga en `quiz_questions` y `quiz_question_translations`; `tests/unit/infrastructure/quiz/test_quiz_seed.py` valida el archivo.
-- **Pregunta del día:** el banco se recorre en orden de `position` desde `ROTATION_START` (`app/domain/quiz/rules.py`), así que ninguna pregunta se repite en 100 días.
-- **Caché:** `cache:quiz:daily:<fecha>:<idioma>` en Redis hasta medianoche UTC. Si Redis cae, la pregunta se lee de PostgreSQL.
+- **Banco:** 100 preguntas en `alembic/seed/quiz_questions.json`, cada una con un `id` UUIDv7 fijo, 4 opciones, la correcta, una explicación y una fuente https, en los tres idiomas. La migración `a6e1d58c0b92` las carga en `quiz_questions` y `quiz_question_translations`; `tests/unit/infrastructure/quiz/test_quiz_seed.py` valida el archivo. Deshacer el seed conserva las preguntas a las que apuntan respuestas o días, así que no se pierde ninguna respuesta; volver a aplicarlo recupera el resto con los mismos id.
+- **Pregunta del día:** el banco se recorre en orden de `position` desde `ROTATION_START` (`app/domain/quiz/rules.py`), así que ninguna pregunta se repite en 100 días. La primera petición de un día guarda su pregunta en `quiz_days`; a partir de entonces ese día la mantiene, aunque el banco crezca.
+- **Caché:** `cache:quiz:daily:<fecha>:<idioma>` en Redis hasta medianoche UTC. Si no se puede leer la caché, la pregunta se lee de PostgreSQL. Con Redis caído tampoco se puede comprobar la sesión, así que los endpoints responden 503 `SESSION_UNAVAILABLE` (ADR-0008).
 - **Respuestas:** `quiz_answers`, una por usuario y día (restricción única `uq_quiz_answers_user_id`, también con dos peticiones a la vez).
 - **Añadir preguntas:** añádelas al final del archivo JSON **y** crea una migración de datos nueva que las inserte después de la última posición. Editar solo el archivo no cambia una base de datos ya migrada, y reordenarlo cambia el calendario.
 

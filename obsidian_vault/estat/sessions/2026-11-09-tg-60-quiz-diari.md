@@ -48,3 +48,14 @@ Implementar la generació del quiz diari en català, castellà i anglès amb cac
 ## US de Taiga
 
 - TG-60
+
+## Canvis de la revisió (11/11/2026)
+
+Canvis demanats a la revisió de la PR #80:
+
+- Integrat `develop` (WebSocket TG-63 i esdeveniments TG-351).
+- **Rollback sense pèrdua de dades:** el downgrade del seed només esborra les preguntes sense respostes ni dies.
+- **Id fixos:** cada pregunta té un UUIDv7 fix a `quiz_questions.json`; l'upgrade fa `ON CONFLICT DO NOTHING`. Un id a la cache continua sent vàlid després d'un downgrade i un upgrade.
+- **Pregunta estable per data:** taula `quiz_days`; la primera petició del dia hi desa la pregunta i la resta (tots els idiomes) la llegeixen. Provat amb un banc que creix i la cache.
+- **Redis caigut:** es manté el 503 `SESSION_UNAVAILABLE` per l'ADR-0008, documentat a [[contracte-quiz]] i provat amb l'endpoint complet.
+- **Aïllament:** `Language` passa a `app/domain/shared/language.py`; import-linter prohibeix que quiz importi altres funcionalitats.

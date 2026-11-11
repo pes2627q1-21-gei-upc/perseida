@@ -317,9 +317,9 @@ One astrophysics question per UTC day, the same for everyone, in Catalan, Spanis
 
 Both need a session (401 `INVALID_SESSION`).
 
-- **Bank:** 100 questions in `alembic/seed/quiz_questions.json`, each with 4 options, the right one, an explanation and an https source, in the three languages. The migration `a6e1d58c0b92` loads them into `quiz_questions` and `quiz_question_translations`; `tests/unit/infrastructure/quiz/test_quiz_seed.py` validates the file.
-- **Question of the day:** the bank is walked in `position` order from `ROTATION_START` (`app/domain/quiz/rules.py`), so no question repeats within 100 days.
-- **Cache:** `cache:quiz:daily:<date>:<lang>` in Redis until midnight UTC. If Redis is down, the question is read from PostgreSQL.
+- **Bank:** 100 questions in `alembic/seed/quiz_questions.json`, each with a fixed UUIDv7 `id`, 4 options, the right one, an explanation and an https source, in the three languages. The migration `a6e1d58c0b92` loads them into `quiz_questions` and `quiz_question_translations`; `tests/unit/infrastructure/quiz/test_quiz_seed.py` validates the file. Downgrading the seed keeps the questions that answers or days point to, so no answer is lost; upgrading again restores the rest with the same ids.
+- **Question of the day:** the bank is walked in `position` order from `ROTATION_START` (`app/domain/quiz/rules.py`), so no question repeats within 100 days. The first request of a day stores its question in `quiz_days`; from then on that day keeps it, even if the bank grows.
+- **Cache:** `cache:quiz:daily:<date>:<lang>` in Redis until midnight UTC. If the cache cannot be read, the question is read from PostgreSQL. With Redis down the session cannot be checked either, so the endpoints answer 503 `SESSION_UNAVAILABLE` (ADR-0008).
 - **Answers:** `quiz_answers`, one per user and day (unique constraint `uq_quiz_answers_user_id`, also with two requests at once).
 - **Adding questions:** append them at the end of the JSON file **and** add a new data migration that inserts them after the last position. Editing the file alone does not change a database that is already migrated, and reordering it changes the calendar.
 

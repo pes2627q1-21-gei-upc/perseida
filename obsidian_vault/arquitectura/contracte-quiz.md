@@ -2,7 +2,7 @@
 titol: "Contracte del quiz diari"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-09"
+data: "2026-11-11"
 us: ["TG-60", "TG-61"]
 font: "Taiga: TG-60 (criteris i decisions de l'equip del 9/11/2026) i tasca TG-523; backend/app/infrastructure/apod/router.py i users/router.py com a referència"
 etiquetes: [arquitectura, contracte, quiz, gamificacio, api]
@@ -12,7 +12,8 @@ etiquetes: [arquitectura, contracte, quiz, gamificacio, api]
 
 Forma dels dos endpoints del quiz diari (TG-60). Es publica a la tasca TG-523 perquè la pantalla (TG-61) es pugui fer amb mocks abans que el backend estigui fusionat.
 
-- **Una pregunta al dia**, la mateixa per a tothom i en l'idioma de la persona. El dia es calcula en UTC, com l'APOD.
+- **Una pregunta al dia**, la mateixa per a tothom i en l'idioma de la persona. El dia es calcula en UTC, com l'APOD. La pregunta d'un dia queda fixada la primera vegada que es demana: si s'amplia el banc, aquell dia no canvia.
+- **Redis caigut:** si no es pot llegir la cache, la pregunta es llegeix de PostgreSQL. Però la sessió també viu a Redis i, sense poder-la comprovar, [[0008-google-oauth2-pkce-jwks-i-sessio-propia]] obliga a fallar de manera segura: els dos endpoints responen 503 `SESSION_UNAVAILABLE`. Decisió de l'equip (11/11/2026) a la revisió de la PR #80.
 - **Autenticació:** els dos endpoints demanen una sessió vàlida (`Authorization: Bearer <access token>`).
 - **Idioma:** paràmetre `lang` (`ca`, `es` o `en`). Si no s'envia, s'usa l'idioma preferit de la persona (`preferred_language` de `GET /api/users/me`).
 
@@ -90,6 +91,7 @@ Format RFC 9457 ([[0018-errors-rfc-9457-amb-codis-estables]]). El frontend tradu
 | 409 | `QUIZ_EXPIRED` | La `date` del `POST` no és la d'avui (UTC) |
 | 422 | `QUIZ_QUESTION_MISMATCH` | El `question_id` no és el de la pregunta del dia |
 | 422 | `VALIDATION_ERROR` | `lang` no suportat, `chosen_option` fora de 0-3 o cos mal format (codi existent) |
+| 503 | `SESSION_UNAVAILABLE` | Redis caigut: no es pot comprovar la sessió (codi existent) |
 
 ## Regla de canvis
 
