@@ -8,16 +8,8 @@ from app.domain.quiz.models import QuizAnswer, QuizQuestion
 class QuizQuestionRepository(Protocol):
     """The bank of quiz questions, in a fixed order."""
 
-    async def count(self) -> int:
-        """Return how many questions the bank has."""
-        ...
-
-    async def at_position(self, position: int) -> QuizQuestion:
-        """Return the question at ``position`` (0-based) of the bank.
-
-        The caller passes a position below ``count()``
-        (see ``app.domain.quiz.rules.question_position``).
-        """
+    async def ids(self) -> list[uuid.UUID]:
+        """Return the ids of every question, in bank order."""
         ...
 
     async def get(self, question_id: uuid.UUID) -> QuizQuestion:
@@ -37,6 +29,10 @@ class QuizDayRepository(Protocol):
 
     async def get(self, quiz_date: date) -> uuid.UUID | None:
         """Return the id of the question of ``quiz_date``, or None if not set yet."""
+        ...
+
+    async def last_days(self) -> dict[uuid.UUID, date]:
+        """Return, for each question already given, the last day it was given."""
         ...
 
     async def assign(self, quiz_date: date, question_id: uuid.UUID) -> uuid.UUID:

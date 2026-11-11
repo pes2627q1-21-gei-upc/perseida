@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Mapping, Sequence
 from datetime import date
 
 from app.domain.shared.errors import ConflictError, ValidationError
@@ -7,19 +8,22 @@ QUIZ_ALREADY_ANSWERED = "QUIZ_ALREADY_ANSWERED"
 QUIZ_EXPIRED = "QUIZ_EXPIRED"
 QUIZ_QUESTION_MISMATCH = "QUIZ_QUESTION_MISMATCH"
 
-# Day 0 of the rotation. Any fixed date works; changing it reshuffles the calendar.
-ROTATION_START = date(2026, 1, 1)
 
+def next_question(
+    bank: Sequence[uuid.UUID], last_days: Mapping[uuid.UUID, date]
+) -> uuid.UUID:
+    """Return the question to give to a new day of the calendar.
 
-def question_position(day: date, bank_size: int) -> int:
-    """Return the position in the bank of the question of ``day``.
-
-    The bank is walked in order, one question per day, so with ``bank_size``
-    questions no question repeats within ``bank_size`` consecutive days.
+    ``bank`` holds the ids in bank order and ``last_days`` the last day each
+    question was given. A question never given goes first (in bank order);
+    otherwise, the one given longest ago. A question only comes back when every
+    other question has been given after it, so no question repeats within as
+    many consecutive days as the bank has questions, even when the bank grows:
+    the new questions come before any repeat.
     """
-    if bank_size <= 0:
+    if not bank:
         raise ValueError("The quiz bank is empty")
-    return (day - ROTATION_START).days % bank_size
+    return min(bank, key=lambda question_id: last_days.get(question_id, date.min))
 
 
 def ensure_answerable(quiz_date: date, today: date) -> None:

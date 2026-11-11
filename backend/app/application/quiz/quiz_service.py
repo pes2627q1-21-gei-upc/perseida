@@ -14,7 +14,7 @@ from app.domain.quiz.ports import (
 from app.domain.quiz.rules import (
     ensure_answerable,
     ensure_question_of_the_day,
-    question_position,
+    next_question,
 )
 from app.domain.shared.language import Language
 from app.domain.shared.ports import Cache
@@ -156,11 +156,10 @@ class QuizService:
 
     async def _question_of(self, day: date) -> QuizQuestion:
         question_id = await self._days.get(day)
-        if question_id is not None:
-            return await self._questions.get(question_id)
-        position = question_position(day, await self._questions.count())
-        candidate = await self._questions.at_position(position)
-        question_id = await self._days.assign(day, candidate.id)
-        if question_id == candidate.id:
-            return candidate
+        if question_id is None:
+            candidate = next_question(
+                await self._questions.ids(), await self._days.last_days()
+            )
+            # Another request may have set the day first: its question wins.
+            question_id = await self._days.assign(day, candidate)
         return await self._questions.get(question_id)

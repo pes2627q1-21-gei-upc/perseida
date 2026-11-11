@@ -30,6 +30,13 @@ class SqlQuizQuestionRepository:
             )
         return total or 0
 
+    async def ids(self) -> list[uuid.UUID]:
+        async with self._session_factory() as session:
+            rows = await session.scalars(
+                select(col(QuizQuestionRow.id)).order_by(col(QuizQuestionRow.position))
+            )
+            return list(rows)
+
     async def at_position(self, position: int) -> QuizQuestion:
         return await self._one(
             col(QuizQuestionRow.position) == position, f"position {position}"
@@ -80,6 +87,14 @@ class SqlQuizDayRepository:
                     col(QuizDayRow.quiz_date) == quiz_date
                 )
             )
+
+    async def last_days(self) -> dict[uuid.UUID, date]:
+        statement = select(
+            col(QuizDayRow.question_id), func.max(col(QuizDayRow.quiz_date))
+        ).group_by(col(QuizDayRow.question_id))
+        async with self._session_factory() as session:
+            rows = (await session.execute(statement)).all()
+        return {question_id: last for question_id, last in rows}
 
     async def assign(self, quiz_date: date, question_id: uuid.UUID) -> uuid.UUID:
         # The first request of the day wins; the others read what it stored.
