@@ -70,7 +70,7 @@ Patrons i exemples: [references/patrons-per-capa.md](references/patrons-per-capa
 
 ## Cobertura i qualitat dels tests
 
-- Llindars de la política: **80 % global** i **90 % del codi nou**; la CI de la PR ha de fallar si no es compleixen. La implantació a la CI és **prevista (US #359-#362)**; fins llavors es comproven en local (`uv run pytest` ja porta `--cov`; `pnpm test --coverage`) i els revisa la persona.
+- Llindars de la política: **80 % global** i **90 % del codi nou**; la CI de la PR falla si no es compleixen (bloquejant des de TG-359 mitjançant `diff-cover`, `coverageThreshold` al frontend i SonarQube Cloud). En local es comproven amb `uv run pytest` i `pnpm test --coverage`.
 - La cobertura és condició necessària, no suficient: els tests han de detectar errors (vegeu `testing-mutation`).
 - Piràmide objectiu 60/30/10 (unitàries/integració/E2E).
 - Cada PR inclou tests unitaris dels components modificats.
