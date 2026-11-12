@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import type { ClassifiedEvent } from '../../features/events/classifyEvents';
-import { AnywhereEvents } from '../../features/events/components/AnywhereEvents';
 import { EventList } from '../../features/events/components/EventList';
 import { EventMap } from '../../features/events/components/EventMap';
 import { MapTopBar } from '../../features/events/components/MapTopBar';
@@ -18,7 +17,7 @@ const NO_EVENTS: ClassifiedEvent[] = [];
 
 /**
  * Events map (TG-52): active and upcoming events, as glass orbs on a map (only the ones with a
- * location, with the ones visible from anywhere listed under it) or as a list (all of them).
+ * location) or as a list (all of them, also the ones visible from anywhere).
  * Title on top, the Map | List switch at the bottom. The page only orchestrates: data comes
  * from the hook. Loading, empty and error states, the filter and the summary sheet come later.
  */
@@ -34,7 +33,6 @@ export default function MapScreen() {
     () => toMapMarkers(events, (event) => describeEvent(event, t)),
     [events, t],
   );
-  const anywhere = useMemo(() => events.filter((event) => !event.location), [events]);
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
@@ -48,16 +46,13 @@ export default function MapScreen() {
       <View style={StyleSheet.absoluteFill}>
         <View style={styles.fill}>
           {view === 'map' ? (
-            <>
-              <View testID="map-area" style={styles.mapArea}>
-                <EventMap
-                  markers={markers}
-                  label={t('events.map.label')}
-                  onSelect={() => undefined}
-                />
-              </View>
-              <AnywhereEvents events={anywhere} />
-            </>
+            <View testID="map-area" style={styles.fill}>
+              <EventMap
+                markers={markers}
+                label={t('events.map.label')}
+                onSelect={() => undefined}
+              />
+            </View>
           ) : (
             <EventList events={events} label={t('events.list.label')} topInset={barBottom} />
           )}
@@ -70,6 +65,4 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  // 3 parts to the 2 of the events under it: the top bar floats over the map's share.
-  mapArea: { flex: 3 },
 });

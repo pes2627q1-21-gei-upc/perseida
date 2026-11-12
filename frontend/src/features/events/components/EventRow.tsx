@@ -8,15 +8,13 @@ import { EventOrb } from './EventOrb';
 
 interface Props {
   event: ClassifiedEvent;
-  /** Under the map every event is visible from anywhere, so the place would only repeat. */
-  showWhere?: boolean;
 }
 
 /**
  * One event: its orb, title, dates, where it can be seen and whether it is happening now.
  * Read as a single item that says all of it. It has no material of its own: it goes on glass.
  */
-export function EventRow({ event, showWhere = true }: Props) {
+export function EventRow({ event }: Props) {
   const { t, i18n } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const when = formatEventWhen(event, i18n.language);
@@ -33,9 +31,7 @@ export function EventRow({ event, showWhere = true }: Props) {
       <View style={[styles.text, { gap: spacing.xs }]}>
         <Text style={[typography.bodyStrong, { color: colors.text.primary }]}>{event.title}</Text>
         <Text style={[typography.caption, { color: colors.text.secondary }]}>{when}</Text>
-        {showWhere && (
-          <Text style={[typography.caption, { color: colors.text.secondary }]}>{where}</Text>
-        )}
+        <Text style={[typography.caption, { color: colors.text.secondary }]}>{where}</Text>
         {active && (
           <Text style={[typography.caption, { color: colors.text.primary }]}>
             {t('events.status.active')}

@@ -27,9 +27,6 @@
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
   },
   "events": {
-    "anywhere": {
-      "title": "Visible from anywhere"
-    },
     "category": {
       "launch": "Launch",
       "lunar": "Moon",
