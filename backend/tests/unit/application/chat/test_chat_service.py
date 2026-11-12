@@ -7,7 +7,11 @@ from app.application.chat.chat_service import ChatService
 from app.application.chat.errors import RateLimitedError
 from app.application.shared.errors import ExternalServiceError, ForbiddenError
 from app.domain.chat.models import ChatMessage
-from app.domain.shared.errors import BusinessRuleViolation, NotFoundError, ValidationError
+from app.domain.shared.errors import (
+    BusinessRuleViolation,
+    NotFoundError,
+    ValidationError,
+)
 from tests.fakes.chat import ChatFakes
 
 
@@ -132,3 +136,17 @@ def test_tg442_rate_limit_maps_to_http_429() -> None:
     from app.infrastructure.api.error_handlers import resolve_status
 
     assert resolve_status(RateLimitedError("RATE_LIMITED")) == 429
+
+
+async def test_tg439_deep_cursor_is_validation_error(
+    service: ChatService, env: ChatFakes
+) -> None:
+    import base64
+
+    cursor = (
+        base64.urlsafe_b64encode(("[" * 2000 + "]" * 2000).encode())
+        .decode()
+        .rstrip("=")
+    )
+    with pytest.raises(ValidationError):
+        await service.history(env.user, env.event, before=cursor)
