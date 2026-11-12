@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
@@ -36,6 +37,16 @@ describe('AnywhereEvents', () => {
     expect(screen.getByText(lunarEvent.title)).toBeTruthy();
     expect(screen.getByLabelText(/^Leonids, Pluja d'estels, Actiu ara, /)).toBeTruthy();
     expect(screen.getByLabelText(/^Full Moon, Lluna, /)).toBeTruthy();
+  });
+
+  it('shares the screen half and half with the map, and scrolls inside its half', async () => {
+    await renderStrip();
+
+    // The map above it also has flex 1: the two halves are equal.
+    expect(StyleSheet.flatten(screen.getByTestId('anywhere-events').props.style)).toMatchObject({
+      flex: 1,
+    });
+    expect(screen.getByLabelText('Visibles des de qualsevol lloc')).toHaveStyle({ flex: 1 });
   });
 
   it('shows nothing when every event has a location', async () => {
