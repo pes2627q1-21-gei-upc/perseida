@@ -7,6 +7,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.application.chat.errors import RateLimitedError
 from app.application.shared.errors import (
     ApplicationError,
     ExternalServiceError,
@@ -26,6 +27,7 @@ from app.infrastructure.api.problem import problem_response, status_phrase
 logger = logging.getLogger(__name__)
 
 STATUS_BY_ERROR: dict[type[Exception], int] = {
+    RateLimitedError: HTTPStatus.TOO_MANY_REQUESTS,
     NotFoundError: HTTPStatus.NOT_FOUND,
     ConflictError: HTTPStatus.CONFLICT,
     ValidationError: HTTPStatus.UNPROCESSABLE_ENTITY,

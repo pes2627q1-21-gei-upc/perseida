@@ -156,17 +156,24 @@ class ModerationResult(BaseModel):
     reason: str | None = None
 
 
+class ChatCursor(BaseModel):
+    """Exclusive history position, ordered by timestamp and id."""
+
+    model_config = ConfigDict(frozen=True)
+    sent_at: AwareDatetime
+    id: uuid.UUID
+
+
 class ChatMessagePage(BaseModel):
     """One page of a room's history, newest first.
 
-    ``next_cursor`` is the id of the last message of the page, or None when
-    there are no older messages.
+    ``next_cursor`` is an opaque cursor, or None when there are no older messages.
     """
 
     model_config = ConfigDict(frozen=True)
 
     messages: list[ChatMessage]
-    next_cursor: uuid.UUID | None = None
+    next_cursor: str | None = None
 
 
 class ChatRoomSummary(BaseModel):
@@ -176,3 +183,11 @@ class ChatRoomSummary(BaseModel):
 
     room: EventChatRoom
     last_message: ChatMessage | None = None
+
+
+class ChatRepositoryPage(BaseModel):
+    """Repository page with a decoded key for the next page."""
+
+    model_config = ConfigDict(frozen=True)
+    messages: list[ChatMessage]
+    next_cursor: ChatCursor | None = None
