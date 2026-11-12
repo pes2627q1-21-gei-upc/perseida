@@ -20,7 +20,8 @@ El mapa és **Leaflet 1.9.4** a totes dues plataformes:
 
 - **Web:** `react-leaflet` 5.0.0 amb Leaflet empaquetat amb l'app (`EventMap.web.tsx`).
 - **Mòbil:** el mateix Leaflet dins de `react-native-webview`, que ja era dependència (`EventMap.tsx`). La pàgina es genera a `leafletHtml.ts`: carrega Leaflet d'unpkg fixat amb SRI, hi incrusta els marcadors com a JSON escapat i retorna els tocs amb `postMessage`. El WebView només carrega `about:blank` (la pàgina pròpia); els enllaços https s'obren al navegador i la resta es bloqueja.
-- **Mapa base:** teseles ràster d'**Esri World Dark Gray**, sense clau d'API, amb l'atribució d'Esri i d'OpenStreetMap visible.
+- **Mapa base:** teseles ràster d'**Esri World Dark Gray**, sense clau d'API, amb l'atribució d'Esri i d'OpenStreetMap visible damunt del mapa. És curta perquè càpiga en una línia al mòbil («© Esri, HERE, Garmin · © OpenStreetMap»), amb enllaços a esri.com i a la pàgina de copyright d'OpenStreetMap (tasca #490, 12/11/2026). No es pot moure fora del mapa ni a una altra pàgina.
+- **Marcadors:** `L.divIcon` amb l'orbe de vidre de cada categoria (`markerIcon.ts`), el mateix HTML al web i al WebView; els controls de zoom van a baix a la dreta, lluny del notch i de la barra superior.
 
 ## Conseqüències
 
