@@ -31,6 +31,8 @@ async function renderSheet(event: ClassifiedEvent | null, onClose = jest.fn()) {
 }
 
 afterEach(() => {
+  // Linking.openURL is already a mock in jest-expo: clear its calls between tests.
+  jest.clearAllMocks();
   jest.restoreAllMocks();
 });
 
@@ -104,7 +106,10 @@ describe('EventSheet', () => {
     const onClose = jest.fn();
     await renderSheet(launch, onClose);
 
-    await fireEvent.press(screen.getByTestId('event-sheet-backdrop'));
+    // The backdrop is hidden from screen readers on purpose: they get the close button.
+    await fireEvent.press(
+      screen.getByTestId('event-sheet-backdrop', { includeHiddenElements: true }),
+    );
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
