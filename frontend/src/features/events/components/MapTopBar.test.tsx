@@ -14,7 +14,7 @@ const SAFE_AREA = {
 async function renderBar() {
   return render(
     <SafeAreaProvider initialMetrics={SAFE_AREA}>
-      <MapTopBar view="map" onViewChange={jest.fn()} onBack={jest.fn()} />
+      <MapTopBar onBack={jest.fn()} />
     </SafeAreaProvider>,
   );
 }
@@ -37,11 +37,9 @@ describe('MapTopBar', () => {
     expect(panel).toMatchObject({ width: '100%', maxWidth: readingMaxWidth });
   });
 
-  it('gives each view option half of the switch', async () => {
+  it('leaves the Map | List switch to the bottom of the screen', async () => {
     await renderBar();
 
-    for (const tab of screen.getAllByRole('tab')) {
-      expect(tab).toHaveStyle({ flex: 1 });
-    }
+    expect(screen.queryAllByRole('tab')).toEqual([]);
   });
 });
