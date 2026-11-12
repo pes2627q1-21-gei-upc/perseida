@@ -25,7 +25,11 @@ class ChatRepository(Protocol):
         ...
 
     async def add_message(self, message: ChatMessage) -> None:
-        """Store ``message``."""
+        """Store ``message``.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
         ...
 
     async def page(
@@ -65,20 +69,4 @@ class EventSubscriptions(Protocol):
 
     async def is_subscribed(self, user_id: uuid.UUID, event_id: uuid.UUID) -> bool:
         """Return whether ``user_id`` is subscribed to ``event_id``."""
-        ...
-
-
-class ChatDelivery(Protocol):
-    """Delivery boundary; success means durable storage and delivery accepted.
-
-    On failure the adapter must avoid untracked partial effects and provide safe
-    recovery. PostgreSQL/Redis atomicity is not established by this protocol.
-    Infrastructure must resolve failures, retries and duplicate delivery, and
-    coordinate channel, payload and connection identity with ADR-0030 / TG-459.
-    """
-
-    async def store_and_publish(
-        self, message: ChatMessage, event_id: uuid.UUID
-    ) -> None:
-        """Store and deliver, or raise a controlled error on failure."""
         ...

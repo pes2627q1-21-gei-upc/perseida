@@ -1,4 +1,6 @@
 import uuid
+from collections.abc import AsyncIterator
+from contextlib import AbstractAsyncContextManager
 
 from app.application.shared.errors import ExternalServiceError
 from app.domain.chat.models import (
@@ -45,6 +47,11 @@ class ChatFakes:
     async def moderate(self, text: str) -> ModerationResult:
         self.calls.append("moderate")
         return ModerationResult(approved=self.approved)
+
+    def subscribe(
+        self, channel: str
+    ) -> AbstractAsyncContextManager[AsyncIterator[str]]:
+        raise NotImplementedError
 
     async def add_message(self, message: ChatMessage) -> None:
         self.calls.append("save")

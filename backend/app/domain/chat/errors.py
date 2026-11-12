@@ -11,3 +11,7 @@ CHAT_MESSAGE_EMPTY = "CHAT_MESSAGE_EMPTY"
 CHAT_MESSAGE_TOO_LONG = "CHAT_MESSAGE_TOO_LONG"
 # A message the moderator refused (``ModerationResult.approved`` is False).
 CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
+# A history request with a malformed ``before`` cursor, or ``limit`` outside
+# ``1..PAGE_MAX_LIMIT``.
+CHAT_INVALID_CURSOR = "CHAT_INVALID_CURSOR"
+CHAT_INVALID_LIMIT = "CHAT_INVALID_LIMIT"
