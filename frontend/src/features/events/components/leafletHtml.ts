@@ -60,7 +60,9 @@ ${markerCss(style.palette, { reduceMotion: style.reduceMotion })}</style>
 <div id="map" role="region" aria-label="${attribute(label)}"></div>
 <script>
 var markers = ${scriptJson(data)};
-var map = L.map('map', { worldCopyJump: true }).setView(${scriptJson(WORLD_CENTER)}, ${WORLD_ZOOM});
+var map = L.map('map', { worldCopyJump: true, zoomControl: false }).setView(${scriptJson(WORLD_CENTER)}, ${WORLD_ZOOM});
+// The top of the map is under the notch and the floating bar of the screen.
+L.control.zoom({ position: 'bottomright' }).addTo(map);
 L.tileLayer(${JSON.stringify(BASE_MAP_TILES)}, {
   attribution: ${JSON.stringify(BASE_MAP_ATTRIBUTION)},
   maxZoom: ${BASE_MAP_MAX_ZOOM}

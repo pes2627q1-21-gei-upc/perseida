@@ -45,59 +45,64 @@ export function MapTopBar({ view, onViewChange, onBack, onLayout }: Props) {
   }
 
   return (
+    // Pinned to both edges with the margins as padding: never a width of 100 % plus an offset,
+    // which pushed the bar out of the screen on the right.
     <View
+      testID="map-top-bar"
       pointerEvents="box-none"
       onLayout={reportLayout}
       style={[
         styles.bar,
         {
           top: insets.top + theme.spacing.sm,
-          left: insets.left + theme.spacing.md,
-          right: insets.right + theme.spacing.md,
-          maxWidth: readingMaxWidth,
+          paddingLeft: insets.left + theme.spacing.md,
+          paddingRight: insets.right + theme.spacing.md,
         },
       ]}
     >
-      <GlassPanel>
-        <View style={{ gap: theme.spacing.sm }}>
-          <View style={[styles.titleRow, { gap: theme.spacing.sm }]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.back')}
-              onPress={onBack}
-              style={({ pressed }) => ({
-                width: theme.touch.min,
-                height: theme.touch.min,
-                borderRadius: theme.radii.pill,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: pressed ? surface.glass : 'transparent',
-              })}
-            >
-              <CaretLeft size={theme.iconSizes.md} color={text.primary} />
-            </Pressable>
-            <Text
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={[theme.typography.title, styles.title, { color: text.primary }]}
-            >
-              {t('events.map.title')}
-            </Text>
+      <View testID="map-top-bar-panel" style={[styles.panel, { maxWidth: readingMaxWidth }]}>
+        <GlassPanel>
+          <View style={{ gap: theme.spacing.sm }}>
+            <View style={[styles.titleRow, { gap: theme.spacing.sm }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('common.back')}
+                onPress={onBack}
+                style={({ pressed }) => ({
+                  width: theme.touch.min,
+                  height: theme.touch.min,
+                  borderRadius: theme.radii.pill,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: pressed ? surface.glass : 'transparent',
+                })}
+              >
+                <CaretLeft size={theme.iconSizes.md} color={text.primary} />
+              </Pressable>
+              <Text
+                accessibilityRole="header"
+                numberOfLines={1}
+                style={[theme.typography.title, styles.title, { color: text.primary }]}
+              >
+                {t('events.map.title')}
+              </Text>
+            </View>
+            <GelSegmented
+              options={options}
+              value={view}
+              onChange={onViewChange}
+              accessibilityLabel={t('events.view.label')}
+            />
           </View>
-          <GelSegmented
-            options={options}
-            value={view}
-            onChange={onViewChange}
-            accessibilityLabel={t('events.view.label')}
-          />
-        </View>
-      </GlassPanel>
+        </GlassPanel>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { position: 'absolute', alignSelf: 'center', width: '100%' },
+  bar: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  panel: { width: '100%' },
   titleRow: { flexDirection: 'row', alignItems: 'center' },
   title: { flex: 1 },
 });

@@ -3,7 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { divIcon } from 'leaflet';
 import { useEffect, useMemo } from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, Marker, TileLayer, useMap, ZoomControl } from 'react-leaflet';
 
 import { useTheme } from '../../../shared/theme';
 import { MARKER_SIZE, markerCss, markerIconHtml, markerPalette } from './markerIcon';
@@ -75,6 +75,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
         center={WORLD_CENTER}
         zoom={WORLD_ZOOM}
         worldCopyJump
+        zoomControl={false}
         style={{ height: '100%', width: '100%', background: '#020510' }}
       >
         <TileLayer
@@ -92,6 +93,8 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
             eventHandlers={{ click: () => onSelect(m.id) }}
           />
         ))}
+        {/* The top of the map is under the floating bar of the screen. */}
+        <ZoomControl position="bottomright" />
         <FitToMarkers markers={markers} />
       </MapContainer>
     </div>
