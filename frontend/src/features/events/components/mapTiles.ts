@@ -2,13 +2,15 @@ import type { EventCategory } from '../api/getEvents';
 
 /**
  * Base map of the events map (TG-52, ADR-0031): Esri World Dark Gray raster tiles, which need
- * no API key, with the attribution Esri asks for. (CARTO Dark Matter now requires a key.)
+ * no API key. (CARTO Dark Matter now requires a key.) The attribution stays on the map, short
+ * enough for one line on a phone: Esri and its data providers, and OpenStreetMap, with links
+ * to their full credits (OpenStreetMap's copyright page).
  */
 export const BASE_MAP_TILES =
   'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 export const BASE_MAP_MAX_ZOOM = 16;
 export const BASE_MAP_ATTRIBUTION =
-  'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS user community';
+  '&copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin &middot; &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 /** Whole world on first load; the map then fits the markers. */
 export const WORLD_CENTER: [number, number] = [20, 0];
