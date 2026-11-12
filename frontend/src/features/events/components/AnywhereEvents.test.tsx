@@ -39,12 +39,12 @@ describe('AnywhereEvents', () => {
     expect(screen.getByLabelText(/^Full Moon, Lluna, /)).toBeTruthy();
   });
 
-  it('shares the screen half and half with the map, and scrolls inside its half', async () => {
+  it('takes 2 parts of the screen to the 3 of the map, and scrolls inside them', async () => {
     await renderStrip();
 
-    // The map above it also has flex 1: the two halves are equal.
+    // The map above it has flex 3: it stays bigger, also with the top bar floating over it.
     expect(StyleSheet.flatten(screen.getByTestId('anywhere-events').props.style)).toMatchObject({
-      flex: 1,
+      flex: 2,
     });
     expect(screen.getByLabelText('Visibles des de qualsevol lloc')).toHaveStyle({ flex: 1 });
   });

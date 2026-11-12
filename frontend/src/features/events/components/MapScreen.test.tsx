@@ -91,6 +91,12 @@ describe('Events map screen', () => {
     expect(within(screen.getByTestId('map-view-switch')).getAllByRole('tab')).toHaveLength(2);
   });
 
+  it('gives the map more room than the events listed under it', async () => {
+    await renderScreen();
+
+    expect(screen.getByTestId('map-area')).toHaveStyle({ flex: 3 });
+  });
+
   it('puts on the map only the events that have a location', async () => {
     await renderScreen();
 
