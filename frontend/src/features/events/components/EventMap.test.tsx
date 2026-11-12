@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react-native';
 import { Linking } from 'react-native';
+import * as Reanimated from 'react-native-reanimated';
 
+import { colors } from '../../../shared/theme';
 import { EventMap } from './EventMap';
 import { buildLeafletHtml } from './leafletHtml';
+import { markerPalette } from './markerIcon';
+import type { MapMarker } from './mapTiles';
 
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
 jest.mock('react-native-webview', () => {
@@ -10,21 +14,48 @@ jest.mock('react-native-webview', () => {
   return { WebView: View };
 });
 
-const MARKERS = [{ id: 'e1', latitude: 28.5618, longitude: -80.577, label: 'Falcon 9 launch' }];
+const MARKERS: MapMarker[] = [
+  {
+    id: 'e1',
+    latitude: 28.5618,
+    longitude: -80.577,
+    label: 'Falcon 9 launch',
+    category: 'launch',
+    active: true,
+  },
+];
 const LABEL = "Mapa d'esdeveniments";
 
 function message(data: string) {
   return { nativeEvent: { data } };
 }
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe('EventMap (mobile)', () => {
-  it('renders the Leaflet page with the markers inside a WebView', async () => {
+  it('renders the Leaflet page with the markers in the colours of the theme', async () => {
     await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
 
+    // Jest's colour scheme is light, so the theme is `dia`; the mock of Reanimated reports no
+    // reduced motion.
+    const style = { palette: markerPalette(colors.dia), reduceMotion: false };
     const webView = screen.getByLabelText(LABEL);
-    expect(webView.props.source).toEqual({ html: buildLeafletHtml(MARKERS, LABEL) });
+    expect(webView.props.source).toEqual({ html: buildLeafletHtml(MARKERS, LABEL, style) });
     expect(webView.props.javaScriptEnabled).toBe(true);
     expect(webView.props.setSupportMultipleWindows).toBe(false);
+  });
+
+  it('freezes the halo of active events when the system asks for reduced motion', async () => {
+    jest.spyOn(Reanimated, 'useReducedMotion').mockReturnValue(true);
+
+    await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    const style = { palette: markerPalette(colors.dia), reduceMotion: true };
+    expect(screen.getByLabelText(LABEL).props.source).toEqual({
+      html: buildLeafletHtml(MARKERS, LABEL, style),
+    });
   });
 
   it('reports the marker the user taps', async () => {
