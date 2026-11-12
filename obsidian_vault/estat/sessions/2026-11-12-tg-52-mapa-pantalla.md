@@ -21,7 +21,7 @@ Fer les tasques 2/5 a 5/5 de TG-52 després de l'spike ([[2026-11-10-tg-52-spike
 - **#491:** filtre «Actius | Futurs | Tots» i fitxa resum en tocar un marcador o una fila.
 - **#492:** estats de càrrega, buit i error; la fitxa va al costat del mapa a partir de 768 px.
 - TDD estricte a cada canvi ([[0028-tdd-estricte-i-politica-de-testing-avancada]]): cada `feat:` o `fix:` té el seu `test:` abans.
-- Les tasques #490 i #491 s'han validat a l'iPhone amb Expo Go, amb esdeveniments de prova a la base de dades local (`external_id` amb el prefix `dev-tg52-`, per esborrar). La #492 encara no s'ha provat en cap dispositiu.
+- Les tasques #490 i #491 s'han validat a l'iPhone amb Expo Go, amb esdeveniments de prova a la base de dades local (`external_id` amb el prefix `dev-tg52-`, per esborrar). La #492 també l'ha provada Raquel (càrrega, error i pantalla ampla).
 - Detall de la pantalla a [[frontend#Mapa d'esdeveniments (TG-52)]].
 
 ## Decisions preses
@@ -45,7 +45,7 @@ Totes de Raquel:
 ## Pendent / següents passos
 
 - [ ] Treure abans de la PR: el botó «Mapa (dev)» de `login.tsx` i `src/app/dev-map.tsx` (no estan comitejats) i els esdeveniments `dev-tg52-*` de la base de dades local.
-- [ ] Mutation testing amb Stryker (`pnpm dlx`, sense instal·lar-lo) sobre la lògica nova.
+- [ ] Mutation testing (ADR-0028): Stryker no funciona amb `pnpm dlx` (no troba el plugin de Jest). Es deixa per a les US de CI #359-#362. Cobertura del codi de TG-52: 95 % de línies i 90 % de branques.
 - [ ] Obrir la PR de TG-52 quan Raquel ho demani.
 
 ## US de Taiga
