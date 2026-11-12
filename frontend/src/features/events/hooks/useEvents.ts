@@ -62,6 +62,8 @@ export function useMapEvents() {
     data,
     isLoading: active.isLoading || upcoming.isLoading,
     isError: active.isError || upcoming.isError,
+    // True while a retry is under way, also after an error.
+    isFetching: active.isFetching || upcoming.isFetching,
     isSuccess: active.isSuccess && upcoming.isSuccess,
     error: active.error ?? upcoming.error,
     refetch,

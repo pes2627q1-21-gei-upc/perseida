@@ -33,6 +33,13 @@
       "meteor_shower": "Lluvia de estrellas",
       "solar": "Sol"
     },
+    "empty": {
+      "active": "Ahora mismo no hay ningún evento activo.",
+      "all": "No hay eventos activos ni en los próximos 30 días.",
+      "noLocation": "Ninguno de estos eventos tiene una ubicación en el mapa.",
+      "showList": "Ver la lista",
+      "upcoming": "No hay eventos en los próximos 30 días."
+    },
     "filter": {
       "active": "Activos",
       "all": "Todos",
@@ -42,6 +49,7 @@
     "list": {
       "label": "Lista de eventos"
     },
+    "loading": "Cargando eventos",
     "location": {
       "anywhere": "Visible desde cualquier lugar",
       "coordinates": "{{latitude}} · {{longitude}}",
@@ -54,6 +62,8 @@
       "label": "Mapa de los eventos con ubicación",
       "title": "Mapa de eventos"
     },
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los eventos",
     "sheet": {
       "close": "Cerrar la ficha",
       "end": "Fin",

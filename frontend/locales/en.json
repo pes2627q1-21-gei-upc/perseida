@@ -33,6 +33,13 @@
       "meteor_shower": "Meteor shower",
       "solar": "Sun"
     },
+    "empty": {
+      "active": "There are no events happening right now.",
+      "all": "There are no events now or in the next 30 days.",
+      "noLocation": "None of these events has a place on the map.",
+      "showList": "See the list",
+      "upcoming": "There are no events in the next 30 days."
+    },
     "filter": {
       "active": "Active",
       "all": "All",
@@ -42,6 +49,7 @@
     "list": {
       "label": "Events list"
     },
+    "loading": "Loading events",
     "location": {
       "anywhere": "Visible from anywhere",
       "coordinates": "{{latitude}} · {{longitude}}",
@@ -54,6 +62,8 @@
       "label": "Map of the events with a location",
       "title": "Events map"
     },
+    "retry": "Try again",
+    "retryHint": "Load the events again",
     "sheet": {
       "close": "Close the details",
       "end": "Ends",
