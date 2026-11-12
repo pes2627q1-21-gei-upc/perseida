@@ -48,7 +48,7 @@ Cap ADR nova. Totes les decisions són de Raquel:
 
 ## Pendent / següents passos
 
-- [ ] Confirmar amb Manel els valors de `source` (ADR-0030).
+- [x] Confirmar amb Manel els valors de `source`: confirmats a [[0031-fonts-d-esdeveniments-sota-demanda|ADR-0031]] (l'ADR-0030 és la del WebSocket).
 - [ ] PR 1 (tasques 1-3) cap a `develop`; PR 2 (tasques 4-5) després.
 - [ ] `pnpm` 12.15.0 està trencat en local; els tipus s'han generat amb `openapi-typescript` i `prettier` directament.
 - [ ] Validar a la CI els tests d'integració i la migració. En local no hi ha Postgres.

@@ -12,8 +12,9 @@ from app.application.users.errors import EMAIL_ALREADY_REGISTERED
 from app.application.users.user_service import UserService
 from app.domain.shared.account import AccountStatus
 from app.domain.shared.errors import ConflictError
+from app.domain.shared.language import Language
 from app.domain.users.models import AccountStatus as UserStatus
-from app.domain.users.models import Language, User
+from app.domain.users.models import User
 from tests.fakes.users import InMemoryUserRepository
 
 NOW = datetime(2026, 10, 21, 12, 0, tzinfo=UTC)

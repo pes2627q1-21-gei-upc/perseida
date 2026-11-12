@@ -8,7 +8,8 @@ from app.application.shared.error_codes import (
 )
 from app.application.shared.errors import ForbiddenError, UnauthorizedError
 from app.domain.shared.account import AccountStatus
-from app.domain.users.models import Language, User
+from app.domain.shared.language import Language
+from app.domain.users.models import User
 from app.domain.users.ports import UserRepository
 
 

@@ -4,3 +4,6 @@
 
 # Scripts de shell: han de tenir LF perquè s'executin dins de contenidors Linux.
 *.sh text eol=lf
+
+# Efemèrides de Skyfield (TG-50): binari, mai es converteixen els salts de línia.
+*.bsp binary

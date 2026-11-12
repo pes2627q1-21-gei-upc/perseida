@@ -260,6 +260,23 @@ L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NA
 >
 > Límits del feed: només es guarden imatges (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo es descarta (`APOD_UNAVAILABLE` si l'API tampoc pot respondre). La data d'una entrada és el dia UTC de la publicació i el text d'`explanation` i `copyright` es converteix d'HTML a text pla. La fallada d'una crida es guarda 15 minuts només quan fallen el feed **i** l'API.
 
+## Quiz diari
+
+Una pregunta d'astrofísica per dia UTC, la mateixa per a tothom, en català, castellà o anglès (TG-60). Contracte: `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+| Endpoint | Què fa |
+|---|---|
+| `GET /api/quiz/today?lang=ca\|es\|en` | La pregunta d'avui, sense la solució. Sense `lang`, l'idioma preferit de l'usuari. Si l'usuari ja ha respost, `result` porta el seu resultat |
+| `POST /api/quiz/today/answer` | Desa la resposta (`date`, `question_id`, `chosen_option` 0-3) i retorna si és correcta, l'opció correcta, l'explicació i la font. 201; 409 `QUIZ_ALREADY_ANSWERED` o `QUIZ_EXPIRED`; 422 `QUIZ_QUESTION_MISMATCH` |
+
+Tots dos demanen sessió (401 `INVALID_SESSION`).
+
+- **Banc:** 100 preguntes a `alembic/seed/quiz_questions.json`, cadascuna amb un `id` UUIDv7 fix, 4 opcions, la correcta, una explicació i una font https, en els tres idiomes. La migració `a6e1d58c0b92` les carrega a `quiz_questions` i `quiz_question_translations`; `tests/unit/infrastructure/quiz/test_quiz_seed.py` valida el fitxer. Desfer el seed conserva les preguntes a què apunten respostes o dies, així que no es perd cap resposta; tornar-lo a aplicar recupera la resta amb els mateixos id.
+- **Pregunta del dia:** la primera petició d'un dia desa la seva pregunta a `quiz_days`, i aquell dia la manté. És la primera pregunta que encara no ha sortit (en ordre de `position`) o, si ja han sortit totes, la que fa més temps que va sortir (`next_question` a `app/domain/quiz/rules.py`). Així cap pregunta es repeteix en tants dies com preguntes té el banc, i quan el banc creix les noves surten abans de cap repetició.
+- **Cache:** `cache:quiz:daily:<data>:<idioma>` a Redis fins a mitjanit UTC. Si no es pot llegir la cache, la pregunta es llegeix de PostgreSQL. Amb Redis caigut tampoc es pot comprovar la sessió, així que els endpoints responen 503 `SESSION_UNAVAILABLE` (ADR-0008).
+- **Respostes:** `quiz_answers`, una per usuari i dia (restricció única `uq_quiz_answers_user_id`, també amb dues peticions alhora).
+- **Afegir preguntes:** afegeix-les al final del fitxer JSON **i** crea una migració de dades nova que les insereixi després de l'última posició. Editar només el fitxer no canvia una base de dades ja migrada, i reordenar-lo canvia el calendari.
+
 ## Autenticació
 
 L'app inicia la sessió amb Google (OAuth2 + PKCE) i envia l'`id_token` de Google al backend, que mai rep el codi d'autorització ni desa cap contrasenya ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). El backend en comprova el token i emet una sessió pròpia.
@@ -310,6 +327,41 @@ async def me(session: CurrentSessionDep) -> MeResponse:
 Als tests fes servir `FakeAccountGateway` (`tests/fakes/auth.py`); `tests/integration/test_auth_api.py` mostra el flux complet amb Google simulat amb `respx`.
 
 Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`, `IDENTITY_PROVIDER_UNAVAILABLE`, `SESSION_UNAVAILABLE`, `EMAIL_ALREADY_REGISTERED`) són a `app/application/auth/errors.py` i al catàleg d'errors. Els tres que també llança `users` (`INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`) es defineixen a `app/application/shared/error_codes.py` i `AccountStatus` a `app/domain/shared/account.py`, de manera que `auth` i `users` no s'importen mai entre ells a `domain` ni a `application` (`tests/architecture`); `main.py` els compon passant `UserAccountGateway` a `build_auth_service`.
+
+## WebSocket (temps real)
+
+`/api/ws` (`wss://` darrere nginx-proxy-manager) és l'endpoint de temps real del xat i dels esdeveniments, dins el mateix procés FastAPI i sobre el pub/sub de Redis ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). Les sales concretes són de les funcionalitats que l'usen (US #64 i #65).
+
+**Handshake i autenticació.** El handshake no porta cap token ni paràmetre de consulta. El primer frame ha de ser `{"type":"auth","token":"<access token>"}`; si és vàlid i no està revocat, el servidor respon `{"type":"auth","payload":{}}`. Qualsevol altre primer frame, un token invàlid, caducat, de refresh o revocat, o no rebre cap frame en `WS_AUTH_TIMEOUT_SECONDS`, tanca amb 4401. El token no surt mai a la URL ni als logs. L'endpoint crida `AuthService.authenticate` directament (`CurrentSessionDep` usa `HTTPBearer`, que no funciona per WebSocket).
+
+**Embolcall.** Tots els frames, en tots dos sentits, són JSON `{type, room?, payload, id}` (`app/domain/realtime/models.py`) amb `type` entre `auth`, `subscribe`, `unsubscribe`, `message`, `error`, `ping`, `pong`. `room` compleix `^[a-z0-9_-]+(:[a-z0-9_-]+)*$` (màxim 64) i viatja pel canal Redis `room:<room>`.
+
+| El client envia | El servidor respon |
+|---|---|
+| `subscribe` (+`room`) / `unsubscribe` | Eco del mateix `type`, `room` i `id` amb `payload: {}`. Subscriure's dues vegades no duplica missatges; donar-se de baixa d'una sala desconeguda no és un error. |
+| `message` (+`room`, `payload`) | Eco com a acusament; la resta de subscriptors de la sala el reben, l'emissor no. |
+| `ping` | `pong` amb el mateix `id`. |
+| `pong` | Res (resposta al `ping` del heartbeat del servidor). |
+
+**Heartbeat.** Cada `WS_HEARTBEAT_SECONDS` el servidor envia un `ping`; si al tic següent no ha arribat cap `pong`, tanca amb 1001. En cada tic també comprova que l'access token encara existeix, de manera que una sessió caducada o revocada tanca amb 4401.
+
+**Revocació.** `RedisSessionStore` publica `{"sid": ...}` (`null` per a `revoke_all`) a `session-revoked:<sub>` després de revocar; el WebSocket subscrit a aquest canal tanca a l'instant amb 4401 si el `sid` és el seu o `null`. Si la publicació falla (Redis caigut) la revocació del token es manté, es registra un avís i l'error no es propaga; el socket es tanca al tic de heartbeat següent.
+
+**Errors.** Un frame incorrecte (no és JSON, surt de l'embolcall, `type` desconegut, `room` invàlida) rep un frame `error` i la connexió continua oberta. El `payload` és RFC 9457 (`type`, `title`, `status`, `detail`, `code`, `correlation_id`) amb codis estables (`app/application/realtime/errors.py`), el catàleg que reutilitzen #64 i #65: `VALIDATION_ERROR` (422), `UNKNOWN_FRAME_TYPE` (422), `NOT_SUBSCRIBED` (409, `message` a una sala on el client no és subscrit), `PUBSUB_UNAVAILABLE` (503, Redis caigut en subscriure o publicar), `INTERNAL_ERROR` (500), `FORBIDDEN` (403) i `RATE_LIMITED` (429). Codis de tancament: 4401 no autenticada, revocada o caducada; 1013 Redis falla a mitja connexió; 1011 error intern; 1003 frame binari; 1001 heartbeat sense resposta; 4429 massa connexions simultànies de l'usuari.
+
+| Variable | Significat |
+|---|---|
+| `WS_AUTH_TIMEOUT_SECONDS` | Segons per enviar el frame `auth` (10 per defecte) |
+| `WS_HEARTBEAT_SECONDS` | Interval del heartbeat en segons (30 per defecte) |
+| `WS_MAX_ROOMS` | Màxim de sales per connexió (20 per defecte) |
+| `WS_MAX_FRAME_BYTES` | Mida màxima d'un frame entrant en bytes (65536 per defecte) |
+| `WS_SEND_TIMEOUT_SECONDS` | Màxim de segons per enviar un frame a un client (5 per defecte) |
+
+Subscriure's a una sala nova passat `WS_MAX_ROOMS` es respon amb l'error `RATE_LIMITED` i la connexió continua oberta. Un frame més gran que `WS_MAX_FRAME_BYTES` es respon amb `VALIDATION_ERROR` (o tanca amb 4401 si és el primer frame) i no es processa. Un frame binari tanca amb 1003. Un client que no llegeix (un enviament que supera `WS_SEND_TIMEOUT_SECONDS`) es tanca amb 1013. La connexió d'un usuari que ja en té `WS_MAX_CONNECTIONS_PER_USER` es tanca amb 4429 en autenticar-se, sense enviar res; la resta de connexions de l'usuari no es toquen. El `correlation_id` dels errors és el de la petició del handshake (`X-Correlation-ID`) i també és als logs.
+
+Al contenidor, uvicorn aplica `WS_MAX_FRAME_BYTES` abans que l'aplicació rebi el missatge i tanca els missatges massa grans amb el codi 1009; els errors d'aplicació descrits més amunt corresponen a servidors que no apliquen abans aquest límit.
+
+`uvicorn` necessita una llibreria WebSocket (`websockets`, fixada a `pyproject.toml`); sense ella respon 404 al handshake. `tests/integration/test_websocket_uvicorn.py` comprova el 101 contra un servidor real. Altres proves: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) i `tests/integration/test_websocket_redis.py` (Redis real, dos clients, revocació i Redis caigut amb un proxy TCP que es pot tallar).
 
 ## Testing i qualitat
 

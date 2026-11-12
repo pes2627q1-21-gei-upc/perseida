@@ -26,7 +26,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 
 ## Mapa per carpetes
 
-**arquitectura/**: [[visio-general]], [[arquitectura-fisica]], [[backend-hexagonal]], [[frontend]], [[model-de-domini]], [[serveis-externs]], [[contracte-spotwise]], [[contracte-esdeveniments]]
+**arquitectura/**: [[visio-general]], [[arquitectura-fisica]], [[backend-hexagonal]], [[frontend]], [[model-de-domini]], [[serveis-externs]], [[contracte-spotwise]], [[contracte-esdeveniments]], [[contracte-quiz]]
 
 **arquitectura/components/**: [[api]], [[postgres]], [[redis]], [[nginx-proxy-manager]], [[moderation]]
 
@@ -60,7 +60,9 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0027-skills-de-disseny-de-tercers-subordinades-a-frutiger-cosmo|ADR-0027 Skills de disseny de tercers]]
 - [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028 TDD estricte i política de testing]]
 - [[0029-apk-android-a-github-releases-amb-obtainium|ADR-0029 APK d'Android a GitHub Releases amb Obtainium]]
-- [[0031-leaflet-per-al-mapa-web-i-webview|ADR-0031 Leaflet per al mapa (web i WebView)]]
+- [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030 Protocol WebSocket i revocació per pub/sub]]
+- [[0031-fonts-d-esdeveniments-sota-demanda|ADR-0031 Fonts d'esdeveniments sota demanda]]
+- [[0032-leaflet-per-al-mapa-web-i-webview|ADR-0032 Leaflet per al mapa (web i WebView)]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 

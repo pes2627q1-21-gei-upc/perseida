@@ -13,14 +13,18 @@ dependencies = [
     "pydantic-settings==2.16.0",
     "pyjwt[crypto]==2.15.1",
     "redis==8.1.0",
+    "skyfield==1.55",
     "sqlalchemy[asyncio]==2.1.4",
     "sqlmodel==0.0.48",
     "uvicorn==0.54.0",
+    "websockets==17.4",
 ]
 
 [dependency-groups]
 dev = [
+    "hypothesis==6.170.15",
     "import-linter==2.15",
+    "mutmut==3.8.1",
     "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
@@ -55,6 +59,11 @@ exclude = ["^\\.venv/"]
 module = ["apscheduler.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# Skyfield and jplephem (TG-50) ship no type information.
+module = ["skyfield.*", "jplephem.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
@@ -72,13 +81,71 @@ forbidden_modules = ["fastapi", "sqlmodel", "sqlalchemy", "redis", "asyncpg", "h
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
-name = "Application does not import infrastructure or FastAPI"
+name = "Application does not import infrastructure, FastAPI, Starlette or Redis"
 type = "forbidden"
 source_modules = ["app.application"]
-forbidden_modules = ["app.infrastructure", "fastapi"]
+forbidden_modules = ["app.infrastructure", "fastapi", "starlette", "redis"]
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
 name = "Dependencies go infrastructure -> application -> domain"
 type = "layers"
 layers = ["app.infrastructure", "app.application", "app.domain"]
+
+[[tool.importlinter.contracts]]
+# backend-hexagonal.md: no imports between features in domain and application;
+# what they share lives in app.domain.shared / app.application.shared.
+name = "The quiz does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.quiz", "app.application.quiz"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.chat",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.chat",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.realtime",
+    "app.application.users",
+]
+
+[[tool.importlinter.contracts]]
+name = "The chat does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.chat"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.users",
+]
+
+[tool.mutmut]
+# Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.
+# Nota: mutmut no muta constants de mòdul, cossos de classe ni f-strings, i el domini realtime
+# només en té; per això genera 0 mutants (vegeu la PR: mutació manual dels mateixos punts).
+source_paths = ["app/domain/realtime/", "app/domain/chat/"]
+also_copy = ["app/__init__.py", "app/domain/__init__.py", "app/domain/shared/"]
+pytest_add_cli_args = ["--no-cov"]
+pytest_add_cli_args_test_selection = [
+    "tests/unit/domain/realtime/",
+    "tests/unit/domain/chat/",
+]
