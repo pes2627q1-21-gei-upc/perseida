@@ -27,6 +27,9 @@
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
   },
   "events": {
+    "anywhere": {
+      "title": "Visibles desde cualquier lugar"
+    },
     "category": {
       "launch": "Lanzamiento",
       "lunar": "Luna",

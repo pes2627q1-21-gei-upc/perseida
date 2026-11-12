@@ -27,6 +27,9 @@
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
   },
   "events": {
+    "anywhere": {
+      "title": "Visibles des de qualsevol lloc"
+    },
     "category": {
       "launch": "Llançament",
       "lunar": "Lluna",
