@@ -70,6 +70,13 @@ describe('buildLeafletHtml', () => {
     expect(html).not.toContain('pm-pulse');
   });
 
+  it('puts the zoom buttons at the bottom right, away from the notch and the top bar', () => {
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE);
+
+    expect(html).toContain('zoomControl: false');
+    expect(html).toContain("L.control.zoom({ position: 'bottomright' }).addTo(map);");
+  });
+
   it('labels the map region for screen readers', () => {
     expect(buildLeafletHtml(MARKERS, "Mapa d'esdeveniments", STYLE)).toContain(
       'aria-label="Mapa d&#39;esdeveniments"',

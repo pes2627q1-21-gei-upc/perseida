@@ -15,6 +15,7 @@ jest.mock('react-leaflet', () => {
     MapContainer: (props: object) => <MockView testID="map" {...props} />,
     TileLayer: (props: object) => <MockView testID="tiles" {...props} />,
     Marker: (props: object) => <MockView testID="marker" {...props} />,
+    ZoomControl: (props: object) => <MockView testID="zoom" {...props} />,
     useMap: () => ({ fitBounds: mockFitBounds }),
   };
 });
@@ -133,6 +134,13 @@ describe('EventMap (web)', () => {
     await render(<EventMap markers={[]} label={LABEL} onSelect={jest.fn()} />);
 
     expect(mockFitBounds).not.toHaveBeenCalled();
+  });
+
+  it('puts the zoom buttons at the bottom right, away from the top bar', async () => {
+    await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    expect(screen.getByTestId('map').props.zoomControl).toBe(false);
+    expect(screen.getByTestId('zoom').props.position).toBe('bottomright');
   });
 
   it('reports the marker the user clicks or activates with the keyboard', async () => {
