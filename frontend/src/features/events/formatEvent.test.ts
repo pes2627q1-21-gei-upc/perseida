@@ -1,7 +1,12 @@
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../__mocks__/events';
 import i18n from '../../shared/i18n';
 import { classifyEvents } from './classifyEvents';
-import { describeEvent, formatEventWhen, formatEventWhere } from './formatEvent';
+import {
+  describeEvent,
+  formatEventDateTime,
+  formatEventWhen,
+  formatEventWhere,
+} from './formatEvent';
 
 const t = i18n.getFixedT('ca');
 const UTC = 'UTC';
@@ -34,6 +39,14 @@ describe('formatEventWhen', () => {
   it('shows both dates when the event lasts several days', () => {
     expect(formatEventWhen(meteorShowerEvent, 'en', UTC)).toBe(
       `${dateTime(meteorShowerEvent.starts_at, 'en')} – ${dateTime(meteorShowerEvent.ends_at, 'en')}`,
+    );
+  });
+});
+
+describe('formatEventDateTime', () => {
+  it('shows one date and time in the language of the app', () => {
+    expect(formatEventDateTime(launchEvent.starts_at, 'ca', UTC)).toBe(
+      dateTime(launchEvent.starts_at, 'ca'),
     );
   });
 });

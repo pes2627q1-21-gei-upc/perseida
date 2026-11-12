@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse } from '../../../../__mocks__/apod';
@@ -88,7 +88,7 @@ describe('Events map screen', () => {
     await renderScreen();
 
     expect(within(screen.getByTestId('map-top-bar')).queryAllByRole('tab')).toEqual([]);
-    expect(within(screen.getByTestId('map-view-switch')).getAllByRole('tab')).toHaveLength(2);
+    expect(within(screen.getByTestId('map-controls')).getAllByRole('tab')).toHaveLength(2);
   });
 
   it('gives the whole view to the map', async () => {
@@ -128,6 +128,64 @@ describe('Events map screen', () => {
     for (const event of [launchEvent, meteorShowerEvent, lunarEvent]) {
       expect(await screen.findByText(event.title)).toBeTruthy();
     }
+  });
+
+  it('shows all the events by default (criterion 2)', async () => {
+    await renderScreen();
+
+    expect(screen.getByRole('radio', { name: 'Tots', checked: true })).toBeTruthy();
+  });
+
+  it('shows only the active events with the Active filter (criterion 2)', async () => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Actius' }));
+
+    // The launch is upcoming: it leaves the map.
+    await waitForMapHtml((page) => !page.includes(launchEvent.id));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+    expect(await screen.findByText(meteorShowerEvent.title)).toBeTruthy();
+    expect(screen.queryByText(launchEvent.title)).toBeNull();
+    expect(screen.queryByText(lunarEvent.title)).toBeNull();
+  });
+
+  it('shows only the upcoming events with the Upcoming filter (criterion 2)', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+    await screen.findByText(meteorShowerEvent.title);
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Futurs' }));
+
+    expect(screen.queryByText(meteorShowerEvent.title)).toBeNull();
+    expect(screen.getByText(launchEvent.title)).toBeTruthy();
+    expect(screen.getByText(lunarEvent.title)).toBeTruthy();
+  });
+
+  it('opens the summary of the marker the user taps (criterion 3)', async () => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+
+    expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
+    expect(screen.getByText('Inici')).toBeTruthy();
+  });
+
+  it('opens the summary from the list too, and closes it', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+    await screen.findByText(lunarEvent.title);
+
+    await fireEvent.press(screen.getByRole('button', { name: /^Full Moon, Lluna, / }));
+    expect(screen.getByRole('header', { name: lunarEvent.title })).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
+    expect(screen.queryByRole('header', { name: lunarEvent.title })).toBeNull();
   });
 
   it('goes back to where the user came from', async () => {

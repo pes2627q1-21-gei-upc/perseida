@@ -67,4 +67,21 @@ describe('GelSegmented', () => {
       expect(tab).toHaveStyle({ minHeight: 48 });
     }
   });
+
+  it('can be a choice of options instead of tabs, announced as checked', async () => {
+    await render(
+      <GelSegmented
+        options={OPTIONS}
+        value="list"
+        onChange={jest.fn()}
+        accessibilityLabel="Mostra"
+        kind="choice"
+      />,
+    );
+
+    expect(screen.getByLabelText('Mostra').props.accessibilityRole).toBe('radiogroup');
+    expect(screen.getByRole('radio', { name: 'Llista', checked: true })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Mapa', checked: false })).toBeTruthy();
+    expect(screen.queryAllByRole('tab')).toEqual([]);
+  });
 });

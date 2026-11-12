@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
@@ -12,10 +12,10 @@ const SAFE_AREA = {
 
 const { all } = classifyEvents([meteorShowerEvent], [launchEvent, lunarEvent]);
 
-async function renderList() {
+async function renderList(onSelect = jest.fn()) {
   return render(
     <SafeAreaProvider initialMetrics={SAFE_AREA}>
-      <EventList events={all} label="Llista d'esdeveniments" />
+      <EventList events={all} label="Llista d'esdeveniments" onSelect={onSelect} />
     </SafeAreaProvider>,
   );
 }
@@ -49,5 +49,16 @@ describe('EventList', () => {
 
     expect(screen.getByLabelText(/^Leonids, Pluja d'estels, Actiu ara/)).toBeTruthy();
     expect(screen.getByLabelText(/^Full Moon, Lluna, /)).toBeTruthy();
+  });
+
+  it('opens the summary of the event the user taps', async () => {
+    const onSelect = jest.fn();
+    await renderList(onSelect);
+
+    const row = screen.getByRole('button', { name: /^Full Moon, Lluna, / });
+    expect(row.props.accessibilityHint).toBe("Obre la fitxa de l'esdeveniment");
+    await fireEvent.press(row);
+
+    expect(onSelect).toHaveBeenCalledWith(lunarEvent.id);
   });
 });
