@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -5,7 +6,9 @@ import pytest
 
 from app.application.chat.chat_service import ChatService
 from app.application.chat.errors import RateLimitedError
+from app.application.realtime.errors import RATE_LIMITED
 from app.application.shared.errors import ExternalServiceError, ForbiddenError
+from app.domain.chat.errors import CHAT_INVALID_CURSOR, CHAT_INVALID_LIMIT
 from app.domain.chat.models import ChatMessage
 from app.domain.shared.errors import (
     BusinessRuleViolation,
@@ -30,9 +33,14 @@ async def test_tg439_send_flow_and_cleaned_text(
 ) -> None:
     message = await service.send_message(env.user, env.event, " hola ")
     assert message.text == "hola"
-    assert env.calls == ["subscription", "room", "rate", "moderate", "save", "publish"]
+    assert env.calls == ["room", "subscription", "rate", "moderate", "save", "publish"]
     assert env.messages == [message]
-    assert env.published == [message]
+    assert env.channels == [f"room:chat:event:{env.event}"]
+    envelope = json.loads(env.published[0])
+    assert envelope["from"] is None
+    assert envelope["frame"]["type"] == "message"
+    assert envelope["frame"]["room"] == f"chat:event:{env.event}"
+    assert envelope["frame"]["payload"] == message.model_dump(mode="json")
 
 
 async def test_tg439_validation_stops_before_rate(
@@ -40,7 +48,7 @@ async def test_tg439_validation_stops_before_rate(
 ) -> None:
     with pytest.raises(ValidationError):
         await service.send_message(env.user, env.event, "  ")
-    assert env.calls == ["subscription", "room"]
+    assert env.calls == ["room", "subscription"]
 
 
 async def test_tg439_forbidden_prevents_access(
@@ -49,7 +57,8 @@ async def test_tg439_forbidden_prevents_access(
     env.subscribed = False
     with pytest.raises(ForbiddenError):
         await service.send_message(env.user, env.event, "hello")
-    assert env.calls == ["subscription"]
+    assert env.calls == ["room", "subscription"]
+    assert not env.messages and not env.published
     with pytest.raises(ForbiddenError):
         await service.history(env.user, env.event)
 
@@ -60,8 +69,8 @@ async def test_tg439_rate_limit_stops_flow(
     env.allowed = False
     with pytest.raises(RateLimitedError) as error:
         await service.send_message(env.user, env.event, "hello")
-    assert error.value.code == "RATE_LIMITED"
-    assert env.calls == ["subscription", "room", "rate"]
+    assert error.value.code == RATE_LIMITED
+    assert env.calls == ["room", "subscription", "rate"]
 
 
 async def test_tg439_rejection_stops_flow(service: ChatService, env: ChatFakes) -> None:
@@ -69,17 +78,39 @@ async def test_tg439_rejection_stops_flow(service: ChatService, env: ChatFakes) 
     with pytest.raises(BusinessRuleViolation) as error:
         await service.send_message(env.user, env.event, "hello")
     assert error.value.code == "CHAT_MESSAGE_REJECTED"
-    assert env.calls == ["subscription", "room", "rate", "moderate"]
+    assert env.calls == ["room", "subscription", "rate", "moderate"]
     assert not env.messages and not env.published
 
 
-async def test_tg439_external_failure_is_propagated(
+async def test_tg442_save_failure_does_not_publish(
     service: ChatService, env: ChatFakes
 ) -> None:
-    env.fail = True
+    env.fail_save = True
     with pytest.raises(ExternalServiceError):
         await service.send_message(env.user, env.event, "hello")
+    assert "publish" not in env.calls
     assert not env.messages and not env.published
+
+
+async def test_tg442_publish_failure_keeps_message_with_stable_code(
+    service: ChatService, env: ChatFakes
+) -> None:
+    env.fail_publish = True
+    with pytest.raises(ExternalServiceError) as error:
+        await service.send_message(env.user, env.event, "hello")
+    assert error.value.code == "PUBSUB_UNAVAILABLE"
+    assert env.calls[-2:] == ["save", "publish"]
+    assert [m.text for m in env.messages] == ["hello"]
+
+
+async def test_tg439_missing_event_is_404_before_subscription(
+    service: ChatService, env: ChatFakes
+) -> None:
+    env.missing = True
+    env.subscribed = False
+    with pytest.raises(NotFoundError):
+        await service.send_message(env.user, env.event, "hello")
+    assert env.calls == ["room"]
 
 
 async def test_tg439_room_idempotent_and_missing(
@@ -118,11 +149,13 @@ async def test_tg439_cursor_order_and_limits(
         for m in sorted(env.messages, key=lambda m: (m.sent_at, m.id), reverse=True)
     ]
     for cursor in ["bad!", "", "YWJj"]:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as cursor_error:
             await service.history(env.user, env.event, before=cursor)
+        assert cursor_error.value.code == CHAT_INVALID_CURSOR
     for limit in [0, 51]:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as limit_error:
             await service.history(env.user, env.event, limit=limit)
+        assert limit_error.value.code == CHAT_INVALID_LIMIT
 
 
 async def test_tg439_list_only_subscribed(service: ChatService, env: ChatFakes) -> None:

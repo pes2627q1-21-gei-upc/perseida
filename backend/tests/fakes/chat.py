@@ -19,12 +19,14 @@ class ChatFakes:
         self.room = EventChatRoom.create(event_id=self.event)
         self.calls: list[str] = []
         self.messages: list[ChatMessage] = []
-        self.published: list[ChatMessage] = []
+        self.published: list[str] = []
         self.subscribed = True
         self.allowed = True
         self.approved = True
-        self.fail = False
+        self.fail_save = False
+        self.fail_publish = False
         self.missing = False
+        self.channels: list[str] = []
 
     async def is_subscribed(self, user_id: uuid.UUID, event_id: uuid.UUID) -> bool:
         self.calls.append("subscription")
@@ -44,17 +46,18 @@ class ChatFakes:
         self.calls.append("moderate")
         return ModerationResult(approved=self.approved)
 
-    async def store_and_publish(
-        self, message: ChatMessage, event_id: uuid.UUID
-    ) -> None:
-        if self.fail:
-            raise ExternalServiceError("CHAT_DELIVERY_UNAVAILABLE")
-        self.calls.extend(["save", "publish"])
-        self.messages.append(message)
-        self.published.append(message)
-
     async def add_message(self, message: ChatMessage) -> None:
+        self.calls.append("save")
+        if self.fail_save:
+            raise ExternalServiceError("DATABASE_UNAVAILABLE")
         self.messages.append(message)
+
+    async def publish(self, channel: str, message: str) -> None:
+        self.calls.append("publish")
+        if self.fail_publish:
+            raise ExternalServiceError("REDIS_DOWN")
+        self.channels.append(channel)
+        self.published.append(message)
 
     async def page(
         self, room_id: uuid.UUID, before: ChatCursor | None, limit: int
