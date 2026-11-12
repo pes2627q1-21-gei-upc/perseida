@@ -30,6 +30,15 @@ describe('classifyEvents', () => {
     ]);
   });
 
+  it('orders events that start at the same time by id', () => {
+    const later = { ...lunarEvent, id: '01a19288-a3f6-7576-a37b-ffffffffffff' };
+    const earlier = { ...lunarEvent, id: '01a19288-a3f6-7576-a37b-000000000000' };
+
+    const result = classifyEvents([later], [earlier]);
+
+    expect(result.all.map((event) => event.id)).toEqual([earlier.id, later.id]);
+  });
+
   it('keeps the events without a location', () => {
     const result = classifyEvents([meteorShowerEvent], []);
 

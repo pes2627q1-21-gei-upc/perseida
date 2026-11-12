@@ -24,8 +24,19 @@ function urlOf(input: RequestInfo | URL): URL {
   return input instanceof URL ? input : new URL(input.url);
 }
 
+type Route = () => Response | Promise<Response>;
+
+/** A response the test sends when it wants, to see the loading state for sure. */
+function pendingResponse() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
 /** Answers each events endpoint with its own body or failure. */
-function mockEventsApi(routes: { active: () => Response; upcoming: () => Response }) {
+function mockEventsApi(routes: { active: Route; upcoming: Route }) {
   return jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const { pathname } = urlOf(input);
     if (pathname === '/api/events/active') return routes.active();
@@ -53,14 +64,13 @@ describe('eventKeys', () => {
 
 describe('useActiveEvents', () => {
   it('starts loading and then returns the active events', async () => {
-    mockEventsApi({
-      active: () => jsonResponse([meteorShowerEvent]),
-      upcoming: () => jsonResponse([]),
-    });
+    const pending = pendingResponse();
+    mockEventsApi({ active: () => pending.promise, upcoming: () => jsonResponse([]) });
 
     const { result } = await renderHook(() => useActiveEvents(), { wrapper });
 
     expect(result.current.isLoading).toBe(true);
+    pending.resolve(jsonResponse([meteorShowerEvent]));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([meteorShowerEvent]);
   });
@@ -115,8 +125,9 @@ describe('useMapEvents', () => {
   });
 
   it('classifies active and upcoming events once both have loaded', async () => {
+    const pending = pendingResponse();
     mockEventsApi({
-      active: () => jsonResponse([launchEvent, meteorShowerEvent]),
+      active: () => pending.promise,
       upcoming: () => jsonResponse([launchEvent, lunarEvent]),
     });
 
@@ -124,6 +135,7 @@ describe('useMapEvents', () => {
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toBeUndefined();
+    pending.resolve(jsonResponse([launchEvent, meteorShowerEvent]));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.active.map((event) => event.id)).toEqual([
       launchEvent.id,
