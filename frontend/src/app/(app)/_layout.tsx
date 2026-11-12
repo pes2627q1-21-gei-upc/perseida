@@ -36,6 +36,7 @@ export default function AppLayout() {
         if (!mounted) return;
 
         const currentTokens = await getTokens();
+        if (!mounted) return;
         if (!currentTokens) {
           router.replace('/login');
         } else {
@@ -48,15 +49,26 @@ export default function AppLayout() {
       }
     }
 
-    checkSession();
+    void checkSession();
 
-    const interval = setInterval(async () => {
-      const tokens = await getTokens();
-      if (!tokens) return;
-      const renewed = await refreshSession();
-      if (!renewed && !(await getTokens())) {
-        router.replace('/login');
+    async function renewSession() {
+      try {
+        const tokens = await getTokens();
+        if (!mounted || !tokens) return;
+        const renewed = await refreshSession();
+        if (!mounted || renewed) return;
+        const currentTokens = await getTokens();
+        if (!mounted) return;
+        if (!currentTokens) {
+          router.replace('/login');
+        }
+      } catch {
+        // A transient failure must not invalidate the session; retry at the next interval.
       }
+    }
+
+    const interval = setInterval(() => {
+      void renewSession();
     }, SESSION_REFRESH_INTERVAL_MS);
 
     return () => {

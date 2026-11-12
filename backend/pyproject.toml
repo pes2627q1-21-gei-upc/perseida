@@ -23,6 +23,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "diff-cover==11.0.1",
+    "hypothesis==6.170.15",
     "import-linter==2.15",
     "mutmut==3.8.1",
     "mypy==2.4.0",
@@ -87,6 +88,9 @@ show_missing = true
 fail_under = 90
 
 [tool.mutmut]
+# Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.
+# Nota: mutmut no muta constants de mòdul, cossos de classe ni f-strings, i el domini realtime
+# només en té; per això genera 0 mutants (vegeu la PR: mutació manual dels mateixos punts).
 source_paths = ["app/domain"]
 also_copy = ["app/application", "app/infrastructure", "tests/"]
 pytest_add_cli_args = ["-o", "addopts="]
@@ -123,6 +127,7 @@ type = "forbidden"
 source_modules = ["app.domain.quiz", "app.application.quiz"]
 forbidden_modules = [
     "app.domain.apod",
+    "app.domain.chat",
     "app.domain.auth",
     "app.domain.events",
     "app.domain.health",
@@ -130,9 +135,31 @@ forbidden_modules = [
     "app.domain.scheduler",
     "app.domain.users",
     "app.application.apod",
+    "app.application.chat",
     "app.application.auth",
     "app.application.events",
     "app.application.health",
+    "app.application.realtime",
+    "app.application.users",
+]
+[[tool.importlinter.contracts]]
+name = "The chat does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.chat"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
     "app.application.realtime",
     "app.application.users",
 ]
