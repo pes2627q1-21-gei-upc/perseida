@@ -92,6 +92,16 @@ describe('Events map screen', () => {
     expect(html).not.toContain(meteorShowerEvent.id);
   });
 
+  it('lists under the map the events without a location, not as markers (criterion 4)', async () => {
+    await renderScreen();
+
+    expect(await screen.findByText(meteorShowerEvent.title)).toBeTruthy();
+    expect(screen.getByText(lunarEvent.title)).toBeTruthy();
+    expect(screen.getByRole('header', { name: 'Visibles des de qualsevol lloc' })).toBeTruthy();
+    // The launch has a location: it is a marker on the map, not a row under it.
+    expect(screen.queryByText(launchEvent.title)).toBeNull();
+  });
+
   it('switches to the list, which shows every event', async () => {
     await renderScreen();
 
