@@ -22,6 +22,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "diff-cover==11.0.1",
     "hypothesis==6.170.15",
     "import-linter==2.15",
     "mutmut==3.8.1",
@@ -64,10 +65,36 @@ ignore_missing_imports = true
 module = ["skyfield.*", "jplephem.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# mutmut ships no type information.
+module = ["mutmut.*"]
+ignore_missing_imports = true
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+# CI helper script calling mutmut internals.
+module = ["scripts.run_mutmut_diff"]
+disable_error_code = ["attr-defined"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=app --cov-report=term-missing"
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.diff_cover]
+fail_under = 90
+
+[tool.mutmut]
+# Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.
+# Nota: mutmut no muta constants de mòdul, cossos de classe ni f-strings, i el domini realtime
+# només en té; per això genera 0 mutants (vegeu la PR: mutació manual dels mateixos punts).
+source_paths = ["app/domain"]
+also_copy = ["app/application", "app/infrastructure", "tests/"]
+pytest_add_cli_args = ["-o", "addopts="]
+pytest_add_cli_args_test_selection = ["tests/unit/domain"]
 
 [tool.importlinter]
 root_package = "app"
@@ -115,7 +142,6 @@ forbidden_modules = [
     "app.application.realtime",
     "app.application.users",
 ]
-
 [[tool.importlinter.contracts]]
 name = "The chat does not import other features"
 type = "forbidden"
@@ -136,16 +162,4 @@ forbidden_modules = [
     "app.application.quiz",
     "app.application.realtime",
     "app.application.users",
-]
-
-[tool.mutmut]
-# Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.
-# Nota: mutmut no muta constants de mòdul, cossos de classe ni f-strings, i el domini realtime
-# només en té; per això genera 0 mutants (vegeu la PR: mutació manual dels mateixos punts).
-source_paths = ["app/domain/realtime/", "app/domain/chat/"]
-also_copy = ["app/__init__.py", "app/domain/__init__.py", "app/domain/shared/"]
-pytest_add_cli_args = ["--no-cov"]
-pytest_add_cli_args_test_selection = [
-    "tests/unit/domain/realtime/",
-    "tests/unit/domain/chat/",
 ]

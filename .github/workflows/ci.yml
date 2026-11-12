@@ -86,6 +86,8 @@ jobs:
       REDIS_PORT: "6379"
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - name: Instal·lar uv i Python
         uses: astral-sh/setup-uv@v10.3.0
         with:
@@ -103,8 +105,14 @@ jobs:
       - name: Arquitectura (import-linter)
         run: uv run --locked --no-build lint-imports
       # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
-      - name: Tests (pytest amb cobertura)
-        run: uv run pytest --cov-report=xml:coverage.xml
+      - name: Tests (pytest amb cobertura >= 80%)
+        run: uv run pytest --cov-report=xml:coverage.xml --cov-fail-under=80
+      - name: Comprovar cobertura del codi nou a la PR (diff-cover >= 90%)
+        if: github.event_name == 'pull_request'
+        run: uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90
+      - name: Mutation testing al domini del backend (mutmut >= 70%)
+        if: github.event_name == 'pull_request'
+        run: uv run python scripts/run_mutmut_diff.py --base-branch origin/${{ github.base_ref }}
       - name: Publicar informe de cobertura
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -124,6 +132,8 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - name: Instal·lar pnpm
         uses: pnpm/action-setup@v6.1.0
         with:
@@ -148,6 +158,9 @@ jobs:
           git diff --exit-code -- src/shared/api/schema.d.ts
       - name: Tests (jest amb cobertura)
         run: pnpm test --coverage --ci
+      - name: Mutation testing al frontend (Stryker >= 70%)
+        if: github.event_name == 'pull_request'
+        run: pnpm test:mutation --base-branch origin/${{ github.base_ref }}
       - name: Publicar informe de cobertura
         uses: actions/upload-artifact@v7.0.1
         with:

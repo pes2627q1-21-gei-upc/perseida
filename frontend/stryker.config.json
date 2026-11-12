@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "pnpm",
+  "testRunner": "jest",
+  "plugins": ["@stryker-mutator/jest-runner"],
+  "jest": {
+    "projectType": "custom",
+    "configFile": "jest.config.js"
+  },
+  "mutate": ["src/**/*.{ts,tsx}", "!src/**/*.d.ts", "!src/**/index.ts", "!src/shared/ui/**"],
+  "ignorePatterns": ["coverage", ".expo", "dist", "build"],
+  "disableTypeChecks": false,
+  "reporters": ["clear-text", "progress", "json"],
+  "jsonReporter": {
+    "fileName": "reports/stryker/mutation-report.json"
+  },
+  "thresholds": {
+    "high": 80,
+    "low": 70,
+    "break": 70
+  },
+  "coverageAnalysis": "perTest",
+  "timeoutMS": 60000,
+  "concurrency": 2
+}

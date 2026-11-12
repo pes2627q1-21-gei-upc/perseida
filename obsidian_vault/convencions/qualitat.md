@@ -3,8 +3,8 @@ titol: "Qualitat del codi i Quality Gate"
 tipus: convencio
 estat: vigent
 data: "2026-10-28"
-us: ["TG-85", "TG-34", "TG-35", "TG-342"]
-font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24); frontend/package.json (script typecheck, TG-342)"
+us: ["TG-85", "TG-34", "TG-35", "TG-194", "TG-342", "TG-359"]
+font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24, PR #79, PR #82); frontend/package.json (script typecheck, TG-342); TG-194; TG-359"
 etiquetes: [convencio, qualitat, ruff, mypy, eslint, sonarqube]
 ---
 
@@ -28,9 +28,18 @@ La qualitat es construeix de manera contínua i es fa complir automàticament. L
 
 Des de TG-34, `.github/workflows/ci.yml` executa el job `backend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `backend/`): `uv sync --locked`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .` i `uv run pytest --cov-report=xml:coverage.xml`. L'informe de cobertura es descarrega de l'execució, a *Artifacts*, amb el nom `backend-coverage`.
 
+Des de TG-359 (US #359), la CI afegeix comprovacions bloquejants de cobertura i mutation testing:
+- **Cobertura global:** `pytest` porta `--cov-fail-under=80` configurat a `pyproject.toml` (falla si la cobertura global és inferior al 80 %).
+- **Cobertura del codi nou:** a les PRs, `diff-cover` compara el diff (`uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90`) i falla si el codi nou no assoleix el 90 %.
+- **Mutation testing al domini:** `uv run python scripts/run_mutmut_diff.py` executa `mutmut` exclusivament sobre els fitxers modificats a `app/domain` respecte a la branca base i exigeix un mutation score ≥ 70 %. Si no s'ha tocat el domini, passa ràpidament.
+
 ## CI del frontend (implementada)
 
 Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada push cap a `develop` o `main`, amb les mateixes ordres que en local (des de `frontend/`): `pnpm install --frozen-lockfile`, `pnpm lint` (ESLint amb Prettier), `pnpm typecheck` i `pnpm test --coverage --ci`. Cada ordre és un pas separat perquè es vegi quina falla. L'script de tipus es diu `typecheck` i no `tsc`: `expo-doctor`, que EAS Build executa abans de compilar, avisa quan un script de `package.json` té el nom d'un binari de `node_modules/.bin`. Node (al workflow) i pnpm (a `packageManager` de `frontend/package.json`) estan fixats. L'informe `lcov.info` es descarrega de l'execució, a *Artifacts*, amb el nom `frontend-coverage`. El job no necessita secrets ni serveis.
+
+Des de TG-359 (US #359), s'activen comprovacions de cobertura i mutation testing:
+- **Cobertura global:** `pnpm test --coverage --ci` fa complir el `coverageThreshold` del 80 % (línies, sentències, funcions i branques) definit a `jest.config.js`.
+- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament.
 
 ## SonarQube Cloud (implementat a TG-194)
 

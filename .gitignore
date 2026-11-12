@@ -22,6 +22,8 @@ mutants/
 .coverage.*
 htmlcov/
 coverage.xml
+mutants/
+.mutmut-cache/
 
 # ---------------------------------------------------------------------------
 # Node / Expo (frontend)
@@ -33,6 +35,8 @@ node_modules/
 dist/
 web-build/
 coverage/
+frontend/reports/
+.stryker-tmp/
 .nyc_output/
 *.tsbuildinfo
 npm-debug.log*
