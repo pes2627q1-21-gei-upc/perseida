@@ -13,9 +13,9 @@ interface Props {
 }
 
 /**
- * Half of the map view under the events map (TG-52, criterion 4): the events visible from
- * anywhere, which cannot be a point on the map. It shares the screen half and half with the
- * map (both flex 1) and scrolls inside its half. It sits under the map, not over it, so it
+ * Lower part of the map view (TG-52, criterion 4): the events visible from
+ * anywhere, which cannot be a point on the map. It takes 2 parts of the screen to the 3 of the
+ * map and scrolls inside them. It sits under the map, not over it, so it
  * never hides the attribution of the tiles. With no such events it is not shown.
  */
 export function AnywhereEvents({ events }: Props) {
@@ -65,6 +65,7 @@ export function AnywhereEvents({ events }: Props) {
 }
 
 const styles = StyleSheet.create({
-  strip: { flex: 1, width: '100%', alignSelf: 'center' },
+  // 2 parts to the 3 of the map: the map stays the main thing.
+  strip: { flex: 2, width: '100%', alignSelf: 'center' },
   fill: { flex: 1 },
 });

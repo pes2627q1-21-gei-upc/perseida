@@ -49,7 +49,7 @@ export default function MapScreen() {
         <View style={styles.fill}>
           {view === 'map' ? (
             <>
-              <View style={styles.fill}>
+              <View testID="map-area" style={styles.mapArea}>
                 <EventMap
                   markers={markers}
                   label={t('events.map.label')}
@@ -70,4 +70,6 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  // 3 parts to the 2 of the events under it: the top bar floats over the map's share.
+  mapArea: { flex: 3 },
 });
