@@ -1,5 +1,5 @@
 ---
-titol: "ADR-0031: Leaflet per al mapa d'esdeveniments (web i WebView)"
+titol: "ADR-0032: Leaflet per al mapa d'esdeveniments (web i WebView)"
 tipus: adr
 estat: proposada
 data: "2026-11-10"
@@ -8,7 +8,7 @@ font: "Taiga: TG-52, tasca #488 (spike), decisions de Raquel (10/11/2026); proto
 etiquetes: [adr, frontend, mapa, leaflet, dependencies]
 ---
 
-# ADR-0031 · Leaflet per al mapa d'esdeveniments (web i WebView)
+# ADR-0032 · Leaflet per al mapa d'esdeveniments (web i WebView)
 
 ## Context
 

@@ -39,7 +39,7 @@ function selectedId(data: string): string | undefined {
 }
 
 /**
- * Mobile events map (TG-52, ADR-0031): the web's Leaflet runs inside a WebView, so both
+ * Mobile events map (TG-52, ADR-0032): the web's Leaflet runs inside a WebView, so both
  * platforms show the same map. Only taps on markers that were passed in are reported.
  */
 export function EventMap({ markers, label, onSelect }: EventMapProps) {

@@ -32,7 +32,7 @@ Totes de Raquel:
 - **Dues vistes, Mapa i Llista.** El mapa només mostra els esdeveniments amb ubicació. Els que no en tenen surten a la llista amb «Visible des de qualsevol lloc». Es va provar una llista sota el mapa i es va treure per guanyar espai: s'ha reescrit el **criteri 4** de la US a Taiga.
 - **Token nou** `duration.ambient` = 6 s (cicle del halo dels actius).
 - **Ubicació a la llista:** coordenades. Proposta d'afegir el nom del lloc al contracte (`location.name`, Launch Library 2 ja el dona) en un comentari de TG-52; és un canvi de contracte amb Spotwise ([[contracte-esdeveniments]]) i no es fa dins de TG-52.
-- **Disseny:** barra superior només amb tornar i títol; filtre i «Mapa | Llista» junts a baix; zoom de Leaflet a baix a la dreta; atribució curta damunt del mapa ([[0031-leaflet-per-al-mapa-web-i-webview]]).
+- **Disseny:** barra superior només amb tornar i títol; filtre i «Mapa | Llista» junts a baix; zoom de Leaflet a baix a la dreta; atribució curta damunt del mapa ([[0032-leaflet-per-al-mapa-web-i-webview]]).
 - **Fitxa:** títol, categoria, inici i fi, descripció, lloc i enllaç a la font (només https). Al mòbil es tanca amb la X, tocant fora, Esc o el botó enrere, i el fons no s'enfosqueix (Raquel prefereix no afegir un token de vel). Fa servir el vidre normal, no el fort.
 - **Estats:** panell de vidre damunt del mapa (el mapa es continua veient).
 - **Taiga:** s'esborren les tasques de tests (#493) i de documentació (#494). Amb TDD els tests van dins de cada tasca, i el vault s'actualitza a cada PR (DoD). Les altres es reanomenen «N/5».
@@ -40,7 +40,7 @@ Totes de Raquel:
 ## Canvis al vault
 
 - [[frontend]]: secció «Mapa d'esdeveniments (TG-52)».
-- [[0031-leaflet-per-al-mapa-web-i-webview]]: atribució curta i marcadors propis.
+- [[0032-leaflet-per-al-mapa-web-i-webview]]: atribució curta i marcadors propis. Era l'ADR-0031, però en fusionar `develop` aquest número ja era de [[0031-fonts-d-esdeveniments-sota-demanda]] (TG-50) i s'ha renumerat a 0032.
 
 ## Pendent / següents passos
 

@@ -62,7 +62,7 @@ flowchart LR
 
 ## Mapa d'esdeveniments (TG-52)
 
-Ruta `/(app)/map` (de moment, accés des de l'inici temporal). Codi a `src/features/events/`; llibreria i mapa base a [[0031-leaflet-per-al-mapa-web-i-webview]]; dades segons [[contracte-esdeveniments]].
+Ruta `/(app)/map` (de moment, accés des de l'inici temporal). Codi a `src/features/events/`; llibreria i mapa base a [[0032-leaflet-per-al-mapa-web-i-webview]]; dades segons [[contracte-esdeveniments]].
 
 - **Dades:** `useMapEvents` (TanStack Query) demana `GET /api/events/active` i `GET /api/events/upcoming?days=30`; `staleTime` de 5 minuts i un sol reintent si l'error és transitori. Només en línia.
 - **Classificació:** `classifyEvents` separa actius i futurs; un esdeveniment que surt a les dues llistes compta com a actiu. El filtre «Actius | Futurs | Tots» (per defecte, Tots) s'aplica al mapa i a la llista.

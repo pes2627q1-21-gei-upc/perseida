@@ -20,7 +20,7 @@ Fer la tasca 1/7 de TG-52 (#488): triar una llibreria de mapes compatible amb Ex
 - `features/events/components/`: `EventMap.web.tsx` (react-leaflet), `EventMap.tsx` (WebView), `leafletHtml.ts` (pàgina del WebView) i `mapTiles.ts` (mapa base i tipus).
 - Tests en vermell abans del codi (commits `test:` i després `feat:`/`fix:`, [[0028-tdd-estricte-i-politica-de-testing-avancada]]).
 - Prototip amb una ruta temporal, no comitejada, validat al navegador (mapa, atribució, marcadors com a botons accessibles, clics) i a Android amb Expo Go (càrrega `about:blank`, Leaflet carregat amb SRI, tocs).
-- [[0031-leaflet-per-al-mapa-web-i-webview]].
+- [[0032-leaflet-per-al-mapa-web-i-webview]].
 
 ## Decisions preses
 

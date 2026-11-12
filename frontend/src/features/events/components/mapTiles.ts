@@ -1,7 +1,7 @@
 import type { EventCategory } from '../api/getEvents';
 
 /**
- * Base map of the events map (TG-52, ADR-0031): Esri World Dark Gray raster tiles, which need
+ * Base map of the events map (TG-52, ADR-0032): Esri World Dark Gray raster tiles, which need
  * no API key. (CARTO Dark Matter now requires a key.) The attribution stays on the map, short
  * enough for one line on a phone: Esri and its data providers, and OpenStreetMap, with links
  * to their full credits (OpenStreetMap's copyright page).

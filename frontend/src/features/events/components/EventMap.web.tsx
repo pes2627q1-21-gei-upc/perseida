@@ -54,7 +54,7 @@ function orbIcon(marker: MapMarker) {
 }
 
 /**
- * Web events map (TG-52, ADR-0031): Leaflet through react-leaflet, bundled with the app, so it
+ * Web events map (TG-52, ADR-0032): Leaflet through react-leaflet, bundled with the app, so it
  * works with the current CSP (`script-src 'self'`; tiles are images, `img-src https:`).
  * Markers are the glass orbs of their category (the same HTML as the mobile map): focusable,
  * opened with Enter, and named after the event through their title.
