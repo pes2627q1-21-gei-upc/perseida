@@ -24,7 +24,8 @@ describe('EventList', () => {
   it('lists every event, also the ones without a location', async () => {
     await renderList();
 
-    expect(screen.getByRole('list', { name: "Llista d'esdeveniments" })).toBeTruthy();
+    // A list is a container, not an accessibility element, so it is found by its label.
+    expect(screen.getByLabelText("Llista d'esdeveniments").props.accessibilityRole).toBe('list');
     for (const event of [launchEvent, meteorShowerEvent, lunarEvent]) {
       expect(screen.getByText(event.title)).toBeTruthy();
     }

@@ -1,18 +1,17 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import type { ReactElement } from 'react';
 
 import { colors, duration } from '../../../shared/theme';
 import { CATEGORY_ICON, MARKER_SIZE, markerCss, markerIconHtml, markerPalette } from './markerIcon';
 
+type Weights = Map<string, ReactElement<{ children: ReactElement<{ d: string }> }>>;
+
+// The package's `exports` hide its icon definitions, so they are read from node_modules.
+const PHOSPHOR_DEFS = '../../../../node_modules/phosphor-react-native/lib/commonjs/defs';
+
 /** `d` of the regular weight of a Phosphor icon, read from the installed package. */
 function phosphorRegularPath(name: string): string {
-  const file = join(
-    __dirname,
-    '../../../../node_modules/phosphor-react-native/src/defs',
-    `${name}.tsx`,
-  );
-  const regular = readFileSync(file, 'utf8').split("'regular',")[1];
-  return /d="([^"]+)"/.exec(regular)![1];
+  const defs: Weights = jest.requireActual(`${PHOSPHOR_DEFS}/${name}`).default;
+  return defs.get('regular')!.props.children.props.d;
 }
 
 const PALETTE = markerPalette(colors.nit);

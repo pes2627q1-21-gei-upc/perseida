@@ -95,7 +95,7 @@ describe('Events map screen', () => {
   it('switches to the list, which shows every event', async () => {
     await renderScreen();
 
-    fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
 
     expect(screen.getByRole('tab', { name: 'Llista', selected: true })).toBeTruthy();
     expect(screen.queryByLabelText(MAP_LABEL)).toBeNull();
@@ -107,7 +107,7 @@ describe('Events map screen', () => {
   it('goes back to where the user came from', async () => {
     await renderScreen();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
 
     expect(mockRouter.back).toHaveBeenCalled();
   });
@@ -116,7 +116,7 @@ describe('Events map screen', () => {
     mockRouter.canGoBack.mockReturnValue(false);
     await renderScreen();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/');
     expect(mockRouter.back).not.toHaveBeenCalled();

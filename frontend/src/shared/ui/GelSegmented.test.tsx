@@ -18,7 +18,8 @@ describe('GelSegmented', () => {
       />,
     );
 
-    expect(screen.getByRole('tablist', { name: 'Vista' })).toBeTruthy();
+    // A tab list is a container, not an accessibility element, so it is found by its label.
+    expect(screen.getByLabelText('Vista').props.accessibilityRole).toBe('tablist');
     expect(screen.getAllByRole('tab').map((tab) => tab.props.accessibilityLabel)).toEqual([
       'Mapa',
       'Llista',
@@ -45,8 +46,8 @@ describe('GelSegmented', () => {
       <GelSegmented options={OPTIONS} value="map" onChange={onChange} accessibilityLabel="Vista" />,
     );
 
-    fireEvent.press(screen.getByRole('tab', { name: 'Mapa' }));
-    fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Mapa' }));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith('list');

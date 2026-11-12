@@ -42,8 +42,27 @@ const MARKERS: MapMarker[] = [
 ];
 const LABEL = "Mapa d'esdeveniments";
 
+// Jest's React Native environment has no DOM: a minimal document receives the <style>.
+const mockHead = { appendChild: jest.fn() };
+const realDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+beforeAll(() => {
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: {
+      head: mockHead,
+      createElement: () => ({ textContent: '', remove: jest.fn() }),
+    },
+  });
+});
+
+afterAll(() => {
+  if (realDocument) Object.defineProperty(globalThis, 'document', realDocument);
+  else Reflect.deleteProperty(globalThis, 'document');
+});
+
 afterEach(() => {
   mockFitBounds.mockClear();
+  mockHead.appendChild.mockClear();
 });
 
 describe('EventMap (web)', () => {
@@ -84,11 +103,18 @@ describe('EventMap (web)', () => {
     expect(icons[0].className).toBe('pm-marker');
   });
 
-  it('adds the orb styles in the colours of the theme', async () => {
-    await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+  it('adds the orb styles in the colours of the theme while the map is shown', async () => {
+    const { unmount } = await render(
+      <EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />,
+    );
 
     const css = markerCss(markerPalette(colors.dia), { reduceMotion: false });
-    expect(screen.root!.findByType('style' as never).props.children).toBe(css);
+    expect(mockHead.appendChild).toHaveBeenCalledTimes(1);
+    const style = mockHead.appendChild.mock.calls[0][0];
+    expect(style.textContent).toBe(css);
+
+    await unmount();
+    expect(style.remove).toHaveBeenCalled();
   });
 
   it('fits the map to the markers', async () => {
