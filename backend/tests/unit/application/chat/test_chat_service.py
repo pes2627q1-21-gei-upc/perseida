@@ -85,9 +85,9 @@ async def test_tg439_external_failure_is_propagated(
 async def test_tg439_room_idempotent_and_missing(
     service: ChatService, env: ChatFakes
 ) -> None:
-    assert await service.get_or_create_room(
-        env.user, env.event
-    ) == await service.get_or_create_room(env.user, env.event)
+    first = await service.get_or_create_room(env.user, env.event)
+    second = await service.get_or_create_room(env.user, env.event)
+    assert second == first
     env.missing = True
     with pytest.raises(NotFoundError):
         await service.get_or_create_room(env.user, env.event)
