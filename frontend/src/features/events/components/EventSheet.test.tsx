@@ -22,10 +22,10 @@ const { active, upcoming } = classifyEvents([meteorShowerEvent], [launchEvent, s
 const [leonids] = active;
 const [launch, eclipse] = upcoming;
 
-async function renderSheet(event: ClassifiedEvent | null, onClose = jest.fn()) {
+async function renderSheet(event: ClassifiedEvent | null, onClose = jest.fn(), side = false) {
   return render(
     <SafeAreaProvider initialMetrics={SAFE_AREA}>
-      <EventSheet event={event} onClose={onClose} />
+      <EventSheet event={event} onClose={onClose} side={side} />
     </SafeAreaProvider>,
   );
 }
@@ -121,5 +121,22 @@ describe('EventSheet', () => {
     screen.getByTestId('event-sheet').props.onRequestClose();
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('on wide screens is a panel beside the map, not a modal sheet', async () => {
+    const onClose = jest.fn();
+    await renderSheet(launch, onClose, true);
+
+    expect(screen.getByTestId('event-sheet-side')).toBeTruthy();
+    expect(screen.queryByTestId('event-sheet')).toBeNull();
+    expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('on wide screens shows nothing while no event is selected', async () => {
+    await renderSheet(null, jest.fn(), true);
+
+    expect(screen.queryByTestId('event-sheet-side')).toBeNull();
   });
 });

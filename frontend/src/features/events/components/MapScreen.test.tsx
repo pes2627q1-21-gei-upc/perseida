@@ -2,13 +2,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { jsonResponse } from '../../../../__mocks__/apod';
+import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
 import MapScreen from '../../../app/(app)/map';
 
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn() };
 
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
+
+// Phone layout unless a test asks for a wide screen.
+let mockWide = false;
+jest.mock('../useIsWide', () => ({ useIsWide: () => mockWide }));
 
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
 jest.mock('react-native-webview', () => {
@@ -29,11 +33,16 @@ function urlOf(input: RequestInfo | URL): URL {
   return input instanceof URL ? input : new URL(input.url);
 }
 
-function mockEventsApi() {
-  jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+type Route = () => Response | Promise<Response>;
+
+/** By default: the Leonids are active, and a launch and the full moon are upcoming. */
+function mockEventsApi(routes: { active?: Route; upcoming?: Route } = {}): jest.SpyInstance {
+  const active = routes.active ?? (() => jsonResponse([meteorShowerEvent]));
+  const upcoming = routes.upcoming ?? (() => jsonResponse([launchEvent, lunarEvent]));
+  return jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const { pathname } = urlOf(input);
-    if (pathname === '/api/events/active') return jsonResponse([meteorShowerEvent]);
-    if (pathname === '/api/events/upcoming') return jsonResponse([launchEvent, lunarEvent]);
+    if (pathname === '/api/events/active') return active();
+    if (pathname === '/api/events/upcoming') return upcoming();
     throw new Error(`unexpected request to ${pathname}`);
   });
 }
@@ -61,6 +70,7 @@ async function waitForMapHtml(ready: (html: string) => boolean): Promise<string>
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   mockRouter.canGoBack.mockReturnValue(true);
+  mockWide = false;
   mockEventsApi();
 });
 
@@ -186,6 +196,89 @@ describe('Events map screen', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
     expect(screen.queryByRole('header', { name: lunarEvent.title })).toBeNull();
+  });
+
+  it('shows that the events are loading (criterion 5)', async () => {
+    jest.restoreAllMocks();
+    mockEventsApi({ active: () => new Promise<Response>(() => undefined) });
+
+    await renderScreen();
+
+    expect(screen.getByLabelText('Carregant esdeveniments')).toBeTruthy();
+    // The map is still there under the status.
+    expect(screen.getByLabelText(MAP_LABEL)).toBeTruthy();
+  });
+
+  it('shows an error with a retry button that loads the events again (criterion 5)', async () => {
+    jest.restoreAllMocks();
+    let activeCalls = 0;
+    mockEventsApi({
+      active: () => {
+        activeCalls += 1;
+        // The hook retries a transient error once: both attempts fail.
+        return activeCalls <= 2
+          ? problemResponse(500, 'INTERNAL_ERROR')
+          : jsonResponse([meteorShowerEvent]);
+      },
+    });
+    await renderScreen();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Alguna cosa ha anat malament. Torna-ho a provar.',
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('says so when there are no events at all (criterion 5)', async () => {
+    jest.restoreAllMocks();
+    mockEventsApi({ active: () => jsonResponse([]), upcoming: () => jsonResponse([]) });
+
+    await renderScreen();
+
+    expect(
+      await screen.findByText('No hi ha esdeveniments actius ni en els pròxims 30 dies.'),
+    ).toBeTruthy();
+  });
+
+  it('says so when the filter leaves no events (criterion 5)', async () => {
+    jest.restoreAllMocks();
+    mockEventsApi({ active: () => jsonResponse([]) });
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Actius' }));
+
+    expect(screen.getByText('Ara mateix no hi ha cap esdeveniment actiu.')).toBeTruthy();
+  });
+
+  it('points to the list when none of the events has a place on the map', async () => {
+    jest.restoreAllMocks();
+    mockEventsApi({ upcoming: () => jsonResponse([lunarEvent]) });
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Veure la llista' }));
+
+    expect(screen.getByRole('tab', { name: 'Llista', selected: true })).toBeTruthy();
+    expect(await screen.findByText(lunarEvent.title)).toBeTruthy();
+  });
+
+  it('on wide screens opens the summary beside the map (responsive)', async () => {
+    mockWide = true;
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+
+    expect(screen.getByTestId('event-sheet-side')).toBeTruthy();
+    expect(screen.getByLabelText(MAP_LABEL)).toBeTruthy();
+    expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
   });
 
   it('goes back to where the user came from', async () => {

@@ -158,6 +158,27 @@ describe('useMapEvents', () => {
     expect(result.current.error).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
+  it('reports that it is fetching again while a retry is under way', async () => {
+    let upcomingCalls = 0;
+    const pending = pendingResponse();
+    mockEventsApi({
+      active: () => jsonResponse([meteorShowerEvent]),
+      upcoming: () => {
+        upcomingCalls += 1;
+        return upcomingCalls === 1 ? problemResponse(422, 'VALIDATION_ERROR') : pending.promise;
+      },
+    });
+    const { result } = await renderHook(() => useMapEvents(), { wrapper });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.isFetching).toBe(false);
+
+    void result.current.refetch();
+
+    await waitFor(() => expect(result.current.isFetching).toBe(true));
+    pending.resolve(jsonResponse([lunarEvent]));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
   it('refetch loads the failed data again (retry button)', async () => {
     let upcomingCalls = 0;
     mockEventsApi({
