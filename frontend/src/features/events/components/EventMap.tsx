@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
 import { Linking } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { WebView, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview';
 
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
+import { useTheme } from '../../../shared/theme';
 import { buildLeafletHtml } from './leafletHtml';
+import { markerPalette } from './markerIcon';
 import type { EventMapProps } from './mapTiles';
 
 type ShouldStartLoadRequest = Parameters<
@@ -40,7 +43,12 @@ function selectedId(data: string): string | undefined {
  * platforms show the same map. Only taps on markers that were passed in are reported.
  */
 export function EventMap({ markers, label, onSelect }: EventMapProps) {
-  const html = useMemo(() => buildLeafletHtml(markers, label), [markers, label]);
+  const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
+  const html = useMemo(
+    () => buildLeafletHtml(markers, label, { palette: markerPalette(colors), reduceMotion }),
+    [markers, label, colors, reduceMotion],
+  );
   const ids = useMemo(() => new Set(markers.map((m) => m.id)), [markers]);
 
   function onMessage(event: WebViewMessageEvent) {

@@ -6,6 +6,9 @@
     "retryHint": "Reload the APOD",
     "videoLabel": "APOD video"
   },
+  "common": {
+    "back": "Back"
+  },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
@@ -23,7 +26,39 @@
     "NOT_FOUND": "We couldn't find what you were looking for.",
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
   },
+  "events": {
+    "category": {
+      "launch": "Launch",
+      "lunar": "Moon",
+      "meteor_shower": "Meteor shower",
+      "solar": "Sun"
+    },
+    "list": {
+      "label": "Events list"
+    },
+    "location": {
+      "anywhere": "Visible from anywhere",
+      "coordinates": "{{latitude}} · {{longitude}}",
+      "east": "{{value}}° E",
+      "north": "{{value}}° N",
+      "south": "{{value}}° S",
+      "west": "{{value}}° W"
+    },
+    "map": {
+      "label": "Map of the events with a location",
+      "title": "Events map"
+    },
+    "status": {
+      "active": "Happening now"
+    },
+    "view": {
+      "label": "View",
+      "list": "List",
+      "map": "Map"
+    }
+  },
   "home": {
-    "apodLink": "Picture of the day"
+    "apodLink": "Picture of the day",
+    "mapLink": "Events map"
   }
 }

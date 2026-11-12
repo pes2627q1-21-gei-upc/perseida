@@ -6,6 +6,9 @@
     "retryHint": "Torna a carregar l'APOD",
     "videoLabel": "Vídeo de l'APOD"
   },
+  "common": {
+    "back": "Torna"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
@@ -23,7 +26,39 @@
     "NOT_FOUND": "No s'ha trobat el que busques.",
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
   },
+  "events": {
+    "category": {
+      "launch": "Llançament",
+      "lunar": "Lluna",
+      "meteor_shower": "Pluja d'estels",
+      "solar": "Sol"
+    },
+    "list": {
+      "label": "Llista d'esdeveniments"
+    },
+    "location": {
+      "anywhere": "Visible des de qualsevol lloc",
+      "coordinates": "{{latitude}} · {{longitude}}",
+      "east": "{{value}}° E",
+      "north": "{{value}}° N",
+      "south": "{{value}}° S",
+      "west": "{{value}}° O"
+    },
+    "map": {
+      "label": "Mapa dels esdeveniments amb ubicació",
+      "title": "Mapa d'esdeveniments"
+    },
+    "status": {
+      "active": "Actiu ara"
+    },
+    "view": {
+      "label": "Vista",
+      "list": "Llista",
+      "map": "Mapa"
+    }
+  },
   "home": {
-    "apodLink": "Imatge del dia"
+    "apodLink": "Imatge del dia",
+    "mapLink": "Mapa d'esdeveniments"
   }
 }

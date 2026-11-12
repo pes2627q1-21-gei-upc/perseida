@@ -6,6 +6,9 @@
     "retryHint": "Vuelve a cargar el APOD",
     "videoLabel": "Vídeo del APOD"
   },
+  "common": {
+    "back": "Volver"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
@@ -23,7 +26,39 @@
     "NOT_FOUND": "No se ha encontrado lo que buscas.",
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
   },
+  "events": {
+    "category": {
+      "launch": "Lanzamiento",
+      "lunar": "Luna",
+      "meteor_shower": "Lluvia de estrellas",
+      "solar": "Sol"
+    },
+    "list": {
+      "label": "Lista de eventos"
+    },
+    "location": {
+      "anywhere": "Visible desde cualquier lugar",
+      "coordinates": "{{latitude}} · {{longitude}}",
+      "east": "{{value}}° E",
+      "north": "{{value}}° N",
+      "south": "{{value}}° S",
+      "west": "{{value}}° O"
+    },
+    "map": {
+      "label": "Mapa de los eventos con ubicación",
+      "title": "Mapa de eventos"
+    },
+    "status": {
+      "active": "Activo ahora"
+    },
+    "view": {
+      "label": "Vista",
+      "list": "Lista",
+      "map": "Mapa"
+    }
+  },
   "home": {
-    "apodLink": "Imagen del día"
+    "apodLink": "Imagen del día",
+    "mapLink": "Mapa de eventos"
   }
 }

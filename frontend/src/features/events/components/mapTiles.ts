@@ -1,3 +1,5 @@
+import type { EventCategory } from '../api/getEvents';
+
 /**
  * Base map of the events map (TG-52, ADR-0031): Esri World Dark Gray raster tiles, which need
  * no API key, with the attribution Esri asks for. (CARTO Dark Matter now requires a key.)
@@ -12,13 +14,20 @@ export const BASE_MAP_ATTRIBUTION =
 export const WORLD_CENTER: [number, number] = [20, 0];
 export const WORLD_ZOOM = 2;
 
+/** How the map fits the markers: room for the orbs at the edges, and never closer than a region. */
+export const FIT_BOUNDS_OPTIONS = { padding: [40, 40] as [number, number], maxZoom: 6 };
+
 /** One point on the map: an event with a location. */
 export interface MapMarker {
   id: string;
   latitude: number;
   longitude: number;
-  /** Accessible name of the marker (title of the event). */
+  /** Accessible name of the marker (title, category and state of the event). */
   label: string;
+  /** Chooses the icon inside the orb. */
+  category: EventCategory;
+  /** Happening now: the orb has a pulsing halo. */
+  active: boolean;
 }
 
 export interface EventMapProps {
