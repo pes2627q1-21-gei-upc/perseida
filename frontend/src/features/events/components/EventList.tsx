@@ -36,7 +36,7 @@ export function EventList({ events, label, topInset = 0 }: Props) {
           maxWidth: readingMaxWidth,
           gap: spacing.md,
           paddingTop: topInset + spacing.md,
-          paddingBottom: insets.bottom + spacing.xxl,
+          paddingBottom: spacing.md,
           paddingLeft: insets.left + spacing.md,
           paddingRight: insets.right + spacing.md,
         },

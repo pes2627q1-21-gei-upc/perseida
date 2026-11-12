@@ -34,7 +34,7 @@ export function AnywhereEvents({ events }: Props) {
         {
           maxWidth: readingMaxWidth,
           paddingTop: theme.spacing.sm,
-          paddingBottom: insets.bottom + theme.spacing.sm,
+          paddingBottom: theme.spacing.sm,
           paddingLeft: insets.left + theme.spacing.md,
           paddingRight: insets.right + theme.spacing.md,
         },

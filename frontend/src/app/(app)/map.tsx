@@ -7,7 +7,8 @@ import type { ClassifiedEvent } from '../../features/events/classifyEvents';
 import { AnywhereEvents } from '../../features/events/components/AnywhereEvents';
 import { EventList } from '../../features/events/components/EventList';
 import { EventMap } from '../../features/events/components/EventMap';
-import { type EventsView, MapTopBar } from '../../features/events/components/MapTopBar';
+import { MapTopBar } from '../../features/events/components/MapTopBar';
+import { type EventsView, MapViewSwitch } from '../../features/events/components/MapViewSwitch';
 import { toMapMarkers } from '../../features/events/eventMarkers';
 import { describeEvent } from '../../features/events/formatEvent';
 import { useMapEvents } from '../../features/events/hooks/useEvents';
@@ -17,8 +18,9 @@ const NO_EVENTS: ClassifiedEvent[] = [];
 
 /**
  * Events map (TG-52): active and upcoming events, as glass orbs on a map (only the ones with a
- * location, with the ones visible from anywhere listed under it) or as a list (all of them). The page only orchestrates: data comes from the hook.
- * Loading, empty and error states, the filter and the summary sheet come in later tasks.
+ * location, with the ones visible from anywhere listed under it) or as a list (all of them).
+ * Title on top, the Map | List switch at the bottom. The page only orchestrates: data comes
+ * from the hook. Loading, empty and error states, the filter and the summary sheet come later.
  */
 export default function MapScreen() {
   const { t } = useTranslation();
@@ -42,21 +44,30 @@ export default function MapScreen() {
 
   return (
     <SkyBackground>
-      {view === 'map' ? (
-        <View style={StyleSheet.absoluteFill}>
-          <View style={styles.map}>
-            <EventMap markers={markers} label={t('events.map.label')} onSelect={() => undefined} />
-          </View>
-          <AnywhereEvents events={anywhere} />
+      <MapTopBar onBack={goBack} onLayout={setBarBottom} />
+      <View style={StyleSheet.absoluteFill}>
+        <View style={styles.fill}>
+          {view === 'map' ? (
+            <>
+              <View style={styles.fill}>
+                <EventMap
+                  markers={markers}
+                  label={t('events.map.label')}
+                  onSelect={() => undefined}
+                />
+              </View>
+              <AnywhereEvents events={anywhere} />
+            </>
+          ) : (
+            <EventList events={events} label={t('events.list.label')} topInset={barBottom} />
+          )}
         </View>
-      ) : (
-        <EventList events={events} label={t('events.list.label')} topInset={barBottom} />
-      )}
-      <MapTopBar view={view} onViewChange={setView} onBack={goBack} onLayout={setBarBottom} />
+        <MapViewSwitch view={view} onChange={setView} />
+      </View>
     </SkyBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  map: { flex: 1 },
+  fill: { flex: 1 },
 });
