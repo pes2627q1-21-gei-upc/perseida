@@ -6,24 +6,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
 import { GelSegmented, GlassPanel, type SegmentOption } from '../../../shared/ui';
 
+import type { EventFilter } from '../classifyEvents';
+
 export type EventsView = 'map' | 'list';
 
 interface Props {
   view: EventsView;
-  onChange: (view: EventsView) => void;
+  onViewChange: (view: EventsView) => void;
+  filter: EventFilter;
+  onFilterChange: (filter: EventFilter) => void;
 }
 
 /**
- * Map | List switch of the events map (TG-52), at the bottom of the screen and in its flow:
- * within reach of the thumb, and never over the map or the list. It keeps clear of the home
+ * Controls of the events map (TG-52): the Active | Upcoming | All filter (criterion 2) over the
+ * Map | List switch, in one glass panel at the bottom of the screen and in its flow: within
+ * reach of the thumb, and never over the map or the list. It keeps clear of the home
  * indicator and stays at a readable width on wide screens.
  */
-export function MapViewSwitch({ view, onChange }: Props) {
+export function MapControls({ view, onViewChange, filter, onFilterChange }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
-  const options: SegmentOption<EventsView>[] = [
+  const filters: SegmentOption<EventFilter>[] = [
+    { value: 'active', label: t('events.filter.active') },
+    { value: 'upcoming', label: t('events.filter.upcoming') },
+    { value: 'all', label: t('events.filter.all') },
+  ];
+  const views: SegmentOption<EventsView>[] = [
     {
       value: 'map',
       label: t('events.view.map'),
@@ -38,7 +48,7 @@ export function MapViewSwitch({ view, onChange }: Props) {
 
   return (
     <View
-      testID="map-view-switch"
+      testID="map-controls"
       style={[
         styles.bar,
         {
@@ -49,14 +59,23 @@ export function MapViewSwitch({ view, onChange }: Props) {
         },
       ]}
     >
-      <View testID="map-view-switch-panel" style={[styles.panel, { maxWidth: readingMaxWidth }]}>
+      <View testID="map-controls-panel" style={[styles.panel, { maxWidth: readingMaxWidth }]}>
         <GlassPanel>
-          <GelSegmented
-            options={options}
-            value={view}
-            onChange={onChange}
-            accessibilityLabel={t('events.view.label')}
-          />
+          <View style={{ gap: theme.spacing.sm }}>
+            <GelSegmented
+              options={filters}
+              value={filter}
+              onChange={onFilterChange}
+              accessibilityLabel={t('events.filter.label')}
+              kind="choice"
+            />
+            <GelSegmented
+              options={views}
+              value={view}
+              onChange={onViewChange}
+              accessibilityLabel={t('events.view.label')}
+            />
+          </View>
         </GlassPanel>
       </View>
     </View>

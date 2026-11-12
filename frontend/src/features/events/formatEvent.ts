@@ -30,6 +30,15 @@ export function formatEventWhen({ starts_at, ends_at }: When, locale: string, ti
   return `${full.format(start)} – ${full.format(end)}`;
 }
 
+/** One date and time, in the language of the app and the time zone of the device. */
+export function formatEventDateTime(iso: string, locale: string, timeZone?: string) {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone,
+  }).format(new Date(iso));
+}
+
 /**
  * Where an event can be seen. The API only gives coordinates (no place name yet), shown with
  * their hemisphere; `null` means it can be seen from anywhere.

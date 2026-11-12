@@ -33,6 +33,12 @@
       "meteor_shower": "Pluja d'estels",
       "solar": "Sol"
     },
+    "filter": {
+      "active": "Actius",
+      "all": "Tots",
+      "label": "Mostra",
+      "upcoming": "Futurs"
+    },
     "list": {
       "label": "Llista d'esdeveniments"
     },
@@ -47,6 +53,13 @@
     "map": {
       "label": "Mapa dels esdeveniments amb ubicació",
       "title": "Mapa d'esdeveniments"
+    },
+    "sheet": {
+      "close": "Tanca la fitxa",
+      "end": "Fi",
+      "moreInfo": "Més informació",
+      "openHint": "Obre la fitxa de l'esdeveniment",
+      "start": "Inici"
     },
     "status": {
       "active": "Actiu ara"

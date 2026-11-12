@@ -20,24 +20,30 @@ interface Props<T extends string> {
   onChange: (value: T) => void;
   /** Name of the whole control for screen readers. */
   accessibilityLabel: string;
+  /**
+   * `tabs` when each option shows another view of the screen; `choice` when the options
+   * filter or set something (announced as radio buttons, checked or not).
+   */
+  kind?: 'tabs' | 'choice';
 }
 
 /**
  * Gel pill with segments (TG-52): the selected segment is gel, the others are quiet text on
- * the glass under it. Announced as a tab list: each option shows another view of the screen.
+ * the glass under it. Announced as a tab list or as a group of radio buttons (`kind`).
  */
 export function GelSegmented<T extends string>({
   options,
   value,
   onChange,
   accessibilityLabel,
+  kind = 'tabs',
 }: Props<T>) {
   const theme = useTheme();
   const { gel, surface, text } = theme.colors;
 
   return (
     <View
-      accessibilityRole="tablist"
+      accessibilityRole={kind === 'tabs' ? 'tablist' : 'radiogroup'}
       accessibilityLabel={accessibilityLabel}
       style={[
         styles.track,
@@ -55,9 +61,9 @@ export function GelSegmented<T extends string>({
         return (
           <Pressable
             key={option.value}
-            accessibilityRole="tab"
+            accessibilityRole={kind === 'tabs' ? 'tab' : 'radio'}
             accessibilityLabel={option.label}
-            accessibilityState={{ selected }}
+            accessibilityState={kind === 'tabs' ? { selected } : { checked: selected }}
             onPress={() => {
               if (!selected) onChange(option.value);
             }}

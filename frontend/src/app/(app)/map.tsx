@@ -3,11 +3,16 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
-import type { ClassifiedEvent } from '../../features/events/classifyEvents';
+import {
+  type ClassifiedEvent,
+  type EventFilter,
+  filterEvents,
+} from '../../features/events/classifyEvents';
 import { EventList } from '../../features/events/components/EventList';
 import { EventMap } from '../../features/events/components/EventMap';
+import { EventSheet } from '../../features/events/components/EventSheet';
+import { type EventsView, MapControls } from '../../features/events/components/MapControls';
 import { MapTopBar } from '../../features/events/components/MapTopBar';
-import { type EventsView, MapViewSwitch } from '../../features/events/components/MapViewSwitch';
 import { toMapMarkers } from '../../features/events/eventMarkers';
 import { describeEvent } from '../../features/events/formatEvent';
 import { useMapEvents } from '../../features/events/hooks/useEvents';
@@ -17,22 +22,27 @@ const NO_EVENTS: ClassifiedEvent[] = [];
 
 /**
  * Events map (TG-52): active and upcoming events, as glass orbs on a map (only the ones with a
- * location) or as a list (all of them, also the ones visible from anywhere).
- * Title on top, the Map | List switch at the bottom. The page only orchestrates: data comes
- * from the hook. Loading, empty and error states, the filter and the summary sheet come later.
+ * location) or as a list (all of them, also the ones visible from anywhere), filtered by
+ * Active | Upcoming | All (All by default). A marker or a row opens the summary sheet.
+ * Title on top, the controls at the bottom. The page only orchestrates: data comes from the
+ * hook. Loading, empty and error states come later (task #492).
  */
 export default function MapScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const [view, setView] = useState<EventsView>('map');
+  const [filter, setFilter] = useState<EventFilter>('all');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [barBottom, setBarBottom] = useState(0);
   const { data } = useMapEvents();
 
-  const events = data?.all ?? NO_EVENTS;
+  const events = data ? filterEvents(data, filter) : NO_EVENTS;
   const markers = useMemo(
     () => toMapMarkers(events, (event) => describeEvent(event, t)),
     [events, t],
   );
+  // Looked up in every event, so the sheet stays open if the filter changes behind it.
+  const selected = data?.all.find((event) => event.id === selectedId) ?? null;
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
@@ -47,18 +57,25 @@ export default function MapScreen() {
         <View style={styles.fill}>
           {view === 'map' ? (
             <View testID="map-area" style={styles.fill}>
-              <EventMap
-                markers={markers}
-                label={t('events.map.label')}
-                onSelect={() => undefined}
-              />
+              <EventMap markers={markers} label={t('events.map.label')} onSelect={setSelectedId} />
             </View>
           ) : (
-            <EventList events={events} label={t('events.list.label')} topInset={barBottom} />
+            <EventList
+              events={events}
+              label={t('events.list.label')}
+              topInset={barBottom}
+              onSelect={setSelectedId}
+            />
           )}
         </View>
-        <MapViewSwitch view={view} onChange={setView} />
+        <MapControls
+          view={view}
+          onViewChange={setView}
+          filter={filter}
+          onFilterChange={setFilter}
+        />
       </View>
+      <EventSheet event={selected} onClose={() => setSelectedId(null)} />
     </SkyBackground>
   );
 }

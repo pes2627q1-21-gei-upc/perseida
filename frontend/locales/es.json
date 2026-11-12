@@ -33,6 +33,12 @@
       "meteor_shower": "Lluvia de estrellas",
       "solar": "Sol"
     },
+    "filter": {
+      "active": "Activos",
+      "all": "Todos",
+      "label": "Mostrar",
+      "upcoming": "Futuros"
+    },
     "list": {
       "label": "Lista de eventos"
     },
@@ -47,6 +53,13 @@
     "map": {
       "label": "Mapa de los eventos con ubicación",
       "title": "Mapa de eventos"
+    },
+    "sheet": {
+      "close": "Cerrar la ficha",
+      "end": "Fin",
+      "moreInfo": "Más información",
+      "openHint": "Abre la ficha del evento",
+      "start": "Inicio"
     },
     "status": {
       "active": "Activo ahora"
