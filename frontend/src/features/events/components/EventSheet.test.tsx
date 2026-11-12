@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Linking } from 'react-native';
+import { BackHandler, Linking } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
@@ -138,5 +138,21 @@ describe('EventSheet', () => {
     await renderSheet(null, jest.fn(), true);
 
     expect(screen.queryByTestId('event-sheet-side')).toBeNull();
+  });
+
+  it('on wide screens closes with the back button, and stops listening once closed', async () => {
+    const remove = jest.fn();
+    let onBack: (() => unknown) | undefined;
+    jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
+      onBack = handler as () => unknown;
+      return { remove };
+    });
+    const onClose = jest.fn();
+    const { unmount } = await renderSheet(launch, onClose, true);
+
+    expect(onBack?.()).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    await unmount();
+    expect(remove).toHaveBeenCalled();
   });
 });

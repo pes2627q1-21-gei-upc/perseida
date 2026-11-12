@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -41,5 +41,20 @@ describe('MapTopBar', () => {
     await renderBar();
 
     expect(screen.queryAllByRole('tab')).toEqual([]);
+  });
+
+  it('reports where it ends, so the list can start under it', async () => {
+    const onLayout = jest.fn();
+    await render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <MapTopBar onBack={jest.fn()} onLayout={onLayout} />
+      </SafeAreaProvider>,
+    );
+
+    await fireEvent(screen.getByTestId('map-top-bar'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 55, width: 390, height: 80 } },
+    });
+
+    expect(onLayout).toHaveBeenCalledWith(135);
   });
 });
