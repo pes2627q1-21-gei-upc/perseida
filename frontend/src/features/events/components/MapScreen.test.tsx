@@ -91,10 +91,10 @@ describe('Events map screen', () => {
     expect(within(screen.getByTestId('map-view-switch')).getAllByRole('tab')).toHaveLength(2);
   });
 
-  it('gives the map more room than the events listed under it', async () => {
+  it('gives the whole view to the map', async () => {
     await renderScreen();
 
-    expect(screen.getByTestId('map-area')).toHaveStyle({ flex: 3 });
+    expect(screen.getByTestId('map-area')).toHaveStyle({ flex: 1 });
   });
 
   it('puts on the map only the events that have a location', async () => {
@@ -105,14 +105,17 @@ describe('Events map screen', () => {
     expect(html).not.toContain(meteorShowerEvent.id);
   });
 
-  it('lists under the map the events without a location, not as markers (criterion 4)', async () => {
+  it('leaves the events without a location to the list view, not as markers (criterion 4)', async () => {
     await renderScreen();
 
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    expect(screen.queryByText(meteorShowerEvent.title)).toBeNull();
+    expect(screen.queryByText(lunarEvent.title)).toBeNull();
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
     expect(await screen.findByText(meteorShowerEvent.title)).toBeTruthy();
-    expect(screen.getByText(lunarEvent.title)).toBeTruthy();
-    expect(screen.getByRole('header', { name: 'Visibles des de qualsevol lloc' })).toBeTruthy();
-    // The launch has a location: it is a marker on the map, not a row under it.
-    expect(screen.queryByText(launchEvent.title)).toBeNull();
+    expect(screen.getAllByText('Visible des de qualsevol lloc')).toHaveLength(2);
   });
 
   it('switches to the list, which shows every event', async () => {
