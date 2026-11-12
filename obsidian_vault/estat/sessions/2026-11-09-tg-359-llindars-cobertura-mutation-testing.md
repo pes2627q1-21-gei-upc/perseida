@@ -74,6 +74,7 @@ Automatitzar a la CI els llindars de cobertura bloquejants (backend i frontend) 
 6. **Conflicte d'Haste map amb Stryker:** `jest-expo` utilitza l'escaneig Haste map de React Native. Durant l'execució de Stryker es crea el directori `.stryker-tmp`, que duplicava mòduls i provocava fallades a Jest. L'exclusió a `modulePathIgnorePatterns` a `frontend/jest.config.js` resol la incidència.
 7. **Git history complet a la CI:** Perquè tant `diff-cover` com els scripts de mutació puguin calcular el diff contra `origin/${{ github.base_ref }}`, el checkout requereix `fetch-depth: 0` tant al job `backend` com al job `frontend`.
 8. **Cobertura global a la CI vs cicle TDD local:** Situar `--cov-fail-under=80` a `addopts` impedia executar proves unitàries soltes o filtrades (`-k`) en local durant el cicle red-green de TDD (ja que un sol fitxer de test no cobreix el 80 % del backend). Es deixa la verificació bloquejant del llindar global de pytest exclusivament al pas de CI de GitHub Actions.
+9. **Unificació de `[tool.mutmut]` i ús d'APIs internes:** L'script `run_mutmut_diff.py` unifica i automatitza el mutation testing per a tot el domini (`source_paths = ["app/domain"]`), superant les configuracions parcials per feature (`realtime`, `chat`). L'script invoca mètodes interns de mutmut (`mutmut.__main__._run`, `save_cicd_stats`, `cfg.only_mutate`); com que no formen part d'una API pública estable, la versió està fixada estrictament a `mutmut==3.8.1` i caldrà revisar la compatibilitat si en el futur s'actualitza la dependència.
 
 ## Enllaços
 
