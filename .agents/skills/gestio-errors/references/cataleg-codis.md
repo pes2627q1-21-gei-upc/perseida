@@ -46,6 +46,12 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `EVENT_ENDS_BEFORE_START` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/events (`ends_at` anterior a `starts_at`) |
 | `EVENT_SOURCE_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | (no arriba al client) | (no arriba al client) | (no arriba al client) | infrastructure/events (TG-50; una font d'esdeveniments ha fallat: `EventService` l'absorbeix, ho registra i serveix el que hi ha a PostgreSQL, ADR-0031) |
 
+## Codis de les ràtxes (TG-56)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `STREAK_COUNT_INVALID` | 422 | `ValidationError` | No | (no arriba al client) | (no arriba al client) | (no arriba al client) | domain/streaks (invariant intern: `current_count` < 1; el servei el calcula i l'API no el rep del client, així que no es pot provocar des de fora) |
+
 ## Codis de Redis pub/sub i WebSocket (TG-87, TG-63)
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |

@@ -34,6 +34,7 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de l'equip i de la persona res
 - **Resposta:** tots dos retornen `{"current_count": N}`; el POST retorna la ratxa actual perquè l'app no hagi de fer una segona crida.
 - **Usuari:** l'identificador surt de la sessió, mai de la ruta ni del cos.
 - **Concurrència:** el `save` és un upsert atòmic; amb la mateixa data o una d'anterior no canvia res.
+- **Concurrència (review PR #88):** el comptador es calcula dins l'`ON CONFLICT` a partir de la fila guardada (dia següent: `+1`; altrament, el del domini), perquè una lectura antiga no el sobreescrigui a mitjanit UTC. Limitació: si l'escriptura del dia D+1 arriba abans que la del dia D, la del dia D s'ignora; es tancaria amb `SELECT ... FOR UPDATE`.
 
 ## Canvis al vault
 
@@ -42,7 +43,7 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de l'equip i de la persona res
 ## Pendent / següents passos
 
 - [ ] Confirmar a la CI que el test de contracte (schemathesis) passa amb els endpoints nous; no s'ha pogut executar en local.
-- [ ] Mutation testing del domini de `streaks` (≥ 70 %), pendent de l'eina (US #359-#362).
+- [x] Mutation testing del domini de `streaks` (≥ 70 %): `app/domain/streaks/` afegit a `[tool.mutmut]`; 32 mutants, 32 morts (100 %), executat amb mutmut 3.8.1 a Linux (review de la PR #88).
 - [ ] Acordar amb qui faci TG-57 (visualització de la ratxa a l'app) les rutes i el format de la resposta.
 - [ ] Decidir si `DailyStreak` valida `current_count >= 1` al domini (ara només ho protegeix la base de dades).
 - [ ] Obrir la PR cap a `develop`, amb l'aprovació d'una persona que no sigui l'autora, i tancar les subtasques a Taiga.

@@ -152,6 +152,28 @@ async def test_concurrent_saves_of_the_same_new_streak_leave_a_single_row(
     assert await _count_rows(engine, user_id) == 1
 
 
+async def test_save_from_a_stale_read_extends_the_stored_streak(
+    repo: SqlStreakRepository, user_id: uuid.UUID
+) -> None:
+    # Carrera a mitjanit UTC (review PR #88): A (dia D) i B (dia D+1) llegeixen
+    # la ratxa 5 del dia D-1. A calcula (6, D); B, que no veu el que A encara no
+    # ha escrit, veu un forat i calcula (1, D+1). Si A escriu abans que B, la
+    # ratxa ha de quedar a 7, no a 1.
+    stale = DailyStreak.start(user_id, DAY_1).model_copy(update={"current_count": 5})
+    await repo.save(stale)
+    after_a = stale.register_activity(DAY_2)
+    after_b = stale.register_activity(DAY_3)
+    assert (after_a.current_count, after_b.current_count) == (6, 1)
+
+    await repo.save(after_a)
+    await repo.save(after_b)
+
+    stored = await repo.get_by_user_id(user_id)
+    assert stored is not None
+    assert stored.current_count == 7
+    assert stored.last_activity_date == DAY_3
+
+
 async def test_database_rejects_a_zero_count(
     engine: AsyncEngine, user_id: uuid.UUID
 ) -> None:

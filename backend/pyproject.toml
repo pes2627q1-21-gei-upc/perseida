@@ -142,10 +142,11 @@ forbidden_modules = [
 # Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker/WSL.
 # Nota: mutmut no muta constants de mòdul, cossos de classe ni f-strings, i el domini realtime
 # només en té; per això genera 0 mutants (vegeu la PR: mutació manual dels mateixos punts).
-source_paths = ["app/domain/realtime/", "app/domain/chat/"]
+source_paths = ["app/domain/realtime/", "app/domain/chat/", "app/domain/streaks/"]
 also_copy = ["app/__init__.py", "app/domain/__init__.py", "app/domain/shared/"]
 pytest_add_cli_args = ["--no-cov"]
 pytest_add_cli_args_test_selection = [
     "tests/unit/domain/realtime/",
     "tests/unit/domain/chat/",
+    "tests/unit/domain/streaks/",
 ]
