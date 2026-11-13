@@ -17,6 +17,7 @@ from app.infrastructure.quiz.tables import (  # noqa: E402, F401
     QuizQuestionRow,
     QuizQuestionTranslationRow,
 )
+from app.infrastructure.streaks.tables import StreakRow  # noqa: E402, F401
 from app.infrastructure.users.tables import (  # noqa: E402, F401
     UserIdentityRow,
     UserRow,

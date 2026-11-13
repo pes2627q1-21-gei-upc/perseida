@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-10"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026)"
+data: "2026-11-11"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -20,6 +20,9 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!info] Implementat: usuari
 > `User` ja té taula i entitat (TG-135), amb més atributs que el diagrama; vegeu [[#Usuari (implementat)]].
+
+> [!info] Implementat: ratxa diària
+> `DailyStreak` ja té entitat, taula i endpoints (TG-56); vegeu [[#Ratxa diària (implementat)]].
 
 ## Gamificació
 
@@ -148,6 +151,36 @@ Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.p
 `score` del diagrama és `correct` (cert o fals): hi ha una sola pregunta per dia.
 
 Desfer la migració `seed_quiz_questions` només esborra les preguntes sense respostes ni dies; tornar-la a aplicar insereix la resta amb els mateixos `id`. `Language` és a `app/domain/shared/language.py` perquè el fan servir users i quiz.
+
+## Ratxa diària (implementat)
+
+Entitat `DailyStreak` a `app/domain/streaks/models.py`; port `StreakRepository` a `app/domain/streaks/ports.py`; cas d'ús `StreakService` a `app/application/streaks/streak_service.py`; taula `daily_streaks` a `app/infrastructure/streaks/tables.py` (migració `create_daily_streaks`), repositori `SqlStreakRepository` i router `app/infrastructure/streaks/router.py`. Convencions de la taula: [[0023-convencions-del-model-de-dades]]. Vinculada a `User` com a «registre d'activitat».
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, clau primària interna |
+| `user_id` | `uuid`, únic (una ratxa per usuari), FK a `users.id` amb `ON DELETE RESTRICT` |
+| `current_count` | enter; `CHECK current_count >= 1` |
+| `last_activity_date` | `date`: l'últim dia UTC amb activitat |
+
+**El dia és el dia UTC**, igual per a tots els usuaris (decisió de l'equip, 11/11/2026). `StreakService` el calcula amb un rellotge injectat; l'app no envia cap zona horària. Una activitat a les 23:50 UTC i una a les 00:10 UTC del dia següent són dos dies consecutius.
+
+Regles (a `DailyStreak`):
+
+- **Registrar** (`register_activity`): sense ratxa prèvia, 1; si l'última activitat és d'ahir, +1; si ja és d'avui, no canvia res; si és anterior a ahir, torna a 1.
+- **Consultar** (`count_on`): `current_count` si l'última activitat és d'avui o d'ahir; sinó 0. El càlcul es fa en el moment de la consulta: no hi ha cap procés programat ni cache, i la consulta no escriu mai.
+- `SqlStreakRepository.save` és un upsert per `user_id` que només escriu si la data nova és estrictament posterior a la guardada; així dues peticions alhora no compten dos cops.
+
+Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503):
+
+| Ruta | Què fa | Resposta |
+|---|---|---|
+| `POST /api/streaks/me/activity` | Registra l'activitat d'avui; idempotent dins del dia | `200` `{"current_count": N}` |
+| `GET /api/streaks/me` | Consulta la ratxa vigent | `200` `{"current_count": N}` (0 si no en té o s'ha trencat) |
+
+> [!todo] Pendent
+> - Les rutes i el format de resposta els ha decidit TG-56; la visualització a l'app (TG-57) els ha de consumir i, si cal canviar-los, acordar-ho amb qui la faci.
+> - Mutation testing del domini (`app/domain/streaks/`) pendent de l'eina (US #359-#362).
 
 ## Diagrama (transcripció)
 

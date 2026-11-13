@@ -704,6 +704,120 @@
           }
         }
       }
+    },
+    "/api/streaks/me/activity": {
+      "post": {
+        "tags": [
+          "streaks"
+        ],
+        "summary": "Registra l'activitat d'avui",
+        "description": "Registra l'activitat del dia per a l'usuari de la sessió. És idempotent dins del mateix dia.",
+        "operationId": "register_streak_activity",
+        "responses": {
+          "200": {
+            "description": "La ratxa actual després de registrar l'activitat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/streaks/me": {
+      "get": {
+        "tags": [
+          "streaks"
+        ],
+        "summary": "Ratxa actual de l'usuari autenticat",
+        "description": "Retorna la ratxa vigent de l'usuari de la sessió; 0 si no en té o s'ha trencat.",
+        "operationId": "get_current_streak",
+        "responses": {
+          "200": {
+            "description": "La ratxa actual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1205,6 +1319,20 @@
           "admin"
         ],
         "title": "Role"
+      },
+      "StreakResponse": {
+        "properties": {
+          "current_count": {
+            "type": "integer",
+            "title": "Current Count",
+            "description": "Dies consecutius d'activitat de la ratxa vigent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_count"
+        ],
+        "title": "StreakResponse"
       },
       "TokenResponse": {
         "properties": {
