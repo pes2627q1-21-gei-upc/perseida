@@ -47,6 +47,7 @@ describe('EventMap (mobile)', () => {
     expect(webView.props.source).toEqual({ html: buildLeafletHtml(MARKERS, LABEL, style, ZOOM) });
     expect(webView.props.javaScriptEnabled).toBe(true);
     expect(webView.props.setSupportMultipleWindows).toBe(false);
+    expect(webView.props.style).toEqual({ flex: 1, backgroundColor: colors.dia.map.background });
   });
 
   it('freezes the halo of active events when the system asks for reduced motion', async () => {

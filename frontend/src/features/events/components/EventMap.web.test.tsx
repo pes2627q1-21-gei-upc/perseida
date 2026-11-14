@@ -88,6 +88,12 @@ describe('EventMap (web)', () => {
     expect(screen.getByTestId('attribution').props.prefix).toBe(MAP_ATTRIBUTION_PREFIX);
   });
 
+  it('paints the map behind the tiles with the map background of the theme', async () => {
+    await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    expect(screen.getByTestId('map').props.style.background).toBe(colors.dia.map.background);
+  });
+
   it('labels the map region for screen readers', async () => {
     await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
 

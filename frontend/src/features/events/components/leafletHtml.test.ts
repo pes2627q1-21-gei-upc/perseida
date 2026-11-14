@@ -102,6 +102,12 @@ describe('buildLeafletHtml', () => {
     expect(html).not.toContain('</script><script>alert(1)');
   });
 
+  it('paints the page behind the tiles with the map background of the theme', () => {
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
+
+    expect(html).toContain(`background: ${colors.nit.map.background};`);
+  });
+
   it('labels the map region for screen readers', () => {
     expect(buildLeafletHtml(MARKERS, "Mapa d'esdeveniments", STYLE, ZOOM)).toContain(
       'aria-label="Mapa d&#39;esdeveniments"',

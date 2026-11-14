@@ -35,6 +35,8 @@ describe('markerPalette', () => {
       rim: colors.dia.accentGlow,
       icon: colors.dia.text.primary,
       glow: colors.dia.accentGlow,
+      background: colors.dia.map.background,
+      gloss: colors.dia.map.gloss,
     });
   });
 });
@@ -63,6 +65,7 @@ describe('markerCss', () => {
     expect(css).toContain(PALETTE.rim);
     expect(css).toContain(PALETTE.icon);
     expect(css).toContain(`${MARKER_SIZE}px`);
+    expect(css).toContain(`linear-gradient(${PALETTE.gloss[0]}, ${PALETTE.gloss[1]})`);
   });
 
   it('gives the Leaflet zoom buttons the touch target of 48 px', () => {
