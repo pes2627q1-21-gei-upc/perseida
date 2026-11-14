@@ -38,6 +38,10 @@ export interface MarkerPalette {
   icon: string;
   /** Glow and halo. */
   glow: string;
+  /** Page behind the map tiles. */
+  background: string;
+  /** Gloss on the top of the orb. */
+  gloss: [string, string];
 }
 
 export function markerPalette(colors: ThemeColors): MarkerPalette {
@@ -46,6 +50,8 @@ export function markerPalette(colors: ThemeColors): MarkerPalette {
     rim: colors.accentGlow,
     icon: colors.text.primary,
     glow: colors.accentGlow,
+    background: colors.map.background,
+    gloss: colors.map.gloss,
   };
 }
 
@@ -76,7 +82,7 @@ export function markerCss(palette: MarkerPalette, { reduceMotion }: { reduceMoti
   return `.pm-marker { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; display: flex; align-items: center; justify-content: center; }
 .pm-marker:focus-visible { outline: 3px solid ${palette.rim}; outline-offset: 2px; border-radius: 50%; }
 .pm-orb { position: relative; width: ${orb}px; height: ${orb}px; border-radius: 50%; box-sizing: border-box; background: ${palette.orb}; border: 2px solid ${palette.rim}; box-shadow: 0 0 14px ${palette.glow}99; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.pm-orb::before { content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 44%; border-radius: 0 0 50% 50%; background: linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0)); pointer-events: none; }
+.pm-orb::before { content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 44%; border-radius: 0 0 50% 50%; background: linear-gradient(${palette.gloss[0]}, ${palette.gloss[1]}); pointer-events: none; }
 .pm-orb svg { width: ${iconSizes.md}px; height: ${iconSizes.md}px; fill: ${palette.icon}; }
 .pm-halo { position: absolute; width: ${orb}px; height: ${orb}px; border-radius: 50%; border: 2px solid ${palette.glow}; box-sizing: border-box; pointer-events: none; ${pulse} }${keyframes}
 @media (prefers-reduced-motion: reduce) { .pm-halo { animation: none; opacity: 0.5; } }

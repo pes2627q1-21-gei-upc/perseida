@@ -72,10 +72,8 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
-  const css = useMemo(
-    () => markerCss(markerPalette(colors), { reduceMotion }),
-    [colors, reduceMotion],
-  );
+  const palette = useMemo(() => markerPalette(colors), [colors]);
+  const css = useMemo(() => markerCss(palette, { reduceMotion }), [palette, reduceMotion]);
   useOrbStyles(css);
   const icons = useMemo(() => new Map(markers.map((m) => [m.id, orbIcon(m)])), [markers]);
 
@@ -87,7 +85,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
         worldCopyJump
         zoomControl={false}
         attributionControl={false}
-        style={{ height: '100%', width: '100%', background: '#020510' }}
+        style={{ height: '100%', width: '100%', background: palette.background }}
       >
         <TileLayer
           url={BASE_MAP_TILES}

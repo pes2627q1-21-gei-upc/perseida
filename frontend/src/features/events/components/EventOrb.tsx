@@ -8,16 +8,16 @@ import { MARKER_SIZE, markerPalette } from './markerIcon';
 
 const ICONS = { lunar: Moon, solar: Sun, meteor_shower: ShootingStar, launch: RocketLaunch };
 
-/** Same gloss as the map orbs: top 44 %, 30 % white at most (keeps the icon at ≥3:1). */
-const GLOSS: [string, string] = ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'];
-
 interface Props {
   category: EventCategory;
   /** Happening now: a still ring of light (the moving halo lives only on the map). */
   active: boolean;
 }
 
-/** The glass orb of a category, as on the map. Decorative: the row says what it is. */
+/**
+ * The glass orb of a category, as on the map, with the same gloss. Decorative: the row says
+ * what it is.
+ */
 export function EventOrb({ category, active }: Props) {
   const { colors, iconSizes } = useTheme();
   const palette = markerPalette(colors);
@@ -51,7 +51,7 @@ export function EventOrb({ category, active }: Props) {
         ]}
       >
         <Icon size={iconSizes.md} color={palette.icon} />
-        <LinearGradient colors={GLOSS} style={styles.gloss} pointerEvents="none" />
+        <LinearGradient colors={palette.gloss} style={styles.gloss} pointerEvents="none" />
       </View>
     </View>
   );

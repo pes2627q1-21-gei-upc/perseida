@@ -39,6 +39,11 @@ export interface ThemeColors {
     rim: string;
     flowers: string[];
   };
+  /**
+   * Events map (TG-52): the page behind the dark map tiles, and the gloss of the glass orbs of
+   * its markers (top 44 %, 30 % white at most, which keeps the icon at ≥3:1).
+   */
+  map: { background: string; gloss: [string, string] };
   /** Gel (main action button). The highlight must stay above the text: see tokens.md. */
   gel: {
     body: [string, string];
@@ -82,6 +87,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     ],
     state: { success: '#2A7419', warning: '#8A5A00', danger: '#B3261E' },
     focusRing: '#0B78B5',
+    map: { background: '#020510', gloss: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'] },
     gel: {
       body: ['#096AA3', '#075F94'],
       bodyPressed: '#054B73',
@@ -122,6 +128,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     ],
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
+    map: { background: '#020510', gloss: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'] },
     gel: {
       body: ['#096AA3', '#075F94'],
       bodyPressed: '#054B73',
@@ -162,6 +169,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     ],
     state: { success: '#6FD65A', warning: '#F2B33D', danger: '#FF9A92' },
     focusRing: '#2EE6D6',
+    map: { background: '#020510', gloss: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'] },
     gel: {
       body: ['#096AA3', '#075F94'],
       bodyPressed: '#054B73',
@@ -202,6 +210,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     ],
     state: { success: '#FFB3A7', warning: '#FFB3A7', danger: '#FFB3A7' },
     focusRing: '#FF8A7A',
+    map: { background: '#14060A', gloss: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'] },
     gel: {
       body: ['#FF6B5E', '#FF6B5E'],
       // tokens.md only fixes body and text for vermell; pressed and rim reuse existing vermell values (to confirm).

@@ -49,15 +49,10 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
   const reduceMotion = useReducedMotion();
   const zoomIn = t('events.map.zoomIn');
   const zoomOut = t('events.map.zoomOut');
+  const palette = useMemo(() => markerPalette(colors), [colors]);
   const html = useMemo(
-    () =>
-      buildLeafletHtml(
-        markers,
-        label,
-        { palette: markerPalette(colors), reduceMotion },
-        { zoomIn, zoomOut },
-      ),
-    [markers, label, colors, reduceMotion, zoomIn, zoomOut],
+    () => buildLeafletHtml(markers, label, { palette, reduceMotion }, { zoomIn, zoomOut }),
+    [markers, label, palette, reduceMotion, zoomIn, zoomOut],
   );
   const ids = useMemo(() => new Set(markers.map((m) => m.id)), [markers]);
 
@@ -75,7 +70,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
       setSupportMultipleWindows={false}
       onShouldStartLoadWithRequest={onlyMapPage}
       onMessage={onMessage}
-      style={{ flex: 1, backgroundColor: '#020510' }}
+      style={{ flex: 1, backgroundColor: palette.background }}
     />
   );
 }

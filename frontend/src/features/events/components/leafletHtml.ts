@@ -65,7 +65,7 @@ export function buildLeafletHtml(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="${LEAFLET_CSS}" integrity="${LEAFLET_CSS_SRI}" crossorigin="">
 <script src="${LEAFLET_JS}" integrity="${LEAFLET_JS_SRI}" crossorigin=""></script>
-<style>html, body, #map { height: 100%; margin: 0; background: #020510; }
+<style>html, body, #map { height: 100%; margin: 0; background: ${style.palette.background}; }
 ${markerCss(style.palette, { reduceMotion: style.reduceMotion })}</style>
 </head>
 <body>
