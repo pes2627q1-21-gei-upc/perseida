@@ -3,7 +3,12 @@ import { render, screen } from '@testing-library/react-native';
 import { colors } from '../../../shared/theme';
 import { EventMap } from './EventMap.web';
 import { MARKER_SIZE, markerCss, markerIconHtml, markerPalette } from './markerIcon';
-import { BASE_MAP_ATTRIBUTION, BASE_MAP_TILES, type MapMarker } from './mapTiles';
+import {
+  BASE_MAP_ATTRIBUTION,
+  BASE_MAP_TILES,
+  MAP_ATTRIBUTION_PREFIX,
+  type MapMarker,
+} from './mapTiles';
 
 const mockFitBounds = jest.fn();
 
@@ -16,6 +21,7 @@ jest.mock('react-leaflet', () => {
     TileLayer: (props: object) => <MockView testID="tiles" {...props} />,
     Marker: (props: object) => <MockView testID="marker" {...props} />,
     ZoomControl: (props: object) => <MockView testID="zoom" {...props} />,
+    AttributionControl: (props: object) => <MockView testID="attribution" {...props} />,
     useMap: () => ({ fitBounds: mockFitBounds }),
   };
 });
@@ -73,6 +79,13 @@ describe('EventMap (web)', () => {
     const tiles = screen.getByTestId('tiles');
     expect(tiles.props.url).toBe(BASE_MAP_TILES);
     expect(tiles.props.attribution).toBe(BASE_MAP_ATTRIBUTION);
+  });
+
+  it('credits Leaflet with a link in a new tab instead of the default prefix', async () => {
+    await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    expect(screen.getByTestId('map').props.attributionControl).toBe(false);
+    expect(screen.getByTestId('attribution').props.prefix).toBe(MAP_ATTRIBUTION_PREFIX);
   });
 
   it('labels the map region for screen readers', async () => {

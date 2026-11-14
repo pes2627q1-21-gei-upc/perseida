@@ -1,7 +1,12 @@
 import { colors } from '../../../shared/theme';
 import { buildLeafletHtml } from './leafletHtml';
 import { MARKER_SIZE, markerCss, markerIconHtml, markerPalette } from './markerIcon';
-import { BASE_MAP_ATTRIBUTION, BASE_MAP_TILES, type MapMarker } from './mapTiles';
+import {
+  BASE_MAP_ATTRIBUTION,
+  BASE_MAP_TILES,
+  MAP_ATTRIBUTION_PREFIX,
+  type MapMarker,
+} from './mapTiles';
 
 const MARKERS: MapMarker[] = [
   {
@@ -40,6 +45,9 @@ describe('buildLeafletHtml', () => {
 
     expect(html).toContain(JSON.stringify(BASE_MAP_TILES));
     expect(html).toContain(JSON.stringify(BASE_MAP_ATTRIBUTION));
+    expect(html).toContain(
+      `map.attributionControl.setPrefix(${JSON.stringify(MAP_ATTRIBUTION_PREFIX)});`,
+    );
   });
 
   it('embeds every marker with its position and accessible label', () => {
