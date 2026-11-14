@@ -1,7 +1,8 @@
 import { X } from 'phosphor-react-native';
-import { useEffect } from 'react';
+import { type ComponentRef, type Ref, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  AccessibilityInfo,
   BackHandler,
   Linking,
   Modal,
@@ -49,6 +50,8 @@ interface Props {
 interface BodyProps {
   event: ClassifiedEvent;
   onClose: () => void;
+  /** Side panel only: the title, which takes the focus when the panel opens. */
+  titleRef?: Ref<ComponentRef<typeof Text>>;
 }
 
 function DateRow({ label, value }: { label: string; value: string }) {
@@ -66,7 +69,7 @@ function DateRow({ label, value }: { label: string; value: string }) {
 }
 
 /** What the summary says: the same in the bottom sheet and in the side panel. */
-function SheetBody({ event, onClose }: BodyProps) {
+function SheetBody({ event, onClose, titleRef }: BodyProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { height } = useWindowDimensions();
@@ -81,6 +84,7 @@ function SheetBody({ event, onClose }: BodyProps) {
           <EventOrb category={event.category} active={active} />
           <View style={[styles.headerText, { gap: spacing.xs }]}>
             <Text
+              ref={titleRef}
               accessibilityRole="header"
               style={[typography.title, { color: colors.text.primary }]}
             >
@@ -201,11 +205,30 @@ function BottomSheet({ event, onClose }: BodyProps) {
 
 /**
  * Wide screens: a panel beside the map, which keeps working. It is not modal, so Escape (web)
- * and the back button (Android) are listened to here.
+ * and the back button (Android) are listened to here. When it opens, the focus (and the screen
+ * reader) goes to its title, which announces it; on the web, closing it gives the focus back to
+ * where it was, usually the marker (WCAG 2.2: 2.4.3 focus order).
  */
 function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number }) {
   const { spacing } = useTheme();
   const insets = useSafeAreaInsets();
+  const titleRef = useRef<ComponentRef<typeof Text>>(null);
+
+  useEffect(() => {
+    const title = titleRef.current;
+    if (Platform.OS !== 'web') {
+      if (title) AccessibilityInfo.sendAccessibilityEvent(title, 'focus');
+      return;
+    }
+    const previous = document.activeElement as HTMLElement | null;
+    // On the web the ref is the DOM node of the heading, which is not focusable by default.
+    const heading = title as unknown as HTMLElement | null;
+    if (heading?.focus) {
+      heading.tabIndex = -1;
+      heading.focus();
+    }
+    return () => previous?.focus();
+  }, [event.id]);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -232,7 +255,7 @@ function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number 
         paddingRight: insets.right + spacing.md,
       }}
     >
-      <SheetBody event={event} onClose={onClose} />
+      <SheetBody event={event} onClose={onClose} titleRef={titleRef} />
     </View>
   );
 }
