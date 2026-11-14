@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { BackHandler, Linking } from 'react-native';
+import { AccessibilityInfo, BackHandler, Linking, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
@@ -138,6 +138,35 @@ describe('EventSheet', () => {
     await renderSheet(null, jest.fn(), true);
 
     expect(screen.queryByTestId('event-sheet-side')).toBeNull();
+  });
+
+  it('on wide screens takes the screen reader to the title when it opens', async () => {
+    const send = jest.spyOn(AccessibilityInfo, 'sendAccessibilityEvent').mockImplementation();
+
+    await renderSheet(launch, jest.fn(), true);
+
+    expect(send).toHaveBeenCalledWith(expect.anything(), 'focus');
+  });
+
+  it('on wide screens on the web gives the focus back to where it was once closed', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const marker = { focus: jest.fn() };
+    const realDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { activeElement: marker, addEventListener: jest.fn(), removeEventListener: jest.fn() },
+    });
+    try {
+      const { unmount } = await renderSheet(launch, jest.fn(), true);
+      expect(marker.focus).not.toHaveBeenCalled();
+
+      await unmount();
+
+      expect(marker.focus).toHaveBeenCalledTimes(1);
+    } finally {
+      if (realDocument) Object.defineProperty(globalThis, 'document', realDocument);
+      else Reflect.deleteProperty(globalThis, 'document');
+    }
   });
 
   it('on wide screens closes with the back button, and stops listening once closed', async () => {
