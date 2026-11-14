@@ -213,6 +213,8 @@ function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number 
   const { spacing } = useTheme();
   const insets = useSafeAreaInsets();
   const titleRef = useRef<ComponentRef<typeof Text>>(null);
+  /** Web: where the focus goes back when the panel closes (the last marker chosen). */
+  const returnFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const title = titleRef.current;
@@ -220,15 +222,23 @@ function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number 
       if (title) AccessibilityInfo.sendAccessibilityEvent(title, 'focus');
       return;
     }
-    const previous = document.activeElement as HTMLElement | null;
     // On the web the ref is the DOM node of the heading, which is not focusable by default.
     const heading = title as unknown as HTMLElement | null;
+    const active = document.activeElement as HTMLElement | null;
+    if (active && active !== heading) returnFocus.current = active;
     if (heading?.focus) {
       heading.tabIndex = -1;
       heading.focus();
     }
-    return () => previous?.focus();
   }, [event.id]);
+
+  // Only on close: choosing another marker keeps the panel open and must not move the focus back.
+  useEffect(
+    () => () => {
+      if (Platform.OS === 'web') returnFocus.current?.focus();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (Platform.OS === 'web') {
