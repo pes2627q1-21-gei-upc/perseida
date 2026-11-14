@@ -68,11 +68,13 @@ describe('markerCss', () => {
     expect(css).toContain(`linear-gradient(${PALETTE.gloss[0]}, ${PALETTE.gloss[1]})`);
   });
 
-  it('gives the Leaflet zoom buttons the touch target of 48 px', () => {
+  // Regression (PR #89 review): Leaflet's `.leaflet-touch .leaflet-bar a` (0,2,1) and
+  // `.leaflet-touch .leaflet-control-zoom-in` (0,2,0) beat a plain `.leaflet-control-zoom a`.
+  it('gives the Leaflet zoom buttons the touch target of 48 px, over the Leaflet styles', () => {
     const css = markerCss(PALETTE, { reduceMotion: false });
 
     expect(css).toContain(
-      `.leaflet-control-zoom a { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; line-height: ${MARKER_SIZE}px;`,
+      `.leaflet-container .leaflet-control-zoom.leaflet-bar a { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; line-height: ${MARKER_SIZE}px;`,
     );
   });
 

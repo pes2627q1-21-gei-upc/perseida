@@ -169,6 +169,39 @@ describe('EventSheet', () => {
     }
   });
 
+  it('on wide screens on the web gives the focus back to the last marker chosen', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const first = { focus: jest.fn() };
+    const second = { focus: jest.fn() };
+    const fakeDocument = {
+      activeElement: first as unknown,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+    const realDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+    Object.defineProperty(globalThis, 'document', { configurable: true, value: fakeDocument });
+    const sheet = (event: ClassifiedEvent) => (
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <EventSheet event={event} onClose={jest.fn()} side />
+      </SafeAreaProvider>
+    );
+    try {
+      const { rerender, unmount } = await render(sheet(launch));
+      // The panel stays open while another marker is chosen on the map.
+      fakeDocument.activeElement = second;
+      await rerender(sheet(eclipse));
+      expect(first.focus).not.toHaveBeenCalled();
+
+      await unmount();
+
+      expect(second.focus).toHaveBeenCalledTimes(1);
+      expect(first.focus).not.toHaveBeenCalled();
+    } finally {
+      if (realDocument) Object.defineProperty(globalThis, 'document', realDocument);
+      else Reflect.deleteProperty(globalThis, 'document');
+    }
+  });
+
   it('on wide screens closes with the back button, and stops listening once closed', async () => {
     const remove = jest.fn();
     let onBack: (() => unknown) | undefined;
