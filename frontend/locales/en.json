@@ -6,6 +6,9 @@
     "retryHint": "Reload the APOD",
     "videoLabel": "APOD video"
   },
+  "common": {
+    "back": "Back"
+  },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
@@ -23,7 +26,64 @@
     "NOT_FOUND": "We couldn't find what you were looking for.",
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
   },
+  "events": {
+    "category": {
+      "launch": "Launch",
+      "lunar": "Moon",
+      "meteor_shower": "Meteor shower",
+      "solar": "Sun"
+    },
+    "empty": {
+      "active": "There are no events happening right now.",
+      "all": "There are no events now or in the next 30 days.",
+      "noLocation": "None of these events has a place on the map.",
+      "showList": "See the list",
+      "upcoming": "There are no events in the next 30 days."
+    },
+    "filter": {
+      "active": "Active",
+      "all": "All",
+      "label": "Show",
+      "upcoming": "Upcoming"
+    },
+    "list": {
+      "label": "Events list"
+    },
+    "loading": "Loading events",
+    "location": {
+      "anywhere": "Visible from anywhere",
+      "coordinates": "{{latitude}} · {{longitude}}",
+      "east": "{{value}}° E",
+      "north": "{{value}}° N",
+      "south": "{{value}}° S",
+      "west": "{{value}}° W"
+    },
+    "map": {
+      "label": "Map of the events with a location",
+      "title": "Events map",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out"
+    },
+    "retry": "Try again",
+    "retryHint": "Load the events again",
+    "sheet": {
+      "close": "Close the details",
+      "end": "Ends",
+      "moreInfo": "More information",
+      "openHint": "Opens the event details",
+      "start": "Starts"
+    },
+    "status": {
+      "active": "Happening now"
+    },
+    "view": {
+      "label": "View",
+      "list": "List",
+      "map": "Map"
+    }
+  },
   "home": {
-    "apodLink": "Picture of the day"
+    "apodLink": "Picture of the day",
+    "mapLink": "Events map"
   }
 }
