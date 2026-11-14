@@ -65,6 +65,14 @@ describe('markerCss', () => {
     expect(css).toContain(`${MARKER_SIZE}px`);
   });
 
+  it('gives the Leaflet zoom buttons the touch target of 48 px', () => {
+    const css = markerCss(PALETTE, { reduceMotion: false });
+
+    expect(css).toContain(
+      `.leaflet-control-zoom a { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; line-height: ${MARKER_SIZE}px;`,
+    );
+  });
+
   it('pulses the halo once every ambient cycle, and never with reduced motion', () => {
     const css = markerCss(PALETTE, { reduceMotion: false });
 

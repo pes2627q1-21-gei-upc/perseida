@@ -22,10 +22,11 @@ const MARKERS: MapMarker[] = [
   },
 ];
 const STYLE = { palette: markerPalette(colors.nit), reduceMotion: false };
+const ZOOM = { zoomIn: 'Apropa', zoomOut: 'Allunya' };
 
 describe('buildLeafletHtml', () => {
   it('loads the pinned Leaflet 1.9.4 with subresource integrity', () => {
-    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE);
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
 
     expect(html).toContain('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
     expect(html).toContain('sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=');
@@ -35,14 +36,14 @@ describe('buildLeafletHtml', () => {
   });
 
   it('uses the base map tiles with their attribution', () => {
-    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE);
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
 
     expect(html).toContain(JSON.stringify(BASE_MAP_TILES));
     expect(html).toContain(JSON.stringify(BASE_MAP_ATTRIBUTION));
   });
 
   it('embeds every marker with its position and accessible label', () => {
-    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE);
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
 
     for (const marker of MARKERS) {
       expect(html).toContain(`"id":"${marker.id}"`);
@@ -53,7 +54,7 @@ describe('buildLeafletHtml', () => {
   });
 
   it('draws each marker as a glass orb of its category, not the default Leaflet pin', () => {
-    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE);
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
 
     expect(html).toContain('L.divIcon(');
     expect(html).toContain(`iconSize: [${MARKER_SIZE}, ${MARKER_SIZE}]`);
@@ -64,21 +65,37 @@ describe('buildLeafletHtml', () => {
   });
 
   it('freezes the halo when the app asks for reduced motion', () => {
-    const html = buildLeafletHtml(MARKERS, 'Mapa', { ...STYLE, reduceMotion: true });
+    const html = buildLeafletHtml(MARKERS, 'Mapa', { ...STYLE, reduceMotion: true }, ZOOM);
 
     expect(html).toContain(markerCss(STYLE.palette, { reduceMotion: true }));
     expect(html).not.toContain('pm-pulse');
   });
 
   it('puts the zoom buttons at the bottom right, away from the notch and the top bar', () => {
-    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE);
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
 
     expect(html).toContain('zoomControl: false');
-    expect(html).toContain("L.control.zoom({ position: 'bottomright' }).addTo(map);");
+    expect(html).toContain("L.control.zoom({ position: 'bottomright', zoomInTitle: ");
+  });
+
+  it('names the zoom buttons in the language of the app, not in English', () => {
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
+
+    expect(html).toContain('zoomInTitle: "Apropa"');
+    expect(html).toContain('zoomOutTitle: "Allunya"');
+  });
+
+  it('cannot be broken out of by the zoom titles', () => {
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, {
+      zoomIn: '</script><script>alert(1)</script>',
+      zoomOut: 'x',
+    });
+
+    expect(html).not.toContain('</script><script>alert(1)');
   });
 
   it('labels the map region for screen readers', () => {
-    expect(buildLeafletHtml(MARKERS, "Mapa d'esdeveniments", STYLE)).toContain(
+    expect(buildLeafletHtml(MARKERS, "Mapa d'esdeveniments", STYLE, ZOOM)).toContain(
       'aria-label="Mapa d&#39;esdeveniments"',
     );
   });
@@ -95,7 +112,7 @@ describe('buildLeafletHtml', () => {
       },
     ];
 
-    const html = buildLeafletHtml(hostile, '"><img src=x onerror=alert(1)>', STYLE);
+    const html = buildLeafletHtml(hostile, '"><img src=x onerror=alert(1)>', STYLE, ZOOM);
 
     expect(html).not.toContain('</script><script>alert(1)');
     expect(html).not.toContain('<img src=x');

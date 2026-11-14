@@ -25,6 +25,8 @@ const MARKERS: MapMarker[] = [
   },
 ];
 const LABEL = "Mapa d'esdeveniments";
+// Jest runs the app in Catalan (jest.setup.js).
+const ZOOM = { zoomIn: 'Apropa', zoomOut: 'Allunya' };
 
 function message(data: string) {
   return { nativeEvent: { data } };
@@ -42,7 +44,7 @@ describe('EventMap (mobile)', () => {
     // reduced motion.
     const style = { palette: markerPalette(colors.dia), reduceMotion: false };
     const webView = screen.getByLabelText(LABEL);
-    expect(webView.props.source).toEqual({ html: buildLeafletHtml(MARKERS, LABEL, style) });
+    expect(webView.props.source).toEqual({ html: buildLeafletHtml(MARKERS, LABEL, style, ZOOM) });
     expect(webView.props.javaScriptEnabled).toBe(true);
     expect(webView.props.setSupportMultipleWindows).toBe(false);
   });
@@ -54,7 +56,7 @@ describe('EventMap (mobile)', () => {
 
     const style = { palette: markerPalette(colors.dia), reduceMotion: true };
     expect(screen.getByLabelText(LABEL).props.source).toEqual({
-      html: buildLeafletHtml(MARKERS, LABEL, style),
+      html: buildLeafletHtml(MARKERS, LABEL, style, ZOOM),
     });
   });
 

@@ -143,6 +143,14 @@ describe('EventMap (web)', () => {
     expect(screen.getByTestId('zoom').props.position).toBe('bottomright');
   });
 
+  it('names the zoom buttons in the language of the app, not in English', async () => {
+    await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    // Jest runs the app in Catalan (jest.setup.js).
+    expect(screen.getByTestId('zoom').props.zoomInTitle).toBe('Apropa');
+    expect(screen.getByTestId('zoom').props.zoomOutTitle).toBe('Allunya');
+  });
+
   it('reports the marker the user clicks or activates with the keyboard', async () => {
     const onSelect = jest.fn();
     await render(<EventMap markers={MARKERS} label={LABEL} onSelect={onSelect} />);
