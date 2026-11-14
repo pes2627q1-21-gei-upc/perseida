@@ -60,7 +60,9 @@
     },
     "map": {
       "label": "Mapa dels esdeveniments amb ubicació",
-      "title": "Mapa d'esdeveniments"
+      "title": "Mapa d'esdeveniments",
+      "zoomIn": "Apropa",
+      "zoomOut": "Allunya"
     },
     "retry": "Torna-ho a provar",
     "retryHint": "Torna a carregar els esdeveniments",

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Linking } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { WebView, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview';
@@ -43,11 +44,20 @@ function selectedId(data: string): string | undefined {
  * platforms show the same map. Only taps on markers that were passed in are reported.
  */
 export function EventMap({ markers, label, onSelect }: EventMapProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
+  const zoomIn = t('events.map.zoomIn');
+  const zoomOut = t('events.map.zoomOut');
   const html = useMemo(
-    () => buildLeafletHtml(markers, label, { palette: markerPalette(colors), reduceMotion }),
-    [markers, label, colors, reduceMotion],
+    () =>
+      buildLeafletHtml(
+        markers,
+        label,
+        { palette: markerPalette(colors), reduceMotion },
+        { zoomIn, zoomOut },
+      ),
+    [markers, label, colors, reduceMotion, zoomIn, zoomOut],
   );
   const ids = useMemo(() => new Set(markers.map((m) => m.id)), [markers]);
 

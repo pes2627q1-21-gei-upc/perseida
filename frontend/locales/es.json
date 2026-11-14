@@ -60,7 +60,9 @@
     },
     "map": {
       "label": "Mapa de los eventos con ubicación",
-      "title": "Mapa de eventos"
+      "title": "Mapa de eventos",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar"
     },
     "retry": "Vuelve a intentarlo",
     "retryHint": "Vuelve a cargar los eventos",

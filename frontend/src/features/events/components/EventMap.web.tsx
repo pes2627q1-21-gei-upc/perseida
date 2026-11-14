@@ -2,6 +2,7 @@ import 'leaflet/dist/leaflet.css';
 
 import { divIcon } from 'leaflet';
 import { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'react-native-reanimated';
 import { MapContainer, Marker, TileLayer, useMap, ZoomControl } from 'react-leaflet';
 
@@ -60,6 +61,7 @@ function orbIcon(marker: MapMarker) {
  * opened with Enter, and named after the event through their title.
  */
 export function EventMap({ markers, label, onSelect }: EventMapProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const css = useMemo(
@@ -94,7 +96,11 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
           />
         ))}
         {/* The top of the map is under the floating bar of the screen. */}
-        <ZoomControl position="bottomright" />
+        <ZoomControl
+          position="bottomright"
+          zoomInTitle={t('events.map.zoomIn')}
+          zoomOutTitle={t('events.map.zoomOut')}
+        />
         <FitToMarkers markers={markers} />
       </MapContainer>
     </div>

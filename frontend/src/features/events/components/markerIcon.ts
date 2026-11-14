@@ -61,7 +61,8 @@ export function markerIconHtml({ category, active }: Pick<MapMarker, 'category' 
 /**
  * Styles of the markers. The gloss covers the top 44 % at 30 % white at most, which keeps the
  * icon at ≥3:1 (measured with contrast.py on the four themes). The halo is the only ambient
- * motion of the screen: one slow cycle, never with reduced motion.
+ * motion of the screen: one slow cycle, never with reduced motion. The Leaflet zoom buttons get
+ * the same 48 px touch target as the orbs.
  */
 export function markerCss(palette: MarkerPalette, { reduceMotion }: { reduceMotion: boolean }) {
   const orb = MARKER_SIZE - 8;
@@ -78,5 +79,6 @@ export function markerCss(palette: MarkerPalette, { reduceMotion }: { reduceMoti
 .pm-orb::before { content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 44%; border-radius: 0 0 50% 50%; background: linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0)); pointer-events: none; }
 .pm-orb svg { width: ${iconSizes.md}px; height: ${iconSizes.md}px; fill: ${palette.icon}; }
 .pm-halo { position: absolute; width: ${orb}px; height: ${orb}px; border-radius: 50%; border: 2px solid ${palette.glow}; box-sizing: border-box; pointer-events: none; ${pulse} }${keyframes}
-@media (prefers-reduced-motion: reduce) { .pm-halo { animation: none; opacity: 0.5; } }`;
+@media (prefers-reduced-motion: reduce) { .pm-halo { animation: none; opacity: 0.5; } }
+.leaflet-control-zoom a { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; line-height: ${MARKER_SIZE}px; font-size: ${iconSizes.md}px; }`;
 }

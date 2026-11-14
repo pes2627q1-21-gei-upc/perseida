@@ -60,7 +60,9 @@
     },
     "map": {
       "label": "Map of the events with a location",
-      "title": "Events map"
+      "title": "Events map",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out"
     },
     "retry": "Try again",
     "retryHint": "Load the events again",

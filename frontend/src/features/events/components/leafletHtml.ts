@@ -24,6 +24,12 @@ export interface MarkerStyle {
   reduceMotion: boolean;
 }
 
+/** Titles of the zoom buttons, in the language of the app (Leaflet's default is English). */
+export interface ZoomTitles {
+  zoomIn: string;
+  zoomOut: string;
+}
+
 /** JSON that is safe inside a <script>: `<` can never start `</script>` or a comment. */
 function scriptJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c');
@@ -44,7 +50,12 @@ function attribute(text: string): string {
  * to React Native as `{"select": "<id>"}`. Event titles come from the API, so they only enter
  * the page as escaped JSON; the orb HTML is built from our own constants.
  */
-export function buildLeafletHtml(markers: MapMarker[], label: string, style: MarkerStyle): string {
+export function buildLeafletHtml(
+  markers: MapMarker[],
+  label: string,
+  style: MarkerStyle,
+  zoom: ZoomTitles,
+): string {
   const data = markers.map((m) => ({ ...m, icon: markerIconHtml(m) }));
   return `<!doctype html>
 <html>
@@ -62,7 +73,7 @@ ${markerCss(style.palette, { reduceMotion: style.reduceMotion })}</style>
 var markers = ${scriptJson(data)};
 var map = L.map('map', { worldCopyJump: true, zoomControl: false }).setView(${scriptJson(WORLD_CENTER)}, ${WORLD_ZOOM});
 // The top of the map is under the notch and the floating bar of the screen.
-L.control.zoom({ position: 'bottomright' }).addTo(map);
+L.control.zoom({ position: 'bottomright', zoomInTitle: ${scriptJson(zoom.zoomIn)}, zoomOutTitle: ${scriptJson(zoom.zoomOut)} }).addTo(map);
 L.tileLayer(${JSON.stringify(BASE_MAP_TILES)}, {
   attribution: ${JSON.stringify(BASE_MAP_ATTRIBUTION)},
   maxZoom: ${BASE_MAP_MAX_ZOOM}
