@@ -4,7 +4,14 @@ import { divIcon } from 'leaflet';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'react-native-reanimated';
-import { MapContainer, Marker, TileLayer, useMap, ZoomControl } from 'react-leaflet';
+import {
+  AttributionControl,
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  ZoomControl,
+} from 'react-leaflet';
 
 import { useTheme } from '../../../shared/theme';
 import { MARKER_SIZE, markerCss, markerIconHtml, markerPalette } from './markerIcon';
@@ -14,6 +21,7 @@ import {
   BASE_MAP_TILES,
   type EventMapProps,
   FIT_BOUNDS_OPTIONS,
+  MAP_ATTRIBUTION_PREFIX,
   type MapMarker,
   WORLD_CENTER,
   WORLD_ZOOM,
@@ -78,6 +86,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
         zoom={WORLD_ZOOM}
         worldCopyJump
         zoomControl={false}
+        attributionControl={false}
         style={{ height: '100%', width: '100%', background: '#020510' }}
       >
         <TileLayer
@@ -96,6 +105,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
           />
         ))}
         {/* The top of the map is under the floating bar of the screen. */}
+        <AttributionControl position="bottomright" prefix={MAP_ATTRIBUTION_PREFIX} />
         <ZoomControl
           position="bottomright"
           zoomInTitle={t('events.map.zoomIn')}

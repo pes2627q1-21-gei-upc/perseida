@@ -9,8 +9,11 @@ import type { EventCategory } from '../api/getEvents';
 export const BASE_MAP_TILES =
   'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 export const BASE_MAP_MAX_ZOOM = 16;
-export const BASE_MAP_ATTRIBUTION =
-  '&copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin &middot; &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+/** Credit links open in a new tab: following one on the web must not lose the map's state. */
+const NEW_TAB = 'target="_blank" rel="noopener noreferrer"';
+export const BASE_MAP_ATTRIBUTION = `&copy; <a href="https://www.esri.com/" ${NEW_TAB}>Esri</a>, HERE, Garmin &middot; &copy; <a href="https://www.openstreetmap.org/copyright" ${NEW_TAB}>OpenStreetMap</a>`;
+/** Replaces Leaflet's default prefix, whose link opens in the same tab. */
+export const MAP_ATTRIBUTION_PREFIX = `<a href="https://leafletjs.com/" ${NEW_TAB}>Leaflet</a>`;
 
 /** Whole world on first load; the map then fits the markers. */
 export const WORLD_CENTER: [number, number] = [20, 0];

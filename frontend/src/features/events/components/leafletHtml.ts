@@ -4,6 +4,7 @@ import {
   BASE_MAP_MAX_ZOOM,
   BASE_MAP_TILES,
   FIT_BOUNDS_OPTIONS,
+  MAP_ATTRIBUTION_PREFIX,
   type MapMarker,
   WORLD_CENTER,
   WORLD_ZOOM,
@@ -78,6 +79,7 @@ L.tileLayer(${JSON.stringify(BASE_MAP_TILES)}, {
   attribution: ${JSON.stringify(BASE_MAP_ATTRIBUTION)},
   maxZoom: ${BASE_MAP_MAX_ZOOM}
 }).addTo(map);
+map.attributionControl.setPrefix(${JSON.stringify(MAP_ATTRIBUTION_PREFIX)});
 var points = [];
 markers.forEach(function (m) {
   var icon = L.divIcon({
