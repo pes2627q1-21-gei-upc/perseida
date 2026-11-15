@@ -2,9 +2,9 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-07"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
+data: "2026-11-15"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-363"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; backend/app/infrastructure/api/cors.py (TG-363)"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -62,6 +62,8 @@ Els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel po
 ## Seguretat (TG-45)
 
 Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
+
+CORS (TG-363): `CORSMiddleware` amb orígens explícits, mai `*` (`app/infrastructure/api/cors.py`). Per defecte admet els orígens de DuckDNS (`https://perseida.duckdns.org:40431`, `http://perseida.duckdns.org:40430`, `https://perseida.duckdns.org`) i els ports locals d'Expo i de l'API (`8081`, `19006` i `8000` a `localhost`/`127.0.0.1`); `CORS_ALLOWED_ORIGINS` els substitueix i `CORS_ALLOWED_ORIGIN_REGEX` n'hi afegeix. Admet credencials, els mètodes `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` i `HEAD`, les capçaleres `Authorization` i `Content-Type`, i exposa `X-Correlation-ID`. És el middleware més intern (Security → Correlation → CORS → routers): el preflight es respon abans dels routers i porta el correlation id i les capçaleres de seguretat.
 
 ## Configuració
 
