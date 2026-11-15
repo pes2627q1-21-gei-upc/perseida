@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
+from app.infrastructure.api.cors import add_cors
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.openapi import install_openapi_cleanup
 from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
@@ -133,6 +134,8 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     register_error_handlers(app)
+    # Reverse wrap (Security > Correlation > CORS): preflights get both headers.
+    add_cors(app)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(health_router, prefix="/api")
