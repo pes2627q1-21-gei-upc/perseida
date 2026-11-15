@@ -54,3 +54,7 @@ def test_settings_reject_an_unknown_timezone(monkeypatch: pytest.MonkeyPatch) ->
 
     with pytest.raises(ValidationError):
         SchedulerSettings(_env_file=None)
+
+
+def test_tg49_c5_scheduler_check_is_critical() -> None:
+    assert SchedulerCheck(_FakeScheduler(running=True)).critical is True
