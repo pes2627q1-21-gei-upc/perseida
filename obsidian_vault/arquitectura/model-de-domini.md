@@ -169,7 +169,7 @@ Regles (a `DailyStreak`):
 
 - **Registrar** (`register_activity`): sense ratxa prèvia, 1; si l'última activitat és d'ahir, +1; si ja és d'avui, no canvia res; si és anterior a ahir, torna a 1.
 - **Consultar** (`count_on`): `current_count` si l'última activitat és d'avui o d'ahir; sinó 0. El càlcul es fa en el moment de la consulta: no hi ha cap procés programat ni cache, i la consulta no escriu mai.
-- `SqlStreakRepository.save` és un upsert per `user_id` que només escriu si la data nova és estrictament posterior a la guardada; així dues peticions alhora no compten dos cops.
+- `SqlStreakRepository.register_activity(user_id, today)` llegeix i escriu en una sola transacció: bloqueja la fila amb `SELECT ... FOR UPDATE` i crida `today()` ja amb el pany agafat. Així dues peticions alhora no compten dos cops i, a mitjanit UTC, l'ordre en què agafen el pany no canvia el resultat (el rellotge només avança). Sense fila prèvia, l'`INSERT ... ON CONFLICT DO NOTHING` fa de guarda i qui perd la cursa bloqueja la fila de qui guanya.
 
 Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503):
 

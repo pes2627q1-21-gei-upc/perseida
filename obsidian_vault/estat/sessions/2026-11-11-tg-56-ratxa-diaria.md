@@ -34,7 +34,7 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de l'equip i de la persona res
 - **Resposta:** tots dos retornen `{"current_count": N}`; el POST retorna la ratxa actual perquè l'app no hagi de fer una segona crida.
 - **Usuari:** l'identificador surt de la sessió, mai de la ruta ni del cos.
 - **Concurrència:** el `save` és un upsert atòmic; amb la mateixa data o una d'anterior no canvia res.
-- **Concurrència (review PR #88):** el comptador es calcula dins l'`ON CONFLICT` a partir de la fila guardada (dia següent: `+1`; altrament, el del domini), perquè una lectura antiga no el sobreescrigui a mitjanit UTC. Limitació: si l'escriptura del dia D+1 arriba abans que la del dia D, la del dia D s'ignora; es tancaria amb `SELECT ... FOR UPDATE`.
+- **Concurrència (review PR #88):** la lectura i l'escriptura van en una sola transacció (`register_activity` del port) amb `SELECT ... FOR UPDATE`, i el dia es llegeix ja amb la fila bloquejada. Només amb el pany, l'ordre B (D+1) → A (D) donava 1; llegir el dia després del pany tanca la cursa en tots dos ordres (ratxa 5 → 7). Substitueix l'`ON CONFLICT` amb `CASE` de la primera versió.
 
 ## Canvis al vault
 

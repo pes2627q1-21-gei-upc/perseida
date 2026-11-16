@@ -12,7 +12,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from alembic import command
-from app.domain.streaks.models import DailyStreak
 from app.domain.users.models import User
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.streaks.repository import SqlStreakRepository
