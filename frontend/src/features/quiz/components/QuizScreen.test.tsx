@@ -14,6 +14,9 @@ import {
 import QuizRoute from '../../../app/(app)/quiz';
 import { clearTokens, saveTokens } from '../../auth/tokenStorage';
 
+const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn() };
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
+
 jest.mock('expo-secure-store', () => {
   const store = new Map<string, string>();
   return {
@@ -81,7 +84,9 @@ beforeEach(async () => {
 afterEach(async () => {
   client.clear();
   await clearTokens();
+  jest.clearAllMocks();
   jest.restoreAllMocks();
+  mockRouter.canGoBack.mockReturnValue(true);
 });
 
 describe('Quiz screen', () => {
@@ -293,5 +298,34 @@ describe('Quiz screen', () => {
     for (const text of quizQuestion.options) {
       expect(option(text)).toHaveStyle({ minHeight: 48 });
     }
+  });
+
+  it('TG-61 goes back to the menu from the result with a button of the app', async () => {
+    mockApi([() => jsonResponse(answeredQuestion)]);
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: "Torna a l'inici" }));
+
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('TG-61 goes home when there is nowhere to go back to (opened from a link)', async () => {
+    mockRouter.canGoBack.mockReturnValue(false);
+    mockApi([() => jsonResponse(answeredQuestion)]);
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: "Torna a l'inici" }));
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/');
+    expect(mockRouter.back).not.toHaveBeenCalled();
+  });
+
+  it('TG-61 can also go back to the menu before answering', async () => {
+    mockApi([() => jsonResponse(quizQuestion)]);
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: "Torna a l'inici" }));
+
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
   });
 });
