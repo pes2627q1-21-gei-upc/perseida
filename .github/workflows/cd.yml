@@ -161,9 +161,14 @@ jobs:
 
       # `docker compose up` no recrea el proxy si només canvia el contingut
       # d'`http_top.conf` (límit de peticions, TG-351): es valida i es recarrega.
+      # Si el desplegament l'ha recreat, primer s'espera que NPM acabi d'arrencar: fins
+      # aleshores no existeix `resolvers.conf` i `nginx -t` falla (hotfix 0.2.1).
       - name: Recarregar nginx-proxy-manager
         shell: bash
-        run: ssh virtech 'cd /opt/perseida && docker compose exec -T reverse-proxy sh -c "nginx -t && nginx -s reload"'
+        run: |
+          ssh virtech 'cd /opt/perseida \
+            && for _ in $(seq 1 30); do docker compose exec -T reverse-proxy test -f /etc/nginx/conf.d/include/resolvers.conf && break; sleep 2; done \
+            && docker compose exec -T reverse-proxy sh -c "nginx -t && nginx -s reload"'
 
       - name: Tancar la sessió de GHCR al servidor
         if: always()

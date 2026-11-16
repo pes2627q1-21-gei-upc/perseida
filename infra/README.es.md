@@ -356,7 +356,7 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
 
 Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 60 peticiones por minuto e IP, con una ráfaga de 20 servida de golpe. Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED`, `instance` y `Retry-After: 1`, sin llegar a la API.
 
-- La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en lectura en `/data/nginx/custom/http_top.conf` (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/`.
+- La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en `/data/nginx/custom/http_top.conf` (no en solo lectura: al arrancar, NPM hace `chown` de todo `/data` y falla con un fichero de solo lectura) (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/`.
 - La ubicación que lo aplica es `nginx-proxy-manager/rate-limit.conf` (pestaña *Advanced*). Usa la zona y el map `$events_problem_instance`, ambos definidos en `http_top.conf`.
 
 > **El orden importa.** `rate-limit.conf` necesita la zona y el map de `http_top.conf`. Si no están, nginx no arranca y cae todo el proxy host.
