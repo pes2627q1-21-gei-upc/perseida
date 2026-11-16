@@ -3,7 +3,7 @@ titol: "Sessió 2026-11-16: el mapa d'esdeveniments conserva la posició en torn
 tipus: sessio
 estat: vigent
 data: "2026-11-16"
-us: ["TG-52"]
+us: ["TG-52", "TG-626"]
 font: "Prova manual de Raquel a l'app (16/11/2026); src/app/(app)/map.tsx; decisió de Raquel en aquesta sessió"
 etiquetes: [sessio, frontend, mapa, esdeveniments]
 ---
@@ -31,7 +31,7 @@ En passar de «Mapa» a «Llista» i tornar, el mapa es veia molt petit (vista d
 
 Cap ADR nova. Decisions de Raquel:
 
-- Es corregeix en una branca nova de TG-52 (`feature/TG-52-mapa-mante-posicio`), perquè la PR #89 ja està fusionada.
+- Es corregeix en una branca nova de TG-52 (`feature/TG-52-mapa-mante-posicio`), perquè la PR #89 ja està fusionada. La US no es reobre: el defecte es registra com a issue `Bug` TG-626 a Taiga (Sprint 2).
 - En canviar de filtre, el mapa conserva la posició de l'usuari i no s'ajusta als marcadors nous.
 
 ## Pendents
