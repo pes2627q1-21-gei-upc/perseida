@@ -15,6 +15,8 @@ services:
       - npm_letsencrypt:/etc/letsencrypt
       - media_data:/media:ro
       - admin_dist:/admin:ro
+      # Zona del límit de peticions per IP (TG-351): NPM l'inclou al bloc `http`.
+      - ./nginx-proxy-manager/http_top.conf:/data/nginx/custom/http_top.conf:ro
     networks:
       - gateway
     depends_on:

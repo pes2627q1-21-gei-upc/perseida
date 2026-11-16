@@ -102,8 +102,8 @@ Dos portes, les dues han de passar:
 
 **B. DoD verificable localment.**
 - Lint, tipus i tests als directoris tocats (ordres dels README); cap test en vermell.
-- Cobertura: **≥ 90 % del codi nou i ≥ 80 % global** (la CI de la PR ha de fallar si no es compleix; implantació prevista a les US #359-#362, mentre tant es mesura en local) i Quality Gate local raonable: 0 bugs/vulnerabilitats, duplicació ≤ 3 % (`convencions/qualitat.md`).
-- Tests unitaris de tots els components modificats; test d'integració si toca persistència o externs; test de regressió si és un bug; mutation testing (≥ 70 %) als fitxers de domini canviats (`testing-mutation`; eina prevista).
+- Cobertura: **≥ 90 % del codi nou i ≥ 80 % global** (bloquejant a la CI des de TG-359 via `diff-cover`, `coverageThreshold` i SonarQube Cloud) i Quality Gate local raonable: 0 bugs/vulnerabilitats, duplicació ≤ 3 % (`convencions/qualitat.md`).
+- Tests unitaris de tots els components modificats; test d'integració si toca persistència o externs; test de regressió si és un bug; mutation testing (≥ 70 %) als fitxers de domini canviats (`testing-mutation`; bloquejant a la CI des de TG-359).
 - L'historial mostra `test:` abans de `feat:`.
 - `reviewer-arquitectura` sobre el diff: cap troballa CRÍTICA ni ALTA oberta.
 - Vault actualitzat si cal; entrada a `obsidian_vault/estat/sessions/` (regla 4).
