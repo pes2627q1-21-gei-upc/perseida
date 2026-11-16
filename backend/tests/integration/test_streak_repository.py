@@ -79,14 +79,27 @@ async def _count_rows(engine: AsyncEngine, user_id: uuid.UUID) -> int:
         return int(result.scalar_one())
 
 
-async def test_save_then_get_round_trips_a_new_streak(
+async def _seed(
+    engine: AsyncEngine, user_id: uuid.UUID, count: int, last_activity: date
+) -> None:
+    async with engine.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO daily_streaks (user_id, current_count, "
+                "last_activity_date) VALUES (:u, :c, :d)"
+            ),
+            {"u": user_id, "c": count, "d": last_activity},
+        )
+
+
+async def test_first_activity_creates_a_streak_of_one(
     repo: SqlStreakRepository, user_id: uuid.UUID
 ) -> None:
     # TG-538 / US TG-56: persistir la ratxa
-    streak = DailyStreak.start(user_id, DAY_1)
+    streak = await repo.register_activity(user_id, lambda: DAY_1)
 
-    await repo.save(streak)
-
+    assert streak.current_count == 1
+    assert streak.last_activity_date == DAY_1
     assert await repo.get_by_user_id(user_id) == streak
 
 
@@ -96,54 +109,61 @@ async def test_get_by_user_id_returns_none_without_a_streak(
     assert await repo.get_by_user_id(user_id) is None
 
 
-async def test_save_with_a_later_date_updates_the_row_and_keeps_its_id(
+async def test_activity_on_the_next_day_extends_the_row_and_keeps_its_id(
     repo: SqlStreakRepository, engine: AsyncEngine, user_id: uuid.UUID
 ) -> None:
-    first = DailyStreak.start(user_id, DAY_1)
-    await repo.save(first)
+    first = await repo.register_activity(user_id, lambda: DAY_1)
 
-    await repo.save(first.register_activity(DAY_2))
+    second = await repo.register_activity(user_id, lambda: DAY_2)
 
-    stored = await repo.get_by_user_id(user_id)
-    assert stored is not None
-    assert stored.id == first.id
-    assert stored.current_count == 2
-    assert stored.last_activity_date == DAY_2
+    assert second.id == first.id
+    assert second.current_count == 2
+    assert await repo.get_by_user_id(user_id) == second
     assert await _count_rows(engine, user_id) == 1
 
 
-async def test_save_with_the_same_date_changes_nothing(
+async def test_activity_after_a_gap_restarts_the_streak(
+    repo: SqlStreakRepository, engine: AsyncEngine, user_id: uuid.UUID
+) -> None:
+    await _seed(engine, user_id, 5, DAY_1)
+
+    streak = await repo.register_activity(user_id, lambda: DAY_3)
+
+    assert streak.current_count == 1
+    assert streak.last_activity_date == DAY_3
+    assert await repo.get_by_user_id(user_id) == streak
+
+
+async def test_a_second_activity_the_same_day_changes_nothing(
     repo: SqlStreakRepository, user_id: uuid.UUID
 ) -> None:
-    first = DailyStreak.start(user_id, DAY_1)
-    await repo.save(first)
+    first = await repo.register_activity(user_id, lambda: DAY_1)
 
-    await repo.save(first.model_copy(update={"current_count": 5}))
+    again = await repo.register_activity(user_id, lambda: DAY_1)
 
+    assert again == first
     assert await repo.get_by_user_id(user_id) == first
 
 
-async def test_save_with_an_earlier_date_changes_nothing(
+async def test_an_earlier_day_changes_nothing(
     repo: SqlStreakRepository, user_id: uuid.UUID
 ) -> None:
-    newer = DailyStreak.start(user_id, DAY_3)
-    await repo.save(newer)
+    newer = await repo.register_activity(user_id, lambda: DAY_3)
 
-    await repo.save(
-        newer.model_copy(update={"current_count": 7, "last_activity_date": DAY_1})
-    )
+    stored = await repo.register_activity(user_id, lambda: DAY_1)
 
+    assert stored == newer
     assert await repo.get_by_user_id(user_id) == newer
 
 
-async def test_concurrent_saves_of_the_same_new_streak_leave_a_single_row(
+async def test_concurrent_first_activities_leave_a_single_row_counted_once(
     repo: SqlStreakRepository, engine: AsyncEngine, user_id: uuid.UUID
 ) -> None:
     # Dues peticions alhora no han de comptar dos cops.
-    first = DailyStreak.start(user_id, DAY_1)
-    second = DailyStreak.start(user_id, DAY_1)
-
-    await asyncio.gather(repo.save(first), repo.save(second))
+    await asyncio.gather(
+        repo.register_activity(user_id, lambda: DAY_1),
+        repo.register_activity(user_id, lambda: DAY_1),
+    )
 
     stored = await repo.get_by_user_id(user_id)
     assert stored is not None
@@ -152,26 +172,50 @@ async def test_concurrent_saves_of_the_same_new_streak_leave_a_single_row(
     assert await _count_rows(engine, user_id) == 1
 
 
-async def test_save_from_a_stale_read_extends_the_stored_streak(
-    repo: SqlStreakRepository, user_id: uuid.UUID
+async def test_concurrent_activities_on_two_days_add_up(
+    repo: SqlStreakRepository, engine: AsyncEngine, user_id: uuid.UUID
 ) -> None:
-    # Carrera a mitjanit UTC (review PR #88): A (dia D) i B (dia D+1) llegeixen
-    # la ratxa 5 del dia D-1. A calcula (6, D); B, que no veu el que A encara no
-    # ha escrit, veu un forat i calcula (1, D+1). Si A escriu abans que B, la
-    # ratxa ha de quedar a 7, no a 1.
-    stale = DailyStreak.start(user_id, DAY_1).model_copy(update={"current_count": 5})
-    await repo.save(stale)
-    after_a = stale.register_activity(DAY_2)
-    after_b = stale.register_activity(DAY_3)
-    assert (after_a.current_count, after_b.current_count) == (6, 1)
+    # Carrera a mitjanit UTC (review PR #88): ratxa 5 amb l'última activitat a
+    # D-1; A (dia D) i B (dia D+1) arriben alhora. Siguin quin sigui l'ordre en
+    # què agafen el pany, el resultat és 7 perquè el dia es llegeix ja amb la
+    # fila bloquejada, i el rellotge només avança.
+    await _seed(engine, user_id, 5, DAY_1)
+    clock = iter([DAY_2, DAY_3])
 
-    await repo.save(after_a)
-    await repo.save(after_b)
+    await asyncio.gather(
+        repo.register_activity(user_id, lambda: next(clock)),
+        repo.register_activity(user_id, lambda: next(clock)),
+    )
 
     stored = await repo.get_by_user_id(user_id)
     assert stored is not None
     assert stored.current_count == 7
     assert stored.last_activity_date == DAY_3
+
+
+async def test_the_day_is_read_only_after_the_row_is_locked(
+    repo: SqlStreakRepository, engine: AsyncEngine, user_id: uuid.UUID
+) -> None:
+    await _seed(engine, user_id, 5, DAY_1)
+    reads: list[date] = []
+
+    def today() -> date:
+        reads.append(DAY_2)
+        return DAY_2
+
+    async with engine.connect() as holder:
+        await holder.execute(
+            text("SELECT 1 FROM daily_streaks WHERE user_id = :u FOR UPDATE"),
+            {"u": user_id},
+        )
+        task = asyncio.create_task(repo.register_activity(user_id, today))
+        await asyncio.sleep(0.3)
+        assert reads == []
+        await holder.commit()
+
+    streak = await task
+    assert reads == [DAY_2]
+    assert streak.current_count == 6
 
 
 async def test_database_rejects_a_zero_count(
