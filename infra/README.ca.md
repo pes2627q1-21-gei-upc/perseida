@@ -356,7 +356,7 @@ El panell només escolta a `127.0.0.1`, mai des de fora. El primer cop que hi en
 
 Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 60 peticions per minut i IP, amb una ràfega de 20 servida de cop. Per sobre, el proxy respon `429` en `application/problem+json` amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1`, sense arribar a l'API.
 
-- La zona (`limit_req_zone`) ha d'anar al bloc `http` de nginx, on la pestanya *Advanced* no arriba. És a `nginx-proxy-manager/http_top.conf`, que el Compose munta a `/data/nginx/custom/http_top.conf` (no en només lectura: en arrencar, NPM fa `chown` de tot `/data` i falla amb un fitxer de només lectura) (NPM l'inclou) i el CD copia a `/opt/perseida/nginx-proxy-manager/`.
+- La zona (`limit_req_zone`) ha d'anar al bloc `http` de nginx, on la pestanya *Advanced* no arriba. És a `nginx-proxy-manager/http_top.conf`, que el Compose munta a `/data/nginx/custom/http_top.conf` (no en només lectura: en arrencar, NPM fa `chown` de tot `/data` i falla amb un fitxer de només lectura) (NPM l'inclou) i el CD copia a `/opt/perseida/nginx-proxy-manager/` amb `infra/scripts/install-http-top.sh`: NPM fa el fitxer de root en arrencar, així que l'script l'escriu des de dins d'NPM quan l'usuari del desplegament ja no el pot sobreescriure (hotfix 0.2.2).
 - La ubicació que l'aplica és `nginx-proxy-manager/rate-limit.conf` (pestanya *Advanced*). Fa servir la zona i el map `$events_problem_instance`, tots dos definits a `http_top.conf`.
 
 > **L'ordre importa.** `rate-limit.conf` necessita la zona i el map d'`http_top.conf`. Si no hi són, nginx no arrenca i cau tot el proxy host.
