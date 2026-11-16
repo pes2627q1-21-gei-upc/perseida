@@ -22,6 +22,7 @@ COUNTS = {
     ),
     "quiz_days": text("SELECT count(*) FROM quiz_days"),
     "quiz_answers": text("SELECT count(*) FROM quiz_answers"),
+    "daily_streaks": text("SELECT count(*) FROM daily_streaks"),
 }
 
 
@@ -38,5 +39,5 @@ async def _row_counts() -> dict[str, int]:
 
 
 def row_counts() -> dict[str, int]:
-    """Rows per table of the users and the quiz, read with a fresh connection."""
+    """Rows per table of users, quiz and streaks, read with a fresh connection."""
     return asyncio.run(_row_counts())

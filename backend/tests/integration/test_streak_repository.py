@@ -1,7 +1,7 @@
 import asyncio
 import os
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import date
 from pathlib import Path
 
@@ -16,6 +16,7 @@ from app.domain.users.models import User
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.streaks.repository import SqlStreakRepository
 from app.infrastructure.users.repository import SqlUserRepository
+from tests.integration.isolation import row_counts
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("POSTGRES_HOST"),
@@ -25,6 +26,18 @@ pytestmark = pytest.mark.skipif(
 DAY_1 = date(2026, 3, 10)
 DAY_2 = date(2026, 3, 11)
 DAY_3 = date(2026, 3, 12)
+PREFIX = "streak-repo"
+DELETE_OWN_ROWS = (
+    text(
+        "DELETE FROM daily_streaks WHERE user_id IN"
+        " (SELECT id FROM users WHERE email LIKE :prefix)"
+    ),
+    text(
+        "DELETE FROM user_identities WHERE user_id IN"
+        " (SELECT id FROM users WHERE email LIKE :prefix)"
+    ),
+    text("DELETE FROM users WHERE email LIKE :prefix"),
+)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -36,16 +49,27 @@ def _schema_at_head() -> None:
     command.upgrade(config, "head")
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _preexisting_data_is_kept(_schema_at_head: None) -> Iterator[None]:
+    # The tests must leave the configured database as they found it.
+    before = row_counts()
+    yield
+    assert row_counts() == before
+
+
 @pytest.fixture
 async def engine() -> AsyncIterator[AsyncEngine]:
+    """Real commits (the concurrent tests need them), cleaned per test.
+
+    The cleaning removes only the users of this module (their streaks first).
+    """
     engine = create_async_engine(DatabaseSettings().database_url)
     try:
         yield engine
     finally:
         async with engine.begin() as connection:
-            await connection.execute(text("DELETE FROM daily_streaks"))
-            await connection.execute(text("DELETE FROM user_identities"))
-            await connection.execute(text("DELETE FROM users"))
+            for statement in DELETE_OWN_ROWS:
+                await connection.execute(statement, {"prefix": f"{PREFIX}-%"})
         await engine.dispose()
 
 
@@ -56,7 +80,7 @@ def repo(engine: AsyncEngine) -> SqlStreakRepository:
 
 @pytest.fixture
 async def user_id(engine: AsyncEngine) -> uuid.UUID:
-    unique = uuid.uuid4().hex
+    unique = f"{PREFIX}-{uuid.uuid4().hex}"
     users = SqlUserRepository(async_sessionmaker(engine, expire_on_commit=False))
     user = await users.add(
         User.create(
@@ -89,6 +113,30 @@ async def _seed(
             ),
             {"u": user_id, "c": count, "d": last_activity},
         )
+
+
+async def _wait_until_blocked_by(
+    engine: AsyncEngine, holder_pid: int, timeout: float = 5.0
+) -> None:
+    """Wait until some connection waits on a lock held by ``holder_pid``."""
+    deadline = asyncio.get_running_loop().time() + timeout
+    async with engine.connect() as probe:
+        while True:
+            blocked = (
+                await probe.execute(
+                    text(
+                        "SELECT count(*) FROM pg_stat_activity "
+                        "WHERE wait_event_type = 'Lock' "
+                        "AND :pid = ANY(pg_blocking_pids(pid))"
+                    ),
+                    {"pid": holder_pid},
+                )
+            ).scalar_one()
+            if blocked:
+                return
+            if asyncio.get_running_loop().time() > deadline:
+                raise TimeoutError("no connection is waiting for the row lock")
+            await asyncio.sleep(0.01)
 
 
 async def test_first_activity_creates_a_streak_of_one(
@@ -207,8 +255,11 @@ async def test_the_day_is_read_only_after_the_row_is_locked(
             text("SELECT 1 FROM daily_streaks WHERE user_id = :u FOR UPDATE"),
             {"u": user_id},
         )
+        holder_pid = (
+            await holder.execute(text("SELECT pg_backend_pid()"))
+        ).scalar_one()
         task = asyncio.create_task(repo.register_activity(user_id, today))
-        await asyncio.sleep(0.3)
+        await _wait_until_blocked_by(engine, holder_pid)
         assert reads == []
         await holder.commit()
 

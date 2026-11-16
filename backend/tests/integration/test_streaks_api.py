@@ -20,7 +20,12 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient, Response
 from redis.asyncio import Redis
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from alembic import command
 from app.application.auth.auth_service import AuthService, SessionDurations
@@ -38,6 +43,7 @@ from app.infrastructure.users.account_gateway import UserAccountGateway
 from app.infrastructure.users.dependencies import build_user_service
 from app.main import create_app
 from tests.factories.google import CLIENT_ID, KEY, jwk, token
+from tests.integration.isolation import row_counts
 
 pytestmark = pytest.mark.skipif(
     not (os.getenv("POSTGRES_HOST") and os.getenv("REDIS_HOST")),
@@ -47,6 +53,8 @@ pytestmark = pytest.mark.skipif(
 PROBLEM_JSON = "application/problem+json"
 ACTIVITY = "/api/streaks/me/activity"
 STREAK = "/api/streaks/me"
+# Redis database only for these tests (the app uses 0), emptied before and after.
+TEST_REDIS_DB = 15
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -64,33 +72,59 @@ def google_certs() -> Iterator[respx.Route]:
         yield mock.get(GOOGLE_CERTS_URL).respond(json={"keys": [jwk(KEY, "k1")]})
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _preexisting_data_is_kept(_schema_at_head: None) -> Iterator[None]:
+    # The tests must leave the configured database as they found it.
+    before = row_counts()
+    yield
+    assert row_counts() == before
+
+
 @pytest.fixture
-async def engine() -> AsyncIterator[AsyncEngine]:
+async def connection() -> AsyncIterator[AsyncConnection]:
+    """One connection inside a transaction that is rolled back after the test."""
     engine = create_async_engine(DatabaseSettings().database_url)
     try:
-        yield engine
+        async with engine.connect() as connection:
+            transaction = await connection.begin()
+            try:
+                yield connection
+            finally:
+                await transaction.rollback()
     finally:
-        async with engine.begin() as connection:
-            await connection.execute(text("DELETE FROM daily_streaks"))
-            await connection.execute(text("DELETE FROM user_identities"))
-            await connection.execute(text("DELETE FROM users"))
         await engine.dispose()
 
 
 @pytest.fixture
+def factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
+    # Each commit of the app becomes a savepoint of the test's transaction.
+    return async_sessionmaker(
+        bind=connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+    )
+
+
+@pytest.fixture
 async def redis() -> AsyncIterator[Redis]:
-    client = Redis.from_url(RedisSettings().redis_url, decode_responses=True)
+    """A Redis database only for these tests, emptied before and after."""
+    client = Redis.from_url(
+        RedisSettings().redis_url, db=TEST_REDIS_DB, decode_responses=True
+    )
     try:
+        await client.flushdb()
         yield client
     finally:
+        await client.flushdb()
         await client.aclose()
 
 
 @pytest.fixture
 async def client(
-    google_certs: respx.Route, engine: AsyncEngine, redis: Redis
+    google_certs: respx.Route,
+    factory: async_sessionmaker[AsyncSession],
+    redis: Redis,
 ) -> AsyncIterator[AsyncClient]:
-    factory = async_sessionmaker(engine, expire_on_commit=False)
     users = build_user_service(factory)
     async with httpx.AsyncClient() as google:
         app: FastAPI = create_app()
@@ -143,7 +177,7 @@ async def test_streak_flow_register_activity_and_query(client: AsyncClient) -> N
 
 
 async def test_streak_row_is_persisted_once_per_user(
-    client: AsyncClient, engine: AsyncEngine
+    client: AsyncClient, connection: AsyncConnection
 ) -> None:
     # TG-540 / US TG-56: idempotencia a la BD
     headers = await login_headers(client)
@@ -151,9 +185,11 @@ async def test_streak_row_is_persisted_once_per_user(
     await client.post(ACTIVITY, headers=headers)
     await client.post(ACTIVITY, headers=headers)
 
-    async with engine.connect() as connection:
-        rows = await connection.execute(text("SELECT count(*) FROM daily_streaks"))
-        assert rows.scalar_one() == 1
+    rows = await connection.execute(
+        text("SELECT count(*) FROM daily_streaks WHERE user_id = :user_id"),
+        {"user_id": await user_id_of(client, headers)},
+    )
+    assert rows.scalar_one() == 1
 
 
 @pytest.mark.parametrize(("method", "path"), [("POST", ACTIVITY), ("GET", STREAK)])
@@ -185,43 +221,53 @@ async def test_a_user_does_not_see_the_streak_of_another(client: AsyncClient) ->
 # congela: es sembra la fila de ``daily_streaks`` amb una data relativa a avui UTC.
 
 
+async def user_id_of(client: AsyncClient, headers: dict[str, str]) -> uuid.UUID:
+    response = await client.get("/api/users/me", headers=headers)
+    return uuid.UUID(response.json()["id"])
+
+
 async def seed_streak(
-    engine: AsyncEngine, *, count: int, days_ago: int
-) -> tuple[uuid.UUID, Any]:
-    """Insert the streak of the only user in the DB; return (user_id, date)."""
+    connection: AsyncConnection,
+    user_id: uuid.UUID,
+    *,
+    count: int,
+    days_ago: int,
+) -> Any:
+    """Insert the streak of the user; return its last activity date."""
     last_date = datetime.now(UTC).date() - timedelta(days=days_ago)
-    async with engine.begin() as connection:
-        user_id = (await connection.execute(text("SELECT id FROM users"))).scalar_one()
+    await connection.execute(
+        text(
+            "INSERT INTO daily_streaks (user_id, current_count, last_activity_date)"
+            " VALUES (:user_id, :count, :last_date)"
+        ),
+        {"user_id": user_id, "count": count, "last_date": last_date},
+    )
+    return last_date
+
+
+async def stored_streak(
+    connection: AsyncConnection, user_id: uuid.UUID
+) -> tuple[int, Any]:
+    row = (
         await connection.execute(
             text(
-                "INSERT INTO daily_streaks (user_id, current_count, last_activity_date)"
-                " VALUES (:user_id, :count, :last_date)"
+                "SELECT current_count, last_activity_date FROM daily_streaks"
+                " WHERE user_id = :user_id"
             ),
-            {"user_id": user_id, "count": count, "last_date": last_date},
+            {"user_id": user_id},
         )
-    return user_id, last_date
-
-
-async def stored_streak(engine: AsyncEngine, user_id: uuid.UUID) -> tuple[int, Any]:
-    async with engine.connect() as connection:
-        row = (
-            await connection.execute(
-                text(
-                    "SELECT current_count, last_activity_date FROM daily_streaks"
-                    " WHERE user_id = :user_id"
-                ),
-                {"user_id": user_id},
-            )
-        ).one()
+    ).one()
     return row[0], row[1]
 
 
 async def test_activity_the_day_after_increments_the_streak(
-    client: AsyncClient, engine: AsyncEngine
+    client: AsyncClient, connection: AsyncConnection
 ) -> None:
     # TG-541 / US TG-56 criteri 2: ahir amb ratxa 4 -> avui 5
     headers = await login_headers(client)
-    await seed_streak(engine, count=4, days_ago=1)
+    await seed_streak(
+        connection, await user_id_of(client, headers), count=4, days_ago=1
+    )
 
     registered = await client.post(ACTIVITY, headers=headers)
     after = await client.get(STREAK, headers=headers)
@@ -232,25 +278,28 @@ async def test_activity_the_day_after_increments_the_streak(
 
 
 async def test_query_of_a_broken_streak_is_0_and_does_not_write(
-    client: AsyncClient, engine: AsyncEngine
+    client: AsyncClient, connection: AsyncConnection
 ) -> None:
     # TG-541 / US TG-56 criteri 4: fa 3 dies -> GET 0 sense modificar la fila
     headers = await login_headers(client)
-    user_id, last_date = await seed_streak(engine, count=4, days_ago=3)
+    user_id = await user_id_of(client, headers)
+    last_date = await seed_streak(connection, user_id, count=4, days_ago=3)
 
     response = await client.get(STREAK, headers=headers)
 
     assert response.status_code == 200
     assert response.json() == {"current_count": 0}
-    assert await stored_streak(engine, user_id) == (4, last_date)
+    assert await stored_streak(connection, user_id) == (4, last_date)
 
 
 async def test_activity_after_a_gap_restarts_the_streak(
-    client: AsyncClient, engine: AsyncEngine
+    client: AsyncClient, connection: AsyncConnection
 ) -> None:
     # TG-541 / US TG-56 criteri 4: fa 3 dies -> POST reinicia a 1
     headers = await login_headers(client)
-    await seed_streak(engine, count=4, days_ago=3)
+    await seed_streak(
+        connection, await user_id_of(client, headers), count=4, days_ago=3
+    )
 
     registered = await client.post(ACTIVITY, headers=headers)
     after = await client.get(STREAK, headers=headers)
@@ -260,11 +309,13 @@ async def test_activity_after_a_gap_restarts_the_streak(
 
 
 async def test_activity_the_same_day_does_not_raise_the_streak(
-    client: AsyncClient, engine: AsyncEngine
+    client: AsyncClient, connection: AsyncConnection
 ) -> None:
     # TG-541 / US TG-56 criteri 3: ja registrada avui -> no puja
     headers = await login_headers(client)
-    await seed_streak(engine, count=4, days_ago=0)
+    await seed_streak(
+        connection, await user_id_of(client, headers), count=4, days_ago=0
+    )
 
     registered = await client.post(ACTIVITY, headers=headers)
     after = await client.get(STREAK, headers=headers)
