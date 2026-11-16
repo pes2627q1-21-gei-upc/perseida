@@ -421,6 +421,16 @@
               }
             }
           },
+          "429": {
+            "description": "Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Error inesperat (code `INTERNAL_ERROR`).",
             "content": {
@@ -480,6 +490,16 @@
           },
           "422": {
             "description": "Paràmetre invàlid (code `VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
             "content": {
               "application/problem+json": {
                 "schema": {

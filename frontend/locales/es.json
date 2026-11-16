@@ -6,6 +6,9 @@
     "retryHint": "Vuelve a cargar el APOD",
     "videoLabel": "Vídeo del APOD"
   },
+  "common": {
+    "back": "Volver"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
@@ -23,7 +26,64 @@
     "NOT_FOUND": "No se ha encontrado lo que buscas.",
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
   },
+  "events": {
+    "category": {
+      "launch": "Lanzamiento",
+      "lunar": "Luna",
+      "meteor_shower": "Lluvia de estrellas",
+      "solar": "Sol"
+    },
+    "empty": {
+      "active": "Ahora mismo no hay ningún evento activo.",
+      "all": "No hay eventos activos ni en los próximos 30 días.",
+      "noLocation": "Ninguno de estos eventos tiene una ubicación en el mapa.",
+      "showList": "Ver la lista",
+      "upcoming": "No hay eventos en los próximos 30 días."
+    },
+    "filter": {
+      "active": "Activos",
+      "all": "Todos",
+      "label": "Mostrar",
+      "upcoming": "Futuros"
+    },
+    "list": {
+      "label": "Lista de eventos"
+    },
+    "loading": "Cargando eventos",
+    "location": {
+      "anywhere": "Visible desde cualquier lugar",
+      "coordinates": "{{latitude}} · {{longitude}}",
+      "east": "{{value}}° E",
+      "north": "{{value}}° N",
+      "south": "{{value}}° S",
+      "west": "{{value}}° O"
+    },
+    "map": {
+      "label": "Mapa de los eventos con ubicación",
+      "title": "Mapa de eventos",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar"
+    },
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los eventos",
+    "sheet": {
+      "close": "Cerrar la ficha",
+      "end": "Fin",
+      "moreInfo": "Más información",
+      "openHint": "Abre la ficha del evento",
+      "start": "Inicio"
+    },
+    "status": {
+      "active": "Activo ahora"
+    },
+    "view": {
+      "label": "Vista",
+      "list": "Lista",
+      "map": "Mapa"
+    }
+  },
   "home": {
-    "apodLink": "Imagen del día"
+    "apodLink": "Imagen del día",
+    "mapLink": "Mapa de eventos"
   }
 }

@@ -19,6 +19,16 @@ _RESPONSES: dict[int | str, dict[str, Any]] = {
         "description": "Paràmetre invàlid (code `VALIDATION_ERROR`).",
         "content": PROBLEM_CONTENT,
     },
+    # Sent by the proxy, not the API (infra/nginx-proxy-manager/rate-limit.conf).
+    429: {
+        "model": ProblemDetails,
+        "description": (
+            "Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb "
+            "una ràfega de 20. La capçalera `Retry-After` indica quants segons cal "
+            "esperar."
+        ),
+        "content": PROBLEM_CONTENT,
+    },
     500: {
         "model": ProblemDetails,
         "description": "Error inesperat (code `INTERNAL_ERROR`).",

@@ -36,7 +36,7 @@ node .agents/scripts/sync-skills.mjs --check  # verifica que les còpies coincid
 | `rebre-review` | Atén els comentaris d'una review rebuda: verifica cadascun contra el codi, aplica o respon amb raons, i comprova CI, lint, tipus i tests. |
 | `testing-tdd` | Cicle TDD estricte (test `test:` en vermell abans del `feat:`), tests derivats dels criteris, regressió i cobertura 80 % / 90 %. |
 | `testing-integracio` | Integració amb PostgreSQL/PostGIS i Redis reals, `respx`, stubs per port, temps, WebSocket, migracions i contracte OpenAPI. |
-| `testing-mutation` | Mutation testing (mutmut al domini, Stryker al frontend) sobre fitxers canviats, score ≥ 70 %. Eines previstes (US #359-#362). |
+| `testing-mutation` | Mutation testing (mutmut al domini, Stryker al frontend) sobre fitxers canviats, score ≥ 70 %. Instal·lat a la CI (TG-359). |
 | `testing-property-based` | Tests basats en propietats (hypothesis, fast-check) per a la lògica crítica del domini. Eines previstes (US #359-#362). |
 | `frontend-component` | Crear components amb estètica Frutiger Cosmo i responsive. |
 | `frontend-crida-api` | Fer crides a l'API seguint el contracte OpenAPI. |
