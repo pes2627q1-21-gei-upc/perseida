@@ -73,6 +73,15 @@ frontend/
 - **Neteja de sessió (`features/auth/session.ts`)**: `clearSession()` esborra tant els tokens desats com la memòria cau en memòria de TanStack Query. Utilitzada per `useLogout` i per la renovació de token davant 401 `INVALID_SESSION`.
 - **Renovació de sessió (`features/auth/api/refreshToken.ts`)**: `refreshSession()` renova els tokens mitjançant `POST /api/auth/refresh`. Serialitza les crides concurrents per garantir que els refresh tokens d'un sol ús no es cremin dues vegades.
 - **Guard de ruta (`app/(app)/_layout.tsx`)**: Redirigeix usuaris sense sessió a `/login`; `/login` redirigeix usuaris autenticats cap a l'aplicació (`/(app)`).
+- **Endpoints privats (`features/auth/api/authorized.ts`, TG-61)**: `withSession(request)` envia l'access token com a `Authorization: Bearer`. Davant un 401 renova la sessió un cop i ho torna a provar; sense sessió falla amb `INVALID_SESSION` sense cridar l'API.
+
+## Quiz diari (TG-61)
+
+Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal). Codi a `src/features/quiz/`; contracte de l'API a `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+- **Dades:** `useQuizToday(lang)` demana `GET /api/quiz/today?lang=<idioma de l'app>`; `useAnswerQuiz(lang)` envia `POST /api/quiz/today/answer` i desa el resultat a la pregunta en memòria cau. Una entrada de cache per idioma.
+- **Pantalla:** la pregunta amb les 4 opcions (botons de ràdio) i un botó d'enviar desactivat fins que es tria una opció i ocupat mentre s'envia. Un cop resposta (o si ja ho estava), el resultat: si s'ha encertat, l'opció correcta i la triada amb paraules i icones, l'explicació i un enllaç a la font.
+- **Errors:** els de càrrega mostren un missatge traduït amb reintent si són transitoris. Si falla l'enviament, l'opció triada es conserva. Després de `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` es carrega la pregunta nova amb un avís; després de `QUIZ_ALREADY_ANSWERED`, el resultat.
 
 ## Executar i testejar
 

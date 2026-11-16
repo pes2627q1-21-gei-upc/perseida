@@ -77,6 +77,15 @@ Ruta `/(app)/map` (de moment, accés des de l'inici temporal). Codi a `src/featu
 - **Estats:** càrrega, buit (segons el filtre), error amb reintent (si és transitori) i «cap té ubicació al mapa» amb un botó cap a la llista, en un panell de vidre damunt del mapa o de la llista.
 - **Components compartits nous:** `GelSegmented` (`src/shared/ui`), píndola de gel amb segments, anunciada com a pestanyes o com a opcions (`kind`).
 
+## Quiz diari (TG-61)
+
+Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal; a la pestanya de Gamificació quan existeixi, #385). Codi a `src/features/quiz/`; dades segons [[contracte-quiz]].
+
+- **Sessió:** és la primera pantalla que crida endpoints privats. `withSession` (`src/features/auth/api/authorized.ts`) hi posa `Authorization: Bearer <access token>`; amb un 401 renova la sessió un sol cop (`refreshSession`, que serialitza les renovacions) i repeteix la petició. Sense sessió falla amb `INVALID_SESSION` sense cridar l'API. Les altres features privades (ratxa, perfil) l'han de reutilitzar.
+- **Dades:** `useQuizToday(lang)` (TanStack Query, `staleTime` de 5 minuts, un reintent si l'error és transitori) i `useAnswerQuiz(lang)`, que desa el resultat a la pregunta en memòria cau i marca obsoletes les dels altres idiomes. `lang` és l'idioma de l'app (`i18n.language`).
+- **Pantalla:** pregunta amb 4 opcions (`accessibilityRole="radio"`, estat `checked`; la selecció també es veu amb la icona i la vora, no només amb color) i botó de gel desactivat fins que es tria una opció i `busy` mentre s'envia. Resultat: capçalera encertada o no, cada opció amb icona i paraules («Resposta correcta», «La teva resposta»), explicació i enllaç a la font (`safeHttpsUrl`).
+- **Errors:** càrrega amb missatge per codi i reintent si és transitori; si falla l'enviament, es conserva l'opció; `QUIZ_EXPIRED` i `QUIZ_QUESTION_MISMATCH` recarreguen la pregunta i mostren un avís; `QUIZ_ALREADY_ANSWERED` recarrega i mostra el resultat.
+
 ## Mode offline
 
 SQLite local com a outbox i cache de lectura, sincronitzats més tard amb política **last-write-wins** ([[0011-client-offline-sqlite-last-write-wins]]).
