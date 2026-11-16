@@ -1,8 +1,15 @@
 import uuid
 from enum import StrEnum
-from typing import Self
+from typing import Annotated, Self
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from app.domain.shared.errors import ValidationError
 
@@ -25,8 +32,26 @@ class Location(BaseModel):
     longitude: float = Field(ge=-180, le=180)
 
 
-class AstronomicalEvent(BaseModel):
-    """An astronomical event, from its start to its end.
+class EventSourceName(StrEnum):
+    """Where an event comes from (ADR-0031). Stored as ``source``."""
+
+    LAUNCH_LIBRARY_2 = "launch_library_2"
+    USNO = "usno"
+    SKYFIELD = "skyfield"
+    CATALOG = "catalog"
+
+
+# Text without NUL: PostgreSQL rejects it, and one such row fails the batch.
+NonBlank = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, pattern=r"^[^\x00]*$"),
+]
+# Length of the ``external_id`` column.
+EXTERNAL_ID_MAX_LENGTH = 255
+
+
+class _EventData(BaseModel):
+    """Fields shared by a stored event and the draft a source returns.
 
     ``ends_at`` equals ``starts_at`` when the event is instantaneous (e.g. a
     full moon). ``location`` is None when it is visible from anywhere.
@@ -34,9 +59,8 @@ class AstronomicalEvent(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    id: uuid.UUID
-    title: str
-    summary: str
+    title: NonBlank
+    summary: NonBlank
     category: EventCategory
     starts_at: AwareDatetime
     ends_at: AwareDatetime
@@ -50,3 +74,19 @@ class AstronomicalEvent(BaseModel):
                 "EVENT_ENDS_BEFORE_START", "Event ends before it starts"
             )
         return self
+
+
+class AstronomicalEvent(_EventData):
+    """An astronomical event, from its start to its end."""
+
+    id: uuid.UUID
+
+
+class EventDraft(_EventData):
+    """An event as a source gives it, before it is stored and gets an ``id``.
+
+    ``(source, external_id)`` identifies it across fetches (TG-50, criterion 4).
+    """
+
+    source: EventSourceName
+    external_id: Annotated[NonBlank, Field(max_length=EXTERNAL_ID_MAX_LENGTH)]

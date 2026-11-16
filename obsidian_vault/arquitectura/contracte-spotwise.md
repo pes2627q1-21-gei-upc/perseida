@@ -4,7 +4,7 @@ tipus: arquitectura
 estat: vigent
 data: "2026-11-16"
 us: ["TG-85", "TG-50", "TG-351"]
-font: "README.md (arrel), backend/README.md, incepció 2 §8; Taiga TG-50, tasca #387 (31/10/2026); TG-351, tasca #477 (10/11/2026); documents de Spotwise «Respostes de Spotwise sobre el servei d'esdeveniments» i «Servei d'espais de Spotwise per a Perseida» (novembre de 2026)"
+font: "README.md (arrel), backend/README.md, incepció 2 §8; Taiga TG-50, tasca #387 (31/10/2026); ADR-0031 (10/11/2026); TG-351, tasca #477 (10/11/2026); documents de Spotwise «Respostes de Spotwise sobre el servei d'esdeveniments» i «Servei d'espais de Spotwise per a Perseida» (novembre de 2026)"
 etiquetes: [arquitectura, integracions, spotwise, contracte]
 ---
 
@@ -18,7 +18,7 @@ Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren e
 - El JSON inclou metadades clau de cada fenomen: **títol**, **descripció breu** i **categoria** (p. ex. `lunar`, `solar`, `meteor_shower`). El format exacte de cada esdeveniment és a [[contracte-esdeveniments]] (TG-50, tasca #387).
 - **Límit de peticions:** els endpoints són públics i el proxy admet 60 peticions per minut i IP (ràfega de 20). Per sobre, respon `429` en problem+json amb `code: RATE_LIMITED` i `Retry-After` ([[nginx-proxy-manager]], TG-351). Spotwise ens crida des del seu backend, així que tot el seu trànsit compta com una sola IP (unes 2 peticions per hora).
 - Ús per a Spotwise: personalitzar la seva interfície segons el context astronòmic (temes visuals, petites notificacions o pop-ups mentre cerquen locals).
-- Les dades provenen de la base de dades de Perseida, alimentada per les APIs de la NASA i altres fonts ([[serveis-externs]]). L'endpoint el serveix l'[[api]].
+- Les dades provenen de la base de dades de Perseida, que s'omple sota demanda amb Launch Library 2 (llançaments), l'USNO (eclipsis solars), Skyfield (lluna) i un catàleg de pluges d'estels de la IMO ([[0031-fonts-d-esdeveniments-sota-demanda]], [[serveis-externs]]). L'endpoint el serveix l'[[api]].
 
 ### Respostes de Spotwise (novembre de 2026)
 

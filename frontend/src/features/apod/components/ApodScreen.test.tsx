@@ -49,12 +49,21 @@ afterEach(() => {
 });
 
 describe('APOD screen', () => {
-  it('shows the loading state until the data arrives (criterion 4)', async () => {
-    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+  it('TG-117 shows the loading state until the data arrives (criterion 4)', async () => {
+    let respond!: (response: Response) => void;
+    jest.spyOn(globalThis, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          respond = resolve;
+        }),
+    );
 
     await renderScreen();
 
     expect(screen.getByLabelText("Carregant l'APOD")).toBeTruthy();
+    await act(async () => {
+      respond(jsonResponse(apodImage));
+    });
     expect(await screen.findByText(apodImage.title)).toBeTruthy();
     expect(screen.queryByLabelText("Carregant l'APOD")).toBeNull();
   });

@@ -224,6 +224,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/quiz/today': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Pregunta del quiz diari
+     * @description Retorna la pregunta del dia (UTC) en l'idioma demanat, sense la solució. Si l'usuari ja ha respost, inclou el seu resultat.
+     */
+    get: operations['get_quiz_today'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/quiz/today/answer': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Respon la pregunta del quiz diari
+     * @description Desa la resposta de l'usuari a la pregunta d'avui (UTC) i retorna si és correcta, amb l'explicació i la font. Només s'hi pot respondre un cop.
+     */
+    post: operations['answer_quiz_today'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -375,6 +415,7 @@ export interface components {
     HealthStatus: 'ok' | 'down';
     /**
      * Language
+     * @description The languages of the app. Shared by several features (users, quiz).
      * @enum {string}
      */
     Language: 'ca' | 'es' | 'en';
@@ -422,6 +463,89 @@ export interface components {
        * @description Només en errors de validació; en la resta, la clau no hi és
        */
       errors?: components['schemas']['FieldError'][];
+    };
+    /** QuizAnswerRequest */
+    QuizAnswerRequest: {
+      /**
+       * Date
+       * Format: date
+       * @description Dia UTC de la pregunta que es respon
+       */
+      date: string;
+      /**
+       * Question Id
+       * Format: uuid
+       * @description Identificador de la pregunta
+       */
+      question_id: string;
+      /**
+       * Chosen Option
+       * @description Opció triada (0-3)
+       */
+      chosen_option: number;
+    };
+    /** QuizResultResponse */
+    QuizResultResponse: {
+      /**
+       * Chosen Option
+       * @description Opció triada (0-3)
+       */
+      chosen_option: number;
+      /**
+       * Correct
+       * @description Si l'opció triada és la correcta
+       */
+      correct: boolean;
+      /**
+       * Correct Option
+       * @description Opció correcta (0-3)
+       */
+      correct_option: number;
+      /**
+       * Explanation
+       * @description Explicació de la resposta
+       */
+      explanation: string;
+      /**
+       * Source Url
+       * @description Font que confirma la resposta (https)
+       */
+      source_url: string;
+      /**
+       * Answered At
+       * Format: date-time
+       * @description Moment de la resposta (UTC)
+       */
+      answered_at: string;
+    };
+    /** QuizTodayResponse */
+    QuizTodayResponse: {
+      /**
+       * Date
+       * Format: date
+       * @description Dia UTC de la pregunta
+       */
+      date: string;
+      /**
+       * Question Id
+       * Format: uuid
+       * @description Identificador de la pregunta
+       */
+      question_id: string;
+      /** @description Idioma dels textos */
+      language: components['schemas']['Language'];
+      /**
+       * Statement
+       * @description Enunciat de la pregunta
+       */
+      statement: string;
+      /**
+       * Options
+       * @description Les 4 opcions, en ordre
+       */
+      options: string[];
+      /** @description Resultat de l'usuari, o null si encara no ha respost */
+      result: components['schemas']['QuizResultResponse'] | null;
     };
     /** RefreshRequest */
     RefreshRequest: {
@@ -861,6 +985,146 @@ export interface operations {
       };
       /** @description Error inesperat (code `INTERNAL_ERROR`). */
       500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_quiz_today: {
+    parameters: {
+      query?: {
+        /** @description Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari. */
+        lang?: components['schemas']['Language'] | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La pregunta del dia. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QuizTodayResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description `lang` no suportat o dades mal formades (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  answer_quiz_today: {
+    parameters: {
+      query?: {
+        /** @description Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari. */
+        lang?: components['schemas']['Language'] | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['QuizAnswerRequest'];
+      };
+    };
+    responses: {
+      /** @description El resultat de la resposta. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QuizResultResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Ja s'ha respost avui (`QUIZ_ALREADY_ANSWERED`) o la data no és la d'avui (`QUIZ_EXPIRED`). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La pregunta no és la del dia (`QUIZ_QUESTION_MISMATCH`), `lang` no suportat o dades mal formades (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
         headers: {
           [name: string]: unknown;
         };

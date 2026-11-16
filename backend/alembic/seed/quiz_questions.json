@@ -1,0 +1,3702 @@
+[
+  {
+    "id": "01a1bd9a-c800-7585-87a8-98fa50903257",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/venus/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin és el planeta més calent del sistema solar?",
+        "options": [
+          "Mercuri",
+          "Venus",
+          "Mart",
+          "Júpiter"
+        ],
+        "explanation": "Venus, tot i que Mercuri és més a prop del Sol. La seva atmosfera densa de diòxid de carboni reté la calor, i la superfície arriba a uns 475 °C, prou per fondre el plom."
+      },
+      "es": {
+        "statement": "¿Cuál es el planeta más caliente del sistema solar?",
+        "options": [
+          "Mercurio",
+          "Venus",
+          "Marte",
+          "Júpiter"
+        ],
+        "explanation": "Venus, aunque Mercurio está más cerca del Sol. Su densa atmósfera de dióxido de carbono retiene el calor, y la superficie llega a unos 475 °C, suficiente para fundir el plomo."
+      },
+      "en": {
+        "statement": "Which is the hottest planet in the solar system?",
+        "options": [
+          "Mercury",
+          "Venus",
+          "Mars",
+          "Jupiter"
+        ],
+        "explanation": "Venus, even though Mercury is closer to the Sun. Its thick carbon dioxide atmosphere traps heat, and the surface reaches about 475 °C, hot enough to melt lead."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c801-71c2-a51c-a4dc9382a6d3",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/mars/olympus-mons/",
+    "translations": {
+      "ca": {
+        "statement": "On és l'Olympus Mons, el volcà més gran conegut del sistema solar?",
+        "options": [
+          "A la Terra",
+          "A Io, una lluna de Júpiter",
+          "A Mart",
+          "A Venus"
+        ],
+        "explanation": "És a Mart. Fa uns 27 km d'alçada, unes tres vegades l'Everest, i més de 600 km d'amplada a la base."
+      },
+      "es": {
+        "statement": "¿Dónde está el Olympus Mons, el volcán más grande conocido del sistema solar?",
+        "options": [
+          "En la Tierra",
+          "En Ío, una luna de Júpiter",
+          "En Marte",
+          "En Venus"
+        ],
+        "explanation": "Está en Marte. Mide unos 27 km de altura, unas tres veces el Everest, y más de 600 km de ancho en la base."
+      },
+      "en": {
+        "statement": "Where is Olympus Mons, the largest known volcano in the solar system?",
+        "options": [
+          "On Earth",
+          "On Io, a moon of Jupiter",
+          "On Mars",
+          "On Venus"
+        ],
+        "explanation": "It is on Mars. It is about 27 km high, roughly three times Mount Everest, and over 600 km wide at its base."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c802-7969-89a8-004d8c675a97",
+    "correct_option": 0,
+    "source_url": "https://www.nasa.gov/solar-system/jupiters-great-red-spot-a-swirling-mystery/",
+    "translations": {
+      "ca": {
+        "statement": "Què és la Gran Taca Vermella de Júpiter?",
+        "options": [
+          "Una tempesta gegant",
+          "Un cràter d'impacte",
+          "Un volcà actiu",
+          "Un oceà de lava"
+        ],
+        "explanation": "És una tempesta enorme que dura des de fa segles. És unes dues vegades més ampla que la Terra i té vents de fins a uns 640 km/h."
+      },
+      "es": {
+        "statement": "¿Qué es la Gran Mancha Roja de Júpiter?",
+        "options": [
+          "Una tormenta gigante",
+          "Un cráter de impacto",
+          "Un volcán activo",
+          "Un océano de lava"
+        ],
+        "explanation": "Es una tormenta enorme que dura desde hace siglos. Es unas dos veces más ancha que la Tierra y tiene vientos de hasta unos 640 km/h."
+      },
+      "en": {
+        "statement": "What is Jupiter's Great Red Spot?",
+        "options": [
+          "A giant storm",
+          "An impact crater",
+          "An active volcano",
+          "An ocean of lava"
+        ],
+        "explanation": "It is a huge storm that has lasted for centuries. It is about twice as wide as Earth and has winds of up to about 640 km/h."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c803-729a-87aa-df2508322c72",
+    "correct_option": 3,
+    "source_url": "https://spaceplace.nasa.gov/all-about-the-sun",
+    "translations": {
+      "ca": {
+        "statement": "Quin tipus d'estrella és el Sol?",
+        "options": [
+          "Una gegant vermella",
+          "Una nana blanca",
+          "Una estrella de neutrons",
+          "Una nana groga"
+        ],
+        "explanation": "El Sol és una nana groga: una estrella de mida mitjana que crema hidrogen al nucli, com la majoria d'estrelles de la galàxia."
+      },
+      "es": {
+        "statement": "¿Qué tipo de estrella es el Sol?",
+        "options": [
+          "Una gigante roja",
+          "Una enana blanca",
+          "Una estrella de neutrones",
+          "Una enana amarilla"
+        ],
+        "explanation": "El Sol es una enana amarilla: una estrella de tamaño medio que quema hidrógeno en el núcleo, como la mayoría de estrellas de la galaxia."
+      },
+      "en": {
+        "statement": "What type of star is the Sun?",
+        "options": [
+          "A red giant",
+          "A white dwarf",
+          "A neutron star",
+          "A yellow dwarf"
+        ],
+        "explanation": "The Sun is a yellow dwarf: a medium-sized star that burns hydrogen in its core, like most stars in the galaxy."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c804-712f-aa25-7318eaf9fea4",
+    "correct_option": 1,
+    "source_url": "https://howthingsfly.si.edu/ask-an-explainer/how-long-does-it-take-light-sun-get-earth",
+    "translations": {
+      "ca": {
+        "statement": "Quant triga la llum del Sol a arribar a la Terra?",
+        "options": [
+          "Menys d'un segon",
+          "Uns 8 minuts",
+          "Unes 8 hores",
+          "Uns 8 dies"
+        ],
+        "explanation": "Uns 8 minuts i 20 segons. Per tant, quan mirem el Sol el veiem tal com era fa una mica més de 8 minuts."
+      },
+      "es": {
+        "statement": "¿Cuánto tarda la luz del Sol en llegar a la Tierra?",
+        "options": [
+          "Menos de un segundo",
+          "Unos 8 minutos",
+          "Unas 8 horas",
+          "Unos 8 días"
+        ],
+        "explanation": "Unos 8 minutos y 20 segundos. Por eso, cuando miramos el Sol lo vemos tal como era hace algo más de 8 minutos."
+      },
+      "en": {
+        "statement": "How long does sunlight take to reach Earth?",
+        "options": [
+          "Less than a second",
+          "About 8 minutes",
+          "About 8 hours",
+          "About 8 days"
+        ],
+        "explanation": "About 8 minutes and 20 seconds. So when we look at the Sun, we see it as it was a little over 8 minutes ago."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c805-7777-8bb4-61b5f03d1d67",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/asset/hubble/hubble-image-of-proxima-centauri/",
+    "translations": {
+      "ca": {
+        "statement": "Quina és l'estrella més propera al Sol?",
+        "options": [
+          "Sírius",
+          "Betelgeuse",
+          "Pròxima del Centaure",
+          "L'estrella Polar"
+        ],
+        "explanation": "Pròxima del Centaure, a uns 4,2 anys llum. Forma part del sistema Alfa Centauri."
+      },
+      "es": {
+        "statement": "¿Cuál es la estrella más cercana al Sol?",
+        "options": [
+          "Sirio",
+          "Betelgeuse",
+          "Próxima Centauri",
+          "La estrella Polar"
+        ],
+        "explanation": "Próxima Centauri, a unos 4,2 años luz. Forma parte del sistema Alfa Centauri."
+      },
+      "en": {
+        "statement": "Which is the closest star to the Sun?",
+        "options": [
+          "Sirius",
+          "Betelgeuse",
+          "Proxima Centauri",
+          "Polaris"
+        ],
+        "explanation": "Proxima Centauri, about 4.2 light-years away. It is part of the Alpha Centauri system."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c806-7393-ac22-935756175c32",
+    "correct_option": 0,
+    "source_url": "https://iauarchive.eso.org/public/pluto/",
+    "translations": {
+      "ca": {
+        "statement": "En quin any la Unió Astronòmica Internacional va classificar Plutó com a planeta nan?",
+        "options": [
+          "2006",
+          "1930",
+          "1999",
+          "2015"
+        ],
+        "explanation": "El 2006, a l'Assemblea General de Praga, la UAI va definir què és un planeta. Plutó no complia tots els requisits perquè comparteix la seva zona amb molts altres objectes."
+      },
+      "es": {
+        "statement": "¿En qué año la Unión Astronómica Internacional clasificó Plutón como planeta enano?",
+        "options": [
+          "2006",
+          "1930",
+          "1999",
+          "2015"
+        ],
+        "explanation": "En 2006, en la Asamblea General de Praga, la UAI definió qué es un planeta. Plutón no cumplía todos los requisitos porque comparte su zona con muchos otros objetos."
+      },
+      "en": {
+        "statement": "In which year did the International Astronomical Union classify Pluto as a dwarf planet?",
+        "options": [
+          "2006",
+          "1930",
+          "1999",
+          "2015"
+        ],
+        "explanation": "In 2006, at the General Assembly in Prague, the IAU defined what a planet is. Pluto did not meet every requirement because it shares its zone with many other objects."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c807-7594-8f46-bd3e63edba13",
+    "correct_option": 3,
+    "source_url": "https://spaceplace.nasa.gov/all-about-the-sun",
+    "translations": {
+      "ca": {
+        "statement": "Quina part de tota la matèria del sistema solar és al Sol?",
+        "options": [
+          "Al voltant del 10 %",
+          "Al voltant del 50 %",
+          "Al voltant del 75 %",
+          "Més del 99 %"
+        ],
+        "explanation": "Més del 99 %. Tots els planetes, llunes, asteroides i cometes junts són menys de l'1 % de la massa del sistema solar."
+      },
+      "es": {
+        "statement": "¿Qué parte de toda la materia del sistema solar está en el Sol?",
+        "options": [
+          "Alrededor del 10 %",
+          "Alrededor del 50 %",
+          "Alrededor del 75 %",
+          "Más del 99 %"
+        ],
+        "explanation": "Más del 99 %. Todos los planetas, lunas, asteroides y cometas juntos son menos del 1 % de la masa del sistema solar."
+      },
+      "en": {
+        "statement": "What share of all the matter in the solar system is in the Sun?",
+        "options": [
+          "About 10%",
+          "About 50%",
+          "About 75%",
+          "Over 99%"
+        ],
+        "explanation": "Over 99%. All the planets, moons, asteroids and comets together make up less than 1% of the solar system's mass."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c808-7290-bb03-2cffe31ffad0",
+    "correct_option": 1,
+    "source_url": "https://www.nasa.gov/blogs/watch-the-skies/2024/08/02/shooting-stars-annual-perseid-meteor-shower-to-peak-aug-11-12",
+    "translations": {
+      "ca": {
+        "statement": "De quin cometa provenen les Perseides, la pluja d'estels de cada agost?",
+        "options": [
+          "El cometa Halley",
+          "El cometa Swift-Tuttle",
+          "El cometa Hale-Bopp",
+          "El cometa Shoemaker-Levy 9"
+        ],
+        "explanation": "Del cometa Swift-Tuttle. Cada agost la Terra travessa les restes que ha deixat a la seva òrbita, i aquestes partícules es cremen en entrar a l'atmosfera."
+      },
+      "es": {
+        "statement": "¿De qué cometa provienen las Perseidas, la lluvia de estrellas de cada agosto?",
+        "options": [
+          "El cometa Halley",
+          "El cometa Swift-Tuttle",
+          "El cometa Hale-Bopp",
+          "El cometa Shoemaker-Levy 9"
+        ],
+        "explanation": "Del cometa Swift-Tuttle. Cada agosto la Tierra atraviesa los restos que ha dejado en su órbita, y esas partículas se queman al entrar en la atmósfera."
+      },
+      "en": {
+        "statement": "Which comet do the Perseids, the meteor shower of every August, come from?",
+        "options": [
+          "Halley's Comet",
+          "Comet Swift-Tuttle",
+          "Comet Hale-Bopp",
+          "Comet Shoemaker-Levy 9"
+        ],
+        "explanation": "Comet Swift-Tuttle. Every August, Earth passes through the debris it left along its orbit, and those particles burn up as they enter the atmosphere."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c809-7aca-aa9a-6b32235ec176",
+    "correct_option": 2,
+    "source_url": "https://imagine.gsfc.nasa.gov/science/objects/dwarfs2.html",
+    "translations": {
+      "ca": {
+        "statement": "Quina és la massa màxima que pot tenir una nana blanca (el límit de Chandrasekhar)?",
+        "options": [
+          "0,5 vegades la massa del Sol",
+          "1 vegada la massa del Sol",
+          "Unes 1,4 vegades la massa del Sol",
+          "10 vegades la massa del Sol"
+        ],
+        "explanation": "Unes 1,4 vegades la massa del Sol. Si una nana blanca supera aquest límit, no pot sostenir el seu propi pes i col·lapsa."
+      },
+      "es": {
+        "statement": "¿Cuál es la masa máxima que puede tener una enana blanca (el límite de Chandrasekhar)?",
+        "options": [
+          "0,5 veces la masa del Sol",
+          "1 vez la masa del Sol",
+          "Unas 1,4 veces la masa del Sol",
+          "10 veces la masa del Sol"
+        ],
+        "explanation": "Unas 1,4 veces la masa del Sol. Si una enana blanca supera este límite, no puede sostener su propio peso y colapsa."
+      },
+      "en": {
+        "statement": "What is the maximum mass a white dwarf can have (the Chandrasekhar limit)?",
+        "options": [
+          "0.5 times the Sun's mass",
+          "1 times the Sun's mass",
+          "About 1.4 times the Sun's mass",
+          "10 times the Sun's mass"
+        ],
+        "explanation": "About 1.4 times the Sun's mass. If a white dwarf goes over this limit, it cannot hold up its own weight and collapses."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c80a-763d-8db3-7f45bfc752c9",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/mercury/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin és el planeta més petit del sistema solar?",
+        "options": [
+          "Venus",
+          "Plutó",
+          "Mart",
+          "Mercuri"
+        ],
+        "explanation": "Mercuri és el planeta més petit i també el més proper al Sol. Plutó no compta: des del 2006 és un planeta nan."
+      },
+      "es": {
+        "statement": "¿Cuál es el planeta más pequeño del sistema solar?",
+        "options": [
+          "Venus",
+          "Plutón",
+          "Marte",
+          "Mercurio"
+        ],
+        "explanation": "Mercurio es el planeta más pequeño y también el más cercano al Sol. Plutón no cuenta: desde 2006 es un planeta enano."
+      },
+      "en": {
+        "statement": "Which is the smallest planet in the solar system?",
+        "options": [
+          "Venus",
+          "Pluto",
+          "Mars",
+          "Mercury"
+        ],
+        "explanation": "Mercury is the smallest planet and also the closest to the Sun. Pluto does not count: since 2006 it has been a dwarf planet."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c80b-71bc-9251-9203e228bff3",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/mercury/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quant dura un any a Mercuri, és a dir, una volta completa al Sol?",
+        "options": [
+          "88 dies terrestres",
+          "225 dies terrestres",
+          "30 dies terrestres",
+          "365 dies terrestres"
+        ],
+        "explanation": "Mercuri fa una volta al Sol cada 88 dies terrestres, el més ràpid de tots els planetes."
+      },
+      "es": {
+        "statement": "¿Cuánto dura un año en Mercurio, es decir, una vuelta completa al Sol?",
+        "options": [
+          "88 días terrestres",
+          "225 días terrestres",
+          "30 días terrestres",
+          "365 días terrestres"
+        ],
+        "explanation": "Mercurio da una vuelta al Sol cada 88 días terrestres, el más rápido de todos los planetas."
+      },
+      "en": {
+        "statement": "How long is a year on Mercury, that is, one full orbit of the Sun?",
+        "options": [
+          "88 Earth days",
+          "225 Earth days",
+          "30 Earth days",
+          "365 Earth days"
+        ],
+        "explanation": "Mercury orbits the Sun every 88 Earth days, the fastest of all the planets."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c80c-72e5-9a82-158320d23dfe",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/mercury/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quantes llunes té Mercuri?",
+        "options": [
+          "Cap",
+          "Una",
+          "Dues",
+          "Quatre"
+        ],
+        "explanation": "Cap. Mercuri i Venus són els únics planetes del sistema solar sense llunes."
+      },
+      "es": {
+        "statement": "¿Cuántas lunas tiene Mercurio?",
+        "options": [
+          "Ninguna",
+          "Una",
+          "Dos",
+          "Cuatro"
+        ],
+        "explanation": "Ninguna. Mercurio y Venus son los únicos planetas del sistema solar sin lunas."
+      },
+      "en": {
+        "statement": "How many moons does Mercury have?",
+        "options": [
+          "None",
+          "One",
+          "Two",
+          "Four"
+        ],
+        "explanation": "None. Mercury and Venus are the only planets in the solar system without moons."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c80d-7c17-9303-d7a6123a05ee",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/mars/moons/facts",
+    "translations": {
+      "ca": {
+        "statement": "Com es diuen les dues llunes de Mart?",
+        "options": [
+          "Tritó i Nereida",
+          "Tità i Rea",
+          "Fobos i Deimos",
+          "Io i Europa"
+        ],
+        "explanation": "Fobos i Deimos. Són petites i de forma irregular, i Fobos és una mica més gran que Deimos."
+      },
+      "es": {
+        "statement": "¿Cómo se llaman las dos lunas de Marte?",
+        "options": [
+          "Tritón y Nereida",
+          "Titán y Rea",
+          "Fobos y Deimos",
+          "Ío y Europa"
+        ],
+        "explanation": "Fobos y Deimos. Son pequeñas y de forma irregular, y Fobos es algo más grande que Deimos."
+      },
+      "en": {
+        "statement": "What are the names of Mars' two moons?",
+        "options": [
+          "Triton and Nereid",
+          "Titan and Rhea",
+          "Phobos and Deimos",
+          "Io and Europa"
+        ],
+        "explanation": "Phobos and Deimos. They are small and irregularly shaped, and Phobos is a little larger than Deimos."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c80e-7bff-b449-9bc690fd6750",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/mars/moons/facts",
+    "translations": {
+      "ca": {
+        "statement": "Qui va descobrir les llunes de Mart, el 1877?",
+        "options": [
+          "William Herschel",
+          "Edwin Hubble",
+          "Galileo Galilei",
+          "Asaph Hall"
+        ],
+        "explanation": "L'astrònom Asaph Hall, el 1877. Primer va trobar Deimos i, una setmana després, Fobos."
+      },
+      "es": {
+        "statement": "¿Quién descubrió las lunas de Marte, en 1877?",
+        "options": [
+          "William Herschel",
+          "Edwin Hubble",
+          "Galileo Galilei",
+          "Asaph Hall"
+        ],
+        "explanation": "El astrónomo Asaph Hall, en 1877. Primero encontró Deimos y, una semana después, Fobos."
+      },
+      "en": {
+        "statement": "Who discovered the moons of Mars, in 1877?",
+        "options": [
+          "William Herschel",
+          "Edwin Hubble",
+          "Galileo Galilei",
+          "Asaph Hall"
+        ],
+        "explanation": "The astronomer Asaph Hall, in 1877. He found Deimos first and Phobos about a week later."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c80f-7ab3-96d9-067d21a38ec3",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/saturn/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin planeta té una densitat mitjana més baixa que la de l'aigua?",
+        "options": [
+          "Neptú",
+          "Júpiter",
+          "Saturn",
+          "Mart"
+        ],
+        "explanation": "Saturn. És l'únic planeta del sistema solar menys dens que l'aigua, tot i que no podria surar a cap banyera real."
+      },
+      "es": {
+        "statement": "¿Qué planeta tiene una densidad media más baja que la del agua?",
+        "options": [
+          "Neptuno",
+          "Júpiter",
+          "Saturno",
+          "Marte"
+        ],
+        "explanation": "Saturno. Es el único planeta del sistema solar menos denso que el agua, aunque no podría flotar en ninguna bañera real."
+      },
+      "en": {
+        "statement": "Which planet has an average density lower than water?",
+        "options": [
+          "Neptune",
+          "Jupiter",
+          "Saturn",
+          "Mars"
+        ],
+        "explanation": "Saturn. It is the only planet in the solar system less dense than water, although no real bathtub could hold it."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c810-767f-a128-f276dc3965ea",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/saturn/facts",
+    "translations": {
+      "ca": {
+        "statement": "De què estan fets sobretot els anells de Saturn?",
+        "options": [
+          "Metall fos",
+          "Gas calent",
+          "Trossos de gel i roca",
+          "Lava solidificada"
+        ],
+        "explanation": "De milers de milions de trossos de gel i roca, alguns petits com grans de sorra i altres grans com cases."
+      },
+      "es": {
+        "statement": "¿De qué están hechos sobre todo los anillos de Saturno?",
+        "options": [
+          "Metal fundido",
+          "Gas caliente",
+          "Trozos de hielo y roca",
+          "Lava solidificada"
+        ],
+        "explanation": "De miles de millones de trozos de hielo y roca, algunos pequeños como granos de arena y otros grandes como casas."
+      },
+      "en": {
+        "statement": "What are Saturn's rings mostly made of?",
+        "options": [
+          "Molten metal",
+          "Hot gas",
+          "Chunks of ice and rock",
+          "Solidified lava"
+        ],
+        "explanation": "Billions of chunks of ice and rock, some as small as grains of sand and others as big as houses."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c811-7743-8a99-7da980fafd4c",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/saturn/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quant dura un dia a Saturn, és a dir, una rotació completa?",
+        "options": [
+          "Unes 10,7 hores",
+          "Uns 29 dies",
+          "Unes 24 hores",
+          "Unes 3 hores"
+        ],
+        "explanation": "Unes 10,7 hores. És el segon dia més curt del sistema solar, després del de Júpiter."
+      },
+      "es": {
+        "statement": "¿Cuánto dura un día en Saturno, es decir, una rotación completa?",
+        "options": [
+          "Unas 10,7 horas",
+          "Unos 29 días",
+          "Unas 24 horas",
+          "Unas 3 horas"
+        ],
+        "explanation": "Unas 10,7 horas. Es el segundo día más corto del sistema solar, después del de Júpiter."
+      },
+      "en": {
+        "statement": "How long is a day on Saturn, that is, one full rotation?",
+        "options": [
+          "About 10.7 hours",
+          "About 29 days",
+          "About 24 hours",
+          "About 3 hours"
+        ],
+        "explanation": "About 10.7 hours. It is the second-shortest day in the solar system, after Jupiter's."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c812-77c9-b063-25a70e4b60bd",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/Uranus/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin planeta gira gairebé estirat, amb l'eix inclinat uns 98 graus?",
+        "options": [
+          "Saturn",
+          "Urà",
+          "Venus",
+          "Neptú"
+        ],
+        "explanation": "Urà. La seva inclinació és de gairebé 98 graus, i per això sembla que giri de costat mentre fa la volta al Sol."
+      },
+      "es": {
+        "statement": "¿Qué planeta gira casi tumbado, con el eje inclinado unos 98 grados?",
+        "options": [
+          "Saturno",
+          "Urano",
+          "Venus",
+          "Neptuno"
+        ],
+        "explanation": "Urano. Su inclinación es de casi 98 grados, y por eso parece que gire de lado mientras da la vuelta al Sol."
+      },
+      "en": {
+        "statement": "Which planet spins almost on its side, with its axis tilted about 98 degrees?",
+        "options": [
+          "Saturn",
+          "Uranus",
+          "Venus",
+          "Neptune"
+        ],
+        "explanation": "Uranus. Its tilt is almost 98 degrees, so it appears to roll on its side as it orbits the Sun."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c813-7fdd-abb9-2a60a5e07c3c",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/Uranus/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin va ser el primer planeta descobert amb un telescopi?",
+        "options": [
+          "Mart",
+          "Neptú",
+          "Urà",
+          "Saturn"
+        ],
+        "explanation": "Urà, descobert per William Herschel el 1781. Al principi va pensar que era un cometa o una estrella."
+      },
+      "es": {
+        "statement": "¿Cuál fue el primer planeta descubierto con un telescopio?",
+        "options": [
+          "Marte",
+          "Neptuno",
+          "Urano",
+          "Saturno"
+        ],
+        "explanation": "Urano, descubierto por William Herschel en 1781. Al principio pensó que era un cometa o una estrella."
+      },
+      "en": {
+        "statement": "Which was the first planet discovered with a telescope?",
+        "options": [
+          "Mars",
+          "Neptune",
+          "Uranus",
+          "Saturn"
+        ],
+        "explanation": "Uranus, discovered by William Herschel in 1781. At first he thought it was a comet or a star."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c814-74ab-87e0-d48952570504",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/Uranus/facts",
+    "translations": {
+      "ca": {
+        "statement": "Per què Urà té un color blau verdós?",
+        "options": [
+          "Reflecteix el color de Neptú",
+          "El metà de l'atmosfera absorbeix la llum vermella",
+          "Està cobert d'oceans d'aigua",
+          "Té una superfície de gel blau"
+        ],
+        "explanation": "El metà de l'atmosfera absorbeix la part vermella de la llum del Sol, i la llum que es reflecteix es veu blau verdosa."
+      },
+      "es": {
+        "statement": "¿Por qué Urano tiene un color azul verdoso?",
+        "options": [
+          "Refleja el color de Neptuno",
+          "El metano de la atmósfera absorbe la luz roja",
+          "Está cubierto de océanos de agua",
+          "Tiene una superficie de hielo azul"
+        ],
+        "explanation": "El metano de la atmósfera absorbe la parte roja de la luz del Sol, y la luz que se refleja se ve azul verdosa."
+      },
+      "en": {
+        "statement": "Why is Uranus blue-green?",
+        "options": [
+          "It reflects Neptune's color",
+          "Methane in its atmosphere absorbs red light",
+          "It is covered in water oceans",
+          "It has a blue ice surface"
+        ],
+        "explanation": "Methane in the atmosphere absorbs the red part of sunlight, and the light reflected back looks blue-green."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c815-799c-ab5f-8af5566bd587",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/neptune/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin va ser el primer planeta trobat gràcies a càlculs matemàtics, abans de veure'l?",
+        "options": [
+          "Saturn",
+          "Urà",
+          "Neptú",
+          "Plutó"
+        ],
+        "explanation": "Neptú. Urbain Le Verrier en va calcular la posició i Johann Galle el va trobar el 1846."
+      },
+      "es": {
+        "statement": "¿Cuál fue el primer planeta encontrado gracias a cálculos matemáticos, antes de verlo?",
+        "options": [
+          "Saturno",
+          "Urano",
+          "Neptuno",
+          "Plutón"
+        ],
+        "explanation": "Neptuno. Urbain Le Verrier calculó su posición y Johann Galle lo encontró en 1846."
+      },
+      "en": {
+        "statement": "Which was the first planet found through mathematical calculations, before anyone saw it?",
+        "options": [
+          "Saturn",
+          "Uranus",
+          "Neptune",
+          "Pluto"
+        ],
+        "explanation": "Neptune. Urbain Le Verrier calculated its position and Johann Galle found it in 1846."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c816-72ae-89d9-ce3515fc60fb",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/neptune/facts",
+    "translations": {
+      "ca": {
+        "statement": "Què té d'especial l'òrbita de Tritó, la lluna més gran de Neptú?",
+        "options": [
+          "Gira en sentit contrari a la rotació del planeta",
+          "Està aturada respecte a Neptú",
+          "És perfectament quadrada",
+          "Passa entre Neptú i el Sol cada dia"
+        ],
+        "explanation": "És l'única lluna gran del sistema solar que gira en sentit contrari a la rotació del seu planeta. Per això es creu que és un objecte capturat."
+      },
+      "es": {
+        "statement": "¿Qué tiene de especial la órbita de Tritón, la luna más grande de Neptuno?",
+        "options": [
+          "Gira en sentido contrario a la rotación del planeta",
+          "Está parada respecto a Neptuno",
+          "Es perfectamente cuadrada",
+          "Pasa entre Neptuno y el Sol cada día"
+        ],
+        "explanation": "Es la única luna grande del sistema solar que gira en sentido contrario a la rotación de su planeta. Por eso se cree que es un objeto capturado."
+      },
+      "en": {
+        "statement": "What is special about the orbit of Triton, Neptune's largest moon?",
+        "options": [
+          "It goes in the opposite direction to the planet's rotation",
+          "It stands still relative to Neptune",
+          "It is perfectly square",
+          "It passes between Neptune and the Sun every day"
+        ],
+        "explanation": "It is the only large moon in the solar system that orbits opposite to its planet's rotation, which suggests it was captured."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c817-7ad3-a637-5158b1ca7d8c",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/neptune/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin planeta té els vents més forts del sistema solar?",
+        "options": [
+          "Mart",
+          "La Terra",
+          "Júpiter",
+          "Neptú"
+        ],
+        "explanation": "Neptú, amb vents de més de 2.000 km/h, tot i ser el planeta més allunyat del Sol."
+      },
+      "es": {
+        "statement": "¿Qué planeta tiene los vientos más fuertes del sistema solar?",
+        "options": [
+          "Marte",
+          "La Tierra",
+          "Júpiter",
+          "Neptuno"
+        ],
+        "explanation": "Neptuno, con vientos de más de 2.000 km/h, a pesar de ser el planeta más alejado del Sol."
+      },
+      "en": {
+        "statement": "Which planet has the strongest winds in the solar system?",
+        "options": [
+          "Mars",
+          "Earth",
+          "Jupiter",
+          "Neptune"
+        ],
+        "explanation": "Neptune, with winds of more than 2,000 km/h, even though it is the planet farthest from the Sun."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c818-77b8-ab8b-fdd6219a8abb",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/neptune/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quant triga Neptú a fer una volta al Sol?",
+        "options": [
+          "Uns 1.000 anys terrestres",
+          "Uns 84 anys terrestres",
+          "Uns 12 anys terrestres",
+          "Uns 165 anys terrestres"
+        ],
+        "explanation": "Uns 165 anys terrestres. Des que es va descobrir el 1846, només ha completat una volta, el 2011."
+      },
+      "es": {
+        "statement": "¿Cuánto tarda Neptuno en dar una vuelta al Sol?",
+        "options": [
+          "Unos 1.000 años terrestres",
+          "Unos 84 años terrestres",
+          "Unos 12 años terrestres",
+          "Unos 165 años terrestres"
+        ],
+        "explanation": "Unos 165 años terrestres. Desde que se descubrió en 1846, solo ha completado una vuelta, en 2011."
+      },
+      "en": {
+        "statement": "How long does Neptune take to orbit the Sun?",
+        "options": [
+          "About 1,000 Earth years",
+          "About 84 Earth years",
+          "About 12 Earth years",
+          "About 165 Earth years"
+        ],
+        "explanation": "About 165 Earth years. Since its discovery in 1846, it has completed only one orbit, in 2011."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c819-7681-87dd-419e70eaafc3",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/saturn/moons/titan/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Quina és l'única lluna del sistema solar amb una atmosfera densa?",
+        "options": [
+          "Tità",
+          "La Lluna",
+          "Europa",
+          "Fobos"
+        ],
+        "explanation": "Tità, la lluna més gran de Saturn. La seva atmosfera és tan densa que no deixa veure la superfície amb llum visible."
+      },
+      "es": {
+        "statement": "¿Cuál es la única luna del sistema solar con una atmósfera densa?",
+        "options": [
+          "Titán",
+          "La Luna",
+          "Europa",
+          "Fobos"
+        ],
+        "explanation": "Titán, la luna más grande de Saturno. Su atmósfera es tan densa que no deja ver la superficie con luz visible."
+      },
+      "en": {
+        "statement": "Which is the only moon in the solar system with a thick atmosphere?",
+        "options": [
+          "Titan",
+          "The Moon",
+          "Europa",
+          "Phobos"
+        ],
+        "explanation": "Titan, Saturn's largest moon. Its atmosphere is so thick that its surface cannot be seen in visible light."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c81a-7822-9b68-07d070885a75",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/saturn/moons/titan/facts/",
+    "translations": {
+      "ca": {
+        "statement": "De què estan fets els llacs i mars de Tità?",
+        "options": [
+          "Metà i età líquids",
+          "Aigua salada",
+          "Lava",
+          "Àcid sulfúric"
+        ],
+        "explanation": "De metà i età líquids. Fa tant de fred que aquests gasos són líquids, i fins i tot plouen."
+      },
+      "es": {
+        "statement": "¿De qué están hechos los lagos y mares de Titán?",
+        "options": [
+          "Metano y etano líquidos",
+          "Agua salada",
+          "Lava",
+          "Ácido sulfúrico"
+        ],
+        "explanation": "De metano y etano líquidos. Hace tanto frío que estos gases son líquidos, e incluso llueven."
+      },
+      "en": {
+        "statement": "What are Titan's lakes and seas made of?",
+        "options": [
+          "Liquid methane and ethane",
+          "Salt water",
+          "Lava",
+          "Sulfuric acid"
+        ],
+        "explanation": "Liquid methane and ethane. It is so cold that these gases are liquid, and they even fall as rain."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c81b-7129-b52c-0d47a78fb37a",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/saturn/moons/titan/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Quin gas forma la major part de l'atmosfera de Tità?",
+        "options": [
+          "Oxigen",
+          "Heli",
+          "Diòxid de carboni",
+          "Nitrogen"
+        ],
+        "explanation": "El nitrogen, amb un 95 % aproximadament, com passa a la Terra. La resta és sobretot metà."
+      },
+      "es": {
+        "statement": "¿Qué gas forma la mayor parte de la atmósfera de Titán?",
+        "options": [
+          "Oxígeno",
+          "Helio",
+          "Dióxido de carbono",
+          "Nitrógeno"
+        ],
+        "explanation": "El nitrógeno, con un 95 % aproximadamente, como ocurre en la Tierra. El resto es sobre todo metano."
+      },
+      "en": {
+        "statement": "Which gas makes up most of Titan's atmosphere?",
+        "options": [
+          "Oxygen",
+          "Helium",
+          "Carbon dioxide",
+          "Nitrogen"
+        ],
+        "explanation": "Nitrogen, at about 95%, just like on Earth. Most of the rest is methane."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c81c-70bc-9dd8-ab6c6d45d0ac",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/jupiter/moons/io/facts",
+    "translations": {
+      "ca": {
+        "statement": "Quin és el món amb més activitat volcànica del sistema solar?",
+        "options": [
+          "Mart",
+          "Venus",
+          "Io, una lluna de Júpiter",
+          "La Terra"
+        ],
+        "explanation": "Io, una lluna de Júpiter, amb centenars de volcans actius que llancen lava a desenes de quilòmetres d'alçada."
+      },
+      "es": {
+        "statement": "¿Cuál es el mundo con más actividad volcánica del sistema solar?",
+        "options": [
+          "Marte",
+          "Venus",
+          "Ío, una luna de Júpiter",
+          "La Tierra"
+        ],
+        "explanation": "Ío, una luna de Júpiter, con cientos de volcanes activos que lanzan lava a decenas de kilómetros de altura."
+      },
+      "en": {
+        "statement": "Which is the most volcanically active world in the solar system?",
+        "options": [
+          "Mars",
+          "Venus",
+          "Io, a moon of Jupiter",
+          "Earth"
+        ],
+        "explanation": "Io, a moon of Jupiter, with hundreds of active volcanoes that shoot lava tens of kilometers high."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c81d-7684-b3ff-1bcb4e646b76",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/jupiter/moons/io/facts",
+    "translations": {
+      "ca": {
+        "statement": "Per què Io té tanta activitat volcànica?",
+        "options": [
+          "Té un nucli d'urani",
+          "La gravetat de Júpiter i d'altres llunes l'estira i l'escalfa",
+          "És molt a prop del Sol",
+          "Rep impactes constants d'asteroides"
+        ],
+        "explanation": "Per l'escalfament de marea: la gravetat de Júpiter, d'Europa i de Ganímedes l'estira i l'esprem a cada volta, i això genera molta calor a l'interior."
+      },
+      "es": {
+        "statement": "¿Por qué Ío tiene tanta actividad volcánica?",
+        "options": [
+          "Tiene un núcleo de uranio",
+          "La gravedad de Júpiter y de otras lunas lo estira y lo calienta",
+          "Está muy cerca del Sol",
+          "Recibe impactos constantes de asteroides"
+        ],
+        "explanation": "Por el calentamiento de marea: la gravedad de Júpiter, de Europa y de Ganímedes lo estira y lo exprime en cada vuelta, y eso genera mucho calor en el interior."
+      },
+      "en": {
+        "statement": "Why is Io so volcanically active?",
+        "options": [
+          "It has a uranium core",
+          "Gravity from Jupiter and other moons stretches and heats it",
+          "It is very close to the Sun",
+          "It is constantly hit by asteroids"
+        ],
+        "explanation": "Tidal heating: gravity from Jupiter, Europa and Ganymede stretches and squeezes Io on every orbit, which creates a lot of heat inside."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c81e-7cf8-9855-3e7503998bea",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/moon/facts/",
+    "translations": {
+      "ca": {
+        "statement": "A quina distància mitjana de la Terra és la Lluna?",
+        "options": [
+          "Uns 38.000 km",
+          "Uns 3,8 milions de km",
+          "Uns 384.400 km",
+          "Uns 150 milions de km"
+        ],
+        "explanation": "Uns 384.400 km de mitjana. Hi cabrien tots els planetes del sistema solar en fila entre la Terra i la Lluna."
+      },
+      "es": {
+        "statement": "¿A qué distancia media de la Tierra está la Luna?",
+        "options": [
+          "Unos 38.000 km",
+          "Unos 3,8 millones de km",
+          "Unos 384.400 km",
+          "Unos 150 millones de km"
+        ],
+        "explanation": "Unos 384.400 km de media. Cabrían todos los planetas del sistema solar en fila entre la Tierra y la Luna."
+      },
+      "en": {
+        "statement": "What is the average distance from Earth to the Moon?",
+        "options": [
+          "About 38,000 km",
+          "About 3.8 million km",
+          "About 384,400 km",
+          "About 150 million km"
+        ],
+        "explanation": "About 384,400 km on average. All the planets in the solar system would fit in a row between Earth and the Moon."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c81f-7707-a863-eec4af08faa4",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/moon/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Per què sempre veiem la mateixa cara de la Lluna?",
+        "options": [
+          "Tarda el mateix a girar sobre si mateixa que a fer la volta a la Terra",
+          "La Lluna no gira sobre si mateixa",
+          "L'altra cara sempre és de nit",
+          "La Terra li tapa l'altra cara"
+        ],
+        "explanation": "Per la rotació sincrònica: la Lluna tarda el mateix a girar sobre si mateixa que a fer una volta a la Terra, així que sempre ens mostra el mateix hemisferi."
+      },
+      "es": {
+        "statement": "¿Por qué siempre vemos la misma cara de la Luna?",
+        "options": [
+          "Tarda lo mismo en girar sobre sí misma que en dar la vuelta a la Tierra",
+          "La Luna no gira sobre sí misma",
+          "La otra cara siempre está de noche",
+          "La Tierra le tapa la otra cara"
+        ],
+        "explanation": "Por la rotación sincrónica: la Luna tarda lo mismo en girar sobre sí misma que en dar una vuelta a la Tierra, así que siempre nos muestra el mismo hemisferio."
+      },
+      "en": {
+        "statement": "Why do we always see the same side of the Moon?",
+        "options": [
+          "It takes as long to spin once as to orbit Earth once",
+          "The Moon does not spin",
+          "The other side is always in darkness",
+          "Earth blocks the other side"
+        ],
+        "explanation": "Synchronous rotation: the Moon takes as long to spin once as it does to orbit Earth once, so it always shows us the same hemisphere."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c820-7d41-a249-69587b89ea6d",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/moon/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Quina és l'explicació més acceptada de com es va formar la Lluna?",
+        "options": [
+          "L'impacte d'un cos de la mida de Mart contra la Terra",
+          "Es va desprendre de la Terra per la rotació",
+          "Es va formar a partir d'un cometa",
+          "La Terra la va capturar de l'espai"
+        ],
+        "explanation": "Fa milers de milions d'anys, un cos de la mida de Mart va xocar amb la Terra, i les restes dels dos cossos es van ajuntar per formar la Lluna."
+      },
+      "es": {
+        "statement": "¿Cuál es la explicación más aceptada de cómo se formó la Luna?",
+        "options": [
+          "El impacto de un cuerpo del tamaño de Marte contra la Tierra",
+          "Se desprendió de la Tierra por la rotación",
+          "Se formó a partir de un cometa",
+          "La Tierra la capturó del espacio"
+        ],
+        "explanation": "Hace miles de millones de años, un cuerpo del tamaño de Marte chocó con la Tierra, y los restos de ambos cuerpos se juntaron para formar la Luna."
+      },
+      "en": {
+        "statement": "What is the most accepted explanation of how the Moon formed?",
+        "options": [
+          "A Mars-sized body crashed into Earth",
+          "It broke off Earth because of its spin",
+          "It formed from a comet",
+          "Earth captured it from space"
+        ],
+        "explanation": "Billions of years ago, a Mars-sized body collided with Earth, and debris from both came together to form the Moon."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c821-7c64-9e4a-d58d1f46b9b4",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/jupiter/jupiter-moons/ganymede/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Quina és la lluna més gran del sistema solar?",
+        "options": [
+          "Ganímedes",
+          "La Lluna",
+          "Europa",
+          "Tità"
+        ],
+        "explanation": "Ganímedes, una lluna de Júpiter. És fins i tot més gran que el planeta Mercuri."
+      },
+      "es": {
+        "statement": "¿Cuál es la luna más grande del sistema solar?",
+        "options": [
+          "Ganímedes",
+          "La Luna",
+          "Europa",
+          "Titán"
+        ],
+        "explanation": "Ganímedes, una luna de Júpiter. Es incluso más grande que el planeta Mercurio."
+      },
+      "en": {
+        "statement": "Which is the largest moon in the solar system?",
+        "options": [
+          "Ganymede",
+          "The Moon",
+          "Europa",
+          "Titan"
+        ],
+        "explanation": "Ganymede, a moon of Jupiter. It is even bigger than the planet Mercury."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c822-7cbc-b1da-3c4a31eb7afa",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/jupiter/jupiter-moons/ganymede/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Què té Ganímedes que no té cap altra lluna coneguda?",
+        "options": [
+          "Una atmosfera d'oxigen respirable",
+          "Un camp magnètic propi",
+          "Anells",
+          "Volcans de lava"
+        ],
+        "explanation": "Un camp magnètic propi, descobert per la sonda Galileo el 1996. Cap altra lluna coneguda en té."
+      },
+      "es": {
+        "statement": "¿Qué tiene Ganímedes que no tiene ninguna otra luna conocida?",
+        "options": [
+          "Una atmósfera de oxígeno respirable",
+          "Un campo magnético propio",
+          "Anillos",
+          "Volcanes de lava"
+        ],
+        "explanation": "Un campo magnético propio, descubierto por la sonda Galileo en 1996. Ninguna otra luna conocida lo tiene."
+      },
+      "en": {
+        "statement": "What does Ganymede have that no other known moon has?",
+        "options": [
+          "A breathable oxygen atmosphere",
+          "Its own magnetic field",
+          "Rings",
+          "Lava volcanoes"
+        ],
+        "explanation": "Its own magnetic field, discovered by the Galileo spacecraft in 1996. No other known moon has one."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c823-749f-b8bc-23459499f129",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/jupiter/jupiter-moons/ganymede/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Qui va descobrir Ganímedes i les altres grans llunes de Júpiter, el 1610?",
+        "options": [
+          "Nicolau Copèrnic",
+          "Galileo Galilei",
+          "Isaac Newton",
+          "Johannes Kepler"
+        ],
+        "explanation": "Galileo Galilei, el gener de 1610, amb un dels primers telescopis. Per això s'anomenen llunes galileanes."
+      },
+      "es": {
+        "statement": "¿Quién descubrió Ganímedes y las otras grandes lunas de Júpiter, en 1610?",
+        "options": [
+          "Nicolás Copérnico",
+          "Galileo Galilei",
+          "Isaac Newton",
+          "Johannes Kepler"
+        ],
+        "explanation": "Galileo Galilei, en enero de 1610, con uno de los primeros telescopios. Por eso se llaman lunas galileanas."
+      },
+      "en": {
+        "statement": "Who discovered Ganymede and Jupiter's other large moons, in 1610?",
+        "options": [
+          "Nicolaus Copernicus",
+          "Galileo Galilei",
+          "Isaac Newton",
+          "Johannes Kepler"
+        ],
+        "explanation": "Galileo Galilei, in January 1610, with one of the first telescopes. That is why they are called the Galilean moons."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c824-79de-8372-8566291e9991",
+    "correct_option": 3,
+    "source_url": "https://spaceplace.nasa.gov/sun-corona/en/",
+    "translations": {
+      "ca": {
+        "statement": "Com és la temperatura de la corona del Sol, la seva capa més externa, comparada amb la de la superfície?",
+        "options": [
+          "Igual",
+          "Molt més freda",
+          "Una mica més freda",
+          "Centenars de vegades més calenta"
+        ],
+        "explanation": "Centenars de vegades més calenta, tot i ser més lluny del nucli. Per què passa encara és un dels grans misteris del Sol."
+      },
+      "es": {
+        "statement": "¿Cómo es la temperatura de la corona del Sol, su capa más externa, comparada con la de la superficie?",
+        "options": [
+          "Igual",
+          "Mucho más fría",
+          "Algo más fría",
+          "Cientos de veces más caliente"
+        ],
+        "explanation": "Cientos de veces más caliente, aunque está más lejos del núcleo. Por qué ocurre sigue siendo uno de los grandes misterios del Sol."
+      },
+      "en": {
+        "statement": "How does the temperature of the Sun's corona, its outermost layer, compare with the surface?",
+        "options": [
+          "The same",
+          "Much colder",
+          "Slightly colder",
+          "Hundreds of times hotter"
+        ],
+        "explanation": "Hundreds of times hotter, even though it is farther from the core. Why this happens is still one of the Sun's great mysteries."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c825-7f8b-b3f7-401f63ff95bb",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/dwarf-planets/ceres",
+    "translations": {
+      "ca": {
+        "statement": "Quin és l'objecte més gran del cinturó d'asteroides, entre Mart i Júpiter?",
+        "options": [
+          "Plutó",
+          "Ceres",
+          "Vesta",
+          "Fobos"
+        ],
+        "explanation": "Ceres, que també és un planeta nan. La sonda Dawn va ser la primera a visitar-lo, el 2015."
+      },
+      "es": {
+        "statement": "¿Cuál es el objeto más grande del cinturón de asteroides, entre Marte y Júpiter?",
+        "options": [
+          "Plutón",
+          "Ceres",
+          "Vesta",
+          "Fobos"
+        ],
+        "explanation": "Ceres, que también es un planeta enano. La sonda Dawn fue la primera en visitarlo, en 2015."
+      },
+      "en": {
+        "statement": "What is the largest object in the asteroid belt, between Mars and Jupiter?",
+        "options": [
+          "Pluto",
+          "Ceres",
+          "Vesta",
+          "Phobos"
+        ],
+        "explanation": "Ceres, which is also a dwarf planet. The Dawn spacecraft was the first to visit it, in 2015."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c826-712e-8c4a-15cd92dcac1e",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/dwarf-planets/ceres",
+    "translations": {
+      "ca": {
+        "statement": "Quin és l'únic planeta nan del sistema solar interior?",
+        "options": [
+          "Ceres",
+          "Plutó",
+          "Makemake",
+          "Eris"
+        ],
+        "explanation": "Ceres. Els altres planetes nans coneguts, com Plutó o Eris, són més enllà de Neptú."
+      },
+      "es": {
+        "statement": "¿Cuál es el único planeta enano del sistema solar interior?",
+        "options": [
+          "Ceres",
+          "Plutón",
+          "Makemake",
+          "Eris"
+        ],
+        "explanation": "Ceres. Los otros planetas enanos conocidos, como Plutón o Eris, están más allá de Neptuno."
+      },
+      "en": {
+        "statement": "Which is the only dwarf planet in the inner solar system?",
+        "options": [
+          "Ceres",
+          "Pluto",
+          "Makemake",
+          "Eris"
+        ],
+        "explanation": "Ceres. The other known dwarf planets, such as Pluto and Eris, lie beyond Neptune."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c827-7652-b2e4-ebb819d4581e",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/solar-system/comets/1p-halley",
+    "translations": {
+      "ca": {
+        "statement": "Cada quant temps torna el cometa Halley a prop del Sol?",
+        "options": [
+          "Uns 76 anys",
+          "Uns 7 anys",
+          "Uns 200 anys",
+          "Uns 1.000 anys"
+        ],
+        "explanation": "Uns 76 anys de mitjana. Edmond Halley va predir correctament que tornaria el 1758."
+      },
+      "es": {
+        "statement": "¿Cada cuánto tiempo vuelve el cometa Halley cerca del Sol?",
+        "options": [
+          "Unos 76 años",
+          "Unos 7 años",
+          "Unos 200 años",
+          "Unos 1.000 años"
+        ],
+        "explanation": "Unos 76 años de media. Edmond Halley predijo correctamente que volvería en 1758."
+      },
+      "en": {
+        "statement": "How often does Halley's Comet return close to the Sun?",
+        "options": [
+          "About every 76 years",
+          "About every 7 years",
+          "About every 200 years",
+          "About every 1,000 years"
+        ],
+        "explanation": "About every 76 years on average. Edmond Halley correctly predicted that it would return in 1758."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c828-7a5a-9730-5b43840931fb",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/solar-system/comets/1p-halley",
+    "translations": {
+      "ca": {
+        "statement": "En quin any tornarà a passar el cometa Halley a prop del Sol?",
+        "options": [
+          "2030",
+          "2061",
+          "2086",
+          "2100"
+        ],
+        "explanation": "El 2061. L'última vegada va ser el 1986."
+      },
+      "es": {
+        "statement": "¿En qué año volverá a pasar el cometa Halley cerca del Sol?",
+        "options": [
+          "2030",
+          "2061",
+          "2086",
+          "2100"
+        ],
+        "explanation": "En 2061. La última vez fue en 1986."
+      },
+      "en": {
+        "statement": "In which year will Halley's Comet next pass close to the Sun?",
+        "options": [
+          "2030",
+          "2061",
+          "2086",
+          "2100"
+        ],
+        "explanation": "In 2061. The last time was in 1986."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c829-772c-9fa9-c9522153f958",
+    "correct_option": 0,
+    "source_url": "https://spaceplace.nasa.gov/asteroid-or-meteor/en",
+    "translations": {
+      "ca": {
+        "statement": "Com s'anomena un tros de roca de l'espai que arriba a tocar el terra de la Terra?",
+        "options": [
+          "Meteorit",
+          "Satèl·lit",
+          "Meteor",
+          "Cometa"
+        ],
+        "explanation": "Meteorit. Si es crema a l'atmosfera i només en veiem la llum, és un meteor."
+      },
+      "es": {
+        "statement": "¿Cómo se llama un trozo de roca del espacio que llega a tocar el suelo de la Tierra?",
+        "options": [
+          "Meteorito",
+          "Satélite",
+          "Meteoro",
+          "Cometa"
+        ],
+        "explanation": "Meteorito. Si se quema en la atmósfera y solo vemos su luz, es un meteoro."
+      },
+      "en": {
+        "statement": "What do we call a piece of space rock that reaches the ground on Earth?",
+        "options": [
+          "Meteorite",
+          "Satellite",
+          "Meteor",
+          "Comet"
+        ],
+        "explanation": "A meteorite. If it burns up in the atmosphere and we only see its light, it is a meteor."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c82a-74ad-a958-46adc72babb3",
+    "correct_option": 3,
+    "source_url": "https://spaceplace.nasa.gov/asteroid-or-meteor/en",
+    "translations": {
+      "ca": {
+        "statement": "Què és realment un estel fugaç?",
+        "options": [
+          "Un satèl·lit que s'apaga",
+          "Una estrella que explota",
+          "Una estrella que cau",
+          "Un tros de roca que es crema en entrar a l'atmosfera"
+        ],
+        "explanation": "És un meteor: la ratlla de llum que fa un tros petit d'asteroide o de cometa quan es crema en entrar a l'atmosfera. No té res a veure amb les estrelles."
+      },
+      "es": {
+        "statement": "¿Qué es realmente una estrella fugaz?",
+        "options": [
+          "Un satélite que se apaga",
+          "Una estrella que explota",
+          "Una estrella que cae",
+          "Un trozo de roca que se quema al entrar en la atmósfera"
+        ],
+        "explanation": "Es un meteoro: la raya de luz que hace un trozo pequeño de asteroide o de cometa cuando se quema al entrar en la atmósfera. No tiene nada que ver con las estrellas."
+      },
+      "en": {
+        "statement": "What is a shooting star, really?",
+        "options": [
+          "A satellite switching off",
+          "An exploding star",
+          "A falling star",
+          "A piece of rock burning up as it enters the atmosphere"
+        ],
+        "explanation": "It is a meteor: the streak of light made by a small piece of asteroid or comet as it burns up entering the atmosphere. It has nothing to do with stars."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c82b-733b-b69b-8c7eb871c99b",
+    "correct_option": 2,
+    "source_url": "https://svs.gsfc.nasa.gov/11732",
+    "translations": {
+      "ca": {
+        "statement": "Cap a on apunta la cua de gas d'un cometa?",
+        "options": [
+          "Cap a on es mou el cometa",
+          "Sempre cap al Sol",
+          "Sempre en direcció contrària al Sol",
+          "Cap a la Terra"
+        ],
+        "explanation": "Sempre en direcció contrària al Sol, perquè el vent solar l'empeny. Per això un cometa pot anar «amb la cua per davant»."
+      },
+      "es": {
+        "statement": "¿Hacia dónde apunta la cola de gas de un cometa?",
+        "options": [
+          "Hacia donde se mueve el cometa",
+          "Siempre hacia el Sol",
+          "Siempre en dirección contraria al Sol",
+          "Hacia la Tierra"
+        ],
+        "explanation": "Siempre en dirección contraria al Sol, porque el viento solar la empuja. Por eso un cometa puede ir «con la cola por delante»."
+      },
+      "en": {
+        "statement": "Which way does a comet's gas tail point?",
+        "options": [
+          "In the direction the comet moves",
+          "Always towards the Sun",
+          "Always away from the Sun",
+          "Towards Earth"
+        ],
+        "explanation": "Always away from the Sun, because the solar wind pushes it. That is why a comet can travel tail first."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c82c-77f4-97ef-4e353a405825",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/solar-system/kuiper-belt/facts/",
+    "translations": {
+      "ca": {
+        "statement": "On és el cinturó de Kuiper, on hi ha Plutó?",
+        "options": [
+          "Entre la Terra i Mart",
+          "Entre Mart i Júpiter",
+          "Més enllà de l'òrbita de Neptú",
+          "Al voltant del Sol, dins de l'òrbita de Mercuri"
+        ],
+        "explanation": "Més enllà de l'òrbita de Neptú. És una regió amb forma de dònut plena de milions de cossos gelats, i Plutó en va ser el primer descobert."
+      },
+      "es": {
+        "statement": "¿Dónde está el cinturón de Kuiper, donde está Plutón?",
+        "options": [
+          "Entre la Tierra y Marte",
+          "Entre Marte y Júpiter",
+          "Más allá de la órbita de Neptuno",
+          "Alrededor del Sol, dentro de la órbita de Mercurio"
+        ],
+        "explanation": "Más allá de la órbita de Neptuno. Es una región con forma de dónut llena de millones de cuerpos helados, y Plutón fue el primero en descubrirse."
+      },
+      "en": {
+        "statement": "Where is the Kuiper Belt, home to Pluto?",
+        "options": [
+          "Between Earth and Mars",
+          "Between Mars and Jupiter",
+          "Beyond Neptune's orbit",
+          "Around the Sun, inside Mercury's orbit"
+        ],
+        "explanation": "Beyond Neptune's orbit. It is a doughnut-shaped region with millions of icy bodies, and Pluto was the first one discovered."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c82d-7a01-a6c3-6ed4c4225240",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/solar-system/kuiper-belt/facts/",
+    "translations": {
+      "ca": {
+        "statement": "Quin és l'objecte més llunyà mai explorat per una sonda, visitat per la New Horizons el 2019?",
+        "options": [
+          "Eris",
+          "Arrokoth",
+          "Plutó",
+          "Sedna"
+        ],
+        "explanation": "Arrokoth, al cinturó de Kuiper. La New Horizons hi va passar a prop l'1 de gener de 2019."
+      },
+      "es": {
+        "statement": "¿Cuál es el objeto más lejano jamás explorado por una sonda, visitado por la New Horizons en 2019?",
+        "options": [
+          "Eris",
+          "Arrokoth",
+          "Plutón",
+          "Sedna"
+        ],
+        "explanation": "Arrokoth, en el cinturón de Kuiper. La New Horizons pasó cerca el 1 de enero de 2019."
+      },
+      "en": {
+        "statement": "What is the most distant object ever explored by a spacecraft, visited by New Horizons in 2019?",
+        "options": [
+          "Eris",
+          "Arrokoth",
+          "Pluto",
+          "Sedna"
+        ],
+        "explanation": "Arrokoth, in the Kuiper Belt. New Horizons flew past it on 1 January 2019."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c82e-7d18-9c06-36a882c2c120",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/solar-system/oort-cloud/facts",
+    "translations": {
+      "ca": {
+        "statement": "Què és el núvol d'Oort?",
+        "options": [
+          "Una capa llunyana de cossos gelats que envolta el sistema solar",
+          "La capa de núvols de Venus",
+          "Una nebulosa on neixen estrelles",
+          "Un núvol de gas al voltant de Júpiter"
+        ],
+        "explanation": "Una gran closca de cossos gelats molt més enllà de Plutó. Encara no s'ha vist directament, però explica d'on vénen els cometes de període llarg."
+      },
+      "es": {
+        "statement": "¿Qué es la nube de Oort?",
+        "options": [
+          "Una capa lejana de cuerpos helados que rodea el sistema solar",
+          "La capa de nubes de Venus",
+          "Una nebulosa donde nacen estrellas",
+          "Una nube de gas alrededor de Júpiter"
+        ],
+        "explanation": "Una gran capa de cuerpos helados mucho más allá de Plutón. Aún no se ha visto directamente, pero explica de dónde vienen los cometas de periodo largo."
+      },
+      "en": {
+        "statement": "What is the Oort Cloud?",
+        "options": [
+          "A distant shell of icy bodies surrounding the solar system",
+          "Venus's cloud layer",
+          "A nebula where stars are born",
+          "A cloud of gas around Jupiter"
+        ],
+        "explanation": "A vast shell of icy bodies far beyond Pluto. It has not been seen directly, but it explains where long-period comets come from."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c82f-7d8e-bacc-08960eb74cc7",
+    "correct_option": 1,
+    "source_url": "https://spaceplace.nasa.gov/light-year",
+    "translations": {
+      "ca": {
+        "statement": "Què mesura un any llum?",
+        "options": [
+          "Una velocitat",
+          "Una distància",
+          "Una brillantor",
+          "Un temps"
+        ],
+        "explanation": "Una distància: la que recorre la llum en un any. No és una unitat de temps, encara que ho sembli."
+      },
+      "es": {
+        "statement": "¿Qué mide un año luz?",
+        "options": [
+          "Una velocidad",
+          "Una distancia",
+          "Un brillo",
+          "Un tiempo"
+        ],
+        "explanation": "Una distancia: la que recorre la luz en un año. No es una unidad de tiempo, aunque lo parezca."
+      },
+      "en": {
+        "statement": "What does a light-year measure?",
+        "options": [
+          "A speed",
+          "A distance",
+          "A brightness",
+          "A time"
+        ],
+        "explanation": "A distance: how far light travels in one year. It is not a unit of time, even though it sounds like one."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c830-7501-bcac-8bfa4353ee56",
+    "correct_option": 3,
+    "source_url": "https://spaceplace.nasa.gov/light-year",
+    "translations": {
+      "ca": {
+        "statement": "Aproximadament, quants quilòmetres és un any llum?",
+        "options": [
+          "Uns 150 milions de km",
+          "Uns 300.000 km",
+          "Uns 9.000 milions de km",
+          "Uns 9 bilions de km"
+        ],
+        "explanation": "Uns 9 bilions de km (un 9 seguit de 12 zeros). És la distància que fa la llum en un any."
+      },
+      "es": {
+        "statement": "Aproximadamente, ¿cuántos kilómetros es un año luz?",
+        "options": [
+          "Unos 150 millones de km",
+          "Unos 300.000 km",
+          "Unos 9.000 millones de km",
+          "Unos 9 billones de km"
+        ],
+        "explanation": "Unos 9 billones de km (un 9 seguido de 12 ceros). Es la distancia que recorre la luz en un año."
+      },
+      "en": {
+        "statement": "Roughly how many kilometers is one light-year?",
+        "options": [
+          "About 150 million km",
+          "About 300,000 km",
+          "About 9 billion km",
+          "About 9 trillion km"
+        ],
+        "explanation": "About 9 trillion km (a 9 followed by 12 zeros). It is how far light travels in one year."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c831-735f-bed8-2cbdca6a8bfe",
+    "correct_option": 3,
+    "source_url": "https://openstax.org/books/astronomy-2e/pages/17-2-colors-of-stars",
+    "translations": {
+      "ca": {
+        "statement": "De quin color són les estrelles més calentes?",
+        "options": [
+          "Vermelles",
+          "Taronges",
+          "Grogues",
+          "Blaves"
+        ],
+        "explanation": "Blaves, amb uns 25.000 graus o més. Les vermelles són les més fredes, al voltant dels 3.000 graus."
+      },
+      "es": {
+        "statement": "¿De qué color son las estrellas más calientes?",
+        "options": [
+          "Rojas",
+          "Naranjas",
+          "Amarillas",
+          "Azules"
+        ],
+        "explanation": "Azules, con unos 25.000 grados o más. Las rojas son las más frías, alrededor de los 3.000 grados."
+      },
+      "en": {
+        "statement": "What color are the hottest stars?",
+        "options": [
+          "Red",
+          "Orange",
+          "Yellow",
+          "Blue"
+        ],
+        "explanation": "Blue, at around 25,000 degrees or more. Red stars are the coolest, at about 3,000 degrees."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c832-7c40-a114-e1d0bd0ae14f",
+    "correct_option": 2,
+    "source_url": "https://www.nasa.gov/blogs/watch-the-skies/2024/09/06/betelgeuse-betelgeuse-betelgeuse-stargazers-wont-see-ghosts-but-supergiant-star-for-spooky-season",
+    "translations": {
+      "ca": {
+        "statement": "Quin tipus d'estrella és Betelgeuse, l'«espatlla» d'Orió?",
+        "options": [
+          "Una estrella de neutrons",
+          "Una nana blanca",
+          "Una supergegant vermella",
+          "Una nana groga"
+        ],
+        "explanation": "Una supergegant vermella. Probablement explotarà com a supernova d'aquí a uns 100.000 anys, massa lluny per afectar-nos."
+      },
+      "es": {
+        "statement": "¿Qué tipo de estrella es Betelgeuse, el «hombro» de Orión?",
+        "options": [
+          "Una estrella de neutrones",
+          "Una enana blanca",
+          "Una supergigante roja",
+          "Una enana amarilla"
+        ],
+        "explanation": "Una supergigante roja. Probablemente explotará como supernova dentro de unos 100.000 años, demasiado lejos para afectarnos."
+      },
+      "en": {
+        "statement": "What type of star is Betelgeuse, the 'shoulder' of Orion?",
+        "options": [
+          "A neutron star",
+          "A white dwarf",
+          "A red supergiant",
+          "A yellow dwarf"
+        ],
+        "explanation": "A red supergiant. It will probably explode as a supernova in about 100,000 years, too far away to affect us."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c833-7253-b192-c58ec9bca127",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/image-article/apod-1996-september-02-sirius-the-brightest-star-in-the-night/",
+    "translations": {
+      "ca": {
+        "statement": "Quina és l'estrella més brillant del cel nocturn?",
+        "options": [
+          "Sírius",
+          "L'estrella Polar",
+          "Vega",
+          "Betelgeuse"
+        ],
+        "explanation": "Sírius, a la constel·lació del Ca Major. Per això també s'anomena l'estrella del Gos."
+      },
+      "es": {
+        "statement": "¿Cuál es la estrella más brillante del cielo nocturno?",
+        "options": [
+          "Sirio",
+          "La estrella Polar",
+          "Vega",
+          "Betelgeuse"
+        ],
+        "explanation": "Sirio, en la constelación del Can Mayor. Por eso también se llama la estrella del Perro."
+      },
+      "en": {
+        "statement": "Which is the brightest star in the night sky?",
+        "options": [
+          "Sirius",
+          "Polaris",
+          "Vega",
+          "Betelgeuse"
+        ],
+        "explanation": "Sirius, in the constellation Canis Major. That is why it is also called the Dog Star."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c834-743c-a631-2cf0325af571",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/image-article/apod-1996-september-02-sirius-the-brightest-star-in-the-night/",
+    "translations": {
+      "ca": {
+        "statement": "Què va ser Sírius B, la companya de Sírius descoberta el 1862?",
+        "options": [
+          "El primer planeta fora del sistema solar",
+          "La primera estrella de neutrons",
+          "La primera nana blanca descoberta",
+          "El primer forat negre descobert"
+        ],
+        "explanation": "La primera nana blanca descoberta. És 10.000 vegades més feble que Sírius A."
+      },
+      "es": {
+        "statement": "¿Qué fue Sirio B, la compañera de Sirio descubierta en 1862?",
+        "options": [
+          "El primer planeta fuera del sistema solar",
+          "La primera estrella de neutrones",
+          "La primera enana blanca descubierta",
+          "El primer agujero negro descubierto"
+        ],
+        "explanation": "La primera enana blanca descubierta. Es 10.000 veces más débil que Sirio A."
+      },
+      "en": {
+        "statement": "What was Sirius B, the companion of Sirius discovered in 1862?",
+        "options": [
+          "The first planet outside the solar system",
+          "The first neutron star",
+          "The first white dwarf discovered",
+          "The first black hole discovered"
+        ],
+        "explanation": "The first white dwarf ever discovered. It is 10,000 times fainter than Sirius A."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c835-720c-92fa-17d804f4f455",
+    "correct_option": 1,
+    "source_url": "https://public.nrao.edu/tick-tock-pulsating-star/",
+    "translations": {
+      "ca": {
+        "statement": "Què és un púlsar?",
+        "options": [
+          "Una estrella que s'encén i s'apaga",
+          "Una estrella de neutrons que gira molt de pressa",
+          "Un planeta que emet ràdio",
+          "Un forat negre petit"
+        ],
+        "explanation": "Una estrella de neutrons molt magnetitzada que gira molt de pressa. Els seus feixos de radiació ens arriben com a polsos regulars."
+      },
+      "es": {
+        "statement": "¿Qué es un púlsar?",
+        "options": [
+          "Una estrella que se enciende y se apaga",
+          "Una estrella de neutrones que gira muy rápido",
+          "Un planeta que emite radio",
+          "Un agujero negro pequeño"
+        ],
+        "explanation": "Una estrella de neutrones muy magnetizada que gira muy rápido. Sus haces de radiación nos llegan como pulsos regulares."
+      },
+      "en": {
+        "statement": "What is a pulsar?",
+        "options": [
+          "A star that switches on and off",
+          "A rapidly spinning neutron star",
+          "A planet that gives off radio waves",
+          "A small black hole"
+        ],
+        "explanation": "A highly magnetized neutron star that spins very fast. Its beams of radiation reach us as regular pulses."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c836-76b6-a785-dcca935306c8",
+    "correct_option": 1,
+    "source_url": "https://public.nrao.edu/tick-tock-pulsating-star/",
+    "translations": {
+      "ca": {
+        "statement": "Qui va detectar el primer púlsar, el 1967, quan era estudiant de doctorat?",
+        "options": [
+          "Henrietta Leavitt",
+          "Jocelyn Bell Burnell",
+          "Cecilia Payne",
+          "Vera Rubin"
+        ],
+        "explanation": "Jocelyn Bell Burnell, a la Universitat de Cambridge. El seu director, Antony Hewish, va rebre el Nobel del 1974 pel descobriment."
+      },
+      "es": {
+        "statement": "¿Quién detectó el primer púlsar, en 1967, cuando era estudiante de doctorado?",
+        "options": [
+          "Henrietta Leavitt",
+          "Jocelyn Bell Burnell",
+          "Cecilia Payne",
+          "Vera Rubin"
+        ],
+        "explanation": "Jocelyn Bell Burnell, en la Universidad de Cambridge. Su director, Antony Hewish, recibió el Nobel de 1974 por el descubrimiento."
+      },
+      "en": {
+        "statement": "Who detected the first pulsar, in 1967, as a PhD student?",
+        "options": [
+          "Henrietta Leavitt",
+          "Jocelyn Bell Burnell",
+          "Cecilia Payne",
+          "Vera Rubin"
+        ],
+        "explanation": "Jocelyn Bell Burnell, at the University of Cambridge. Her supervisor, Antony Hewish, received the 1974 Nobel Prize for the discovery."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c837-7ce3-9428-d9699f3b11b9",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/missions/hubble/nasas-hubble-shows-milky-way-is-destined-for-head-on-collision-with-andromeda-galaxy",
+    "translations": {
+      "ca": {
+        "statement": "A quina distància de nosaltres és la galàxia d'Andròmeda?",
+        "options": [
+          "Uns 13.800 milions d'anys llum",
+          "Uns 4 anys llum",
+          "Uns 2,5 milions d'anys llum",
+          "Uns 25.000 anys llum"
+        ],
+        "explanation": "Uns 2,5 milions d'anys llum. És la gran galàxia més propera a la Via Làctia i s'hi està acostant."
+      },
+      "es": {
+        "statement": "¿A qué distancia de nosotros está la galaxia de Andrómeda?",
+        "options": [
+          "Unos 13.800 millones de años luz",
+          "Unos 4 años luz",
+          "Unos 2,5 millones de años luz",
+          "Unos 25.000 años luz"
+        ],
+        "explanation": "Unos 2,5 millones de años luz. Es la gran galaxia más cercana a la Vía Láctea y se está acercando."
+      },
+      "en": {
+        "statement": "How far away is the Andromeda galaxy?",
+        "options": [
+          "About 13.8 billion light-years",
+          "About 4 light-years",
+          "About 2.5 million light-years",
+          "About 25,000 light-years"
+        ],
+        "explanation": "About 2.5 million light-years. It is the nearest large galaxy to the Milky Way and is moving towards us."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c838-78e5-a5b7-33ec54b2608f",
+    "correct_option": 2,
+    "source_url": "https://svs.gsfc.nasa.gov/30133",
+    "translations": {
+      "ca": {
+        "statement": "Quina edat té l'univers, segons les mesures del satèl·lit Planck?",
+        "options": [
+          "Uns 100.000 milions d'anys",
+          "Uns 6.000 anys",
+          "Uns 13.800 milions d'anys",
+          "Uns 4.600 milions d'anys"
+        ],
+        "explanation": "Uns 13.800 milions d'anys. Els 4.600 milions són l'edat del sistema solar."
+      },
+      "es": {
+        "statement": "¿Qué edad tiene el universo, según las medidas del satélite Planck?",
+        "options": [
+          "Unos 100.000 millones de años",
+          "Unos 6.000 años",
+          "Unos 13.800 millones de años",
+          "Unos 4.600 millones de años"
+        ],
+        "explanation": "Unos 13.800 millones de años. Los 4.600 millones son la edad del sistema solar."
+      },
+      "en": {
+        "statement": "How old is the universe, according to measurements by the Planck satellite?",
+        "options": [
+          "About 100 billion years",
+          "About 6,000 years",
+          "About 13.8 billion years",
+          "About 4.6 billion years"
+        ],
+        "explanation": "About 13.8 billion years. The 4.6 billion years figure is the age of the solar system."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c839-7d04-b06b-3d85fd647544",
+    "correct_option": 1,
+    "source_url": "https://svs.gsfc.nasa.gov/30133",
+    "translations": {
+      "ca": {
+        "statement": "Què és el fons còsmic de microones?",
+        "options": [
+          "La llum del Sol reflectida per la Lluna",
+          "La llum més antiga de l'univers",
+          "El soroll de les antenes de mòbil",
+          "La radiació dels forats negres"
+        ],
+        "explanation": "La llum més antiga de l'univers, emesa uns 370.000 anys després del Big Bang. Encara la podem detectar en totes direccions."
+      },
+      "es": {
+        "statement": "¿Qué es el fondo cósmico de microondas?",
+        "options": [
+          "La luz del Sol reflejada por la Luna",
+          "La luz más antigua del universo",
+          "El ruido de las antenas de móvil",
+          "La radiación de los agujeros negros"
+        ],
+        "explanation": "La luz más antigua del universo, emitida unos 370.000 años después del Big Bang. Todavía podemos detectarla en todas direcciones."
+      },
+      "en": {
+        "statement": "What is the cosmic microwave background?",
+        "options": [
+          "Sunlight reflected by the Moon",
+          "The oldest light in the universe",
+          "Noise from mobile phone masts",
+          "Radiation from black holes"
+        ],
+        "explanation": "The oldest light in the universe, released about 370,000 years after the Big Bang. We can still detect it in every direction."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c83a-71fb-9555-51bcd6040d9f",
+    "correct_option": 1,
+    "source_url": "https://svs.gsfc.nasa.gov/12307",
+    "translations": {
+      "ca": {
+        "statement": "Què forma la major part del contingut de l'univers, segons les dades de Planck?",
+        "options": [
+          "La matèria normal",
+          "L'energia fosca",
+          "La radiació",
+          "La matèria fosca"
+        ],
+        "explanation": "L'energia fosca, amb un 68 % aproximadament. És la responsable que l'expansió de l'univers s'acceleri."
+      },
+      "es": {
+        "statement": "¿Qué forma la mayor parte del contenido del universo, según los datos de Planck?",
+        "options": [
+          "La materia normal",
+          "La energía oscura",
+          "La radiación",
+          "La materia oscura"
+        ],
+        "explanation": "La energía oscura, con un 68 % aproximadamente. Es la responsable de que la expansión del universo se acelere."
+      },
+      "en": {
+        "statement": "What makes up most of the content of the universe, according to Planck data?",
+        "options": [
+          "Ordinary matter",
+          "Dark energy",
+          "Radiation",
+          "Dark matter"
+        ],
+        "explanation": "Dark energy, at about 68%. It is what makes the expansion of the universe speed up."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c83b-7f44-96f3-e09c0e9b7b51",
+    "correct_option": 3,
+    "source_url": "https://svs.gsfc.nasa.gov/12307",
+    "translations": {
+      "ca": {
+        "statement": "Quina part de l'univers és matèria normal, la que forma estrelles, planetes i persones?",
+        "options": [
+          "Al voltant del 50 %",
+          "Al voltant del 95 %",
+          "Al voltant del 27 %",
+          "Al voltant del 5 %"
+        ],
+        "explanation": "Al voltant del 5 %. La resta és matèria fosca (uns 27 %) i energia fosca (uns 68 %)."
+      },
+      "es": {
+        "statement": "¿Qué parte del universo es materia normal, la que forma estrellas, planetas y personas?",
+        "options": [
+          "Alrededor del 50 %",
+          "Alrededor del 95 %",
+          "Alrededor del 27 %",
+          "Alrededor del 5 %"
+        ],
+        "explanation": "Alrededor del 5 %. El resto es materia oscura (unos 27 %) y energía oscura (unos 68 %)."
+      },
+      "en": {
+        "statement": "What share of the universe is ordinary matter, the stuff of stars, planets and people?",
+        "options": [
+          "About 50%",
+          "About 95%",
+          "About 27%",
+          "About 5%"
+        ],
+        "explanation": "About 5%. The rest is dark matter (about 27%) and dark energy (about 68%)."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c83c-7b6f-b964-03ee7421198c",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/people/edwin-hubble",
+    "translations": {
+      "ca": {
+        "statement": "Què va demostrar Edwin Hubble sobre la «nebulosa» d'Andròmeda?",
+        "options": [
+          "Que és un cúmul d'estrelles de la nostra galàxia",
+          "Que és un núvol de gas proper",
+          "Que és una estrella a punt d'explotar",
+          "Que és una galàxia fora de la Via Làctia"
+        ],
+        "explanation": "Que és una galàxia fora de la Via Làctia. Així va mostrar que existeixen milions de galàxies a part de la nostra."
+      },
+      "es": {
+        "statement": "¿Qué demostró Edwin Hubble sobre la «nebulosa» de Andrómeda?",
+        "options": [
+          "Que es un cúmulo de estrellas de nuestra galaxia",
+          "Que es una nube de gas cercana",
+          "Que es una estrella a punto de explotar",
+          "Que es una galaxia fuera de la Vía Láctea"
+        ],
+        "explanation": "Que es una galaxia fuera de la Vía Láctea. Así mostró que existen millones de galaxias aparte de la nuestra."
+      },
+      "en": {
+        "statement": "What did Edwin Hubble show about the Andromeda 'nebula'?",
+        "options": [
+          "That it is a star cluster in our galaxy",
+          "That it is a nearby gas cloud",
+          "That it is a star about to explode",
+          "That it is a galaxy outside the Milky Way"
+        ],
+        "explanation": "That it is a galaxy outside the Milky Way. This showed that millions of galaxies exist besides our own."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c83d-7bc1-ad83-69d98d915dcb",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/people/edwin-hubble",
+    "translations": {
+      "ca": {
+        "statement": "Què va descobrir Edwin Hubble el 1929 en observar que les galàxies llunyanes s'allunyen?",
+        "options": [
+          "Que la Via Làctia és el centre de l'univers",
+          "Que l'univers s'encongeix",
+          "Que les galàxies no es mouen",
+          "Que l'univers s'expandeix"
+        ],
+        "explanation": "Que l'univers s'expandeix: com més lluny és una galàxia, més de pressa s'allunya. És una de les bases de la teoria del Big Bang."
+      },
+      "es": {
+        "statement": "¿Qué descubrió Edwin Hubble en 1929 al observar que las galaxias lejanas se alejan?",
+        "options": [
+          "Que la Vía Láctea es el centro del universo",
+          "Que el universo se encoge",
+          "Que las galaxias no se mueven",
+          "Que el universo se expande"
+        ],
+        "explanation": "Que el universo se expande: cuanto más lejos está una galaxia, más rápido se aleja. Es una de las bases de la teoría del Big Bang."
+      },
+      "en": {
+        "statement": "What did Edwin Hubble discover in 1929 by observing that distant galaxies are moving away?",
+        "options": [
+          "That the Milky Way is the center of the universe",
+          "That the universe is shrinking",
+          "That galaxies do not move",
+          "That the universe is expanding"
+        ],
+        "explanation": "That the universe is expanding: the farther away a galaxy is, the faster it recedes. This is one of the foundations of the Big Bang theory."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c83e-7728-bea0-bb3ae074b7fe",
+    "correct_option": 0,
+    "source_url": "https://earthsky.org/space/this-date-in-science-first-planet-discovered-around-sunlike-star",
+    "translations": {
+      "ca": {
+        "statement": "Com es diu el primer planeta descobert al voltant d'una estrella semblant al Sol, el 1995?",
+        "options": [
+          "51 Pegasi b",
+          "Pròxima b",
+          "TRAPPIST-1e",
+          "Kepler-22b"
+        ],
+        "explanation": "51 Pegasi b, descobert per Michel Mayor i Didier Queloz. És un «Júpiter calent» que fa una volta a la seva estrella cada quatre dies."
+      },
+      "es": {
+        "statement": "¿Cómo se llama el primer planeta descubierto alrededor de una estrella parecida al Sol, en 1995?",
+        "options": [
+          "51 Pegasi b",
+          "Próxima b",
+          "TRAPPIST-1e",
+          "Kepler-22b"
+        ],
+        "explanation": "51 Pegasi b, descubierto por Michel Mayor y Didier Queloz. Es un «Júpiter caliente» que da una vuelta a su estrella cada cuatro días."
+      },
+      "en": {
+        "statement": "What is the name of the first planet discovered around a Sun-like star, in 1995?",
+        "options": [
+          "51 Pegasi b",
+          "Proxima b",
+          "TRAPPIST-1e",
+          "Kepler-22b"
+        ],
+        "explanation": "51 Pegasi b, discovered by Michel Mayor and Didier Queloz. It is a 'hot Jupiter' that orbits its star every four days."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c83f-7893-9fe1-1c16aa48aa58",
+    "correct_option": 1,
+    "source_url": "https://www.nasa.gov/news-release/nasa-telescope-reveals-largest-batch-of-earth-size-habitable-zone-planets-around-single-star",
+    "translations": {
+      "ca": {
+        "statement": "Quants planetes de la mida de la Terra té l'estrella TRAPPIST-1?",
+        "options": [
+          "Tres",
+          "Set",
+          "Un",
+          "Dotze"
+        ],
+        "explanation": "Set, descoberts amb el telescopi Spitzer el 2017. Tres són a la zona habitable, on hi podria haver aigua líquida."
+      },
+      "es": {
+        "statement": "¿Cuántos planetas del tamaño de la Tierra tiene la estrella TRAPPIST-1?",
+        "options": [
+          "Tres",
+          "Siete",
+          "Uno",
+          "Doce"
+        ],
+        "explanation": "Siete, descubiertos con el telescopio Spitzer en 2017. Tres están en la zona habitable, donde podría haber agua líquida."
+      },
+      "en": {
+        "statement": "How many Earth-size planets does the star TRAPPIST-1 have?",
+        "options": [
+          "Three",
+          "Seven",
+          "One",
+          "Twelve"
+        ],
+        "explanation": "Seven, discovered with the Spitzer telescope in 2017. Three are in the habitable zone, where liquid water could exist."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c840-7429-b65f-83d3689d70bb",
+    "correct_option": 1,
+    "source_url": "https://spaceplace.nasa.gov/black-holes/",
+    "translations": {
+      "ca": {
+        "statement": "Què no pot escapar d'un forat negre?",
+        "options": [
+          "Només els asteroides",
+          "Res, ni tan sols la llum",
+          "Només els planetes",
+          "Només el gas"
+        ],
+        "explanation": "Res, ni tan sols la llum. La seva gravetat és tan intensa que tot el que hi cau no en pot sortir."
+      },
+      "es": {
+        "statement": "¿Qué no puede escapar de un agujero negro?",
+        "options": [
+          "Solo los asteroides",
+          "Nada, ni siquiera la luz",
+          "Solo los planetas",
+          "Solo el gas"
+        ],
+        "explanation": "Nada, ni siquiera la luz. Su gravedad es tan intensa que todo lo que cae en él no puede salir."
+      },
+      "en": {
+        "statement": "What cannot escape from a black hole?",
+        "options": [
+          "Only asteroids",
+          "Nothing can, not even light",
+          "Only planets",
+          "Only gas"
+        ],
+        "explanation": "Nothing can escape, not even light. Its gravity is so strong that anything that falls in cannot get out."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c841-778c-8ad0-56cbe3bb7687",
+    "correct_option": 1,
+    "source_url": "https://eso.org/public/images/eso1907a",
+    "translations": {
+      "ca": {
+        "statement": "De quina galàxia és el forat negre de la primera imatge directa d'un forat negre, publicada el 2019?",
+        "options": [
+          "El Gran Núvol de Magalhães",
+          "M87",
+          "Andròmeda",
+          "La Via Làctia"
+        ],
+        "explanation": "De la galàxia M87. La imatge la va obtenir l'Event Horizon Telescope, una xarxa de radiotelescopis de tot el planeta."
+      },
+      "es": {
+        "statement": "¿De qué galaxia es el agujero negro de la primera imagen directa de un agujero negro, publicada en 2019?",
+        "options": [
+          "La Gran Nube de Magallanes",
+          "M87",
+          "Andrómeda",
+          "La Vía Láctea"
+        ],
+        "explanation": "De la galaxia M87. La imagen la obtuvo el Event Horizon Telescope, una red de radiotelescopios de todo el planeta."
+      },
+      "en": {
+        "statement": "Which galaxy is home to the black hole in the first direct image of a black hole, published in 2019?",
+        "options": [
+          "The Large Magellanic Cloud",
+          "M87",
+          "Andromeda",
+          "The Milky Way"
+        ],
+        "explanation": "The galaxy M87. The image was taken by the Event Horizon Telescope, a network of radio telescopes across the planet."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c842-714d-b812-3303f9925db1",
+    "correct_option": 0,
+    "source_url": "https://svs.gsfc.nasa.gov/11477",
+    "translations": {
+      "ca": {
+        "statement": "On neixen les estrelles?",
+        "options": [
+          "En núvols de gas i pols anomenats nebuloses",
+          "Dins dels forats negres",
+          "A les llunes dels planetes",
+          "A les cues dels cometes"
+        ],
+        "explanation": "En nebuloses: núvols de gas i pols on la matèria s'ajunta fins que s'encén una estrella nova. El Sol també va néixer així."
+      },
+      "es": {
+        "statement": "¿Dónde nacen las estrellas?",
+        "options": [
+          "En nubes de gas y polvo llamadas nebulosas",
+          "Dentro de los agujeros negros",
+          "En las lunas de los planetas",
+          "En las colas de los cometas"
+        ],
+        "explanation": "En nebulosas: nubes de gas y polvo donde la materia se junta hasta que se enciende una estrella nueva. El Sol también nació así."
+      },
+      "en": {
+        "statement": "Where are stars born?",
+        "options": [
+          "In clouds of gas and dust called nebulae",
+          "Inside black holes",
+          "On the moons of planets",
+          "In the tails of comets"
+        ],
+        "explanation": "In nebulae: clouds of gas and dust where matter clumps together until a new star switches on. The Sun was born this way too."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c843-72a6-9a8d-920e9e497843",
+    "correct_option": 1,
+    "source_url": "https://svs.gsfc.nasa.gov/11477",
+    "translations": {
+      "ca": {
+        "statement": "A quina nebulosa són els famosos «Pilars de la Creació»?",
+        "options": [
+          "La nebulosa d'Orió",
+          "La nebulosa de l'Àguila",
+          "La nebulosa del Cranc",
+          "La nebulosa de la Hèlix"
+        ],
+        "explanation": "A la nebulosa de l'Àguila, a uns 6.500 anys llum. Són columnes de gas i pols on s'estan formant estrelles noves."
+      },
+      "es": {
+        "statement": "¿En qué nebulosa están los famosos «Pilares de la Creación»?",
+        "options": [
+          "La nebulosa de Orión",
+          "La nebulosa del Águila",
+          "La nebulosa del Cangrejo",
+          "La nebulosa de la Hélice"
+        ],
+        "explanation": "En la nebulosa del Águila, a unos 6.500 años luz. Son columnas de gas y polvo donde se están formando estrellas nuevas."
+      },
+      "en": {
+        "statement": "In which nebula are the famous 'Pillars of Creation'?",
+        "options": [
+          "The Orion Nebula",
+          "The Eagle Nebula",
+          "The Crab Nebula",
+          "The Helix Nebula"
+        ],
+        "explanation": "The Eagle Nebula, about 6,500 light-years away. They are columns of gas and dust where new stars are forming."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c844-7aaf-883e-efca9f9db58e",
+    "correct_option": 3,
+    "source_url": "https://www.nasa.gov/wp-content/uploads/static/history/sputnik/index.html",
+    "translations": {
+      "ca": {
+        "statement": "Quin va ser el primer satèl·lit artificial, llançat el 1957?",
+        "options": [
+          "Vostok 1",
+          "Explorer 1",
+          "Hubble",
+          "Sputnik 1"
+        ],
+        "explanation": "L'Sputnik 1, llançat per la Unió Soviètica el 4 d'octubre de 1957. Feia una volta a la Terra cada 98 minuts."
+      },
+      "es": {
+        "statement": "¿Cuál fue el primer satélite artificial, lanzado en 1957?",
+        "options": [
+          "Vostok 1",
+          "Explorer 1",
+          "Hubble",
+          "Sputnik 1"
+        ],
+        "explanation": "El Sputnik 1, lanzado por la Unión Soviética el 4 de octubre de 1957. Daba una vuelta a la Tierra cada 98 minutos."
+      },
+      "en": {
+        "statement": "What was the first artificial satellite, launched in 1957?",
+        "options": [
+          "Vostok 1",
+          "Explorer 1",
+          "Hubble",
+          "Sputnik 1"
+        ],
+        "explanation": "Sputnik 1, launched by the Soviet Union on 4 October 1957. It orbited Earth every 98 minutes."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c845-7b71-bf10-6e22ade8d121",
+    "correct_option": 3,
+    "source_url": "https://planetary.org/space-missions/vostok-1",
+    "translations": {
+      "ca": {
+        "statement": "Qui va ser el primer ésser humà a viatjar a l'espai, el 1961?",
+        "options": [
+          "Neil Armstrong",
+          "Valentina Tereixkova",
+          "Buzz Aldrin",
+          "Iuri Gagarin"
+        ],
+        "explanation": "Iuri Gagarin, el 12 d'abril de 1961, a bord de la Vostok 1. El vol va durar 108 minuts i va fer una volta a la Terra."
+      },
+      "es": {
+        "statement": "¿Quién fue el primer ser humano en viajar al espacio, en 1961?",
+        "options": [
+          "Neil Armstrong",
+          "Valentina Tereshkova",
+          "Buzz Aldrin",
+          "Yuri Gagarin"
+        ],
+        "explanation": "Yuri Gagarin, el 12 de abril de 1961, a bordo de la Vostok 1. El vuelo duró 108 minutos y dio una vuelta a la Tierra."
+      },
+      "en": {
+        "statement": "Who was the first human to travel to space, in 1961?",
+        "options": [
+          "Neil Armstrong",
+          "Valentina Tereshkova",
+          "Buzz Aldrin",
+          "Yuri Gagarin"
+        ],
+        "explanation": "Yuri Gagarin, on 12 April 1961, aboard Vostok 1. The flight lasted 108 minutes and made one orbit of Earth."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c846-7d64-ada7-47640c014d3d",
+    "correct_option": 3,
+    "source_url": "https://www.nasa.gov/missions/apollo/apollo-11-mission-overview/",
+    "translations": {
+      "ca": {
+        "statement": "Qui va ser la primera persona a trepitjar la Lluna, el 1969?",
+        "options": [
+          "Buzz Aldrin",
+          "Iuri Gagarin",
+          "Michael Collins",
+          "Neil Armstrong"
+        ],
+        "explanation": "Neil Armstrong, el 20 de juliol de 1969, amb l'Apollo 11. Buzz Aldrin el va seguir uns 20 minuts després."
+      },
+      "es": {
+        "statement": "¿Quién fue la primera persona en pisar la Luna, en 1969?",
+        "options": [
+          "Buzz Aldrin",
+          "Yuri Gagarin",
+          "Michael Collins",
+          "Neil Armstrong"
+        ],
+        "explanation": "Neil Armstrong, el 20 de julio de 1969, con el Apolo 11. Buzz Aldrin lo siguió unos 20 minutos después."
+      },
+      "en": {
+        "statement": "Who was the first person to walk on the Moon, in 1969?",
+        "options": [
+          "Buzz Aldrin",
+          "Yuri Gagarin",
+          "Michael Collins",
+          "Neil Armstrong"
+        ],
+        "explanation": "Neil Armstrong, on 20 July 1969, with Apollo 11. Buzz Aldrin followed him about 20 minutes later."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c847-7f22-9243-041977b4cf8f",
+    "correct_option": 1,
+    "source_url": "https://www.nasa.gov/missions/apollo/apollo-11-mission-overview/",
+    "translations": {
+      "ca": {
+        "statement": "Quin astronauta de l'Apollo 11 es va quedar en òrbita al voltant de la Lluna sense baixar-hi?",
+        "options": [
+          "Buzz Aldrin",
+          "Michael Collins",
+          "Neil Armstrong",
+          "Jim Lovell"
+        ],
+        "explanation": "Michael Collins, que va pilotar el mòdul de comandament Columbia mentre els seus companys eren a la superfície."
+      },
+      "es": {
+        "statement": "¿Qué astronauta del Apolo 11 se quedó en órbita alrededor de la Luna sin bajar?",
+        "options": [
+          "Buzz Aldrin",
+          "Michael Collins",
+          "Neil Armstrong",
+          "Jim Lovell"
+        ],
+        "explanation": "Michael Collins, que pilotó el módulo de mando Columbia mientras sus compañeros estaban en la superficie."
+      },
+      "en": {
+        "statement": "Which Apollo 11 astronaut stayed in orbit around the Moon without landing?",
+        "options": [
+          "Buzz Aldrin",
+          "Michael Collins",
+          "Neil Armstrong",
+          "Jim Lovell"
+        ],
+        "explanation": "Michael Collins, who flew the command module Columbia while his crewmates were on the surface."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c848-7931-8d18-d1f0d1e8337b",
+    "correct_option": 1,
+    "source_url": "https://www.nasa.gov/missions/apollo/apollo-11-mission-overview/",
+    "translations": {
+      "ca": {
+        "statement": "On va allunar el mòdul Eagle de l'Apollo 11?",
+        "options": [
+          "Al mar de les Tempestes",
+          "Al mar de la Tranquil·litat",
+          "Al cràter Tycho",
+          "A la cara oculta de la Lluna"
+        ],
+        "explanation": "Al mar de la Tranquil·litat, una gran plana fosca de la cara visible de la Lluna."
+      },
+      "es": {
+        "statement": "¿Dónde alunizó el módulo Eagle del Apolo 11?",
+        "options": [
+          "En el océano de las Tormentas",
+          "En el mar de la Tranquilidad",
+          "En el cráter Tycho",
+          "En la cara oculta de la Luna"
+        ],
+        "explanation": "En el mar de la Tranquilidad, una gran llanura oscura de la cara visible de la Luna."
+      },
+      "en": {
+        "statement": "Where did Apollo 11's lunar module Eagle land?",
+        "options": [
+          "The Ocean of Storms",
+          "The Sea of Tranquility",
+          "Tycho crater",
+          "The far side of the Moon"
+        ],
+        "explanation": "The Sea of Tranquility, a large dark plain on the near side of the Moon."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c849-7d0e-9536-f8c3d7deeb96",
+    "correct_option": 1,
+    "source_url": "https://www.jpl.nasa.gov/missions/voyager-1/",
+    "translations": {
+      "ca": {
+        "statement": "Quin és l'objecte fet per humans més llunyà de la Terra?",
+        "options": [
+          "La sonda New Horizons",
+          "La sonda Voyager 1",
+          "L'Estació Espacial Internacional",
+          "El telescopi James Webb"
+        ],
+        "explanation": "La Voyager 1, llançada el 1977. Encara envia dades des de l'espai interestel·lar."
+      },
+      "es": {
+        "statement": "¿Cuál es el objeto hecho por humanos más lejano de la Tierra?",
+        "options": [
+          "La sonda New Horizons",
+          "La sonda Voyager 1",
+          "La Estación Espacial Internacional",
+          "El telescopio James Webb"
+        ],
+        "explanation": "La Voyager 1, lanzada en 1977. Todavía envía datos desde el espacio interestelar."
+      },
+      "en": {
+        "statement": "What is the human-made object farthest from Earth?",
+        "options": [
+          "The New Horizons probe",
+          "The Voyager 1 probe",
+          "The International Space Station",
+          "The James Webb telescope"
+        ],
+        "explanation": "Voyager 1, launched in 1977. It still sends data from interstellar space."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c84a-79a7-8dbe-48dc6fb9e97a",
+    "correct_option": 2,
+    "source_url": "https://www.jpl.nasa.gov/missions/voyager-1/",
+    "translations": {
+      "ca": {
+        "statement": "En quin any la Voyager 1 va arribar a l'espai interestel·lar?",
+        "options": [
+          "2020",
+          "1990",
+          "2012",
+          "1977"
+        ],
+        "explanation": "El 2012, 35 anys després del llançament. És la primera nau que ha sortit de la bombolla del vent solar."
+      },
+      "es": {
+        "statement": "¿En qué año la Voyager 1 llegó al espacio interestelar?",
+        "options": [
+          "2020",
+          "1990",
+          "2012",
+          "1977"
+        ],
+        "explanation": "En 2012, 35 años después del lanzamiento. Es la primera nave que ha salido de la burbuja del viento solar."
+      },
+      "en": {
+        "statement": "In which year did Voyager 1 reach interstellar space?",
+        "options": [
+          "2020",
+          "1990",
+          "2012",
+          "1977"
+        ],
+        "explanation": "In 2012, 35 years after launch. It is the first spacecraft to leave the bubble of the solar wind."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c84b-79d4-8076-a60b27e6a8ca",
+    "correct_option": 0,
+    "source_url": "https://www.jpl.nasa.gov/missions/voyager-1/",
+    "translations": {
+      "ca": {
+        "statement": "Què porta la Voyager 1 per si la troben extraterrestres?",
+        "options": [
+          "Un disc daurat amb sons i imatges de la Terra",
+          "Un mapa del cos humà en 3D",
+          "Una bandera de les Nacions Unides",
+          "Una càpsula amb llavors"
+        ],
+        "explanation": "El Disc d'Or: un disc de coure daurat amb sons i imatges que expliquen com és la Terra."
+      },
+      "es": {
+        "statement": "¿Qué lleva la Voyager 1 por si la encuentran extraterrestres?",
+        "options": [
+          "Un disco dorado con sonidos e imágenes de la Tierra",
+          "Un mapa del cuerpo humano en 3D",
+          "Una bandera de las Naciones Unidas",
+          "Una cápsula con semillas"
+        ],
+        "explanation": "El Disco de Oro: un disco de cobre dorado con sonidos e imágenes que explican cómo es la Tierra."
+      },
+      "en": {
+        "statement": "What does Voyager 1 carry in case aliens find it?",
+        "options": [
+          "A golden record with sounds and images of Earth",
+          "A 3D map of the human body",
+          "A United Nations flag",
+          "A capsule of seeds"
+        ],
+        "explanation": "The Golden Record: a gold-plated copper disk with sounds and images that tell the story of Earth."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c84c-724f-9c19-afbffbb20700",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/mission/hubble/observatory/missions-to-hubble/deployment",
+    "translations": {
+      "ca": {
+        "statement": "En quin any es va llançar el telescopi espacial Hubble?",
+        "options": [
+          "2005",
+          "1969",
+          "1990",
+          "2021"
+        ],
+        "explanation": "El 1990, a bord del transbordador Discovery. Encara funciona avui."
+      },
+      "es": {
+        "statement": "¿En qué año se lanzó el telescopio espacial Hubble?",
+        "options": [
+          "2005",
+          "1969",
+          "1990",
+          "2021"
+        ],
+        "explanation": "En 1990, a bordo del transbordador Discovery. Todavía funciona hoy."
+      },
+      "en": {
+        "statement": "In which year was the Hubble Space Telescope launched?",
+        "options": [
+          "2005",
+          "1969",
+          "1990",
+          "2021"
+        ],
+        "explanation": "In 1990, aboard the Space Shuttle Discovery. It still works today."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c84d-7f3a-a5c5-705b1be402a4",
+    "correct_option": 2,
+    "source_url": "https://science.nasa.gov/mission/webb/fact-sheet",
+    "translations": {
+      "ca": {
+        "statement": "Quin tipus de llum observa sobretot el telescopi espacial James Webb?",
+        "options": [
+          "Ones de ràdio",
+          "Ultraviolada",
+          "Infraroja",
+          "Raigs X"
+        ],
+        "explanation": "Infraroja. Així pot veure a través de la pols i observar galàxies molt llunyanes i antigues."
+      },
+      "es": {
+        "statement": "¿Qué tipo de luz observa sobre todo el telescopio espacial James Webb?",
+        "options": [
+          "Ondas de radio",
+          "Ultravioleta",
+          "Infrarroja",
+          "Rayos X"
+        ],
+        "explanation": "Infrarroja. Así puede ver a través del polvo y observar galaxias muy lejanas y antiguas."
+      },
+      "en": {
+        "statement": "What kind of light does the James Webb Space Telescope mainly observe?",
+        "options": [
+          "Radio waves",
+          "Ultraviolet",
+          "Infrared",
+          "X-rays"
+        ],
+        "explanation": "Infrared. This lets it see through dust and observe very distant, ancient galaxies."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c84e-7678-a484-fe38a7476cb0",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/mission/webb/fact-sheet",
+    "translations": {
+      "ca": {
+        "statement": "On és el telescopi James Webb?",
+        "options": [
+          "A uns 1,5 milions de km de la Terra, al punt L2",
+          "A la superfície de la Lluna",
+          "En òrbita al voltant de Mart",
+          "En òrbita baixa, com el Hubble"
+        ],
+        "explanation": "A uns 1,5 milions de km de la Terra, al voltant del punt L2, on es manté protegit de la calor del Sol."
+      },
+      "es": {
+        "statement": "¿Dónde está el telescopio James Webb?",
+        "options": [
+          "A unos 1,5 millones de km de la Tierra, en el punto L2",
+          "En la superficie de la Luna",
+          "En órbita alrededor de Marte",
+          "En órbita baja, como el Hubble"
+        ],
+        "explanation": "A unos 1,5 millones de km de la Tierra, alrededor del punto L2, donde se mantiene protegido del calor del Sol."
+      },
+      "en": {
+        "statement": "Where is the James Webb telescope?",
+        "options": [
+          "About 1.5 million km from Earth, at the L2 point",
+          "On the surface of the Moon",
+          "In orbit around Mars",
+          "In low orbit, like Hubble"
+        ],
+        "explanation": "About 1.5 million km from Earth, around the L2 point, where it stays shielded from the Sun's heat."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c84f-7b54-bee5-527ac38d3415",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/mission/webb/fact-sheet",
+    "translations": {
+      "ca": {
+        "statement": "Quin diàmetre té el mirall principal del telescopi James Webb?",
+        "options": [
+          "Uns 6,5 metres",
+          "Uns 30 metres",
+          "Uns 2,4 metres",
+          "Uns 50 centímetres"
+        ],
+        "explanation": "Uns 6,5 metres. Està format per 18 segments i és molt més gran que el del Hubble."
+      },
+      "es": {
+        "statement": "¿Qué diámetro tiene el espejo principal del telescopio James Webb?",
+        "options": [
+          "Unos 6,5 metros",
+          "Unos 30 metros",
+          "Unos 2,4 metros",
+          "Unos 50 centímetros"
+        ],
+        "explanation": "Unos 6,5 metros. Está formado por 18 segmentos y es mucho más grande que el del Hubble."
+      },
+      "en": {
+        "statement": "What is the diameter of the James Webb telescope's main mirror?",
+        "options": [
+          "About 6.5 meters",
+          "About 30 meters",
+          "About 2.4 meters",
+          "About 50 centimeters"
+        ],
+        "explanation": "About 6.5 meters. It is made of 18 segments and is much larger than Hubble's."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c850-7788-b8d9-53e0d15da3cf",
+    "correct_option": 2,
+    "source_url": "https://www.slashgear.com/1949953/international-space-station-what-happens-ever-90-minutes-explained",
+    "translations": {
+      "ca": {
+        "statement": "Quant triga l'Estació Espacial Internacional a fer una volta a la Terra?",
+        "options": [
+          "Una setmana",
+          "Un dia",
+          "Uns 90 minuts",
+          "Un mes"
+        ],
+        "explanation": "Uns 90 minuts. Per això els astronautes veuen unes 16 sortides i postes de sol cada dia."
+      },
+      "es": {
+        "statement": "¿Cuánto tarda la Estación Espacial Internacional en dar una vuelta a la Tierra?",
+        "options": [
+          "Una semana",
+          "Un día",
+          "Unos 90 minutos",
+          "Un mes"
+        ],
+        "explanation": "Unos 90 minutos. Por eso los astronautas ven unos 16 amaneceres y atardeceres cada día."
+      },
+      "en": {
+        "statement": "How long does the International Space Station take to orbit Earth?",
+        "options": [
+          "One week",
+          "One day",
+          "About 90 minutes",
+          "One month"
+        ],
+        "explanation": "About 90 minutes. That is why astronauts see about 16 sunrises and sunsets every day."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c851-7ae8-b0a0-fcdac3ea3966",
+    "correct_option": 1,
+    "source_url": "https://spaceplace.nasa.gov/seasons/en",
+    "translations": {
+      "ca": {
+        "statement": "Què causa les estacions de l'any a la Terra?",
+        "options": [
+          "Els canvis de brillantor del Sol",
+          "La inclinació de l'eix de la Terra",
+          "La distància entre la Terra i el Sol",
+          "La posició de la Lluna"
+        ],
+        "explanation": "La inclinació de l'eix de la Terra. De fet, la Terra és més a prop del Sol al gener, en ple hivern a l'hemisferi nord."
+      },
+      "es": {
+        "statement": "¿Qué causa las estaciones del año en la Tierra?",
+        "options": [
+          "Los cambios de brillo del Sol",
+          "La inclinación del eje de la Tierra",
+          "La distancia entre la Tierra y el Sol",
+          "La posición de la Luna"
+        ],
+        "explanation": "La inclinación del eje de la Tierra. De hecho, la Tierra está más cerca del Sol en enero, en pleno invierno en el hemisferio norte."
+      },
+      "en": {
+        "statement": "What causes the seasons on Earth?",
+        "options": [
+          "Changes in the Sun's brightness",
+          "The tilt of Earth's axis",
+          "The distance between Earth and the Sun",
+          "The position of the Moon"
+        ],
+        "explanation": "The tilt of Earth's axis. In fact, Earth is closest to the Sun in January, in the middle of the northern winter."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c852-78e7-a6ac-47729206bf41",
+    "correct_option": 2,
+    "source_url": "https://spaceplace.nasa.gov/blue-sky/",
+    "translations": {
+      "ca": {
+        "statement": "Per què el cel és blau de dia?",
+        "options": [
+          "Reflecteix el color dels oceans",
+          "L'atmosfera és de color blau",
+          "L'aire dispersa més la llum blava que la resta de colors",
+          "La llum del Sol és blava"
+        ],
+        "explanation": "Les molècules de l'aire dispersen la llum del Sol, i la blava es dispersa més perquè té ones més curtes."
+      },
+      "es": {
+        "statement": "¿Por qué el cielo es azul de día?",
+        "options": [
+          "Refleja el color de los océanos",
+          "La atmósfera es de color azul",
+          "El aire dispersa más la luz azul que el resto de colores",
+          "La luz del Sol es azul"
+        ],
+        "explanation": "Las moléculas del aire dispersan la luz del Sol, y la azul se dispersa más porque tiene ondas más cortas."
+      },
+      "en": {
+        "statement": "Why is the sky blue during the day?",
+        "options": [
+          "It reflects the color of the oceans",
+          "The atmosphere is colored blue",
+          "Air scatters blue light more than other colors",
+          "Sunlight is blue"
+        ],
+        "explanation": "Molecules in the air scatter sunlight, and blue light scatters the most because it travels in shorter waves."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c853-7764-a0cb-9966c9fcfbc5",
+    "correct_option": 2,
+    "source_url": "https://spaceplace.nasa.gov/blue-sky/",
+    "translations": {
+      "ca": {
+        "statement": "De quin color és el cel de Mart durant el dia?",
+        "options": [
+          "Verd",
+          "Negre",
+          "Taronja o vermellós",
+          "Blau, com a la Terra"
+        ],
+        "explanation": "Taronja o vermellós, per la pols fina de la seva atmosfera tan prima. En canvi, a la posta de sol el cel al voltant del Sol es torna blavós."
+      },
+      "es": {
+        "statement": "¿De qué color es el cielo de Marte durante el día?",
+        "options": [
+          "Verde",
+          "Negro",
+          "Naranja o rojizo",
+          "Azul, como en la Tierra"
+        ],
+        "explanation": "Naranja o rojizo, por el polvo fino de su atmósfera tan fina. En cambio, al atardecer el cielo alrededor del Sol se vuelve azulado."
+      },
+      "en": {
+        "statement": "What color is the sky on Mars during the day?",
+        "options": [
+          "Green",
+          "Black",
+          "Orange or reddish",
+          "Blue, like on Earth"
+        ],
+        "explanation": "Orange or reddish, because of the fine dust in its thin atmosphere. At sunset, however, the sky around the Sun turns bluish."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c854-7880-97be-e40fbc841f0f",
+    "correct_option": 0,
+    "source_url": "https://spaceplace.nasa.gov/aurora/",
+    "translations": {
+      "ca": {
+        "statement": "Què causa les aurores?",
+        "options": [
+          "Partícules del Sol que xoquen amb els gasos de l'atmosfera",
+          "La llum de la Lluna reflectida al gel",
+          "Els llamps de les tempestes",
+          "La contaminació lumínica de les ciutats"
+        ],
+        "explanation": "Partícules que arriben del Sol queden atrapades pel camp magnètic de la Terra, baixen a prop dels pols i xoquen amb els gasos de l'atmosfera, que brillen."
+      },
+      "es": {
+        "statement": "¿Qué causa las auroras?",
+        "options": [
+          "Partículas del Sol que chocan con los gases de la atmósfera",
+          "La luz de la Luna reflejada en el hielo",
+          "Los rayos de las tormentas",
+          "La contaminación lumínica de las ciudades"
+        ],
+        "explanation": "Partículas que llegan del Sol quedan atrapadas por el campo magnético de la Tierra, bajan cerca de los polos y chocan con los gases de la atmósfera, que brillan."
+      },
+      "en": {
+        "statement": "What causes auroras?",
+        "options": [
+          "Particles from the Sun hitting gases in the atmosphere",
+          "Moonlight reflected off ice",
+          "Lightning from storms",
+          "Light pollution from cities"
+        ],
+        "explanation": "Particles from the Sun get trapped by Earth's magnetic field, funnel down near the poles and hit gases in the atmosphere, which glow."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c855-7a15-8b48-0157fa02b7c4",
+    "correct_option": 1,
+    "source_url": "https://spaceplace.nasa.gov/aurora/",
+    "translations": {
+      "ca": {
+        "statement": "Com s'anomenen les aurores que es veuen a prop del pol nord?",
+        "options": [
+          "Aurora austral",
+          "Aurora boreal",
+          "Aurora equatorial",
+          "Aurora solar"
+        ],
+        "explanation": "Aurora boreal, o llums del nord. Les del pol sud s'anomenen aurora austral."
+      },
+      "es": {
+        "statement": "¿Cómo se llaman las auroras que se ven cerca del polo norte?",
+        "options": [
+          "Aurora austral",
+          "Aurora boreal",
+          "Aurora ecuatorial",
+          "Aurora solar"
+        ],
+        "explanation": "Aurora boreal, o luces del norte. Las del polo sur se llaman aurora austral."
+      },
+      "en": {
+        "statement": "What are auroras seen near the North Pole called?",
+        "options": [
+          "Aurora australis",
+          "Aurora borealis",
+          "Aurora equatorialis",
+          "Aurora solaris"
+        ],
+        "explanation": "Aurora borealis, or the northern lights. Those near the South Pole are called aurora australis."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c856-78a1-bed5-631a43bbcc5f",
+    "correct_option": 3,
+    "source_url": "https://spaceplace.nasa.gov/eclipses/en/",
+    "translations": {
+      "ca": {
+        "statement": "Què passa durant un eclipsi de Sol?",
+        "options": [
+          "El Sol s'apaga uns minuts",
+          "Un núvol molt gran tapa el Sol",
+          "La Terra es posa entre el Sol i la Lluna",
+          "La Lluna es posa entre el Sol i la Terra"
+        ],
+        "explanation": "La Lluna es posa entre el Sol i la Terra i hi projecta la seva ombra."
+      },
+      "es": {
+        "statement": "¿Qué pasa durante un eclipse de Sol?",
+        "options": [
+          "El Sol se apaga unos minutos",
+          "Una nube muy grande tapa el Sol",
+          "La Tierra se pone entre el Sol y la Luna",
+          "La Luna se pone entre el Sol y la Tierra"
+        ],
+        "explanation": "La Luna se pone entre el Sol y la Tierra y proyecta su sombra sobre ella."
+      },
+      "en": {
+        "statement": "What happens during a solar eclipse?",
+        "options": [
+          "The Sun switches off for a few minutes",
+          "A huge cloud covers the Sun",
+          "Earth moves between the Sun and the Moon",
+          "The Moon moves between the Sun and Earth"
+        ],
+        "explanation": "The Moon moves between the Sun and Earth and casts its shadow on our planet."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c857-76fe-8e23-761efa603d4e",
+    "correct_option": 1,
+    "source_url": "https://spaceplace.nasa.gov/eclipses/en/",
+    "translations": {
+      "ca": {
+        "statement": "Per què la Lluna es veu vermellosa durant un eclipsi total de Lluna?",
+        "options": [
+          "La Lluna s'escalfa",
+          "L'atmosfera de la Terra desvia cap a ella la llum vermella",
+          "La pols de la Lluna es torna vermella",
+          "La Lluna reflecteix la llum de Mart"
+        ],
+        "explanation": "L'atmosfera de la Terra filtra els altres colors i desvia la llum vermella del Sol cap a la Lluna, encara que estigui a l'ombra."
+      },
+      "es": {
+        "statement": "¿Por qué la Luna se ve rojiza durante un eclipse total de Luna?",
+        "options": [
+          "La Luna se calienta",
+          "La atmósfera de la Tierra desvía hacia ella la luz roja",
+          "El polvo de la Luna se vuelve rojo",
+          "La Luna refleja la luz de Marte"
+        ],
+        "explanation": "La atmósfera de la Tierra filtra los otros colores y desvía la luz roja del Sol hacia la Luna, aunque esté en la sombra."
+      },
+      "en": {
+        "statement": "Why does the Moon look reddish during a total lunar eclipse?",
+        "options": [
+          "The Moon heats up",
+          "Earth's atmosphere bends red light towards it",
+          "The Moon's dust turns red",
+          "The Moon reflects light from Mars"
+        ],
+        "explanation": "Earth's atmosphere filters out other colors and bends the red part of sunlight towards the Moon, even though it is in shadow."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c858-7c97-b4f8-97f6589ff68f",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/moon/tides",
+    "translations": {
+      "ca": {
+        "statement": "Quantes marees altes hi ha cada dia a la majoria de costes?",
+        "options": [
+          "Cap, només n'hi ha amb lluna plena",
+          "Una",
+          "Quatre",
+          "Dues"
+        ],
+        "explanation": "Dues. La gravetat de la Lluna fa dues protuberàncies d'aigua, una a cada costat de la Terra, i el planeta gira a través de totes dues."
+      },
+      "es": {
+        "statement": "¿Cuántas mareas altas hay cada día en la mayoría de costas?",
+        "options": [
+          "Ninguna, solo hay con luna llena",
+          "Una",
+          "Cuatro",
+          "Dos"
+        ],
+        "explanation": "Dos. La gravedad de la Luna crea dos abultamientos de agua, uno a cada lado de la Tierra, y el planeta gira a través de ambos."
+      },
+      "en": {
+        "statement": "How many high tides do most coasts have each day?",
+        "options": [
+          "None, only at full moon",
+          "One",
+          "Four",
+          "Two"
+        ],
+        "explanation": "Two. The Moon's gravity creates two bulges of water, one on each side of Earth, and the planet rotates through both."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c859-7319-ba07-59762ee0892e",
+    "correct_option": 0,
+    "source_url": "https://science.nasa.gov/jupiter/jupiter-moons/europa/europa-facts",
+    "translations": {
+      "ca": {
+        "statement": "Què creuen els científics que hi ha sota la superfície gelada d'Europa, una lluna de Júpiter?",
+        "options": [
+          "Un oceà d'aigua salada",
+          "Una cova buida",
+          "Un mar de lava",
+          "Un nucli de diamant"
+        ],
+        "explanation": "Un oceà d'aigua salada que podria tenir el doble d'aigua que tots els oceans de la Terra. Per això és un dels llocs on es busca vida."
+      },
+      "es": {
+        "statement": "¿Qué creen los científicos que hay bajo la superficie helada de Europa, una luna de Júpiter?",
+        "options": [
+          "Un océano de agua salada",
+          "Una cueva vacía",
+          "Un mar de lava",
+          "Un núcleo de diamante"
+        ],
+        "explanation": "Un océano de agua salada que podría tener el doble de agua que todos los océanos de la Tierra. Por eso es uno de los lugares donde se busca vida."
+      },
+      "en": {
+        "statement": "What do scientists think lies beneath the icy surface of Europa, a moon of Jupiter?",
+        "options": [
+          "An ocean of salt water",
+          "An empty cave",
+          "A sea of lava",
+          "A diamond core"
+        ],
+        "explanation": "An ocean of salt water that may hold twice as much water as all of Earth's oceans. That is why it is one of the places where we look for life."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c85a-7289-a8da-4cb424104074",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/saturn/moons/enceladus",
+    "translations": {
+      "ca": {
+        "statement": "Què va descobrir la sonda Cassini al pol sud d'Encèlad, una lluna de Saturn?",
+        "options": [
+          "Volcans de lava",
+          "Dolls de gel i vapor d'aigua",
+          "Restes d'una nau antiga",
+          "Un llac de metà"
+        ],
+        "explanation": "Dolls de partícules de gel i vapor d'aigua que surten d'unes esquerdes anomenades «ratlles de tigre», alimentats per un oceà global sota el gel."
+      },
+      "es": {
+        "statement": "¿Qué descubrió la sonda Cassini en el polo sur de Encélado, una luna de Saturno?",
+        "options": [
+          "Volcanes de lava",
+          "Chorros de hielo y vapor de agua",
+          "Restos de una nave antigua",
+          "Un lago de metano"
+        ],
+        "explanation": "Chorros de partículas de hielo y vapor de agua que salen de unas grietas llamadas «rayas de tigre», alimentados por un océano global bajo el hielo."
+      },
+      "en": {
+        "statement": "What did the Cassini spacecraft discover at the south pole of Enceladus, a moon of Saturn?",
+        "options": [
+          "Lava volcanoes",
+          "Jets of ice and water vapor",
+          "The remains of an ancient ship",
+          "A methane lake"
+        ],
+        "explanation": "Jets of ice particles and water vapor shooting from cracks called 'tiger stripes', fed by a global ocean beneath the ice."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c85b-7e6b-b58a-a97a8844aab9",
+    "correct_option": 3,
+    "source_url": "https://www.jpl.nasa.gov/news/touchdown-nasas-mars-perseverance-rover-safely-lands-on-red-planet/",
+    "translations": {
+      "ca": {
+        "statement": "A quin cràter de Mart va aterrar el ròver Perseverance, el 2021?",
+        "options": [
+          "Valles Marineris",
+          "Olympus",
+          "Gale",
+          "Jezero"
+        ],
+        "explanation": "Al cràter Jezero, el 18 de febrer de 2021. Hi busca rastres de vida microbiana antiga i recull mostres de roca."
+      },
+      "es": {
+        "statement": "¿En qué cráter de Marte aterrizó el rover Perseverance, en 2021?",
+        "options": [
+          "Valles Marineris",
+          "Olympus",
+          "Gale",
+          "Jezero"
+        ],
+        "explanation": "En el cráter Jezero, el 18 de febrero de 2021. Busca rastros de vida microbiana antigua y recoge muestras de roca."
+      },
+      "en": {
+        "statement": "In which Martian crater did the Perseverance rover land, in 2021?",
+        "options": [
+          "Valles Marineris",
+          "Olympus",
+          "Gale",
+          "Jezero"
+        ],
+        "explanation": "Jezero crater, on 18 February 2021. It searches for signs of ancient microbial life and collects rock samples."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c85c-73d4-b6bc-6fde105f19e7",
+    "correct_option": 2,
+    "source_url": "https://www.jpl.nasa.gov/news/touchdown-nasas-mars-perseverance-rover-safely-lands-on-red-planet/",
+    "translations": {
+      "ca": {
+        "statement": "Què va ser Ingenuity, que va arribar a Mart amb el Perseverance?",
+        "options": [
+          "Un satèl·lit de comunicacions",
+          "Un robot excavador",
+          "Un helicòpter, el primer a volar en un altre planeta",
+          "Un globus meteorològic"
+        ],
+        "explanation": "Un petit helicòpter que va fer el primer vol motoritzat i controlat en un altre planeta."
+      },
+      "es": {
+        "statement": "¿Qué fue Ingenuity, que llegó a Marte con el Perseverance?",
+        "options": [
+          "Un satélite de comunicaciones",
+          "Un robot excavador",
+          "Un helicóptero, el primero en volar en otro planeta",
+          "Un globo meteorológico"
+        ],
+        "explanation": "Un pequeño helicóptero que hizo el primer vuelo motorizado y controlado en otro planeta."
+      },
+      "en": {
+        "statement": "What was Ingenuity, which arrived on Mars with Perseverance?",
+        "options": [
+          "A communications satellite",
+          "A digging robot",
+          "A helicopter, the first to fly on another planet",
+          "A weather balloon"
+        ],
+        "explanation": "A small helicopter that made the first powered, controlled flight on another planet."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c85d-7536-9a9d-cbcce9e5d7a4",
+    "correct_option": 3,
+    "source_url": "https://www.nasa.gov/news-release/nasas-cassini-spacecraft-ends-its-historic-exploration-of-saturn",
+    "translations": {
+      "ca": {
+        "statement": "Com va acabar la missió Cassini, el 2017?",
+        "options": [
+          "Va sortir del sistema solar",
+          "Va tornar a la Terra",
+          "Va aterrar a Tità",
+          "Es va llançar a propòsit dins de Saturn"
+        ],
+        "explanation": "Es va llançar a propòsit dins de l'atmosfera de Saturn per no contaminar llunes com Encèlad, que podrien tenir condicions per a la vida."
+      },
+      "es": {
+        "statement": "¿Cómo terminó la misión Cassini, en 2017?",
+        "options": [
+          "Salió del sistema solar",
+          "Volvió a la Tierra",
+          "Aterrizó en Titán",
+          "Se lanzó a propósito dentro de Saturno"
+        ],
+        "explanation": "Se lanzó a propósito dentro de la atmósfera de Saturno para no contaminar lunas como Encélado, que podrían tener condiciones para la vida."
+      },
+      "en": {
+        "statement": "How did the Cassini mission end, in 2017?",
+        "options": [
+          "It left the solar system",
+          "It returned to Earth",
+          "It landed on Titan",
+          "It was deliberately plunged into Saturn"
+        ],
+        "explanation": "It was deliberately plunged into Saturn's atmosphere to avoid contaminating moons such as Enceladus, which could have conditions for life."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c85e-7099-8890-4622b453fb9b",
+    "correct_option": 3,
+    "source_url": "https://www.space.com/29971-pluto-heart-named-for-clyde-tombaugh.html",
+    "translations": {
+      "ca": {
+        "statement": "Qui va descobrir Plutó, el 1930?",
+        "options": [
+          "Carl Sagan",
+          "William Herschel",
+          "Percival Lowell",
+          "Clyde Tombaugh"
+        ],
+        "explanation": "Clyde Tombaugh. La regió en forma de cor que va fotografiar la New Horizons el 2015 porta el seu nom."
+      },
+      "es": {
+        "statement": "¿Quién descubrió Plutón, en 1930?",
+        "options": [
+          "Carl Sagan",
+          "William Herschel",
+          "Percival Lowell",
+          "Clyde Tombaugh"
+        ],
+        "explanation": "Clyde Tombaugh. La región en forma de corazón que fotografió la New Horizons en 2015 lleva su nombre."
+      },
+      "en": {
+        "statement": "Who discovered Pluto, in 1930?",
+        "options": [
+          "Carl Sagan",
+          "William Herschel",
+          "Percival Lowell",
+          "Clyde Tombaugh"
+        ],
+        "explanation": "Clyde Tombaugh. The heart-shaped region photographed by New Horizons in 2015 is named after him."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c85f-72bb-8db0-9cbc69aedb1a",
+    "correct_option": 1,
+    "source_url": "https://www.esa.int/Science_Exploration/Space_Science/Rosetta/Philae_s_extraordinary_comet_landing_relived",
+    "translations": {
+      "ca": {
+        "statement": "Quina va ser la primera nau a aterrar en un cometa, el 2014?",
+        "options": [
+          "Deep Impact",
+          "Philae, de la missió Rosetta",
+          "Giotto",
+          "Stardust"
+        ],
+        "explanation": "Philae, el mòdul de la missió Rosetta de l'ESA, que va aterrar al cometa 67P/Txuriúmov-Herassimenko el 12 de novembre de 2014."
+      },
+      "es": {
+        "statement": "¿Cuál fue la primera nave en aterrizar en un cometa, en 2014?",
+        "options": [
+          "Deep Impact",
+          "Philae, de la misión Rosetta",
+          "Giotto",
+          "Stardust"
+        ],
+        "explanation": "Philae, el módulo de la misión Rosetta de la ESA, que aterrizó en el cometa 67P/Churiumov-Guerasimenko el 12 de noviembre de 2014."
+      },
+      "en": {
+        "statement": "Which was the first spacecraft to land on a comet, in 2014?",
+        "options": [
+          "Deep Impact",
+          "Philae, from the Rosetta mission",
+          "Giotto",
+          "Stardust"
+        ],
+        "explanation": "Philae, the lander of ESA's Rosetta mission, which touched down on comet 67P/Churyumov-Gerasimenko on 12 November 2014."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c860-7071-a50f-86269ea48a7c",
+    "correct_option": 1,
+    "source_url": "https://space.com/heliocentrism",
+    "translations": {
+      "ca": {
+        "statement": "Qui va proposar el 1543 que la Terra gira al voltant del Sol, i no al revés?",
+        "options": [
+          "Albert Einstein",
+          "Nicolau Copèrnic",
+          "Claudi Ptolemeu",
+          "Isaac Newton"
+        ],
+        "explanation": "Nicolau Copèrnic. El seu model heliocèntric posava el Sol al centre, encara que el va fer sense telescopi."
+      },
+      "es": {
+        "statement": "¿Quién propuso en 1543 que la Tierra gira alrededor del Sol, y no al revés?",
+        "options": [
+          "Albert Einstein",
+          "Nicolás Copérnico",
+          "Claudio Ptolomeo",
+          "Isaac Newton"
+        ],
+        "explanation": "Nicolás Copérnico. Su modelo heliocéntrico ponía el Sol en el centro, aunque lo hizo sin telescopio."
+      },
+      "en": {
+        "statement": "Who proposed in 1543 that Earth goes around the Sun, and not the other way round?",
+        "options": [
+          "Albert Einstein",
+          "Nicolaus Copernicus",
+          "Claudius Ptolemy",
+          "Isaac Newton"
+        ],
+        "explanation": "Nicolaus Copernicus. His heliocentric model put the Sun at the center, even though he worked without a telescope."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c861-7ac7-95e0-a06e03480681",
+    "correct_option": 1,
+    "source_url": "https://science.nasa.gov/solar-system/orbits-and-keplers-laws",
+    "translations": {
+      "ca": {
+        "statement": "Quina forma tenen les òrbites dels planetes al voltant del Sol, segons la primera llei de Kepler?",
+        "options": [
+          "En espiral",
+          "El·líptica",
+          "Perfectament circular",
+          "Quadrada"
+        ],
+        "explanation": "El·líptica, amb el Sol en un dels focus. Kepler ho va deduir de les observacions de Mart de Tycho Brahe."
+      },
+      "es": {
+        "statement": "¿Qué forma tienen las órbitas de los planetas alrededor del Sol, según la primera ley de Kepler?",
+        "options": [
+          "En espiral",
+          "Elíptica",
+          "Perfectamente circular",
+          "Cuadrada"
+        ],
+        "explanation": "Elíptica, con el Sol en uno de los focos. Kepler lo dedujo de las observaciones de Marte de Tycho Brahe."
+      },
+      "en": {
+        "statement": "What shape are planetary orbits around the Sun, according to Kepler's first law?",
+        "options": [
+          "Spiral",
+          "Elliptical",
+          "Perfectly circular",
+          "Square"
+        ],
+        "explanation": "Elliptical, with the Sun at one focus. Kepler worked it out from Tycho Brahe's observations of Mars."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c862-75f5-a134-895c82a27686",
+    "correct_option": 3,
+    "source_url": "https://science.nasa.gov/solar-system/what-is-the-north-star-and-how-do-you-find-it/",
+    "translations": {
+      "ca": {
+        "statement": "Per què l'estrella Polar és útil per orientar-se?",
+        "options": [
+          "Només es veu a l'hivern",
+          "Sempre surt per l'est",
+          "És l'estrella més brillant del cel",
+          "Gairebé no es mou al cel i marca el nord"
+        ],
+        "explanation": "Perquè és molt a prop del pol nord celeste: gairebé no es mou durant la nit i marca el nord. No és l'estrella més brillant, però és fàcil de trobar."
+      },
+      "es": {
+        "statement": "¿Por qué la estrella Polar es útil para orientarse?",
+        "options": [
+          "Solo se ve en invierno",
+          "Siempre sale por el este",
+          "Es la estrella más brillante del cielo",
+          "Casi no se mueve en el cielo y marca el norte"
+        ],
+        "explanation": "Porque está muy cerca del polo norte celeste: casi no se mueve durante la noche y marca el norte. No es la estrella más brillante, pero es fácil de encontrar."
+      },
+      "en": {
+        "statement": "Why is the North Star useful for finding your way?",
+        "options": [
+          "It is only visible in winter",
+          "It always rises in the east",
+          "It is the brightest star in the sky",
+          "It barely moves in the sky and marks north"
+        ],
+        "explanation": "Because it is very close to the north celestial pole: it barely moves during the night and marks north. It is not the brightest star, but it is easy to find."
+      }
+    }
+  },
+  {
+    "id": "01a1bd9a-c863-7461-bbb2-922a75895986",
+    "correct_option": 2,
+    "source_url": "https://planetary.org/articles/how-old-is-the-earth",
+    "translations": {
+      "ca": {
+        "statement": "Quina edat té la Terra?",
+        "options": [
+          "Uns 13.800 milions d'anys",
+          "Uns 65 milions d'anys",
+          "Uns 4.500 milions d'anys",
+          "Uns 450 milions d'anys"
+        ],
+        "explanation": "Uns 4.540 milions d'anys. S'ha calculat amb la datació radiomètrica de roques i meteorits."
+      },
+      "es": {
+        "statement": "¿Qué edad tiene la Tierra?",
+        "options": [
+          "Unos 13.800 millones de años",
+          "Unos 65 millones de años",
+          "Unos 4.500 millones de años",
+          "Unos 450 millones de años"
+        ],
+        "explanation": "Unos 4.540 millones de años. Se ha calculado con la datación radiométrica de rocas y meteoritos."
+      },
+      "en": {
+        "statement": "How old is Earth?",
+        "options": [
+          "About 13.8 billion years",
+          "About 65 million years",
+          "About 4.5 billion years",
+          "About 450 million years"
+        ],
+        "explanation": "About 4.54 billion years. It was worked out by radiometric dating of rocks and meteorites."
+      }
+    }
+  }
+]

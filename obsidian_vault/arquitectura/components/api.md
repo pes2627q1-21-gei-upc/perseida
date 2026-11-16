@@ -3,7 +3,7 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-11-07"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63"]
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
@@ -50,6 +50,15 @@ Valida el token de Google via JWKS i emet una sessió pròpia (dos JWT HS256: *a
 
 Els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel port `AccountGateway`, que implementa `UserAccountGateway` sobre [[postgres]] (taules `users` i `user_identities`, [[0023-convencions-del-model-de-dades]]). Format, caducitats, alta concurrent i conseqüències a [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]; guia d'ús a la secció «Authentication» de `backend/README.md`.
 
+## Quiz diari (TG-60)
+
+| Endpoint | Què fa |
+|---|---|
+| `GET /api/quiz/today` | Pregunta del dia (UTC) en l'idioma demanat o el preferit, sense la solució; inclou el resultat si ja s'ha respost |
+| `POST /api/quiz/today/answer` | Desa la resposta i retorna el resultat. 201, 409 `QUIZ_ALREADY_ANSWERED` o `QUIZ_EXPIRED`, 422 `QUIZ_QUESTION_MISMATCH` |
+
+`QuizService` (`app/application/quiz/`) guarda la pregunta del dia a [[redis]] (`cache:quiz:daily:<data>:<idioma>`) fins a mitjanit UTC; el banc i les respostes són a [[postgres]] ([[model-de-domini#Quiz diari (implementat)]]). Contracte a [[contracte-quiz]]; guia a la secció «Daily quiz» de `backend/README.md`.
+
 ## Seguretat (TG-45)
 
 Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
@@ -80,6 +89,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - TG-44 (JWKS)
 - TG-45 (model d'usuari, alta automàtica i tancament de sessió)
 - TG-46 (cache APOD)
+- TG-60 (quiz diari)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-63 (endpoint WebSocket `/api/ws`)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
@@ -94,6 +104,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - **Validació de tokens de Google i sessió pròpia (TG-44)**: implementat (JWKS, JWT HS256, sessions a Redis, `/api/auth/google`, `/api/auth/refresh`, `CurrentSessionDep`).
 - **Usuari, alta automàtica i tancament de sessió (TG-45)**: implementat (`UserService`, `SqlUserRepository` amb alta concurrent segura, `/api/auth/logout`, `/api/users/me`, error `EMAIL_ALREADY_REGISTERED`).
 - **WebSocket `/api/ws` (TG-63)**: implementat (`RealtimeSession` a `application/realtime`, router a `infrastructure/realtime`, embolcall `{type, room?, payload, id}`, autenticació pel primer frame, heartbeat i revocació per pub/sub; vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Requereix la llibreria `websockets` perquè uvicorn accepti el handshake. Les sales concretes són de TG-64 i TG-65.
+- **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 

@@ -9,7 +9,8 @@ from app.application.shared.error_codes import (
     ACCOUNT_SUSPENDED,
     INVALID_SESSION,
 )
-from app.domain.users.models import Language, Role, User
+from app.domain.shared.language import Language
+from app.domain.users.models import Role, User
 from app.infrastructure.api.schemas import ProblemDetails
 from app.infrastructure.auth.dependencies import CurrentSessionDep
 from app.infrastructure.users.dependencies import UserServiceDep

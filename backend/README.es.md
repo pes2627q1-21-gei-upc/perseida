@@ -260,6 +260,23 @@ La API no arranca sin `NASA_API_KEY`. En producción viene del secret de GitHub 
 >
 > Límites del feed: solo se guardan imágenes (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo se descarta (`APOD_UNAVAILABLE` si la API tampoco puede responder). La fecha de una entrada es el día UTC de su publicación y el texto de `explanation` y `copyright` se convierte de HTML a texto plano. El fallo de una llamada se guarda 15 minutos solo cuando fallan el feed **y** la API.
 
+## Quiz diario
+
+Una pregunta de astrofísica por día UTC, la misma para todos, en catalán, castellano o inglés (TG-60). Contrato: `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/quiz/today?lang=ca\|es\|en` | La pregunta de hoy, sin la solución. Sin `lang`, el idioma preferido del usuario. Si el usuario ya ha respondido, `result` lleva su resultado |
+| `POST /api/quiz/today/answer` | Guarda la respuesta (`date`, `question_id`, `chosen_option` 0-3) y devuelve si es correcta, la opción correcta, la explicación y la fuente. 201; 409 `QUIZ_ALREADY_ANSWERED` o `QUIZ_EXPIRED`; 422 `QUIZ_QUESTION_MISMATCH` |
+
+Los dos piden sesión (401 `INVALID_SESSION`).
+
+- **Banco:** 100 preguntas en `alembic/seed/quiz_questions.json`, cada una con un `id` UUIDv7 fijo, 4 opciones, la correcta, una explicación y una fuente https, en los tres idiomas. La migración `a6e1d58c0b92` las carga en `quiz_questions` y `quiz_question_translations`; `tests/unit/infrastructure/quiz/test_quiz_seed.py` valida el archivo. Deshacer el seed conserva las preguntas a las que apuntan respuestas o días, así que no se pierde ninguna respuesta; volver a aplicarlo recupera el resto con los mismos id.
+- **Pregunta del día:** la primera petición de un día guarda su pregunta en `quiz_days`, y ese día la mantiene. Es la primera pregunta que aún no ha salido (en orden de `position`) o, si ya han salido todas, la que hace más tiempo que salió (`next_question` en `app/domain/quiz/rules.py`). Así ninguna pregunta se repite en tantos días como preguntas tiene el banco, y cuando el banco crece las nuevas salen antes de cualquier repetición.
+- **Caché:** `cache:quiz:daily:<fecha>:<idioma>` en Redis hasta medianoche UTC. Si no se puede leer la caché, la pregunta se lee de PostgreSQL. Con Redis caído tampoco se puede comprobar la sesión, así que los endpoints responden 503 `SESSION_UNAVAILABLE` (ADR-0008).
+- **Respuestas:** `quiz_answers`, una por usuario y día (restricción única `uq_quiz_answers_user_id`, también con dos peticiones a la vez).
+- **Añadir preguntas:** añádelas al final del archivo JSON **y** crea una migración de datos nueva que las inserte después de la última posición. Editar solo el archivo no cambia una base de datos ya migrada, y reordenarlo cambia el calendario.
+
 ## Autenticación
 
 La app inicia sesión con Google (OAuth2 + PKCE) y envía el `id_token` de Google al backend, que nunca recibe el código de autorización ni guarda ninguna contraseña ([ADR-0008](../obsidian_vault/decisions/0008-google-oauth2-pkce-jwks-i-sessio-propia.md)). El backend comprueba el token y emite una sesión propia.

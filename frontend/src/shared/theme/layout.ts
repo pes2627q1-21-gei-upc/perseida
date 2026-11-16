@@ -17,7 +17,11 @@ export const breakpoints = {
   wide: 1536,
 } as const;
 
-export const duration = { fast: 120, base: 220, slow: 420 } as const;
+/**
+ * `ambient` is one cycle of the slow ambient motion (so-i-moviment.md: 6-12 s), such as the
+ * halo of the active events on the map (TG-52). It freezes with reduced motion.
+ */
+export const duration = { fast: 120, base: 220, slow: 420, ambient: 6000 } as const;
 
 /** Blur intensity of glass layers (expo-blur, 1-100). */
 export const blur = { glassLight: 40, glassStrong: 70 } as const;

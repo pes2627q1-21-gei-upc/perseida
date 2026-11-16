@@ -24,6 +24,8 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 | `state.warning` | `#8A5A00` | `#F2B33D` | `#F2B33D` | `#FFB3A7`* |
 | `state.danger` | `#B3261E` | `#FF9A92` | `#FF9A92` | `#FFB3A7` text · `#FF6B5E` vora i icona* |
 | `focus.ring` | `#0B78B5` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
+| `map.background` (fons darrere les tessel·les fosques del mapa d'esdeveniments; US TG-52) | `#020510` | `#020510` | `#020510` | `#14060A` (sense blau) |
+| `map.gloss` (reflex dels orbes de vidre dels marcadors: 44 % superior; manté la icona ≥3:1) | `rgba(255,255,255,.3)` → `rgba(255,255,255,0)` | igual | igual | igual |
 
 \* **Estats al tema `vermell`** (acordat el 2026-10-13: «vermell + pes visual»): no hi ha verd ni groc (destrueixen l'adaptació a la foscor) i només hi ha un vermell. L'estat es distingeix per la **jerarquia visual**, sempre amb **icona + text**:
 - `perill`: vora de 2 px `#FF6B5E` i fons `rgba(255,107,94,.18)`, icona de perill i text `#FFB3A7` (6.8:1). `#FF6B5E` és només vora i icona (UI ≥3:1, 4.2:1 sobre aquest fons), **mai text** sobre el fons de perill.
