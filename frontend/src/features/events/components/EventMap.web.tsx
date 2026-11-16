@@ -1,7 +1,7 @@
 import 'leaflet/dist/leaflet.css';
 
 import { divIcon } from 'leaflet';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from 'react-native-reanimated';
 import {
@@ -27,11 +27,16 @@ import {
   WORLD_ZOOM,
 } from './mapTiles';
 
-/** Brings every marker into view whenever they change; with none, the world stays in view. */
+/**
+ * Brings the first markers into view; with none, the world stays in view. Later markers (a new
+ * filter) keep the zoom and position the user left.
+ */
 function FitToMarkers({ markers }: { markers: MapMarker[] }) {
   const map = useMap();
+  const fitted = useRef(false);
   useEffect(() => {
-    if (markers.length === 0) return;
+    if (fitted.current || markers.length === 0) return;
+    fitted.current = true;
     map.fitBounds(
       markers.map((m) => [m.latitude, m.longitude] as [number, number]),
       FIT_BOUNDS_OPTIONS,

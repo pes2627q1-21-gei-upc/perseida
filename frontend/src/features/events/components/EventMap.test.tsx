@@ -82,6 +82,37 @@ describe('EventMap (mobile)', () => {
     },
   );
 
+  it('keeps the zoom and position of the user when the markers change', async () => {
+    const view = await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+    const camera = { latitude: 41.39, longitude: 2.17, zoom: 9 };
+    screen.getByLabelText(LABEL).props.onMessage(message(JSON.stringify({ view: camera })));
+
+    await view.rerender(<EventMap markers={[]} label={LABEL} onSelect={jest.fn()} />);
+
+    const style = { palette: markerPalette(colors.dia), reduceMotion: false };
+    const { html } = screen.getByLabelText(LABEL).props.source;
+    expect(html).toBe(buildLeafletHtml([], LABEL, style, ZOOM, camera));
+    expect(html).toContain('.setView([41.39,2.17], 9)');
+  });
+
+  it.each([
+    JSON.stringify({ view: { latitude: 91, longitude: 0, zoom: 3 } }),
+    JSON.stringify({ view: { latitude: 0, longitude: 181, zoom: 3 } }),
+    JSON.stringify({ view: { latitude: 0, longitude: 0, zoom: 99 } }),
+    JSON.stringify({ view: { latitude: '0', longitude: 0, zoom: 3 } }),
+    JSON.stringify({ view: null }),
+  ])('ignores a camera that is not a valid place on the map: %s', async (data) => {
+    const view = await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+    screen.getByLabelText(LABEL).props.onMessage(message(data));
+
+    await view.rerender(<EventMap markers={[]} label={LABEL} onSelect={jest.fn()} />);
+
+    const style = { palette: markerPalette(colors.dia), reduceMotion: false };
+    expect(screen.getByLabelText(LABEL).props.source).toEqual({
+      html: buildLeafletHtml([], LABEL, style, ZOOM),
+    });
+  });
+
   it('only loads the map page itself: https links open outside, anything else is blocked', async () => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);

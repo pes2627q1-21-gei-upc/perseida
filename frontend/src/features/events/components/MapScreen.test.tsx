@@ -15,9 +15,18 @@ let mockWide = false;
 jest.mock('../useIsWide', () => ({ useIsWide: () => mockWide }));
 
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
+// It also counts its mounts: a new mount reloads the map page and loses the camera.
+let mockWebViewMounts = 0;
 jest.mock('react-native-webview', () => {
+  const { createElement, useEffect } = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  return { WebView: View };
+  function WebView(props: object) {
+    useEffect(() => {
+      mockWebViewMounts += 1;
+    }, []);
+    return createElement(View, props);
+  }
+  return { WebView };
 });
 
 const SAFE_AREA = {
@@ -71,6 +80,7 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   mockRouter.canGoBack.mockReturnValue(true);
   mockWide = false;
+  mockWebViewMounts = 0;
   mockEventsApi();
 });
 
@@ -138,6 +148,32 @@ describe('Events map screen', () => {
     for (const event of [launchEvent, meteorShowerEvent, lunarEvent]) {
       expect(await screen.findByText(event.title)).toBeTruthy();
     }
+  });
+
+  it('keeps the map where the user left it after a trip to the list', async () => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    const mounts = mockWebViewMounts;
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+    expect(await screen.findByText(meteorShowerEvent.title)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('tab', { name: 'Mapa' }));
+
+    // The same map, never mounted again: its zoom and position stay as they were.
+    expect(mockWebViewMounts).toBe(mounts);
+    expect(screen.getByLabelText(MAP_LABEL)).toBeTruthy();
+  });
+
+  it('hides the map under the list from touch and screen readers', async () => {
+    await renderScreen();
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
+    const area = screen.getByTestId('map-area', { includeHiddenElements: true });
+    expect(area).toHaveProp('pointerEvents', 'none');
+    expect(area).toHaveProp('accessibilityElementsHidden', true);
+    expect(area).toHaveProp('importantForAccessibility', 'no-hide-descendants');
+    expect(screen.queryByLabelText(MAP_LABEL)).toBeNull();
   });
 
   it('shows all the events by default (criterion 2)', async () => {

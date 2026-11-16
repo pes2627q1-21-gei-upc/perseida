@@ -22,6 +22,13 @@ export const WORLD_ZOOM = 2;
 /** How the map fits the markers: room for the orbs at the edges, and never closer than a region. */
 export const FIT_BOUNDS_OPTIONS = { padding: [40, 40] as [number, number], maxZoom: 6 };
 
+/** Where the user left the map: its centre and zoom, kept when the markers change. */
+export interface MapCamera {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+}
+
 /** One point on the map: an event with a location. */
 export interface MapMarker {
   id: string;
