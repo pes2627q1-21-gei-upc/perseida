@@ -75,6 +75,15 @@ def test_tg351_c6_events_errors_are_documented_only_as_problem_json(
 
 
 @pytest.mark.parametrize("path", EVENT_PATHS)
+def test_tg351_c5_events_document_the_proxy_rate_limit(path: str) -> None:
+    # The 429 comes from the proxy, not the API, but Spotwise can receive it.
+    operation = _event_operation(path)
+
+    assert _media_types(operation, "429") == {"application/problem+json"}
+    assert "RATE_LIMITED" in operation["responses"]["429"]["description"]
+
+
+@pytest.mark.parametrize("path", EVENT_PATHS)
 def test_tg351_c6_events_are_described(path: str) -> None:
     operation = _event_operation(path)
 

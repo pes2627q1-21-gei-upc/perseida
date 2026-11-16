@@ -3,8 +3,8 @@ titol: "Definition of Ready i Definition of Done"
 tipus: convencio
 estat: vigent
 data: "2026-10-28"
-us: ["TG-85", "TG-353"]
-font: "memòria §2.1, §2.4.3"
+us: ["TG-85", "TG-353", "TG-359"]
+font: "memòria §2.1, §2.4.3; TG-359"
 etiquetes: [convencio, dod, dor, scrum, taiga]
 ---
 
@@ -17,7 +17,7 @@ La Definition of Done (DoD) és única i comuna a totes les US; s'hi afegeixen e
 ## Definition of Done
 
 - Compleix els seus criteris d'acceptació.
-- S'ha fet amb TDD estricte: l'historial de la PR mostra el commit `test:` (en vermell) abans del `feat:`/`fix:`; hi ha tests unitaris dels components modificats i, si cal, d'integració (persistència o externs) i de regressió (bugs). Cobertura: 80 % global i 90 % del codi nou; mutation testing (score ≥ 70 %) als fitxers de domini canviats. Les comprovacions automàtiques a la CI són pendents (US #359-#362): fins llavors les comprova la persona i el revisor. Vegeu [[testing]] i [[0028-tdd-estricte-i-politica-de-testing-avancada]].
+- S'ha fet amb TDD estricte: l'historial de la PR mostra el commit `test:` (en vermell) abans del `feat:`/`fix:`; hi ha tests unitaris dels components modificats i, si cal, d'integració (persistència o externs) i de regressió (bugs). Cobertura: 80 % global i 90 % del codi nou; mutation testing (score ≥ 70 %) als fitxers canviats de domini (backend) i lògica (frontend), automatitzats i bloquejants a la CI des de TG-359. Vegeu [[testing]] i [[0028-tdd-estricte-i-politica-de-testing-avancada]].
 - Totes les seves subtasques estan tancades.
 - El codi s'ha integrat a `develop` mitjançant una PR que ha superat les comprovacions automàtiques (linters, comprovació de tipus, tests i Quality Gate de SonarQube Cloud, que exigeix cobertura sobre el codi nou; cap US arriba a Done sense les seves proves).
 - La PR ha estat revisada i aprovada per una persona diferent de les que l'han desenvolupada.
