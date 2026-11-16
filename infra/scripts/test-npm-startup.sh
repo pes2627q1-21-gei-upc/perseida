@@ -10,7 +10,10 @@
 # Comprova, amb la imatge real d'NPM i el muntatge tal com surt de `docker compose config`:
 #   1. NPM arrenca, `nginx -t` és correcte i la zona `events_per_ip` d'`http_top.conf` és
 #      carregada al bloc `http`.
-#   2. Control: amb el mateix fitxer muntat de només lectura, NPM no arrenca. Així el test
+#   2. El CD pot actualitzar el fitxer amb `install-http-top.sh` encara que NPM n'hagi fet
+#      `chown` a root en arrencar: nginx en veu el contingut nou (hotfix 0.2.2; al primer
+#      desplegament de la 0.2.1, `scp` no el podia sobreescriure).
+#   3. Control: amb el mateix fitxer muntat de només lectura, NPM no arrenca. Així el test
 #      demostra que reprodueix el defecte i no passa per casualitat.
 #
 # Ús: bash infra/scripts/test-npm-startup.sh   (cal Docker; la CI l'executa al job `proxy`)
@@ -56,15 +59,18 @@ else:
 [ -f "$SOURCE" ] || fail "no existeix $SOURCE"
 
 # NPM fa `chown` del fitxer muntat: es munta una còpia perquè el del repo no canviï de propietari.
+# La còpia és a `nginx-proxy-manager/` com a /opt/perseida, on treballa `install-http-top.sh`.
 WORK_DIR="$(mktemp -d)"
 trap 'cleanup; rm -rf "$WORK_DIR"' EXIT
-cp "$SOURCE" "$WORK_DIR/http_top.conf"
+mkdir -p "$WORK_DIR/nginx-proxy-manager"
+MOUNTED="$WORK_DIR/nginx-proxy-manager/http_top.conf"
+cp "$SOURCE" "$MOUNTED"
 
 # Arrenca NPM amb `http_top.conf` muntat en el mode `$1` (rw o ro) i espera que acabi
 # d'arrencar (0) o que el seu arrencador s6 informi d'un error (1).
 start_npm() {
   local mount
-  mount="$(host_path "$WORK_DIR/http_top.conf"):$TARGET"
+  mount="$(host_path "$MOUNTED"):$TARGET"
   [ "$1" = "ro" ] && mount="$mount:ro"
   docker rm -fv "$NAME" >/dev/null 2>&1 || true
   # NPM exigeix que `/data` i `/etc/letsencrypt` siguin volums, com al Compose (`npm_data`
@@ -91,9 +97,17 @@ start_npm "$MODE" || fail "NPM no arrenca amb el muntatge del Compose ($MODE)"
 docker exec "$NAME" nginx -T 2>/dev/null | grep -q "zone=events_per_ip" \
   || fail "nginx no carrega la zona events_per_ip d'http_top.conf"
 
-# 2. Control: de només lectura, NPM no arrenca (el defecte del primer desplegament de la 0.2.0).
+# 2. Pas de còpia del CD amb el fitxer ja de root: nginx carrega el contingut nou.
+MARKER="perseida-http-top-$$"
+{ cat "$SOURCE"; printf '\n# %s\n' "$MARKER"; } >"$WORK_DIR/http_top.conf.new"
+(cd "$WORK_DIR" && NPM_EXEC="docker exec -i $NAME" sh "$ROOT_DIR/infra/scripts/install-http-top.sh" http_top.conf.new) \
+  || fail "install-http-top.sh no ha pogut actualitzar http_top.conf"
+docker exec "$NAME" nginx -T 2>/dev/null | grep -q "$MARKER" \
+  || fail "nginx no veu l'http_top.conf actualitzat pel pas de còpia del CD"
+
+# 3. Control: de només lectura, NPM no arrenca (el defecte del primer desplegament de la 0.2.0).
 if start_npm ro; then
   fail "NPM arrenca amb http_top.conf de només lectura: el test ja no reprodueix el defecte"
 fi
 
-printf 'OK: NPM arrenca amb el muntatge del Compose (%s) i carrega events_per_ip; de només lectura, no\n' "$MODE"
+printf 'OK: NPM arrenca amb el muntatge del Compose (%s) carrega events_per_ip i accepta la còpia del CD; de només lectura, no\n' "$MODE"
