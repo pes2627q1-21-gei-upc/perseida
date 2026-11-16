@@ -2,9 +2,9 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-11-07"
-us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89)"
+data: "2026-11-16"
+us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351"]
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477); review de la PR #83 (16/11/2026)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
 ---
 
@@ -12,7 +12,7 @@ etiquetes: [component, nginx-proxy-manager, proxy, tls]
 
 ## Responsabilitat
 
-Punt d'entrada únic del sistema. Termina HTTPS/TLS (certificats gestionats), reenvia el trànsit a l'[[api]] (`proxy_pass`), gestiona l'upgrade de connexió perquè el WebSocket del xat travessi el proxy, i serveix directament els fitxers multimèdia dels usuaris (des del volum compartit) i el bundle estàtic del panell d'administració. Així no s'exposen els contenidors interns ni cal un servei extern d'emmagatzematge d'objectes. No executa lògica de negoci.
+Punt d'entrada únic del sistema. Termina HTTPS/TLS (certificats gestionats), reenvia el trànsit a l'[[api]] (`proxy_pass`), gestiona l'upgrade de connexió perquè el WebSocket del xat travessi el proxy, i serveix directament els fitxers multimèdia dels usuaris (des del volum compartit) i el bundle estàtic del panell d'administració. També limita les peticions per IP als endpoints públics d'esdeveniments (`/api/events/`). Així no s'exposen els contenidors interns ni cal un servei extern d'emmagatzematge d'objectes. No executa lògica de negoci.
 
 ## Tecnologia i versió
 
@@ -27,7 +27,23 @@ Nginx Proxy Manager amb la imatge oficial `jc21/nginx-proxy-manager:2.12.3` fixa
 > [!info] Producció a Virtech
 > A Virtech no hi ha els ports 80 i 443 públics: es publiquen el `8080` i el `8081` (`40430` i `40431` des de fora) i el certificat s'obté amb el repte DNS-01 de DuckDNS ([[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01]]).
 
-Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api/ws` (WebSocket del xat), `/media/` i `/admin/` (els serveix el mateix NPM). La configuració avançada es versiona a `infra/nginx-proxy-manager/` (`static.conf`, `websocket.conf`, `security-headers.conf`) i els passos per recrear-lo són a la secció «nginx-proxy-manager» del README d'`infra/`, perquè NPM desa els *proxy hosts* a la seva base de dades.
+Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api/ws` (WebSocket del xat), `/api/events/` (API amb límit de peticions per IP), `/media/` i `/admin/` (els serveix el mateix NPM). La configuració avançada es versiona a `infra/nginx-proxy-manager/` (`static.conf`, `websocket.conf`, `security-headers.conf`, `rate-limit.conf`) i els passos per recrear-lo són a la secció «nginx-proxy-manager» del README d'`infra/`, perquè NPM desa els *proxy hosts* a la seva base de dades.
+
+## Límit de peticions per IP (TG-351)
+
+- `/api/events/` admet 60 peticions per minut i IP, amb una ràfega de 20 servida de cop (decisió de Raquel, tasca #477). Per sobre, el proxy respon `429` en problem+json amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1` ([[0018-errors-rfc-9457-amb-codis-estables]]), sense arribar a l'[[api]]. L'OpenAPI dels dos endpoints documenta aquest 429.
+- `instance` surt d'un `map` d'`http_top.conf`: el camí exacte per a `/api/events/active` i `/api/events/upcoming`, i `/api/events/` per a qualsevol altre. nginx no escapa JSON, així que `$uri` mai entra al cos (review de la PR #83).
+- La zona `limit_req_zone` ha d'anar al bloc `http`, on la pestanya «Advanced» no arriba: és a `http_top.conf`, que el Compose munta a `/data/nginx/custom/http_top.conf` (NPM l'inclou) i el CD copia al servidor. La ubicació és a `rate-limit.conf`.
+- Ho comprova `infra/scripts/test-rate-limit.sh`, al job `proxy` de la CI.
+
+> [!danger] Ordre d'activació i de retirada
+> `rate-limit.conf` necessita la zona i el `map` d'`http_top.conf`; sense, nginx no arrenca i cau tot el proxy host. Per activar-lo, primer es desplega i després s'enganxa `rate-limit.conf` a «Advanced». Per retirar-lo (o abans d'un revert que tregui el muntatge), primer s'esborra d'«Advanced» i després es desplega. Detall a la secció «Límit de peticions per IP» del README d'`infra/`.
+
+> [!info] Usuaris darrere d'un mateix NAT
+> El límit també afecta l'app (el mapa fa servir `/api/events/`). Els usuaris darrere d'una mateixa IP pública (wifi del campus, CGNAT mòbil) comparteixen els 60 per minut. Risc acceptat per Raquel (16/11/2026, review de la PR #83): el mapa fa poques peticions per usuari i la ràfega de 20 absorbeix els pics. Si apareixen 429 al registre d'NPM amb trànsit legítim, es revisarà el límit.
+
+> [!warning] IP real del client
+> NPM confia en `X-Real-IP` quan la petició arriba de `10/8`, `172.16/12` o `192.168/16`. Si el NAT de la UPC o Docker reescriuen l'origen a una IP privada, tots els clients compartirien un comptador i un client podria falsejar la seva IP. Cal comprovar `$remote_addr` al registre d'accessos d'NPM després del desplegament.
 
 ## Configuració
 
@@ -44,6 +60,7 @@ Variables a `.env.example`: `HTTP_PORT`, `HTTPS_PORT` i `NPM_ADMIN_PORT`. El tok
 - TG-37 (Docker Compose amb cinc serveis)
 - TG-89 (nginx-proxy-manager)
 - TG-96 (pujada de media)
+- TG-351 (límit de peticions per IP als endpoints d'esdeveniments, tasca #477)
 
 ## Estat d'implementació
 
