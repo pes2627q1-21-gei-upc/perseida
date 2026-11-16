@@ -18,7 +18,9 @@ const interpolate = (x: number, input: number[], output: number[]) => {
 const Easing = {
   linear: 'linear',
   sin: 'sin',
+  cubic: 'cubic',
   inOut: (easing: unknown) => easing,
+  out: (easing: unknown) => easing,
 };
 
 export default { View };
