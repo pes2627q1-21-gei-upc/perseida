@@ -134,10 +134,13 @@ jobs:
             mv /opt/perseida/.env.tmp /opt/perseida/.env
           '
 
-      - name: Copiar el Compose i el script de desplegament
+      # `http_top.conf` el munta el Compose a nginx-proxy-manager (límit de peticions, TG-351).
+      - name: Copiar el Compose, la zona del proxy i el script de desplegament
         shell: bash
         run: |
           scp -q infra/docker-compose.yml infra/scripts/deploy.sh virtech:/opt/perseida/
+          ssh virtech 'mkdir -p /opt/perseida/nginx-proxy-manager'
+          scp -q infra/nginx-proxy-manager/http_top.conf virtech:/opt/perseida/nginx-proxy-manager/
           ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
 
       # El servidor baixa la imatge de GHCR (paquet privat) amb el token efímer
@@ -155,6 +158,12 @@ jobs:
           printf '%s' "$GHCR_TOKEN" | ssh virtech docker login ghcr.io -u "'$GHCR_USER'" --password-stdin
           # shellcheck disable=SC2029  # el tag s'expandeix al runner a propòsit
           ssh virtech /opt/perseida/deploy.sh "$tag"
+
+      # `docker compose up` no recrea el proxy si només canvia el contingut
+      # d'`http_top.conf` (límit de peticions, TG-351): es valida i es recarrega.
+      - name: Recarregar nginx-proxy-manager
+        shell: bash
+        run: ssh virtech 'cd /opt/perseida && docker compose exec -T reverse-proxy sh -c "nginx -t && nginx -s reload"'
 
       - name: Tancar la sessió de GHCR al servidor
         if: always()
