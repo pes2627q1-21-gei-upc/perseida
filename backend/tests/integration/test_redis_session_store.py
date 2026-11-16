@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -10,9 +11,11 @@ from redis.asyncio import Redis
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.shared.errors import UnauthorizedError
 from app.domain.auth.models import GoogleIdentity, SessionClaims, TokenType
+from app.domain.realtime.models import revocation_channel
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from tests.fakes.auth import FakeAccountGateway, FakeGoogleTokenVerifier
 
 pytestmark = pytest.mark.skipif(
@@ -50,7 +53,7 @@ def claims(
 async def test_a_saved_token_exists_under_the_session_prefix(
     redis: Redis, sub: str
 ) -> None:
-    store = RedisSessionStore(redis)
+    store = RedisSessionStore(redis, RedisPubSub(redis))
     token = claims(sub)
 
     await store.save(token, 900)
@@ -62,7 +65,7 @@ async def test_a_saved_token_exists_under_the_session_prefix(
 
 
 async def test_a_token_disappears_after_its_ttl(redis: Redis, sub: str) -> None:
-    store = RedisSessionStore(redis)
+    store = RedisSessionStore(redis, RedisPubSub(redis))
     token = claims(sub)
 
     await store.save(token, 1)
@@ -76,7 +79,7 @@ async def test_a_token_disappears_after_its_ttl(redis: Redis, sub: str) -> None:
 async def test_delete_revokes_once_and_reports_who_did_it(
     redis: Redis, sub: str
 ) -> None:
-    store = RedisSessionStore(redis)
+    store = RedisSessionStore(redis, RedisPubSub(redis))
     token = claims(sub, TokenType.REFRESH)
     await store.save(token, 900)
 
@@ -90,7 +93,7 @@ async def test_delete_revokes_once_and_reports_who_did_it(
 async def test_the_user_index_lives_as_long_as_the_longest_token(
     redis: Redis, sub: str
 ) -> None:
-    store = RedisSessionStore(redis)
+    store = RedisSessionStore(redis, RedisPubSub(redis))
 
     await store.save(claims(sub, TokenType.REFRESH), 2_592_000)
     await store.save(claims(sub), 900)
@@ -102,7 +105,7 @@ async def test_the_user_index_lives_as_long_as_the_longest_token(
 async def test_revoke_session_only_removes_that_sessions_pair(
     redis: Redis, sub: str
 ) -> None:
-    store = RedisSessionStore(redis)
+    store = RedisSessionStore(redis, RedisPubSub(redis))
     access, refresh = claims(sub), claims(sub, TokenType.REFRESH)
     other = claims(sub, sid="sid-2")
     for token in (access, refresh, other):
@@ -119,7 +122,7 @@ async def test_revoke_session_only_removes_that_sessions_pair(
 async def test_revoke_all_removes_every_session_of_the_user_and_no_other(
     redis: Redis, sub: str
 ) -> None:
-    store = RedisSessionStore(redis)
+    store = RedisSessionStore(redis, RedisPubSub(redis))
     mine = [claims(sub, sid="sid-1"), claims(sub, TokenType.REFRESH, sid="sid-2")]
     theirs = claims(f"{sub}-other")
     for token in (*mine, theirs):
@@ -139,7 +142,7 @@ async def test_logout_through_the_service_revokes_the_pair_in_redis(
 ) -> None:
     # TG-138 / US #45 criteri 8: AuthService.logout sobre el Redis real
     identity = GoogleIdentity(google_sub=sub, email="ana@example.com")
-    store = RedisSessionStore(redis)
+    store = RedisSessionStore(redis, RedisPubSub(redis))
     service = AuthService(
         FakeGoogleTokenVerifier(identity),
         JwtTokenCodec("x" * 32),
@@ -159,3 +162,36 @@ async def test_logout_through_the_service_revokes_the_pair_in_redis(
         await service.refresh(tokens.refresh_token)
     assert (await service.authenticate(other.access_token)).sub == sub
     await store.revoke_all(sub)
+
+
+async def _next_message(messages: AsyncIterator[str], timeout: float = 2.0) -> str:
+    return await asyncio.wait_for(anext(messages), timeout)
+
+
+async def test_revoke_session_and_revoke_all_publish_on_the_user_channel(
+    redis: Redis, sub: str
+) -> None:
+    # TG-63 / US #63, tasca #425
+    pubsub = RedisPubSub(redis)
+    store = RedisSessionStore(redis, pubsub)
+    await store.save(claims(sub), 900)
+
+    async with pubsub.subscribe(revocation_channel(sub)) as messages:
+        await store.revoke_session(sub, "sid-1")
+        assert json.loads(await _next_message(messages)) == {"sid": "sid-1"}
+        await store.revoke_all(sub)
+        assert json.loads(await _next_message(messages)) == {"sid": None}
+
+
+async def test_a_revocation_of_another_user_is_not_delivered(
+    redis: Redis, sub: str
+) -> None:
+    pubsub = RedisPubSub(redis)
+    store = RedisSessionStore(redis, pubsub)
+    other = f"{sub}-other"
+
+    async with pubsub.subscribe(revocation_channel(sub)) as messages:
+        await store.revoke_all(other)
+        await store.revoke_all(sub)
+        # The only message that arrives is ours: the other user's never did.
+        assert json.loads(await _next_message(messages)) == {"sid": None}

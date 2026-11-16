@@ -35,6 +35,16 @@ def run_check(
 
 
 class CheckTest(unittest.TestCase):
+    def test_real_template_does_not_require_optional_websocket_settings(self) -> None:
+        template = SCRIPT.parents[1] / ".env.example"
+        names = ["WS_AUTH_TIMEOUT_SECONDS", "WS_HEARTBEAT_SECONDS", "WS_MAX_ROOMS",
+                 "WS_MAX_FRAME_BYTES", "WS_SEND_TIMEOUT_SECONDS",
+                 "WS_MAX_CONNECTIONS_PER_USER"]
+        import re
+
+        required = re.findall(r"^([A-Z][A-Z0-9_]*)=", template.read_text(encoding="utf-8"), re.MULTILINE)
+        self.assertTrue(set(names).isdisjoint(required))
+
     def test_everything_defined_passes(self) -> None:
         code, _ = run_check({"DB_PASSWORD": "x"}, {"DB_PORT": "5432"}, "DB_PASSWORD")
         self.assertEqual(code, 0)

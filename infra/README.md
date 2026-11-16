@@ -343,7 +343,14 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
    curl -kI https://perseida.localhost/media/<file>
    ```
 
-   A WebSocket client (e.g. `wscat -n -c wss://perseida.localhost/api/ws`) must get `101 Switching Protocols` once the chat endpoint exists.
+   The chat endpoint `/api/ws` exists (TG-63, ADR-0030). The handshake must answer `101 Switching Protocols` (a `404` would mean the `api` image lacks a WebSocket library or the `location` is missing):
+
+   ```bash
+   curl -k -i -N --http1.1 --max-time 3 https://perseida.localhost/api/ws      -H "Connection: Upgrade" -H "Upgrade: websocket"      -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ=="
+   # HTTP/1.1 101 Switching Protocols  (curl then waits until --max-time)
+   ```
+
+   A real client (e.g. `wscat -n -c wss://perseida.localhost/api/ws`) then has to send, as its first frame, `{"type":"auth","token":"<access token>"}`: the server closes with code 4401 if that frame does not arrive within `WS_AUTH_TIMEOUT_SECONDS` (default 10) or the token is not valid. After authenticating, the server sends a `ping` every `WS_HEARTBEAT_SECONDS` (default 30). Both are optional variables of `api` (they are in `.env.example`), as are `WS_MAX_ROOMS` (default 20), `WS_MAX_FRAME_BYTES` (default 65536) and `WS_SEND_TIMEOUT_SECONDS` (default 5) and `WS_MAX_CONNECTIONS_PER_USER` (default 3). The heartbeat must stay well below `proxy_read_timeout` (3600 s in `websocket.conf`) so the proxy never sees the connection as idle.
 
 ### Request limit per IP
 
