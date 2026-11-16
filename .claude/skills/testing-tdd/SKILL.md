@@ -10,7 +10,7 @@ Des del final de l'Sprint 1 el projecte fa **TDD estricte a tot el backend i el 
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció de referència: `obsidian_vault/convencions/testing.md`.
 
 > [!note] Estat de les eines
-> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx (backend); Jest, jest-expo i React Native Testing Library (frontend). La resta d'eines que anomenen les skills `testing-*` (mutmut, Stryker, hypothesis, fast-check, pytest-randomly, pytest-xdist, llindars de cobertura a la CI...) són **previstes (US #359, #361 i #362)**: no les facis servir ni les afegeixis sense preguntar a la persona. Des de TG-360 són **instal·lats** i a la CI schemathesis, import-linter (`uv run lint-imports`), el test de la còpia d'OpenAPI i el de migracions.
+> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx, mutmut (backend); Jest, jest-expo, React Native Testing Library, Stryker (frontend); llindars de cobertura a la CI (80 % global, 90 % codi nou) i mutation testing sobre el diff (TG-359). Des de TG-360 són **instal·lats** i a la CI schemathesis, import-linter (`uv run lint-imports`), el test de la còpia d'OpenAPI i el de migracions. La resta d'eines que anomenen les skills `testing-*` (hypothesis, fast-check, pytest-randomly, pytest-xdist) són **previstes (US #361 i #362)**: no les facis servir ni les afegeixis sense preguntar a la persona.
 
 ## Quan usar-la / quan NO
 
@@ -70,7 +70,7 @@ Patrons i exemples: [references/patrons-per-capa.md](references/patrons-per-capa
 
 ## Cobertura i qualitat dels tests
 
-- Llindars de la política: **80 % global** i **90 % del codi nou**; la CI de la PR ha de fallar si no es compleixen. La implantació a la CI és **prevista (US #359-#362)**; fins llavors es comproven en local (`uv run pytest` ja porta `--cov`; `pnpm test --coverage`) i els revisa la persona.
+- Llindars de la política: **80 % global** i **90 % del codi nou**; la CI de la PR falla si no es compleixen (bloquejant des de TG-359 mitjançant `diff-cover`, `coverageThreshold` al frontend i SonarQube Cloud). En local es comproven amb `uv run pytest` i `pnpm test --coverage`.
 - La cobertura és condició necessària, no suficient: els tests han de detectar errors (vegeu `testing-mutation`).
 - Piràmide objectiu 60/30/10 (unitàries/integració/E2E).
 - Cada PR inclou tests unitaris dels components modificats.
