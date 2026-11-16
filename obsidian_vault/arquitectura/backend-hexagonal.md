@@ -91,7 +91,7 @@ backend/
 
 ## Qualitat i proves
 
-`ruff` (complexitat màxima 10), `mypy` strict, SonarQube Cloud. Piràmide de tests 60 % unitàries / 30 % integració / 10 % E2E. Cobertura: 80 % global i 90 % del codi nou (la CI de la PR ho exigirà; implantació a les US #359-#362); mutation testing al domini (score ≥ 70 %). Llindars NFR: recursos en cache ≤ 200 ms, consultes de proximitat ≤ 150 ms, endpoints privats rebutgen peticions sense sessió vàlida (401/403). Detalls a [[testing]] i [[qualitat]].
+`ruff` (complexitat màxima 10), `mypy` strict, SonarQube Cloud. Piràmide de tests 60 % unitàries / 30 % integració / 10 % E2E. Cobertura: 80 % global i 90 % del codi nou (bloquejant a la CI des de TG-359 via `--cov-fail-under=80`, `diff-cover` i SonarQube Cloud); mutation testing al domini (score ≥ 70 %, `mutmut` bloquejant a la CI des de TG-359). Llindars NFR: recursos en cache ≤ 200 ms, consultes de proximitat ≤ 150 ms, endpoints privats rebutgen peticions sense sessió vàlida (401/403). Detalls a [[testing]] i [[qualitat]].
 
 ## Enllaços
 

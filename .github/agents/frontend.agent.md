@@ -48,7 +48,7 @@ Ets l'enginyer i dissenyador de frontend de Perseida. Treballes a `frontend/`: T
 
 ## Tests
 
-TDD estricte (ADR-0028, que substitueix ADR-0019): el test en vermell s'escriu **abans** del codi (normalment el lliura `qa-tester`) i va en un commit `test:` previ al `feat:`. Implementa el mínim fins al verd i **no toquis el test per fer-lo passar**; si creus que és incorrecte, pregunta. Jest + React Native Testing Library amb queries per rol i etiqueta (`getByRole`, `getByLabelText`); hooks i client simulats amb `jest.mock`; API simulada a `__mocks__`; comprova que tot text UI té ca/es/en. Cada PR inclou unitaris dels components modificats. Cobertura 80 % global i 90 % del codi nou (CI prevista, US #359-#362); components purament visuals exclosos. E2E (Maestro) només als fluxos crítics, previst. Skills: `testing-tdd`, `testing-property-based` (fast-check, previst).
+TDD estricte (ADR-0028, que substitueix ADR-0019): el test en vermell s'escriu **abans** del codi (normalment el lliura `qa-tester`) i va en un commit `test:` previ al `feat:`. Implementa el mínim fins al verd i **no toquis el test per fer-lo passar**; si creus que és incorrecte, pregunta. Jest + React Native Testing Library amb queries per rol i etiqueta (`getByRole`, `getByLabelText`); hooks i client simulats amb `jest.mock`; API simulada a `__mocks__`; comprova que tot text UI té ca/es/en. Cada PR inclou unitaris dels components modificats. Cobertura 80 % global i 90 % del codi nou (bloquejant a la CI des de TG-359 via coverageThreshold i SonarQube Cloud); components purament visuals exclosos. E2E (Maestro) només als fluxos crítics, previst. Skills: `testing-tdd`, `testing-property-based` (fast-check, previst).
 
 ## Protocol de dubtes (OBLIGATORI)
 

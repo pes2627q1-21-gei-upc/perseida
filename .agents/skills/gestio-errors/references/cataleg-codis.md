@@ -13,6 +13,7 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 | `NOT_FOUND` | 404 | Ruta inexistent | No | No s'ha trobat el que busques. | No se ha encontrado lo que buscas. | We couldn't find what you were looking for. | infrastructure/api |
 | `METHOD_NOT_ALLOWED` | 405 | Mètode HTTP no permès | No | Aquesta acció no està permesa. | Esta acción no está permitida. | This action is not allowed. | infrastructure/api |
 | `HTTP_<status>` | `<status>` | Altres errors HTTP de Starlette | Segons status | (missatge genèric) | (mensaje genérico) | (generic message) | infrastructure/api |
+| `RATE_LIMITED` | 429 | Límit de peticions per IP del proxy (no passa per l'API; amb `Retry-After`) | Sí | Has fet massa peticions. Torna-ho a provar d'aquí a una estona. | Has hecho demasiadas peticiones. Vuelve a intentarlo en un rato. | Too many requests. Please try again in a while. | infra/nginx-proxy-manager/rate-limit.conf (TG-351, `/api/events/`) |
 
 ## Codis del client (TG-120)
 
