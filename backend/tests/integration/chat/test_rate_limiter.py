@@ -14,7 +14,9 @@ pytestmark = pytest.mark.skipif(not os.getenv("REDIS_HOST"), reason="Redis requi
 
 @pytest.fixture
 async def redis() -> AsyncIterator[Redis]:
-    client = Redis(host=os.environ["REDIS_HOST"], port=int(os.getenv("REDIS_PORT", "6379")))
+    client = Redis(
+        host=os.environ["REDIS_HOST"], port=int(os.getenv("REDIS_PORT", "6379"))
+    )
     yield client
     await client.aclose()
 

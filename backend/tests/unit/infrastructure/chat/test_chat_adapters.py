@@ -16,7 +16,11 @@ async def test_tg444_moderator_approves_all(text: str) -> None:
 
 def test_tg446_settings_defaults_and_bounds() -> None:
     settings = ChatSettings(_env_file=None)
-    assert (settings.chat_rate_limit_messages, settings.chat_rate_limit_window_seconds, settings.chat_message_max_length) == (10, 10, 1000)
+    assert (
+        settings.chat_rate_limit_messages,
+        settings.chat_rate_limit_window_seconds,
+        settings.chat_message_max_length,
+    ) == (10, 10, 1000)
     for value in (0, 1001):
         with pytest.raises(PydanticValidationError):
             ChatSettings(_env_file=None, chat_message_max_length=value)
