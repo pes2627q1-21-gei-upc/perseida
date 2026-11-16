@@ -56,7 +56,7 @@ Automatitzar a la CI els llindars de cobertura bloquejants (backend i frontend) 
   - Canviat l'estat de Mutation a `Instal·lat (TG-359)`.
   - Actualitzada la taula i explicació dels mecanismes de bloqueig de cobertura (global al 80 % a backend i frontend, i codi nou al 90 %).
   - Detallada la subsecció `Mutation testing sobre el diff (TG-359)` amb la configuració, fórmula de score, exclusions i execució de `mutmut` i `Stryker`.
-  - Afegida nota d'execució en local a Windows (requisit de WSL per a mutmut i codificació `PYTHONIOENCODING=utf-8`).
+  - Afegida nota d'execució en local a Windows mitjançant Docker per a `mutmut` (amb muntatge de l'arrel per a `.git` i venv aïllat a `/tmp/venv`).
 - Actualitzat [[qualitat]]: documentats els nous passos bloquejants de la CI de backend i frontend.
 - Actualitzat [[definition-of-done]]: actualitzat el requisit de cobertura i mutation a la CI com a implementat i automatitzat.
 - Actualitzada [[0028-tdd-estricte-i-politica-de-testing-avancada]]: anotada la implantació a la CI dels llindars i mutation testing des d'aquesta US.
