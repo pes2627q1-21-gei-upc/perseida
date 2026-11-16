@@ -13,6 +13,8 @@ from app.domain.chat.errors import (
     CHAT_INVALID_CURSOR,
     CHAT_INVALID_LIMIT,
     CHAT_MESSAGE_REJECTED,
+    CHAT_MESSAGE_TOO_LONG,
+    MESSAGE_MAX_LENGTH,
     PAGE_MAX_LIMIT,
 )
 from app.domain.chat.models import (
@@ -80,7 +82,12 @@ class ChatService:
         limiter: SendRateLimiter,
         moderator: MessageModerator,
         pubsub: PubSub,
+        *,
+        message_max_length: int = MESSAGE_MAX_LENGTH,
     ) -> None:
+        if not 1 <= message_max_length <= MESSAGE_MAX_LENGTH:
+            raise ValueError("message_max_length must be between 1 and 1000")
+        self._message_max_length = message_max_length
         self._repository = repository
         self._subscriptions = subscriptions
         self._limiter = limiter
@@ -100,6 +107,8 @@ class ChatService:
     ) -> ChatMessage:
         room = await self.get_or_create_room(user_id, event_id)
         message = ChatMessage.create(room_id=room.id, author_id=user_id, text=text)
+        if len(message.text) > self._message_max_length:
+            raise ValidationError(CHAT_MESSAGE_TOO_LONG)
         if not await self._limiter.hit(user_id):
             raise RateLimitedError(RATE_LIMITED)
         if not (await self._moderator.moderate(message.text)).approved:

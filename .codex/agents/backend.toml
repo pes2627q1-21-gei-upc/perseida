@@ -1,6 +1,4 @@
 # GENERAT per .agents/scripts/sync-agents.mjs. No l'editis.
-name = "backend"
-description = "Delega-hi tot el codi del backend de Perseida (Python, FastAPI, SQLModel, PostgreSQL/PostGIS, Redis, domini, services, ports i adaptadors, errors i migracions)."
 sandbox_mode = "workspace-write"
 developer_instructions = """
 # Subagent backend

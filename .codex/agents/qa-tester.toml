@@ -1,6 +1,4 @@
 # GENERAT per .agents/scripts/sync-agents.mjs. No l'editis.
-name = "qa-tester"
-description = "Delega-hi l'escriptura i l'execució de tests de Perseida (pytest al backend, Jest + RNTL al frontend) amb TDD estricte - escriu el test en vermell abans del codi, el comita amb `test:` i el lliura a backend/frontend; cobertura 80 % global i 90 % codi nou, mutation, piràmide 60/30/10 i traçabilitat per US; no toca codi de producció."
 sandbox_mode = "workspace-write"
 developer_instructions = """
 # Subagent qa-tester
