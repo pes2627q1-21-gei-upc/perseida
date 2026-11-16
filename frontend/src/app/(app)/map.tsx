@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import {
   type ClassifiedEvent,
@@ -16,6 +16,7 @@ import { type EventsView, MapControls } from '../../features/events/components/M
 import { MapTopBar } from '../../features/events/components/MapTopBar';
 import { toMapMarkers } from '../../features/events/eventMarkers';
 import { describeEvent } from '../../features/events/formatEvent';
+import { hiddenLayerProps } from '../../features/events/hiddenLayer';
 import { useMapEvents } from '../../features/events/hooks/useEvents';
 import { useIsWide } from '../../features/events/useIsWide';
 import { SkyBackground } from '../../shared/ui';
@@ -39,6 +40,7 @@ export default function MapScreen() {
   const [barBottom, setBarBottom] = useState(0);
   const { data, error, isFetching, refetch } = useMapEvents();
   const wide = useIsWide();
+  const mapLayer = hiddenLayerProps(view === 'list', Platform.OS);
 
   const events = data ? filterEvents(data, filter) : NO_EVENTS;
   const markers = useMemo(
@@ -82,14 +84,8 @@ export default function MapScreen() {
           <View style={styles.fill}>
             {/* The map is never unmounted: a new mount reloads it and loses the zoom and
                 position. Under the list it stays laid out but invisible, untouchable and out
-                of the accessibility tree. */}
-            <View
-              testID="map-area"
-              style={[styles.fill, view === 'list' && styles.hidden]}
-              pointerEvents={view === 'list' ? 'none' : 'auto'}
-              accessibilityElementsHidden={view === 'list'}
-              importantForAccessibility={view === 'list' ? 'no-hide-descendants' : 'auto'}
-            >
+                of the accessibility tree, on native and on the web (`hiddenLayerProps`). */}
+            <View testID="map-area" {...mapLayer} style={[styles.fill, mapLayer.style]}>
               <EventMap markers={markers} label={t('events.map.label')} onSelect={setSelectedId} />
             </View>
             {view === 'list' && (
@@ -120,6 +116,5 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  hidden: { opacity: 0 },
   row: { flexDirection: 'row' },
 });
