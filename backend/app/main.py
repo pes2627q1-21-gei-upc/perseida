@@ -126,7 +126,7 @@ def create_app() -> FastAPI:
         title="Perseida API",
         description="Backend oficial del projecte Perseida - "
         "Arquitectura Hexagonal i API",
-        version="0.2.1",
+        version="0.2.2",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
