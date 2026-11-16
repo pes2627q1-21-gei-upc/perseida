@@ -149,6 +149,22 @@ describe('EventMap (web)', () => {
     );
   });
 
+  it('fits only the first markers: a new filter keeps the zoom and position of the user', async () => {
+    const view = await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    await view.rerender(<EventMap markers={[MARKERS[0]]} label={LABEL} onSelect={jest.fn()} />);
+
+    expect(mockFitBounds).toHaveBeenCalledTimes(1);
+  });
+
+  it('fits the first markers that arrive after an empty start', async () => {
+    const view = await render(<EventMap markers={[]} label={LABEL} onSelect={jest.fn()} />);
+
+    await view.rerender(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    expect(mockFitBounds).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the whole world in view when there are no markers', async () => {
     await render(<EventMap markers={[]} label={LABEL} onSelect={jest.fn()} />);
 
