@@ -29,6 +29,7 @@ from app.infrastructure.events.repository import SqlEventRepository
 from app.infrastructure.events.tables import AstronomicalEventRow
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.main import create_app
+from tests.fakes.cache import FakeCache
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("POSTGRES_HOST"),
@@ -94,8 +95,9 @@ async def client(engine: AsyncEngine) -> AsyncIterator[AsyncClient]:
             session.add(_row(_contract(name)))
         await session.commit()
     app: FastAPI = create_app()
+    # No sources: only the contract rows stored above, never an external call.
     app.dependency_overrides[get_event_service] = lambda: EventService(
-        SqlEventRepository(sessions), now=lambda: NOW
+        SqlEventRepository(sessions), [], FakeCache(), now=lambda: NOW
     )
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
