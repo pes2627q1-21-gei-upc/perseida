@@ -29,7 +29,7 @@ host_path() {
   if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi
 }
 cleanup() {
-  docker rm -f "$NAME" >/dev/null 2>&1 || true
+  docker rm -fv "$NAME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -66,8 +66,10 @@ start_npm() {
   local mount
   mount="$(host_path "$WORK_DIR/http_top.conf"):$TARGET"
   [ "$1" = "ro" ] && mount="$mount:ro"
-  docker rm -f "$NAME" >/dev/null 2>&1 || true
-  MSYS_NO_PATHCONV=1 docker run -d --name "$NAME" -v "$mount" "$IMAGE" >/dev/null
+  docker rm -fv "$NAME" >/dev/null 2>&1 || true
+  # NPM exigeix que `/data` i `/etc/letsencrypt` siguin volums, com al Compose (`npm_data`
+  # i `npm_letsencrypt`); aquí són anònims i `docker rm -v` els esborra.
+  MSYS_NO_PATHCONV=1 docker run -d --name "$NAME" -v /data -v /etc/letsencrypt -v "$mount" "$IMAGE" >/dev/null
   local waited=0
   while [ "$waited" -lt "$STARTUP_TIMEOUT" ]; do
     # NPM genera `resolvers.conf` en acabar d'arrencar; abans, `nginx -t` falla.
