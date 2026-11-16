@@ -11,7 +11,7 @@
 # Comprova:
 #   1. Les 21 primeres peticions a /api/events/... passen (1 r/s amb ràfega de 20, sense espera).
 #   2. En superar el límit, la resposta és 429 en problem+json (RFC 9457) amb `code`
-#      RATE_LIMITED, `Retry-After` i `X-Correlation-ID`.
+#      RATE_LIMITED, `instance`, `Retry-After` i `X-Correlation-ID`.
 #   3. La resta de l'API (/api/health) no queda limitada.
 #
 # Ús: bash infra/scripts/test-rate-limit.sh   (cal Docker; la CI l'executa al job `proxy`)
@@ -139,6 +139,17 @@ assert body["title"] == "Too Many Requests", body
 assert body["type"] == "about:blank", body
 assert body["detail"], body
 assert len(body["correlation_id"]) == 32, body
+assert body["instance"] == "/api/events/active", body
+EOF
+
+# 2b. `instance` mai copia text del client: un camí desconegut (aquí amb unes cometes,
+#     `%22`, que nginx descodifica a `$uri`) dona el prefix fix i el JSON continua vàlid.
+code="$(curl -s -o "$WORK_DIR/odd-body" -w '%{http_code}' "$BASE/api/events/%22x")"
+[ "$code" = "429" ] || fail "el camí desconegut ha retornat $code (s'esperava 429)"
+python3 - "$WORK_DIR/odd-body" <<'EOF' || fail "el 429 d'un camí desconegut no porta instance /api/events/"
+import json, sys
+body = json.load(open(sys.argv[1], encoding="utf-8"))
+assert body["instance"] == "/api/events/", body
 EOF
 
 # 3. La resta de l'API no comparteix el límit.
