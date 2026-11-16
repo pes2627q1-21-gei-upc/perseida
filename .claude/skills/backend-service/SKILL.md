@@ -40,7 +40,7 @@ Preguntes d'aquesta skill:
 5. Transaccions: defineix el límit a nivell de cas d'ús (UoW o port transaccional triat amb l'humà).
 6. Errors: llença `DomainError` (propagat del domini) i `ApplicationError` (`UnauthorizedError`, `ForbiddenError` a `application/shared/errors.py`). Format RFC 9457 i catàleg de codis: skill `gestio-errors`, no el dupliquis.
 7. Provider singleton a `infrastructure/<mòdul>/dependencies.py` (no al service): `@lru_cache` + `Annotated[..., Depends(...)]`, que és qui coneix els adaptadors concrets. Els recursos amb cicle de vida (engine, pool Redis, client httpx) es creen al `lifespan` i s'injecten; no al service.
-8. Escriu els tests (DESPRÉS del codi) amb fakes dels ports.
+8. TDD estricte (skill `testing-tdd`): els tests amb fakes dels ports s'escriuen **abans**, en vermell (commit `test:`), i després el service.
 9. Passa `ruff`, `mypy` strict i `pytest`.
 
 ## Plantilla de codi (orientativa)
@@ -97,7 +97,7 @@ Notes: `ForbiddenError(code, message)` és una proposta de signatura alineada am
 - Services amb **fakes** dels ports (implementacions en memòria), no mocks fràgils; sense BD ni xarxa.
 - Cobreix: camí feliç; cada error (`DomainError` propagat, `ForbiddenError`, `UnauthorizedError`); fallada d'un port; transaccionalitat (no es persisteix a mitges); efectes secundaris cridats una sola vegada.
 - Overrides en tests d'API: `app.dependency_overrides[get_x] = ...`.
-- Cobertura application ≥ 70 % (codi nou ≥ 70 %). Nomena els tests amb la US.
+- Cobertura: 80 % global i 90 % del codi nou. Nomena els tests amb la US.
 
 ## Checklist final
 

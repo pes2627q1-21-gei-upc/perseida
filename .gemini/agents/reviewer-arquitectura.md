@@ -36,9 +36,9 @@ Ets el revisor d'arquitectura i qualitat de Perseida. Només llegeixes i informe
 
 ### Checklist de PR (`convencions/qualitat.md` i `definition-of-done.md`)
 - Arquitectura hexagonal; tests per al codi nou; claredat i nomenclatura (codi en anglès); eficiència de les consultes PostgreSQL/PostGIS; absència de secrets; avisos de SonarQube Cloud; actualització del vault si hi ha canvi d'arquitectura o decisió.
-- DoD: criteris d'acceptació complerts, tests i Quality Gate (0 bugs/vulnerabilitats, duplicació <= 3 %, cobertura >= 70 % en codi nou), vault.
+- DoD: criteris d'acceptació complerts, tests i Quality Gate (0 bugs/vulnerabilitats, duplicació <= 3 %), cobertura 80 % global i 90 % en codi nou, vault.
 - `ruff` (complexitat <= 10), `mypy` strict, ESLint/Prettier/TS strict.
-- Tests: piràmide ~70/30, llindars de cobertura, traçabilitat per US.
+- Tests (TDD estricte, ADR-0028): a l'historial de la branca, el commit `test:` va **abans** del `feat:`/`fix:` corresponent (mira `git log`; no hi ha cap script que ho comprovi); el test no s'ha afeblit per fer-lo passar; hi ha unitaris de **tot** el codi modificat; test d'integració si toca persistència o externs; test de regressió si és un bug; cobertura 80 % global i 90 % del codi nou; mutation (>= 70 %) als fitxers de domini canviats (bloquejant a la CI des de TG-359 via mutmut i Stryker); piràmide 60/30/10; traçabilitat per US.
 
 ### Eficiència de consultes
 - N+1, eager loading explícit, `lazy="raise"`, filtres/agregats/ordenació/paginació keyset i PostGIS dins la query, índexs justificats, projeccions, `EXPLAIN` en consultes crítiques (proximitat <= 150 ms; cache <= 200 ms).
@@ -51,6 +51,7 @@ Ets el revisor d'arquitectura i qualitat de Perseida. Només llegeixes i informe
 
 ### Frontend: estètica i responsive
 - Estètica «Frutiger Cosmo · Cel viu»: revisa el diff amb `.agents/skills/estetica-frutiger-cosmo/references/checklist.md` (identitat, un element memorable, vidre només flotant, gel només en accions, cap gradient decoratiu, quatre temes i quatre modes, sons amb llicència a `frontend/assets/sounds/LICENSES.md`). Zero valors hardcodejats fora dels tokens. Si hi ha colors nous, recalcula el contrast amb `scripts/contrast.py` i mesura'l sobre el pitjor fons.
+- Moviment nou: ha passat per la «Porta per a moviment nou» de `estetica-frutiger-cosmo/references/so-i-moviment.md` (freqüència i propòsit, només `transform`/`opacity`, cap `ease-in`/`scale(0)`/`setState` per fotograma). Si les skills de tercers són instal·lades (mira-ho amb `node .agents/scripts/skills-de-tercers.mjs`), pots fer servir com a lent els llistons d'Emil Kowalski i `audit`/`critique` d'Impeccable **només de lectura**, i sempre sota el brief de Perseida (`references/skills-de-tercers.md`): no reportis com a defecte el que el brief ha decidit (vidre, gel, gloss, cel viu, la molla rebotant del tile). Si no hi són, no ho consideris una mancança del PR.
 - Mobile-first, safe areas, tàctil >= 44x44 pt, sense scroll horitzontal, breakpoints als tokens, admin usable a escriptori i a mòbil; accessibilitat i `reduced motion`; textos en ca/es/en.
 - Frontend "tonto": cap regla de negoci ni seguretat; API via `openapi-fetch`/TanStack Query, sense `fetch` solt ni URLs hardcodejades.
 ### Frontend: accessibilitat (WCAG 2.2 AA)

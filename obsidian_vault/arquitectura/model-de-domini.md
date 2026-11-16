@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-40", "TG-70"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07)"
+data: "2026-11-11"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -17,6 +17,12 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!note] Lectura del diagrama
 > Els atributs i les etiquetes de relació s'han transcrit tal com es llegeixen a la imatge. Les multiplicitats d'alguns extrems no es llegeixen amb claredat (línies que se solapen al voltant de `User`); aquí només es llisten les que es veuen bé i la resta es dona sense multiplicitat.
+
+> [!info] Implementat: usuari
+> `User` ja té taula i entitat (TG-135), amb més atributs que el diagrama; vegeu [[#Usuari (implementat)]].
+
+> [!info] Implementat: ratxa diària
+> `DailyStreak` ja té entitat, taula i endpoints (TG-56); vegeu [[#Ratxa diària (implementat)]].
 
 ## Gamificació
 
@@ -37,7 +43,7 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 | `EventSubscription` | `subscriptionId: ID`, `createdAt: DateTime` |
 | `AstronomicalEvent` | `eventId: ID`, `type: String`, `dateTime: DateTime`, `latitude: Decimal`, `longitude: Decimal` |
 | `ObservationZone` | `zoneId: ID`, `latitude: Decimal`, `longitude: Decimal`, `cloudCoverage: Decimal`, `lightPollution: Decimal`, `recommendationScore: Decimal` |
-| `APOD` | `apodDate: Date`, `title: String`, `explanation: String`, `mediaUrl: String` |
+| `APOD` | `apodDate: Date`, `title: String`, `explanation: String`, `mediaType: String` (`image`/`video`), `mediaUrl: String`, `copyright: String` (opcional) |
 
 ## Notificacions i moderació
 
@@ -70,6 +76,111 @@ Etiquetes tal com apareixen al diagrama:
 - `User` — `EventChatRoom` («participa»); `User` — `ChatMessage` («envia»); `User` 2 — 0..* `DirectConversation` («participants»: 2 usuaris per conversa).
 - No s'assigna amb certesa: les tres multiplicitats «1» de la part superior de `User`, l'extrem `User` de les relacions «fites desbloquejades», «obté», «registre d'activitat» i «subscripcions», les de les tres línies llargues de la part inferior (`User` amb `EventChatRoom`, `ChatMessage` i `DirectConversation`, més enllà del «2» ja indicat) i la de l'autorelació «segueix». Es donen sense multiplicitat.
 - `ObservationZone` i `APOD` apareixen al paquet «Usuaris i esdeveniments» sense cap relació dibuixada.
+
+## Usuari (implementat)
+
+Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.py` (migració `create_users`). Convencions: [[0023-convencions-del-model-de-dades]].
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, clau primària interna |
+| `email` | únic, en minúscules; mai clau |
+| `display_name`, `avatar_url` | opcionals (perfil de Google) |
+| `preferred_language` | `ca` (per defecte), `es`, `en` |
+| `role` | `user` (per defecte), `moderator`, `admin` |
+| `status` | `active` (per defecte), `suspended`, `banned` |
+| `created_at`, `last_login_at` | `timestamptz` |
+| `deleted_at` | nul = actiu; soft delete |
+
+`user_identities(provider, subject, user_id, created_at)`: identitat externa (`google_sub` = `subject`), PK `(provider, subject)`, FK a `users`. A l'entitat de domini, `google_sub` és un camp de `User`; el repositori ho mapeja.
+
+## Xat d'esdeveniment (domini implementat)
+
+Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64; encara sense persistència ni API). Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
+
+| Entitat | Camps | Notes |
+|---|---|---|
+| `EventChatRoom` | `id` (UUIDv7), `event_id`, `created_at` | una sala com a màxim per esdeveniment (0..1); immutable |
+| `ChatMessage` | `id` (UUIDv7), `room_id`, `author_id`, `text`, `sent_at` | immutable; el servidor assigna `id` i `sent_at` (UTC) |
+
+Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`) i els separadors de línia i de paràgraf (`Zl`, `Zp`), excepte el salt de línia i la tabulació. A més, s'eliminen només els invisibles perillosos, que són els de la propietat Unicode `Default_Ignorable_Code_Point` (UCD 18) menys els benignes: bidi embeddings, overrides i isolates, zero-width space, word joiner, guionet suau, fillers de hangul, selectors de variació que no són d'emoji i tots els tags (poden amagar text ASCII). Es conserven ZWJ i ZWNJ (emojis compostos i alguns scripts), LRM, RLM i ALM (marques direccionals d'un sol caràcter), els selectors d'emoji `FE0E`/`FE0F` i, de les tag sequences, només les banderes d'Anglaterra, Escòcia i Gal·les. No s'elimina cap caràcter pel fet de ser no assignat (`Cn`): els emojis nous passen encara que la versió d'Unicode de Python no els conegui. Un text amb només marques invisibles (o el braille en blanc) és buit. Efecte acceptat per l'equip (11/11/2026): l'escriptura mongola (selectors de variació i separador de vocal) i els selectors de variació ideogràfics perden aquests caràcters. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
+
+Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (que implementarà #53 amb el mateix `is_subscribed(user_id, event_id)`). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
+
+## Esdeveniment astronòmic (implementat)
+
+Entitat `AstronomicalEvent` a `app/domain/events/models.py`; port `EventRepository` a `app/domain/events/ports.py`; taula `astronomical_events` a `app/infrastructure/events/tables.py` (migració `create_astronomical_events`) i repositori de lectura `SqlEventRepository`. La va crear TG-351 en lloc de TG-50 (acord entre Raquel i Manel, 09/11/2026). Forma pública: [[contracte-esdeveniments]].
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, clau primària interna i estable |
+| `source`, `external_id` | origen de l'esdeveniment; `UNIQUE (source, external_id)`. `source`: `launch_library_2`, `usno`, `skyfield`, `catalog` (fixats a [[0031-fonts-d-esdeveniments-sota-demanda|ADR-0031]]) |
+| `title`, `summary` | text, en l'idioma de la font; no buit (ho comproven l'entitat i `EventResponse`) |
+| `category` | `lunar`, `solar`, `meteor_shower`, `launch` |
+| `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` (a l'entitat, `EVENT_ENDS_BEFORE_START`). Índex a cadascuna |
+| `latitude`, `longitude` | `double precision`, opcionals però totes dues o cap; índex GiST d'expressió `geography` (sense `geoalchemy2`) |
+| `source_url` | opcional; només https (l'adaptador hi aplica `safe_https_url`) |
+| `created_at`, `updated_at` | `timestamptz`, `now()` per defecte |
+
+Consultes del port, ordenades per `starts_at`:
+
+- `list_between(start, end)`: els esdeveniments que se solapen amb `[start, end)`, és a dir, `starts_at < end` i `ends_at >= start`. Un esdeveniment instantani a `start` hi surt.
+- `list_starting_between(start, end)`: els que compleixen `start <= starts_at < end`.
+
+Escriptura i consulta per id (TG-50):
+
+- `upsert_many(drafts)`: desa els `EventDraft` (l'esdeveniment tal com el dona una font, amb `source` i `external_id` i sense `id`). Si `(source, external_id)` ja hi és, n'actualitza les dades i `updated_at` (`now()`) i en conserva l'`id` i `created_at`. Si el lot repeteix una clau, es desa l'últim.
+- `exists(event_id)`: si l'esdeveniment existeix (el fa servir TG-64 per a la sala de xat).
+
+Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventService` les refresca sota demanda abans de cada consulta ([[0031-fonts-d-esdeveniments-sota-demanda]]).
+
+> [!todo] Pendent per a TG-51 (proximitat)
+> - L'índex GiST és parcial (`WHERE latitude IS NOT NULL`). La consulta de proximitat ha de fer servir la mateixa expressió, `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`, i el mateix predicat.
+
+## Quiz diari (implementat)
+
+Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.py` (migracions `create_quiz` i `seed_quiz_questions`, TG-60). `DailyQuiz` és la taula `quiz_days`: la primera vegada que es demana un dia s'hi desa la primera pregunta que encara no ha sortit o, si ja han sortit totes, la que fa més temps que va sortir (`next_question`). El dia no canvia si el banc creix, i les preguntes noves surten abans de cap repetició ([[contracte-quiz]]).
+
+| Taula | Camps |
+|---|---|
+| `quiz_questions` | `id` UUIDv7 fix (ve del fitxer del seed), `position` (única, ordre de rotació), `correct_option` 0-3, `source_url` |
+| `quiz_question_translations` | PK `(question_id, language)`, `statement`, `options` (4 textos), `explanation`; FK a `quiz_questions` amb `CASCADE` |
+| `quiz_days` (`DailyQuiz`) | PK `quiz_date`, `question_id` (FK, `RESTRICT`) |
+| `quiz_answers` (`QuizResult`) | `id` UUIDv7, `user_id` (FK a `users`, `CASCADE`), `quiz_date`, `question_id` (FK, `RESTRICT`), `chosen_option`, `correct`, `answered_at`; única `(user_id, quiz_date)` |
+
+`score` del diagrama és `correct` (cert o fals): hi ha una sola pregunta per dia.
+
+Desfer la migració `seed_quiz_questions` només esborra les preguntes sense respostes ni dies; tornar-la a aplicar insereix la resta amb els mateixos `id`. `Language` és a `app/domain/shared/language.py` perquè el fan servir users i quiz.
+
+## Ratxa diària (implementat)
+
+Entitat `DailyStreak` a `app/domain/streaks/models.py`; port `StreakRepository` a `app/domain/streaks/ports.py`; cas d'ús `StreakService` a `app/application/streaks/streak_service.py`; taula `daily_streaks` a `app/infrastructure/streaks/tables.py` (migració `create_daily_streaks`), repositori `SqlStreakRepository` i router `app/infrastructure/streaks/router.py`. Convencions de la taula: [[0023-convencions-del-model-de-dades]]. Vinculada a `User` com a «registre d'activitat».
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, clau primària interna |
+| `user_id` | `uuid`, únic (una ratxa per usuari), FK a `users.id` amb `ON DELETE RESTRICT` |
+| `current_count` | enter; `CHECK current_count >= 1` |
+| `last_activity_date` | `date`: l'últim dia UTC amb activitat |
+
+**El dia és el dia UTC**, igual per a tots els usuaris (decisió de l'equip, 11/11/2026). `StreakService` el calcula amb un rellotge injectat; l'app no envia cap zona horària. Una activitat a les 23:50 UTC i una a les 00:10 UTC del dia següent són dos dies consecutius.
+
+Regles (a `DailyStreak`):
+
+- **Registrar** (`register_activity`): sense ratxa prèvia, 1; si l'última activitat és d'ahir, +1; si ja és d'avui, no canvia res; si és anterior a ahir, torna a 1.
+- **Consultar** (`count_on`): `current_count` si l'última activitat és d'avui o d'ahir; sinó 0. El càlcul es fa en el moment de la consulta: no hi ha cap procés programat ni cache, i la consulta no escriu mai.
+- `SqlStreakRepository.register_activity(user_id, today)` llegeix i escriu en una sola transacció: bloqueja la fila amb `SELECT ... FOR UPDATE` i crida `today()` ja amb el pany agafat. Així dues peticions alhora no compten dos cops i, a mitjanit UTC, l'ordre en què agafen el pany no canvia el resultat (el rellotge només avança). Sense fila prèvia, l'`INSERT ... ON CONFLICT DO NOTHING` fa de guarda i qui perd la cursa bloqueja la fila de qui guanya.
+
+Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503):
+
+| Ruta | Què fa | Resposta |
+|---|---|---|
+| `POST /api/streaks/me/activity` | Registra l'activitat d'avui; idempotent dins del dia | `200` `{"current_count": N}` |
+| `GET /api/streaks/me` | Consulta la ratxa vigent | `200` `{"current_count": N}` (0 si no en té o s'ha trencat) |
+
+> [!todo] Pendent
+> - Les rutes i el format de resposta els ha decidit TG-56; la visualització a l'app (TG-57) els ha de consumir i, si cal canviar-los, acordar-ho amb qui la faci.
+> - Mutation testing del domini (`app/domain/streaks/`) pendent de l'eina (US #359-#362).
 
 ## Diagrama (transcripció)
 
@@ -129,7 +240,9 @@ classDiagram
         apodDate: Date
         title: String
         explanation: String
+        mediaType: String
         mediaUrl: String
+        copyright: String
     }
     class ContentReport {
         reportId: ID

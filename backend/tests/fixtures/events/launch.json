@@ -1,0 +1,10 @@
+{
+  "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+  "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+  "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+  "category": "launch",
+  "starts_at": "2026-11-03T21:15:00Z",
+  "ends_at": "2026-11-03T23:45:00Z",
+  "location": { "latitude": 28.5618, "longitude": -80.577 },
+  "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+}

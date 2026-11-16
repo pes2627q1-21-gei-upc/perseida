@@ -27,7 +27,7 @@ jobs:
           sparse-checkout: .github/scripts
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14.9"
       - name: Desbloquejar US resoltes
         env:
           TAIGA_USERNAME: ${{ secrets.TAIGA_USERNAME }}

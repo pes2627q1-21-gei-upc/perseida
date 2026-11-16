@@ -2,27 +2,70 @@
 titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85"]
-font: "memòria §2.5, §2.9.3"
-etiquetes: [convencio, testing, cobertura, nfr]
+data: "2026-10-28"
+us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359"]
+font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359"
+etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
 
 # Estratègia de proves
 
 ## Regla
 
-Les proves segueixen la piràmide: base àmplia de proves unitàries, un nombre moderat d'integració i, al cim, les d'acceptació. Cap US arriba a Done sense les seves proves.
+TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-testing-avancada]]): el test en vermell s'escriu **abans** del codi. Les proves segueixen la piràmide 60/30/10. Cap US arriba a Done sense les seves proves.
+
+> [!info] Estat de la implantació
+> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) i TG-359 (US #359) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter), les migracions reversibles, els llindars de cobertura bloquejants (backend i frontend) i el mutation testing sobre el diff (mutmut i Stryker). L'automatització de la resta d'eines marcades com a «previst» (E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`) és pendent i va a les US #361 i #362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
+
+## TDD
+
+1. **Roig:** s'escriu el test derivat d'un criteri d'acceptació i es comprova que falla pel motiu correcte.
+2. **Commit `test:`** amb el test en vermell, **abans** del `feat:`/`fix:`.
+3. **Verd:** el codi mínim que el fa passar, sense tocar el test.
+4. **Refactor** amb els tests en verd (`refactor:`).
+
+- Cada PR inclou tests unitaris dels components modificats.
+- Un bug comença amb un test de regressió que el reprodueix i falla; queda a la suite.
+- L'ordre `test:` abans de `feat:` és una regla d'equip documentada a les skills, els subagents i la plantilla de PR; **no hi ha cap script de CI que el verifiqui**: el revisor ho mira a l'historial de la PR.
+- Skills: `testing-tdd` (cicle), `testing-integracio`, `testing-mutation`, `testing-property-based`. Detall al [[assistents-ia]].
 
 ## Nivells
 
 | Nivell | Proporció objectiu | Eines |
 |---|---|---|
-| Unitàries | ≈ 70 % dels tests | Backend: pytest, pytest-asyncio, pytest-xdist. Frontend: Jest i React Native Testing Library |
-| Integració | ≈ 30 % dels tests | httpx.AsyncClient, respx, PostgreSQL/PostGIS i Redis en contenidors efímers |
+| Unitàries | ≈ 60 % dels tests | Backend: pytest, pytest-asyncio. Frontend: Jest i React Native Testing Library |
+| Integració | ≈ 30 % dels tests | httpx.AsyncClient, respx, PostgreSQL/PostGIS i Redis reals (docker-compose de la CI), stubs/fakes propis per port |
+| E2E | ≈ 10 % dels tests, només fluxos crítics | Maestro (app mòbil) i Playwright (admin); **previst (US #359-#362)** |
 | Acceptació | 100 % dels criteris verificats (automàtic o manual); ≥ 80 % amb test automatitzat | Tests automatitzats; la resta, llista de comprovació manual sobre la branca `release/*` |
 
-No s'automatitzen proves end-to-end sobre l'app mòbil.
+## Tipus de test i eines
+
+| Tipus | Què verifica | Eina | Estat |
+|---|---|---|---|
+| Unitari | Domini sense mocks; services amb fakes dels ports; hooks i components amb RNTL (queries per rol, `jest.mock` de hooks i client) | pytest, Jest, RNTL | Instal·lat |
+| Integració | Adaptadors contra serveis reals; HTTP extern amb `respx`; stubs per port | pytest, httpx, respx, docker-compose | Instal·lat (service containers a la CI) |
+| Temps | Rellotge injectat o temps congelat | `freezegun`/`time-machine` | Previst |
+| Property-based | Invariants de la lògica crítica (ràtxes, puntuació de zones, proximitat, last-write-wins) | hypothesis (backend), fast-check (frontend) | Previst |
+| Mutation | Que els tests detecten errors; obligatori al domini, només fitxers canviats, score ≥ 70 % | mutmut (backend), Stryker (frontend) | Instal·lat (TG-359) |
+| Contracte | OpenAPI: casos generats (cap 5xx, respostes segons l'esquema, errors RFC 9457) i còpia `frontend/openapi/openapi.json` igual a l'esquema del backend; el job `frontend` falla si `schema.d.ts` no està regenerat | schemathesis, `pytest`, `pnpm api:generate` | Instal·lat |
+| Arquitectura | Capes del backend; import-linter bloquejant | `backend/tests/architecture`; import-linter (`[tool.importlinter]` a `pyproject.toml`) | Instal·lat |
+| E2E | Fluxos crítics | Maestro, Playwright | Previst |
+| Accessibilitat | Queries per rol/etiqueta als tests; lint d'a11y | RNTL; `eslint-plugin-jsx-a11y` | RNTL instal·lat; lint previst |
+| Robustesa | Ordre aleatori i execució en paral·lel; quarantena sense reintents | pytest-randomly, pytest-xdist | Previst |
+| Seguretat | Anàlisi estàtica i dependències | bandit, pip-audit, `pnpm audit` | Previst |
+| Migracions | Cada revisió fa upgrade -> downgrade -> upgrade i l'esquema torna a ser el mateix (coherent amb el rollback d'[[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]) | Alembic + pytest | Instal·lat |
+
+### Contracte, arquitectura i migracions (TG-360)
+
+- **schemathesis** (`tests/integration/test_api_contract.py`): l'app corre en procés (ASGI, amb el lifespan) sobre PostgreSQL i Redis reals; Google i la NASA, simulats amb `respx`; els endpoints privats s'autentiquen amb un login real amb un token de Google signat amb una clau de prova. Llavor fixa (`360`) i 25 exemples per operació. El check propi `tests/integration/problem_check.py` exigeix `application/problem+json` i els camps `type`, `title`, `status`, `detail`, `code` a tot 4xx/5xx. A `GET /api/apod` s'accepta el 422 de dates fora de rang com a resposta esperada del check `positive_data_acceptance`: el límit superior (avui) no es pot escriure a OpenAPI.
+- **Còpia d'OpenAPI**: `tests/unit/infrastructure/test_openapi_copy.py` compara `create_app().openapi()` amb `frontend/openapi/openapi.json`. Per regenerar-la: `cd backend && uv run python -m scripts.export_openapi && cd ../frontend && pnpm api:generate`. El job `frontend` fa `pnpm api:generate` i falla si `src/shared/api/schema.d.ts` canvia.
+- **import-linter** (`uv run lint-imports`, pas obligatori del job `backend`): el domini no importa FastAPI, SQLModel/SQLAlchemy, Redis, asyncpg ni httpx; l'aplicació no importa `app.infrastructure` ni FastAPI; capes `infrastructure` -> `application` -> `domain`. El test propi `tests/architecture/test_layer_dependencies.py` es manté (llista blanca, imports relatius i aïllament users/auth).
+- **Migracions** (`tests/integration/test_alembic.py::test_every_revision_can_be_undone`): per a cada revisió, instantània de l'esquema, `upgrade`, `downgrade` a l'anterior i comparació. **En local fa `downgrade base` i esborra la base de dades a la qual apunta `POSTGRES_HOST`**; només s'executa si `POSTGRES_HOST` està definit. No és compatible amb `pytest-xdist` (previst a #362) mentre comparteixi la base de dades amb la resta de tests d'integració.
+- En local, els tests d'integració i de contracte necessiten PostgreSQL/PostGIS i Redis (`POSTGRES_*`, `REDIS_*`); sense aquestes variables es salten.
+
+### Tests inestables
+
+Un test inestable es posa en quarantena (marcat i exclòs del bloc obligatori, amb una incidència a Taiga) i es corregeix; **no es fan reintents automàtics** per tapar-lo.
 
 ## Proves d'acceptació
 
@@ -33,30 +76,44 @@ No s'automatitzen proves end-to-end sobre l'app mòbil.
 > [!note] Lectura combinada de la memòria
 > La memòria (§2.5.3) ho expressa en dos llocs: la taula de nivells («100 % verificats; ≥ 80 % amb test automatitzat») i el paràgraf «Proves d'acceptació» («cada criteri té almenys un test automatitzat»). Aquesta nota en recull la lectura combinada: l'automatització és la norma, la verificació manual és l'excepció acotada i els percentatges són l'objectiu mesurable. No cal tornar-ho a debatre.
 
-## Quan s'escriuen els tests
-
-Els tests s'escriuen **després del codi**, a totes les capes, dins la mateixa tasca i abans d'obrir la PR ([[0019-tests-despres-del-codi]]). Es deriven dels criteris d'acceptació de la US i una persona els revisa a la PR perquè no s'acomodin al codi. Davant d'un bug, primer s'escriu un test que el reprodueix i falla; queda a la suite com a test de regressió.
-
 ## Jocs de prova
 
 - `backend/tests/fixtures/`: respostes enregistrades de les APIs de la NASA i de meteorologia (JSON) i punts d'observació d'exemple.
 - `backend/tests/factories/`: generadors d'usuaris, esdeveniments, missatges i fites.
+- `backend/tests/fakes/`: fakes dels ports.
 - `backend/tests/moderation_dataset/`: joc etiquetat per avaluar Kev-4B en català, castellà i anglès.
 - `frontend/__mocks__/`: respostes simulades de l'API.
 
 ## Cobertura
 
-| Component | Cobertura mínima |
-|---|---|
-| Backend: domini | ≥ 80 % |
-| Backend: aplicació (casos d'ús) | ≥ 70 % |
-| Backend: infraestructura (adaptadors i API) | ≥ 50 % |
-| Backend: global | ≥ 70 % |
-| Frontend: hooks i lògica de presentació | ≥ 70 % |
-| Frontend: components purament visuals | Exclosos |
-| Codi nou de cada PR | ≥ 70 % |
+| Mesura | Llindar | Mecanisme de bloqueig |
+|---|---|---|
+| Global backend | ≥ 80 % | Pas de CI (`--cov-fail-under=80`) i en local amb `uv run pytest --cov-fail-under=80` |
+| Codi nou backend a la PR | ≥ 90 % | `diff-cover` a la CI (`--fail-under=90`) |
+| Global frontend | ≥ 80 % | Jest `coverageThreshold` a `jest.config.js` (amb `pnpm test --coverage`) |
+| Codi nou frontend a la PR | ≥ 90 % | Quality Gate de SonarQube Cloud ([[qualitat]]) |
+| Frontend: components purament visuals | Exclosos | Cobertura centrada en lògica, hooks i serveis |
+| Mutation score (fitxers canviats) | ≥ 70 % | `mutmut` (backend) i `Stryker` (frontend) a la CI |
 
-Només el llindar del codi nou es fa complir automàticament (Quality Gate, vegeu [[qualitat]]); la resta són objectius revisats a cada retrospectiva. Es mesura amb `pytest-cov` i `jest --coverage`.
+La CI de la PR falla si no es compleixen els llindars establerts (implantat a TG-359):
+- **Backend:** a la CI, el pas de pytest executa `uv run pytest --cov-report=xml:coverage.xml --cov-fail-under=80` (en local es pot comprovar amb `uv run pytest --cov-fail-under=80`). A més, a cada PR el pas de CI executa `uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90` per garantir que el codi afegit o modificat té com a mínim un 90 % de cobertura de línies.
+- **Frontend:** `pnpm test --coverage --ci` valida el `coverageThreshold` del 80 % definit a `frontend/jest.config.js` (línies, sentències, funcions i branques). El llindar de codi nou (≥ 90 %) s'assegura mitjançant el Quality Gate de SonarQube Cloud ([[0012-sonarqube-cloud-i-quality-gate]]).
+
+> [!note] Llindars anteriors
+> Els llindars per capa (domini ≥ 80 %, aplicació ≥ 70 %, infraestructura ≥ 50 %, global ≥ 70 %, hooks ≥ 70 %, codi nou ≥ 70 %) i la piràmide 70/30 d'[[0019-tests-despres-del-codi]] queden substituïts per aquesta política.
+
+### Mutation testing sobre el diff (TG-359)
+
+El mutation testing audita que els tests detectin canvis intencionats en el codi, avaluant exclusivament els fitxers canviats a la PR per mantenir un temps d'execució àgil a la CI:
+
+- **Backend (`mutmut`):** configurat a `backend/pyproject.toml` (`source_paths = ["app/domain"]`, `also_copy = ["app/application", "app/infrastructure", "tests/"]`, `pytest_add_cli_args = ["-o", "addopts="]` i `pytest_add_cli_args_test_selection = ["tests/unit/domain"]`). S'executa amb `uv run python scripts/run_mutmut_diff.py --base-branch <branca>`, que detecta fitxers de `app/domain` modificats respecte a la branca base (`origin/develop` per defecte, o `origin/${{ github.base_ref }}` a la CI). Calcula el mutation score amb la fórmula `(killed + timeout) / (killed + timeout + survived + no_tests + suspicious)`, on els mutants sense tests associats (`no_tests`) computen com a supervivents; si es generen mutants però no se'n prova cap, el pas falla. Si no s'ha tocat el domini, passa automàticament sense computar mutacions innecessàries.
+- **Frontend (`Stryker`):** configurat a `frontend/stryker.config.json` amb el runner `@stryker-mutator/jest-runner`, `coverageAnalysis: "perTest"` i `thresholds: { high: 80, low: 70, break: 70 }`. Per evitar col·lisions d'escaneig amb el Haste map de React Native/Jest, `frontend/jest.config.js` ignora `.stryker-tmp`. S'executa amb `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs --base-branch <branca>`), que filtra els fitxers de lògica a `frontend/src/` excloent fitxers de test (`.test.`, `.spec.`), tipus (`.d.ts`), fitxers de barril (`index.ts`) i components visuals purs (`src/shared/ui/`). Si el score cau per sota del 70 %, el procés falla per `break: 70`. Si no s'ha modificat lògica, el pas finalitza amb èxit immediatament.
+
+> [!note] Execució de mutmut en local amb Docker
+> `mutmut` requereix Docker a Windows natiu (o entorns sense Unix natiu) per l'aïllament de processos de Python. Per executar-lo en local des de `backend/`, amb accés al `.git` del repo i venv propi del contenidor:
+> ```bash
+> docker run --rm -v "$(pwd)/..:/workspace" -w /workspace/backend -e UV_PROJECT_ENVIRONMENT=/tmp/venv python:3.14.9-slim sh -c "apt-get update -qq && apt-get install -y -qq git && pip install -q uv && git config --global --add safe.directory '*' && uv run python scripts/run_mutmut_diff.py"
+> ```
 
 ## Requisits no funcionals mesurables
 
@@ -73,11 +130,22 @@ Els tests de temps prenen la mediana de diverses peticions consecutives.
 
 ## Execució
 
-En local: `uv run pytest` (backend) i `pnpm test` (frontend), o Docker Compose. A la CI, GitHub Actions executa els tests a cada PR cap a `develop` o `main`, amb filtres per ruta i memòria cau de dependències.
+En local: per comprovar el llindar global del 80 %, `uv run pytest --cov-fail-under=80` (backend) i `pnpm test --coverage` (frontend; el llindar de `coverageThreshold` només s'activa amb `--coverage`); per comprovar mutation testing sobre el diff local: l'ordre unificada de Docker per a `mutmut` (backend) o `pnpm test:mutation` (frontend). O amb Docker Compose.
+
+A la CI, GitHub Actions executa els tests a cada PR cap a `develop` o `main` i a cada push a aquestes branques, amb filtres per ruta i memòria cau de dependències:
+
+| Job | Ordre de tests | Informe de cobertura (artefacte) |
+|---|---|---|
+| `backend` | `uv run pytest --cov-report=xml:coverage.xml`, amb PostgreSQL (PostGIS) i Redis com a *service containers* | `backend-coverage` (`coverage.xml`) |
+| `frontend` | `pnpm test --coverage --ci` (Jest amb el preset `jest-expo`) | `frontend-coverage` (`lcov.info`) |
+
+Cada job té un test de fum perquè el comandament de tests no falli sense cap test (`backend/tests/test_smoke.py` i `frontend/__tests__/smoke.test.ts`). Vegeu [[qualitat]] per a l'anàlisi estàtica de la CI.
 
 ## Enllaços
 
 - [[qualitat]]: Quality Gate i anàlisi estàtica.
 - [[definition-of-done]]: proves com a part de la DoD.
+- [[gitflow]]: ordre dels commits `test:` i `feat:`.
+- [[0028-tdd-estricte-i-politica-de-testing-avancada]]: decisió vigent.
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]]
-- [[0019-tests-despres-del-codi]]
+- [[0019-tests-despres-del-codi]]: substituïda.

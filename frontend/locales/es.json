@@ -1,0 +1,89 @@
+{
+  "apod": {
+    "loadingLabel": "Cargando el APOD",
+    "mediaError": "No se ha podido cargar la imagen o el vídeo.",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar el APOD",
+    "videoLabel": "Vídeo del APOD"
+  },
+  "common": {
+    "back": "Volver"
+  },
+  "errors": {
+    "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
+    "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
+    "APOD_UNAVAILABLE": "Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato.",
+    "EMAIL_ALREADY_REGISTERED": "Este correo ya está asociado a otra cuenta.",
+    "GENERIC_FINAL": "Algo ha salido mal.",
+    "GOOGLE_SIGN_IN_EXPO_GO": "El inicio de sesión con Google no funciona en Expo Go. Usa la app instalada (build de desarrollo).",
+    "GOOGLE_SIGN_IN_UNAVAILABLE": "El inicio de sesión con Google aún no está disponible.",
+    "IDENTITY_PROVIDER_UNAVAILABLE": "Google no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
+    "INTERNAL_ERROR": "Algo ha salido mal. Inténtalo de nuevo.",
+    "INVALID_GOOGLE_TOKEN": "No hemos podido verificar tu cuenta de Google. Vuelve a iniciar sesión.",
+    "INVALID_RESPONSE": "Algo ha salido mal. No se ha podido cargar el contenido.",
+    "INVALID_SESSION": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+    "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo.",
+    "NOT_FOUND": "No se ha encontrado lo que buscas.",
+    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
+  },
+  "events": {
+    "category": {
+      "launch": "Lanzamiento",
+      "lunar": "Luna",
+      "meteor_shower": "Lluvia de estrellas",
+      "solar": "Sol"
+    },
+    "empty": {
+      "active": "Ahora mismo no hay ningún evento activo.",
+      "all": "No hay eventos activos ni en los próximos 30 días.",
+      "noLocation": "Ninguno de estos eventos tiene una ubicación en el mapa.",
+      "showList": "Ver la lista",
+      "upcoming": "No hay eventos en los próximos 30 días."
+    },
+    "filter": {
+      "active": "Activos",
+      "all": "Todos",
+      "label": "Mostrar",
+      "upcoming": "Futuros"
+    },
+    "list": {
+      "label": "Lista de eventos"
+    },
+    "loading": "Cargando eventos",
+    "location": {
+      "anywhere": "Visible desde cualquier lugar",
+      "coordinates": "{{latitude}} · {{longitude}}",
+      "east": "{{value}}° E",
+      "north": "{{value}}° N",
+      "south": "{{value}}° S",
+      "west": "{{value}}° O"
+    },
+    "map": {
+      "label": "Mapa de los eventos con ubicación",
+      "title": "Mapa de eventos",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar"
+    },
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los eventos",
+    "sheet": {
+      "close": "Cerrar la ficha",
+      "end": "Fin",
+      "moreInfo": "Más información",
+      "openHint": "Abre la ficha del evento",
+      "start": "Inicio"
+    },
+    "status": {
+      "active": "Activo ahora"
+    },
+    "view": {
+      "label": "Vista",
+      "list": "Lista",
+      "map": "Mapa"
+    }
+  },
+  "home": {
+    "apodLink": "Imagen del día",
+    "mapLink": "Mapa de eventos"
+  }
+}

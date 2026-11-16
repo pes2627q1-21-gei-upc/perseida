@@ -13,6 +13,20 @@ Decisió de l'equip (2026-10-13): **moviment i so actius per defecte**, amb sile
 - **Reduce motion** (`AccessibilityInfo.isReduceMotionEnabled`): l'ambient es congela en una posició agradable; la resposta a l'acció passa a canvi d'estat sense moviment (alternativa, no només «més lenta»).
 - Biblioteca: `react-native-reanimated` (animacions d'UI) i Skia (escena). Pregunta abans d'afegir-les si no hi són.
 
+### Porta per a moviment nou
+
+Les respostes i l'ambient de dalt són decisions de l'equip i **no es reobren**. Tot **moviment nou** passa, abans d'escriure'l, per aquesta porta (és la d'`animate-expo` d'Emil Kowalski; val igual si la skill no és instal·lada, vegeu `skills-de-tercers.md`):
+
+1. **Freqüència.** Cent o més cops al dia o iniciat amb teclat: cap animació. Desenes al dia: menys de 150 ms o res. Ocasional (sheets, toasts): estàndard. Rar o primera vegada (èxit, recompensa): aquí hi ha el deleit.
+2. **Propòsit en una paraula**: *feedback*, coherència espacial, indicació d'estat, evitar un canvi brusc, explicació o deleit (només al tram rar). Si no el pots dir, no el construeixis.
+3. **Propietats**: només `transform` i `opacity`. Mai `height`, `width`, `margin`, `elevation` ni la intensitat del `BlurView` (fes una fosa encadenada d'opacitat entre capes estàtiques).
+4. **Corbes**: mai `ease-in`; mai `scale(0)` (comença a 0,95 amb opacitat 0); les pestanyes no llisquen entre elles. Si hi ha un dit a l'element, molla (conserva la velocitat); si no, temps amb *ease-out*. Rebot només si el gest portava inèrcia.
+5. **Fil**: cap `setState` per fotograma en gestos o *scroll*; valors compartits de Reanimated.
+6. **Hàptics**: un per acció, al mateix fotograma que el visual i mai com a únic feedback.
+7. **On es jutja**: en una *build* de release al dispositiu més lent que suportem, no a Expo Go ni al simulador.
+
+El **hover** només existeix a l'admin web: a tàctil, la resposta viu al premut. La molla del tile (`damping 14, stiffness 160`) equival a un `dampingRatio` ≈ 0,55: és rebotant a propòsit (estil Wii) i no s'ha d'«arreglar» cap a valors més freds.
+
 ## So
 
 Actiu per defecte. A ajustos: **interruptor «So»** i, si cal, volum. Es respecta el mode silenci del sistema; mai so sobre àudio d'una altra app sense necessitat.

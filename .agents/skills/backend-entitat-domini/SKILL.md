@@ -41,7 +41,7 @@ Preguntes d'aquesta skill (cal tenir-les respostes abans d'escriure):
 5. Valida a la construcció: `field_validator` per a camps, `model_validator` per a invariants entre camps. Les multiplicitats (mínim/màxim d'elements) es comproven al constructor i en cada mètode que afegeix o treu elements.
 6. Crea l'entitat via factory `create()` (genera l'id, aplica valors inicials, valida). El constructor directe és per rehidratar des de persistència.
 7. Els mètodes de negoci muten l'estat només després de comprovar les regles; si no es compleixen, llencen `DomainError`.
-8. Escriu els tests unitaris (DESPRÉS del codi, sense mocks). Si l'humà prefereix TDD (ADR-0004), segueix-lo: test en vermell en un commit propi.
+8. TDD estricte (skill `testing-tdd`): els tests unitaris (sense mocks) s'escriuen **abans** del codi, en vermell i en un commit `test:` propi; després `feat:`. Lògica crítica: `testing-property-based` i `testing-mutation` (score ≥ 70 %).
 9. Passa `ruff`, `mypy` strict i `pytest` (`uv run ...`).
 
 ## Plantilla de codi (orientativa)
@@ -117,7 +117,7 @@ Notes: l'exemple és il·lustratiu (noms, `UUID` i enums són una proposta, no u
 
 - Unitaris del domini, **sense mocks ni I/O**, nomenats amb la US (traçabilitat criteri-prova).
 - Cobreix: `create()` vàlid; cada invariant violat (comprova `code`); límits de multiplicitat (mínim, màxim, un més); cada transició legal i cada il·legal; immutabilitat dels value objects; igualtat per valor.
-- Cobertura mínima del domini: ≥ 80 % (codi nou ≥ 70 %). Factories de test a `backend/tests/factories/`.
+- Cobertura: 80 % global i 90 % del codi nou; mutation testing al domini (`testing-mutation`). Factories de test a `backend/tests/factories/`.
 
 ## Checklist final
 

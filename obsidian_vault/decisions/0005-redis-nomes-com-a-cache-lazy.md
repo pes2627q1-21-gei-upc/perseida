@@ -18,6 +18,9 @@ Algunes dades depenen d'APIs externes i no canvien constantment (per exemple l'A
 
 Redis 8 actua exclusivament com a memòria cau amb TTL i com a mecanisme de publish/subscribe del xat. S'aplica el patró lazy: la primera petició que arriba fa la crida externa i en desa el resultat a Redis, i les següents el serveixen directament de la cau. Res del que hi ha a Redis és imprescindible; tot el que importa es persisteix a PostgreSQL.
 
+> [!note] Esmena (TG-44)
+> Redis també desa les sessions d'autenticació (`session:<type>:<jti>` i l'índex `user_sessions:<sub>`), vegeu [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]. No és cache: no es pot reconstruir amb la petició següent. Es manté que **cap dada de negoci** hi viu només: si Redis es perd, les sessions s'esborren i els usuaris tornen a iniciar sessió amb Google, però no es perd cap dada. «Exclusivament cache» s'ha d'entendre com a «exclusivament cache per a les dades de negoci»; el pub/sub no canvia.
+
 ## Conseqüències
 
 ### Positives

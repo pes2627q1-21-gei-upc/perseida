@@ -1,0 +1,10 @@
+{
+  "id": "01a19288-a3f6-7576-a37b-892803b0d593",
+  "title": "Total Solar Eclipse of 2 August 2027",
+  "summary": "The Moon completely covers the Sun along a narrow path on Earth.",
+  "category": "solar",
+  "starts_at": "2027-08-02T00:00:00Z",
+  "ends_at": "2027-08-02T23:59:59Z",
+  "location": null,
+  "source_url": "https://aa.usno.navy.mil/api/eclipses/solar/year?year=2027"
+}

@@ -2,9 +2,9 @@
 titol: "Visió general de l'arquitectura"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-37", "TG-39"]
-font: "README.md (arrel), infra/README.md, memòria §3.4, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); AGENTS.md (.agents/)"
+data: "2026-10-24"
+us: ["TG-85", "TG-37", "TG-39", "TG-89"]
+font: "README.md (arrel), infra/README.md, memòria §3.4, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); AGENTS.md (.agents/); ADR-0026 (TG-89)"
 etiquetes: [arquitectura, visio-general, monorepo]
 ---
 
@@ -31,7 +31,7 @@ Quatre directoris més `.agents/` ([[0001-monorepo-quatre-directoris]]):
 
 ```mermaid
 flowchart LR
-    PHONE[Android app<br/>SQLite outbox + cache] -- REST / WSS 443 --> NPM
+    PHONE[Android app<br/>SQLite outbox + cache] -- REST / WSS :40431 --> NPM
     ADMIN[Admin browser<br/>admin SPA] -- HTTPS SPA + REST --> NPM
     subgraph VIRTECH[Virtech server - Docker Compose]
         NPM[nginx-proxy-manager<br/>TLS, serves media + admin SPA]

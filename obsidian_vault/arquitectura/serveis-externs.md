@@ -2,10 +2,10 @@
 titol: "Serveis externs"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-07"
-us: ["TG-85", "TG-44", "TG-46"]
-font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
-etiquetes: [arquitectura, integracions, nasa, google, fcm]
+data: "2026-11-10"
+us: ["TG-85", "TG-44", "TG-46", "TG-328", "TG-50"]
+font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 i codi de backend/app/infrastructure/apod/ (2026-10-22); Taiga TG-328, crides a api.nasa.gov i al feed de science.nasa.gov (2026-10-25); Taiga TG-50, crides a ll.thespacedevs.com i aa.usno.navy.mil i codi de backend/app/infrastructure/events/ (2026-11-10)"
+etiquetes: [arquitectura, integracions, nasa, google, fcm, esdeveniments]
 ---
 
 # Serveis externs
@@ -18,12 +18,41 @@ Serveis de tercers que Perseida no reimplementa. L'API els consulta des del back
 | Meteorologia i contaminació lumínica | Dades per a la recomanació de zones d'observació (juntament amb PostGIS) | API |
 | Google Identity | Inici de sessió: OAuth2 + PKCE; validació de tokens via JWKS | App (OAuth2 + PKCE), API (JWKS) |
 | Firebase Cloud Messaging (FCM) | Notificacions push | API |
+| Launch Library 2 (The Space Devs) | Llançaments de coets (esdeveniments `launch`) | API |
+| USNO (US Naval Observatory) | Eclipsis solars (esdeveniments `solar`) | API |
 
 ## NASA
 
 La incepció 1 cita, entre les NASA Open APIs, APOD, NeoWs, Mars Rover Photos i DONKI (activitat solar i meteorologia espacial). La incepció 2 esmenta també la consulta a NASA/CNEOS sota demanda i amb cache (trajectòria i risc d'asteroides propers, dins un bloc marcat «MAYBE») i una galeria d'imatges dels rovers de Mart (NASA Open APIs). Els README concreten només APOD i NeoWs.
 
 Patró d'accés: primera petició a l'API externa, resultat a Redis, i les següents des de cache; si l'API externa cau, es serveixen dades en cache ([[backend-hexagonal]], [[0005-redis-nomes-com-a-cache-lazy]]). Les respostes enregistrades es fan servir com a fixtures de test.
+
+### APOD (implementat a TG-46; font canviada a TG-328)
+
+- **Fonts externes** (`TG-328`): primer el **feed RSS** `https://science.nasa.gov/feed/apod-basic/` (`NASA_APOD_FEED_URL`) i, si falla o la data és de fa més de 30 dies, l'**API JSON** `GET https://api.nasa.gov/planetary/apod` (`NASA_APOD_API_URL`), amb `date` opcional. Les dues URL són opcionals, només https, i la clau va a la de l'API.
+- **Clau:** `NASA_API_KEY` (`SecretStr`), enviada a la capçalera `X-Api-Key` i no a la URL, perquè httpx registra les URL als logs. En local val `DEMO_KEY`; en producció ve del secret de GitHub `NASA_API_KEY`.
+- **Clients:** `NasaApodFeedClient` (`nasa_feed_client.py`) i `NasaApodClient` (`nasa_client.py`), tots dos a `app/infrastructure/apod/`, amb un `httpx.AsyncClient` compartit creat al `lifespan` ([[0017-injeccio-de-dependencies-i-services-singleton]]). Timeout de connexió de 3 s i total de 10 s; sense reintents.
+- **Ordre de consulta:** [[redis]] (`cache:apod:<data>`, 24 h) → [[postgres]] (taula `apod`) → feed → API JSON. El que respon la NASA es desa a totes dues.
+- **Respostes inservibles:** error HTTP, timeout, JSON invàlid, sense `url` o `media_type` diferent d'`image`/`video` es tracten igual que la NASA caiguda. Llavors es retorna la dada guardada; sense dada, 503 `APOD_UNAVAILABLE` ([[0018-errors-rfc-9457-amb-codis-estables]]).
+- **Sense crides repetides:** una crida fallida no es repeteix durant 15 min, i el resultat d'avui abans que la NASA el publiqui es guarda 15 min. Així, amb la NASA caiguda o encara sense APOD d'avui, hi ha com a màxim 4 crides per hora i clau ([[redis]]).
+
+> [!warning] Farciment de la NASA
+> Des que l'APOD es va traslladar a science.nasa.gov, l'API JSON respon amb el logotip de NASA Science i un text genèric en lloc de l'APOD, per a totes les dates (observat el 2026-10-21 i confirmat el 2026-10-25; sense data dona 500). L'URL de l'API no és la causa: segueix sent la documentada. Els dos clients el rebutgen (host `science.nasa.gov` i `nasa-logo` al camí) i no es desa mai. Si el farciment canvia de forma, s'ha d'actualitzar `_is_placeholder`.
+
+> [!info] Feed RSS (TG-328)
+> Font no documentada per la NASA, que pot canviar. Només porta els últims ~30 dies i ignora qualsevol filtre per data. La imatge és `apod:hdurl` (`apod:url` és la pàgina de l'article); la data és el dia UTC del `pubDate`; `explanation` i `copyright` venen en HTML i es passen a text pla, traient el prefix `Explanation:` i la cua `Tomorrow's picture:`. Només s'accepten imatges (extensió de `hdurl`): els vídeos es descarten. No s'ha verificat que l'API JSON torni contingut real per a dates de fa més de 30 dies.
+
+## Esdeveniments astronòmics (TG-50)
+
+Fonts i regles a [[0031-fonts-d-esdeveniments-sota-demanda]]. Implementat fins ara:
+
+- **Launch Library 2:** `GET https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=100&mode=normal` (`LAUNCH_LIBRARY_URL`, opcional, només https), sense clau. Client `LaunchLibraryEventSource` a `app/infrastructure/events/launch_library.py`, amb un `httpx.AsyncClient` propi creat al `lifespan` (timeout de connexió de 3 s i de 10 s per operació, `EVENTS_CONNECT_TIMEOUT_SECONDS` i `EVENTS_TIMEOUT_SECONDS`); sense reintents.
+- **Frescor:** marca `cache:events:launch_library_2` d'1 h a [[redis]]; si la crida falla, la marca dura 15 min i es serveixen els esdeveniments de [[postgres]].
+- **Quota:** com a molt una crida per hora per procés, encara que Redis estigui caigut o hi hagi peticions concurrents (el límit gratuït és de 15 per hora). Una crida refusada per la quota no és una fallada: torna els llançaments de l'última crida, perquè una consulta concurrent també els desi.
+- **Fixture:** `backend/tests/fixtures/launch_library_2_upcoming.json`, amb dos llançaments reals (10/11/2026, retallats als camps que es llegeixen) i dos d'incomplets.
+
+- **USNO:** `GET https://aa.usno.navy.mil/api/eclipses/solar/year?year=<any>` per a l'any en curs i el següent, sense clau, amb el mateix client HTTP i timeouts que Launch Library 2. Client `UsnoSolarEclipseSource` (`usno.py`). Si falla un dels dos anys, falla la font. Fixtures: `usno_solar_eclipses_2026.json` i `_2027.json` (reals, 10/11/2026).
+- **Skyfield i catàleg:** no criden cap servei extern; són càlculs i dades del repositori (vegeu [[0031-fonts-d-esdeveniments-sota-demanda]]).
 
 ## Meteorologia i contaminació lumínica
 

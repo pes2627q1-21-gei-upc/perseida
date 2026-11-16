@@ -25,18 +25,43 @@ jobs:
       pull-requests: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      proxy: ${{ steps.filter.outputs.proxy }}
     steps:
       - uses: actions/checkout@v7.0.1
-      - name: Detectar canvis al backend
+      - name: Detectar canvis al backend i al frontend
         id: filter
         uses: dorny/paths-filter@v4.0.3
         with:
           filters: |
             backend:
               - "backend/**"
+              - "frontend/openapi/**"
+              - ".github/workflows/ci.yml"
+            frontend:
+              - "frontend/**"
+              - ".github/workflows/ci.yml"
+            proxy:
+              - "infra/nginx-proxy-manager/**"
+              - "infra/scripts/test-rate-limit.sh"
               - ".github/workflows/ci.yml"
       - name: Mostrar resultat de la detecció
-        run: echo "backend changed = ${{ steps.filter.outputs.backend }}"
+        run: |
+          echo "backend changed = ${{ steps.filter.outputs.backend }}"
+          echo "frontend changed = ${{ steps.filter.outputs.frontend }}"
+          echo "proxy changed = ${{ steps.filter.outputs.proxy }}"
+
+  # Límit de peticions per IP del proxy (TG-351): nginx amb les confs versionades
+  # d'nginx-proxy-manager i un upstream de prova.
+  proxy:
+    needs: changes
+    if: needs.changes.outputs.proxy == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Límit de peticions per IP a /api/events/
+        run: bash infra/scripts/test-rate-limit.sh
 
   backend:
     needs: changes
@@ -79,11 +104,13 @@ jobs:
       REDIS_PORT: "6379"
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - name: Instal·lar uv i Python
         uses: astral-sh/setup-uv@v10.3.0
         with:
-          version: "0.13.0"
-          python-version: "3.14"
+          version: "0.13.5"
+          python-version: "3.14.9"
           enable-cache: true
       - name: Instal·lar dependències
         run: uv sync --locked
@@ -93,10 +120,104 @@ jobs:
         run: uv run ruff format --check .
       - name: Tipus (mypy)
         run: uv run mypy .
-      - name: Tests (pytest amb cobertura)
-        run: uv run pytest --cov-report=xml:coverage.xml
+      - name: Arquitectura (import-linter)
+        run: uv run --locked --no-build lint-imports
+      # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
+      - name: Tests (pytest amb cobertura >= 80%)
+        run: uv run pytest --cov-report=xml:coverage.xml --cov-fail-under=80
+      - name: Comprovar cobertura del codi nou a la PR (diff-cover >= 90%)
+        if: github.event_name == 'pull_request'
+        run: uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90
+      - name: Mutation testing al domini del backend (mutmut >= 70%)
+        if: github.event_name == 'pull_request'
+        run: uv run python scripts/run_mutmut_diff.py --base-branch origin/${{ github.base_ref }}
       - name: Publicar informe de cobertura
         uses: actions/upload-artifact@v7.0.1
         with:
           name: backend-coverage
           path: backend/coverage.xml
+          if-no-files-found: error
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Instal·lar pnpm
+        uses: pnpm/action-setup@v6.1.0
+        with:
+          package_json_file: frontend/package.json
+      - name: Instal·lar Node
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24.22.1"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Instal·lar dependències
+        run: pnpm install --frozen-lockfile
+      - name: Lint (eslint + prettier)
+        run: pnpm lint
+      # L'script es diu `typecheck` i no `tsc`: expo-doctor (EAS Build) avisa si un script
+      # de package.json té el nom d'un binari de node_modules/.bin.
+      - name: Tipus (tsc)
+        run: pnpm typecheck
+      - name: Client d'API regenerat (openapi-typescript)
+        run: |
+          pnpm api:generate
+          git diff --exit-code -- src/shared/api/schema.d.ts
+      - name: Tests (jest amb cobertura)
+        run: pnpm test --coverage --ci
+      - name: Mutation testing al frontend (Stryker >= 70%)
+        if: github.event_name == 'pull_request'
+        run: pnpm test:mutation --base-branch origin/${{ github.base_ref }}
+      - name: Publicar informe de cobertura
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          if-no-files-found: error
+
+  sonar:
+    needs: [changes, backend, frontend]
+    if: |
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Descarregar cobertura del backend
+        if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: backend-coverage
+          path: backend
+
+      - name: Descarregar cobertura del frontend
+        if: needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+
+      - name: Executar anàlisi de SonarQube Cloud
+        uses: SonarSource/sonarqube-scan-action@v8.4.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300

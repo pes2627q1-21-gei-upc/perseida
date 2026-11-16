@@ -1,0 +1,40 @@
+# ── Directoris de dev ──────────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Tests i documentació ──────────────────────────────────────────────────────
+tests/
+*.md
+*.ca.md
+*.es.md
+
+# ── Configuració de dev que no cal a la imatge ────────────────────────────────
+# pyproject.toml i uv.lock SÍ els necessita el builder, NO el runner.
+# El .dockerignore actua sobre el context complet de build;
+# la separació multi-stage ja s'encarrega de no portar-los al runner.
+.python-version
+
+# ── Secrets i entorn ──────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── IDE / editors ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -18,9 +18,12 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .coverage
+mutants/
 .coverage.*
 htmlcov/
 coverage.xml
+mutants/
+.mutmut-cache/
 
 # ---------------------------------------------------------------------------
 # Node / Expo (frontend)
@@ -32,6 +35,8 @@ node_modules/
 dist/
 web-build/
 coverage/
+frontend/reports/
+.stryker-tmp/
 .nyc_output/
 *.tsbuildinfo
 npm-debug.log*
@@ -44,6 +49,7 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
@@ -140,3 +146,11 @@ opencode.local.json
 .DS_Store
 Thumbs.db
 *.log
+
+# ---------------------------------------------------------------------------
+# Skills de disseny de tercers (Taste, Impeccable, Emil Kowalski): fitxers de treball locals
+# ---------------------------------------------------------------------------
+.taste-skill/
+.impeccable/
+/plans/
+/animation-plans/

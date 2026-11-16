@@ -1,0 +1,71 @@
+{
+  "count": 476,
+  "next": "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=4&mode=normal&offset=4",
+  "previous": null,
+  "results": [
+    {
+      "id": "6aa7b90b-e5ed-45d8-a52e-04fbf399d178",
+      "url": "https://ll.thespacedevs.com/2.3.0/launches/6aa7b90b-e5ed-45d8-a52e-04fbf399d178/",
+      "name": "Falcon 9 Block 5 | USSF-627",
+      "net": "2026-11-11T02:49:00Z",
+      "window_start": "2026-11-11T02:49:00Z",
+      "window_end": "2026-11-11T06:49:00Z",
+      "mission": {
+        "name": "USSF-627",
+        "description": "A classified mission for the United States Space Force. It is possibly a batch of classified LEO satellites based on SpaceX’s Starshield satellite bus, based on locations of rocket stage drop zones being exact fits with previous Starlink Group 15 launches."
+      },
+      "pad": {
+        "name": "Space Launch Complex 4E",
+        "latitude": 34.632,
+        "longitude": -120.611
+      }
+    },
+    {
+      "id": "d66590ab-b273-47ff-b85a-608b62851b4b",
+      "url": "https://ll.thespacedevs.com/2.3.0/launches/d66590ab-b273-47ff-b85a-608b62851b4b/",
+      "name": "Long March 2D | Unknown Payload",
+      "net": "2026-11-11T11:40:00Z",
+      "window_start": "2026-11-11T11:32:00Z",
+      "window_end": "2026-11-11T12:05:00Z",
+      "mission": {
+        "name": "Unknown Payload",
+        "description": "Details TBD."
+      },
+      "pad": {
+        "name": "Launch Area 94 (SLS-2 / 603)",
+        "latitude": 40.960482,
+        "longitude": 100.298059
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000001/",
+      "name": "Unknown Rocket | Unknown Payload",
+      "net": "2026-11-11T11:40:00Z",
+      "window_start": "2026-11-11T11:32:00Z",
+      "window_end": "2026-11-11T12:05:00Z",
+      "mission": null,
+      "pad": {
+        "name": "Launch Area 94 (SLS-2 / 603)",
+        "latitude": 40.960482,
+        "longitude": 100.298059
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000002/",
+      "name": "Broken | No window end",
+      "net": "2026-11-11T11:40:00Z",
+      "window_start": "2026-11-11T11:32:00Z",
+      "mission": {
+        "name": "Unknown Payload",
+        "description": "Details TBD."
+      },
+      "pad": {
+        "name": "Launch Area 94 (SLS-2 / 603)",
+        "latitude": 40.960482,
+        "longitude": 100.298059
+      }
+    }
+  ]
+}

@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+  '/api/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Comprovació de salut del sistema
+     * @description Retorna l'estat de salut de l'API i de tots els seus components subjacents (base de dades, cau, etc.) per a tasques de monitoratge i healthcheck.
+     */
+    get: operations['get_health_api_health_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/apod': {
     parameters: {
       query?: never;
@@ -11,8 +31,271 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Imatge astronòmica del dia (APOD) */
-    get: operations['get_apod_today'];
+    /**
+     * Imatge astronòmica del dia (APOD)
+     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui.
+     */
+    get: operations['get_apod'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/google': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Inici de sessió amb Google
+     * @description Valida l'`id_token` de Google i retorna una sessió pròpia del backend (access i refresh token). El backend no desa cap contrasenya.
+     */
+    post: operations['login_with_google'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Renovació de la sessió
+     * @description Canvia un refresh token vigent per un parell nou. El refresh anterior queda revocat: reutilitzar-lo és un error.
+     */
+    post: operations['refresh_session'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Tancament de sessió
+     * @description Revoca la sessió sencera (access i refresh token) a la qual pertany el token `Bearer`. És idempotent: amb un token caducat, ja revocat, invàlid o sense token també respon 204.
+     */
+    post: operations['logout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Perfil de l'usuari autenticat
+     * @description Retorna les dades de l'usuari propietari de la sessió.
+     */
+    get: operations['get_current_user'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/active': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Esdeveniments actius en una data
+     * @description Retorna els esdeveniments que estan en curs en algun moment del dia indicat (dia UTC, de 00:00Z a 24:00Z) o, si no se'n dona cap, d'avui. Un esdeveniment instantani compta com a actiu el dia en què passa, i un que acaba just a les 00:00Z també compta aquell dia. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
+    get: operations['get_active_events'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/upcoming': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Esdeveniments que comencen els N dies vinents
+     * @description Retorna els esdeveniments que comencen des d'ara fins d'aquí a `days` dies; els que ja han començat no hi surten (vegeu `/api/events/active`). Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
+    get: operations['get_upcoming_events'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/quiz/today': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Pregunta del quiz diari
+     * @description Retorna la pregunta del dia (UTC) en l'idioma demanat, sense la solució. Si l'usuari ja ha respost, inclou el seu resultat.
+     */
+    get: operations['get_quiz_today'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/quiz/today/answer': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Respon la pregunta del quiz diari
+     * @description Desa la resposta de l'usuari a la pregunta d'avui (UTC) i retorna si és correcta, amb l'explicació i la font. Només s'hi pot respondre un cop.
+     */
+    post: operations['answer_quiz_today'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/streaks/me/activity': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Registra l'activitat d'avui
+     * @description Registra l'activitat del dia per a l'usuari de la sessió. És idempotent dins del mateix dia.
+     */
+    post: operations['register_streak_activity'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/streaks/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Ratxa actual de l'usuari autenticat
+     * @description Retorna la ratxa vigent de l'usuari de la sessió; 0 si no en té o s'ha trencat.
+     */
+    get: operations['get_current_streak'];
     put?: never;
     post?: never;
     delete?: never;
@@ -25,30 +308,358 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** ApodResponse */
     ApodResponse: {
-      /** Format: date */
-      apod_date: string;
+      /**
+       * Date
+       * Format: date
+       * @description Data de l'APOD
+       * @example 2026-10-14
+       */
+      date: string;
+      /**
+       * Title
+       * @description Títol de la imatge o vídeo
+       */
       title: string;
+      /**
+       * Explanation
+       * @description Explicació de la NASA
+       */
       explanation: string;
-      /** @enum {string} */
-      media_type: 'image' | 'video';
-      media_url: string;
+      /** @description Tipus de contingut (image, video) */
+      media_type: components['schemas']['MediaType'];
+      /**
+       * Url
+       * @description URL del contingut multimèdia
+       */
+      url: string;
+      /**
+       * Copyright
+       * @description Autoria, si l'APOD no és de domini públic
+       */
       copyright?: string | null;
     };
+    /**
+     * EventCategory
+     * @description Kinds of astronomical event, fixed by TG-50 (task #387).
+     * @enum {string}
+     */
+    EventCategory: 'lunar' | 'solar' | 'meteor_shower' | 'launch';
+    /** EventLocation */
+    EventLocation: {
+      /**
+       * Latitude
+       * @example 28.5618
+       */
+      latitude: number;
+      /**
+       * Longitude
+       * @example -80.577
+       */
+      longitude: number;
+    };
+    /** EventResponse */
+    EventResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador estable de l'esdeveniment (UUIDv7)
+       */
+      id: string;
+      /**
+       * Title
+       * @description Títol, en l'idioma de la font
+       */
+      title: string;
+      /**
+       * Summary
+       * @description Descripció breu, en l'idioma de la font
+       */
+      summary: string;
+      /** @description Tipus d'esdeveniment */
+      category: components['schemas']['EventCategory'];
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601, UTC)
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601, UTC); igual a l'inici si és instantani
+       */
+      ends_at: string;
+      /** @description Ubicació concreta; null si és visible des de qualsevol lloc */
+      location: components['schemas']['EventLocation'] | null;
+      /**
+       * Source Url
+       * @description Enllaç a la font (només https); null si no n'hi ha
+       */
+      source_url: string | null;
+    };
+    /** FieldError */
     FieldError: {
+      /**
+       * Field
+       * @description Camp que ha fallat la validació
+       */
       field: string;
+      /**
+       * Message
+       * @description Motiu tècnic de l'error
+       */
       message: string;
+      /**
+       * Type
+       * @description Tipus d'error de validació
+       */
       type: string;
     };
+    /** GoogleLoginRequest */
+    GoogleLoginRequest: {
+      /**
+       * Id Token
+       * @description ID token que l'app obté de Google (OAuth2 amb PKCE)
+       */
+      id_token: string;
+      /**
+       * Language
+       * @description Idioma del dispositiu (`ca`, `es` o `en`). Només es desa en crear el compte; si falta o no és compatible, `ca`.
+       */
+      language?: string | null;
+    };
+    /** HealthResponse */
+    HealthResponse: {
+      /**
+       * @description Estat general de salut del sistema (ok, down)
+       * @example ok
+       */
+      status: components['schemas']['HealthStatus'];
+      /**
+       * Components
+       * @description Diccionari amb l'estat detallat de cada component o servei extern depenent
+       * @example {
+       *       "app": "ok"
+       *     }
+       */
+      components: {
+        [key: string]: components['schemas']['HealthStatus'];
+      };
+    };
+    /**
+     * HealthStatus
+     * @enum {string}
+     */
+    HealthStatus: 'ok' | 'down';
+    /**
+     * Language
+     * @description The languages of the app. Shared by several features (users, quiz).
+     * @enum {string}
+     */
+    Language: 'ca' | 'es' | 'en';
+    /**
+     * MediaType
+     * @enum {string}
+     */
+    MediaType: 'image' | 'video';
+    /**
+     * ProblemDetails
+     * @description RFC 9457 error body, as built by ``problem_response``.
+     */
     ProblemDetails: {
+      /**
+       * Type
+       * @example about:blank
+       */
       type: string;
+      /**
+       * Title
+       * @description Frase HTTP estàndard de l'estat
+       */
       title: string;
+      /** Status */
       status: number;
+      /**
+       * Detail
+       * @description Missatge tècnic, mai per a l'usuari
+       */
       detail: string;
+      /**
+       * Instance
+       * @description Ruta de la petició
+       */
       instance: string;
+      /**
+       * Code
+       * @description Codi d'error estable que tradueix el frontend
+       */
       code: string;
+      /** Correlation Id */
       correlation_id: string;
+      /**
+       * Errors
+       * @description Només en errors de validació; en la resta, la clau no hi és
+       */
       errors?: components['schemas']['FieldError'][];
+    };
+    /** QuizAnswerRequest */
+    QuizAnswerRequest: {
+      /**
+       * Date
+       * Format: date
+       * @description Dia UTC de la pregunta que es respon
+       */
+      date: string;
+      /**
+       * Question Id
+       * Format: uuid
+       * @description Identificador de la pregunta
+       */
+      question_id: string;
+      /**
+       * Chosen Option
+       * @description Opció triada (0-3)
+       */
+      chosen_option: number;
+    };
+    /** QuizResultResponse */
+    QuizResultResponse: {
+      /**
+       * Chosen Option
+       * @description Opció triada (0-3)
+       */
+      chosen_option: number;
+      /**
+       * Correct
+       * @description Si l'opció triada és la correcta
+       */
+      correct: boolean;
+      /**
+       * Correct Option
+       * @description Opció correcta (0-3)
+       */
+      correct_option: number;
+      /**
+       * Explanation
+       * @description Explicació de la resposta
+       */
+      explanation: string;
+      /**
+       * Source Url
+       * @description Font que confirma la resposta (https)
+       */
+      source_url: string;
+      /**
+       * Answered At
+       * Format: date-time
+       * @description Moment de la resposta (UTC)
+       */
+      answered_at: string;
+    };
+    /** QuizTodayResponse */
+    QuizTodayResponse: {
+      /**
+       * Date
+       * Format: date
+       * @description Dia UTC de la pregunta
+       */
+      date: string;
+      /**
+       * Question Id
+       * Format: uuid
+       * @description Identificador de la pregunta
+       */
+      question_id: string;
+      /** @description Idioma dels textos */
+      language: components['schemas']['Language'];
+      /**
+       * Statement
+       * @description Enunciat de la pregunta
+       */
+      statement: string;
+      /**
+       * Options
+       * @description Les 4 opcions, en ordre
+       */
+      options: string[];
+      /** @description Resultat de l'usuari, o null si encara no ha respost */
+      result: components['schemas']['QuizResultResponse'] | null;
+    };
+    /** RefreshRequest */
+    RefreshRequest: {
+      /**
+       * Refresh Token
+       * @description Refresh token vigent de la sessió
+       */
+      refresh_token: string;
+    };
+    /**
+     * Role
+     * @enum {string}
+     */
+    Role: 'user' | 'moderator' | 'admin';
+    /** StreakResponse */
+    StreakResponse: {
+      /**
+       * Current Count
+       * @description Dies consecutius d'activitat de la ratxa vigent
+       */
+      current_count: number;
+    };
+    /** TokenResponse */
+    TokenResponse: {
+      /**
+       * Access Token
+       * @description Token d'accés (JWT) de curta durada
+       */
+      access_token: string;
+      /**
+       * Refresh Token
+       * @description Token de renovació (JWT), d'un sol ús
+       */
+      refresh_token: string;
+      /**
+       * Token Type
+       * @description Tipus de token; sempre `bearer`
+       * @default bearer
+       * @constant
+       */
+      token_type: 'bearer';
+      /**
+       * Expires In
+       * @description Segons de vida de l'access token
+       * @example 900
+       */
+      expires_in: number;
+    };
+    /** UserResponse */
+    UserResponse: {
+      /**
+       * Id
+       * @description Identificador intern de l'usuari (UUID)
+       */
+      id: string;
+      /**
+       * Email
+       * @description Correu del compte de Google
+       */
+      email: string;
+      /**
+       * Display Name
+       * @description Nom del perfil de Google
+       */
+      display_name: string | null;
+      /**
+       * Avatar Url
+       * @description Avatar del perfil de Google
+       */
+      avatar_url: string | null;
+      /** @description Idioma preferit */
+      preferred_language: components['schemas']['Language'];
+      /** @description Rol de l'usuari */
+      role: components['schemas']['Role'];
     };
   };
   responses: never;
@@ -59,7 +670,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  get_apod_today: {
+  get_health_api_health_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -68,13 +679,53 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description L'APOD d'avui. */
+      /** @description L'estat de salut actual i el desglossament per components. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "status": "ok",
+           *       "components": {
+           *         "app": "ok"
+           *       }
+           *     }
+           */
+          'application/json': components['schemas']['HealthResponse'];
+        };
+      };
+    };
+  };
+  get_apod: {
+    parameters: {
+      query?: {
+        /** @description Data de l'APOD (YYYY-MM-DD). Per defecte, avui. */
+        date?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description L'APOD de la data demanada. */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['ApodResponse'];
+        };
+      };
+      /** @description Data amb format incorrecte, futura o anterior al 16/06/1995. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description Error inesperat. */
@@ -86,7 +737,553 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description La NASA no respon i no hi ha dada a la cache. */
+      /** @description La NASA no respon i no hi ha dada a la cache (code `APOD_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  login_with_google: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GoogleLoginRequest'];
+      };
+    };
+    responses: {
+      /** @description La sessió: access token, refresh token i durada. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El token de Google no és vàlid (code `INVALID_GOOGLE_TOKEN`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El correu ja pertany a un altre compte (`EMAIL_ALREADY_REGISTERED`). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cos de la petició incorrecte. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Google no respon (`IDENTITY_PROVIDER_UNAVAILABLE`) o no es pot desar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  refresh_session: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefreshRequest'];
+      };
+    };
+    responses: {
+      /** @description El parell nou de tokens. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Refresh token invàlid, caducat o ja utilitzat (code `INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cos de la petició incorrecte. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Sessió tancada. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No es pot revocar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_current_user: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description El perfil de l'usuari. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_active_events: {
+    parameters: {
+      query?: {
+        /** @description Dia UTC (YYYY-MM-DD). Per defecte, avui. */
+        date?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els esdeveniments actius aquell dia. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_upcoming_events: {
+    parameters: {
+      query?: {
+        /** @description Nombre de dies vinents (1-30). */
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els esdeveniments que comencen dins la finestra. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_quiz_today: {
+    parameters: {
+      query?: {
+        /** @description Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari. */
+        lang?: components['schemas']['Language'] | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La pregunta del dia. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QuizTodayResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description `lang` no suportat o dades mal formades (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  answer_quiz_today: {
+    parameters: {
+      query?: {
+        /** @description Idioma dels textos (ca, es o en). Per defecte, l'idioma preferit de l'usuari. */
+        lang?: components['schemas']['Language'] | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['QuizAnswerRequest'];
+      };
+    };
+    responses: {
+      /** @description El resultat de la resposta. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QuizResultResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Ja s'ha respost avui (`QUIZ_ALREADY_ANSWERED`) o la data no és la d'avui (`QUIZ_EXPIRED`). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La pregunta no és la del dia (`QUIZ_QUESTION_MISMATCH`), `lang` no suportat o dades mal formades (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  register_streak_activity: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La ratxa actual després de registrar l'activitat. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StreakResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_current_streak: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La ratxa actual. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StreakResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
       503: {
         headers: {
           [name: string]: unknown;

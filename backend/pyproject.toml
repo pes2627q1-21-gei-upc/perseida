@@ -1,28 +1,38 @@
 [project]
 name = "backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "Backend de Perseida (API FastAPI)"
 requires-python = "==3.14.*"
 dependencies = [
+    "alembic==1.20.0",
     "apscheduler==3.11.3",
     "asyncpg==0.32.0",
     "fastapi==0.143.1",
+    "httpx==0.28.1",
     "pydantic==2.14.1",
     "pydantic-settings==2.16.0",
+    "pyjwt[crypto]==2.15.1",
+    "redis==8.1.0",
+    "skyfield==1.55",
     "sqlalchemy[asyncio]==2.1.4",
     "sqlmodel==0.0.48",
     "uvicorn==0.54.0",
+    "websockets==17.4",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx==0.28.1",
+    "diff-cover==11.0.1",
+    "hypothesis==6.170.15",
+    "import-linter==2.15",
+    "mutmut==3.8.1",
     "mypy==2.4.0",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
     "respx==0.23.1",
     "ruff==0.16.10",
+    "schemathesis==4.32.7",
 ]
 
 [tool.ruff]
@@ -45,7 +55,111 @@ strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["^\\.venv/"]
 
+[[tool.mypy.overrides]]
+# APScheduler 3.x ships no type information.
+module = ["apscheduler.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Skyfield and jplephem (TG-50) ship no type information.
+module = ["skyfield.*", "jplephem.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# mutmut ships no type information.
+module = ["mutmut.*"]
+ignore_missing_imports = true
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+# CI helper script calling mutmut internals.
+module = ["scripts.run_mutmut_diff"]
+disable_error_code = ["attr-defined"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=app --cov-report=term-missing"
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.diff_cover]
+fail_under = 90
+
+[tool.mutmut]
+# Mutation testing del domini (ADR-0028). mutmut 3 no funciona a Windows natiu: executa'l a Docker.
+# L'script scripts/run_mutmut_diff.py avalua només els fitxers de domini canviats al diff
+# respecte a la branca base amb un mutation score mínim del 70 %.
+source_paths = ["app/domain"]
+also_copy = ["app/application", "app/infrastructure", "tests/"]
+pytest_add_cli_args = ["-o", "addopts="]
+pytest_add_cli_args_test_selection = ["tests/unit/domain"]
+
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Domain does not import frameworks or drivers"
+type = "forbidden"
+source_modules = ["app.domain"]
+forbidden_modules = ["fastapi", "sqlmodel", "sqlalchemy", "redis", "asyncpg", "httpx"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Application does not import infrastructure, FastAPI, Starlette or Redis"
+type = "forbidden"
+source_modules = ["app.application"]
+forbidden_modules = ["app.infrastructure", "fastapi", "starlette", "redis"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Dependencies go infrastructure -> application -> domain"
+type = "layers"
+layers = ["app.infrastructure", "app.application", "app.domain"]
+
+[[tool.importlinter.contracts]]
+# backend-hexagonal.md: no imports between features in domain and application;
+# what they share lives in app.domain.shared / app.application.shared.
+name = "The quiz does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.quiz", "app.application.quiz"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.chat",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.chat",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.realtime",
+    "app.application.users",
+]
+[[tool.importlinter.contracts]]
+name = "The chat does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.chat"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.users",
+]

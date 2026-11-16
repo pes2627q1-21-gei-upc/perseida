@@ -18,10 +18,14 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 | `brand` (text/enllaç) | `#4B4BD8` | `#B3B3FF` | `#B3B3FF` | `#FF6B5E` |
 | `brand.fill` (només emplenat, no text) | `#5B5BF0` | `#5B5BF0` | `#5B5BF0` | `#FF6B5E` |
 | `accent.glow` | `#1FA8E0` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
+| `meteors` (variants `{head, tail}` of the Perseid streaks, decoratius; US TG-45) | 5: `#4B4BD8`, `#7B2FBE`, `#B3261E`, `#0B4F8A`, `#9D174D` (head = tail) | 5: head→tail `#FFFFFF`→`#2EE6D6`, `#FFE9A8`→`#F2B33D`, `#E4DAFF`→`#B3B3FF`, `#D4FFE6`→`#4CFF9A`, `#FFC8D8`→`#FF9A92` | igual que `posta` | 4: `#FFB3A7`→`#FF8A7A`, `#FFD9D2`→`#FF6B5E`, `#FFC3A0`→`#FF9E6B`, `#FF8A7A`→`#E08A7E` |
+| `lake` (aigua, llum, turons i prat; US TG-45) | `waterTop #9FDDF5` `waterBottom #2F9BD8` `glow #FFF3C8` `glitter #FFFFFF` `hillFar #A7DB88` `hillNear #5FB83F` `grassLight #6DBE45` `grassDark #2E8A2B` `rim #C8F5A0` | `#F0A070` `#2B2F6B` `#FFC58A` `#FFE2B8` `#8A6A8E` `#3F6B4A` `#5E8F4F` `#2E5A3C` `#F2B36B` | `#1B3A78` `#0A1430` `#CFE0FF` `#EAF4FF` `#1C3F66` `#103447` `#1F5A4E` `#0F3A3A` `#2EE6D6` | `#3A1218` `#14060A` `#FF8A7A` `#FFB3A7` `#35121A` `#4A1820` `#5A1E26` `#3A1018` `#FF6B5E` |
 | `state.success` | `#2A7419` | `#6FD65A` | `#6FD65A` | `#FFB3A7`* |
 | `state.warning` | `#8A5A00` | `#F2B33D` | `#F2B33D` | `#FFB3A7`* |
 | `state.danger` | `#B3261E` | `#FF9A92` | `#FF9A92` | `#FFB3A7` text · `#FF6B5E` vora i icona* |
 | `focus.ring` | `#0B78B5` | `#2EE6D6` | `#2EE6D6` | `#FF8A7A` |
+| `map.background` (fons darrere les tessel·les fosques del mapa d'esdeveniments; US TG-52) | `#020510` | `#020510` | `#020510` | `#14060A` (sense blau) |
+| `map.gloss` (reflex dels orbes de vidre dels marcadors: 44 % superior; manté la icona ≥3:1) | `rgba(255,255,255,.3)` → `rgba(255,255,255,0)` | igual | igual | igual |
 
 \* **Estats al tema `vermell`** (acordat el 2026-10-13: «vermell + pes visual»): no hi ha verd ni groc (destrueixen l'adaptació a la foscor) i només hi ha un vermell. L'estat es distingeix per la **jerarquia visual**, sempre amb **icona + text**:
 - `perill`: vora de 2 px `#FF6B5E` i fons `rgba(255,107,94,.18)`, icona de perill i text `#FFB3A7` (6.8:1). `#FF6B5E` és només vora i icona (UI ≥3:1, 4.2:1 sobre aquest fons), **mai text** sobre el fons de perill.
@@ -55,6 +59,7 @@ Primitius de natura (decoratius, sense text a sobre): prat `#6DBE45` / `#3FA535`
 | `nit` text `#EAF4FF` / secundari `#B4C6E6` sobre vidre sobre `#13265A` | 9.1 / 5.9 |
 | `nit` cian `#2EE6D6`, èxit `#6FD65A`, avís `#F2B33D`, marca `#B3B3FF`, perill `#FF9A92` | 6.5 / 5.5 / 5.4 / 5.2 / 5.0 |
 | `vermell` text `#FFB3A7` / secundari `#E08A7E` / accent `#FF6B5E` | 9.2 / 6.1 / 5.6 |
+| Caps (`head`) de `meteors` sobre el cel: `dia`, els 5 sobre `#5EC8F2` / `#BFE9F7` (mínim 3.1 / 4.5); `posta` i `nit`, els 5 sobre `#0A1430` i `#2B2F6B` (mínim 6.0); `vermell`, els 4 sobre `#14060A` / `#2A0B12` (mínim 7.1). A `posta` sobre l'horitzó `#E8885A` cau, però els estels només creuen la part alta del cel i són decoratius. Un test comprova ≥3 a cada tema | ≥3 al cel visible |
 | `vermell` perill: text `#FFB3A7` sobre el fons de perill / vora i icona `#FF6B5E` (UI) | 6.8 / 4.2 |
 | `glassSolid` (mínim dels textos i estats de cada tema) | `dia` 5.6 · `posta` 7.3 · `nit` 6.2 · `vermell` 5.8 |
 | gel: blanc sobre `#075F94` (amb reflex 12 %) | 6.8 (5.3) |
@@ -91,7 +96,10 @@ Verifica l'existència i fixa la versió amb `pnpm` abans d'afegir els paquets (
 | `iconSizes` | `sm 20, md 24, lg 32` |
 | Icones | **Phosphor** (`phosphor-react-native`, 3.0.6 verificada a npm el 2026-10-13; depèn de `react-native-svg`): pes `regular` a la UI, `duotone` a les icones d'acció principal i `fill` per a l'estat seleccionat. Verifica la versió abans d'afegir-la |
 | `duration` | `fast 120 ms`, `base 220 ms`, `slow 420 ms` |
-| `spring` | rebot suau: `damping 14, stiffness 160, mass 1` (tile que creix: escala 1 → 1.06) |
+| `spring` | rebot suau: `damping 14, stiffness 160, mass 1` (tile que creix: escala 1 → 1.06). Equival a `dampingRatio` ≈ 0,55 (14 / (2·√160)) |
+| `easing` *(proposta a validar al dispositiu)* | `out` `cubic-bezier(0.23, 1, 0.32, 1)` (entrada i sortida); `inOut` `cubic-bezier(0.77, 0, 0.175, 1)` (moviment en pantalla); `sheet` `cubic-bezier(0.32, 0.72, 0, 1)`. Mai `ease-in` |
+| `springUi` *(proposta a validar al dispositiu)* | forma de Reanimated 4 (`duration` + `dampingRatio`): `settle` 400 ms / 1 (sense rebot); `sheet` 300 ms / 0,8 amb la velocitat del gest; `snapBack` 400 ms / 0,8. Per a gestos. El tile continua amb `spring` |
+| `pressScale` *(proposta a validar al dispositiu)* | `0,97` en `duration.fast`; mai `scale(0)` (comença a 0,95 + opacitat 0) |
 | `breakpoints` | `phoneSmall 360`, `phone 390`, `tablet 768`, `desktop 1280`, `wide 1536` (vegeu `responsive.md` a `frontend-component`) |
 | `reducedMotion` | alternativa sense moviment (no només més lenta); l'ambient es congela |
 
@@ -99,4 +107,6 @@ Verifica l'existència i fixa la versió amb `pnpm` abans d'afegir els paquets (
 
 - Cada token semàntic té valor als **quatre** temes.
 - Qualsevol token nou es proposa a la persona abans d'afegir-lo.
+- `lake` és decoratiu. Cada tema té a més tres colors de flors (`flowers`). El text principal es llegeix sobre tota l'aigua a `dia`, `nit` i `vermell` (≥4.5:1, comprovat per un test); a `posta` l'horitzó és clar i no arriba (límit conegut; el tema encara no és seleccionable). A `vermell` tot el llac és en vermells.
+- `meteors` només el fa servir la pluja de Perseides de la pantalla d'inici de sessió (un sol element memorable, decoratiu). La cua és l'únic gradient addicional a la UI: un desvaniment funcional de transparent a color, no un adorn.
 - El tema `vermell` no té blaus ni verds, també a les icones i a les imatges (tint sobre l'APOD i altres fotos).

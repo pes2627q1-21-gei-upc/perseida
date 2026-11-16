@@ -10,13 +10,16 @@ etiquetes: [adr, qualitat, sonarqube, ci, quality-gate]
 
 # ADR-0012 · SonarQube Cloud i Quality Gate obligatori a la CI
 
+> [!warning] Llindar de cobertura actualitzat
+> Des del 2026-10-28, [[0028-tdd-estricte-i-politica-de-testing-avancada]] eleva el llindar de cobertura del codi nou del Quality Gate del 70 % d'aquesta decisió al **90 %**. La resta d'aquesta ADR (SonarQube Cloud, ordre de la CI i la resta de condicions del Quality Gate) continua vigent.
+
 ## Context
 
-La qualitat s'ha de construir de manera contínua i fer-se complir automàticament, amb regles homogènies per al frontend i el backend (memòria §2.4). El README indica que l'organització de SonarQube Cloud encara no s'ha creat (pendent).
+La qualitat s'ha de construir de manera contínua i fer-se complir automàticament, amb regles homogènies per al frontend i el backend (memòria §2.4). Amb la US TG-194 s'ha creat l'organització i s'ha vinculat el monorepo.
 
 ## Decisió
 
-Es decideix vincular el repositori a una organització de SonarQube Cloud (configuració pendent: encara no s'ha creat, segons el README). A cada PR cap a `develop` o `main`, el workflow de CI executa per ordre format, linters i tipus, tests amb cobertura, anàlisi de SonarQube Cloud i comprovació del Quality Gate, que fa fallar el workflow si no se supera. Després de cada fusió també s'analitzen `develop` i `main`. El Quality Gate s'aplica al codi nou de cada PR: 0 bugs i 0 vulnerabilitats noves, tots els security hotspots revisats, duplicació ≤ 3 %, cobertura ≥ 70 % i qualificació A en mantenibilitat, fiabilitat i seguretat. El token es guarda com a secret `SONAR_TOKEN`.
+Es vincula el repositori a una organització de SonarQube Cloud (`pes2627q1-21-gei-upc`) amb pla OSS. A cada PR cap a `develop` o `main`, el workflow de CI executa per ordre format, linters i tipus, tests amb cobertura, anàlisi de SonarQube Cloud i comprovació del Quality Gate, que fa fallar el workflow si no se supera. Després de cada fusió també s'analitzen `develop` i `main`. El Quality Gate s'aplica al codi nou de cada PR: 0 bugs i 0 vulnerabilitats noves, tots els security hotspots revisats, duplicació ≤ 3 %, cobertura ≥ 90 % en codi nou (segons [[0028-tdd-estricte-i-politica-de-testing-avancada]]) i qualificació A en mantenibilitat, fiabilitat i seguretat. El token es guarda com a secret `SONAR_TOKEN`.
 
 ## Conseqüències
 

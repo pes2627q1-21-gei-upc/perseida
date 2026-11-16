@@ -31,7 +31,7 @@ Preguntes concretes d'aquesta skill (abans d'escriure):
 4. Per feature, a `api/` una funció fina sobre el client i a `hooks/` el hook de TanStack Query: `useQuery` (lectura) o `useMutation` (escriptura), amb **query keys** centralitzades per feature i invalidació explícita en mutar.
 5. El hook retorna `data`, `isLoading`, `isError`, `error` (`AppError`); la UI decideix loading/empty/error (`frontend-pagina`). No es mostra mai el cos cru ni la traça.
 6. Missatge a l'usuari: el mostra l'ErrorBoundary/toast traduint `code` (`gestio-errors`); el hook no construeix text.
-7. Escriu els tests (després del codi) i passa la checklist.
+7. TDD estricte (skill `testing-tdd`): el test s'escriu **abans**, en vermell (commit `test:`); després el hook fins al verd, i passa la checklist.
 
 ## Plantilla de codi (orientativa: el repo encara no té codi)
 ```ts
@@ -69,10 +69,10 @@ export function useEvent(id: string) {
 ```
 Els camins i noms són d'exemple: s'han de prendre de l'OpenAPI real. Versions fixades amb pnpm; pregunta/verifica.
 
-## Tests (després del codi)
+## Tests (primer, en vermell)
 - Jest + RNTL: renderitza el hook amb un `QueryClientProvider` de prova i el client simulat (`frontend/__mocks__/`); comprova estats loading/èxit/error i que un problem+json esdevé `AppError` amb el `code` correcte.
 - Mutacions: invalidació de les query keys correctes; no es dispara si el servidor falla.
-- Cobertura de hooks >=70% (convencions/testing.md). No hi ha tests e2e.
+- Cobertura: 80 % global i 90 % del codi nou (convencions/testing.md); simula el client amb `jest.mock`. E2E només als fluxos crítics (Maestro/Playwright, previst).
 
 ## Checklist final
 - [ ] Protocol `vault-context` seguit; l'operació existeix a l'OpenAPI; cap camp inventat.

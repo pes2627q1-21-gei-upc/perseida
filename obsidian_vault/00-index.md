@@ -26,7 +26,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 
 ## Mapa per carpetes
 
-**arquitectura/**: [[visio-general]], [[arquitectura-fisica]], [[backend-hexagonal]], [[frontend]], [[model-de-domini]], [[serveis-externs]], [[contracte-spotwise]]
+**arquitectura/**: [[visio-general]], [[arquitectura-fisica]], [[backend-hexagonal]], [[frontend]], [[model-de-domini]], [[serveis-externs]], [[contracte-spotwise]], [[contracte-esdeveniments]], [[contracte-quiz]]
 
 **arquitectura/components/**: [[api]], [[postgres]], [[redis]], [[nginx-proxy-manager]], [[moderation]]
 
@@ -49,17 +49,28 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0016-ports-i-entitats-riques-al-domini|ADR-0016 Ports i entitats riques al domini]]
 - [[0017-injeccio-de-dependencies-i-services-singleton|ADR-0017 DI i services singleton]]
 - [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018 Errors RFC 9457]]
-- [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi]]
+- [[0019-tests-despres-del-codi|ADR-0019 Tests després del codi (substituïda per ADR-0028)]]
 - [[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020 Frontend i Frutiger Cosmo]]
 - [[0021-subagents-agnostics-i-generador|ADR-0021 Subagents agnòstics]]
+- [[0022-logging-json-global-amb-stdlib|ADR-0022 Logging JSON global]]
+- [[0023-convencions-del-model-de-dades|ADR-0023 Convencions del model de dades]]
+- [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss|ADR-0024 Defensa contra injecció SQL i XSS]]
+- [[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions|ADR-0025 CD per SSH amb rollback i downgrade]]
+- [[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01|ADR-0026 Producció per ports NAT amb DuckDNS]]
+- [[0027-skills-de-disseny-de-tercers-subordinades-a-frutiger-cosmo|ADR-0027 Skills de disseny de tercers]]
+- [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028 TDD estricte i política de testing]]
+- [[0029-apk-android-a-github-releases-amb-obtainium|ADR-0029 APK d'Android a GitHub Releases amb Obtainium]]
+- [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030 Protocol WebSocket i revocació per pub/sub]]
+- [[0031-fonts-d-esdeveniments-sota-demanda|ADR-0031 Fonts d'esdeveniments sota demanda]]
+- [[0032-leaflet-per-al-mapa-web-i-webview|ADR-0032 Leaflet per al mapa (web i WebView)]]
 
-**convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
+**convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 
 **producte/**: [[not-list]], [[stakeholders]], [[epiques-i-us]]
 
 **estat/**: les sessions de treball són a `estat/sessions/` (l'estat de les US és a Taiga)
 
-**guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]]
+**guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]], [[skills-de-disseny-de-tercers]]
 
 ## Plantilles
 

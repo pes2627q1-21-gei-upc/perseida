@@ -88,3 +88,41 @@ def test_application_detects_fastapi_and_infrastructure_imports(
         "application/bad.py imports fastapi",
         "application/bad.py imports app.infrastructure.health",
     ]
+
+
+def find_feature_imports(root: Path, layer: str, feature: str, other: str) -> list[str]:
+    """Imports in ``<layer>/<feature>`` of any ``app.<layer>.<other>`` module."""
+    violations: list[str] = []
+    for path in sorted((root / layer / feature).rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for module in _imported_modules(tree):
+            if module.split(".")[:3] == ["app", layer, other]:
+                relative = path.relative_to(root).as_posix()
+                violations.append(f"{relative} imports {module}")
+    return violations
+
+
+def test_users_and_auth_do_not_import_each_other_in_domain_and_application() -> None:
+    # What both share lives in app/domain/shared and app/application/shared.
+    for layer in ("domain", "application"):
+        assert find_feature_imports(APP_DIR, layer, "users", "auth") == []
+        assert find_feature_imports(APP_DIR, layer, "auth", "users") == []
+
+
+def test_auth_infrastructure_does_not_depend_on_users() -> None:
+    # main.py composes them: auth receives an AccountGateway, it never builds one.
+    assert find_feature_imports(APP_DIR, "infrastructure", "auth", "users") == []
+
+
+def test_detects_feature_imports(tmp_path: Path) -> None:
+    feature = tmp_path / "domain" / "users"
+    feature.mkdir(parents=True)
+    (feature / "bad.py").write_text(
+        "from app.domain.auth.models import AccountStatus\n"
+        "from app.domain.shared.account import AccountStatus as Other\n",
+        encoding="utf-8",
+    )
+
+    assert find_feature_imports(tmp_path, "domain", "users", "auth") == [
+        "domain/users/bad.py imports app.domain.auth.models"
+    ]

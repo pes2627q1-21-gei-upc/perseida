@@ -1,0 +1,20 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://perseida.duckdns.org:40431",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "619448165834-46fjn68s9ehc700lhd1595d565ektjo3.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "619448165834-ijiqdo6u6eff722qhub1vr3o2goftgm7.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "619448165834-u0v7efd5dje7kvgc8tpa9hanib8ki14j.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_REDIRECT_SCHEME": "app.perseida"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 ---
 titol: "Tests després del codi a totes les capes"
 tipus: adr
-estat: acceptada
+estat: substituida
 data: "2026-10-07"
 us: ["TG-205"]
 font: "sessió de treball del 2026-10-07 (TG-205); decisió de la persona responsable, acceptada per l'equip (TG-39)"
@@ -9,6 +9,9 @@ etiquetes: [adr, testing, tdd, backend]
 ---
 
 # ADR-0019 · Tests després del codi a totes les capes
+
+> [!warning] Substituïda
+> Aquesta ADR la substitueix [[0028-tdd-estricte-i-politica-de-testing-avancada]] (2026-10-28, TG-353): des del final de l'Sprint 1 es fa TDD estricte a totes les capes, amb el commit `test:` en vermell abans del `feat:`. Es conserva com a registre històric.
 
 ## Context
 
@@ -39,6 +42,7 @@ Les skills i els subagents escriuen el codi primer i els tests immediatament des
 
 ## Enllaços
 
+- [[0028-tdd-estricte-i-politica-de-testing-avancada]]
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]]
 - [[testing]]
 - [[assistents-ia]]
