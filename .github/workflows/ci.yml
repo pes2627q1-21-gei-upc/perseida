@@ -45,6 +45,7 @@ jobs:
               - "infra/nginx-proxy-manager/**"
               - "infra/scripts/test-rate-limit.sh"
               - "infra/scripts/test-npm-startup.sh"
+              - "infra/scripts/install-http-top.sh"
               - "infra/docker-compose.yml"
               - ".github/workflows/ci.yml"
       - name: Mostrar resultat de la detecció
