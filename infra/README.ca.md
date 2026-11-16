@@ -354,10 +354,16 @@ El panell només escolta a `127.0.0.1`, mai des de fora. El primer cop que hi en
 
 ### Límit de peticions per IP
 
-Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 60 peticions per minut i IP, amb una ràfega de 20 servida de cop. Per sobre, el proxy respon `429` en `application/problem+json` amb `code: RATE_LIMITED` i `Retry-After: 1`, sense arribar a l'API.
+Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 60 peticions per minut i IP, amb una ràfega de 20 servida de cop. Per sobre, el proxy respon `429` en `application/problem+json` amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1`, sense arribar a l'API.
 
 - La zona (`limit_req_zone`) ha d'anar al bloc `http` de nginx, on la pestanya *Advanced* no arriba. És a `nginx-proxy-manager/http_top.conf`, que el Compose munta en lectura a `/data/nginx/custom/http_top.conf` (NPM l'inclou) i el CD copia a `/opt/perseida/nginx-proxy-manager/`.
-- La ubicació que l'aplica és `nginx-proxy-manager/rate-limit.conf` (pestanya *Advanced*).
+- La ubicació que l'aplica és `nginx-proxy-manager/rate-limit.conf` (pestanya *Advanced*). Fa servir la zona i el map `$events_problem_instance`, tots dos definits a `http_top.conf`.
+
+> **L'ordre importa.** `rate-limit.conf` necessita la zona i el map d'`http_top.conf`. Si no hi són, nginx no arrenca i cau tot el proxy host.
+>
+> - **Per activar-lo:** primer desplega (el CD copia `http_top.conf` i recarrega nginx) i només després enganxa `rate-limit.conf` a *Advanced*.
+> - **Per retirar-lo** (o abans d'un revert que tregui el muntatge d'`http_top.conf`): primer esborra `rate-limit.conf` d'*Advanced* i desa, i només després desplega.
+
 - `docker compose up` no recrea el proxy si només canvia el contingut d'`http_top.conf`, així que el CD valida i recarrega nginx després de cada desplegament (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (cal Docker; l'executa el job `proxy` de la CI).
 - El límit compta la IP que nginx veu com a `$remote_addr`. Després d'un desplegament, comprova al registre d'accessos d'NPM que és la IP pública del client i no una de privada del NAT o de Docker: si no, tots els clients compartirien un sol comptador.
