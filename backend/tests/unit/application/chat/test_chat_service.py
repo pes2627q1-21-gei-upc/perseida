@@ -63,6 +63,21 @@ async def test_tg439_forbidden_prevents_access(
         await service.history(env.user, env.event)
 
 
+@pytest.mark.parametrize("operation", ["room", "history", "send"])
+async def test_tg64_unauthorized_user_does_not_create_room(
+    service: ChatService, env: ChatFakes, operation: str
+) -> None:
+    env.subscribed = False
+    with pytest.raises(ForbiddenError):
+        if operation == "room":
+            await service.get_or_create_room(env.user, env.event)
+        elif operation == "history":
+            await service.history(env.user, env.event)
+        else:
+            await service.send_message(env.user, env.event, "hello")
+    assert "room" not in env.calls
+
+
 async def test_tg439_rate_limit_stops_flow(
     service: ChatService, env: ChatFakes
 ) -> None:
