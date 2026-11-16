@@ -104,5 +104,41 @@
     "gamification": "Gamification",
     "home": "Home",
     "profile": "Profile"
+  },
+  "profile": {
+    "achievements": {
+      "badge": "Coming soon",
+      "desc": "Unlock badges by observing meteor showers and engaging with the community.",
+      "title": "Badges & achievements",
+      "unlocked": "0 badges unlocked"
+    },
+    "community": {
+      "badge": "Coming soon",
+      "desc": "Statistics on shared observations and stargazing gatherings.",
+      "title": "Astronomical activity"
+    },
+    "emailLabel": "Email address",
+    "language": {
+      "ca": "Catalan",
+      "en": "English",
+      "es": "Spanish"
+    },
+    "languageLabel": "Language",
+    "loading": "Loading profile...",
+    "retry": "Try again",
+    "retryHint": "Reload profile details",
+    "role": {
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "user": "Stargazer"
+    },
+    "roleLabel": "Role",
+    "streak": {
+      "badge": "Coming soon",
+      "days": "{{count}} days",
+      "desc": "Complete the daily quiz to keep your celestial streak alive.",
+      "title": "Stargazing streak"
+    },
+    "title": "Your profile"
   }
 }

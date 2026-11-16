@@ -104,5 +104,41 @@
     "gamification": "Gamificació",
     "home": "Inici",
     "profile": "Perfil"
+  },
+  "profile": {
+    "achievements": {
+      "badge": "Properament",
+      "desc": "Desbloqueja insígnies observant pluges d'estels i participant a la comunitat.",
+      "title": "Fites i assoliments",
+      "unlocked": "0 fites desbloquejades"
+    },
+    "community": {
+      "badge": "Properament",
+      "desc": "Estadístiques d'observacions compartides i trobades astronòmiques.",
+      "title": "Activitat astronòmica"
+    },
+    "emailLabel": "Correu electrònic",
+    "language": {
+      "ca": "Català",
+      "en": "Anglès",
+      "es": "Castellà"
+    },
+    "languageLabel": "Idioma",
+    "loading": "Carregant el perfil...",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les dades del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "roleLabel": "Rol",
+    "streak": {
+      "badge": "Properament",
+      "days": "{{count}} dies",
+      "desc": "Completa el qüestionari diari per mantenir viva la teva ràtxa celest.",
+      "title": "Ràtxa d'observació"
+    },
+    "title": "El teu perfil"
   }
 }

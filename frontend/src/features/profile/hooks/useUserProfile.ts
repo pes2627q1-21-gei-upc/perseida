@@ -31,9 +31,7 @@ export function useUserProfile() {
       return getUserProfile(tokens.accessToken);
     },
     staleTime: USER_PROFILE_STALE_TIME_MS,
-    retry: (failureCount, error) => {
-      if (error instanceof AppError && !error.retryable) return false;
-      return failureCount < 2;
-    },
+    // One retry, and only when the error is transient (network, 408, 429, 5xx).
+    retry: (failureCount, error) => failureCount < 1 && error.retryable,
   });
 }

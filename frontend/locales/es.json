@@ -104,5 +104,41 @@
     "gamification": "Gamificación",
     "home": "Inicio",
     "profile": "Perfil"
+  },
+  "profile": {
+    "achievements": {
+      "badge": "Próximamente",
+      "desc": "Desbloquea insignias observando lluvias de estrellas y participando en la comunidad.",
+      "title": "Logros e insignias",
+      "unlocked": "0 logros desbloqueados"
+    },
+    "community": {
+      "badge": "Próximamente",
+      "desc": "Estadísticas de observaciones compartidas y encuentros astronómicos.",
+      "title": "Actividad astronómica"
+    },
+    "emailLabel": "Correo electrónico",
+    "language": {
+      "ca": "Catalán",
+      "en": "Inglés",
+      "es": "Español"
+    },
+    "languageLabel": "Idioma",
+    "loading": "Cargando el perfil...",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los datos del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "roleLabel": "Rol",
+    "streak": {
+      "badge": "Próximamente",
+      "days": "{{count}} días",
+      "desc": "Completa el cuestionario diario para mantener viva tu racha celeste.",
+      "title": "Racha de observación"
+    },
+    "title": "Tu perfil"
   }
 }
