@@ -9,6 +9,9 @@ const mockRouter = { replace: mockReplace };
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
   Stack: () => null,
+  Tabs: Object.assign(({ children }: { children?: React.ReactNode }) => children ?? null, {
+    Screen: () => null,
+  }),
 }));
 
 describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
