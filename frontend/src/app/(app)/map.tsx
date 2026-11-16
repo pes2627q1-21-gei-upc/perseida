@@ -80,21 +80,27 @@ export default function MapScreen() {
       <View style={StyleSheet.absoluteFill}>
         <View style={[styles.fill, wide && styles.row]}>
           <View style={styles.fill}>
-            {view === 'map' ? (
-              <View testID="map-area" style={styles.fill}>
-                <EventMap
-                  markers={markers}
-                  label={t('events.map.label')}
+            {/* The map is never unmounted: a new mount reloads it and loses the zoom and
+                position. Under the list it stays laid out but invisible, untouchable and out
+                of the accessibility tree. */}
+            <View
+              testID="map-area"
+              style={[styles.fill, view === 'list' && styles.hidden]}
+              pointerEvents={view === 'list' ? 'none' : 'auto'}
+              accessibilityElementsHidden={view === 'list'}
+              importantForAccessibility={view === 'list' ? 'no-hide-descendants' : 'auto'}
+            >
+              <EventMap markers={markers} label={t('events.map.label')} onSelect={setSelectedId} />
+            </View>
+            {view === 'list' && (
+              <View style={StyleSheet.absoluteFill}>
+                <EventList
+                  events={events}
+                  label={t('events.list.label')}
+                  topInset={barBottom}
                   onSelect={setSelectedId}
                 />
               </View>
-            ) : (
-              <EventList
-                events={events}
-                label={t('events.list.label')}
-                topInset={barBottom}
-                onSelect={setSelectedId}
-              />
             )}
             {status}
           </View>
@@ -114,5 +120,6 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  hidden: { opacity: 0 },
   row: { flexDirection: 'row' },
 });
