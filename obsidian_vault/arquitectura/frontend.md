@@ -2,9 +2,9 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-12"
+data: "2026-11-16"
 us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026)"
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -69,6 +69,7 @@ Ruta `/(app)/map` (de moment, accés des de l'inici temporal). Codi a `src/featu
 - **Dues vistes** amb el selector «Mapa | Llista» a baix, al mateix panell de vidre que el filtre:
   - **Mapa:** un orbe de vidre per esdeveniment amb ubicació, amb la icona Phosphor de la categoria; els actius tenen un halo que pulsa (token `duration.ambient`, 6 s; quiet amb *reduce motion*).
   - **Llista:** tots els esdeveniments. Els que no tenen ubicació hi diuen «Visible des de qualsevol lloc» (criteri 4 de la US, reescrit el 12/11/2026). Els que en tenen mostren coordenades: l'API encara no dona el nom del lloc (proposta de `location.name` en un comentari de TG-52).
+  - **Canvi de vista:** el mapa no es desmunta mai. Amb la llista, queda a sota, invisible, sense tocs i fora de l'arbre d'accessibilitat, de manera que en tornar conserva el zoom i la posició (un muntatge nou recarregaria el WebView a la vista del món).
 - **Fitxa resum:** en tocar un marcador o una fila. Al mòbil, un full de vidre des de baix (es tanca amb la X, tocant fora, Esc o el botó enrere); a partir de 768 px (`breakpoints.tablet`), un panell al costat del mapa.
 - **Estats:** càrrega, buit (segons el filtre), error amb reintent (si és transitori) i «cap té ubicació al mapa» amb un botó cap a la llista, en un panell de vidre damunt del mapa o de la llista.
 - **Components compartits nous:** `GelSegmented` (`src/shared/ui`), píndola de gel amb segments, anunciada com a pestanyes o com a opcions (`kind`).
