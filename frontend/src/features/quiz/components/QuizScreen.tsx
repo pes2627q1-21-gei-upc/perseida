@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { errorMessage } from '../../../shared/errors';
@@ -18,15 +19,22 @@ function appLanguage(code: string): Language {
  */
 export function QuizScreen() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const lang = appLanguage(i18n.language);
   const { data, error, isFetching, refetch } = useQuizToday(lang);
   const answer = useAnswerQuiz(lang);
   const sendError = answer.error;
   const questionChanged = sendError !== null && QUESTION_CHANGED_CODES.has(sendError.code);
 
+  function goBack() {
+    // Opened from a link there is nowhere to go back to: go home instead.
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }
+
   let content;
   if (data?.result) {
-    content = <QuizResultView question={data} result={data.result} />;
+    content = <QuizResultView question={data} result={data.result} onBack={goBack} />;
   } else if (data) {
     content = (
       <QuizQuestionView
@@ -34,6 +42,7 @@ export function QuizScreen() {
         key={data.question_id}
         question={data}
         sending={answer.isPending}
+        onBack={goBack}
         onSubmit={(chosenOption) =>
           answer.mutate({ date: data.date, questionId: data.question_id, chosenOption })
         }

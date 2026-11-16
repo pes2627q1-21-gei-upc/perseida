@@ -91,6 +91,7 @@
     "quizLink": "Question of the day"
   },
   "quiz": {
+    "backHome": "Back to home",
     "loadingLabel": "Loading the question of the day",
     "optionsLabel": "Answer options",
     "questionChanged": "The question has changed because it is a new day. This is the new one.",

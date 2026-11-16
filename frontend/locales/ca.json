@@ -91,6 +91,7 @@
     "quizLink": "Pregunta del dia"
   },
   "quiz": {
+    "backHome": "Torna a l'inici",
     "loadingLabel": "Carregant la pregunta del dia",
     "optionsLabel": "Opcions de resposta",
     "questionChanged": "La pregunta ha canviat perquè ja és un altre dia. Aquesta és la nova.",

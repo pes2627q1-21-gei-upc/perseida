@@ -1,16 +1,18 @@
-import { CheckCircle, CircleIcon, XCircle } from 'phosphor-react-native';
+import { CaretLeft, CheckCircle, CircleIcon, XCircle } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
-import { GlassPanel } from '../../../shared/ui';
+import { GlassPanel, QuietButton } from '../../../shared/ui';
 import type { QuizResult, QuizToday } from '../api/quiz';
 
 interface Props {
   question: QuizToday;
   result: QuizResult;
+  /** Back to the menu with a button of the app, not only the system one. */
+  onBack: () => void;
 }
 
 /** Key of the words that say what an option was in the result (criterion 9: not only colour). */
@@ -24,7 +26,7 @@ function optionTag(position: number, result: QuizResult): string | null {
 }
 
 /** Result of today's question: right or not, the options, the explanation and the source. */
-export function QuizResultView({ question, result }: Props) {
+export function QuizResultView({ question, result, onBack }: Props) {
   const { t } = useTranslation();
   const { colors, iconSizes, spacing, touch, typography } = useTheme();
   const insets = useSafeAreaInsets();
@@ -117,6 +119,12 @@ export function QuizResultView({ question, result }: Props) {
         <Text style={[typography.body, { color: colors.text.primary, textAlign: 'center' }]}>
           {t('quiz.result.comeBack')}
         </Text>
+
+        <QuietButton
+          label={t('quiz.backHome')}
+          icon={<CaretLeft size={iconSizes.sm} color={colors.text.primary} />}
+          onPress={onBack}
+        />
       </View>
     </ScrollView>
   );
