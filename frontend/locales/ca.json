@@ -9,6 +9,18 @@
   "common": {
     "back": "Torna"
   },
+  "comingSoon": {
+    "badge": "Pròximament",
+    "chatDesc": "Un espai en temps real per compartir observacions, fotos i trobades astronòmiques.",
+    "chatTitle": "Comunitat i xat",
+    "eventsDesc": "Molt aviat podràs consultar pluges d'estels, eclipsis i fenòmens celestes directament des d'aquí.",
+    "eventsMapButton": "Obre el mapa d'esdeveniments",
+    "eventsTitle": "Esdeveniments astronòmics",
+    "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
+    "gamificationTitle": "Gamificació i reptes",
+    "profileDesc": "Gestiona les teves preferències d'observació, estadístiques i dades personals.",
+    "profileTitle": "El teu perfil"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
@@ -85,5 +97,12 @@
   "home": {
     "apodLink": "Imatge del dia",
     "mapLink": "Mapa d'esdeveniments"
+  },
+  "nav": {
+    "chat": "Xat",
+    "events": "Esdeveniments",
+    "gamification": "Gamificació",
+    "home": "Inici",
+    "profile": "Perfil"
   }
 }

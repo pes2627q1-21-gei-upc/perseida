@@ -9,6 +9,18 @@
   "common": {
     "back": "Volver"
   },
+  "comingSoon": {
+    "badge": "Próximamente",
+    "chatDesc": "Un espacio en tiempo real para compartir observaciones, fotos y encuentros astronómicos.",
+    "chatTitle": "Comunidad y chat",
+    "eventsDesc": "Muy pronto podrás consultar lluvias de estrellas, eclipses y fenómenos celestes directamente desde aquí.",
+    "eventsMapButton": "Abrir el mapa de eventos",
+    "eventsTitle": "Eventos astronómicos",
+    "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
+    "gamificationTitle": "Gamificación y retos",
+    "profileDesc": "Gestiona tus preferencias de observación, estadísticas y datos personales.",
+    "profileTitle": "Tu perfil"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
@@ -85,5 +97,12 @@
   "home": {
     "apodLink": "Imagen del día",
     "mapLink": "Mapa de eventos"
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Eventos",
+    "gamification": "Gamificación",
+    "home": "Inicio",
+    "profile": "Perfil"
   }
 }

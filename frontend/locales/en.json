@@ -9,6 +9,18 @@
   "common": {
     "back": "Back"
   },
+  "comingSoon": {
+    "badge": "Coming soon",
+    "chatDesc": "A real-time space to share observations, photos, and stargazing meetups.",
+    "chatTitle": "Community & chat",
+    "eventsDesc": "Soon you will be able to check meteor showers, eclipses, and celestial events directly from here.",
+    "eventsMapButton": "Open events map",
+    "eventsTitle": "Astronomical events",
+    "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
+    "gamificationTitle": "Gamification & challenges",
+    "profileDesc": "Manage your stargazing preferences, stats, and personal information.",
+    "profileTitle": "Your profile"
+  },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
@@ -85,5 +97,12 @@
   "home": {
     "apodLink": "Picture of the day",
     "mapLink": "Events map"
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Events",
+    "gamification": "Gamification",
+    "home": "Home",
+    "profile": "Profile"
   }
 }
