@@ -40,6 +40,11 @@ class ChatFakes:
             raise NotFoundError("EVENT_NOT_FOUND")
         return self.room
 
+    async def require_event(self, event_id: uuid.UUID) -> None:
+        self.calls.append("event")
+        if self.missing:
+            raise NotFoundError("EVENT_NOT_FOUND")
+
     async def hit(self, user_id: uuid.UUID) -> bool:
         self.calls.append("rate")
         return self.allowed

@@ -33,7 +33,15 @@ async def test_tg439_send_flow_and_cleaned_text(
 ) -> None:
     message = await service.send_message(env.user, env.event, " hola ")
     assert message.text == "hola"
-    assert env.calls == ["room", "subscription", "rate", "moderate", "save", "publish"]
+    assert env.calls == [
+        "event",
+        "subscription",
+        "room",
+        "rate",
+        "moderate",
+        "save",
+        "publish",
+    ]
     assert env.messages == [message]
     assert env.channels == [f"room:chat:event:{env.event}"]
     envelope = json.loads(env.published[0])
@@ -48,7 +56,7 @@ async def test_tg439_validation_stops_before_rate(
 ) -> None:
     with pytest.raises(ValidationError):
         await service.send_message(env.user, env.event, "  ")
-    assert env.calls == ["room", "subscription"]
+    assert env.calls == ["event", "subscription", "room"]
 
 
 async def test_tg439_forbidden_prevents_access(
@@ -57,7 +65,7 @@ async def test_tg439_forbidden_prevents_access(
     env.subscribed = False
     with pytest.raises(ForbiddenError):
         await service.send_message(env.user, env.event, "hello")
-    assert env.calls == ["room", "subscription"]
+    assert env.calls == ["event", "subscription"]
     assert not env.messages and not env.published
     with pytest.raises(ForbiddenError):
         await service.history(env.user, env.event)
@@ -85,7 +93,7 @@ async def test_tg439_rate_limit_stops_flow(
     with pytest.raises(RateLimitedError) as error:
         await service.send_message(env.user, env.event, "hello")
     assert error.value.code == RATE_LIMITED
-    assert env.calls == ["room", "subscription", "rate"]
+    assert env.calls == ["event", "subscription", "room", "rate"]
 
 
 async def test_tg439_rejection_stops_flow(service: ChatService, env: ChatFakes) -> None:
@@ -93,7 +101,7 @@ async def test_tg439_rejection_stops_flow(service: ChatService, env: ChatFakes) 
     with pytest.raises(BusinessRuleViolation) as error:
         await service.send_message(env.user, env.event, "hello")
     assert error.value.code == "CHAT_MESSAGE_REJECTED"
-    assert env.calls == ["room", "subscription", "rate", "moderate"]
+    assert env.calls == ["event", "subscription", "room", "rate", "moderate"]
     assert not env.messages and not env.published
 
 
@@ -125,7 +133,7 @@ async def test_tg439_missing_event_is_404_before_subscription(
     env.subscribed = False
     with pytest.raises(NotFoundError):
         await service.send_message(env.user, env.event, "hello")
-    assert env.calls == ["room"]
+    assert env.calls == ["event"]
 
 
 async def test_tg439_room_idempotent_and_missing(

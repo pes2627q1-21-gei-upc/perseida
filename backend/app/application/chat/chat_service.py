@@ -90,12 +90,10 @@ class ChatService:
     async def get_or_create_room(
         self, user_id: uuid.UUID, event_id: uuid.UUID
     ) -> EventChatRoom:
-        # The room lookup comes first: it raises NotFoundError for an event that
-        # does not exist, which nobody can be subscribed to (404 before 403).
-        room = await self._repository.get_or_create_room(event_id)
+        await self._repository.require_event(event_id)
         if not await self._subscriptions.is_subscribed(user_id, event_id):
             raise ForbiddenError("FORBIDDEN")
-        return room
+        return await self._repository.get_or_create_room(event_id)
 
     async def send_message(
         self, user_id: uuid.UUID, event_id: uuid.UUID, text: str

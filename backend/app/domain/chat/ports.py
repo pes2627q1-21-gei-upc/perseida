@@ -14,6 +14,14 @@ from app.domain.chat.models import (
 class ChatRepository(Protocol):
     """Durable storage of the rooms and their messages (PostgreSQL)."""
 
+    async def require_event(self, event_id: uuid.UUID) -> None:
+        """Check event existence without creating a room.
+
+        Raises:
+            NotFoundError: if the event does not exist.
+        """
+        ...
+
     async def get_or_create_room(self, event_id: uuid.UUID) -> EventChatRoom:
         """Return the room of ``event_id``, creating it if it has none.
 
