@@ -30,6 +30,30 @@ const STYLE = { palette: markerPalette(colors.nit), reduceMotion: false };
 const ZOOM = { zoomIn: 'Apropa', zoomOut: 'Allunya' };
 
 describe('buildLeafletHtml', () => {
+  it('fits the markers when it has no camera to keep', () => {
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
+
+    expect(html).toContain('map.fitBounds(points, {"padding":[40,40],"maxZoom":6});');
+  });
+
+  it('opens at the camera of the user, without fitting the markers, when it has one', () => {
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM, {
+      latitude: 41.39,
+      longitude: 2.17,
+      zoom: 9,
+    });
+
+    expect(html).toContain('.setView([41.39,2.17], 9)');
+    expect(html).not.toContain('map.fitBounds(');
+  });
+
+  it('reports every camera move to the app, so a reload can keep it', () => {
+    const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
+
+    expect(html).toContain("map.on('moveend'");
+    expect(html).toContain('JSON.stringify({ view: {');
+  });
+
   it('loads the pinned Leaflet 1.9.4 with subresource integrity', () => {
     const html = buildLeafletHtml(MARKERS, 'Mapa', STYLE, ZOOM);
 
