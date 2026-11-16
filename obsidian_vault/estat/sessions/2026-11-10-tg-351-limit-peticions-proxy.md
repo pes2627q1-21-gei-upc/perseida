@@ -44,7 +44,7 @@ Sense troballes crítiques. Aplicades: el CD valida i recarrega nginx després d
 ## Pendents
 
 - Mirar `$realip_remote_addr` al registre d'NPM a producció. Si és privada, decidir: acceptar el risc, usar-la com a clau (sense spoofing, però amb comptador compartit si hi ha SNAT) o demanar a Virtech que conservi la IP d'origen.
-- Afegir el job `proxy` als *required checks* de `develop`.
+- Afegir el job `proxy` als *required checks* de `develop`, després de fusionar la PR #83 (vegeu [[2026-11-16-tg-351-respostes-spotwise]]).
 - L'HSTS de la resta de `/api/*` es perd perquè el `location /` d'NPM fa `add_header X-Served-By` (preexistent, fora d'abast): obrir una incidència.
 
 - Enganxar `rate-limit.conf` a la pestanya «Advanced» del proxy host de producció.

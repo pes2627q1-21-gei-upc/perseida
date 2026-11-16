@@ -46,3 +46,4 @@ Cap ADR nova. Decisions de Raquel:
 - Quan Spotwise passi el token del servei d'espais, desar-lo com a secret de l'entorn, mai al repo ni al vault.
 - Tasca #479 a Taiga: adjuntar el missatge enviat a Spotwise i les seves respostes, i tancar-la quan se'ls hagi respost (punt 3 de la review).
 - Comprovar a producció que `$remote_addr` és la IP pública del client (criteri 5).
+- Afegir el job `proxy` als *required checks* de `develop` **només després de fusionar la PR #83**: fins llavors `develop` no té el job i totes les altres PR quedarien esperant el check («Expected — Waiting for status»). Es va provar abans d'hora i es va haver de treure (16/11/2026).
