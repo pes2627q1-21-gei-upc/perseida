@@ -24,6 +24,9 @@
     "INVALID_SESSION": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
     "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo.",
     "NOT_FOUND": "No se ha encontrado lo que buscas.",
+    "QUIZ_ALREADY_ANSWERED": "Ya has respondido la pregunta de hoy.",
+    "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
+    "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
   },
   "events": {
@@ -84,6 +87,28 @@
   },
   "home": {
     "apodLink": "Imagen del día",
-    "mapLink": "Mapa de eventos"
+    "mapLink": "Mapa de eventos",
+    "quizLink": "Pregunta del día"
+  },
+  "quiz": {
+    "loadingLabel": "Cargando la pregunta del día",
+    "optionsLabel": "Opciones de respuesta",
+    "questionChanged": "La pregunta ha cambiado porque ya es otro día. Esta es la nueva.",
+    "result": {
+      "comeBack": "Mañana habrá una pregunta nueva.",
+      "explanation": "Por qué",
+      "right": "¡La has acertado!",
+      "rightAndYours": "Respuesta correcta y tu respuesta",
+      "rightAnswer": "Respuesta correcta",
+      "source": "Lee la fuente",
+      "sourceHint": "Abre la fuente en el navegador",
+      "wrong": "No la has acertado",
+      "yourAnswer": "Tu respuesta"
+    },
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar la pregunta del día",
+    "submit": "Envía la respuesta",
+    "submitHint": "Envía la opción elegida",
+    "title": "Pregunta del día"
   }
 }

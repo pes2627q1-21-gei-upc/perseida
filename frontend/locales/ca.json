@@ -24,6 +24,9 @@
     "INVALID_SESSION": "La teva sessió ha caducat. Torna a iniciar sessió.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
     "NOT_FOUND": "No s'ha trobat el que busques.",
+    "QUIZ_ALREADY_ANSWERED": "Ja has respost la pregunta d'avui.",
+    "QUIZ_EXPIRED": "Aquesta pregunta ja no es pot respondre: ha canviat el dia.",
+    "QUIZ_QUESTION_MISMATCH": "Aquesta ja no és la pregunta d'avui.",
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
   },
   "events": {
@@ -84,6 +87,28 @@
   },
   "home": {
     "apodLink": "Imatge del dia",
-    "mapLink": "Mapa d'esdeveniments"
+    "mapLink": "Mapa d'esdeveniments",
+    "quizLink": "Pregunta del dia"
+  },
+  "quiz": {
+    "loadingLabel": "Carregant la pregunta del dia",
+    "optionsLabel": "Opcions de resposta",
+    "questionChanged": "La pregunta ha canviat perquè ja és un altre dia. Aquesta és la nova.",
+    "result": {
+      "comeBack": "Demà hi haurà una pregunta nova.",
+      "explanation": "Per què",
+      "right": "L'has encertada!",
+      "rightAndYours": "Resposta correcta i la teva resposta",
+      "rightAnswer": "Resposta correcta",
+      "source": "Llegeix la font",
+      "sourceHint": "Obre la font al navegador",
+      "wrong": "No l'has encertada",
+      "yourAnswer": "La teva resposta"
+    },
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar la pregunta del dia",
+    "submit": "Envia la resposta",
+    "submitHint": "Envia l'opció triada",
+    "title": "Pregunta del dia"
   }
 }

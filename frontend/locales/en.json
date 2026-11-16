@@ -24,6 +24,9 @@
     "INVALID_SESSION": "Your session has expired. Please sign in again.",
     "NETWORK_ERROR": "No connection. Check your network and try again.",
     "NOT_FOUND": "We couldn't find what you were looking for.",
+    "QUIZ_ALREADY_ANSWERED": "You have already answered today's question.",
+    "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
+    "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
   },
   "events": {
@@ -84,6 +87,28 @@
   },
   "home": {
     "apodLink": "Picture of the day",
-    "mapLink": "Events map"
+    "mapLink": "Events map",
+    "quizLink": "Question of the day"
+  },
+  "quiz": {
+    "loadingLabel": "Loading the question of the day",
+    "optionsLabel": "Answer options",
+    "questionChanged": "The question has changed because it is a new day. This is the new one.",
+    "result": {
+      "comeBack": "There will be a new question tomorrow.",
+      "explanation": "Why",
+      "right": "You got it right!",
+      "rightAndYours": "Right answer and your answer",
+      "rightAnswer": "Right answer",
+      "source": "Read the source",
+      "sourceHint": "Opens the source in the browser",
+      "wrong": "You didn't get it right",
+      "yourAnswer": "Your answer"
+    },
+    "retry": "Try again",
+    "retryHint": "Loads the question of the day again",
+    "submit": "Send answer",
+    "submitHint": "Sends the chosen option",
+    "title": "Question of the day"
   }
 }
