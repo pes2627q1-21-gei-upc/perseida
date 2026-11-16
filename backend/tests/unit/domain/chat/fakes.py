@@ -17,6 +17,9 @@ class InMemoryChatRepository:
         self.rooms: dict[uuid.UUID, EventChatRoom] = {}
         self.messages: list[ChatMessage] = []
 
+    async def require_event(self, event_id: uuid.UUID) -> None:
+        """This fake treats every event as existing."""
+
     async def get_or_create_room(self, event_id: uuid.UUID) -> EventChatRoom:
         if event_id not in self.rooms:
             self.rooms[event_id] = EventChatRoom.create(event_id=event_id)
