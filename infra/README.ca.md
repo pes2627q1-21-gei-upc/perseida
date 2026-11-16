@@ -365,7 +365,7 @@ Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 60 petic
 > - **Per retirar-lo** (o abans d'un revert que tregui el muntatge d'`http_top.conf`): primer esborra `rate-limit.conf` d'*Advanced* i desa, i només després desplega.
 
 - `docker compose up` no recrea el proxy si només canvia el contingut d'`http_top.conf`, així que el CD valida i recarrega nginx després de cada desplegament (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
-- Test: `bash infra/scripts/test-rate-limit.sh` (cal Docker; l'executa el job `proxy` de la CI).
+- Test: `bash infra/scripts/test-rate-limit.sh` (cal Docker; l'executa el job `proxy` de la CI). `bash infra/scripts/test-npm-startup.sh` arrenca la imatge real d'NPM amb el muntatge d'`http_top.conf` del Compose i comprova que s'aixeca i carrega la zona, i que amb un muntatge de només lectura falla (regressió del hotfix 0.2.1).
 - El límit compta la IP que nginx veu com a `$remote_addr`. Després d'un desplegament, comprova al registre d'accessos d'NPM que és la IP pública del client i no una de privada del NAT o de Docker: si no, tots els clients compartirien un sol comptador.
 
 ### Volums

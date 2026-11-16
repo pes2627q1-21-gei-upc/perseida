@@ -365,7 +365,7 @@ The public events endpoints (`/api/events/`, TG-351) allow 60 requests per minut
 > - **To remove it** (or before a revert that drops the `http_top.conf` mount): first delete `rate-limit.conf` from *Advanced* and save, and only then deploy.
 
 - `docker compose up` does not recreate the proxy when only the content of `http_top.conf` changes, so the CD validates and reloads nginx after each deploy (`nginx -t && nginx -s reload`). Locally: `docker compose exec reverse-proxy nginx -s reload`.
-- Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it).
+- Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it). `bash infra/scripts/test-npm-startup.sh` starts the real NPM image with the Compose mount of `http_top.conf` and checks that it boots and loads the zone, and that a read-only mount makes it fail (regression of hotfix 0.2.1).
 - The limit counts the IP that nginx sees as `$remote_addr`. After a deploy, check in NPM's access log that it is the client's public IP and not a private one from the NAT or Docker: otherwise every client would share one counter.
 
 ### Volumes
