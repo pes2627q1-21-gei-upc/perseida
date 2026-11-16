@@ -20,10 +20,20 @@ En passar de «Mapa» a «Llista» i tornar, el mapa es veia molt petit (vista d
 - **Solució:** el mapa queda sempre muntat. Amb la llista a sobre, és invisible (`opacity: 0`), no rep tocs i queda fora de l'arbre d'accessibilitat. Detall a [[frontend#Mapa d'esdeveniments (TG-52)]].
 - Tests a `MapScreen.test.tsx`: el WebView no es torna a muntar després de passar per la llista, i amagat no rep tocs ni el llegeixen els lectors de pantalla. Primer el commit `test:` en vermell i després el `fix:` ([[0028-tdd-estricte-i-politica-de-testing-avancada]]).
 
+### Canvi de filtre
+
+- **Problema:** de «Actius» a «Futurs» o a «Tots» el mapa també es reiniciava; de «Futurs» a «Tots» no, perquè tots dos tenen els mateixos marcadors al mapa (els actius d'ara no tenen ubicació).
+- **Causa:** al web, `FitToMarkers` feia `fitBounds` a cada canvi de marcadors; al mòbil, l'HTML porta els marcadors, el WebView es recarregava i tornava a començar al món.
+- **Solució:** només s'ajusta als primers marcadors. Al mòbil, la pàgina informa de cada moviment de càmera i, en recarregar-se per marcadors nous, s'obre a la mateixa càmera sense `fitBounds`. La càmera es valida (rangs de latitud, longitud i zoom) i només es desa quan el mapa té marcadors, perquè la vista inicial del món no impedeixi el primer ajust. Detall a [[frontend#Mapa d'esdeveniments (TG-52)]].
+- Tests a `leafletHtml.test.ts`, `EventMap.test.tsx` i `EventMap.web.test.tsx`, primer en vermell.
+
 ## Decisions preses
 
-Cap ADR nova. Decisió de Raquel: es corregeix en una branca nova de TG-52 (`feature/TG-52-mapa-mante-posicio`), perquè la PR #89 ja està fusionada.
+Cap ADR nova. Decisions de Raquel:
+
+- Es corregeix en una branca nova de TG-52 (`feature/TG-52-mapa-mante-posicio`), perquè la PR #89 ja està fusionada.
+- En canviar de filtre, el mapa conserva la posició de l'usuari i no s'ajusta als marcadors nous.
 
 ## Pendents
 
-- Al mòbil, canviar el filtre (Actius, Futurs, Tots) també recarrega el WebView, perquè l'HTML porta els marcadors. És el comportament previst (`fitBounds` als marcadors nous), però es podria enviar els marcadors per `postMessage` sense recarregar la pàgina.
+- Al mòbil, canviar el filtre encara recarrega el WebView (amb un parpelleig breu), tot i que ara conserva la càmera. Es podria evitar enviant els marcadors per `postMessage` sense recarregar la pàgina.
