@@ -2,9 +2,9 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-11-07"
+data: "2026-11-16"
 us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477)"
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477); review de la PR #83 (16/11/2026)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
 ---
 
@@ -31,9 +31,16 @@ Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api
 
 ## Límit de peticions per IP (TG-351)
 
-- `/api/events/` admet 60 peticions per minut i IP, amb una ràfega de 20 servida de cop (decisió de Raquel, tasca #477). Per sobre, el proxy respon `429` en problem+json amb `code: RATE_LIMITED` i `Retry-After: 1` ([[0018-errors-rfc-9457-amb-codis-estables]]), sense arribar a l'[[api]].
+- `/api/events/` admet 60 peticions per minut i IP, amb una ràfega de 20 servida de cop (decisió de Raquel, tasca #477). Per sobre, el proxy respon `429` en problem+json amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1` ([[0018-errors-rfc-9457-amb-codis-estables]]), sense arribar a l'[[api]]. L'OpenAPI dels dos endpoints documenta aquest 429.
+- `instance` surt d'un `map` d'`http_top.conf`: el camí exacte per a `/api/events/active` i `/api/events/upcoming`, i `/api/events/` per a qualsevol altre. nginx no escapa JSON, així que `$uri` mai entra al cos (review de la PR #83).
 - La zona `limit_req_zone` ha d'anar al bloc `http`, on la pestanya «Advanced» no arriba: és a `http_top.conf`, que el Compose munta a `/data/nginx/custom/http_top.conf` (NPM l'inclou) i el CD copia al servidor. La ubicació és a `rate-limit.conf`.
 - Ho comprova `infra/scripts/test-rate-limit.sh`, al job `proxy` de la CI.
+
+> [!danger] Ordre d'activació i de retirada
+> `rate-limit.conf` necessita la zona i el `map` d'`http_top.conf`; sense, nginx no arrenca i cau tot el proxy host. Per activar-lo, primer es desplega i després s'enganxa `rate-limit.conf` a «Advanced». Per retirar-lo (o abans d'un revert que tregui el muntatge), primer s'esborra d'«Advanced» i després es desplega. Detall a la secció «Límit de peticions per IP» del README d'`infra/`.
+
+> [!info] Usuaris darrere d'un mateix NAT
+> El límit també afecta l'app (el mapa fa servir `/api/events/`). Els usuaris darrere d'una mateixa IP pública (wifi del campus, CGNAT mòbil) comparteixen els 60 per minut. Risc acceptat per Raquel (16/11/2026, review de la PR #83): el mapa fa poques peticions per usuari i la ràfega de 20 absorbeix els pics. Si apareixen 429 al registre d'NPM amb trànsit legítim, es revisarà el límit.
 
 > [!warning] IP real del client
 > NPM confia en `X-Real-IP` quan la petició arriba de `10/8`, `172.16/12` o `192.168/16`. Si el NAT de la UPC o Docker reescriuen l'origen a una IP privada, tots els clients compartirien un comptador i un client podria falsejar la seva IP. Cal comprovar `$remote_addr` al registre d'accessos d'NPM després del desplegament.
