@@ -12,7 +12,6 @@ from app.main import create_app
 
 PUBLIC_ORIGINS = [
     "https://perseida.duckdns.org:40431",
-    "http://perseida.duckdns.org:40430",
     "https://perseida.duckdns.org",
 ]
 LOCAL_ORIGINS = [
@@ -26,6 +25,10 @@ REJECTED_ORIGINS = [
     "https://malicious.com",
     "http://192.168.1.10:8081",
     "https://evil.perseida.duckdns.org",
+    # Production over plain HTTP: Force SSL redirects it to HTTPS, so no page is
+    # ever served from it, and a page tampered with on the network could call the
+    # API with the user's session.
+    "http://perseida.duckdns.org:40430",
 ]
 METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
 ACAO = "access-control-allow-origin"
