@@ -182,6 +182,31 @@ Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/
 > - Les rutes i el format de resposta els ha decidit TG-56; la visualització a l'app (TG-57) els ha de consumir i, si cal canviar-los, acordar-ho amb qui la faci.
 > - Mutation testing del domini (`app/domain/streaks/`) pendent de l'eina (US #359-#362).
 
+## Sortida d'observació (implementat)
+
+Entitat `Outing` a `app/domain/outings/models.py`; port `OutingRepository` a `app/domain/outings/ports.py`; cas d'ús `OutingService` a `app/application/outings/outing_service.py`; taula `outings` a `app/infrastructure/outings/tables.py` (migració `create_outings`), repositori `SqlOutingRepository` i router `app/infrastructure/outings/router.py` (TG-629). Una sortida la crea una usuària per quedar amb altres persones a observar el cel. **No és un esdeveniment astronòmic**: té una taula a part i mai surt a `/api/events/*`, així que el contracte amb Spotwise ([[contracte-spotwise]]) no canvia.
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, el genera el domini |
+| `author_id` | `uuid`, FK a `users.id` amb `ON DELETE RESTRICT` |
+| `event_id` | `uuid` o null: l'esdeveniment astronòmic relacionat. FK a `astronomical_events.id` amb `ON DELETE SET NULL` |
+| `title` | 1-120 caràcters, sense blancs als extrems ni caràcters de control |
+| `description` | 0-2.000 caràcters; conserva salts de línia i tabuladors |
+| `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` |
+| `latitude`, `longitude` | obligatòries; `CHECK` de rang −90..90 i −180..180 |
+| `created_at`, `updated_at` | les posa el servei amb el rellotge injectat |
+
+Regles:
+
+- **Crear:** l'inici no pot ser abans d'ara (`OUTING_STARTS_IN_PAST`) i la fi no pot ser anterior a l'inici (`OUTING_ENDS_BEFORE_START`). Un text massa llarg és un error, mai es retalla.
+- **Editar** (`Outing.update` amb `OutingChanges`): només canvien els camps enviats; `event_id: null` treu l'esdeveniment. La regla de l'inici futur només s'aplica si canvien `starts_at` o `ends_at`: es pot corregir el títol d'una sortida que ja ha començat (decisió de Raquel, 17/11/2026).
+- **Permisos** (`OutingService`): qualsevol sessió llegeix; només l'autora edita o esborra (`ForbiddenError` `OUTING_FORBIDDEN`, 403). Una sortida que no existeix és `NotFoundError` `OUTING_NOT_FOUND` (404).
+- **Esdeveniment relacionat:** si se'n dona un que no existeix, `ValidationError` `OUTING_EVENT_NOT_FOUND` (422): és un camp del cos, no la URL (decisió de Raquel, 17/11/2026). La FK n'és la defensa en profunditat.
+- **Autora a la resposta:** `OutingDetails` porta l'`OutingAuthor` (`id`, `display_name`, `avatar_url`) amb un join a `users`; mai el correu.
+
+Endpoints a [[api#Sortides d'observació (TG-629)]].
+
 ## Diagrama (transcripció)
 
 ```mermaid

@@ -59,6 +59,20 @@ Els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel po
 
 `QuizService` (`app/application/quiz/`) guarda la pregunta del dia a [[redis]] (`cache:quiz:daily:<data>:<idioma>`) fins a mitjanit UTC; el banc i les respostes són a [[postgres]] ([[model-de-domini#Quiz diari (implementat)]]). Contracte a [[contracte-quiz]]; guia a la secció «Daily quiz» de `backend/README.md`.
 
+## Sortides d'observació (TG-629)
+
+Privats, amb sessió; l'usuària s'obté de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503. Model a [[model-de-domini#Sortida d'observació (implementat)]].
+
+| Endpoint | Què fa |
+|---|---|
+| `POST /api/outings` | Crea una sortida de la usuària de la sessió. `201` amb la sortida i la capçalera `Location`; `422` si les dades no són vàlides |
+| `GET /api/outings` | Sortides que encara no han començat, per `starts_at` i `id`. Filtres opcionals `event_id` i `mine=true` («les meves sortides», decisió de Raquel, 17/11/2026) |
+| `GET /api/outings/{id}` | Detall amb l'autora (`id`, `display_name`, `avatar_url`); `404 OUTING_NOT_FOUND` |
+| `PATCH /api/outings/{id}` | Només l'autora (`403 OUTING_FORBIDDEN`). Canvien només els camps enviats; només `event_id` pot ser null |
+| `DELETE /api/outings/{id}` | Només l'autora; `204` |
+
+Codis de `422`: `VALIDATION_ERROR` (format: longitud, rang de la ubicació, data sense zona), `OUTING_TITLE_EMPTY`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`.
+
 ## Seguretat (TG-45)
 
 Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
@@ -93,6 +107,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-63 (endpoint WebSocket `/api/ws`)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
+- TG-629 (sortides d'observació creades pels usuaris)
 
 ## Estat d'implementació
 
@@ -105,6 +120,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - **Usuari, alta automàtica i tancament de sessió (TG-45)**: implementat (`UserService`, `SqlUserRepository` amb alta concurrent segura, `/api/auth/logout`, `/api/users/me`, error `EMAIL_ALREADY_REGISTERED`).
 - **WebSocket `/api/ws` (TG-63)**: implementat (`RealtimeSession` a `application/realtime`, router a `infrastructure/realtime`, embolcall `{type, room?, payload, id}`, autenticació pel primer frame, heartbeat i revocació per pub/sub; vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Requereix la llibreria `websockets` perquè uvicorn accepti el handshake. Les sales concretes són de TG-64 i TG-65.
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
+- **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 
