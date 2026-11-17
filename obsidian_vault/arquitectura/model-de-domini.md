@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-11"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026)"
+data: "2026-11-17"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -181,6 +181,44 @@ Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/
 > [!todo] Pendent
 > - Les rutes i el format de resposta els ha decidit TG-56; la visualització a l'app (TG-57) els ha de consumir i, si cal canviar-los, acordar-ho amb qui la faci.
 > - Mutation testing del domini (`app/domain/streaks/`) pendent de l'eina (US #359-#362).
+
+## Publicacions d'esdeveniment (implementat)
+
+Publicacions de text de la comunitat sota un esdeveniment (TG-628). Només text: les imatges vindran amb TG-68 i la moderació amb TG-81. Entitat `Post` (i el value object `PostAuthor`) a `app/domain/posts/models.py`; port `PostRepository` a `app/domain/posts/ports.py`; cas d'ús `PostService` a `app/application/posts/post_service.py`; taula `posts` a `app/infrastructure/posts/tables.py` (migració `create_posts`), repositori `SqlPostRepository` i router `app/infrastructure/posts/router.py`. Convencions de la taula: [[0023-convencions-del-model-de-dades]].
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7 (`uuidv7()`), clau primària |
+| `event_id` | FK a `astronomical_events.id` amb `ON DELETE CASCADE` |
+| `user_id` | l'autora; FK a `users.id` amb `ON DELETE CASCADE`. Al domini és `author: PostAuthor(id, name)` |
+| `text` | `varchar(1000)`, `CHECK length(text) BETWEEN 1 AND 1000` |
+| `created_at`, `edited_at` | `timestamptz`; `edited_at` és `null` fins a la primera edició |
+
+Índex `ix_posts_event_id_created_at_id` (`event_id`, `created_at DESC`, `id DESC`) per a la llista paginada.
+
+Regles:
+
+- **Text:** el mateix netejat que els missatges de xat (vegeu [[#Xat d'esdeveniment (domini implementat)]]), amb la mateixa funció, `clean_user_text` d'`app/domain/shared/text.py`: sense caràcters de control ni invisibles perillosos i sense blancs als extrems. Buit dona `POST_TEXT_EMPTY` i de més de 1.000 caràcters `POST_TEXT_TOO_LONG` (422); mai es trunca. L'app el mostra sempre com a text pla, mai com a HTML ni com a enllaç ([[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss|ADR-0024]]).
+- **Autoria:** només l'autora pot editar o esborrar (`POST_FORBIDDEN`, 403); una publicació inexistent dona `POST_NOT_FOUND` (404). El servei comprova primer l'existència i després l'autoria. L'autora surt sempre de la sessió, mai del cos ni de la ruta.
+- **Esdeveniment:** crear o llistar en un esdeveniment inexistent dona `EVENT_NOT_FOUND` (404), amb el port propi `EventLookup.exists` (`app/domain/posts/ports.py`), que compleix `SqlEventRepository`; `posts` no importa la feature `events` (vegeu [[backend-hexagonal]]).
+- **Nom de l'autora:** `display_name` del perfil, o `null` si no en té. El correu no surt mai: és una dada personal. L'app hi posa un nom genèric amb els 6 últims caràcters hexadecimals de l'`id` (`Usuari/a #3f9a2c`), que distingeix dues autores sense nom. Aquests caràcters són la part aleatòria del UUIDv7. L'`id` complet ja és públic a `author.id` i no dona cap permís (l'autoria es comprova amb la sessió), però porta la data de creació del compte (decisió de la persona responsable, 17/11/2026).
+- **Ordre i paginació:** de la més nova a la més antiga per `(created_at, id)`, amb cursor exclusiu. El cursor públic és opac: `[created_at, id]` en JSON i base64url sense farciment, de 256 caràcters com a màxim. Un cursor mal format o no canònic dona `INVALID_CURSOR` (422). `limit` d'1 a 50, per defecte 20.
+
+Endpoints (privats, amb sessió; 401 `INVALID_SESSION` sense sessió vàlida):
+
+| Ruta | Què fa | Resposta |
+|---|---|---|
+| `POST /api/events/{event_id}/posts` | Crea una publicació (`{"text": "..."}`) | `201` publicació; 404, 422 |
+| `GET /api/events/{event_id}/posts?cursor=&limit=` | Llista les publicacions de l'esdeveniment | `200` `{"items": [...], "next_cursor": "..." \| null}`; 404, 422 |
+| `PATCH /api/posts/{post_id}` | Edita el text i desa `edited_at` | `200` publicació; 403, 404, 422 |
+| `DELETE /api/posts/{post_id}` | Esborra la publicació | `204`; 403, 404 |
+
+Cada publicació: `{"id", "author": {"id", "name"}, "text", "created_at", "edited_at"}`; `author.name` pot ser `null`. El cos de les peticions rebutja camps desconeguts (`extra="forbid"`).
+
+A l'app (`src/features/posts/`), la secció `EventPosts` va al final de la fitxa de l'esdeveniment (vegeu [[frontend]]).
+
+> [!todo] Pendent
+> - Moderació del text (TG-81) i imatges (TG-68).
 
 ## Diagrama (transcripció)
 
