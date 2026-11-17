@@ -15,7 +15,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "outings",
-        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("id", sa.Uuid(), server_default=sa.text("uuidv7()"), nullable=False),
         sa.Column("author_id", sa.Uuid(), nullable=False),
         sa.Column("event_id", sa.Uuid(), nullable=True),
         sa.Column("title", sa.String(length=120), nullable=False),
@@ -24,8 +24,18 @@ def upgrade() -> None:
         sa.Column("ends_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("latitude", sa.Double(), nullable=False),
         sa.Column("longitude", sa.Double(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.CheckConstraint(
             "char_length(title) >= 1", name=op.f("ck_outings_title_not_empty")
         ),

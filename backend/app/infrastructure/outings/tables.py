@@ -10,6 +10,7 @@ from sqlalchemy import (
     Index,
     String,
     Uuid,
+    text,
 )
 from sqlmodel import Field, SQLModel
 
@@ -33,7 +34,9 @@ class OutingRow(SQLModel, table=True):
         Index("ix_outings_author_id_starts_at", "author_id", "starts_at"),
     )
 
-    id: uuid.UUID = Field(sa_column=Column(Uuid(), primary_key=True))
+    id: uuid.UUID = Field(
+        sa_column=Column(Uuid(), primary_key=True, server_default=text("uuidv7()"))
+    )
     # RESTRICT like the other tables of a user: accounts are deleted softly.
     author_id: uuid.UUID = Field(
         sa_column=Column(
@@ -60,8 +63,12 @@ class OutingRow(SQLModel, table=True):
     latitude: float = Field(sa_column=Column(Double(), nullable=False))
     longitude: float = Field(sa_column=Column(Double(), nullable=False))
     created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), nullable=False)
+        sa_column=Column(
+            DateTime(timezone=True), nullable=False, server_default=text("now()")
+        )
     )
     updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), nullable=False)
+        sa_column=Column(
+            DateTime(timezone=True), nullable=False, server_default=text("now()")
+        )
     )
