@@ -2,9 +2,9 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-07"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
+data: "2026-11-17"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -79,6 +79,17 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - [[0018-errors-rfc-9457-amb-codis-estables]]
 - [[0022-logging-json-global-amb-stdlib]]
 
+## Publicacions d'esdeveniment (TG-628)
+
+| Endpoint | Què fa |
+|---|---|
+| `POST /api/events/{event_id}/posts` | Crea una publicació de text de l'usuària de la sessió. 201, 404 `EVENT_NOT_FOUND`, 422 `POST_TEXT_EMPTY` o `POST_TEXT_TOO_LONG` |
+| `GET /api/events/{event_id}/posts` | Llista paginada per cursor, de la més nova a la més antiga. 404 `EVENT_NOT_FOUND`, 422 `INVALID_CURSOR` |
+| `PATCH /api/posts/{post_id}` | Edita el text (només l'autora). 403 `POST_FORBIDDEN`, 404 `POST_NOT_FOUND`, 422 |
+| `DELETE /api/posts/{post_id}` | Esborra (només l'autora). 204, 403, 404 |
+
+Tots demanen sessió (`CurrentSessionDep`). Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
+
 ## US de Taiga relacionades
 
 - TG-36 (Imatge Docker del backend i publicació a GHCR)
@@ -90,6 +101,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - TG-45 (model d'usuari, alta automàtica i tancament de sessió)
 - TG-46 (cache APOD)
 - TG-60 (quiz diari)
+- TG-628 (publicacions de text en un esdeveniment)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-63 (endpoint WebSocket `/api/ws`)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
@@ -105,6 +117,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - **Usuari, alta automàtica i tancament de sessió (TG-45)**: implementat (`UserService`, `SqlUserRepository` amb alta concurrent segura, `/api/auth/logout`, `/api/users/me`, error `EMAIL_ALREADY_REGISTERED`).
 - **WebSocket `/api/ws` (TG-63)**: implementat (`RealtimeSession` a `application/realtime`, router a `infrastructure/realtime`, embolcall `{type, room?, payload, id}`, autenticació pel primer frame, heartbeat i revocació per pub/sub; vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Requereix la llibreria `websockets` perquè uvicorn accepti el handshake. Les sales concretes són de TG-64 i TG-65.
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
+- **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 

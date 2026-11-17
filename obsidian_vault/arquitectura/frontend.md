@@ -2,9 +2,9 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-16"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026)"
+data: "2026-11-17"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -76,6 +76,16 @@ Ruta `/(app)/map` (de moment, accés des de l'inici temporal). Codi a `src/featu
 - **Fitxa resum:** en tocar un marcador o una fila. Al mòbil, un full de vidre des de baix (es tanca amb la X, tocant fora, Esc o el botó enrere); a partir de 768 px (`breakpoints.tablet`), un panell al costat del mapa.
 - **Estats:** càrrega, buit (segons el filtre), error amb reintent (si és transitori) i «cap té ubicació al mapa» amb un botó cap a la llista, en un panell de vidre damunt del mapa o de la llista.
 - **Components compartits nous:** `GelSegmented` (`src/shared/ui`), píndola de gel amb segments, anunciada com a pestanyes o com a opcions (`kind`).
+
+## Publicacions d'esdeveniment (TG-628)
+
+Codi a `src/features/posts/`; API a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
+
+- **Dades:** `api/posts.ts` (openapi-fetch) i `hooks/usePosts.ts` (`useEventPosts` amb `useInfiniteQuery` i cursor; `useCreatePost`, `useUpdatePost` i `useDeletePost`, que en acabar bé tornen a carregar la llista de l'esdeveniment). Només en línia. Sense sessió desada, fallen amb `INVALID_SESSION` sense cridar l'API (`features/auth/authHeaders.ts`, compartit).
+- **Qui és l'autora:** `useCurrentUser` (`features/auth/hooks`, `GET /api/users/me`, llegit un cop per sessió). Una publicació és pròpia si `author.id` coincideix amb el de la sessió; només llavors surten «Edita» i «Esborra».
+- **Formulari:** `PostForm`, amb `react-hook-form` i `zod` ([[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020]]). El mateix component crea i edita; comptador «N/1000» sempre visible. Els errors del text (`POST_TEXT_*`) surten sota el camp; la resta, com a alerta traduïda.
+- **Pantalla:** `EventPosts` va al final del scroll de la fitxa (`EventSheet`), tant al full inferior del mòbil com al panell lateral. Té els estats de càrrega, buit i error (amb reintent només si l'error és transitori) i «Carrega'n més» per a la pàgina següent. `PostItem` mostra l'autora, la data, «editada» i el text, sempre com a text pla.
+- **Edició i esborrat al lloc:** editar substitueix el text pel formulari dins de la mateixa publicació. Esborrar demana confirmació també dins la publicació, i no amb `Alert.alert`, que React Native Web ignora (decisió de la persona responsable, 17/11/2026).
 
 ## Mode offline
 
