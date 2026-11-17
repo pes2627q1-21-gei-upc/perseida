@@ -43,7 +43,7 @@ async def session_factory(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         async with factory() as session:
-            await session.execute(text("TRUNCATE astronomical_events"))
+            await session.execute(text("TRUNCATE astronomical_events CASCADE"))
             await session.commit()
         yield factory
     finally:
@@ -176,6 +176,19 @@ async def test_tg50_c7_exists_tells_stored_events_apart(
 
     assert await repository.exists(stored.id) is True
     assert await repository.exists(uuid.uuid7()) is False
+
+
+async def test_tg53_c5_get_returns_the_stored_event_or_none(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    stored = make_event(
+        DAY, DAY + timedelta(hours=2), Location(latitude=41.4, longitude=2.2)
+    )
+    await _store(session_factory, stored, make_event(DAY + timedelta(hours=1)))
+    repository = SqlEventRepository(session_factory)
+
+    assert await repository.get(stored.id) == stored
+    assert await repository.get(uuid.uuid7()) is None
 
 
 async def test_tg50_c4_a_batch_with_a_repeated_event_keeps_the_last_one(
