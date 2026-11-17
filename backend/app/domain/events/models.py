@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Self
 
@@ -11,7 +12,8 @@ from pydantic import (
     model_validator,
 )
 
-from app.domain.shared.errors import ValidationError
+from app.domain.events.errors import EVENT_ALREADY_ENDED
+from app.domain.shared.errors import ConflictError, ValidationError
 
 
 class EventCategory(StrEnum):
@@ -81,6 +83,13 @@ class AstronomicalEvent(_EventData):
 
     id: uuid.UUID
 
+    def has_ended(self, now: datetime) -> bool:
+        """Return whether the event is over at ``now``: ``ends_at < now``.
+
+        An event that ends exactly at ``now`` has not ended yet (TG-53).
+        """
+        return self.ends_at < now
+
 
 class EventDraft(_EventData):
     """An event as a source gives it, before it is stored and gets an ``id``.
@@ -90,3 +99,27 @@ class EventDraft(_EventData):
 
     source: EventSourceName
     external_id: Annotated[NonBlank, Field(max_length=EXTERNAL_ID_MAX_LENGTH)]
+
+
+class EventSubscription(BaseModel):
+    """A user follows an event (TG-53): at most one per user and event."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    event_id: uuid.UUID
+    created_at: AwareDatetime
+
+    @classmethod
+    def create(
+        cls, user_id: uuid.UUID, event: AstronomicalEvent, now: datetime
+    ) -> Self:
+        """Subscribe ``user_id`` to ``event`` at ``now``.
+
+        Raises:
+            ConflictError: ``EVENT_ALREADY_ENDED`` if the event has ended.
+        """
+        if event.has_ended(now):
+            raise ConflictError(EVENT_ALREADY_ENDED, "Event has already ended")
+        return cls(id=uuid.uuid7(), user_id=user_id, event_id=event.id, created_at=now)
