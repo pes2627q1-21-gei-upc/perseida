@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
+import { useTabBarInset } from '../useTabBarInset';
 
 export interface ComingSoonTabProps {
   title: string;
@@ -27,17 +28,19 @@ export function ComingSoonTab({
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const tabBarInset = useTabBarInset();
 
   const badgeText = badge ?? t('comingSoon.badge');
 
   return (
     <SkyBackground>
       <View
+        testID="coming-soon-tab"
         style={[
           styles.container,
           {
             paddingTop: insets.top + theme.spacing.lg,
-            paddingBottom: insets.bottom + 80, // Allow space for bottom tab bar
+            paddingBottom: tabBarInset + theme.spacing.lg,
             paddingHorizontal: theme.spacing.md,
           },
         ]}

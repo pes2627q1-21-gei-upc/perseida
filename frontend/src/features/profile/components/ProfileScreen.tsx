@@ -10,12 +10,14 @@ import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
 import { LogoutButton } from '../../auth/components/LogoutButton';
+import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useUserProfile } from '../hooks/useUserProfile';
 
 export function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const tabBarInset = useTabBarInset();
   const { data, isLoading, isError, error, refetch } = useUserProfile();
   const [photoFailed, setPhotoFailed] = useState(false);
   // Only plain https avatars reach <Image> (ADR-0024); anything else shows the initials.
@@ -47,11 +49,12 @@ export function ProfileScreen() {
   return (
     <SkyBackground>
       <ScrollView
+        testID="profile-scroll"
         contentContainerStyle={[
           styles.scrollContainer,
           {
             paddingTop: insets.top + theme.spacing.lg,
-            paddingBottom: insets.bottom + 96,
+            paddingBottom: tabBarInset + theme.spacing.lg,
             paddingHorizontal: theme.spacing.md,
           },
         ]}

@@ -119,11 +119,7 @@ export default function AppLayout() {
           ) : null,
         // WCAG 2.5.8: 48 dp touch target, also when the bar turns compact in landscape (32 dp).
         tabBarItemStyle: { minHeight: theme.touch.min },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: theme.typography.caption.fontFamily,
-          fontWeight: '500',
-        },
+        tabBarLabelStyle: theme.typography.caption,
       }}
     >
       {TAB_CONFIG.map((item) => {
