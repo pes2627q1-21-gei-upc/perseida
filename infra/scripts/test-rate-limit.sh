@@ -52,6 +52,14 @@ done
 cat >"$WORK_DIR/nginx.conf" <<'EOF'
 events {}
 http {
+    # Com el nginx.conf d'NPM: confia en `X-Real-IP` quan la petició arriba d'una xarxa
+    # privada. A producció tot arriba del NAT de la UPC (`10.x`), i aquí de Docker (`172.x`).
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    real_ip_header X-Real-IP;
+    real_ip_recursive on;
+
     include /etc/nginx/perseida/http_top.conf;
 
     server {
@@ -157,6 +165,18 @@ import json, sys
 body = json.load(open(sys.argv[1], encoding="utf-8"))
 assert body["instance"] == "/api/events/", body
 EOF
+
+# 2c. Una `X-Real-IP` falsa no se salta el límit: FLOOD peticions en paral·lel, cadascuna
+#     amb una IP inventada diferent (`next` del fitxer de `curl -K`), han d'acabar en 429.
+spoof_config="$WORK_DIR/spoof.curl"
+: >"$spoof_config"
+for i in $(seq 1 "$FLOOD"); do
+  printf 'url = "%s/api/events/active?n=%s"\nheader = "X-Real-IP: 203.0.%s.%s"\nnext\n' \
+    "$BASE" "$i" "$((i / 250))" "$((i % 250 + 1))" >>"$spoof_config"
+done
+spoof_codes="$(curl -s -Z --parallel-max 50 -o /dev/null -w '%{http_code}\n' -K "$spoof_config" || true)"
+printf '%s\n' "$spoof_codes" | grep -qx 429 \
+  || fail "amb una X-Real-IP falsa a cada petició el límit no s'aplica"
 
 # 3. La resta de l'API no comparteix el límit.
 code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/health")"
