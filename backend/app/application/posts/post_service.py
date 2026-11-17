@@ -6,9 +6,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.application.shared.errors import ForbiddenError
-from app.domain.events.ports import EventRepository
 from app.domain.posts.models import Post, PostAuthor, PostCursor
-from app.domain.posts.ports import PostRepository
+from app.domain.posts.ports import EventLookup, PostRepository
 from app.domain.shared.errors import NotFoundError, ValidationError
 
 
@@ -59,7 +58,7 @@ class PostPage(BaseModel):
 class PostService:
     """Application use cases for community event posts."""
 
-    def __init__(self, posts: PostRepository, events: EventRepository) -> None:
+    def __init__(self, posts: PostRepository, events: EventLookup) -> None:
         self._posts = posts
         self._events = events
 

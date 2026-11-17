@@ -33,3 +33,15 @@ class PostRepository(Protocol):
         """Return posts of an event, sorted newest first (created_at desc, id desc),
         cursor-paginated before the exclusive key."""
         ...
+
+
+class EventLookup(Protocol):
+    """Whether an event exists, the only thing the posts need from the events.
+
+    Its own port keeps the posts independent of the events feature
+    (backend-hexagonal); the events repository fulfils it by structure.
+    """
+
+    async def exists(self, event_id: uuid.UUID) -> bool:
+        """Return whether an event with ``event_id`` is stored."""
+        ...
