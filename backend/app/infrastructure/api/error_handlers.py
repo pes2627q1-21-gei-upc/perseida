@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.routing import Match
 
 from app.application.chat.errors import RateLimitedError
 from app.application.shared.errors import (
@@ -146,13 +147,27 @@ async def _handle_http_exception(request: Request, exc: Exception) -> Response:
     if not isinstance(exc, StarletteHTTPException):
         raise exc
     code = _CODE_BY_HTTP_STATUS.get(exc.status_code, f"HTTP_{exc.status_code}")
+    headers = dict(exc.headers) if exc.headers else {}
+    if exc.status_code == HTTPStatus.METHOD_NOT_ALLOWED:
+        headers["Allow"] = _allowed_methods(request)
     return problem_response(
         request,
         exc.status_code,
         code,
         str(exc.detail) if exc.detail else status_phrase(exc.status_code),
-        headers=dict(exc.headers) if exc.headers else None,
+        headers=headers or None,
     )
+
+
+def _allowed_methods(request: Request) -> str:
+    # Starlette's 405 only lists the methods of the first route that matches the
+    # path; a resource with several routes (GET and POST /api/outings) needs all.
+    methods: set[str] = set()
+    for route in request.app.router.routes:
+        match, _ = route.matches(request.scope)
+        if match != Match.NONE:
+            methods |= getattr(route, "methods", None) or set()
+    return ", ".join(sorted(methods - {"HEAD"}))
 
 
 async def _handle_unexpected_error(request: Request, exc: Exception) -> Response:
