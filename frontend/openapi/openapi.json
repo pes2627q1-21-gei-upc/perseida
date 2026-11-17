@@ -521,6 +521,252 @@
         }
       }
     },
+    "/api/events/{event_id}/subscription": {
+      "put": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Subscriu-te a un esdeveniment",
+        "description": "Subscriu la usuària de la sessió a l'esdeveniment. És idempotent: si ja hi estava subscrita respon 200 i no canvia res, encara que l'esdeveniment ja hagi acabat. Una subscripció nova a un esdeveniment acabat (`ends_at` anterior a ara) es rebutja. Resposta sense cos.",
+        "operationId": "subscribe_to_event",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Subscripció creada."
+          },
+          "200": {
+            "description": "Ja hi estaves subscrita; no canvia res."
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "L'esdeveniment no existeix (`EVENT_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "L'esdeveniment ja ha acabat (`EVENT_ALREADY_ENDED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Identificador d'esdeveniment invàlid (code `VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Dona't de baixa d'un esdeveniment",
+        "description": "Esborra la subscripció de la usuària de la sessió a l'esdeveniment. És idempotent: respon 204 també si no hi estava subscrita o si l'esdeveniment no existeix.",
+        "operationId": "unsubscribe_from_event",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Ja no hi estàs subscrita."
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Identificador d'esdeveniment invàlid (code `VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/subscriptions": {
+      "get": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Esdeveniments als quals estàs subscrita",
+        "description": "Retorna els esdeveniments als quals està subscrita la usuària de la sessió, també els que ja han acabat. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.",
+        "operationId": "list_my_subscriptions",
+        "responses": {
+          "200": {
+            "description": "Els esdeveniments subscrits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List My Subscriptions"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/quiz/today": {
       "get": {
         "tags": [
