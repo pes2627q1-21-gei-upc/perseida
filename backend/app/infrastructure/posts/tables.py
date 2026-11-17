@@ -41,7 +41,7 @@ class PostRow(SQLModel, table=True):
             Uuid(),
             ForeignKey("astronomical_events.id", ondelete="CASCADE"),
             nullable=False,
-            index=True,
+            # Not indexed alone: ix_posts_event_id_created_at_id starts with it.
         )
     )
     user_id: uuid.UUID = Field(
