@@ -67,8 +67,34 @@ describe('useCurrentUser', () => {
     const { result } = await renderHook(() => useCurrentUser(), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.error?.code).toBe('INVALID_SESSION');
+    expect(result.current.error).toMatchObject({
+      code: 'INVALID_SESSION',
+      status: 401,
+      retryable: false,
+    });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('retries a transient error only once', async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(503, 'INTERNAL_ERROR'));
+
+    const { result } = await renderHook(() => useCurrentUser(), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a final error', async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(403, 'ACCOUNT_SUSPENDED'));
+
+    const { result } = await renderHook(() => useCurrentUser(), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it('returns the problem+json as an AppError', async () => {

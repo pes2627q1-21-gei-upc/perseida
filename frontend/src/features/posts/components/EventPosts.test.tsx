@@ -87,6 +87,7 @@ describe('EventPosts', () => {
     await renderPosts();
 
     expect(screen.getByLabelText('Carregant les publicacions')).toBeTruthy();
+    expect(screen.queryByText('Encara no hi ha publicacions. Comparteix la primera!')).toBeNull();
   });
 
   it('says so when the event has no posts yet', async () => {
@@ -96,6 +97,37 @@ describe('EventPosts', () => {
     expect(
       await screen.findByText('Encara no hi ha publicacions. Comparteix la primera!'),
     ).toBeTruthy();
+    expect(screen.queryByTestId('event-posts-list')).toBeNull();
+  });
+
+  it('marks as own every post of the session owner and none of the others', async () => {
+    mockApi(() =>
+      jsonResponse({
+        items: [makePost(3), makePost(2, { author: OTHER, text: 'De Bru' }), makePost(1)],
+        next_cursor: null,
+      }),
+    );
+    await renderPosts();
+
+    expect(await screen.findByText('De Bru')).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Edita' })).toHaveLength(2));
+  });
+
+  it('keeps the posts and warns when the next page fails, without the full retry', async () => {
+    mockApi(({ url }) =>
+      url.searchParams.get('cursor') === 'c1'
+        ? problemResponse(422, 'INVALID_CURSOR')
+        : jsonResponse({ items: [makePost(2)], next_cursor: 'c1' }),
+    );
+    await renderPosts();
+
+    await fireEvent.press(await screen.findByRole('button', { name: "Carrega'n més" }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "No s'han pogut carregar més publicacions. Torna-ho a provar.",
+    );
+    expect(screen.getByText('Publicació 2')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Torna-ho a provar' })).toBeNull();
   });
 
   it('lists the posts and offers edit and delete only on the own ones (criteria 2 to 4)', async () => {
@@ -111,6 +143,7 @@ describe('EventPosts', () => {
     expect(screen.getByText('Publicació 1')).toBeTruthy();
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Edita' })).toHaveLength(1));
     expect(screen.getAllByRole('button', { name: 'Esborra' })).toHaveLength(1);
+    expect(screen.queryByText('Encara no hi ha publicacions. Comparteix la primera!')).toBeNull();
   });
 
   it('shows a transient error with a retry that loads the posts again', async () => {
@@ -123,6 +156,9 @@ describe('EventPosts', () => {
     await renderPosts();
 
     expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Torna-ho a provar' }).props.accessibilityHint).toBe(
+      'Torna a carregar les publicacions',
+    );
     fail = false;
     await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
 
@@ -159,6 +195,7 @@ describe('EventPosts', () => {
       'Aquest esdeveniment ja no existeix.',
     );
     expect(screen.queryByRole('button', { name: 'Torna-ho a provar' })).toBeNull();
+    expect(screen.queryByText('Encara no hi ha publicacions. Comparteix la primera!')).toBeNull();
   });
 
   it('loads the next page with the cursor (criterion 2)', async () => {
