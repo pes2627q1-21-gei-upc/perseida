@@ -48,6 +48,14 @@ APOD_EXPECTED_STATUSES = ["2xx", "3xx", "401", "403", "404", "409", "422", "429"
 # A valid body still answers 409 (already answered or another day) or 422 (a
 # question_id that is not today's): the schema cannot express "today's question".
 QUIZ_ANSWER_EXPECTED_STATUSES = ["2xx", "401", "403", "409", "422", "5xx"]
+# A string the schema accepts can still be blank once trimmed (POST_TEXT_EMPTY) or
+# not be a cursor issued by the API (INVALID_CURSOR): both are a declared 422 (TG-628).
+POSTS_EXPECTED_STATUSES = ["2xx", "401", "403", "404", "422", "5xx"]
+POSTS_OPERATIONS = (
+    "POST /api/events/{event_id}/posts",
+    "GET /api/events/{event_id}/posts",
+    "PATCH /api/posts/{post_id}",
+)
 
 
 def _migrate() -> None:
@@ -124,6 +132,17 @@ def api_schema() -> Iterator[Any]:
                             }
                         },
                     },
+                    *(
+                        {
+                            "include-name": name,
+                            "checks": {
+                                "positive_data_acceptance": {
+                                    "expected-statuses": POSTS_EXPECTED_STATUSES
+                                }
+                            },
+                        }
+                        for name in POSTS_OPERATIONS
+                    ),
                 ],
             }
         )
