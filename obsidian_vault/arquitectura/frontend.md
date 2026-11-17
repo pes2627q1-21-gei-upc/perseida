@@ -2,9 +2,9 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-16"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026)"
+data: "2026-11-17"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-385"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -13,7 +13,7 @@ etiquetes: [arquitectura, frontend, react-native, expo, offline]
 App i panell d'administració de Perseida amb **React Native + Expo** i TypeScript. Pensada per a Android i iOS; de moment només es desplega la versió **Android** (APK).
 
 > [!warning] Estat
-> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Des de TG-119 i TG-120, la pantalla `/apod` mostra la imatge o el vídeo i els estats de càrrega i d'error amb reintent. Des de TG-43, la pantalla `/login` connecta el flux d'autenticació amb Google OAuth2 (PKCE S256 a natiu i OIDC amb nonce criptogràfic d'`expo-crypto` a web), desa els tokens segurament, mostra els errors per codi (sense Toast encara, excepció d'ADR-0018; textos en català fins a la US #93), suporta accessibilitat (`busy`/`disabled` segons WCAG 4.1.2) i implementa guards de ruta (`login.tsx` i `(app)/_layout.tsx`); el tancament de sessió amb `useLogout` i `LogoutButton`, i l'emmagatzematge de tokens (`src/features/auth`: `expo-secure-store` al mòbil i `sessionStorage` a web, `tokenStorage.web.ts`, amb memòria com a reserva) provenen de TG-45; el logotip de Google és l'asset oficial sense modificar (`assets/google`, amb el seu origen i un test de SHA-256); les accions secundàries fan servir `QuietButton` (`src/shared/ui`), no gel ni vidre; el fons `SkyBackground` és l'escena de Cel viu: cel, sol o lluna entre turons i un llac ovalat amb prat al voltant, nenúfars, joncs, flors, ones, centelleig i bombolles (`src/shared/ui/Lake.tsx`; la geometria, amb llavor fixa, a `lakeLayout.ts`); la pluja de Perseides de `/login` passa per darrere dels turons i de l'herba i és aleatòria dins de límits (mida, color, angle, velocitat, posició, ritme i quants n'hi ha alhora) i pren els colors de les variants `meteors` de cada tema; els tipus de l'API es generen ara de l'OpenAPI real del backend (`openapi/openapi.json`). Des de TG-91 hi ha i18n (català, castellà i anglès; vegeu «Internacionalització»): la pantalla `/apod` i els errors per codi estan traduïts a `frontend/locales/`; el login i el tancament de sessió (`features/auth/strings.ts`) continuen en català fins a la US #93. Encara no hi ha ajustos de tema ni escena viva completa (només l'estàtica de `SkyBackground` i la pluja de Perseides del login). Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
+> Descripció de l'estat **planificat**. El codi existent és mínim: configuració, client d'API, errors, el servei de l'APOD (TG-117) i, des de TG-118, Expo Router (`src/app`, grup `(app)` amb un inici temporal i la ruta `/apod`), els tokens de tema (`src/shared/theme`) i els components `SkyBackground`, `GlassPanel` i `GelButton` (`src/shared/ui`). Des de TG-119 i TG-120, la pantalla `/apod` mostra la imatge o el vídeo i els estats de càrrega i d'error amb reintent. Des de TG-43, la pantalla `/login` connecta el flux d'autenticació amb Google OAuth2 (PKCE S256 a natiu i OIDC amb nonce criptogràfic d'`expo-crypto` a web), desa els tokens segurament, mostra els errors per codi (sense Toast encara, excepció d'ADR-0018; textos en català fins a la US #93), suporta accessibilitat (`busy`/`disabled` segons WCAG 4.1.2) i implementa guards de ruta (`login.tsx` i `(app)/_layout.tsx`); el tancament de sessió amb `useLogout` i `LogoutButton`, i l'emmagatzematge de tokens (`src/features/auth`: `expo-secure-store` al mòbil i `sessionStorage` a web, `tokenStorage.web.ts`, amb memòria com a reserva) provenen de TG-45; el logotip de Google és l'asset oficial sense modificar (`assets/google`, amb el seu origen i un test de SHA-256); les accions secundàries fan servir `QuietButton` (`src/shared/ui`), no gel ni vidre; el fons `SkyBackground` és l'escena de Cel viu: cel, sol o lluna entre turons i un llac ovalat amb prat al voltant, nenúfars, joncs, flors, ones, centelleig i bombolles (`src/shared/ui/Lake.tsx`; la geometria, amb llavor fixa, a `lakeLayout.ts`); la pluja de Perseides de `/login` passa per darrere dels turons i de l'herba i és aleatòria dins de límits (mida, color, angle, velocitat, posició, ritme i quants n'hi ha alhora) i pren els colors de les variants `meteors` de cada tema; els tipus de l'API es generen ara de l'OpenAPI real del backend (`openapi/openapi.json`). Des de TG-91 hi ha i18n (català, castellà i anglès; vegeu «Internacionalització»): la pantalla `/apod` i els errors per codi estan traduïts a `frontend/locales/`; el login i el tancament de sessió (`features/auth/strings.ts`) continuen en català fins a la US #93. Des de TG-385, el grup `(app)` és una barra de cinc pestanyes amb pantalla de perfil (vegeu «Navegació per pestanyes i perfil»). Encara no hi ha ajustos de tema ni escena viva completa (només l'estàtica de `SkyBackground` i la pluja de Perseides del login). Sí que hi ha Jest (preset `jest-expo`) i la CI del frontend (TG-35).
 
 ## Stack
 
@@ -60,9 +60,29 @@ flowchart LR
 - `react-native-css-interop@0.2.7` (motor de NativeWind) té un patch de pnpm que treu el registre d'`ImageBackground` (obsolet a RN 0.88); es retira quan NativeWind ho corregeixi.
 - Web: `pnpm web` serveix la mateixa app amb React Native Web; NativeWind necessita `darkMode: 'class'` a `tailwind.config.js` (amb `media` la web queda en blanc).
 
+## Navegació per pestanyes i perfil (TG-385)
+
+El grup `(app)` és una barra de pestanyes (`Tabs` d'Expo Router) a `src/app/(app)/_layout.tsx`, que també fa de guard de sessió (TG-43). Cinc pestanyes, declarades a `src/features/navigation/navigationConfig.ts` (`TAB_CONFIG`: ruta, clau i18n `nav.*`, icona Phosphor):
+
+| Ruta | Pestanya | Pantalla actual |
+|---|---|---|
+| `index` | Inici | Inici temporal de TG-118 (enllaços a `/apod` i `/map`) |
+| `events` | Esdeveniments | «Pròximament», amb botó cap a `/map` |
+| `chat` | Xat | «Pròximament» |
+| `gamification` | Gamificació | «Pròximament» |
+| `profile` | Perfil | `ProfileScreen` (`src/features/profile`) |
+
+- **Rutes amagades:** `map` i `apod` són rutes del grup però no pestanyes (`HIDDEN_ROUTES`, amb `href: null`). Una ruta nova del grup que no hagi de ser pestanya s'ha d'afegir aquí; si no, Expo Router la mostra a la barra.
+- **Connectar una pantalla:** la US que implementi Esdeveniments, Xat o Gamificació només canvia el contingut del fitxer de la ruta (`src/app/(app)/<ruta>.tsx`) i hi posa la seva pantalla de `features/<mòdul>`. No toca el layout ni `navigationConfig`. Mentre no hi és, la ruta mostra `ComingSoonTab` (`src/features/navigation/components`: vidre, icona, títol, descripció i acció opcional, amb textos `comingSoon.*`).
+- **Espai per a la barra:** la barra és flotant (`position: absolute`), així que cada pantalla del grup deixa a baix `useTabBarInset()` (`src/features/navigation`): l'alçada real de la barra, que ja inclou la *safe area* inferior, o només la *safe area* fora de la barra. Mai un número fix.
+- **Barra:** vidre flotant amb `BlurView`; amb «Redueix la transparència», vidre sòlid sense blur. La icona de la pestanya activa és `fill` i la resta `regular`.
+- **Accessibilitat:** cada pestanya té `tabBarAccessibilityLabel` traduït i una alçada mínima de `touch.min` (48 dp) a `tabBarItemStyle`, perquè React Navigation compacta la barra a 32 px en apaïsat. El rol `tab` i `aria-selected` els posa la llibreria (a iOS, `button`, per un FIXME de React Navigation).
+- **Perfil:** `useUserProfile` (TanStack Query, `GET /api/users/me`, 5 minuts de `staleTime`, un reintent si l'error és transitori) i `ProfileScreen`, amb l'avatar o les inicials (decoratiu, ocult al lector de pantalla perquè el nom ve just després; només URL `https` via `safeHttpsUrl` i, si la foto no carrega, les inicials), el nom (o el correu si no n'hi ha), el correu, «Membre des de» (`created_at` de l'API, amb `Intl.DateTimeFormat` en l'idioma actiu), el rol, l'idioma, tres slots reservats (`ProfileSlot`: ratxa #57, fites #59 i seguidors #62) i `LogoutButton`. Cada slot el substituirà la US que en porti les dades.
+- **Fora d'abast:** el selector d'idioma (US #92) i el text del botó de tancar sessió, que encara és `authStrings` en català (US #93).
+
 ## Mapa d'esdeveniments (TG-52)
 
-Ruta `/(app)/map` (de moment, accés des de l'inici temporal). Codi a `src/features/events/`; llibreria i mapa base a [[0032-leaflet-per-al-mapa-web-i-webview]]; dades segons [[contracte-esdeveniments]].
+Ruta `/(app)/map` (accés des de l'inici temporal i des de la pestanya Esdeveniments, TG-385). Codi a `src/features/events/`; llibreria i mapa base a [[0032-leaflet-per-al-mapa-web-i-webview]]; dades segons [[contracte-esdeveniments]].
 
 - **Dades:** `useMapEvents` (TanStack Query) demana `GET /api/events/active` i `GET /api/events/upcoming?days=30`; `staleTime` de 5 minuts i un sol reintent si l'error és transitori. Només en línia.
 - **Classificació:** `classifyEvents` separa actius i futurs; un esdeveniment que surt a les dues llistes compta com a actiu. El filtre «Actius | Futurs | Tots» (per defecte, Tots) s'aplica al mapa i a la llista.

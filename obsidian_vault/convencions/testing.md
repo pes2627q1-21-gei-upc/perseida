@@ -2,9 +2,9 @@
 titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
-data: "2026-10-28"
-us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359"]
-font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359"
+data: "2026-11-18"
+us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-385"]
+font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
 
@@ -108,6 +108,15 @@ El mutation testing audita que els tests detectin canvis intencionats en el codi
 
 - **Backend (`mutmut`):** configurat a `backend/pyproject.toml` (`source_paths = ["app/domain"]`, `also_copy = ["app/application", "app/infrastructure", "tests/"]`, `pytest_add_cli_args = ["-o", "addopts="]` i `pytest_add_cli_args_test_selection = ["tests/unit/domain"]`). S'executa amb `uv run python scripts/run_mutmut_diff.py --base-branch <branca>`, que detecta fitxers de `app/domain` modificats respecte a la branca base (`origin/develop` per defecte, o `origin/${{ github.base_ref }}` a la CI). Calcula el mutation score amb la fórmula `(killed + timeout) / (killed + timeout + survived + no_tests + suspicious)`, on els mutants sense tests associats (`no_tests`) computen com a supervivents; si es generen mutants però no se'n prova cap, el pas falla. Si no s'ha tocat el domini, passa automàticament sense computar mutacions innecessàries.
 - **Frontend (`Stryker`):** configurat a `frontend/stryker.config.json` amb el runner `@stryker-mutator/jest-runner`, `coverageAnalysis: "perTest"` i `thresholds: { high: 80, low: 70, break: 70 }`. Per evitar col·lisions d'escaneig amb el Haste map de React Native/Jest, `frontend/jest.config.js` ignora `.stryker-tmp`. S'executa amb `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs --base-branch <branca>`), que filtra els fitxers de lògica a `frontend/src/` excloent fitxers de test (`.test.`, `.spec.`), tipus (`.d.ts`), fitxers de barril (`index.ts`) i components visuals purs (`src/shared/ui/`). Si el score cau per sota del 70 %, el procés falla per `break: 70`. Si no s'ha modificat lògica, el pas finalitza amb èxit immediatament.
+
+#### Estils visuals als components del frontend (TG-385)
+
+Els components de `features/*/components` i les rutes sí que es muten, perquè hi ha lògica (condicions, textos i claus i18n, rols d'accessibilitat). Els seus **estils** no: canviar un padding, un color o un radi no és un comportament que un test unitari hagi de fixar, i aquests mutants (sobretot `ObjectLiteral`, `StringLiteral` i `ArrayDeclaration`) fan baixar el score sense dir res dels tests.
+
+- Els estils d'un component van en una funció `createStyles(theme)` al final del fitxer, amb tokens del tema, entre `// Stryker disable all` i `// Stryker restore all` i un comentari que n'explica el motiu. El JSX només fa referència a `styles.x`, de manera que la lògica del JSX es continua mutant.
+- Un valor visual que ha de quedar al JSX (pes d'una icona, mida d'un `ActivityIndicator`, un padding calculat amb les *safe areas*) porta `// Stryker disable next-line <Mutador>: <motiu>` just a la línia anterior a la propietat.
+- Mai s'exclou lògica: condicions, textos, claus i18n, `accessibilityRole`, `testID` ni valors que un test pot observar (per exemple, l'espai que es reserva per a la barra de pestanyes, que té test).
+- Exemples: `features/profile/components/ProfileScreen.tsx`, `features/navigation/components/ComingSoonTab.tsx` i el marc de la barra a `src/app/(app)/_layout.tsx`.
 
 > [!note] Execució de mutmut en local amb Docker
 > `mutmut` requereix Docker a Windows natiu (o entorns sense Unix natiu) per l'aïllament de processos de Python. Per executar-lo en local des de `backend/`, amb accés al `.git` del repo i venv propi del contenidor:
