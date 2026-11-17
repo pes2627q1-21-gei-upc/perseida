@@ -366,7 +366,7 @@ Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 600 peticion
 
 - `docker compose up` no recrea el proxy si solo cambia el contenido de `http_top.conf`, así que el CD valida y recarga nginx tras cada despliegue (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (requiere Docker; lo ejecuta el job `proxy` de la CI).
-- El límite cuenta la IP que nginx ve como `$remote_addr`. Tras un despliegue, comprueba en el registro de accesos de NPM que es la IP pública del cliente y no una privada del NAT o de Docker: si no, todos los clientes compartirían un solo contador.
+- El límite cuenta la dirección de la conexión TCP (`$realip_remote_addr`), no la de `$remote_addr`: NPM se fía de la cabecera `X-Real-IP` cuando la petición llega de una red privada, y en producción llegan todas así (NAT de la UPC), de modo que un cliente podría elegirse la clave. El test lo comprueba con una `X-Real-IP` falsa en cada petición (TG-643).
 
 ### Volúmenes
 

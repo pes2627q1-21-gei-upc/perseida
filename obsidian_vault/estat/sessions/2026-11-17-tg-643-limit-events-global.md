@@ -22,6 +22,7 @@ Activar a producció el límit de peticions de `/api/events/` (TG-351, tasca #47
 - **Branca `feature/TG-643-limit-events-global`:**
   - `test-rate-limit.sh` exigeix una ràfega de 100 a 10 r/s (commit `test:` en vermell). La fase del 429 envia les peticions en paral·lel amb `curl -Z`: a 10 r/s, unes peticions seguides i lentes (Docker Desktop) no passaven mai del límit.
   - `http_top.conf` passa a `rate=10r/s` i `rate-limit.conf` a `burst=100`.
+  - La clau de la zona passa de `$binary_remote_addr` a `$realip_remote_addr`. NPM es fia d'`X-Real-IP` des de xarxes privades i, darrere del NAT, tot ho és: amb la clau antiga, una `X-Real-IP` falsa a cada petició se saltava el límit. El test reprodueix la configuració *real IP* d'NPM i ho comprova (en vermell amb la clau antiga).
   - Descripció del 429 a l'OpenAPI (`router.py`, `openapi.json`, `schema.d.ts`), README d'`infra/` en tres idiomes, [[nginx-proxy-manager]] i [[contracte-spotwise]].
 
 ## Decisions
@@ -30,12 +31,13 @@ Cap ADR nova. Decisions de Raquel:
 
 - Pujar el límit a 600 per minut amb ràfega de 100 en lloc de demanar a Virtech que conservi la IP d'origen.
 - Issue nova a Taiga (TG-643) en lloc de reobrir TG-351.
+- Clau del límit `$realip_remote_addr`: no es pot falsejar, i el comptador ja era compartit.
 
 ## Pendent / següents passos
 
 - [ ] PR de `feature/TG-643-limit-events-global` cap a `develop` quan Raquel ho demani.
 - [ ] Després del desplegament: tornar a enganxar `rate-limit.conf` a «Advanced» (canvia la ràfega). La zona nova arriba amb el CD.
-- [ ] Decidir si la clau del límit passa a `$realip_remote_addr`: ara un client que enviï `X-Real-IP` pot canviar la clau i saltar-se el límit.
+- [ ] Confirmar a producció que la configuració *real IP* d'NPM és la que reprodueix el test: `nginx -T | grep real_ip`.
 - [ ] Afegir el job `proxy` als *required checks* de `develop`.
 
 ## US de Taiga

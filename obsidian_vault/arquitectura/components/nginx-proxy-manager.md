@@ -43,7 +43,7 @@ Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api
 > A producció el NAT de la UPC (`nattech.fib.upc.edu`) fa SNAT: totes les peticions arriben a NPM amb la mateixa IP privada (`10.x`), comprovat al registre d'accessos el 17/11/2026. El límit és, per tant, un sol comptador per a tota l'app i per a Spotwise. Amb el límit inicial (60 per minut, ràfega de 20) unes 10 persones obrint el mapa alhora (2 peticions cadascuna) ja rebien 429; per això es va pujar a 600 per minut amb ràfega de 100 (decisió de Raquel, 17/11/2026). Si el NAT arribés a conservar la IP d'origen, es podria tornar a un límit per IP més estricte.
 
 > [!warning] IP real del client
-> NPM confia en `X-Real-IP` quan la petició arriba de `10/8`, `172.16/12` o `192.168/16`. El NAT de la UPC sí que reescriu l'origen a una IP privada (vegeu el requadre anterior), així que un client que enviï `X-Real-IP` pot canviar la clau del límit i saltar-se'l. Pendent de decidir (TG-643): usar `$realip_remote_addr` com a clau, que no es pot falsejar però continua sent un sol comptador.
+> NPM confia en `X-Real-IP` quan la petició arriba de `10/8`, `172.16/12` o `192.168/16`. El NAT de la UPC reescriu l'origen a una IP privada (vegeu el requadre anterior), així que amb `$remote_addr` com a clau un client podria enviar una `X-Real-IP` diferent a cada petició i saltar-se el límit. Per això la clau és `$realip_remote_addr`, l'adreça de la connexió, que no es pot falsejar (decisió de Raquel, 17/11/2026, TG-643). `test-rate-limit.sh` reprodueix la confiança d'NPM en `X-Real-IP` i ho comprova.
 
 ## Configuració
 
