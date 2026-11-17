@@ -6,6 +6,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from app.domain.achievements.models import (
     Achievement,
+    AchievementCategory,
     AchievementKind,
     UserAchievement,
 )
@@ -22,6 +23,8 @@ def _achievement(**overrides: object) -> Achievement:
         "description": "Mantén una ratxa de 7 dies.",
         "kind": AchievementKind.STREAK_DAYS,
         "threshold": 7,
+        "category": AchievementCategory.STREAKS,
+        "position": 1,
     }
     data.update(overrides)
     return Achievement(**data)  # type: ignore[arg-type]
@@ -33,6 +36,50 @@ def test_achievement_kind_values_are_stable() -> None:
         "quiz_completed",
         "event_subscription",
     }
+
+
+# TG-58: categories del catàleg
+def test_achievement_category_values_are_stable() -> None:
+    assert {c.value for c in AchievementCategory} == {
+        "streaks",
+        "quiz",
+        "events",
+        "social",
+        "minigame",
+    }
+
+
+# TG-58: categoria i ordre dins la categoria
+def test_achievement_keeps_category_and_position() -> None:
+    achievement = _achievement(category=AchievementCategory.QUIZ, position=3)
+
+    assert achievement.category is AchievementCategory.QUIZ
+    assert achievement.position == 3
+
+
+def test_achievement_category_may_differ_from_kind_family() -> None:
+    achievement = _achievement(
+        kind=AchievementKind.QUIZ_COMPLETED, category=AchievementCategory.SOCIAL
+    )
+
+    assert achievement.category is AchievementCategory.SOCIAL
+
+
+@pytest.mark.parametrize("position", [0, -1, -10])
+def test_achievement_with_position_below_one_is_rejected(position: int) -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        _achievement(position=position)
+
+    assert exc_info.value.code == "ACHIEVEMENT_POSITION_INVALID"
+
+
+def test_achievement_with_position_one_is_valid() -> None:
+    assert _achievement(position=1).position == 1
+
+
+def test_achievement_with_unknown_category_is_rejected() -> None:
+    with pytest.raises(PydanticValidationError):
+        _achievement(category="astronomy")
 
 
 # TG-58 criteri 1: fita amb codi estable i llindar
