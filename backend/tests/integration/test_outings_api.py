@@ -30,12 +30,14 @@ from alembic import command
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.auth.errors import INVALID_SESSION
 from app.domain.outings.errors import (
+    OUTING_DESCRIPTION_TOO_LONG,
     OUTING_ENDS_BEFORE_START,
     OUTING_EVENT_NOT_FOUND,
     OUTING_FORBIDDEN,
     OUTING_NOT_FOUND,
     OUTING_STARTS_IN_PAST,
     OUTING_TITLE_EMPTY,
+    OUTING_TITLE_TOO_LONG,
 )
 from app.infrastructure.auth.google_verifier import (
     GOOGLE_CERTS_URL,
@@ -287,6 +289,9 @@ async def test_create_without_description_nor_event(client: AsyncClient) -> None
             OUTING_STARTS_IN_PAST,
         ),
         ({"event_id": str(uuid.uuid7())}, OUTING_EVENT_NOT_FOUND),
+        # Decisió de Raquel (17/11/2026): la longitud la mira el domini, amb el codi
+        ({"title": "a" * 121}, OUTING_TITLE_TOO_LONG),
+        ({"description": "a" * 2001}, OUTING_DESCRIPTION_TOO_LONG),
     ],
 )
 async def test_create_with_invalid_data_is_422(
@@ -303,8 +308,6 @@ async def test_create_with_invalid_data_is_422(
 @pytest.mark.parametrize(
     "overrides",
     [
-        {"title": "a" * 121},
-        {"description": "a" * 2001},
         {"location": {"latitude": 91, "longitude": 0}},
         {"location": {"latitude": 0, "longitude": -181}},
         {"location": None},
@@ -321,6 +324,18 @@ async def test_create_with_a_malformed_body_is_422(
 
     assert response.status_code == 422
     assert response.headers["content-type"].startswith(PROBLEM_JSON)
+
+
+async def test_the_length_is_measured_after_cleaning(client: AsyncClient) -> None:
+    # 120 caràcters útils amb blancs als extrems: el domini els treu abans de mesurar
+    headers = await login_headers(client)
+
+    response = await client.post(
+        OUTINGS, json=body(title=f"   {'a' * 120}   "), headers=headers
+    )
+
+    assert response.status_code == 201
+    assert response.json()["title"] == "a" * 120
 
 
 # --- list and get ---------------------------------------------------------------
