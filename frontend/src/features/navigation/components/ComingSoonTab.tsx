@@ -3,14 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  breakpoints,
-  fontFamilies,
-  iconSizes,
-  radii,
-  spacing,
-  useTheme,
-} from '../../../shared/theme';
+import { breakpoints, fontFamilies, type Theme, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
 import { useTabBarInset } from '../useTabBarInset';
 
@@ -34,6 +27,7 @@ export function ComingSoonTab({
 }: ComingSoonTabProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset();
 
@@ -46,68 +40,36 @@ export function ComingSoonTab({
         style={[
           styles.container,
           {
+            // Stryker disable next-line ArithmeticOperator: visual spacing under the status bar.
             paddingTop: insets.top + theme.spacing.lg,
             paddingBottom: tabBarInset + theme.spacing.lg,
-            paddingHorizontal: theme.spacing.md,
           },
         ]}
       >
-        <View style={styles.cardContainer}>
+        <View style={styles.card}>
           <GlassPanel>
-            <View style={[styles.content, { gap: theme.spacing.md }]}>
-              <View
-                style={[
-                  styles.iconOrb,
-                  {
-                    borderColor: theme.colors.surface.glassBorder,
-                    backgroundColor: theme.colors.surface.glassSolid,
-                  },
-                ]}
-              >
-                <IconComponent size={theme.iconSizes.lg} color={theme.colors.brand} weight="fill" />
+            <View style={styles.content}>
+              <View style={styles.iconOrb}>
+                <IconComponent
+                  size={theme.iconSizes.lg}
+                  color={theme.colors.brand}
+                  // Stryker disable next-line StringLiteral: icon weight, visual only.
+                  weight="fill"
+                />
               </View>
 
-              <View
-                style={[
-                  styles.badge,
-                  {
-                    borderColor: theme.colors.surface.glassBorder,
-                    backgroundColor: theme.colors.surface.glass,
-                    borderRadius: theme.radii.pill,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    theme.typography.caption,
-                    { fontFamily: fontFamilies.sansSemiBold, color: theme.colors.brand },
-                  ]}
-                >
-                  {badgeText}
-                </Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badgeText}</Text>
               </View>
 
-              <Text
-                accessibilityRole="header"
-                style={[
-                  theme.typography.title,
-                  { color: theme.colors.text.primary, textAlign: 'center' },
-                ]}
-              >
+              <Text accessibilityRole="header" style={styles.title}>
                 {title}
               </Text>
 
-              <Text
-                style={[
-                  theme.typography.body,
-                  { color: theme.colors.text.secondary, textAlign: 'center' },
-                ]}
-              >
-                {description}
-              </Text>
+              <Text style={styles.description}>{description}</Text>
 
               {action && (
-                <View style={[styles.actionWrapper, { marginTop: theme.spacing.sm }]}>
+                <View style={styles.action}>
                   <GelButton label={action.label} onPress={action.onPress} />
                 </View>
               )}
@@ -119,37 +81,52 @@ export function ComingSoonTab({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardContainer: {
-    width: '100%',
-    maxWidth: breakpoints.phone,
-  },
-  content: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-  },
-  iconOrb: {
-    width: iconSizes.lg * 2,
-    height: iconSizes.lg * 2,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  badge: {
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  actionWrapper: {
-    width: '100%',
-  },
-});
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on
+// purpose: a changed padding or colour is not behaviour a unit test should pin down
+// (convencions/testing.md, «Mutation testing»). Behaviour stays in the JSX above.
+// Stryker disable all
+function createStyles({ colors, radii, spacing, typography, iconSizes }: Theme) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    card: { width: '100%', maxWidth: breakpoints.phone },
+    content: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.md,
+      padding: spacing.sm,
+    },
+    iconOrb: {
+      width: iconSizes.lg * 2,
+      height: iconSizes.lg * 2,
+      borderRadius: radii.pill,
+      borderWidth: 1,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: colors.surface.glassSolid,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    badge: {
+      borderWidth: 1,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: colors.surface.glass,
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+    },
+    badgeText: {
+      ...typography.caption,
+      fontFamily: fontFamilies.sansSemiBold,
+      color: colors.brand,
+    },
+    title: { ...typography.title, color: colors.text.primary, textAlign: 'center' },
+    description: { ...typography.body, color: colors.text.secondary, textAlign: 'center' },
+    action: { width: '100%', marginTop: spacing.sm },
+  });
+}
+// Stryker restore all

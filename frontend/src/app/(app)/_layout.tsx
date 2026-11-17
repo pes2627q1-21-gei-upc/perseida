@@ -13,6 +13,12 @@ import { useReduceTransparency } from '../../shared/ui';
 /** Periodically renew tokens before the 15-minute access token expires (TG-43 #233). */
 export const SESSION_REFRESH_INTERVAL_MS = 14 * 60 * 1000;
 
+// Floating glass bar over the scene: purely visual, left out of mutation testing on purpose
+// (convencions/testing.md, «Mutation testing»). Screens keep clear of it with useTabBarInset.
+// Stryker disable all
+const TAB_BAR_FRAME = { position: 'absolute', borderTopWidth: 1, elevation: 0 } as const;
+// Stryker restore all
+
 /**
  * Mobile app group (ADR-0020).
  * Route guard & session restoration (TG-43 #233):
@@ -101,13 +107,11 @@ export default function AppLayout() {
         tabBarActiveTintColor: theme.colors.brand,
         tabBarInactiveTintColor: theme.colors.text.secondary,
         tabBarStyle: {
-          position: 'absolute',
+          ...TAB_BAR_FRAME,
           backgroundColor: reduceTransparency
             ? theme.colors.surface.glassSolid
             : theme.colors.surface.glass,
           borderTopColor: theme.colors.surface.glassBorder,
-          borderTopWidth: 1,
-          elevation: 0,
         },
         tabBarBackground: () =>
           !reduceTransparency ? (

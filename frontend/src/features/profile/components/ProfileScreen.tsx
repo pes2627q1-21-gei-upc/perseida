@@ -7,15 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppError, errorMessage } from '../../../shared/errors';
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
-import {
-  breakpoints,
-  fontFamilies,
-  iconSizes,
-  radii,
-  spacing,
-  touch,
-  useTheme,
-} from '../../../shared/theme';
+import { breakpoints, fontFamilies, type Theme, touch, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
 import { LogoutButton } from '../../auth/components/LogoutButton';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
@@ -24,6 +16,7 @@ import { useUserProfile } from '../hooks/useUserProfile';
 export function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset();
   const { data, isLoading, isError, error, refetch } = useUserProfile();
@@ -56,66 +49,39 @@ export function ProfileScreen() {
       <ScrollView
         testID="profile-scroll"
         contentContainerStyle={[
-          styles.scrollContainer,
+          styles.scroll,
           {
+            // Stryker disable next-line ArithmeticOperator: visual spacing under the status bar.
             paddingTop: insets.top + theme.spacing.lg,
             paddingBottom: tabBarInset + theme.spacing.lg,
-            paddingHorizontal: theme.spacing.md,
           },
         ]}
+        // Stryker disable next-line BooleanLiteral: visual only.
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          <Text
-            accessibilityRole="header"
-            style={[
-              theme.typography.headline,
-              {
-                color: theme.colors.text.primary,
-                alignSelf: 'center',
-                marginBottom: theme.spacing.xs,
-              },
-            ]}
-          >
+          <Text accessibilityRole="header" style={styles.screenTitle}>
             {t('profile.title')}
           </Text>
 
           {isLoading && (
             <GlassPanel>
-              <View
-                style={[
-                  styles.center,
-                  { gap: theme.spacing.sm, paddingVertical: theme.spacing.xl },
-                ]}
-              >
+              <View style={styles.loading}>
                 <ActivityIndicator
                   accessibilityRole="progressbar"
+                  // Stryker disable next-line StringLiteral: spinner size, visual only.
                   size="large"
                   color={theme.colors.brand}
                 />
-                <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
-                  {t('profile.loading')}
-                </Text>
+                <Text style={styles.secondaryText}>{t('profile.loading')}</Text>
               </View>
             </GlassPanel>
           )}
 
           {isError && (
             <GlassPanel>
-              <View
-                style={[
-                  styles.center,
-                  { gap: theme.spacing.md, paddingVertical: theme.spacing.md },
-                ]}
-              >
-                <Text
-                  style={[
-                    theme.typography.body,
-                    { color: theme.colors.text.primary, textAlign: 'center' },
-                  ]}
-                >
-                  {errorText}
-                </Text>
+              <View style={styles.error}>
+                <Text style={styles.errorText}>{errorText}</Text>
                 <GelButton
                   label={t('profile.retry')}
                   accessibilityHint={t('profile.retryHint')}
@@ -127,21 +93,14 @@ export function ProfileScreen() {
 
           {data && (
             <>
-              {/* User Identity Card */}
               <GlassPanel>
-                <View style={[styles.profileCard, { gap: theme.spacing.sm }]}>
+                <View style={styles.identity}>
                   <View
                     testID="profile-avatar"
                     // Decorative: the name below already identifies the user (WCAG 1.1.1).
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
-                    style={[
-                      styles.avatarWrapper,
-                      {
-                        borderColor: theme.colors.surface.glassBorder,
-                        backgroundColor: theme.colors.surface.glassSolid,
-                      },
-                    ]}
+                    style={styles.avatar}
                   >
                     {photo ? (
                       <Image
@@ -151,40 +110,18 @@ export function ProfileScreen() {
                         style={styles.avatarImage}
                       />
                     ) : (
-                      <Text style={[theme.typography.title, { color: theme.colors.brand }]}>
-                        {initials}
-                      </Text>
+                      <Text style={styles.initials}>{initials}</Text>
                     )}
                   </View>
 
-                  <Text
-                    accessibilityRole="header"
-                    style={[
-                      theme.typography.title,
-                      { color: theme.colors.text.primary, textAlign: 'center' },
-                    ]}
-                  >
+                  <Text accessibilityRole="header" style={styles.name}>
                     {/* Without a profile name, the email names the account (once). */}
                     {data.display_name ?? data.email}
                   </Text>
 
-                  {data.display_name ? (
-                    <Text
-                      style={[
-                        theme.typography.body,
-                        { color: theme.colors.text.secondary, textAlign: 'center' },
-                      ]}
-                    >
-                      {data.email}
-                    </Text>
-                  ) : null}
+                  {data.display_name ? <Text style={styles.email}>{data.email}</Text> : null}
 
-                  <Text
-                    style={[
-                      theme.typography.caption,
-                      { color: theme.colors.text.secondary, textAlign: 'center' },
-                    ]}
-                  >
+                  <Text style={styles.memberSince}>
                     {t('profile.memberSince', {
                       date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(
                         new Date(data.created_at),
@@ -192,55 +129,22 @@ export function ProfileScreen() {
                     })}
                   </Text>
 
-                  <View
-                    style={[
-                      styles.chipsRow,
-                      { gap: theme.spacing.sm, marginTop: theme.spacing.xs },
-                    ]}
-                  >
+                  <View style={styles.chips}>
                     {roleText ? (
-                      <View
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: theme.colors.surface.glass,
-                            borderColor: theme.colors.surface.glassBorder,
-                            borderRadius: theme.radii.pill,
-                          },
-                        ]}
-                      >
+                      <View style={styles.chip}>
                         <User
                           size={theme.typography.caption.lineHeight}
                           color={theme.colors.brand}
+                          // Stryker disable next-line StringLiteral: icon weight, visual only.
                           weight="bold"
                         />
-                        <Text
-                          style={[
-                            theme.typography.caption,
-                            { fontFamily: fontFamilies.sansSemiBold, color: theme.colors.brand },
-                          ]}
-                        >
-                          {roleText}
-                        </Text>
+                        <Text style={styles.roleText}>{roleText}</Text>
                       </View>
                     ) : null}
 
                     {languageText ? (
-                      <View
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: theme.colors.surface.glass,
-                            borderColor: theme.colors.surface.glassBorder,
-                            borderRadius: theme.radii.pill,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[theme.typography.caption, { color: theme.colors.text.secondary }]}
-                        >
-                          {languageText}
-                        </Text>
+                      <View style={styles.chip}>
+                        <Text style={styles.secondaryCaption}>{languageText}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -252,8 +156,7 @@ export function ProfileScreen() {
                 <ProfileSlot key={slot.key} i18nKey={slot.key} icon={slot.icon} />
               ))}
 
-              {/* Logout Action */}
-              <View style={styles.logoutWrapper}>
+              <View style={styles.logout}>
                 <LogoutButton />
               </View>
             </>
@@ -280,117 +183,109 @@ function ProfileSlot({
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const styles = createStyles(theme);
 
   return (
     <GlassPanel>
-      <View style={[styles.slotCard, { gap: theme.spacing.xs }]}>
+      <View style={styles.slot}>
         <View style={styles.slotHeader}>
-          <View style={[styles.slotIconOrb, { backgroundColor: theme.colors.surface.glassSolid }]}>
-            <IconComponent size={theme.iconSizes.sm} color={theme.colors.brand} weight="fill" />
+          <View style={styles.slotIcon}>
+            <IconComponent
+              size={theme.iconSizes.sm}
+              color={theme.colors.brand}
+              // Stryker disable next-line StringLiteral: icon weight, visual only.
+              weight="fill"
+            />
           </View>
-          <Text
-            accessibilityRole="header"
-            style={[theme.typography.bodyStrong, { color: theme.colors.text.primary, flex: 1 }]}
-          >
+          <Text accessibilityRole="header" style={styles.slotTitle}>
             {t(`profile.${i18nKey}.title`)}
           </Text>
-          <View
-            style={[
-              styles.badge,
-              {
-                borderColor: theme.colors.surface.glassBorder,
-                backgroundColor: theme.colors.surface.glass,
-                borderRadius: theme.radii.pill,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                theme.typography.caption,
-                { fontFamily: fontFamilies.sansSemiBold, color: theme.colors.brand },
-              ]}
-            >
-              {t('comingSoon.badge')}
-            </Text>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{t('comingSoon.badge')}</Text>
           </View>
         </View>
-        <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
-          {t(`profile.${i18nKey}.desc`)}
-        </Text>
+        <Text style={styles.secondaryText}>{t(`profile.${i18nKey}.desc`)}</Text>
       </View>
     </GlassPanel>
   );
 }
 
-const styles = StyleSheet.create({
-  scrollContainer: {
-    alignItems: 'center',
-  },
-  container: {
-    width: '100%',
-    maxWidth: breakpoints.phone,
-    gap: spacing.md,
-  },
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-  },
-  avatarWrapper: {
-    width: touch.min * 1.5,
-    height: touch.min * 1.5,
-    borderRadius: radii.pill,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    marginBottom: spacing.xs,
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on
+// purpose: a changed padding or colour is not behaviour a unit test should pin down
+// (convencions/testing.md, «Mutation testing»). Behaviour stays in the JSX above.
+// Stryker disable all
+function createStyles({ colors, radii, spacing, typography, iconSizes }: Theme) {
+  const glassChip = {
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  slotCard: {
-    paddingVertical: spacing.xs,
-  },
-  slotHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  slotIconOrb: {
-    width: iconSizes.sm * 2,
-    height: iconSizes.sm * 2,
+    borderColor: colors.surface.glassBorder,
+    backgroundColor: colors.surface.glass,
     borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badge: {
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  logoutWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-  },
-});
+  };
+  const centered = { alignItems: 'center', justifyContent: 'center' } as const;
+
+  return StyleSheet.create({
+    scroll: { alignItems: 'center', paddingHorizontal: spacing.md },
+    container: { width: '100%', maxWidth: breakpoints.phone, gap: spacing.md },
+    screenTitle: {
+      ...typography.headline,
+      color: colors.text.primary,
+      alignSelf: 'center',
+      marginBottom: spacing.xs,
+    },
+    loading: { ...centered, gap: spacing.sm, paddingVertical: spacing.xl },
+    error: { ...centered, gap: spacing.md, paddingVertical: spacing.md },
+    errorText: { ...typography.body, color: colors.text.primary, textAlign: 'center' },
+    identity: { ...centered, gap: spacing.sm, paddingVertical: spacing.sm },
+    avatar: {
+      ...centered,
+      width: touch.min * 1.5,
+      height: touch.min * 1.5,
+      borderRadius: radii.pill,
+      borderWidth: 2,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: colors.surface.glassSolid,
+      overflow: 'hidden',
+      marginBottom: spacing.xs,
+    },
+    avatarImage: { width: '100%', height: '100%' },
+    initials: { ...typography.title, color: colors.brand },
+    name: { ...typography.title, color: colors.text.primary, textAlign: 'center' },
+    email: { ...typography.body, color: colors.text.secondary, textAlign: 'center' },
+    memberSince: { ...typography.caption, color: colors.text.secondary, textAlign: 'center' },
+    chips: { ...centered, flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+    chip: {
+      ...glassChip,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+    },
+    roleText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold, color: colors.brand },
+    secondaryCaption: { ...typography.caption, color: colors.text.secondary },
+    secondaryText: { ...typography.body, color: colors.text.secondary },
+    slot: { gap: spacing.xs, paddingVertical: spacing.xs },
+    slotHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    slotIcon: {
+      ...centered,
+      width: iconSizes.sm * 2,
+      height: iconSizes.sm * 2,
+      borderRadius: radii.pill,
+      backgroundColor: colors.surface.glassSolid,
+    },
+    slotTitle: { ...typography.bodyStrong, color: colors.text.primary, flex: 1 },
+    badge: { ...glassChip, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+    badgeText: {
+      ...typography.caption,
+      fontFamily: fontFamilies.sansSemiBold,
+      color: colors.brand,
+    },
+    logout: { ...centered, marginTop: spacing.sm },
+  });
+}
+// Stryker restore all
