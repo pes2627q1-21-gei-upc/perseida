@@ -7,7 +7,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppError, errorMessage } from '../../../shared/errors';
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
-import { useTheme } from '../../../shared/theme';
+import {
+  breakpoints,
+  fontFamilies,
+  iconSizes,
+  radii,
+  spacing,
+  touch,
+  useTheme,
+} from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
 import { LogoutButton } from '../../auth/components/LogoutButton';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
@@ -204,11 +212,15 @@ export function ProfileScreen() {
                           },
                         ]}
                       >
-                        <User size={14} color={theme.colors.brand} weight="bold" />
+                        <User
+                          size={theme.typography.caption.lineHeight}
+                          color={theme.colors.brand}
+                          weight="bold"
+                        />
                         <Text
                           style={[
                             theme.typography.caption,
-                            { color: theme.colors.brand, fontWeight: '600' },
+                            { fontFamily: fontFamilies.sansSemiBold, color: theme.colors.brand },
                           ]}
                         >
                           {roleText}
@@ -296,7 +308,10 @@ function ProfileSlot({
             ]}
           >
             <Text
-              style={[theme.typography.caption, { color: theme.colors.brand, fontWeight: '600' }]}
+              style={[
+                theme.typography.caption,
+                { fontFamily: fontFamilies.sansSemiBold, color: theme.colors.brand },
+              ]}
             >
               {t('comingSoon.badge')}
             </Text>
@@ -316,8 +331,8 @@ const styles = StyleSheet.create({
   },
   container: {
     width: '100%',
-    maxWidth: 440,
-    gap: 16,
+    maxWidth: breakpoints.phone,
+    gap: spacing.md,
   },
   center: {
     alignItems: 'center',
@@ -326,17 +341,17 @@ const styles = StyleSheet.create({
   profileCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.sm,
   },
   avatarWrapper: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: touch.min * 1.5,
+    height: touch.min * 1.5,
+    borderRadius: radii.pill,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   avatarImage: {
     width: '100%',
@@ -350,36 +365,35 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   slotCard: {
-    paddingVertical: 4,
-    paddingHorizontal: 2,
+    paddingVertical: spacing.xs,
   },
   slotHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   slotIconOrb: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: iconSizes.sm * 2,
+    height: iconSizes.sm * 2,
+    borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badge: {
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   logoutWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
 });

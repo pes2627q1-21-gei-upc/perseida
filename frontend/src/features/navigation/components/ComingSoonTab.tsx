@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '../../../shared/theme';
+import {
+  breakpoints,
+  fontFamilies,
+  iconSizes,
+  radii,
+  spacing,
+  useTheme,
+} from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
 import { useTabBarInset } from '../useTabBarInset';
 
@@ -73,12 +80,7 @@ export function ComingSoonTab({
                 <Text
                   style={[
                     theme.typography.caption,
-                    {
-                      color: theme.colors.brand,
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.8,
-                    },
+                    { fontFamily: fontFamilies.sansSemiBold, color: theme.colors.brand },
                   ]}
                 >
                   {badgeText}
@@ -125,27 +127,27 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: breakpoints.phone,
   },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   iconOrb: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1.5,
+    width: iconSizes.lg * 2,
+    height: iconSizes.lg * 2,
+    borderRadius: radii.pill,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   badge: {
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   actionWrapper: {
     width: '100%',
