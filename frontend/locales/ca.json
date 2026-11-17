@@ -115,7 +115,8 @@
       "editHint": "Edita el text de la teva publicació",
       "delete": "Esborra",
       "deleteHint": "Demana confirmació abans d'esborrar la publicació",
-      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer."
+      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
+      "anonymous": "Usuari/a #{{tag}}"
     }
   }
 }

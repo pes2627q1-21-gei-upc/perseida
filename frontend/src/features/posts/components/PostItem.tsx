@@ -19,6 +19,9 @@ interface Props {
 
 type Mode = 'view' | 'edit' | 'confirmDelete';
 
+/** Characters of the author id that tell apart two authors without a profile name. */
+const TAG_LENGTH = 6;
+
 /**
  * One post of an event: author, date and text. The text is always plain text, never markup
  * nor a link (ADR-0024). Own posts are edited in place and deleted after a confirmation in
@@ -32,7 +35,10 @@ export function PostItem({ eventId, post, own }: Props) {
   const remove = useDeletePost(eventId);
 
   const meta = [
-    post.author.name,
+    // Without a profile name: a generic name plus the end of the id (random in a UUIDv7),
+    // never the email, which is personal data.
+    post.author.name ??
+      t('posts.item.anonymous', { tag: post.author.id.replaceAll('-', '').slice(-TAG_LENGTH) }),
     formatEventDateTime(post.created_at, i18n.language),
     post.edited_at ? t('posts.item.edited') : null,
   ];

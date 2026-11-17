@@ -115,7 +115,8 @@
       "editHint": "Edita el texto de tu publicación",
       "delete": "Borrar",
       "deleteHint": "Pide confirmación antes de borrar la publicación",
-      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer."
+      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer.",
+      "anonymous": "Usuario/a #{{tag}}"
     }
   }
 }

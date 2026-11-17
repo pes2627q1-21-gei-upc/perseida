@@ -527,9 +527,9 @@ export interface components {
       id: string;
       /**
        * Name
-       * @description Nom visible de l'autora
+       * @description Nom del perfil de l'autora; `null` si no en té. Mai és el correu: l'app hi posa un nom genèric.
        */
-      name: string;
+      name: string | null;
     };
     /** PostPageResponse */
     PostPageResponse: {

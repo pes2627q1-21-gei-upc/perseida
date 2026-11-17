@@ -115,7 +115,8 @@
       "editHint": "Edits the text of your post",
       "delete": "Delete",
       "deleteHint": "Asks for confirmation before deleting the post",
-      "confirmDelete": "Delete this post? This cannot be undone."
+      "confirmDelete": "Delete this post? This cannot be undone.",
+      "anonymous": "User #{{tag}}"
     }
   }
 }
