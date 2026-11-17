@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { EVENT_ID, makePost } from '../../../../__mocks__/posts';
@@ -128,6 +128,27 @@ describe('EventPosts', () => {
 
     expect(await screen.findByText('Publicació 1')).toBeTruthy();
     expect(calls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('keeps the posts it had and warns when they cannot be refreshed', async () => {
+    let fail = false;
+    mockApi(() =>
+      fail
+        ? problemResponse(503, 'INTERNAL_ERROR')
+        : jsonResponse({ items: [makePost(1)], next_cursor: null }),
+    );
+    await renderPosts();
+    expect(await screen.findByText('Publicació 1')).toBeTruthy();
+
+    // The API goes down and the list is fetched again (e.g. the sheet is opened again).
+    fail = true;
+    await act(async () => {
+      await client.refetchQueries();
+    });
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByText('Publicació 1')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Torna-ho a provar' })).toBeTruthy();
   });
 
   it('shows a final error with its message and no retry', async () => {
