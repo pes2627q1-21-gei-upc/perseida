@@ -1183,7 +1183,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;
@@ -1233,7 +1233,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;

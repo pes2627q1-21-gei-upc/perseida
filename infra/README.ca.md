@@ -302,7 +302,7 @@ Un sol *proxy host* ho serveix tot des del mateix origen:
 |---|---|
 | `/api/...` | `api:8000` (API REST; comprovació de salut a `/api/health`) |
 | `/api/ws` | `api:8000` amb l'upgrade de WebSocket (xat, TG-63) |
-| `/api/events/` | `api:8000` amb un límit de peticions per IP (endpoints públics per a Spotwise, TG-351) |
+| `/api/events/` | `api:8000` amb un límit de peticions compartit (endpoints públics per a Spotwise, TG-351, TG-643) |
 | `/media/` | El mateix NPM, des del volum `media_data` (multimèdia dels usuaris) |
 | `/admin/` | El mateix NPM, des del volum `admin_dist` (SPA del panell d'administració) |
 
@@ -352,9 +352,9 @@ El panell només escolta a `127.0.0.1`, mai des de fora. El primer cop que hi en
 
    Un client real (p. ex. `wscat -n -c wss://perseida.localhost/api/ws`) ha d'enviar després, com a primer frame, `{"type":"auth","token":"<access token>"}`: el servidor tanca amb el codi 4401 si aquest frame no arriba en `WS_AUTH_TIMEOUT_SECONDS` (per defecte 10) o el token no és vàlid. Un cop autenticat, el servidor envia un `ping` cada `WS_HEARTBEAT_SECONDS` (per defecte 30). Totes dues són variables opcionals d'`api` (són a `.env.example`), igual que `WS_MAX_ROOMS` (per defecte 20), `WS_MAX_FRAME_BYTES` (per defecte 65536) i `WS_SEND_TIMEOUT_SECONDS` (per defecte 5) i `WS_MAX_CONNECTIONS_PER_USER` (per defecte 3). El *heartbeat* ha de ser molt menor que `proxy_read_timeout` (3600 s a `websocket.conf`) perquè el proxy no vegi mai la connexió com a inactiva.
 
-### Límit de peticions per IP
+### Límit de peticions
 
-Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 60 peticions per minut i IP, amb una ràfega de 20 servida de cop. Per sobre, el proxy respon `429` en `application/problem+json` amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1`, sense arribar a l'API.
+Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 600 peticions per minut entre tots els clients, amb una ràfega de 100 servida de cop. És un sol comptador compartit: a producció el NAT de la UPC reescriu la IP d'origen i el proxy no distingeix els clients (TG-643). Per sobre, el proxy respon `429` en `application/problem+json` amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1`, sense arribar a l'API.
 
 - La zona (`limit_req_zone`) ha d'anar al bloc `http` de nginx, on la pestanya *Advanced* no arriba. És a `nginx-proxy-manager/http_top.conf`, que el Compose munta en lectura a `/data/nginx/custom/http_top.conf` (NPM l'inclou) i el CD copia a `/opt/perseida/nginx-proxy-manager/`.
 - La ubicació que l'aplica és `nginx-proxy-manager/rate-limit.conf` (pestanya *Advanced*). Fa servir la zona i el map `$events_problem_instance`, tots dos definits a `http_top.conf`.
@@ -363,10 +363,11 @@ Els endpoints públics d'esdeveniments (`/api/events/`, TG-351) admeten 60 petic
 >
 > - **Per activar-lo:** primer desplega (el CD copia `http_top.conf` i recarrega nginx) i només després enganxa `rate-limit.conf` a *Advanced*.
 > - **Per retirar-lo** (o abans d'un revert que tregui el muntatge d'`http_top.conf`): primer esborra `rate-limit.conf` d'*Advanced* i desa, i només després desplega.
+> - **Si canvia la clau de la zona** (`$binary_remote_addr` → `$realip_remote_addr` a TG-643, o el revert d'aquest canvi): el reload no l'aplica. nginx rebutja una zona viva amb una clau diferent (`limit_req "events_per_ip" uses the "..." key while previously it used the "..." key`) i es queda amb la configuració antiga, però el pas del CD surt verd igualment: `nginx -t` no compara amb la zona viva i `nginx -s reload` només envia el senyal. Tampoc s'aplica cap desat d'*Advanced* fins que no es reinicia. Després d'aquest desplegament cal reiniciar el proxy (uns segons de tall): `cd /opt/perseida && docker compose restart reverse-proxy`. Comprova-ho amb `docker compose exec reverse-proxy nginx -T | grep limit_req_zone` (mostra el fitxer, no la zona viva, per això cal el reinici), mira que `docker compose logs reverse-proxy` no tingui aquest error, i només després torna a enganxar `rate-limit.conf` a *Advanced*.
 
 - `docker compose up` no recrea el proxy si només canvia el contingut d'`http_top.conf`, així que el CD valida i recarrega nginx després de cada desplegament (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (cal Docker; l'executa el job `proxy` de la CI).
-- El límit compta la IP que nginx veu com a `$remote_addr`. Després d'un desplegament, comprova al registre d'accessos d'NPM que és la IP pública del client i no una de privada del NAT o de Docker: si no, tots els clients compartirien un sol comptador.
+- El límit compta l'adreça de la connexió TCP (`$realip_remote_addr`), no la de `$remote_addr`: NPM es fia de la capçalera `X-Real-IP` quan la petició arriba d'una xarxa privada, i a producció totes hi arriben (NAT de la UPC), així que un client podria triar-se la clau. El test ho comprova amb una `X-Real-IP` falsa a cada petició (TG-643).
 
 ### Volums
 
