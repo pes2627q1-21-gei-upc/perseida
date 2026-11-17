@@ -176,6 +176,8 @@ jobs:
           git diff --exit-code -- src/shared/api/schema.d.ts
       - name: Tests (jest amb cobertura)
         run: pnpm test --coverage --ci
+      - name: Tests dels scripts del frontend (node --test)
+        run: node --test scripts/*.test.mjs
       - name: Mutation testing al frontend (Stryker >= 70%)
         if: github.event_name == 'pull_request'
         run: pnpm test:mutation --base-branch origin/${{ github.base_ref }}
