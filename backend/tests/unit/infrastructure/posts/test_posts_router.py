@@ -29,6 +29,7 @@ from app.infrastructure.auth.dependencies import get_auth_service
 from app.infrastructure.posts.dependencies import get_post_service
 from app.infrastructure.posts.router import router
 from app.infrastructure.users.dependencies import get_user_service
+from app.main import create_app
 from tests.factories.events import make_event
 from tests.fakes.auth import (
     FakeAccountGateway,
@@ -366,3 +367,29 @@ async def test_post_text_is_returned_verbatim_as_json_text() -> None:
     assert response.status_code == 201
     assert response.headers["content-type"].startswith("application/json")
     assert response.json()["text"] == html
+
+
+_POST_OPERATIONS = (
+    ("/api/events/{event_id}/posts", "post"),
+    ("/api/events/{event_id}/posts", "get"),
+    ("/api/posts/{post_id}", "patch"),
+    ("/api/posts/{post_id}", "delete"),
+)
+
+
+@pytest.mark.parametrize(("path", "method"), _POST_OPERATIONS)
+def test_every_documented_error_is_problem_json(path: str, method: str) -> None:
+    responses = create_app().openapi()["paths"][path][method]["responses"]
+
+    assert "422" in responses
+    for code, response in responses.items():
+        if not code.startswith("2"):
+            assert set(response["content"]) == {"application/problem+json"}, code
+
+
+@pytest.mark.parametrize("method", ["post", "get"])
+def test_the_proxy_rate_limit_is_documented_under_events(method: str) -> None:
+    path = "/api/events/{event_id}/posts"
+    responses = create_app().openapi()["paths"][path][method]["responses"]
+
+    assert "RATE_LIMITED" in responses["429"]["description"]
