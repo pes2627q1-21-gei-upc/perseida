@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col
 
@@ -86,14 +86,11 @@ class SqlPostRepository:
             .where(col(PostRow.event_id) == event_id)
         )
         if before is not None:
+            # Row comparison: PostgreSQL uses it as an index condition on
+            # ix_posts_event_id_created_at_id, so deep pages do not scan the rest.
             stmt = stmt.where(
-                or_(
-                    col(PostRow.created_at) < before.created_at,
-                    and_(
-                        col(PostRow.created_at) == before.created_at,
-                        col(PostRow.id) < before.id,
-                    ),
-                )
+                tuple_(col(PostRow.created_at), col(PostRow.id))
+                < tuple_(before.created_at, before.id)
             )
         stmt = stmt.order_by(
             col(PostRow.created_at).desc(), col(PostRow.id).desc()
