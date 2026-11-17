@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { Planet } from 'phosphor-react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { spacing } from '../../../shared/theme';
 import { ComingSoonTab } from './ComingSoonTab';
 
 const SAFE_AREA = {
@@ -47,5 +49,17 @@ describe('ComingSoonTab (TG-385 #388)', () => {
     expect(button).toBeOnTheScreen();
     await fireEvent.press(button);
     expect(handlePress).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps its content clear of the floating tab bar (TG-385 criteri 5)', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <BottomTabBarHeightContext.Provider value={83}>
+          <ComingSoonTab title="Xat" description="Aviat." icon={Planet} />
+        </BottomTabBarHeightContext.Provider>
+      </SafeAreaProvider>,
+    );
+
+    expect(screen.getByTestId('coming-soon-tab')).toHaveStyle({ paddingBottom: 83 + spacing.lg });
   });
 });

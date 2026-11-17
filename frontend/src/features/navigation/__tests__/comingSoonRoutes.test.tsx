@@ -1,13 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import ChatScreen from '../../../app/(app)/chat';
 import EventsScreen from '../../../app/(app)/events';
 import GamificationScreen from '../../../app/(app)/gamification';
+import HomeScreen from '../../../app/(app)/index';
 import ProfileRoute from '../../../app/(app)/profile';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn() }) }));
 jest.mock('../../profile', () => {
   const { Text: MockText } = jest.requireActual('react-native');
   return { ProfileScreen: () => <MockText>profile-screen</MockText> };
@@ -52,5 +55,19 @@ describe('Tab routes (TG-385 #388)', () => {
     await renderRoute(ProfileRoute);
 
     expect(screen.getByText('profile-screen')).toBeOnTheScreen();
+  });
+
+  it('the temporary home keeps its buttons clear of the floating tab bar (TG-385 criteri 5)', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <QueryClientProvider client={new QueryClient()}>
+          <BottomTabBarHeightContext.Provider value={83}>
+            <HomeScreen />
+          </BottomTabBarHeightContext.Provider>
+        </QueryClientProvider>
+      </SafeAreaProvider>,
+    );
+
+    expect(screen.getByTestId('home-screen')).toHaveStyle({ paddingBottom: 83 });
   });
 });

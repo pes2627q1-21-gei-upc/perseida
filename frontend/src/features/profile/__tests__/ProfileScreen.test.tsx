@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
+import { spacing } from '../../../shared/theme';
 import * as tokenStorage from '../../auth/tokenStorage';
 import { ProfileScreen } from '../components/ProfileScreen';
 
@@ -195,6 +197,25 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
     expect(await screen.findByRole('header', { name: 'alex@example.com' })).toBeOnTheScreen();
     expect(screen.getAllByText('alex@example.com')).toHaveLength(1);
+  });
+
+  it('keeps the end of the profile clear of the floating tab bar (TG-385 criteri 5)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+
+    await render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <QueryClientProvider client={queryClient}>
+          <BottomTabBarHeightContext.Provider value={83}>
+            <ProfileScreen />
+          </BottomTabBarHeightContext.Provider>
+        </QueryClientProvider>
+      </SafeAreaProvider>,
+    );
+
+    await screen.findByText('alex@example.com');
+    expect(screen.getByTestId('profile-scroll').props.contentContainerStyle).toEqual(
+      expect.arrayContaining([expect.objectContaining({ paddingBottom: 83 + spacing.lg })]),
+    );
   });
 
   it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {

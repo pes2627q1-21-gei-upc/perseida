@@ -5,7 +5,7 @@ import { AccessibilityInfo } from 'react-native';
 import AppLayout from '../../../app/(app)/_layout';
 import * as refreshTokenModule from '../../auth/api/refreshToken';
 import * as tokenStorage from '../../auth/tokenStorage';
-import { colors, touch } from '../../../shared/theme';
+import { colors, touch, typography } from '../../../shared/theme';
 
 const dia = colors.dia;
 
@@ -104,6 +104,16 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
       expect(options?.tabBarActiveTintColor).toBe(dia.brand);
       expect(options?.tabBarInactiveTintColor).toBe(dia.text.secondary);
     });
+  });
+
+  it('labels the tabs with the caption type of the theme, not a smaller ad hoc size (TG-385 criteri 5)', async () => {
+    await act(async () => {
+      render(<AppLayout />);
+    });
+
+    await waitFor(() =>
+      expect(mockScreenOptions.mock.calls.at(-1)?.[0].tabBarLabelStyle).toEqual(typography.caption),
+    );
   });
 
   it('gives every tab a touch target of at least 48 dp, also in compact landscape (TG-385 #520)', async () => {
