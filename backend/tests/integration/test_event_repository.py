@@ -43,7 +43,7 @@ async def session_factory(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         async with factory() as session:
-            await session.execute(text("TRUNCATE astronomical_events"))
+            await session.execute(text("TRUNCATE astronomical_events, outings"))
             await session.commit()
         yield factory
     finally:

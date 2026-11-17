@@ -79,11 +79,11 @@ async def engine() -> AsyncIterator[AsyncEngine]:
     engine = create_async_engine(DatabaseSettings().database_url)
     try:
         async with engine.begin() as connection:
-            await connection.execute(text("TRUNCATE astronomical_events"))
+            await connection.execute(text("TRUNCATE astronomical_events, outings"))
         yield engine
     finally:
         async with engine.begin() as connection:
-            await connection.execute(text("TRUNCATE astronomical_events"))
+            await connection.execute(text("TRUNCATE astronomical_events, outings"))
         await engine.dispose()
 
 
