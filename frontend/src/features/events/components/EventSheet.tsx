@@ -275,7 +275,8 @@ function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number 
 /**
  * Summary of an event (TG-52, criterion 3): the title, the category, the start and end dates,
  * the summary, where it can be seen and a link to the source (plain https only, opened in the
- * browser), followed by the community posts (TG-628). On phones, a glass sheet from the bottom; on wide screens, a panel beside the map.
+ * browser), followed by the community posts (TG-628). On phones, a glass sheet from the bottom;
+ * on wide screens, a panel beside the map.
  * It closes with its button, with Escape (web) or the back button (Android), and on phones
  * also by tapping outside it. No sounds.
  */

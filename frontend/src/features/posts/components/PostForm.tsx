@@ -15,9 +15,18 @@ export const POST_MAX_LENGTH = 1000;
 /** Codes of the text field: the client and the server share them, so they share their text. */
 const TEXT_CODES = ['POST_TEXT_EMPTY', 'POST_TEXT_TOO_LONG'];
 
+/** Characters as the server counts them (code points), so an emoji counts once, not twice. */
+function characterCount(text: string) {
+  return [...text.trim()].length;
+}
+
 // Convenience validation only: the messages are error codes, translated with errorMessage.
 const schema = z.object({
-  text: z.string().trim().min(1, 'POST_TEXT_EMPTY').max(POST_MAX_LENGTH, 'POST_TEXT_TOO_LONG'),
+  text: z
+    .string()
+    .trim()
+    .min(1, 'POST_TEXT_EMPTY')
+    .refine((text) => characterCount(text) <= POST_MAX_LENGTH, 'POST_TEXT_TOO_LONG'),
 });
 type FormValues = z.input<typeof schema>;
 
@@ -47,9 +56,10 @@ export function PostForm({ mode, initialText = '', onSubmit, onCancel }: Props) 
     defaultValues: { text: initialText },
   });
 
-  const length = useWatch({ control, name: 'text' }).trim().length;
+  const length = characterCount(useWatch({ control, name: 'text' }));
   const tooLong = length > POST_MAX_LENGTH;
   const fieldCode = tooLong ? 'POST_TEXT_TOO_LONG' : formState.errors.text?.message;
+  const fieldError = fieldCode ? errorMessage(t, fieldCode, false) : '';
 
   const submit = handleSubmit(async ({ text }) => {
     setFailure(null);
@@ -78,7 +88,10 @@ export function PostForm({ mode, initialText = '', onSubmit, onCancel }: Props) 
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             accessibilityLabel={t('posts.form.label')}
-            accessibilityHint={t('posts.form.hint')}
+            // The error goes first in the hint, so it is read when the field gets the focus.
+            accessibilityHint={[fieldError, t('posts.form.hint')].filter(Boolean).join(' ')}
+            // Editing replaces the button that had the focus: the focus moves to the text.
+            autoFocus={mode === 'edit'}
             multiline
             textAlignVertical="top"
             value={value}
@@ -109,7 +122,7 @@ export function PostForm({ mode, initialText = '', onSubmit, onCancel }: Props) 
           accessibilityLiveRegion="polite"
           style={[typography.caption, styles.grow, { color: colors.state.danger }]}
         >
-          {fieldCode ? errorMessage(t, fieldCode, false) : ''}
+          {fieldError}
         </Text>
         <Text
           accessibilityLabel={t('posts.form.counter', { count: length, max: POST_MAX_LENGTH })}

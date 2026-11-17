@@ -108,7 +108,9 @@ export function PostItem({ eventId, post, own }: Props) {
 
       {mode === 'confirmDelete' && (
         <View style={{ gap: spacing.sm }}>
+          {/* An alert: the button that had the focus is gone, so the question is announced. */}
           <Text
+            accessibilityRole="alert"
             accessibilityLiveRegion="polite"
             style={[typography.bodyStrong, { color: colors.text.primary }]}
           >

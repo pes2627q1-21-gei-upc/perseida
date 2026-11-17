@@ -39,7 +39,7 @@ export function EventPosts({ eventId }: { eventId: string }) {
         />
       )}
 
-      {/* Also with the posts already in cache: they stay, but the reader is told they may be old. */}
+      {/* Also with posts already in cache: they stay, but the reader is told they may be old. */}
       {posts.isError && !posts.isFetchNextPageError && (
         <View style={{ gap: spacing.sm }}>
           <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={textStyle}>
