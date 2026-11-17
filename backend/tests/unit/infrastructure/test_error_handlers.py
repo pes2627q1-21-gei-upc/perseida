@@ -6,7 +6,9 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import pytest
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from httpx import ASGITransport, AsyncClient
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -243,3 +245,32 @@ def test_trim_union_segments(
     expected: tuple[int | str, ...],
 ) -> None:
     assert error_handlers._trim_union_segments(loc, body, error_type) == expected
+
+
+async def test_405_allow_lists_every_method_of_the_path() -> None:
+    # TG-629: /api/outings té GET i POST; Starlette només posa el de la primera ruta
+    app = FastAPI()
+    error_handlers.register_error_handlers(app)
+
+    @app.get("/things")
+    async def list_things() -> list[str]:
+        return []
+
+    @app.post("/things")
+    async def create_thing() -> str:
+        return "ok"
+
+    @app.delete("/things/{thing_id}")
+    async def delete_thing(thing_id: str) -> None:
+        return None
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        collection = await client.put("/things")
+        item = await client.get("/things/1")
+
+    assert collection.status_code == 405
+    assert collection.headers["allow"] == "GET, POST"
+    assert item.status_code == 405
+    assert item.headers["allow"] == "DELETE"
