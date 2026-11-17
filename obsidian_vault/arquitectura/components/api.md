@@ -86,9 +86,9 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 | `POST /api/events/{event_id}/posts` | Crea una publicació de text de l'usuària de la sessió. 201, 404 `EVENT_NOT_FOUND`, 422 `POST_TEXT_EMPTY` o `POST_TEXT_TOO_LONG` |
 | `GET /api/events/{event_id}/posts` | Llista paginada per cursor, de la més nova a la més antiga. 404 `EVENT_NOT_FOUND`, 422 `INVALID_CURSOR` |
 | `PATCH /api/posts/{post_id}` | Edita el text (només l'autora). 403 `POST_FORBIDDEN`, 404 `POST_NOT_FOUND`, 422 |
-| `DELETE /api/posts/{post_id}` | Esborra (només l'autora). 204, 403, 404 |
+| `DELETE /api/posts/{post_id}` | Esborra (només l'autora). 204, 403, 404, 422 si l'identificador no és vàlid |
 
-Tots demanen sessió (`CurrentSessionDep`). Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
+Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/problem+json`. Els dos de `/api/events/{event_id}/posts` també poden rebre el 429 `RATE_LIMITED` del proxy (el bloc `/api/events/` de `rate-limit.conf`); `PATCH` i `DELETE` de `/api/posts/` encara no tenen límit. Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
 
 ## US de Taiga relacionades
 
