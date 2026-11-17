@@ -44,6 +44,8 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de la persona responsable:
 - **Ubicació:** la secció de publicacions va al final del scroll de la fitxa.
 - **Autora sense nom:** l'API retorna `name: null` (mai el correu) i l'app mostra «Usuari/a #xxxxxx» amb els 6 últims caràcters de l'`id`, per distingir dues autores sense nom. L'`id` no és un secret: l'autoria es comprova amb la sessió.
 - **Mutation testing del frontend només sobre les línies canviades:** Stryker donava 54 %: mutava sencer `EventSheet.tsx` (codi de TG-52) per dues línies tocades, i la majoria de supervivents eren valors d'estil. `run-stryker-diff.mjs` ara passa a Stryker rangs `fitxer:inici-final` de les línies afegides o canviades, i s'han afegit tests reals per als supervivents de lògica (vegeu [[testing]]).
+- **Temps de Stryker a la CI:** amb les 9 peces de la US surten 372 mutants, i amb `concurrency: 2` Stryker necessitava uns 25 minuts, més que els 15 del job `frontend`. Ara fa servir els 4 vCPU del runner (`concurrency: 4`) i el job té 30 minuts de marge.
+- **CI en vermell a la PR:** els fixtures d'esdeveniments ara fan `TRUNCATE ... CASCADE` (`posts` referencia `astronomical_events`). El 405 llista a `Allow` tots els mètodes del path, perquè un path pot tenir una ruta per mètode i schemathesis ho comprova. Jest ja no executa els tests dels scripts, que van amb `node --test`.
 - **Error en recarregar:** si la llista ja tenia publicacions en memòria i la recàrrega falla, se segueixen mostrant, però amb l'error i «Torna-ho a provar» (error trobat a les proves manuals).
 
 ## Canvis al vault
