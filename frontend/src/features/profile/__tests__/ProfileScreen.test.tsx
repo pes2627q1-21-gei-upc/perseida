@@ -140,6 +140,52 @@ describe('ProfileScreen (TG-385 #517)', () => {
     },
   );
 
+  it('shows the photo of the user when the avatar is a plain https URL', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+
+    await renderProfile();
+
+    await screen.findByText('alex@example.com');
+    const photo = screen.getByTestId('profile-avatar-image', { includeHiddenElements: true });
+    expect(photo.props.source).toEqual({ uri: 'https://example.com/avatar.jpg' });
+  });
+
+  it.each([
+    ['javascript:alert(1)'],
+    ['http://example.com/avatar.jpg'],
+    ['data:image/png;base64,AAAA'],
+  ])(
+    'never loads an unsafe avatar URL (%s): it shows the initials (ADR-0024)',
+    async (avatarUrl) => {
+      jest
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () =>
+          jsonResponse({ ...mockUserProfile, avatar_url: avatarUrl }),
+        );
+
+      await renderProfile();
+
+      await screen.findByText('alex@example.com');
+      expect(
+        screen.queryByTestId('profile-avatar-image', { includeHiddenElements: true }),
+      ).not.toBeOnTheScreen();
+      expect(screen.getByText('ÀG', { includeHiddenElements: true })).toBeTruthy();
+    },
+  );
+
+  it('falls back to the initials when the photo fails to load', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+
+    await renderProfile();
+
+    await screen.findByText('alex@example.com');
+    await fireEvent(
+      screen.getByTestId('profile-avatar-image', { includeHiddenElements: true }),
+      'error',
+    );
+    expect(await screen.findByText('ÀG', { includeHiddenElements: true })).toBeTruthy();
+  });
+
   it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
