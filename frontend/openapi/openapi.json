@@ -1631,7 +1631,6 @@
         "properties": {
           "title": {
             "type": "string",
-            "maxLength": 120,
             "title": "Title",
             "description": "Títol, d'1 a 120 caràcters",
             "examples": [
@@ -1640,7 +1639,6 @@
           },
           "description": {
             "type": "string",
-            "maxLength": 2000,
             "title": "Description",
             "description": "Descripció, de 0 a 2000 caràcters",
             "default": ""
@@ -1769,13 +1767,11 @@
         "properties": {
           "title": {
             "type": "string",
-            "maxLength": 120,
             "title": "Title",
             "description": "Títol, d'1 a 120 caràcters"
           },
           "description": {
             "type": "string",
-            "maxLength": 2000,
             "title": "Description",
             "description": "Descripció, de 0 a 2000 caràcters"
           },
