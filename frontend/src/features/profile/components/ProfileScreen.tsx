@@ -41,13 +41,10 @@ export function ProfileScreen() {
         .toUpperCase()
     : 'U';
 
-  const roleText = data?.role ? t(`profile.role.${data.role}`, { defaultValue: data.role }) : '';
-
-  const languageText = data?.preferred_language
-    ? t(`profile.language.${data.preferred_language}`, {
-        defaultValue: data.preferred_language,
-      })
-    : '';
+  // A role or a language the app does not know yet is not shown, never as the raw value.
+  const optionalText = (key: string) => (i18n.exists(key) ? t(key) : '');
+  const roleText = data ? optionalText(`profile.role.${data.role}`) : '';
+  const languageText = data ? optionalText(`profile.language.${data.preferred_language}`) : '';
 
   const errorText =
     error instanceof AppError
