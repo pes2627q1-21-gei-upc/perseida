@@ -6,6 +6,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Double,
+    ForeignKey,
     Index,
     String,
     Text,
@@ -78,3 +79,33 @@ class AstronomicalEventRow(SQLModel, table=True):
     # Filled in by PostgreSQL.
     created_at: datetime | None = Field(default=None, sa_column=_timestamptz_now())
     updated_at: datetime | None = Field(default=None, sa_column=_timestamptz_now())
+
+
+class EventSubscriptionRow(SQLModel, table=True):
+    """Table ``event_subscriptions`` (TG-53). The domain entity is
+    ``EventSubscription``; deleting the user or the event deletes it."""
+
+    __tablename__ = "event_subscriptions"
+    # One subscription per user and event; it also serves the queries by user
+    # (``is_subscribed``, ``list_events_of``), which lead with ``user_id``.
+    __table_args__ = (UniqueConstraint("user_id", "event_id"),)
+
+    id: uuid.UUID = Field(
+        sa_column=Column(Uuid(), primary_key=True, server_default=text("uuidv7()"))
+    )
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            Uuid(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        )
+    )
+    # Index: the cascade on deleting an event, and the subscribers of an event
+    # (the chat, #64), look up by ``event_id`` alone.
+    event_id: uuid.UUID = Field(
+        sa_column=Column(
+            Uuid(),
+            ForeignKey("astronomical_events.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    created_at: datetime = Field(sa_column=_timestamptz_now())
