@@ -170,6 +170,8 @@ async def test_tg53_c2_put_subscribes_with_201_and_then_answers_200() -> None:
 
     assert first.status_code == 201
     assert second.status_code == 200
+    # Decisió de la persona: PUT respon sense cos, com el 204 del DELETE.
+    assert (first.content, second.content) == (b"", b"")
     assert list(repo.subscriptions) == [(ME.id, UPCOMING.id)]
 
 
@@ -200,13 +202,14 @@ async def test_tg53_c5_put_on_an_ended_event_is_409() -> None:
     assert repo.subscriptions == {}
 
 
-async def test_tg53_c5_put_on_an_ended_event_already_subscribed_is_409() -> None:
-    # La comprovació d'acabat va abans que la d'idempotència (decisió del test).
+async def test_tg53_c2_put_on_an_ended_event_already_subscribed_is_200() -> None:
+    # Decisió de la persona: la idempotència va abans que la comprovació d'acabat.
     repo = _repository((ME, ENDED))
     async for client, auth in _client(repo):
         response = await client.put(_subscription_path(ENDED.id), headers=auth)
 
-    _assert_problem(response, 409, "EVENT_ALREADY_ENDED")
+    assert response.status_code == 200
+    assert response.content == b""
     assert list(repo.subscriptions) == [(ME.id, ENDED.id)]
 
 
@@ -282,3 +285,24 @@ def test_tg53_c9_the_app_publishes_the_endpoints_with_problem_json_errors(
     for code, response in responses.items():
         if not code.startswith("2"):
             assert set(response["content"]) == {PROBLEM_JSON}, code
+
+
+@pytest.mark.parametrize("method", ["put", "delete"])
+def test_tg53_c9_the_proxy_rate_limit_is_documented_under_events(method: str) -> None:
+    # Bloc /api/events/ del proxy: límit compartit de 600/min amb ràfega de 100.
+    path = "/api/events/{event_id}/subscription"
+    responses = create_app().openapi()["paths"][path][method]["responses"]
+
+    description = responses["429"]["description"]
+    assert "RATE_LIMITED" in description
+    assert "600" in description
+    assert "100" in description
+    assert "Retry-After" in description
+
+
+def test_tg53_c9_my_subscriptions_are_not_under_the_events_rate_limit() -> None:
+    responses = create_app().openapi()["paths"]["/api/me/subscriptions"]["get"][
+        "responses"
+    ]
+
+    assert "429" not in responses

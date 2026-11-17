@@ -107,19 +107,29 @@ async def test_tg53_c5_subscribing_to_an_ended_event_is_a_conflict() -> None:
     assert subscriptions.subscriptions == {}
 
 
-async def test_tg53_c5_the_ended_check_goes_before_the_idempotency() -> None:
-    # Decisió del test (pla TG-53): si ja hi estaves subscrit i l'esdeveniment
-    # ha acabat, PUT respon 409 i no 200; la subscripció es manté.
+async def test_tg53_c2_already_subscribed_to_an_ended_event_is_idempotent() -> None:
+    # Decisió de la persona: la idempotència va abans que la comprovació
+    # d'acabat; si ja hi estaves subscrit, PUT respon 200 i la subscripció es manté.
     service, subscriptions = _service(ENDED)
-    await subscriptions.add(
-        make_subscription(ME, ENDED, NOW - timedelta(days=2)),
-    )
+    existing = make_subscription(ME, ENDED, NOW - timedelta(days=2))
+    await subscriptions.add(existing)
+
+    created = await service.subscribe(ME, ENDED.id)
+
+    assert created is False
+    assert subscriptions.subscriptions == {(ME, ENDED.id): existing}
+
+
+async def test_tg53_c5_an_ended_event_refuses_only_a_new_subscription() -> None:
+    # Un altre usuari ja hi és subscrit; per a mi la subscripció seria nova: 409.
+    service, subscriptions = _service(ENDED)
+    await subscriptions.add(make_subscription(OTHER, ENDED, NOW - timedelta(days=2)))
 
     with pytest.raises(ConflictError) as exc_info:
         await service.subscribe(ME, ENDED.id)
 
     assert exc_info.value.code == event_errors.EVENT_ALREADY_ENDED
-    assert await subscriptions.is_subscribed(ME, ENDED.id) is True
+    assert await subscriptions.is_subscribed(ME, ENDED.id) is False
 
 
 async def test_tg53_c5_the_clock_is_read_on_each_call() -> None:
