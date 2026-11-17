@@ -1049,8 +1049,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "Identificador de la sortida",
               "title": "Outing Id"
-            }
+            },
+            "description": "Identificador de la sortida"
           }
         ],
         "responses": {
@@ -1136,8 +1138,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "Identificador de la sortida",
               "title": "Outing Id"
-            }
+            },
+            "description": "Identificador de la sortida"
           }
         ],
         "requestBody": {
@@ -1243,8 +1247,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
+              "description": "Identificador de la sortida",
               "title": "Outing Id"
-            }
+            },
+            "description": "Identificador de la sortida"
           }
         ],
         "responses": {

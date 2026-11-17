@@ -1622,6 +1622,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
+        /** @description Identificador de la sortida */
         outing_id: string;
       };
       cookie?: never;
@@ -1689,6 +1690,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
+        /** @description Identificador de la sortida */
         outing_id: string;
       };
       cookie?: never;
@@ -1754,6 +1756,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
+        /** @description Identificador de la sortida */
         outing_id: string;
       };
       cookie?: never;
