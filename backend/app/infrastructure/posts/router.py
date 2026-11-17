@@ -76,7 +76,13 @@ class PostTextRequest(BaseModel):
 
 class PostAuthorResponse(BaseModel):
     id: uuid.UUID = Field(..., description="Identificador de l'autora")
-    name: str = Field(..., description="Nom visible de l'autora")
+    name: str | None = Field(
+        ...,
+        description=(
+            "Nom del perfil de l'autora; `null` si no en té. Mai és el correu: "
+            "l'app hi posa un nom genèric."
+        ),
+    )
 
 
 class PostResponse(BaseModel):
@@ -107,7 +113,7 @@ class PostPageResponse(BaseModel):
 
 
 def _author(user: User) -> PostAuthor:
-    return PostAuthor(id=user.id, name=user.display_name or user.email)
+    return PostAuthor(id=user.id, name=user.display_name)
 
 
 @router.post(

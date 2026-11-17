@@ -9,7 +9,7 @@ from app.infrastructure.posts.tables import PostRow
 from app.infrastructure.users.tables import UserRow
 
 
-def _to_domain(row: PostRow, author_name: str) -> Post:
+def _to_domain(row: PostRow, author_name: str | None) -> Post:
     return Post(
         id=row.id,
         event_id=row.event_id,
@@ -41,7 +41,7 @@ class SqlPostRepository:
 
     async def get_by_id(self, post_id: uuid.UUID) -> Post | None:
         stmt = (
-            select(PostRow, col(UserRow.display_name), col(UserRow.email))
+            select(PostRow, col(UserRow.display_name))
             .join(UserRow, col(PostRow.user_id) == col(UserRow.id))
             .where(col(PostRow.id) == post_id)
         )
@@ -50,8 +50,8 @@ class SqlPostRepository:
             record = result.first()
             if record is None:
                 return None
-            row, display_name, email = record
-            return _to_domain(row, display_name or email)
+            row, display_name = record
+            return _to_domain(row, display_name)
 
     async def update(self, post: Post) -> Post:
         async with self._session_factory() as session, session.begin():
@@ -81,7 +81,7 @@ class SqlPostRepository:
         limit: int = 20,
     ) -> PostRepositoryPage:
         stmt = (
-            select(PostRow, col(UserRow.display_name), col(UserRow.email))
+            select(PostRow, col(UserRow.display_name))
             .join(UserRow, col(PostRow.user_id) == col(UserRow.id))
             .where(col(PostRow.event_id) == event_id)
         )
@@ -105,7 +105,7 @@ class SqlPostRepository:
 
         has_more = len(records) > limit
         slice_records = records[:limit]
-        posts = [_to_domain(rec[0], rec[1] or rec[2]) for rec in slice_records]
+        posts = [_to_domain(rec[0], rec[1]) for rec in slice_records]
         next_cursor = None
         if has_more and posts:
             last = posts[-1]

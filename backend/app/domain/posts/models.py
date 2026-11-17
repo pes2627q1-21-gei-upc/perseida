@@ -80,12 +80,17 @@ def _has_visible_text(value: str) -> bool:
 
 
 class PostAuthor(BaseModel):
-    """The author of a community post."""
+    """The author of a community post.
+
+    ``name`` is the profile name, or ``None`` when the account has none: the email
+    is personal data and is never shown to the community (the app shows a generic
+    name).
+    """
 
     model_config = ConfigDict(frozen=True)
 
     id: uuid.UUID
-    name: str
+    name: str | None
 
 
 class Post(BaseModel):
