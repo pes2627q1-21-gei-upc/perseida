@@ -48,6 +48,9 @@ APOD_EXPECTED_STATUSES = ["2xx", "3xx", "401", "403", "404", "409", "422", "429"
 # A valid body still answers 409 (already answered or another day) or 422 (a
 # question_id that is not today's): the schema cannot express "today's question".
 QUIZ_ANSWER_EXPECTED_STATUSES = ["2xx", "401", "403", "409", "422", "5xx"]
+# A valid outing body still answers 422 (an event that does not exist, a start in
+# the past) or 404 and 403 (another id, another author): the schema cannot say so.
+OUTING_EXPECTED_STATUSES = ["2xx", "401", "403", "404", "422", "5xx"]
 
 
 def _migrate() -> None:
@@ -121,6 +124,22 @@ def api_schema() -> Iterator[Any]:
                         "checks": {
                             "positive_data_acceptance": {
                                 "expected-statuses": QUIZ_ANSWER_EXPECTED_STATUSES
+                            }
+                        },
+                    },
+                    {
+                        "include-name": "POST /api/outings",
+                        "checks": {
+                            "positive_data_acceptance": {
+                                "expected-statuses": OUTING_EXPECTED_STATUSES
+                            }
+                        },
+                    },
+                    {
+                        "include-name": "PATCH /api/outings/{outing_id}",
+                        "checks": {
+                            "positive_data_acceptance": {
+                                "expected-statuses": OUTING_EXPECTED_STATUSES
                             }
                         },
                     },
