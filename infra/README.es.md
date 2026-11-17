@@ -126,7 +126,7 @@ El servicio FastAPI (`perseida-api`) utiliza las siguientes variables de entorno
 | `NASA_API_KEY` | Sí | Clave de la API de la NASA para el APOD (la API no arranca sin ella); en local vale `DEMO_KEY`, con límite de peticiones | `<clave de https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Tiempo de expiración de los access tokens en minutos (por defecto: 15) | `15` |
 | `REFRESH_TOKEN_DAYS` | No | Tiempo de expiración de los refresh tokens en días (por defecto: 30) | `30` |
-| `CORS_ALLOWED_ORIGINS` | No | Orígenes del navegador que admite CORS, separados por comas (por defecto: `https://perseida.duckdns.org:40431`, `http://perseida.duckdns.org:40430`, `https://perseida.duckdns.org` y los puertos locales de Expo y de la API `8081`, `19006` y `8000` en `localhost`/`127.0.0.1`). Si se define, sustituye los por defecto | `https://perseida.duckdns.org:40431,http://localhost:8081` |
+| `CORS_ALLOWED_ORIGINS` | No | Orígenes del navegador que admite CORS, separados por comas (por defecto: `https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org` y los puertos locales de Expo y de la API `8081`, `19006` y `8000` en `localhost`/`127.0.0.1`). Si se define, sustituye los por defecto | `https://perseida.duckdns.org:40431,http://localhost:8081` |
 | `CORS_ALLOWED_ORIGIN_REGEX` | No | Orígenes adicionales que admite CORS, como expresión regular (por defecto: ninguno) | `http://localhost:\d+` |
 
 ### Configuración inicial: hacer el paquete público (una sola vez, manual)

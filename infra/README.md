@@ -126,7 +126,7 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `NASA_API_KEY` | Yes | NASA API key for the APOD (the API does not start without it); `DEMO_KEY` works locally, rate-limited | `<key from https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Expiration time for access tokens in minutes (default: 15) | `15` |
 | `REFRESH_TOKEN_DAYS` | No | Expiration time for refresh tokens in days (default: 30) | `30` |
-| `CORS_ALLOWED_ORIGINS` | No | Browser origins allowed by CORS, comma-separated (default: `https://perseida.duckdns.org:40431`, `http://perseida.duckdns.org:40430`, `https://perseida.duckdns.org` and the local Expo and API ports `8081`, `19006` and `8000` on `localhost`/`127.0.0.1`). Setting it replaces the defaults | `https://perseida.duckdns.org:40431,http://localhost:8081` |
+| `CORS_ALLOWED_ORIGINS` | No | Browser origins allowed by CORS, comma-separated (default: `https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org` and the local Expo and API ports `8081`, `19006` and `8000` on `localhost`/`127.0.0.1`). Setting it replaces the defaults | `https://perseida.duckdns.org:40431,http://localhost:8081` |
 | `CORS_ALLOWED_ORIGIN_REGEX` | No | Extra origins allowed by CORS, as a regular expression (default: none) | `http://localhost:\d+` |
 
 ### First-time setup: make the package public (one-time, manual)
