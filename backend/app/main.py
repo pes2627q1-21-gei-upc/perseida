@@ -21,6 +21,9 @@ from app.infrastructure.events.launch_library import LaunchLibraryEventSource
 from app.infrastructure.events.meteor_catalog import MeteorShowerCatalogSource
 from app.infrastructure.events.router import router as events_router
 from app.infrastructure.events.skyfield_source import SkyfieldLunarSource
+from app.infrastructure.events.subscriptions_router import (
+    router as subscriptions_router,
+)
 from app.infrastructure.events.usno import UsnoSolarEclipseSource
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
@@ -141,6 +144,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router, prefix="/api")
     app.include_router(realtime_router, prefix="/api")
     app.include_router(events_router, prefix="/api")
+    app.include_router(subscriptions_router, prefix="/api")
     app.include_router(quiz_router, prefix="/api")
     app.include_router(streaks_router, prefix="/api")
     install_openapi_cleanup(app)
