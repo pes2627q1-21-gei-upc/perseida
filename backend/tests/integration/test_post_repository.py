@@ -195,6 +195,34 @@ async def test_list_by_event_cursor_pagination(
     assert page2.next_cursor is None
 
 
+async def test_cursor_breaks_ties_of_the_same_instant_by_id(
+    post_repo: SqlPostRepository,
+    user_repo: SqlUserRepository,
+    event_repo: SqlEventRepository,
+) -> None:
+    user = await _create_test_user(user_repo, f"post-{uuid.uuid4()}@test.cat", "Aina")
+    event = await _create_test_event(event_repo)
+    author = PostAuthor(id=user.id, name="Aina")
+    created = [
+        await post_repo.create(
+            Post.create(event_id=event.id, author=author, text=str(n), now=NOW)
+        )
+        for n in range(3)
+    ]
+    expected = sorted((post.id for post in created), reverse=True)
+
+    seen: list[uuid.UUID] = []
+    cursor = None
+    while True:
+        page = await post_repo.list_by_event(event_id=event.id, before=cursor, limit=1)
+        seen += [post.id for post in page.posts]
+        if page.next_cursor is None:
+            break
+        cursor = page.next_cursor
+
+    assert seen == expected
+
+
 async def test_an_author_without_display_name_is_read_without_name(
     post_repo: SqlPostRepository,
     user_repo: SqlUserRepository,
