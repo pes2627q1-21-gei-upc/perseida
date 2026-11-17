@@ -30,12 +30,37 @@ def _achievement(**overrides: object) -> Achievement:
     return Achievement(**data)  # type: ignore[arg-type]
 
 
+ALL_KINDS = {
+    "STREAK_DAYS": "streak_days",
+    "QUIZ_COMPLETED": "quiz_completed",
+    "QUIZ_PERFECT": "quiz_perfect",
+    "EVENT_SUBSCRIPTION": "event_subscription",
+    "EVENT_EXPORTED": "event_exported",
+    "FOLLOWERS": "followers",
+    "FOLLOWING": "following",
+    "MESSAGE_SENT": "message_sent",
+    "ACHIEVEMENT_SHARED": "achievement_shared",
+    "MINIGAME_PLAYED": "minigame_played",
+    "MINIGAME_WON": "minigame_won",
+    "MINIGAME_RECORD_BEATEN": "minigame_record_beaten",
+    "MINIGAME_CHALLENGE_SENT": "minigame_challenge_sent",
+}
+
+
+# TG-58: els 13 tipus del catàleg (noms de membre i valors estables)
 def test_achievement_kind_values_are_stable() -> None:
-    assert {k.value for k in AchievementKind} == {
-        "streak_days",
-        "quiz_completed",
-        "event_subscription",
-    }
+    assert {k.name: k.value for k in AchievementKind} == ALL_KINDS
+    assert {k.value for k in AchievementKind} == set(ALL_KINDS.values())
+    assert len(AchievementKind) == 13
+
+
+# TG-58: Achievement accepta cadascun dels 13 tipus
+@pytest.mark.parametrize("kind", sorted(ALL_KINDS.values()))
+def test_achievement_accepts_every_catalog_kind(kind: str) -> None:
+    achievement = _achievement(kind=kind)
+
+    assert achievement.kind is AchievementKind(kind)
+    assert achievement.kind.value == kind
 
 
 # TG-58: categories del catàleg

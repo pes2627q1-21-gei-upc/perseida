@@ -16,6 +16,22 @@ QUIZ = AchievementKind.QUIZ_COMPLETED
 SUBSCRIPTION = AchievementKind.EVENT_SUBSCRIPTION
 
 
+ALL_KIND_VALUES = {
+    "streak_days",
+    "quiz_completed",
+    "quiz_perfect",
+    "event_subscription",
+    "event_exported",
+    "followers",
+    "following",
+    "message_sent",
+    "achievement_shared",
+    "minigame_played",
+    "minigame_won",
+    "minigame_record_beaten",
+    "minigame_challenge_sent",
+}
+
 CAT = AchievementCategory
 _DEFAULT_CATEGORY = {
     AchievementKind.STREAK_DAYS: CAT.STREAKS,
@@ -38,7 +54,7 @@ def _a(
         description=f"Fita {code}",
         kind=kind,
         threshold=threshold,
-        category=category or _DEFAULT_CATEGORY[kind],
+        category=category or _DEFAULT_CATEGORY.get(kind, CAT.SOCIAL),
         position=position,
     )
 
@@ -98,6 +114,21 @@ def test_counter_kinds_unlock_with_the_same_rule(
 def test_activity_of_other_kind_unlocks_nothing() -> None:
     assert unlockable([STREAK_3, QUIZ_1], SUBSCRIPTION, 99, set()) == []
     assert unlockable([STREAK_3], QUIZ, 99, set()) == []
+
+
+# TG-58: la regla única serveix per als 13 tipus del catàleg, només del mateix kind
+@pytest.mark.parametrize("kind_value", sorted(ALL_KIND_VALUES))
+def test_unlockable_works_for_every_catalog_kind(kind_value: str) -> None:
+    kind = AchievementKind(kind_value)
+    catalog = [
+        _a(f"{other}_5", AchievementKind(other), 5) for other in sorted(ALL_KIND_VALUES)
+    ]
+    own = next(a for a in catalog if a.kind is kind)
+
+    assert unlockable(catalog, kind, 4, set()) == []
+    assert unlockable(catalog, kind, 5, set()) == [own]
+    assert unlockable(catalog, kind, 50, set()) == [own]
+    assert unlockable(catalog, kind, 5, {own.id}) == []
 
 
 def test_empty_catalog_unlocks_nothing() -> None:
