@@ -148,7 +148,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Stryker on the changed lines of a PR can take ~15 min with the 4 vCPUs of the runner.
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:
@@ -182,6 +183,8 @@ jobs:
           git diff --exit-code -- src/shared/api/schema.d.ts
       - name: Tests (jest amb cobertura)
         run: pnpm test --coverage --ci
+      - name: Tests dels scripts del frontend (node --test)
+        run: node --test scripts/*.test.mjs
       - name: Mutation testing al frontend (Stryker >= 70%)
         if: github.event_name == 'pull_request'
         run: pnpm test:mutation --base-branch origin/${{ github.base_ref }}

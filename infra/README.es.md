@@ -302,7 +302,7 @@ Un solo *proxy host* lo sirve todo desde el mismo origen:
 |---|---|
 | `/api/...` | `api:8000` (API REST; comprobación de salud en `/api/health`) |
 | `/api/ws` | `api:8000` con el upgrade de WebSocket (chat, TG-63) |
-| `/api/events/` | `api:8000` con un límite de peticiones por IP (endpoints públicos para Spotwise, TG-351) |
+| `/api/events/` | `api:8000` con un límite de peticiones compartido (endpoints públicos para Spotwise, TG-351, TG-643) |
 | `/media/` | El propio NPM, desde el volumen `media_data` (multimedia de los usuarios) |
 | `/admin/` | El propio NPM, desde el volumen `admin_dist` (SPA del panel de administración) |
 
@@ -352,9 +352,9 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
 
    Un cliente real (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe enviar después, como primer frame, `{"type":"auth","token":"<access token>"}`: el servidor cierra con el código 4401 si ese frame no llega en `WS_AUTH_TIMEOUT_SECONDS` (por defecto 10) o el token no es válido. Una vez autenticado, el servidor envía un `ping` cada `WS_HEARTBEAT_SECONDS` (por defecto 30). Ambas son variables opcionales de `api` (están en `.env.example`), igual que `WS_MAX_ROOMS` (por defecto 20), `WS_MAX_FRAME_BYTES` (por defecto 65536) y `WS_SEND_TIMEOUT_SECONDS` (por defecto 5) y `WS_MAX_CONNECTIONS_PER_USER` (por defecto 3). El *heartbeat* debe ser mucho menor que `proxy_read_timeout` (3600 s en `websocket.conf`) para que el proxy nunca vea la conexión como inactiva.
 
-### Límite de peticiones por IP
+### Límite de peticiones
 
-Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 60 peticiones por minuto e IP, con una ráfaga de 20 servida de golpe. Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED`, `instance` y `Retry-After: 1`, sin llegar a la API.
+Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 600 peticiones por minuto entre todos los clientes, con una ráfaga de 100 servida de golpe. Es un solo contador compartido: en producción el NAT de la UPC reescribe la IP de origen y el proxy no distingue los clientes (TG-643). Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED`, `instance` y `Retry-After: 1`, sin llegar a la API.
 
 - La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en `/data/nginx/custom/http_top.conf` (no en solo lectura: al arrancar, NPM hace `chown` de todo `/data` y falla con un fichero de solo lectura) (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/` con `infra/scripts/install-http-top.sh`: NPM hace el fichero de root al arrancar, así que el script lo escribe con un contenedor de un solo uso de la imagen de NPM (esté el proxy en marcha o no) cuando el usuario del despliegue ya no puede sobrescribirlo (hotfix 0.2.2).
 - La ubicación que lo aplica es `nginx-proxy-manager/rate-limit.conf` (pestaña *Advanced*). Usa la zona y el map `$events_problem_instance`, ambos definidos en `http_top.conf`.
@@ -363,10 +363,11 @@ Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 60 peticione
 >
 > - **Para activarlo:** primero despliega (el CD copia `http_top.conf` y recarga nginx) y solo después pega `rate-limit.conf` en *Advanced*.
 > - **Para retirarlo** (o antes de un revert que quite el montaje de `http_top.conf`): primero borra `rate-limit.conf` de *Advanced* y guarda, y solo después despliega.
+> - **Si cambia la clave de la zona** (`$binary_remote_addr` → `$realip_remote_addr` en TG-643, o el revert de ese cambio): el reload no la aplica. nginx rechaza una zona viva con una clave distinta (`limit_req "events_per_ip" uses the "..." key while previously it used the "..." key`) y se queda con la configuración antigua, pero el paso del CD sale verde igualmente: `nginx -t` no compara con la zona viva y `nginx -s reload` solo envía la señal. Tampoco se aplica ningún guardado de *Advanced* hasta que se reinicia. Tras ese despliegue hay que reiniciar el proxy (unos segundos de corte): `cd /opt/perseida && docker compose restart reverse-proxy`. Compruébalo con `docker compose exec reverse-proxy nginx -T | grep limit_req_zone` (muestra el fichero, no la zona viva, por eso hace falta el reinicio), mira que `docker compose logs reverse-proxy` no tenga ese error, y solo después vuelve a pegar `rate-limit.conf` en *Advanced*.
 
 - `docker compose up` no recrea el proxy si solo cambia el contenido de `http_top.conf`, así que el CD valida y recarga nginx tras cada despliegue (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (requiere Docker; lo ejecuta el job `proxy` de la CI). `bash infra/scripts/test-npm-startup.sh` arranca la imagen real de NPM con el montaje de `http_top.conf` del Compose y comprueba que se levanta y carga la zona, y que con un montaje de solo lectura falla (regresión del hotfix 0.2.1).
-- El límite cuenta la IP que nginx ve como `$remote_addr`. Tras un despliegue, comprueba en el registro de accesos de NPM que es la IP pública del cliente y no una privada del NAT o de Docker: si no, todos los clientes compartirían un solo contador.
+- El límite cuenta la dirección de la conexión TCP (`$realip_remote_addr`), no la de `$remote_addr`: NPM se fía de la cabecera `X-Real-IP` cuando la petición llega de una red privada, y en producción llegan todas así (NAT de la UPC), de modo que un cliente podría elegirse la clave. El test lo comprueba con una `X-Real-IP` falsa en cada petición (TG-643).
 
 ### Volúmenes
 

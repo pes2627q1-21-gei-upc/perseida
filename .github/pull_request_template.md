@@ -18,7 +18,7 @@
 - [ ] Si és un bug, hi ha un test de regressió que el reprodueix.
 - [ ] L'historial mostra el commit `test:` (en vermell) abans del `feat:`/`fix:` corresponent.
 - [ ] Cobertura: 80 % global i 90 % del codi nou (la CI de la PR ho exigirà quan s'implanti; mentre tant, comprovada en local).
-- [ ] Si toca el domini, mutation testing sobre els fitxers canviats amb score >= 70 % (o anotat com a pendent si l'eina encara no és instal·lada).
+- [ ] Si toca el domini, mutation testing sobre els fitxers canviats (al frontend, les seves línies canviades) amb score >= 70 % (o anotat com a pendent si l'eina encara no és instal·lada).
 
 ## Resta de la DoD
 - [ ] El codi respecta l'arquitectura hexagonal i les convencions de nomenclatura.
