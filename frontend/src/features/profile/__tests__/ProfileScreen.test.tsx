@@ -218,6 +218,20 @@ describe('ProfileScreen (TG-385 #517)', () => {
     );
   });
 
+  it('hides a role or a language the app cannot translate yet instead of showing the raw value', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () =>
+        jsonResponse({ ...mockUserProfile, role: 'astronomer', preferred_language: 'fr' }),
+      );
+
+    await renderProfile();
+
+    await screen.findByText('alex@example.com');
+    expect(screen.queryByText('astronomer')).not.toBeOnTheScreen();
+    expect(screen.queryByText('fr')).not.toBeOnTheScreen();
+  });
+
   it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
