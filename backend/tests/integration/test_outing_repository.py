@@ -244,3 +244,30 @@ async def test_outings_never_appear_in_the_astronomical_events(
 
     after = await connection.execute(text("SELECT count(*) FROM astronomical_events"))
     assert after.scalar_one() == count_before
+
+
+async def test_outing_server_defaults(
+    factory: async_sessionmaker[AsyncSession], connection: AsyncConnection
+) -> None:
+    # ADR-0023: UUIDv7 i now() per defecte al servidor (seeds, scripts, reparacions)
+    anna = await _user(factory, "Anna")
+
+    result = await connection.execute(
+        text(
+            "INSERT INTO outings"
+            " (author_id, title, description, starts_at, ends_at, latitude, longitude)"
+            " VALUES (:author_id, 'Perseides', '', :starts_at, :ends_at, 42.05, 0.73)"
+            " RETURNING id, created_at, updated_at"
+        ),
+        {
+            "author_id": anna.id,
+            "starts_at": NOW + timedelta(days=1),
+            "ends_at": NOW + timedelta(days=1, hours=3),
+        },
+    )
+    row = result.one()
+
+    assert row.id.version == 7
+    for value in (row.created_at, row.updated_at):
+        assert value.tzinfo is not None
+        assert abs(datetime.now(UTC) - value) < timedelta(minutes=5)
