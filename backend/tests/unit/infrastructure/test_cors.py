@@ -1,6 +1,7 @@
 """CORS: allowed and rejected origins, preflight and middleware order (TG-363)."""
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -35,9 +36,12 @@ ACAO = "access-control-allow-origin"
 
 
 @pytest.fixture(autouse=True)
-def _no_cors_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def _no_cors_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[None]:
     monkeypatch.delenv("CORS_ALLOWED_ORIGINS", raising=False)
     monkeypatch.delenv("CORS_ALLOWED_ORIGIN_REGEX", raising=False)
+    # create_app() builds CorsSettings() with env_file=".env": run from an empty
+    # directory so a developer's backend/.env does not change the expected origins.
+    monkeypatch.chdir(tmp_path)
     yield
 
 
