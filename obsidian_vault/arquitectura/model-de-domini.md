@@ -3,8 +3,8 @@ titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-17"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026)"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-53"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -105,7 +105,7 @@ Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i cod
 
 Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`) i els separadors de línia i de paràgraf (`Zl`, `Zp`), excepte el salt de línia i la tabulació. A més, s'eliminen només els invisibles perillosos, que són els de la propietat Unicode `Default_Ignorable_Code_Point` (UCD 18) menys els benignes: bidi embeddings, overrides i isolates, zero-width space, word joiner, guionet suau, fillers de hangul, selectors de variació que no són d'emoji i tots els tags (poden amagar text ASCII). Es conserven ZWJ i ZWNJ (emojis compostos i alguns scripts), LRM, RLM i ALM (marques direccionals d'un sol caràcter), els selectors d'emoji `FE0E`/`FE0F` i, de les tag sequences, només les banderes d'Anglaterra, Escòcia i Gal·les. No s'elimina cap caràcter pel fet de ser no assignat (`Cn`): els emojis nous passen encara que la versió d'Unicode de Python no els conegui. Un text amb només marques invisibles (o el braille en blanc) és buit. Efecte acceptat per l'equip (11/11/2026): l'escriptura mongola (selectors de variació i separador de vocal) i els selectors de variació ideogràfics perden aquests caràcters. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
 
-Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (que implementarà #53 amb el mateix `is_subscribed(user_id, event_id)`). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
+Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (`is_subscribed(user_id, event_id)`, que compleix `SqlEventSubscriptionRepository` de TG-53; vegeu [[#Subscripció a un esdeveniment (implementat al backend)]]). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
 
 ## Esdeveniment astronòmic (implementat)
 
@@ -131,6 +131,7 @@ Escriptura i consulta per id (TG-50):
 
 - `upsert_many(drafts)`: desa els `EventDraft` (l'esdeveniment tal com el dona una font, amb `source` i `external_id` i sense `id`). Si `(source, external_id)` ja hi és, n'actualitza les dades i `updated_at` (`now()`) i en conserva l'`id` i `created_at`. Si el lot repeteix una clau, es desa l'últim.
 - `exists(event_id)`: si l'esdeveniment existeix (el fa servir TG-64 per a la sala de xat).
+- `get(event_id)`: l'esdeveniment, o `None` si no existeix (TG-53, per saber si ha acabat abans de subscriure-s'hi).
 
 Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventService` les refresca sota demanda abans de cada consulta ([[0031-fonts-d-esdeveniments-sota-demanda]]).
 
@@ -219,6 +220,39 @@ A l'app (`src/features/posts/`), la secció `EventPosts` va al final de la fitxa
 
 > [!todo] Pendent
 > - Moderació del text (TG-81) i imatges (TG-68).
+
+## Subscripció a un esdeveniment (implementat al backend)
+
+Un usuari se subscriu a un esdeveniment per tenir-lo a «Els meus esdeveniments» i entrar a la seva sala de xat (TG-53). Viu dins la feature `events`, perquè necessita l'esdeveniment sencer (`ends_at`) i la seva forma pública (`EventResponse`); així no s'importa cap altra feature (vegeu [[backend-hexagonal]]). Entitat `EventSubscription` a `app/domain/events/models.py`; port `EventSubscriptionRepository` a `app/domain/events/ports.py`; codis a `app/domain/events/errors.py`; cas d'ús `SubscriptionService` a `app/application/events/subscription_service.py`; taula `event_subscriptions` a `app/infrastructure/events/tables.py` (migració `create_event_subscriptions`), repositori `SqlEventSubscriptionRepository` i router `app/infrastructure/events/subscriptions_router.py`. Convencions de la taula: [[0023-convencions-del-model-de-dades]].
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7 (`uuidv7()`), clau primària |
+| `user_id` | FK a `users.id` amb `ON DELETE CASCADE` |
+| `event_id` | FK a `astronomical_events.id` amb `ON DELETE CASCADE`; índex `ix_event_subscriptions_event_id` |
+| `created_at` | `timestamptz`, `now()` per defecte |
+
+`UNIQUE (user_id, event_id)` (`uq_event_subscriptions_user_id`), que també serveix per a les consultes per usuari.
+
+Regles:
+
+- **Acabat:** `AstronomicalEvent.has_ended(now)` és `ends_at < now`. Un esdeveniment en curs, o que acaba just ara, s'hi pot subscriure. `EventSubscription.create(user_id, event, now)` refusa un esdeveniment acabat amb `EVENT_ALREADY_ENDED` (409, `ConflictError`).
+- **Ordre al servei** (`subscribe`): esdeveniment inexistent → `EVENT_NOT_FOUND` (404); ja subscrit → no canvia res (200), encara que l'esdeveniment hagi acabat; acabat → 409; si no, es crea (201). La idempotència va primer perquè un `PUT` repetit no canviï de resposta (decisió de la persona responsable, 17/11/2026).
+- **Concurrència:** `INSERT ... ON CONFLICT (user_id, event_id) DO NOTHING RETURNING id`; dues peticions alhora deixen una sola fila i només una rep 201.
+- **Baixa:** idempotent; no comprova que l'esdeveniment existeixi.
+- **Les meves subscripcions:** tots els esdeveniments subscrits, també els acabats, ordenats per `starts_at` i després per `id`, sense paginar.
+- **Xat (TG-64):** `SqlEventSubscriptionRepository.is_subscribed(user_id, event_id)` compleix per estructura el port `EventSubscriptions` de `app/domain/chat/ports.py`, que ja fa servir `ChatService`. La connexió del repositori amb el servei del xat és feina de TG-64.
+
+Endpoints (privats, amb sessió; l'usuari surt de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503):
+
+| Ruta | Què fa | Resposta |
+|---|---|---|
+| `PUT /api/events/{event_id}/subscription` | Subscriu l'usuari de la sessió | `201` o `200`, sense cos; 404, 409, 422 |
+| `DELETE /api/events/{event_id}/subscription` | Dona de baixa | `204`; 422 si l'identificador no és vàlid |
+| `GET /api/me/subscriptions` | Esdeveniments subscrits | `200` `EventResponse[]` ([[contracte-esdeveniments]]) |
+
+> [!todo] Pendent
+> - L'app (botó al llistat de TG-51 i secció «Els meus esdeveniments») va a la PR 2 de TG-53.
 
 ## Diagrama (transcripció)
 
