@@ -14,16 +14,22 @@
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
     "APOD_UNAVAILABLE": "Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona.",
     "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
+    "EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
     "GOOGLE_SIGN_IN_EXPO_GO": "L'inici de sessió amb Google no funciona a Expo Go. Usa l'app instal·lada (build de desenvolupament).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "L'inici de sessió amb Google encara no està disponible.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "INTERNAL_ERROR": "Alguna cosa ha anat malament. Torna-ho a provar.",
+    "INVALID_CURSOR": "No s'han pogut carregar més publicacions. Torna-ho a provar.",
     "INVALID_GOOGLE_TOKEN": "No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.",
     "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar el contingut.",
     "INVALID_SESSION": "La teva sessió ha caducat. Torna a iniciar sessió.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
     "NOT_FOUND": "No s'ha trobat el que busques.",
+    "POST_FORBIDDEN": "Només qui ha escrit aquesta publicació la pot editar o esborrar.",
+    "POST_NOT_FOUND": "Aquesta publicació ja no existeix.",
+    "POST_TEXT_EMPTY": "Escriu alguna cosa abans de publicar.",
+    "POST_TEXT_TOO_LONG": "El text pot tenir com a màxim 1.000 caràcters.",
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
   },
   "events": {
@@ -85,5 +91,15 @@
   "home": {
     "apodLink": "Imatge del dia",
     "mapLink": "Mapa d'esdeveniments"
+  },
+  "posts": {
+    "form": {
+      "label": "La teva publicació",
+      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "counter": "{{count}} de {{max}} caràcters",
+      "publish": "Publica",
+      "save": "Desa",
+      "cancel": "Cancel·la"
+    }
   }
 }

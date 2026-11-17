@@ -304,6 +304,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/events/{event_id}/posts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Publicacions d'un esdeveniment
+     * @description Llista les publicacions de l'esdeveniment, de la més nova a la més antiga, paginades per cursor: per a la pàgina següent, envia `next_cursor` com a `cursor`.
+     */
+    get: operations['list_event_posts'];
+    put?: never;
+    /**
+     * Publica un text en un esdeveniment
+     * @description Crea una publicació de text de la usuària de la sessió.
+     */
+    post: operations['create_event_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/posts/{post_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Esborra una publicació pròpia
+     * @description Esborra la publicació. Només ho pot fer l'autora.
+     */
+    delete: operations['delete_post'];
+    options?: never;
+    head?: never;
+    /**
+     * Edita una publicació pròpia
+     * @description Substitueix el text i desa `edited_at`. Només ho pot fer l'autora.
+     */
+    patch: operations['update_post'];
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -430,6 +478,11 @@ export interface components {
        */
       language?: string | null;
     };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][];
+    };
     /** HealthResponse */
     HealthResponse: {
       /**
@@ -464,6 +517,66 @@ export interface components {
      * @enum {string}
      */
     MediaType: 'image' | 'video';
+    /** PostAuthorResponse */
+    PostAuthorResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de l'autora
+       */
+      id: string;
+      /**
+       * Name
+       * @description Nom visible de l'autora
+       */
+      name: string;
+    };
+    /** PostPageResponse */
+    PostPageResponse: {
+      /**
+       * Items
+       * @description De la més nova a la més antiga
+       */
+      items: components['schemas']['PostResponse'][];
+      /**
+       * Next Cursor
+       * @description Cursor opac de la pàgina següent; `null` si no n'hi ha més
+       */
+      next_cursor: string | null;
+    };
+    /** PostResponse */
+    PostResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de la publicació
+       */
+      id: string;
+      author: components['schemas']['PostAuthorResponse'];
+      /**
+       * Text
+       * @description Text pla; el client no l'ha de renderitzar
+       */
+      text: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Edited At
+       * @description Última edició; `null` si no s'ha editat mai
+       */
+      edited_at: string | null;
+    };
+    /** PostTextRequest */
+    PostTextRequest: {
+      /**
+       * Text
+       * @description Text pla de la publicació: d'1 a 1000 caràcters un cop retallats els blancs dels extrems. Mai s'interpreta com a HTML.
+       */
+      text: string;
+    };
     /**
      * ProblemDetails
      * @description RFC 9457 error body, as built by ``problem_response``.
@@ -660,6 +773,19 @@ export interface components {
       preferred_language: components['schemas']['Language'];
       /** @description Rol de l'usuari */
       role: components['schemas']['Role'];
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
     };
   };
   responses: never;
@@ -1276,6 +1402,303 @@ export interface operations {
       };
       /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_event_posts: {
+    parameters: {
+      query?: {
+        /** @description `next_cursor` de la pàgina anterior */
+        cursor?: string | null;
+        /** @description Publicacions per pàgina */
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Una pàgina de publicacions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PostPageResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment no existeix (`EVENT_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cursor invàlid (`INVALID_CURSOR`) o `limit` fora de rang (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  create_event_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PostTextRequest'];
+      };
+    };
+    responses: {
+      /** @description La publicació creada. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PostResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment no existeix (`EVENT_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  delete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        post_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Publicació esborrada. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`), o la publicació no és de la usuària de la sessió (`POST_FORBIDDEN`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La publicació no existeix (`POST_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  update_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        post_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PostTextRequest'];
+      };
+    };
+    responses: {
+      /** @description La publicació editada. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PostResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`), o la publicació no és de la usuària de la sessió (`POST_FORBIDDEN`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La publicació no existeix (`POST_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`). */
+      422: {
         headers: {
           [name: string]: unknown;
         };
