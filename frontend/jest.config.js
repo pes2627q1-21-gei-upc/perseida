@@ -4,6 +4,8 @@ module.exports = {
   testTimeout: 30000,
   setupFiles: ['<rootDir>/jest.setup.js'],
   modulePathIgnorePatterns: ['<rootDir>/.stryker-tmp'],
+  // The tests of the Node scripts are ES modules and run with `node --test` (see the CI).
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/scripts/'],
   moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/index.ts'],
   coverageReporters: ['lcov', 'text'],
