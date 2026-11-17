@@ -46,6 +46,11 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de la persona responsable:
 - **Mutation testing del frontend només sobre les línies canviades:** Stryker donava 54 %: mutava sencer `EventSheet.tsx` (codi de TG-52) per dues línies tocades, i la majoria de supervivents eren valors d'estil. `run-stryker-diff.mjs` ara passa a Stryker rangs `fitxer:inici-final` de les línies afegides o canviades, i s'han afegit tests reals per als supervivents de lògica (vegeu [[testing]]).
 - **Temps de Stryker a la CI:** amb les 9 peces de la US surten 372 mutants, i amb `concurrency: 2` Stryker necessitava uns 25 minuts, més que els 15 del job `frontend`. Ara fa servir els 4 vCPU del runner (`concurrency: 4`) i el job té 30 minuts de marge.
 - **CI en vermell a la PR:** els fixtures d'esdeveniments ara fan `TRUNCATE ... CASCADE` (`posts` referencia `astronomical_events`). El 405 llista a `Allow` tots els mètodes del path, perquè un path pot tenir una ruta per mètode i schemathesis ho comprova. Jest ja no executa els tests dels scripts, que van amb `node --test`.
+- **Revisió de la PR #102 (canvis demanats):**
+  - `PostService` importava `app.domain.events.ports.EventRepository`, que trencava la independència entre features ([[backend-hexagonal]]). Ara té el port propi `EventLookup` a `app/domain/posts/ports.py`, i el contracte d'import-linter «The posts do not import other features» ho vigila.
+  - El mutation testing del frontend per línies s'ha documentat com a esmena d'[[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i de la [[definition-of-done]].
+  - El límit de peticions de `PATCH` i `DELETE` queda en una issue de seguiment a Taiga.
+  - Les publicacions d'un compte esborrat que mostren el `display_name` queden fora de l'abast: van a una US de privacitat.
 - **Error en recarregar:** si la llista ja tenia publicacions en memòria i la recàrrega falla, se segueixen mostrant, però amb l'error i «Torna-ho a provar» (error trobat a les proves manuals).
 
 ## Canvis al vault
@@ -55,6 +60,8 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de la persona responsable:
 - [[frontend]]: secció «Publicacions d'esdeveniment (TG-628)».
 - [[testing]]: el mutation testing del frontend només muta les línies canviades.
 - [[seguretat]]: `clean_user_text` a la taula de defensa al domini.
+- [[backend-hexagonal]]: contracte de `posts` i port `EventLookup`.
+- [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i [[definition-of-done]]: esmena del mutation testing del frontend per línies.
 - Fora del vault: codis `EVENT_NOT_FOUND`, `POST_*` i `INVALID_CURSOR` al catàleg de la skill `gestio-errors` (`references/cataleg-codis.md`).
 
 ## Pendent / següents passos
@@ -63,7 +70,8 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de la persona responsable:
 - [ ] Confirmar a la CI que el test de contracte (schemathesis) passa: no s'executa en local perquè buida la base de dades de desenvolupament.
 - [x] Mutation testing del domini `app/domain/posts/` (≥ 70 %): 89,1 % amb mutmut.
 - [x] Revisió de `reviewer-arquitectura` sobre el diff de la US: cap troballa crítica; l'alta i les mitjanes, resoltes.
-- [ ] Límit de peticions de `PATCH` i `DELETE /api/posts/*` (el proxy només limita `/api/events/`): decidir-ho amb la moderació (TG-81).
+- [ ] Límit de peticions de `PATCH` i `DELETE /api/posts/*` (el proxy només limita `/api/events/`): issue de seguiment a Taiga.
+- [ ] US de privacitat: què es mostra de l'autora d'una publicació quan el seu compte s'ha esborrat.
 - [ ] Noms accessibles diferents per a «Edita» i «Esborra» de cada publicació pròpia (ara els distingeix només el context).
 - [ ] Obrir la PR cap a `develop`, amb l'aprovació d'una persona que no sigui l'autora, i tancar les subtasques a Taiga.
 - [ ] Moderació del text (TG-81) i imatges (TG-68).
