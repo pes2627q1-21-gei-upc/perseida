@@ -2,7 +2,7 @@
 titol: "Backend: arquitectura hexagonal"
 tipus: arquitectura
 estat: vigent
-data: "2026-10-21"
+data: "2026-11-17"
 us: ["TG-85", "TG-39", "TG-40", "TG-41", "TG-45", "TG-46", "TG-88", "TG-205", "TG-304", "TG-629"]
 font: "backend/README.md, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07)"
 etiquetes: [arquitectura, backend, hexagonal]

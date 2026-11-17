@@ -41,6 +41,7 @@ Cap ADR nova. Decisions de Raquel:
   - La longitud dels textos només la mira el domini, un cop netejats.
   - La paginació queda fora de la US: és la tasca #644.
 - Review de la PR #101 (AlexGa03): [[backend-hexagonal]] actualitzat amb el contracte d'`outings` i `Location` a `shared`; la paginació keyset per `(starts_at, id)` es farà a #644.
+- Review de la PR #101 (manelav): `outings` té ara `server_default` `uuidv7()` a `id` i `now()` a `created_at` i `updated_at` ([[0023-convencions-del-model-de-dades|ADR-0023]]), a la migració i a `tables.py`; camp `data` de [[backend-hexagonal]] i `TG-629` a `us` de [[api]] i [[model-de-domini]].
 
 ## Pendent / següents passos
 

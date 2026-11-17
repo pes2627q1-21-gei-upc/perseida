@@ -3,7 +3,7 @@ titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-17"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628"]
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
@@ -188,14 +188,14 @@ Entitat `Outing` a `app/domain/outings/models.py` (la ubicació és el `Location
 
 | Camp | Notes |
 |---|---|
-| `id` | `uuid` UUIDv7, el genera el domini |
+| `id` | `uuid` UUIDv7, el genera el domini; per defecte `uuidv7()` al servidor ([[0023-convencions-del-model-de-dades\|ADR-0023]]) |
 | `author_id` | `uuid`, FK a `users.id` amb `ON DELETE RESTRICT` |
 | `event_id` | `uuid` o null: l'esdeveniment astronòmic relacionat. FK a `astronomical_events.id` amb `ON DELETE SET NULL` |
 | `title` | 1-120 caràcters, sense blancs als extrems ni caràcters de control |
 | `description` | 0-2.000 caràcters; conserva salts de línia i tabuladors |
 | `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` |
 | `latitude`, `longitude` | obligatòries; `CHECK` de rang −90..90 i −180..180 |
-| `created_at`, `updated_at` | les posa el servei amb el rellotge injectat |
+| `created_at`, `updated_at` | les posa el servei amb el rellotge injectat; per defecte `now()` al servidor |
 
 Regles:
 

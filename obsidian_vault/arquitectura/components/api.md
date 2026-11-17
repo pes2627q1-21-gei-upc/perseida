@@ -3,7 +3,7 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-11-17"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628"]
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
