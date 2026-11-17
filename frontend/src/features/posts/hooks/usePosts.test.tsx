@@ -154,7 +154,8 @@ describe('post mutations', () => {
     expect(post?.url.pathname).toBe(`/api/events/${EVENT_ID}/posts`);
     expect(post?.body).toEqual({ text: 'Es veu Júpiter' });
     expect(post?.auth).toBe('Bearer access-1');
-    expect(result.current.data).toEqual(created);
+    // The mutation state reaches the hook asynchronously after mutateAsync settles.
+    await waitFor(() => expect(result.current.data).toEqual(created));
     await waitFor(() => expect(calls.filter((call) => call.method === 'GET')).toHaveLength(2));
   });
 
