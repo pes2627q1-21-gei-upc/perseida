@@ -47,6 +47,12 @@ _UNREADABLE_BODY = _problem(
     "El cos de la petició no es pot llegir (codificació no vàlida)."
 )
 _EVENT_NOT_FOUND = _problem("L'esdeveniment no existeix (`EVENT_NOT_FOUND`).")
+# Sent by the proxy, not the API: the /api/events/ block of
+# infra/nginx-proxy-manager/rate-limit.conf also covers the posts of an event.
+_RATE_LIMITED = _problem(
+    "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega "
+    "de 20. La capçalera `Retry-After` indica quants segons cal esperar."
+)
 _INVALID_TEXT = (
     f"Text buit (`{POST_TEXT_EMPTY}`), de més de {POST_MAX_LENGTH} caràcters "
     f"(`{POST_TEXT_TOO_LONG}`) o cos mal format (`VALIDATION_ERROR`)."
@@ -129,6 +135,7 @@ def _author(user: User) -> PostAuthor:
         400: _UNREADABLE_BODY,
         404: _EVENT_NOT_FOUND,
         422: _problem(_INVALID_TEXT),
+        429: _RATE_LIMITED,
     },
 )
 async def create_event_post(
@@ -163,6 +170,7 @@ async def create_event_post(
             "Cursor invàlid (`INVALID_CURSOR`) o `limit` fora de rang "
             "(`VALIDATION_ERROR`)."
         ),
+        429: _RATE_LIMITED,
     },
 )
 async def list_event_posts(
@@ -222,7 +230,10 @@ async def update_post(
     description="Esborra la publicació. Només ho pot fer l'autora.",
     response_description="Publicació esborrada.",
     response_class=Response,
-    responses=_POST_ERRORS,
+    responses={
+        **_POST_ERRORS,
+        422: _problem("Identificador de publicació invàlid (`VALIDATION_ERROR`)."),
+    },
 )
 async def delete_post(
     post_id: uuid.UUID,

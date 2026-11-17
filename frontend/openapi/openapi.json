@@ -944,6 +944,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1057,6 +1067,16 @@
           },
           "422": {
             "description": "Cursor invàlid (`INVALID_CURSOR`) o `limit` fora de rang (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1245,11 +1265,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Identificador de publicació invàlid (`VALIDATION_ERROR`).",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1481,19 +1501,6 @@
           "id_token"
         ],
         "title": "GoogleLoginRequest"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
       },
       "HealthResponse": {
         "properties": {
@@ -1994,46 +2001,6 @@
           "role"
         ],
         "title": "UserResponse"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
       }
     },
     "securitySchemes": {

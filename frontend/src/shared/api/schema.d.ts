@@ -478,11 +478,6 @@ export interface components {
        */
       language?: string | null;
     };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][];
-    };
     /** HealthResponse */
     HealthResponse: {
       /**
@@ -773,19 +768,6 @@ export interface components {
       preferred_language: components['schemas']['Language'];
       /** @description Rol de l'usuari */
       role: components['schemas']['Role'];
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-      /** Input */
-      input?: unknown;
-      /** Context */
-      ctx?: Record<string, never>;
     };
   };
   responses: never;
@@ -1481,6 +1463,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
+      /** @description Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
       503: {
         headers: {
@@ -1561,6 +1552,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
+      /** @description Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
       503: {
         headers: {
@@ -1617,13 +1617,13 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Validation Error */
+      /** @description Identificador de publicació invàlid (`VALIDATION_ERROR`). */
       422: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HTTPValidationError'];
+          'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
