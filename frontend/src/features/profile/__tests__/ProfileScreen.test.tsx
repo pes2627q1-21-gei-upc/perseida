@@ -206,9 +206,11 @@ describe('ProfileScreen (TG-385 #517)', () => {
       expect(screen.getByText('Àlex García')).toBeOnTheScreen();
     });
 
-    expect(screen.getByText(/ràtxa d'observació/i)).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: "Ratxa d'observació" })).toBeOnTheScreen();
     expect(screen.getByText(/fites i assoliments/i)).toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Seguidors' })).toBeOnTheScreen();
+    // Same «coming soon» badge as the tabs that are not built yet (comingSoon.badge).
+    expect(screen.getAllByText('Pròximament')).toHaveLength(3);
   });
 
   it('shows error card with retry button when API fails', async () => {
