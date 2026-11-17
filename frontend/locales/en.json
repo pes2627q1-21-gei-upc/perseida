@@ -125,6 +125,7 @@
     },
     "languageLabel": "Language",
     "loading": "Loading profile...",
+    "memberSince": "Member since {{date}}",
     "retry": "Try again",
     "retryHint": "Reload profile details",
     "role": {

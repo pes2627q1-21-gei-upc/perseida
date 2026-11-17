@@ -125,6 +125,7 @@
     },
     "languageLabel": "Idioma",
     "loading": "Carregant el perfil...",
+    "memberSince": "Membre des de {{date}}",
     "retry": "Torna-ho a provar",
     "retryHint": "Torna a carregar les dades del perfil",
     "role": {

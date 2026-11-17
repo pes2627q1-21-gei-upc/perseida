@@ -10,7 +10,7 @@ import { LogoutButton } from '../../auth/components/LogoutButton';
 import { useUserProfile } from '../hooks/useUserProfile';
 
 export function ProfileScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data, isLoading, isError, error, refetch } = useUserProfile();
@@ -151,6 +151,19 @@ export function ProfileScreen() {
                     ]}
                   >
                     {data.email}
+                  </Text>
+
+                  <Text
+                    style={[
+                      theme.typography.caption,
+                      { color: theme.colors.text.secondary, textAlign: 'center' },
+                    ]}
+                  >
+                    {t('profile.memberSince', {
+                      date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(
+                        new Date(data.created_at),
+                      ),
+                    })}
                   </Text>
 
                   <View
