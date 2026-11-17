@@ -91,6 +91,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
 
       expect(apodScreen).toBeDefined();
       expect(apodScreen?.options?.href).toBeNull();
+      expect(apodScreen?.options?.tabBarStyle).toEqual({ display: 'none' });
     });
   });
 
@@ -101,6 +102,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
 
     await waitFor(() => {
       const options = mockScreenOptions.mock.calls.at(-1)?.[0];
+      expect(options?.headerShown).toBe(false);
       expect(options?.tabBarActiveTintColor).toBe(dia.brand);
       expect(options?.tabBarInactiveTintColor).toBe(dia.text.secondary);
     });

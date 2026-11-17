@@ -72,8 +72,10 @@ describe('ProfileScreen (TG-385 #517)', () => {
     await waitFor(() => {
       expect(screen.getByText('Àlex García')).toBeOnTheScreen();
     });
+    expect(screen.getByRole('header', { name: 'El teu perfil' })).toBeOnTheScreen();
     expect(screen.getByText('alex@example.com')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: /tanca la sessió/i })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /torna-ho a provar/i })).not.toBeOnTheScreen();
   });
 
   it('renders the sign-up date in the active language (TG-385 criteri 3)', async () => {
@@ -127,6 +129,11 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
   it.each([
     ['the initials of the name', { avatar_url: null }, 'ÀG'],
+    [
+      'the initials of a name with extra spaces',
+      { avatar_url: null, display_name: '  àlex   garcía ' },
+      'ÀG',
+    ],
     ['a generic initial without name', { avatar_url: null, display_name: null }, 'U'],
   ])(
     'without a photo, the avatar shows %s (TG-385 criteri 3)',
@@ -243,6 +250,7 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
     expect(screen.getByRole('header', { name: "Ratxa d'observació" })).toBeOnTheScreen();
     expect(screen.getByText(/fites i assoliments/i)).toBeOnTheScreen();
+    expect(screen.getByText(/^Completa el qüestionari diari/)).toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Seguidors' })).toBeOnTheScreen();
     // Same «coming soon» badge as the tabs that are not built yet (comingSoon.badge).
     expect(screen.getAllByText('Pròximament')).toHaveLength(3);
@@ -258,7 +266,7 @@ describe('ProfileScreen (TG-385 #517)', () => {
     await renderProfile();
 
     const retryBtn = await screen.findByRole('button', { name: /torna-ho a provar/i });
-    expect(retryBtn).toBeOnTheScreen();
+    expect(retryBtn.props.accessibilityHint).toBe('Torna a carregar les dades del perfil');
 
     await fireEvent.press(retryBtn);
 

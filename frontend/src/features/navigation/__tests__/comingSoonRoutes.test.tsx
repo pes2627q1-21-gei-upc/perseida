@@ -33,13 +33,14 @@ afterEach(() => mockPush.mockClear());
 
 describe('Tab routes (TG-385 #388)', () => {
   it.each([
-    ['chat', ChatScreen, 'Comunitat i xat'],
-    ['events', EventsScreen, 'Esdeveniments astronòmics'],
-    ['gamification', GamificationScreen, 'Gamificació i reptes'],
-  ])('%s shows its translated «coming soon» screen', async (_name, Route, title) => {
+    ['chat', ChatScreen, 'Comunitat i xat', /^Un espai en temps real/],
+    ['events', EventsScreen, 'Esdeveniments astronòmics', /^Molt aviat podràs consultar/],
+    ['gamification', GamificationScreen, 'Gamificació i reptes', /^Completa qüestionaris diaris/],
+  ])('%s shows its translated «coming soon» screen', async (_name, Route, title, description) => {
     await renderRoute(Route);
 
     expect(screen.getByRole('header', { name: title })).toBeOnTheScreen();
+    expect(screen.getByText(description)).toBeOnTheScreen();
     expect(screen.getByText('Pròximament')).toBeOnTheScreen();
   });
 
@@ -49,6 +50,23 @@ describe('Tab routes (TG-385 #388)', () => {
     await fireEvent.press(screen.getByRole('button', { name: "Obre el mapa d'esdeveniments" }));
 
     expect(mockPush).toHaveBeenCalledWith('/map');
+  });
+
+  it.each([
+    ['Imatge del dia', '/apod'],
+    ["Mapa d'esdeveniments", '/map'],
+  ])('the temporary home opens «%s»', async (label, route) => {
+    await render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <QueryClientProvider client={new QueryClient()}>
+          <HomeScreen />
+        </QueryClientProvider>
+      </SafeAreaProvider>,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: label }));
+
+    expect(mockPush).toHaveBeenCalledWith(route);
   });
 
   it('profile renders the profile feature screen', async () => {
