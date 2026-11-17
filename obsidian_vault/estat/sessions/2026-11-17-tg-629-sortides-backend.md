@@ -40,6 +40,7 @@ Cap ADR nova. Decisions de Raquel:
   - S'aplica la regla de [[backend-hexagonal]]: les sortides no importen la funcionalitat d'esdeveniments, i ho vigila un contracte d'import-linter.
   - La longitud dels textos només la mira el domini, un cop netejats.
   - La paginació queda fora de la US: és la tasca #644.
+- Review de la PR #101 (AlexGa03): [[backend-hexagonal]] actualitzat amb el contracte d'`outings` i `Location` a `shared`; la paginació keyset per `(starts_at, id)` es farà a #644.
 
 ## Pendent / següents passos
 
