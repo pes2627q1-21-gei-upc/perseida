@@ -70,6 +70,14 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(screen.getByRole('button', { name: /tanca la sessió/i })).toBeOnTheScreen();
   });
 
+  it('renders the sign-up date in the active language (TG-385 criteri 3)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+
+    await renderProfile();
+
+    expect(await screen.findByText(/^Membre des de 30 d.octubre del? 2026$/)).toBeOnTheScreen();
+  });
+
   it('renders gamification reserved slots (streak, achievements, activity)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
