@@ -118,6 +118,10 @@ export function ProfileScreen() {
               <GlassPanel>
                 <View style={[styles.profileCard, { gap: theme.spacing.sm }]}>
                   <View
+                    testID="profile-avatar"
+                    // Decorative: the name below already identifies the user (WCAG 1.1.1).
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
                     style={[
                       styles.avatarWrapper,
                       {
