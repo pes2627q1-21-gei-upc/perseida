@@ -31,7 +31,7 @@ Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api
 
 ## Límit de peticions per IP (TG-351)
 
-- `/api/events/` admet 60 peticions per minut i IP, amb una ràfega de 20 servida de cop (decisió de Raquel, tasca #477). Per sobre, el proxy respon `429` en problem+json amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1` ([[0018-errors-rfc-9457-amb-codis-estables]]), sense arribar a l'[[api]]. L'OpenAPI dels dos endpoints documenta aquest 429.
+- `/api/events/` admet 600 peticions per minut i IP (10 per segon), amb una ràfega de 100 servida de cop (decisió de Raquel, tasca #477; pujat des de 60 per minut i ràfega de 20 a TG-643). Per sobre, el proxy respon `429` en problem+json amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1` ([[0018-errors-rfc-9457-amb-codis-estables]]), sense arribar a l'[[api]]. L'OpenAPI dels dos endpoints documenta aquest 429.
 - `instance` surt d'un `map` d'`http_top.conf`: el camí exacte per a `/api/events/active` i `/api/events/upcoming`, i `/api/events/` per a qualsevol altre. nginx no escapa JSON, així que `$uri` mai entra al cos (review de la PR #83).
 - La zona `limit_req_zone` ha d'anar al bloc `http`, on la pestanya «Advanced» no arriba: és a `http_top.conf`, que el Compose munta a `/data/nginx/custom/http_top.conf` (NPM l'inclou) i el CD copia al servidor. La ubicació és a `rate-limit.conf`.
 - Ho comprova `infra/scripts/test-rate-limit.sh`, al job `proxy` de la CI.
@@ -39,11 +39,11 @@ Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api
 > [!danger] Ordre d'activació i de retirada
 > `rate-limit.conf` necessita la zona i el `map` d'`http_top.conf`; sense, nginx no arrenca i cau tot el proxy host. Per activar-lo, primer es desplega i després s'enganxa `rate-limit.conf` a «Advanced». Per retirar-lo (o abans d'un revert que tregui el muntatge), primer s'esborra d'«Advanced» i després es desplega. Detall a la secció «Límit de peticions per IP» del README d'`infra/`.
 
-> [!info] Usuaris darrere d'un mateix NAT
-> El límit també afecta l'app (el mapa fa servir `/api/events/`). Els usuaris darrere d'una mateixa IP pública (wifi del campus, CGNAT mòbil) comparteixen els 60 per minut. Risc acceptat per Raquel (16/11/2026, review de la PR #83): el mapa fa poques peticions per usuari i la ràfega de 20 absorbeix els pics. Si apareixen 429 al registre d'NPM amb trànsit legítim, es revisarà el límit.
+> [!info] Tots els clients comparteixen el comptador (TG-643)
+> A producció el NAT de la UPC (`nattech.fib.upc.edu`) fa SNAT: totes les peticions arriben a NPM amb la mateixa IP privada (`10.x`), comprovat al registre d'accessos el 17/11/2026. El límit és, per tant, un sol comptador per a tota l'app i per a Spotwise. Amb el límit inicial (60 per minut, ràfega de 20) unes 10 persones obrint el mapa alhora (2 peticions cadascuna) ja rebien 429; per això es va pujar a 600 per minut amb ràfega de 100 (decisió de Raquel, 17/11/2026). Si el NAT arribés a conservar la IP d'origen, es podria tornar a un límit per IP més estricte.
 
 > [!warning] IP real del client
-> NPM confia en `X-Real-IP` quan la petició arriba de `10/8`, `172.16/12` o `192.168/16`. Si el NAT de la UPC o Docker reescriuen l'origen a una IP privada, tots els clients compartirien un comptador i un client podria falsejar la seva IP. Cal comprovar `$remote_addr` al registre d'accessos d'NPM després del desplegament.
+> NPM confia en `X-Real-IP` quan la petició arriba de `10/8`, `172.16/12` o `192.168/16`. El NAT de la UPC sí que reescriu l'origen a una IP privada (vegeu el requadre anterior), així que un client que enviï `X-Real-IP` pot canviar la clau del límit i saltar-se'l. Pendent de decidir (TG-643): usar `$realip_remote_addr` com a clau, que no es pot falsejar però continua sent un sol comptador.
 
 ## Configuració
 

@@ -16,7 +16,7 @@ Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren e
 
 - `GET /api/events/active` i `GET /api/events/upcoming`: esdeveniments astronòmics rellevants actius en una data concreta o durant els dies vinents (pluges d'estrelles, eclipsis, superlluna, llançaments espacials).
 - El JSON inclou metadades clau de cada fenomen: **títol**, **descripció breu** i **categoria** (p. ex. `lunar`, `solar`, `meteor_shower`). El format exacte de cada esdeveniment és a [[contracte-esdeveniments]] (TG-50, tasca #387).
-- **Límit de peticions:** els endpoints són públics i el proxy admet 60 peticions per minut i IP (ràfega de 20). Per sobre, respon `429` en problem+json amb `code: RATE_LIMITED` i `Retry-After` ([[nginx-proxy-manager]], TG-351). Spotwise ens crida des del seu backend, així que tot el seu trànsit compta com una sola IP (unes 2 peticions per hora). L'OpenAPI dels dos endpoints documenta aquest 429.
+- **Límit de peticions:** els endpoints són públics i el proxy admet 600 peticions per minut (ràfega de 100), compartides per tots els clients perquè el NAT de la UPC amaga la IP d'origen (TG-643). Per sobre, respon `429` en problem+json amb `code: RATE_LIMITED` i `Retry-After` ([[nginx-proxy-manager]], TG-351). Spotwise ens crida des del seu backend, així que tot el seu trànsit compta com una sola IP (unes 2 peticions per hora). L'OpenAPI dels dos endpoints documenta aquest 429.
 - Ús per a Spotwise: personalitzar la seva interfície segons el context astronòmic (temes visuals, petites notificacions o pop-ups mentre cerquen locals).
 - Les dades provenen de la base de dades de Perseida, que s'omple sota demanda amb Launch Library 2 (llançaments), l'USNO (eclipsis solars), Skyfield (lluna) i un catàleg de pluges d'estels de la IMO ([[0031-fonts-d-esdeveniments-sota-demanda]], [[serveis-externs]]). L'endpoint el serveix l'[[api]].
 
@@ -24,7 +24,7 @@ Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren e
 
 Spotwise accepta el format tal com està a [[contracte-esdeveniments]] i no demana cap camp més.
 
-- **Origen:** ens criden sempre des del seu backend, és a dir des d'una sola IP. El límit de 60 peticions per minut els va bé.
+- **Origen:** ens criden sempre des del seu backend, és a dir des d'una sola IP. El límit de 60 peticions per minut els anava bé; ara és de 600 (TG-643).
 - **Freqüència:** una tasca periòdica del seu backend consulta cada hora `/api/events/active` i `/api/events/upcoming?days=7` i en desa el resultat. Són unes 2 peticions per hora (unes 50 al dia). La seva app llegeix del seu backend, mai del nostre.
 - **Ús:** les categories `lunar` i `solar` canvien la temàtica visual de la seva app, i totes les categories serveixen per avisar dels esdeveniments propers. Accepten `location` i `launch`, tot i que de moment no fan servir la ubicació.
 - **Idioma:** l'anglès els serveix. Ells tradueixen la `category` al català, al castellà i a l'anglès, i mostren el `title` tal com arriba.
