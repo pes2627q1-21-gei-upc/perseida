@@ -11,6 +11,7 @@ SQLModel.metadata.naming_convention = {
 # Import the table models after the naming convention is set so that
 # ``SQLModel.metadata`` (used by Alembic) knows every table.
 from app.infrastructure.events.tables import AstronomicalEventRow  # noqa: E402, F401
+from app.infrastructure.outings.tables import OutingRow  # noqa: E402, F401
 from app.infrastructure.posts.tables import PostRow  # noqa: E402, F401
 from app.infrastructure.quiz.tables import (  # noqa: E402, F401
     QuizAnswerRow,
