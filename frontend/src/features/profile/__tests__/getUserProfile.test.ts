@@ -1,6 +1,6 @@
 import { AppError } from '../../../shared/errors';
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
-import { getUserProfile } from './getUserProfile';
+import { getUserProfile } from '../api/getUserProfile';
 
 afterEach(() => {
   jest.restoreAllMocks();

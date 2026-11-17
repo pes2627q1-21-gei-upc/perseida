@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { AppError } from '../../../shared/errors';
 import * as tokenStorage from '../../auth/tokenStorage';
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
-import { profileKeys, useUserProfile } from './useUserProfile';
+import { profileKeys, useUserProfile } from '../hooks/useUserProfile';
 
 let queryClient: QueryClient;
 

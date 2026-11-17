@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
 import * as tokenStorage from '../../auth/tokenStorage';
-import { ProfileScreen } from './ProfileScreen';
+import { ProfileScreen } from '../components/ProfileScreen';
 
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
