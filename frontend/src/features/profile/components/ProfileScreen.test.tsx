@@ -78,7 +78,7 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(await screen.findByText(/^Membre des de 30 d.octubre del? 2026$/)).toBeOnTheScreen();
   });
 
-  it('renders gamification reserved slots (streak, achievements, activity)', async () => {
+  it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
     await renderProfile();
@@ -89,7 +89,7 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
     expect(screen.getByText(/ràtxa d'observació/i)).toBeOnTheScreen();
     expect(screen.getByText(/fites i assoliments/i)).toBeOnTheScreen();
-    expect(screen.getByText(/activitat astronòmica/i)).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Seguidors' })).toBeOnTheScreen();
   });
 
   it('shows error card with retry button when API fails', async () => {
