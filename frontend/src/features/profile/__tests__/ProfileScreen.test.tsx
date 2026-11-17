@@ -79,6 +79,7 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
     await renderProfile();
 
+    // CLDR changed «de 2026» to «del 2026» in Catalan: accept both so the ICU of Node/Hermes does not matter.
     expect(await screen.findByText(/^Membre des de 30 d.octubre del? 2026$/)).toBeOnTheScreen();
   });
 
@@ -112,6 +113,32 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(screen.getByTestId('profile-avatar', { includeHiddenElements: true })).toBeTruthy();
     expect(screen.queryByTestId('profile-avatar')).not.toBeOnTheScreen();
   });
+
+  it('shows the role and the preferred language of the user', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+
+    await renderProfile();
+
+    expect(await screen.findByText('Observador')).toBeOnTheScreen();
+    expect(screen.getByText('Català')).toBeOnTheScreen();
+  });
+
+  it.each([
+    ['the initials of the name', { avatar_url: null }, 'ÀG'],
+    ['a generic initial without name', { avatar_url: null, display_name: null }, 'U'],
+  ])(
+    'without a photo, the avatar shows %s (TG-385 criteri 3)',
+    async (_case, overrides, initials) => {
+      jest
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => jsonResponse({ ...mockUserProfile, ...overrides }));
+
+      await renderProfile();
+
+      await screen.findByText('alex@example.com');
+      expect(screen.getByText(initials, { includeHiddenElements: true })).toBeTruthy();
+    },
+  );
 
   it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
