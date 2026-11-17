@@ -2,7 +2,7 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-11-16"
+data: "2026-11-17"
 us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351"]
 font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477); review de la PR #83 (16/11/2026)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
