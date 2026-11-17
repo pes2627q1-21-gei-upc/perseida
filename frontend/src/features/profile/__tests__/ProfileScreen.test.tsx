@@ -186,6 +186,17 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(await screen.findByText('ÀG', { includeHiddenElements: true })).toBeTruthy();
   });
 
+  it('without a profile name, the heading is the email and the email is not repeated', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => jsonResponse({ ...mockUserProfile, display_name: null }));
+
+    await renderProfile();
+
+    expect(await screen.findByRole('header', { name: 'alex@example.com' })).toBeOnTheScreen();
+    expect(screen.getAllByText('alex@example.com')).toHaveLength(1);
+  });
+
   it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
