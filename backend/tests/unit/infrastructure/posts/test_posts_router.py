@@ -49,6 +49,10 @@ ME = User.create(google_sub="google-123", email="ana@example.com", display_name=
 OTHER = User.create(
     google_sub="google-999", email="bob@example.com", display_name="Bob"
 )
+# Same Google account as ME, but Google gave no name.
+NAMELESS = User.create(
+    google_sub="google-123", email="ana@example.com", display_name=None
+)
 EVENT = make_event(NOW)
 UNKNOWN_ID = uuid.UUID("01a1bd9a-ffff-7000-8000-000000000000")
 
@@ -56,14 +60,14 @@ UNKNOWN_ID = uuid.UUID("01a1bd9a-ffff-7000-8000-000000000000")
 def _post(author: User, text: str = "Hola", minutes: int = 0) -> Post:
     return Post.create(
         event_id=EVENT.id,
-        author=PostAuthor(id=author.id, name=author.display_name or author.email),
+        author=PostAuthor(id=author.id, name=author.display_name),
         text=text,
         now=NOW + timedelta(minutes=minutes),
     )
 
 
 async def _client(
-    posts: FakePostRepository,
+    posts: FakePostRepository, me: User = ME
 ) -> AsyncIterator[tuple[AsyncClient, dict[str, str]]]:
     auth = AuthService(
         FakeGoogleTokenVerifier(IDENTITY),
@@ -77,7 +81,7 @@ async def _client(
     register_error_handlers(app)
     app.dependency_overrides[get_auth_service] = lambda: auth
     app.dependency_overrides[get_user_service] = lambda: UserService(
-        InMemoryUserRepository(ME, OTHER)
+        InMemoryUserRepository(me, OTHER)
     )
     app.dependency_overrides[get_post_service] = lambda: PostService(
         posts, FakeEventRepository([EVENT])
@@ -142,6 +146,19 @@ async def test_create_post_returns_201_with_the_trimmed_post_of_the_session_user
     assert body["edited_at"] is None
     assert set(body) == {"id", "author", "text", "created_at", "edited_at"}
     assert [str(p.id) for p in repo.posts.values()] == [body["id"]]
+
+
+async def test_an_author_without_display_name_has_no_name_and_never_the_email() -> None:
+    # Dades personals: el correu no surt mai a la comunitat (l'app posa un nom generic)
+    repo = FakePostRepository()
+    async for client, auth in _client(repo, me=NAMELESS):
+        response = await client.post(
+            f"/api/events/{EVENT.id}/posts", json={"text": "Hola"}, headers=auth
+        )
+
+    assert response.status_code == 201
+    assert response.json()["author"] == {"id": str(NAMELESS.id), "name": None}
+    assert NAMELESS.email not in response.text
 
 
 async def test_create_post_on_an_unknown_event_is_404() -> None:

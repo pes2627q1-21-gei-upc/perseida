@@ -72,6 +72,13 @@ describe('PostItem', () => {
     expect(screen.queryByText('editada')).toBeNull();
   });
 
+  it('names an author without a profile name with a generic name and a short tag', async () => {
+    const author = { id: '01a1bd9a-0000-7000-8000-00000000c0de', name: null };
+    await renderItem(makePost(1, { author }), false);
+
+    expect(screen.getByText('Usuari/a #00c0de')).toBeTruthy();
+  });
+
   it('says when the post was edited', async () => {
     await renderItem(makePost(1, { edited_at: '2026-11-17T11:00:00Z' }), false);
 

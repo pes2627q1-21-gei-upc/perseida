@@ -72,7 +72,7 @@ def event_repo(
 
 
 async def _create_test_user(
-    user_repo: SqlUserRepository, email: str, name: str
+    user_repo: SqlUserRepository, email: str, name: str | None
 ) -> User:
     user = User.create(google_sub=f"sub-{uuid.uuid4()}", email=email, display_name=name)
     return await user_repo.add(user)
@@ -105,7 +105,7 @@ async def test_create_and_get_post(
     user = await _create_test_user(user_repo, f"post-{uuid.uuid4()}@test.cat", "Laia")
     event = await _create_test_event(event_repo)
 
-    author = PostAuthor(id=user.id, name=user.display_name or "Laia")
+    author = PostAuthor(id=user.id, name=user.display_name)
     post = Post.create(event_id=event.id, author=author, text="Primera observació!")
 
     created = await post_repo.create(post)
@@ -193,3 +193,24 @@ async def test_list_by_event_cursor_pagination(
     assert len(page2.posts) == 1
     assert page2.posts[0].id == p1.id
     assert page2.next_cursor is None
+
+
+async def test_an_author_without_display_name_is_read_without_name(
+    post_repo: SqlPostRepository,
+    user_repo: SqlUserRepository,
+    event_repo: SqlEventRepository,
+) -> None:
+    # El correu no surt mai com a nom public (TG-628, dades personals)
+    user = await _create_test_user(user_repo, f"post-{uuid.uuid4()}@test.cat", None)
+    event = await _create_test_event(event_repo)
+    post = Post.create(
+        event_id=event.id, author=PostAuthor(id=user.id, name=None), text="Hola"
+    )
+    await post_repo.create(post)
+
+    fetched = await post_repo.get_by_id(post.id)
+    page = await post_repo.list_by_event(event.id)
+
+    assert fetched is not None
+    assert fetched.author.name is None
+    assert [p.author.name for p in page.posts if p.id == post.id] == [None]

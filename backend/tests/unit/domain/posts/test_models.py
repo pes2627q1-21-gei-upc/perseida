@@ -186,3 +186,8 @@ def test_post_cursor_and_page() -> None:
 
     assert page.posts == [post]
     assert page.next_cursor == cursor
+
+
+def test_an_author_may_have_no_name() -> None:
+    # Sense display_name, el nom public es null: mai el correu (TG-628, dades personals)
+    assert PostAuthor(id=AUTHOR_ID, name=None).name is None
