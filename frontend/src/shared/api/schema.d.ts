@@ -304,6 +304,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/outings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Sortides que encara no han començat
+     * @description Retorna les sortides amb l'inici a partir d'ara, ordenades per `starts_at` i després per `id`. Es poden filtrar per esdeveniment (`event_id`) i quedar-se només amb les de la usuària de la sessió (`mine=true`).
+     */
+    get: operations['list_outings'];
+    put?: never;
+    /**
+     * Crea una sortida d'observació
+     * @description Crea una sortida de la usuària de la sessió. L'esdeveniment relacionat és opcional; si se'n dona un, ha d'existir. La capçalera `Location` porta la URL de la sortida creada.
+     */
+    post: operations['create_outing'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/outings/{outing_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Detall d'una sortida
+     * @description Retorna la sortida amb l'autora.
+     */
+    get: operations['get_outing'];
+    put?: never;
+    post?: never;
+    /**
+     * Esborra una sortida
+     * @description Només l'autora.
+     */
+    delete: operations['delete_outing'];
+    options?: never;
+    head?: never;
+    /**
+     * Edita una sortida
+     * @description Només l'autora. Canvien només els camps enviats; `event_id: null` treu l'esdeveniment. Si canvien `starts_at` o `ends_at`, l'inici no pot ser en el passat; si no, es pot editar una sortida que ja ha començat.
+     */
+    patch: operations['update_outing'];
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -464,6 +516,147 @@ export interface components {
      * @enum {string}
      */
     MediaType: 'image' | 'video';
+    /** OutingAuthorResponse */
+    OutingAuthorResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de l'autora
+       */
+      id: string;
+      /**
+       * Display Name
+       * @description Nom del perfil de Google
+       */
+      display_name: string | null;
+      /**
+       * Avatar Url
+       * @description Avatar del perfil de Google
+       */
+      avatar_url: string | null;
+    };
+    /** OutingCreate */
+    OutingCreate: {
+      /**
+       * Title
+       * @description Títol, d'1 a 120 caràcters
+       * @example Perseides al Montsec
+       */
+      title: string;
+      /**
+       * Description
+       * @description Descripció, de 0 a 2000 caràcters
+       * @default
+       */
+      description: string;
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601 amb zona horària); no pot ser en el passat
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601 amb zona horària); no pot ser anterior a l'inici
+       */
+      ends_at: string;
+      /** @description Lloc de trobada */
+      location: components['schemas']['EventLocation'];
+      /**
+       * Event Id
+       * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
+       */
+      event_id?: string | null;
+    };
+    /** OutingResponse */
+    OutingResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de la sortida (UUIDv7)
+       */
+      id: string;
+      /**
+       * Title
+       * @description Títol, d'1 a 120 caràcters
+       */
+      title: string;
+      /**
+       * Description
+       * @description Descripció, de 0 a 2000 caràcters
+       */
+      description: string;
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601, UTC)
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601, UTC)
+       */
+      ends_at: string;
+      /** @description Lloc de trobada */
+      location: components['schemas']['EventLocation'];
+      /**
+       * Event Id
+       * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
+       */
+      event_id: string | null;
+      /** @description Qui ha creat la sortida */
+      author: components['schemas']['OutingAuthorResponse'];
+      /**
+       * Created At
+       * Format: date-time
+       * @description Creació (ISO 8601, UTC)
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description Última edició (ISO 8601, UTC)
+       */
+      updated_at: string;
+    };
+    /**
+     * OutingUpdate
+     * @description Only the fields sent change. ``event_id: null`` unlinks the event; the other
+     *     fields may be left out but never be null.
+     */
+    OutingUpdate: {
+      /**
+       * Title
+       * @description Títol, d'1 a 120 caràcters
+       */
+      title?: string;
+      /**
+       * Description
+       * @description Descripció, de 0 a 2000 caràcters
+       */
+      description?: string;
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601 amb zona horària); no pot ser en el passat
+       */
+      starts_at?: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601 amb zona horària); no pot ser anterior a l'inici
+       */
+      ends_at?: string;
+      /** @description Lloc de trobada */
+      location?: components['schemas']['EventLocation'];
+      /**
+       * Event Id
+       * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
+       */
+      event_id?: string | null;
+    };
     /**
      * ProblemDetails
      * @description RFC 9457 error body, as built by ``problem_response``.
@@ -1276,6 +1469,348 @@ export interface operations {
       };
       /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_outings: {
+    parameters: {
+      query?: {
+        /** @description Només les sortides d'aquest esdeveniment. */
+        event_id?: string | null;
+        /** @description Només les sortides de la usuària de la sessió. */
+        mine?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Les sortides futures; buit si no n'hi ha cap. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Paràmetre invàlid (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  create_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OutingCreate'];
+      };
+    };
+    responses: {
+      /** @description La sortida creada, amb l'autora. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        outing_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La sortida. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La sortida no existeix (`OUTING_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador mal format (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  delete_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        outing_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La sortida s'ha esborrat. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No ets l'autora de la sortida (`OUTING_FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La sortida no existeix (`OUTING_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador mal format (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  update_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        outing_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OutingUpdate'];
+      };
+    };
+    responses: {
+      /** @description La sortida editada. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No ets l'autora de la sortida (`OUTING_FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La sortida no existeix (`OUTING_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
+      422: {
         headers: {
           [name: string]: unknown;
         };
