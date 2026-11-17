@@ -362,6 +362,209 @@
         ]
       }
     },
+    "/api/events": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Llistat d'esdeveniments filtrable",
+        "description": "Retorna els esdeveniments que estan en curs en algun moment entre els dies `from` i `to` (dies UTC, `to` inclòs fins a les 24:00Z). Per defecte `from` és avui i `to` és 30 dies després de `from`; el rang no pot passar de 90 dies. `category` es pot repetir per demanar-ne diverses; sense cap, totes. Amb `lat` i `lon` només hi surten els esdeveniments a menys de `radius_km` quilòmetres (per defecte 500) i els que no tenen ubicació, que es veuen des de qualsevol lloc. `from` posterior a `to`, un rang de més de 90 dies, `lat` sense `lon` (o al revés) o `radius_km` sense coordenades donen 422. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.\n\nExemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):\n\n```json\n[\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-8926ca81b8fe\",\n    \"title\": \"Falcon 9 Block 5 | Starlink Group 10-12\",\n    \"summary\": \"A batch of Starlink satellites launched from Cape Canaveral SLC-40.\",\n    \"category\": \"launch\",\n    \"starts_at\": \"2026-11-03T21:15:00Z\",\n    \"ends_at\": \"2026-11-03T23:45:00Z\",\n    \"location\": {\n      \"latitude\": 28.5618,\n      \"longitude\": -80.577\n    },\n    \"source_url\": \"https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/\"\n  },\n  {\n    \"id\": \"01a19288-a3f6-7576-a37b-89276502d574\",\n    \"title\": \"Full Moon\",\n    \"summary\": \"The Moon is fully illuminated as seen from Earth.\",\n    \"category\": \"lunar\",\n    \"starts_at\": \"2026-11-24T14:53:00Z\",\n    \"ends_at\": \"2026-11-24T14:53:00Z\",\n    \"location\": null,\n    \"source_url\": null\n  }\n]\n```",
+        "operationId": "list_events",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/EventCategory"
+              },
+              "description": "Categoria; es pot repetir. Per defecte, totes.",
+              "title": "Category"
+            },
+            "description": "Categoria; es pot repetir. Per defecte, totes.",
+            "examples": {
+              "moon_and_launches": {
+                "value": [
+                  "lunar",
+                  "launch"
+                ]
+              }
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Primer dia UTC (YYYY-MM-DD). Per defecte, avui.",
+              "title": "From"
+            },
+            "description": "Primer dia UTC (YYYY-MM-DD). Per defecte, avui.",
+            "examples": {
+              "december": {
+                "value": "2026-12-01"
+              }
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Darrer dia UTC, inclòs (YYYY-MM-DD). Per defecte, 30 dies després de `from`.",
+              "title": "To"
+            },
+            "description": "Darrer dia UTC, inclòs (YYYY-MM-DD). Per defecte, 30 dies després de `from`.",
+            "examples": {
+              "december": {
+                "value": "2026-12-31"
+              }
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 90,
+                  "minimum": -90
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Latitud en graus (WGS 84); cal amb `lon`.",
+              "title": "Lat"
+            },
+            "description": "Latitud en graus (WGS 84); cal amb `lon`.",
+            "examples": {
+              "barcelona": {
+                "value": 41.3874
+              }
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 180,
+                  "minimum": -180
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Longitud en graus (WGS 84); cal amb `lat`.",
+              "title": "Lon"
+            },
+            "description": "Longitud en graus (WGS 84); cal amb `lat`.",
+            "examples": {
+              "barcelona": {
+                "value": 2.1686
+              }
+            }
+          },
+          {
+            "name": "radius_km",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 20000.0,
+                  "minimum": 1.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Radi en km (1-20000) al voltant de `lat` i `lon`. Per defecte, 500.",
+              "title": "Radius Km"
+            },
+            "description": "Radi en km (1-20000) al voltant de `lat` i `lon`. Per defecte, 500.",
+            "examples": {
+              "region": {
+                "value": 100
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Els esdeveniments que compleixen els filtres.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventResponse"
+                  },
+                  "title": "Response List Events"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Paràmetre invàlid (code `VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error inesperat (code `INTERNAL_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/events/active": {
       "get": {
         "tags": [
