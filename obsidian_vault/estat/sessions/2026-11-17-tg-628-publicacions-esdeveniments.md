@@ -35,6 +35,8 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de la persona responsable:
 - **Autoria a l'app:** `useCurrentUser` amb `GET /api/users/me`, sense camp nou a l'API ni lectura del JWT.
 - **Confirmació d'esborrat:** dins de la publicació, no amb `Alert.alert` (React Native Web l'ignora i el panell lateral es fa servir a web).
 - **Ubicació:** la secció de publicacions va al final del scroll de la fitxa.
+- **Autora sense nom:** l'API retorna `name: null` (mai el correu) i l'app mostra «Usuari/a #xxxxxx» amb els 6 últims caràcters de l'`id`, per distingir dues autores sense nom. L'`id` no és un secret: l'autoria es comprova amb la sessió.
+- **Error en recarregar:** si la llista ja tenia publicacions en memòria i la recàrrega falla, se segueixen mostrant, però amb l'error i «Torna-ho a provar» (error trobat a les proves manuals).
 
 ## Canvis al vault
 
@@ -45,7 +47,7 @@ Cap ADR nova: no canvia l'arquitectura. Decisions de la persona responsable:
 
 ## Pendent / següents passos
 
-- [ ] Decidir el nom públic d'una autora sense `display_name`: ara es mostra el seu correu a tota la comunitat.
+- [x] Nom públic d'una autora sense `display_name`: abans era el seu correu; ara és `null` a l'API i un nom genèric a l'app.
 - [ ] Confirmar a la CI que el test de contracte (schemathesis) passa: no s'executa en local perquè buida la base de dades de desenvolupament.
 - [ ] Mutation testing del domini `app/domain/posts/` (≥ 70 %).
 - [ ] Revisió de `reviewer-arquitectura` sobre el diff de la US.

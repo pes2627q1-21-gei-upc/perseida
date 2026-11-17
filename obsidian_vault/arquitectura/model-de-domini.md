@@ -201,7 +201,7 @@ Regles:
 - **Text:** el mateix netejat que els missatges de xat (vegeu [[#Xat d'esdeveniment (domini implementat)]]): sense caràcters de control ni invisibles perillosos i sense blancs als extrems. Buit dona `POST_TEXT_EMPTY` i de més de 1.000 caràcters `POST_TEXT_TOO_LONG` (422); mai es trunca. L'app el mostra sempre com a text pla, mai com a HTML ni com a enllaç ([[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss|ADR-0024]]).
 - **Autoria:** només l'autora pot editar o esborrar (`POST_FORBIDDEN`, 403); una publicació inexistent dona `POST_NOT_FOUND` (404). El servei comprova primer l'existència i després l'autoria. L'autora surt sempre de la sessió, mai del cos ni de la ruta.
 - **Esdeveniment:** crear o llistar en un esdeveniment inexistent dona `EVENT_NOT_FOUND` (404), amb `EventRepository.exists`.
-- **Nom de l'autora:** `display_name` del perfil o, si no en té, el correu (vegeu el pendent).
+- **Nom de l'autora:** `display_name` del perfil, o `null` si no en té. El correu no surt mai: és una dada personal. L'app hi posa un nom genèric amb els 6 últims caràcters hexadecimals de l'`id` (`Usuari/a #3f9a2c`), que distingeix dues autores sense nom. Aquests caràcters són la part aleatòria del UUIDv7. L'`id` complet ja és públic a `author.id` i no dona cap permís (l'autoria es comprova amb la sessió), però porta la data de creació del compte (decisió de la persona responsable, 17/11/2026).
 - **Ordre i paginació:** de la més nova a la més antiga per `(created_at, id)`, amb cursor exclusiu. El cursor públic és opac: `[created_at, id]` en JSON i base64url sense farciment, de 256 caràcters com a màxim. Un cursor mal format o no canònic dona `INVALID_CURSOR` (422). `limit` d'1 a 50, per defecte 20.
 
 Endpoints (privats, amb sessió; 401 `INVALID_SESSION` sense sessió vàlida):
@@ -213,12 +213,11 @@ Endpoints (privats, amb sessió; 401 `INVALID_SESSION` sense sessió vàlida):
 | `PATCH /api/posts/{post_id}` | Edita el text i desa `edited_at` | `200` publicació; 403, 404, 422 |
 | `DELETE /api/posts/{post_id}` | Esborra la publicació | `204`; 403, 404 |
 
-Cada publicació: `{"id", "author": {"id", "name"}, "text", "created_at", "edited_at"}`. El cos de les peticions rebutja camps desconeguts (`extra="forbid"`).
+Cada publicació: `{"id", "author": {"id", "name"}, "text", "created_at", "edited_at"}`; `author.name` pot ser `null`. El cos de les peticions rebutja camps desconeguts (`extra="forbid"`).
 
 A l'app (`src/features/posts/`), la secció `EventPosts` va al final de la fitxa de l'esdeveniment (vegeu [[frontend]]).
 
 > [!todo] Pendent
-> - Si l'autora no té `display_name`, el nom públic és el seu correu, que veu tota la comunitat. Cal decidir-ho amb l'equip (p. ex. un nom genèric) abans de fusionar.
 > - Moderació del text (TG-81) i imatges (TG-68).
 
 ## Diagrama (transcripció)
