@@ -23,9 +23,9 @@ _RESPONSES: dict[int | str, dict[str, Any]] = {
     429: {
         "model": ProblemDetails,
         "description": (
-            "Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb "
-            "una ràfega de 20. La capçalera `Retry-After` indica quants segons cal "
-            "esperar."
+            "Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots "
+            "els clients (comptador compartit), amb una ràfega de 100. La capçalera "
+            "`Retry-After` indica quants segons cal esperar."
         ),
         "content": PROBLEM_CONTENT,
     },
