@@ -15,6 +15,11 @@ from sqlalchemy import (
 )
 from sqlmodel import Field, SQLModel
 
+# The location as a PostGIS ``geography``. The spatial index is built on this
+# exact expression, so a proximity query must use it verbatim to be served by
+# the index (TG-51).
+LOCATION_GEOGRAPHY = "(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography)"
+
 
 def _timestamptz(*, index: bool = False) -> Column[datetime]:
     return Column(DateTime(timezone=True), nullable=False, index=index)
@@ -50,7 +55,7 @@ class AstronomicalEventRow(SQLModel, table=True):
         # migration so that ``alembic check`` sees no difference.
         Index(
             "ix_astronomical_events_location",
-            text("(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography)"),
+            text(LOCATION_GEOGRAPHY),
             postgresql_using="gist",
             postgresql_where=text("latitude IS NOT NULL"),
         ),
