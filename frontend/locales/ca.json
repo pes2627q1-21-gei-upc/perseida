@@ -112,12 +112,12 @@
       "title": "Fites i assoliments",
       "unlocked": "0 fites desbloquejades"
     },
-    "community": {
-      "badge": "Properament",
-      "desc": "Estadístiques d'observacions compartides i trobades astronòmiques.",
-      "title": "Activitat astronòmica"
-    },
     "emailLabel": "Correu electrònic",
+    "followers": {
+      "badge": "Properament",
+      "desc": "Quantes persones segueixen les teves observacions i quantes en segueixes tu.",
+      "title": "Seguidors"
+    },
     "language": {
       "ca": "Català",
       "en": "Anglès",

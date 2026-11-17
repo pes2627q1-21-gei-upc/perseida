@@ -112,12 +112,12 @@
       "title": "Badges & achievements",
       "unlocked": "0 badges unlocked"
     },
-    "community": {
-      "badge": "Coming soon",
-      "desc": "Statistics on shared observations and stargazing gatherings.",
-      "title": "Astronomical activity"
-    },
     "emailLabel": "Email address",
+    "followers": {
+      "badge": "Coming soon",
+      "desc": "How many people follow your observations and how many you follow.",
+      "title": "Followers"
+    },
     "language": {
       "ca": "Catalan",
       "en": "English",

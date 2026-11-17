@@ -1,4 +1,4 @@
-import { Flame, Sparkle, Trophy, User } from 'phosphor-react-native';
+import { Flame, Trophy, User, Users } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -311,7 +311,7 @@ export function ProfileScreen() {
                 </View>
               </GlassPanel>
 
-              {/* Gamification Slot: Community Activity */}
+              {/* Gamification Slot: Followers (#62) */}
               <GlassPanel>
                 <View style={[styles.slotCard, { gap: theme.spacing.xs }]}>
                   <View style={styles.slotHeader}>
@@ -321,7 +321,7 @@ export function ProfileScreen() {
                         { backgroundColor: theme.colors.surface.glassSolid },
                       ]}
                     >
-                      <Sparkle size={theme.iconSizes.sm} color={theme.colors.brand} weight="fill" />
+                      <Users size={theme.iconSizes.sm} color={theme.colors.brand} weight="fill" />
                     </View>
                     <Text
                       accessibilityRole="header"
@@ -330,7 +330,7 @@ export function ProfileScreen() {
                         { color: theme.colors.text.primary, flex: 1 },
                       ]}
                     >
-                      {t('profile.community.title')}
+                      {t('profile.followers.title')}
                     </Text>
                     <View
                       style={[
@@ -348,12 +348,12 @@ export function ProfileScreen() {
                           { color: theme.colors.brand, fontWeight: '600' },
                         ]}
                       >
-                        {t('profile.community.badge')}
+                        {t('profile.followers.badge')}
                       </Text>
                     </View>
                   </View>
                   <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
-                    {t('profile.community.desc')}
+                    {t('profile.followers.desc')}
                   </Text>
                 </View>
               </GlassPanel>
