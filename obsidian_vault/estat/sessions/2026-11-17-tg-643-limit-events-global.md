@@ -37,7 +37,7 @@ Cap ADR nova. Decisions de Raquel:
 
 - [ ] PR de `feature/TG-643-limit-events-global` cap a `develop` quan Raquel ho demani.
 - [ ] Després del desplegament: tornar a enganxar `rate-limit.conf` a «Advanced» (canvia la ràfega). La zona nova arriba amb el CD.
-- [ ] Confirmar a producció que la configuració *real IP* d'NPM és la que reprodueix el test: `nginx -T | grep real_ip`.
+- [x] Confirmat a producció (`nginx -T | grep real_ip`): NPM té les tres xarxes privades, `real_ip_header X-Real-IP` i `real_ip_recursive on`, com el test. A més hi ha els rangs de CloudFront i Cloudflare (`ip_ranges.conf`), que no hi afecten perquè el trànsit arriba del NAT.
 - [ ] Afegir el job `proxy` als *required checks* de `develop`.
 
 ## US de Taiga
