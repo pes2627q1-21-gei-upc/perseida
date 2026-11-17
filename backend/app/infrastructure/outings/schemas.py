@@ -25,8 +25,10 @@ Uuid7 = Annotated[UUID7, WithJsonSchema({"type": "string", "format": "uuid"})]
 # An event id that is sent: any UUID; one that is not stored answers
 # OUTING_EVENT_NOT_FOUND, so the schema and the validator say the same.
 SentEventId = uuid.UUID
-Title = Annotated[str, Field(max_length=TITLE_MAX_LENGTH)]
-Description = Annotated[str, Field(max_length=DESCRIPTION_MAX_LENGTH)]
+# No max_length here: the domain measures the text after cleaning it and answers
+# OUTING_TITLE_TOO_LONG or OUTING_DESCRIPTION_TOO_LONG (decision of Raquel, 17/11/2026).
+Title = str
+Description = str
 
 _TITLE = f"Títol, d'1 a {TITLE_MAX_LENGTH} caràcters"
 _DESCRIPTION = f"Descripció, de 0 a {DESCRIPTION_MAX_LENGTH} caràcters"
