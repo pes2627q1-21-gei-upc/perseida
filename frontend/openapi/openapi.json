@@ -1433,6 +1433,12 @@
           "role": {
             "$ref": "#/components/schemas/Role",
             "description": "Rol de l'usuari"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Data d'alta del compte (UTC)"
           }
         },
         "type": "object",
@@ -1442,7 +1448,8 @@
           "display_name",
           "avatar_url",
           "preferred_language",
-          "role"
+          "role",
+          "created_at"
         ],
         "title": "UserResponse"
       }

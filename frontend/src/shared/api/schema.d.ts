@@ -660,6 +660,12 @@ export interface components {
       preferred_language: components['schemas']['Language'];
       /** @description Rol de l'usuari */
       role: components['schemas']['Role'];
+      /**
+       * Created At
+       * Format: date-time
+       * @description Data d'alta del compte (UTC)
+       */
+      created_at: string;
     };
   };
   responses: never;

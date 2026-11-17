@@ -9,6 +9,7 @@ export const mockUserProfile: UserProfile = {
   avatar_url: 'https://example.com/avatar.jpg',
   preferred_language: 'ca',
   role: 'user',
+  created_at: '2026-10-30T09:15:00Z',
 };
 
 export function jsonResponse(body: unknown, status = 200, contentType = 'application/json') {
