@@ -110,17 +110,24 @@ for i in $(seq 2 $((BURST + 1))); do
   [ "$code" = "200" ] || fail "la petició $i dins del límit ha retornat $code (s'esperava 200)"
 done
 
-# 2. Superat el límit: 429 en problem+json. Unes quantes peticions més, per si en
-#    el temps de la ràfega s'han recuperat testimonis (10 per segon).
-limited=0
-for _ in $(seq 1 100); do
-  code="$(curl -s -D "$WORK_DIR/headers" -o "$WORK_DIR/body" -w '%{http_code}' "$BASE/api/events/active")"
-  if [ "$code" = "429" ]; then
-    limited=1
-    break
-  fi
-done
-[ "$limited" = 1 ] || fail "cap petició per sobre del límit ha retornat 429"
+# Envia FLOOD peticions en paral·lel a un camí (`curl -Z`; el `?n=` no canvia `$uri`) i deixa
+# la primera resposta 429 a `$WORK_DIR/$2-headers` i `$WORK_DIR/$2-body`. En paral·lel perquè,
+# a 10 r/s, unes peticions seguides i lentes (Docker Desktop) no passarien mai del límit.
+FLOOD=300
+flood_until_429() {
+  local path="$1" name="$2" first
+  rm -f "$WORK_DIR/$name"-r*
+  curl -s -Z --parallel-max 50 -i -o "$WORK_DIR/$name-r#1" "$BASE$path?n=[1-$FLOOD]" || true
+  first="$(grep -l '^HTTP/1.1 429' "$WORK_DIR/$name"-r* 2>/dev/null | head -n 1 || true)"
+  [ -n "$first" ] || return 1
+  awk 'NR == 1, /^\r?$/' "$first" > "$WORK_DIR/$name-headers"
+  awk 'body { print } /^\r?$/ { body = 1 }' "$first" > "$WORK_DIR/$name-body"
+}
+
+# 2. Superat el límit: 429 en problem+json.
+flood_until_429 /api/events/active limited || fail "cap petició per sobre del límit ha retornat 429"
+mv "$WORK_DIR/limited-headers" "$WORK_DIR/headers"
+mv "$WORK_DIR/limited-body" "$WORK_DIR/body"
 
 grep -qi '^content-type: application/problem+json' "$WORK_DIR/headers" \
   || fail "el 429 no és application/problem+json"
@@ -144,12 +151,7 @@ EOF
 
 # 2b. `instance` mai copia text del client: un camí desconegut (aquí amb unes cometes,
 #     `%22`, que nginx descodifica a `$uri`) dona el prefix fix i el JSON continua vàlid.
-#     A 10 r/s torna un testimoni cada 100 ms: es repeteix per si la petició n'agafa un.
-for _ in $(seq 1 10); do
-  code="$(curl -s -o "$WORK_DIR/odd-body" -w '%{http_code}' "$BASE/api/events/%22x")"
-  [ "$code" = "429" ] && break
-done
-[ "$code" = "429" ] || fail "el camí desconegut ha retornat $code (s'esperava 429)"
+flood_until_429 /api/events/%22x odd || fail "el camí desconegut no ha retornat mai 429"
 python3 - "$WORK_DIR/odd-body" <<'EOF' || fail "el 429 d'un camí desconegut no porta instance /api/events/"
 import json, sys
 body = json.load(open(sys.argv[1], encoding="utf-8"))
