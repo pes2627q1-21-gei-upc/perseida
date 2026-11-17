@@ -1,3 +1,4 @@
+import asyncio
 import time
 
 from app.application.health.health_service import HealthService
@@ -121,6 +122,23 @@ async def test_tg49_c3_check_slower_than_the_timeout_is_down() -> None:
         "postgres": HealthStatus.DOWN,
     }
     assert elapsed < 0.5
+
+
+async def test_tg49_c3_timeout_does_not_wait_for_the_check_to_clean_up() -> None:
+    # A hung PostgreSQL makes closing the cancelled session slow too: the
+    # response must not wait for it (it took 4 s instead of 2 s).
+    hung = FakeHealthCheck("postgres", delay=5, cancel_cleanup=0.5)
+    service = HealthService([FakeHealthCheck("app"), hung], timeout_seconds=0.05)
+
+    started = time.perf_counter()
+    report = await service.check()
+    elapsed = time.perf_counter() - started
+
+    assert report.components["postgres"] is HealthStatus.DOWN
+    assert elapsed < 0.3
+    # The abandoned check still finishes its cleanup in the background.
+    await asyncio.sleep(0.7)
+    assert hung.cleaned_up
 
 
 async def test_tg49_c3_slow_non_critical_check_is_down_and_status_ok() -> None:
