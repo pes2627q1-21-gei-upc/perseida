@@ -302,7 +302,7 @@ A single proxy host serves everything from the same origin:
 |---|---|
 | `/api/...` | `api:8000` (REST API; health check at `/api/health`) |
 | `/api/ws` | `api:8000` with the WebSocket upgrade (chat, TG-63) |
-| `/api/events/` | `api:8000` with a shared request limit (public endpoints for Spotwise, TG-351, TG-643) |
+| `/api/events` and `/api/events/` | `api:8000` with a shared request limit (public endpoints for Spotwise, TG-351, TG-643) |
 | `/media/` | NPM itself, from the `media_data` volume (user media) |
 | `/admin/` | NPM itself, from the `admin_dist` volume (admin panel SPA) |
 
@@ -354,7 +354,7 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
 
 ### Request limit
 
-The public events endpoints (`/api/events/`, TG-351) allow 600 requests per minute across all clients, with a burst of 100 served at once. It is a single shared counter: in production the UPC NAT rewrites the source IP and the proxy cannot tell clients apart (TG-643). Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED`, `instance` and `Retry-After: 1`, without reaching the API.
+The public events endpoints (`/api/events` and `/api/events/`, TG-351 and TG-51) allow 600 requests per minute across all clients, with a burst of 100 served at once. It is a single shared counter: in production the UPC NAT rewrites the source IP and the proxy cannot tell clients apart (TG-643). Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED`, `instance` and `Retry-After: 1`, without reaching the API.
 
 - The zone (`limit_req_zone`) must be in nginx's `http` block, which the *Advanced* tab cannot reach. It lives in `nginx-proxy-manager/http_top.conf`, which the Compose mounts read-only at `/data/nginx/custom/http_top.conf` (NPM includes it) and the CD copies to `/opt/perseida/nginx-proxy-manager/`.
 - The location that applies it is `nginx-proxy-manager/rate-limit.conf` (*Advanced* tab). It uses the zone and the map `$events_problem_instance`, both defined in `http_top.conf`.
