@@ -109,6 +109,11 @@ class SqlEventRepository:
         async with self._session_factory() as session:
             return bool(await session.scalar(statement))
 
+    async def get(self, event_id: uuid.UUID) -> AstronomicalEvent | None:
+        async with self._session_factory() as session:
+            row = await session.get(AstronomicalEventRow, event_id)
+            return None if row is None else _to_entity(row)
+
     async def _list(self, *conditions: ColumnElement[bool]) -> list[AstronomicalEvent]:
         statement = (
             select(AstronomicalEventRow)
