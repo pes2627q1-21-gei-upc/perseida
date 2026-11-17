@@ -39,7 +39,8 @@ export function EventPosts({ eventId }: { eventId: string }) {
         />
       )}
 
-      {posts.isError && items.length === 0 && (
+      {/* Also with the posts already in cache: they stay, but the reader is told they may be old. */}
+      {posts.isError && !posts.isFetchNextPageError && (
         <View style={{ gap: spacing.sm }}>
           <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={textStyle}>
             {errorMessage(t, posts.error.code, posts.error.retryable)}
