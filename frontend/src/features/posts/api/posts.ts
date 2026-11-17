@@ -1,7 +1,7 @@
 import { api } from '../../../shared/api/client';
 import type { components } from '../../../shared/api/schema';
 import { AppError } from '../../../shared/errors';
-import { getTokens } from '../../auth/tokenStorage';
+import { authHeaders } from '../../auth/authHeaders';
 
 export type Post = components['schemas']['PostResponse'];
 export type PostPage = components['schemas']['PostPageResponse'];
@@ -11,14 +11,7 @@ function invalidResponse(status: number): AppError {
   return new AppError({ kind: 'http', code: 'INVALID_RESPONSE', status, retryable: false });
 }
 
-/** Every posts endpoint needs a session (TG-628 criterion 5). Without one, the API is not called. */
-async function authHeaders(): Promise<{ Authorization: string }> {
-  const tokens = await getTokens();
-  if (!tokens) {
-    throw new AppError({ kind: 'http', code: 'INVALID_SESSION', status: 401, retryable: false });
-  }
-  return { Authorization: `Bearer ${tokens.accessToken}` };
-}
+// Every posts endpoint needs a session (TG-628 criterion 5): see authHeaders.
 
 /** One page of the posts of an event, newest first. `cursor` is the `next_cursor` of the previous page. */
 export async function listEventPosts(eventId: string, cursor?: string): Promise<PostPage> {
