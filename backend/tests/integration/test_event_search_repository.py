@@ -319,4 +319,15 @@ async def test_tg51_c5_the_proximity_query_uses_the_spatial_index(
         await connection.execute(text("SET LOCAL enable_seqscan = off"))
         plan = await connection.exec_driver_sql(f"EXPLAIN {statement}", parameters)
         lines = [line for (line,) in plan]
-    assert any(SPATIAL_INDEX in line for line in lines), "\n".join(lines)
+    # The index must filter by distance (``Index Cond``), not only be walked for
+    # its ``latitude IS NOT NULL`` rows with the distance left to a ``Filter``.
+    assert _index_filters_by_distance(lines), "\n".join(lines)
+
+
+def _index_filters_by_distance(plan: list[str]) -> bool:
+    return any(
+        SPATIAL_INDEX in line
+        and following.strip().startswith("Index Cond:")
+        and "geography" in following
+        for line, following in zip(plan, plan[1:], strict=False)
+    )
