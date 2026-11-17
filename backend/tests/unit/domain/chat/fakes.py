@@ -3,8 +3,9 @@
 import uuid
 
 from app.domain.chat.models import (
+    ChatCursor,
     ChatMessage,
-    ChatMessagePage,
+    ChatRepositoryPage,
     ChatRoomSummary,
     EventChatRoom,
     ModerationResult,
@@ -16,6 +17,9 @@ class InMemoryChatRepository:
         self.rooms: dict[uuid.UUID, EventChatRoom] = {}
         self.messages: list[ChatMessage] = []
 
+    async def require_event(self, event_id: uuid.UUID) -> None:
+        """This fake treats every event as existing."""
+
     async def get_or_create_room(self, event_id: uuid.UUID) -> EventChatRoom:
         if event_id not in self.rooms:
             self.rooms[event_id] = EventChatRoom.create(event_id=event_id)
@@ -25,19 +29,26 @@ class InMemoryChatRepository:
         self.messages.append(message)
 
     async def page(
-        self, room_id: uuid.UUID, before: uuid.UUID | None, limit: int
-    ) -> ChatMessagePage:
+        self, room_id: uuid.UUID, before: ChatCursor | None, limit: int
+    ) -> ChatRepositoryPage:
         newest_first = sorted(
             (m for m in self.messages if m.room_id == room_id),
-            key=lambda m: m.id,
+            key=lambda m: (m.sent_at, m.id),
             reverse=True,
         )
         if before is not None:
-            newest_first = [m for m in newest_first if m.id < before]
+            newest_first = [
+                m
+                for m in newest_first
+                if (m.sent_at, m.id) < (before.sent_at, before.id)
+            ]
         page = newest_first[:limit]
         has_more = len(newest_first) > limit
-        return ChatMessagePage(
-            messages=page, next_cursor=page[-1].id if has_more else None
+        return ChatRepositoryPage(
+            messages=page,
+            next_cursor=ChatCursor(sent_at=page[-1].sent_at, id=page[-1].id)
+            if has_more
+            else None,
         )
 
     async def list_rooms_of(self, user_id: uuid.UUID) -> list[ChatRoomSummary]:
@@ -47,7 +58,7 @@ class InMemoryChatRepository:
                 room=room,
                 last_message=max(
                     (m for m in self.messages if m.room_id == room.id),
-                    key=lambda m: m.id,
+                    key=lambda m: (m.sent_at, m.id),
                     default=None,
                 ),
             )

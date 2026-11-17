@@ -35,7 +35,7 @@ Es fa TDD estricte a totes les capes del backend i del frontend: el test en verm
 | Seguretat | bandit, pip-audit i `pnpm audit` |
 | Migracions | upgrade -> downgrade -> upgrade |
 
-**Abast d'aquesta ADR:** la política, la documentació i les eines d'IA (skills `testing-*`, subagents, plantilla de PR). L'automatització a la CI (llindars de cobertura bloquejants, mutmut/Stryker, schemathesis, import-linter, E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`, test de migracions) **és pendent** i va a les US #359-#362 del backlog. L'ordre `test:` abans de `feat:` és una regla d'equip documentada a skills, subagents i plantilla de PR: no hi ha cap script de CI que la verifiqui; la comprova el revisor.
+**Abast d'aquesta ADR:** la política, la documentació i les eines d'IA (skills `testing-*`, subagents, plantilla de PR). L'automatització a la CI s'implanta progressivament: schemathesis, import-linter i migracions a TG-360; llindars de cobertura bloquejants i mutation testing sobre el diff (mutmut/Stryker) a TG-359. La resta d'eines (E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`) són pendents a les US #361 i #362 del backlog. L'ordre `test:` abans de `feat:` és una regla d'equip documentada a skills, subagents i plantilla de PR: no hi ha cap script de CI que la verifiqui; la comprova el revisor.
 
 **Quality Gate de SonarQube Cloud:** aquesta ADR n'eleva el llindar de cobertura del codi nou del 70 % ([[0012-sonarqube-cloud-i-quality-gate]]) al 90 %, alineat amb la política. La condició es configura a SonarQube Cloud quan arribi la integració a la CI (US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194)).
 
@@ -51,7 +51,7 @@ Es fa TDD estricte a totes les capes del backend i del frontend: el test en verm
 ### Negatives (assumides)
 
 - Més feina per US i commits més grans en nombre; el flux amb agents necessita un pas previ (`qa-tester` abans de `backend`/`frontend`).
-- Fins que s'implantin les US #359-#362, els llindars de cobertura, el mutation testing i l'ordre dels commits depenen de la disciplina de l'equip i de la revisió humana.
+- Els llindars de cobertura bloquejants i el mutation testing estan automatitzats a la CI des de TG-359 (US #359); les eines pendents d'automatització (E2E, seguretat i execució aleatòria, US #361-#362) i l'ordre dels commits depenen de la disciplina de l'equip i de la revisió humana.
 - Mutation testing i E2E afegeixen temps de CI.
 - Les eines noves són dependències que s'afegeixen amb `uv`/`pnpm`, versió fixada, i la persona ho aprova.
 
@@ -64,7 +64,9 @@ Es fa TDD estricte a totes les capes del backend i del frontend: el test en verm
 ## US de Taiga relacionades
 
 - TG-353 (política de testing TDD: memòria i eines d'IA)
-- US #359-#362 (backlog): implantació a la CI de les eines de la política
+- TG-360 (CI: test del contracte d'OpenAPI, arquitectura i migracions reversibles)
+- TG-359 (CI: llindars de cobertura bloquejants i mutation testing sobre el diff)
+- US #361-#362 (backlog): implantació a la CI de la resta d'eines de la política (E2E, robustesa, seguretat)
 
 ## Enllaços
 

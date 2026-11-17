@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-10"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026)"
+data: "2026-11-11"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -20,6 +20,9 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!info] Implementat: usuari
 > `User` ja té taula i entitat (TG-135), amb més atributs que el diagrama; vegeu [[#Usuari (implementat)]].
+
+> [!info] Implementat: ratxa diària
+> `DailyStreak` ja té entitat, taula i endpoints (TG-56); vegeu [[#Ratxa diària (implementat)]].
 
 ## Gamificació
 
@@ -102,7 +105,7 @@ Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i cod
 
 Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`) i els separadors de línia i de paràgraf (`Zl`, `Zp`), excepte el salt de línia i la tabulació. A més, s'eliminen només els invisibles perillosos, que són els de la propietat Unicode `Default_Ignorable_Code_Point` (UCD 18) menys els benignes: bidi embeddings, overrides i isolates, zero-width space, word joiner, guionet suau, fillers de hangul, selectors de variació que no són d'emoji i tots els tags (poden amagar text ASCII). Es conserven ZWJ i ZWNJ (emojis compostos i alguns scripts), LRM, RLM i ALM (marques direccionals d'un sol caràcter), els selectors d'emoji `FE0E`/`FE0F` i, de les tag sequences, només les banderes d'Anglaterra, Escòcia i Gal·les. No s'elimina cap caràcter pel fet de ser no assignat (`Cn`): els emojis nous passen encara que la versió d'Unicode de Python no els conegui. Un text amb només marques invisibles (o el braille en blanc) és buit. Efecte acceptat per l'equip (11/11/2026): l'escriptura mongola (selectors de variació i separador de vocal) i els selectors de variació ideogràfics perden aquests caràcters. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
 
-Ports: `ChatRepository` (sala per esdeveniment, desar missatge, pàgina d'històric amb cursor = id del missatge, sales d'un usuari), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (que implementarà #53). El publicador és el `PubSub` de `domain/shared/ports.py`.
+Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (que implementarà #53 amb el mateix `is_subscribed(user_id, event_id)`). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
 
 ## Esdeveniment astronòmic (implementat)
 
@@ -148,6 +151,36 @@ Entitats `app/domain/quiz/models.py`; taules a `app/infrastructure/quiz/tables.p
 `score` del diagrama és `correct` (cert o fals): hi ha una sola pregunta per dia.
 
 Desfer la migració `seed_quiz_questions` només esborra les preguntes sense respostes ni dies; tornar-la a aplicar insereix la resta amb els mateixos `id`. `Language` és a `app/domain/shared/language.py` perquè el fan servir users i quiz.
+
+## Ratxa diària (implementat)
+
+Entitat `DailyStreak` a `app/domain/streaks/models.py`; port `StreakRepository` a `app/domain/streaks/ports.py`; cas d'ús `StreakService` a `app/application/streaks/streak_service.py`; taula `daily_streaks` a `app/infrastructure/streaks/tables.py` (migració `create_daily_streaks`), repositori `SqlStreakRepository` i router `app/infrastructure/streaks/router.py`. Convencions de la taula: [[0023-convencions-del-model-de-dades]]. Vinculada a `User` com a «registre d'activitat».
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, clau primària interna |
+| `user_id` | `uuid`, únic (una ratxa per usuari), FK a `users.id` amb `ON DELETE RESTRICT` |
+| `current_count` | enter; `CHECK current_count >= 1` |
+| `last_activity_date` | `date`: l'últim dia UTC amb activitat |
+
+**El dia és el dia UTC**, igual per a tots els usuaris (decisió de l'equip, 11/11/2026). `StreakService` el calcula amb un rellotge injectat; l'app no envia cap zona horària. Una activitat a les 23:50 UTC i una a les 00:10 UTC del dia següent són dos dies consecutius.
+
+Regles (a `DailyStreak`):
+
+- **Registrar** (`register_activity`): sense ratxa prèvia, 1; si l'última activitat és d'ahir, +1; si ja és d'avui, no canvia res; si és anterior a ahir, torna a 1.
+- **Consultar** (`count_on`): `current_count` si l'última activitat és d'avui o d'ahir; sinó 0. El càlcul es fa en el moment de la consulta: no hi ha cap procés programat ni cache, i la consulta no escriu mai.
+- `SqlStreakRepository.register_activity(user_id, today)` llegeix i escriu en una sola transacció: bloqueja la fila amb `SELECT ... FOR UPDATE` i crida `today()` ja amb el pany agafat. Així dues peticions alhora no compten dos cops i, a mitjanit UTC, l'ordre en què agafen el pany no canvia el resultat (el rellotge només avança). Sense fila prèvia, l'`INSERT ... ON CONFLICT DO NOTHING` fa de guarda i qui perd la cursa bloqueja la fila de qui guanya.
+
+Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503):
+
+| Ruta | Què fa | Resposta |
+|---|---|---|
+| `POST /api/streaks/me/activity` | Registra l'activitat d'avui; idempotent dins del dia | `200` `{"current_count": N}` |
+| `GET /api/streaks/me` | Consulta la ratxa vigent | `200` `{"current_count": N}` (0 si no en té o s'ha trencat) |
+
+> [!todo] Pendent
+> - Les rutes i el format de resposta els ha decidit TG-56; la visualització a l'app (TG-57) els ha de consumir i, si cal canviar-los, acordar-ho amb qui la faci.
+> - Mutation testing del domini (`app/domain/streaks/`) pendent de l'eina (US #359-#362).
 
 ## Diagrama (transcripció)
 

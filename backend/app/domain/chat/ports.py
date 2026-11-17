@@ -2,8 +2,9 @@ import uuid
 from typing import Protocol
 
 from app.domain.chat.models import (
+    ChatCursor,
     ChatMessage,
-    ChatMessagePage,
+    ChatRepositoryPage,
     ChatRoomSummary,
     EventChatRoom,
     ModerationResult,
@@ -12,6 +13,14 @@ from app.domain.chat.models import (
 
 class ChatRepository(Protocol):
     """Durable storage of the rooms and their messages (PostgreSQL)."""
+
+    async def require_event(self, event_id: uuid.UUID) -> None:
+        """Check event existence without creating a room.
+
+        Raises:
+            NotFoundError: if the event does not exist.
+        """
+        ...
 
     async def get_or_create_room(self, event_id: uuid.UUID) -> EventChatRoom:
         """Return the room of ``event_id``, creating it if it has none.
@@ -24,19 +33,17 @@ class ChatRepository(Protocol):
         ...
 
     async def add_message(self, message: ChatMessage) -> None:
-        """Store ``message``."""
+        """Store ``message``.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
         ...
 
     async def page(
-        self, room_id: uuid.UUID, before: uuid.UUID | None, limit: int
-    ) -> ChatMessagePage:
-        """Return up to ``limit`` messages of the room, ordered by id descending.
-
-        UUIDv7 ids sort by creation time, so this is newest first. With
-        ``before`` (a message id from a previous page's ``next_cursor``), only
-        the messages with a smaller id: the cursor is exclusive. Order and
-        cursor use the same key, so there are no gaps and no repeats.
-        """
+        self, room_id: uuid.UUID, before: ChatCursor | None, limit: int
+    ) -> ChatRepositoryPage:
+        """Return newest first by (sent_at, id), before the exclusive key."""
         ...
 
     async def list_rooms_of(self, user_id: uuid.UUID) -> list[ChatRoomSummary]:

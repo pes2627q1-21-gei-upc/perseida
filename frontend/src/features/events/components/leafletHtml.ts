@@ -5,6 +5,7 @@ import {
   BASE_MAP_TILES,
   FIT_BOUNDS_OPTIONS,
   MAP_ATTRIBUTION_PREFIX,
+  type MapCamera,
   type MapMarker,
   WORLD_CENTER,
   WORLD_ZOOM,
@@ -50,14 +51,23 @@ function attribute(text: string): string {
  * embedded as data and drawn as the glass orbs of their category. A tap on a marker goes back
  * to React Native as `{"select": "<id>"}`. Event titles come from the API, so they only enter
  * the page as escaped JSON; the orb HTML is built from our own constants.
+ * Every camera move goes back as `{"view": {latitude, longitude, zoom}}`. With a `camera`, the
+ * page opens there and does not fit the markers: a reload for new markers keeps the user's view.
  */
 export function buildLeafletHtml(
   markers: MapMarker[],
   label: string,
   style: MarkerStyle,
   zoom: ZoomTitles,
+  camera?: MapCamera,
 ): string {
   const data = markers.map((m) => ({ ...m, icon: markerIconHtml(m) }));
+  const start = camera
+    ? `${scriptJson([camera.latitude, camera.longitude])}, ${scriptJson(camera.zoom)}`
+    : `${scriptJson(WORLD_CENTER)}, ${WORLD_ZOOM}`;
+  const fit = camera
+    ? ''
+    : `if (points.length) map.fitBounds(points, ${scriptJson(FIT_BOUNDS_OPTIONS)});\n`;
   return `<!doctype html>
 <html>
 <head>
@@ -72,7 +82,11 @@ ${markerCss(style.palette, { reduceMotion: style.reduceMotion })}</style>
 <div id="map" role="region" aria-label="${attribute(label)}"></div>
 <script>
 var markers = ${scriptJson(data)};
-var map = L.map('map', { worldCopyJump: true, zoomControl: false }).setView(${scriptJson(WORLD_CENTER)}, ${WORLD_ZOOM});
+var map = L.map('map', { worldCopyJump: true, zoomControl: false }).setView(${start});
+map.on('moveend', function () {
+  var c = map.getCenter().wrap();
+  window.ReactNativeWebView.postMessage(JSON.stringify({ view: { latitude: c.lat, longitude: c.lng, zoom: map.getZoom() } }));
+});
 // The top of the map is under the notch and the floating bar of the screen.
 L.control.zoom({ position: 'bottomright', zoomInTitle: ${scriptJson(zoom.zoomIn)}, zoomOutTitle: ${scriptJson(zoom.zoomOut)} }).addTo(map);
 L.tileLayer(${JSON.stringify(BASE_MAP_TILES)}, {
@@ -95,8 +109,7 @@ markers.forEach(function (m) {
   marker.addTo(map);
   points.push([m.latitude, m.longitude]);
 });
-if (points.length) map.fitBounds(points, ${scriptJson(FIT_BOUNDS_OPTIONS)});
-</script>
+${fit}</script>
 </body>
 </html>`;
 }

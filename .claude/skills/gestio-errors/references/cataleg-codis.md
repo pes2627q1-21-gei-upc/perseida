@@ -47,6 +47,12 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `EVENT_ENDS_BEFORE_START` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/events (`ends_at` anterior a `starts_at`) |
 | `EVENT_SOURCE_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | (no arriba al client) | (no arriba al client) | (no arriba al client) | infrastructure/events (TG-50; una font d'esdeveniments ha fallat: `EventService` l'absorbeix, ho registra i serveix el que hi ha a PostgreSQL, ADR-0031) |
 
+## Codis de les ràtxes (TG-56)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `STREAK_COUNT_INVALID` | 422 | `ValidationError` | No | (no arriba al client) | (no arriba al client) | (no arriba al client) | domain/streaks (invariant intern: `current_count` < 1; el servei el calcula i l'API no el rep del client, així que no es pot provocar des de fora) |
+
 ## Codis de Redis pub/sub i WebSocket (TG-87, TG-63)
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
@@ -55,7 +61,9 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `UNKNOWN_FRAME_TYPE` | 422 | frame `error` del WebSocket | Sí | No entenem aquest missatge. | No entendemos este mensaje. | We don't understand this message. | application/realtime (TG-63) |
 | `NOT_SUBSCRIBED` | 409 | frame `error` del WebSocket | Sí | Primer t'has d'unir a la sala. | Primero debes unirte a la sala. | You need to join the room first. | application/realtime (TG-63) |
 | `FORBIDDEN` | 403 | frame `error` del WebSocket | No | No tens permís per fer això. | No tienes permiso para hacer esto. | You don't have permission to do that. | application/realtime (TG-63; l'emeten #64 i #65) |
-| `RATE_LIMITED` | 429 | frame `error` del WebSocket | Sí | Massa missatges seguits. Espera una mica. | Demasiados mensajes seguidos. Espera un poco. | Too many messages. Please wait a moment. | application/realtime (TG-63; límit de sales) |
+| `RATE_LIMITED` | 429 | `RateLimitedError` (REST) i frame `error` del WebSocket | Sí | Massa missatges seguits. Espera una mica. | Demasiados mensajes seguidos. Espera un poco. | Too many messages. Please wait a moment. | application/realtime (TG-63; límit de sales) i application/chat (TG-442; límit d'enviament per REST) |
+| `CHAT_INVALID_CURSOR` | 422 | `ValidationError` | No | El cursor de l'historial no és vàlid. | El cursor del historial no es válido. | The history cursor is not valid. | application/chat (TG-442) |
+| `CHAT_INVALID_LIMIT` | 422 | `ValidationError` | No | El límit de l'historial no és vàlid. | El límite del historial no es válido. | The history limit is not valid. | application/chat (TG-442) |
 
 ## Codis d'autenticació (TG-44)
 

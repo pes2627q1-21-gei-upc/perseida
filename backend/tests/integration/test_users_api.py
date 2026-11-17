@@ -75,6 +75,7 @@ async def engine() -> AsyncIterator[AsyncEngine]:
         yield engine
     finally:
         async with engine.begin() as connection:
+            await connection.execute(text("DELETE FROM daily_streaks"))
             await connection.execute(text("DELETE FROM user_identities"))
             await connection.execute(text("DELETE FROM users"))
         await engine.dispose()

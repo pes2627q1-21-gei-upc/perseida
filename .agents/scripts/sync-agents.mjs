@@ -61,8 +61,6 @@ export const ADAPTERS = [
     render: (a) =>
       [
         `# ${MARKER}. No l'editis.`,
-        `name = ${quote(a.name)}`,
-        `description = ${quote(a.description)}`,
         `sandbox_mode = ${quote(readOnly(a) ? 'read-only' : 'workspace-write')}`,
         `developer_instructions = ${tomlMultiline(a.body)}`,
         '',
@@ -144,6 +142,40 @@ export function syncAgents({ root, src = join(root, '.agents', 'agents'), check 
           changed.push(`${ad.dir}/${file}`);
           if (!check) rmSync(path);
         }
+      }
+    }
+  }
+  if (adapters.some((ad) => ad.id === 'codex')) {
+    const path = join(root, '.codex', 'config.toml');
+    const current = existsSync(path) ? normalize(readFileSync(path, 'utf8')) : '';
+    const begin = '# BEGIN generated agents (sync-agents.mjs)';
+    const end = '# END generated agents (sync-agents.mjs)';
+    const start = current.indexOf(begin);
+    const finish = current.indexOf(end);
+    if ((start < 0) !== (finish < 0) || (start >= 0 && finish < start)) {
+      throw new Error('Invalid generated agent markers in .codex/config.toml');
+    }
+    const manual = start < 0 ? current : current.slice(0, start) + current.slice(finish + end.length);
+    for (const agent of agents) {
+      const escaped = agent.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`^\\s*\\[agents\\.${escaped}\\]`, 'm').test(manual)) {
+        throw new Error(`Manual Codex role conflicts with generated role: ${agent.name}`);
+      }
+    }
+    const block = [begin, ...agents.flatMap((a) => [
+      `[agents.${a.name}]`,
+      `description = ${quote(a.description)}`,
+      `config_file = ${quote(`agents/${a.name}.toml`)}`,
+      '',
+    ]), end].join('\n');
+    const content = start < 0
+      ? `${current}${current && !current.endsWith('\n') ? '\n' : ''}${block}\n`
+      : current.slice(0, start) + block + current.slice(finish + end.length);
+    if (content !== current) {
+      changed.push('.codex/config.toml');
+      if (!check) {
+        mkdirSync(dirname(path), { recursive: true });
+        writeFileSync(path, content);
       }
     }
   }
