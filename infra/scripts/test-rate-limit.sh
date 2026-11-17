@@ -9,7 +9,7 @@
 # L'upstream és un `server` de prova que respon 200, en lloc de l'API.
 #
 # Comprova:
-#   1. Les 21 primeres peticions a /api/events/... passen (1 r/s amb ràfega de 20, sense espera).
+#   1. Les 101 primeres peticions a /api/events/... passen (10 r/s amb ràfega de 100, sense espera).
 #   2. En superar el límit, la resposta és 429 en problem+json (RFC 9457) amb `code`
 #      RATE_LIMITED, `instance`, `Retry-After` i `X-Correlation-ID`.
 #   3. La resta de l'API (/api/health) no queda limitada.
@@ -24,7 +24,7 @@ IMAGE="nginx:1.27-alpine"
 NAME="perseida-rate-limit-test"
 PORT="${RATE_LIMIT_TEST_PORT:-18080}"
 BASE="http://127.0.0.1:$PORT"
-BURST=20
+BURST=100
 
 WORK_DIR="$(mktemp -d)"
 
@@ -101,7 +101,7 @@ for _ in $(seq 1 30); do
 done
 [ "$ready" = 1 ] || fail "nginx no arrenca amb les confs versionades"
 
-# 1. La ràfega passa sencera: la primera petició i les 20 de la ràfega. La primera
+# 1. La ràfega passa sencera: la primera petició i les 100 de la ràfega. La primera
 #    també comprova que el camí bo conserva l'HSTS del `server`.
 curl -s -D "$WORK_DIR/ok-headers" -o /dev/null "$BASE/api/events/upcoming?days=7"
 grep -qi '^strict-transport-security: ' "$WORK_DIR/ok-headers" || fail "el 200 de /api/events/ no porta HSTS"
@@ -111,9 +111,9 @@ for i in $(seq 2 $((BURST + 1))); do
 done
 
 # 2. Superat el límit: 429 en problem+json. Unes quantes peticions més, per si en
-#    el temps de la ràfega s'ha recuperat algun testimoni (1 per segon).
+#    el temps de la ràfega s'han recuperat testimonis (10 per segon).
 limited=0
-for _ in $(seq 1 5); do
+for _ in $(seq 1 100); do
   code="$(curl -s -D "$WORK_DIR/headers" -o "$WORK_DIR/body" -w '%{http_code}' "$BASE/api/events/active")"
   if [ "$code" = "429" ]; then
     limited=1
@@ -144,7 +144,11 @@ EOF
 
 # 2b. `instance` mai copia text del client: un camí desconegut (aquí amb unes cometes,
 #     `%22`, que nginx descodifica a `$uri`) dona el prefix fix i el JSON continua vàlid.
-code="$(curl -s -o "$WORK_DIR/odd-body" -w '%{http_code}' "$BASE/api/events/%22x")"
+#     A 10 r/s torna un testimoni cada 100 ms: es repeteix per si la petició n'agafa un.
+for _ in $(seq 1 10); do
+  code="$(curl -s -o "$WORK_DIR/odd-body" -w '%{http_code}' "$BASE/api/events/%22x")"
+  [ "$code" = "429" ] && break
+done
 [ "$code" = "429" ] || fail "el camí desconegut ha retornat $code (s'esperava 429)"
 python3 - "$WORK_DIR/odd-body" <<'EOF' || fail "el 429 d'un camí desconegut no porta instance /api/events/"
 import json, sys
