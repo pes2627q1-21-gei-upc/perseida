@@ -44,13 +44,15 @@ fail() {
 
 # Imatge i muntatge d'`http_top.conf` del servei `reverse-proxy`, tal com els resol el Compose.
 # `POSTGRES_PASSWORD` és obligatòria al Compose; aquí només cal perquè `config` no falli.
-read -r IMAGE SOURCE MODE < <(
-  POSTGRES_PASSWORD=test docker compose -f "$COMPOSE" config --format json | python3 -c '
+# Separats per tabulador: el camí del repo pot tenir espais. `MSYS_NO_PATHCONV` evita que Git
+# Bash a Windows converteixi `$TARGET` en un camí de Windows en passar-lo a Python.
+IFS=$'\t' read -r IMAGE SOURCE MODE < <(
+  POSTGRES_PASSWORD=test docker compose -f "$COMPOSE" config --format json | MSYS_NO_PATHCONV=1 python3 -c '
 import json, sys
 service = json.load(sys.stdin)["services"]["reverse-proxy"]
 for volume in service.get("volumes", []):
     if volume.get("target") == sys.argv[1]:
-        print(service["image"], volume["source"], "ro" if volume.get("read_only") else "rw")
+        print(service["image"], volume["source"], "ro" if volume.get("read_only") else "rw", sep="\t")
         break
 else:
     sys.exit("el Compose no munta " + sys.argv[1] + " al reverse-proxy")
