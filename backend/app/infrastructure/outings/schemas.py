@@ -1,5 +1,6 @@
 """Request and response bodies of ``/api/outings`` (TG-629)."""
 
+import uuid
 from typing import Annotated, Any, Self
 
 from pydantic import (
@@ -21,6 +22,9 @@ from app.infrastructure.events.schemas import EventLocation, UtcDatetime
 
 # Validated as UUIDv7, published as the standard ``uuid`` format (as EventId).
 Uuid7 = Annotated[UUID7, WithJsonSchema({"type": "string", "format": "uuid"})]
+# An event id that is sent: any UUID; one that is not stored answers
+# OUTING_EVENT_NOT_FOUND, so the schema and the validator say the same.
+SentEventId = uuid.UUID
 Title = Annotated[str, Field(max_length=TITLE_MAX_LENGTH)]
 Description = Annotated[str, Field(max_length=DESCRIPTION_MAX_LENGTH)]
 
@@ -39,25 +43,39 @@ class OutingCreate(BaseModel):
     starts_at: AwareDatetime = Field(..., description=_STARTS_AT)
     ends_at: AwareDatetime = Field(..., description=_ENDS_AT)
     location: EventLocation = Field(..., description="Lloc de trobada")
-    event_id: Uuid7 | None = Field(None, description=_EVENT_ID)
+    event_id: SentEventId | None = Field(None, description=_EVENT_ID)
+
+
+# Fields of a PATCH that may be left out but never be null (only ``event_id`` may).
+_NOT_NULL = ("title", "description", "starts_at", "ends_at", "location")
+
+
+def _publish_not_null(schema: dict[str, Any]) -> None:
+    """Drop the ``null`` branch that ``T | None`` adds to the fields of ``_NOT_NULL``:
+    the published schema must say what the validator accepts."""
+    for name in _NOT_NULL:
+        field = schema["properties"][name]
+        branches = [b for b in field.pop("anyOf") if b.get("type") != "null"]
+        field.update(branches[0])
+        field.pop("default", None)
 
 
 class OutingUpdate(BaseModel):
     """Only the fields sent change. ``event_id: null`` unlinks the event; the other
-    fields cannot be null."""
+    fields may be left out but never be null."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", json_schema_extra=_publish_not_null)
 
     title: Title | None = Field(None, description=_TITLE)
     description: Description | None = Field(None, description=_DESCRIPTION)
     starts_at: AwareDatetime | None = Field(None, description=_STARTS_AT)
     ends_at: AwareDatetime | None = Field(None, description=_ENDS_AT)
     location: EventLocation | None = Field(None, description="Lloc de trobada")
-    event_id: Uuid7 | None = Field(None, description=_EVENT_ID)
+    event_id: SentEventId | None = Field(None, description=_EVENT_ID)
 
     @model_validator(mode="after")
     def _only_event_id_may_be_null(self) -> Self:
-        for name in self.model_fields_set - {"event_id"}:
+        for name in self.model_fields_set.intersection(_NOT_NULL):
             if getattr(self, name) is None:
                 raise ValueError(f"{name} cannot be null")
         return self

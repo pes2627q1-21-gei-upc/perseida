@@ -58,6 +58,7 @@ _INVALID = _problem(
     f"`{OUTING_STARTS_IN_PAST}` o `{OUTING_EVENT_NOT_FOUND}`."
 )
 _NOT_FOUND = _problem(f"La sortida no existeix (`{OUTING_NOT_FOUND}`).")
+_UNREADABLE = _problem("El cos de la petició no es pot llegir (codificació no vàlida).")
 _NOT_AUTHOR = _problem(
     f"No ets l'autora de la sortida (`{OUTING_FORBIDDEN}`), o el compte és suspès "
     f"(`{ACCOUNT_SUSPENDED}`) o esborrat (`{ACCOUNT_DELETED}`)."
@@ -78,7 +79,7 @@ OutingId = Annotated[uuid.UUID, "Identificador de la sortida"]
         "porta la URL de la sortida creada."
     ),
     response_description="La sortida creada, amb l'autora.",
-    responses={**_SESSION, 422: _INVALID},
+    responses={**_SESSION, 400: _UNREADABLE, 422: _INVALID},
 )
 async def create_outing(
     payload: OutingCreate,
@@ -167,7 +168,13 @@ async def get_outing(
         "el passat; si no, es pot editar una sortida que ja ha començat."
     ),
     response_description="La sortida editada.",
-    responses={**_SESSION, 403: _NOT_AUTHOR, 404: _NOT_FOUND, 422: _INVALID},
+    responses={
+        **_SESSION,
+        400: _UNREADABLE,
+        403: _NOT_AUTHOR,
+        404: _NOT_FOUND,
+        422: _INVALID,
+    },
 )
 async def update_outing(
     outing_id: OutingId,
@@ -188,7 +195,12 @@ async def update_outing(
     summary="Esborra una sortida",
     description="Només l'autora.",
     response_description="La sortida s'ha esborrat.",
-    responses={**_SESSION, 403: _NOT_AUTHOR, 404: _NOT_FOUND},
+    responses={
+        **_SESSION,
+        403: _NOT_AUTHOR,
+        404: _NOT_FOUND,
+        422: _problem("Identificador mal format (`VALIDATION_ERROR`)."),
+    },
 )
 async def delete_outing(
     outing_id: OutingId,
