@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Path, Query, Request, Response, status
 
 from app.application.auth.errors import SESSION_UNAVAILABLE
 from app.application.shared.error_codes import (
@@ -64,7 +64,7 @@ _NOT_AUTHOR = _problem(
     f"(`{ACCOUNT_SUSPENDED}`) o esborrat (`{ACCOUNT_DELETED}`)."
 )
 
-OutingId = Annotated[uuid.UUID, "Identificador de la sortida"]
+OutingId = Annotated[uuid.UUID, Path(description="Identificador de la sortida")]
 
 
 @router.post(
@@ -83,6 +83,7 @@ OutingId = Annotated[uuid.UUID, "Identificador de la sortida"]
 )
 async def create_outing(
     payload: OutingCreate,
+    request: Request,
     response: Response,
     session: CurrentSessionDep,
     users: UserServiceDep,
@@ -98,7 +99,9 @@ async def create_outing(
         location=Location.model_validate(payload.location.model_dump()),
         event_id=payload.event_id,
     )
-    response.headers["Location"] = f"/api/outings/{details.outing.id}"
+    response.headers["Location"] = str(
+        request.app.url_path_for("get_outing", outing_id=str(details.outing.id))
+    )
     return OutingResponse.of(details)
 
 

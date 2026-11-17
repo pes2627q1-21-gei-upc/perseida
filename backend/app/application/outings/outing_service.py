@@ -91,12 +91,13 @@ class OutingService:
             NotFoundError: there is no such outing.
             ForbiddenError: ``user_id`` is not its author.
         """
-        outing = await self._own_outing(user_id, outing_id)
-        updated = outing.update(changes, now=self._now())
+        details = await self._own_outing(user_id, outing_id)
+        updated = details.outing.update(changes, now=self._now())
         if "event_id" in changes.model_fields_set:
             await self._check_event(changes.event_id)
         await self._repository.save(updated)
-        return await self.get(outing_id)
+        # The author does not change: no need to read the outing again.
+        return OutingDetails(outing=updated, author=details.author)
 
     async def delete(self, user_id: uuid.UUID, outing_id: uuid.UUID) -> None:
         """Delete an outing of ``user_id``.
@@ -108,13 +109,15 @@ class OutingService:
         await self._own_outing(user_id, outing_id)
         await self._repository.delete(outing_id)
 
-    async def _own_outing(self, user_id: uuid.UUID, outing_id: uuid.UUID) -> Outing:
-        outing = (await self.get(outing_id)).outing
-        if outing.author_id != user_id:
+    async def _own_outing(
+        self, user_id: uuid.UUID, outing_id: uuid.UUID
+    ) -> OutingDetails:
+        details = await self.get(outing_id)
+        if details.outing.author_id != user_id:
             raise ForbiddenError(
                 OUTING_FORBIDDEN, "Only the author may change the outing"
             )
-        return outing
+        return details
 
     async def _check_event(self, event_id: uuid.UUID | None) -> None:
         if event_id is not None and not await self._events.exists(event_id):
