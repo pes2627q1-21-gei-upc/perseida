@@ -200,6 +200,7 @@ body = json.load(open(sys.argv[1], encoding="utf-8"))
 assert body["status"] == 429, body
 assert body["code"] == "RATE_LIMITED", body
 assert len(body["correlation_id"]) == 32, body
+assert body["instance"] == "/api/events", body
 EOF
 
 # 4. La resta de l'API no comparteix el límit.
