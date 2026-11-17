@@ -156,17 +156,20 @@ export function ProfileScreen() {
                       { color: theme.colors.text.primary, textAlign: 'center' },
                     ]}
                   >
-                    {data.display_name}
+                    {/* Without a profile name, the email names the account (once). */}
+                    {data.display_name ?? data.email}
                   </Text>
 
-                  <Text
-                    style={[
-                      theme.typography.body,
-                      { color: theme.colors.text.secondary, textAlign: 'center' },
-                    ]}
-                  >
-                    {data.email}
-                  </Text>
+                  {data.display_name ? (
+                    <Text
+                      style={[
+                        theme.typography.body,
+                        { color: theme.colors.text.secondary, textAlign: 'center' },
+                      ]}
+                    >
+                      {data.email}
+                    </Text>
+                  ) : null}
 
                   <Text
                     style={[
