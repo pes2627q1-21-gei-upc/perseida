@@ -74,9 +74,7 @@ def event_repo(
 async def _create_test_user(
     user_repo: SqlUserRepository, email: str, name: str
 ) -> User:
-    user = User.create(
-        google_sub=f"sub-{uuid.uuid4()}", email=email, display_name=name
-    )
+    user = User.create(google_sub=f"sub-{uuid.uuid4()}", email=email, display_name=name)
     return await user_repo.add(user)
 
 
