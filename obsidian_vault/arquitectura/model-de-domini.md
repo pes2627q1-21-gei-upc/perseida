@@ -184,7 +184,7 @@ Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/
 
 ## Sortida d'observació (implementat)
 
-Entitat `Outing` a `app/domain/outings/models.py`; port `OutingRepository` a `app/domain/outings/ports.py`; cas d'ús `OutingService` a `app/application/outings/outing_service.py`; taula `outings` a `app/infrastructure/outings/tables.py` (migració `create_outings`), repositori `SqlOutingRepository` i router `app/infrastructure/outings/router.py` (TG-629). Una sortida la crea una usuària per quedar amb altres persones a observar el cel. **No és un esdeveniment astronòmic**: té una taula a part i mai surt a `/api/events/*`, així que el contracte amb Spotwise ([[contracte-spotwise]]) no canvia.
+Entitat `Outing` a `app/domain/outings/models.py` (la ubicació és el `Location` compartit de `app/domain/shared/location.py`); ports `OutingRepository` i `EventLookup` a `app/domain/outings/ports.py` (la sortida no importa res de la funcionalitat d'esdeveniments: ho vigila un contracte d'import-linter); cas d'ús `OutingService` a `app/application/outings/outing_service.py`; taula `outings` a `app/infrastructure/outings/tables.py` (migració `create_outings`), repositori `SqlOutingRepository` i router `app/infrastructure/outings/router.py` (TG-629). Una sortida la crea una usuària per quedar amb altres persones a observar el cel. **No és un esdeveniment astronòmic**: té una taula a part i mai surt a `/api/events/*`, així que el contracte amb Spotwise ([[contracte-spotwise]]) no canvia.
 
 | Camp | Notes |
 |---|---|

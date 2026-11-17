@@ -71,7 +71,7 @@ Privats, amb sessió; l'usuària s'obté de la sessió com a `GET /api/users/me`
 | `PATCH /api/outings/{id}` | Només l'autora (`403 OUTING_FORBIDDEN`). Canvien només els camps enviats; només `event_id` pot ser null |
 | `DELETE /api/outings/{id}` | Només l'autora; `204` |
 
-Codis de `422`: `VALIDATION_ERROR` (format: longitud, rang de la ubicació, data sense zona), `OUTING_TITLE_EMPTY`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`.
+Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
 
 ## Seguretat (TG-45)
 
