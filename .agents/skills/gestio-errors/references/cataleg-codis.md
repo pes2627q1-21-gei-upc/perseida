@@ -89,6 +89,15 @@ Textos aprovats per la persona responsable (TG-60, 09/11/2026). Contracte a `obs
 | `QUIZ_EXPIRED` | 409 | `ConflictError` | Sí | Aquesta pregunta ja ha caducat. Carrega la d'avui. | Esta pregunta ya ha caducado. Carga la de hoy. | This question has expired. Load today's question. | domain/quiz |
 | `QUIZ_QUESTION_MISMATCH` | 422 | `ValidationError` | Sí | Aquesta no és la pregunta d'avui. Torna-ho a provar. | Esta no es la pregunta de hoy. Inténtalo de nuevo. | This isn't today's question. Please try again. | domain/quiz |
 
+## Codis de les subscripcions a esdeveniments (TG-53)
+
+Textos aprovats per la persona responsable (TG-53, 17/11/2026). Els d'`EVENT_NOT_FOUND` són els mateixos que es van aprovar a la tasca #634 (TG-628, PR #102).
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `EVENT_NOT_FOUND` | 404 | `NotFoundError` | No | Aquest esdeveniment ja no existeix. | Este evento ya no existe. | This event no longer exists. | application/events |
+| `EVENT_ALREADY_ENDED` | 409 | `ConflictError` | No | Aquest esdeveniment ja ha acabat. | Este evento ya ha terminado. | This event has already ended. | domain/events |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
