@@ -12,7 +12,17 @@ class AchievementKind(StrEnum):
 
     STREAK_DAYS = "streak_days"
     QUIZ_COMPLETED = "quiz_completed"
+    QUIZ_PERFECT = "quiz_perfect"
     EVENT_SUBSCRIPTION = "event_subscription"
+    EVENT_EXPORTED = "event_exported"
+    FOLLOWERS = "followers"
+    FOLLOWING = "following"
+    MESSAGE_SENT = "message_sent"
+    ACHIEVEMENT_SHARED = "achievement_shared"
+    MINIGAME_PLAYED = "minigame_played"
+    MINIGAME_WON = "minigame_won"
+    MINIGAME_RECORD_BEATEN = "minigame_record_beaten"
+    MINIGAME_CHALLENGE_SENT = "minigame_challenge_sent"
 
 
 class AchievementCategory(StrEnum):
