@@ -17,9 +17,7 @@
     "eventsMapButton": "Open events map",
     "eventsTitle": "Astronomical events",
     "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
-    "gamificationTitle": "Gamification & challenges",
-    "profileDesc": "Manage your stargazing preferences, stats, and personal information.",
-    "profileTitle": "Your profile"
+    "gamificationTitle": "Gamification & challenges"
   },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
@@ -107,14 +105,10 @@
   },
   "profile": {
     "achievements": {
-      "badge": "Coming soon",
       "desc": "Unlock badges by observing meteor showers and engaging with the community.",
-      "title": "Badges & achievements",
-      "unlocked": "0 badges unlocked"
+      "title": "Badges & achievements"
     },
-    "emailLabel": "Email address",
     "followers": {
-      "badge": "Coming soon",
       "desc": "How many people follow your observations and how many you follow.",
       "title": "Followers"
     },
@@ -123,7 +117,6 @@
       "en": "English",
       "es": "Spanish"
     },
-    "languageLabel": "Language",
     "loading": "Loading profile...",
     "memberSince": "Member since {{date}}",
     "retry": "Try again",
@@ -133,10 +126,7 @@
       "moderator": "Moderator",
       "user": "Stargazer"
     },
-    "roleLabel": "Role",
     "streak": {
-      "badge": "Coming soon",
-      "days": "{{count}} days",
       "desc": "Complete the daily quiz to keep your celestial streak alive.",
       "title": "Stargazing streak"
     },

@@ -17,9 +17,7 @@
     "eventsMapButton": "Obre el mapa d'esdeveniments",
     "eventsTitle": "Esdeveniments astronòmics",
     "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
-    "gamificationTitle": "Gamificació i reptes",
-    "profileDesc": "Gestiona les teves preferències d'observació, estadístiques i dades personals.",
-    "profileTitle": "El teu perfil"
+    "gamificationTitle": "Gamificació i reptes"
   },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
@@ -107,14 +105,10 @@
   },
   "profile": {
     "achievements": {
-      "badge": "Properament",
       "desc": "Desbloqueja insígnies observant pluges d'estels i participant a la comunitat.",
-      "title": "Fites i assoliments",
-      "unlocked": "0 fites desbloquejades"
+      "title": "Fites i assoliments"
     },
-    "emailLabel": "Correu electrònic",
     "followers": {
-      "badge": "Properament",
       "desc": "Quantes persones segueixen les teves observacions i quantes en segueixes tu.",
       "title": "Seguidors"
     },
@@ -123,7 +117,6 @@
       "en": "Anglès",
       "es": "Castellà"
     },
-    "languageLabel": "Idioma",
     "loading": "Carregant el perfil...",
     "memberSince": "Membre des de {{date}}",
     "retry": "Torna-ho a provar",
@@ -133,12 +126,9 @@
       "moderator": "Moderador",
       "user": "Observador"
     },
-    "roleLabel": "Rol",
     "streak": {
-      "badge": "Properament",
-      "days": "{{count}} dies",
-      "desc": "Completa el qüestionari diari per mantenir viva la teva ràtxa celest.",
-      "title": "Ràtxa d'observació"
+      "desc": "Completa el qüestionari diari per mantenir viva la teva ratxa celest.",
+      "title": "Ratxa d'observació"
     },
     "title": "El teu perfil"
   }

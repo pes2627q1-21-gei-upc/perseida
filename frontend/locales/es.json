@@ -17,9 +17,7 @@
     "eventsMapButton": "Abrir el mapa de eventos",
     "eventsTitle": "Eventos astronómicos",
     "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
-    "gamificationTitle": "Gamificación y retos",
-    "profileDesc": "Gestiona tus preferencias de observación, estadísticas y datos personales.",
-    "profileTitle": "Tu perfil"
+    "gamificationTitle": "Gamificación y retos"
   },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
@@ -107,14 +105,10 @@
   },
   "profile": {
     "achievements": {
-      "badge": "Próximamente",
       "desc": "Desbloquea insignias observando lluvias de estrellas y participando en la comunidad.",
-      "title": "Logros e insignias",
-      "unlocked": "0 logros desbloqueados"
+      "title": "Logros e insignias"
     },
-    "emailLabel": "Correo electrónico",
     "followers": {
-      "badge": "Próximamente",
       "desc": "Cuántas personas siguen tus observaciones y a cuántas sigues tú.",
       "title": "Seguidores"
     },
@@ -123,7 +117,6 @@
       "en": "Inglés",
       "es": "Español"
     },
-    "languageLabel": "Idioma",
     "loading": "Cargando el perfil...",
     "memberSince": "Miembro desde {{date}}",
     "retry": "Vuelve a intentarlo",
@@ -133,10 +126,7 @@
       "moderator": "Moderador",
       "user": "Observador"
     },
-    "roleLabel": "Rol",
     "streak": {
-      "badge": "Próximamente",
-      "days": "{{count}} días",
       "desc": "Completa el cuestionario diario para mantener viva tu racha celeste.",
       "title": "Racha de observación"
     },

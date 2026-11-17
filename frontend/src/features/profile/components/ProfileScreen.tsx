@@ -295,7 +295,7 @@ function ProfileSlot({
             <Text
               style={[theme.typography.caption, { color: theme.colors.brand, fontWeight: '600' }]}
             >
-              {t(`profile.${i18nKey}.badge`)}
+              {t('comingSoon.badge')}
             </Text>
           </View>
         </View>
