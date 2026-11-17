@@ -100,6 +100,22 @@
       "publish": "Post",
       "save": "Save",
       "cancel": "Cancel"
+    },
+    "list": {
+      "title": "Posts",
+      "loading": "Loading posts",
+      "empty": "No posts yet. Share the first one!",
+      "retry": "Try again",
+      "retryHint": "Loads the posts again",
+      "more": "Load more"
+    },
+    "item": {
+      "edited": "edited",
+      "edit": "Edit",
+      "editHint": "Edits the text of your post",
+      "delete": "Delete",
+      "deleteHint": "Asks for confirmation before deleting the post",
+      "confirmDelete": "Delete this post? This cannot be undone."
     }
   }
 }

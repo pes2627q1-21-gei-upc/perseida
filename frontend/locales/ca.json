@@ -100,6 +100,22 @@
       "publish": "Publica",
       "save": "Desa",
       "cancel": "Cancel·la"
+    },
+    "list": {
+      "title": "Publicacions",
+      "loading": "Carregant les publicacions",
+      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
+      "retry": "Torna-ho a provar",
+      "retryHint": "Torna a carregar les publicacions",
+      "more": "Carrega'n més"
+    },
+    "item": {
+      "edited": "editada",
+      "edit": "Edita",
+      "editHint": "Edita el text de la teva publicació",
+      "delete": "Esborra",
+      "deleteHint": "Demana confirmació abans d'esborrar la publicació",
+      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer."
     }
   }
 }

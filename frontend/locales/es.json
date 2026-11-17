@@ -100,6 +100,22 @@
       "publish": "Publicar",
       "save": "Guardar",
       "cancel": "Cancelar"
+    },
+    "list": {
+      "title": "Publicaciones",
+      "loading": "Cargando las publicaciones",
+      "empty": "Todavía no hay publicaciones. ¡Comparte la primera!",
+      "retry": "Reintentar",
+      "retryHint": "Vuelve a cargar las publicaciones",
+      "more": "Cargar más"
+    },
+    "item": {
+      "edited": "editada",
+      "edit": "Editar",
+      "editHint": "Edita el texto de tu publicación",
+      "delete": "Borrar",
+      "deleteHint": "Pide confirmación antes de borrar la publicación",
+      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer."
     }
   }
 }
