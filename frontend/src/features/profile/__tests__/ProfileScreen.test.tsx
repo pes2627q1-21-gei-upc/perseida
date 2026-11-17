@@ -103,6 +103,16 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(clearTokens).toHaveBeenCalled();
   });
 
+  it('hides the decorative avatar from screen readers: the name is read right after it (TG-385 #520)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+
+    await renderProfile();
+
+    await screen.findByText('Àlex García');
+    expect(screen.getByTestId('profile-avatar', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.queryByTestId('profile-avatar')).not.toBeOnTheScreen();
+  });
+
   it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 

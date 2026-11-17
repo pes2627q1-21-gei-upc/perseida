@@ -4,6 +4,7 @@ import React from 'react';
 import AppLayout from '../../../app/(app)/_layout';
 import * as refreshTokenModule from '../../auth/api/refreshToken';
 import * as tokenStorage from '../../auth/tokenStorage';
+import { touch } from '../../../shared/theme';
 
 const mockTabsScreens: { name: string; options: Record<string, unknown> }[] = [];
 const mockScreenOptions = jest.fn();
@@ -94,6 +95,30 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
       expect(lastCall).toBeDefined();
       expect(lastCall.tabBarActiveTintColor).toBeDefined();
       expect(lastCall.tabBarInactiveTintColor).toBeDefined();
+    });
+  });
+
+  it('gives every tab a touch target of at least 48 dp, also in compact landscape (TG-385 #520)', async () => {
+    await act(async () => {
+      render(<AppLayout />);
+    });
+
+    await waitFor(() => {
+      const options = mockScreenOptions.mock.calls[0]?.[0];
+      expect(options?.tabBarItemStyle?.minHeight).toBeGreaterThanOrEqual(touch.min);
+    });
+  });
+
+  it('labels every tab for screen readers with its translated title (TG-385 #520)', async () => {
+    await act(async () => {
+      render(<AppLayout />);
+    });
+
+    await waitFor(() => {
+      const labels = mockTabsScreens
+        .filter((s) => s.options.href !== null)
+        .map((s) => s.options.tabBarAccessibilityLabel);
+      expect(labels).toEqual(['Inici', 'Esdeveniments', 'Xat', 'Gamificació', 'Perfil']);
     });
   });
 });
