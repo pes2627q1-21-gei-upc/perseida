@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo, BackHandler, Linking, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -13,6 +14,13 @@ import { type ClassifiedEvent, classifyEvents } from '../classifyEvents';
 import { formatEventDateTime } from '../formatEvent';
 import { EventSheet } from './EventSheet';
 
+// SecureStore is native: an empty in-memory store, so the posts of the sheet have no session.
+jest.mock('expo-secure-store', () => ({
+  setItemAsync: jest.fn(async () => undefined),
+  getItemAsync: jest.fn(async () => null),
+  deleteItemAsync: jest.fn(async () => undefined),
+}));
+
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 47, left: 0, right: 0, bottom: 34 },
@@ -23,10 +31,13 @@ const [leonids] = active;
 const [launch, eclipse] = upcoming;
 
 async function renderSheet(event: ClassifiedEvent | null, onClose = jest.fn(), side = false) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <SafeAreaProvider initialMetrics={SAFE_AREA}>
-      <EventSheet event={event} onClose={onClose} side={side} />
-    </SafeAreaProvider>,
+    <QueryClientProvider client={client}>
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <EventSheet event={event} onClose={onClose} side={side} />
+      </SafeAreaProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -54,6 +65,13 @@ describe('EventSheet', () => {
     ).toBeTruthy();
     expect(screen.getByText('Fi')).toBeTruthy();
     expect(screen.getByText(formatEventDateTime(launchEvent.ends_at, i18n.language))).toBeTruthy();
+  });
+
+  it('ends with the community posts of the event (TG-628 criterion 7)', async () => {
+    await renderSheet(launch);
+
+    expect(screen.getByRole('header', { name: 'Publicacions' })).toBeTruthy();
+    expect(screen.getByLabelText('La teva publicació')).toBeTruthy();
   });
 
   it('adds the summary and where the event can be seen', async () => {
@@ -180,10 +198,13 @@ describe('EventSheet', () => {
     };
     const realDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
     Object.defineProperty(globalThis, 'document', { configurable: true, value: fakeDocument });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const sheet = (event: ClassifiedEvent) => (
-      <SafeAreaProvider initialMetrics={SAFE_AREA}>
-        <EventSheet event={event} onClose={jest.fn()} side />
-      </SafeAreaProvider>
+      <QueryClientProvider client={client}>
+        <SafeAreaProvider initialMetrics={SAFE_AREA}>
+          <EventSheet event={event} onClose={jest.fn()} side />
+        </SafeAreaProvider>
+      </QueryClientProvider>
     );
     try {
       const { rerender, unmount } = await render(sheet(launch));
