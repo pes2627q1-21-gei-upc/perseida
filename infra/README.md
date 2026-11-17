@@ -354,7 +354,7 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
 
 ### Request limit per IP
 
-The public events endpoints (`/api/events/`, TG-351) allow 60 requests per minute per IP, with a burst of 20 served at once. Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED`, `instance` and `Retry-After: 1`, without reaching the API.
+The public events endpoints (`/api/events/`, TG-351) allow 600 requests per minute per IP, with a burst of 100 served at once. In production the UPC NAT rewrites the source IP, so all clients share a single counter (TG-643). Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED`, `instance` and `Retry-After: 1`, without reaching the API.
 
 - The zone (`limit_req_zone`) must be in nginx's `http` block, which the *Advanced* tab cannot reach. It lives in `nginx-proxy-manager/http_top.conf`, which the Compose mounts read-only at `/data/nginx/custom/http_top.conf` (NPM includes it) and the CD copies to `/opt/perseida/nginx-proxy-manager/`.
 - The location that applies it is `nginx-proxy-manager/rate-limit.conf` (*Advanced* tab). It uses the zone and the map `$events_problem_instance`, both defined in `http_top.conf`.
