@@ -132,8 +132,10 @@ async def client(
         app: FastAPI = create_app()
         app.state.session_factory = factory
         app.state.user_service = users
-        # No event source is called: the outings only check that an event exists.
+        # The events endpoints (criterion 5) read the cache; no source is called.
         app.state.event_sources = []
+        app.state.redis = redis
+        app.state.cache_default_ttl_seconds = 60
         app.state.auth_service = AuthService(
             GoogleJwksVerifier(google, [CLIENT_ID]),
             JwtTokenCodec("i" * 40),
