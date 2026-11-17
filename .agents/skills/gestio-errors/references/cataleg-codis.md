@@ -104,6 +104,19 @@ Textos aprovats per la persona responsable (TG-60, 09/11/2026). Contracte a `obs
 | `QUIZ_EXPIRED` | 409 | `ConflictError` | Sí | Aquesta pregunta ja ha caducat. Carrega la d'avui. | Esta pregunta ya ha caducado. Carga la de hoy. | This question has expired. Load today's question. | domain/quiz |
 | `QUIZ_QUESTION_MISMATCH` | 422 | `ValidationError` | Sí | Aquesta no és la pregunta d'avui. Torna-ho a provar. | Esta no es la pregunta de hoy. Inténtalo de nuevo. | This isn't today's question. Please try again. | domain/quiz |
 
+## Codis de les publicacions d'esdeveniment (TG-628)
+
+Textos presentats a la persona responsable a la tasca #634 (17/11/2026). `EVENT_NOT_FOUND` i `INVALID_CURSOR` tenen clau i18n des d'aquesta US.
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `EVENT_NOT_FOUND` | 404 | `NotFoundError` | No | Aquest esdeveniment ja no existeix. | Este evento ya no existe. | This event no longer exists. | application/posts |
+| `POST_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta publicació ja no existeix. | Esta publicación ya no existe. | This post no longer exists. | application/posts |
+| `POST_FORBIDDEN` | 403 | `ForbiddenError` | No | Només qui ha escrit aquesta publicació la pot editar o esborrar. | Solo quien ha escrito esta publicación puede editarla o borrarla. | Only the person who wrote this post can edit or delete it. | application/posts |
+| `POST_TEXT_EMPTY` | 422 | `ValidationError` | No | Escriu alguna cosa abans de publicar. | Escribe algo antes de publicar. | Write something before posting. | domain/posts |
+| `POST_TEXT_TOO_LONG` | 422 | `ValidationError` | No | El text pot tenir com a màxim 1.000 caràcters. | El texto puede tener como máximo 1.000 caracteres. | The text can be at most 1,000 characters long. | domain/posts |
+| `INVALID_CURSOR` | 422 | `ValidationError` | No | No s'han pogut carregar més publicacions. Torna-ho a provar. | No se han podido cargar más publicaciones. Vuelve a intentarlo. | More posts could not be loaded. Try again. | application/posts |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |

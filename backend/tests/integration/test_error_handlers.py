@@ -91,10 +91,23 @@ def _build_router() -> APIRouter:
     return router
 
 
+async def _no_content() -> None:
+    return None
+
+
+def _two_methods_router() -> APIRouter:
+    """One path served by two routes, one per method, like the posts of an event."""
+    router = APIRouter(prefix="/_test")
+    router.add_api_route("/two-methods", _no_content, methods=["GET"])
+    router.add_api_route("/two-methods", _no_content, methods=["DELETE"])
+    return router
+
+
 @pytest.fixture
 def app() -> FastAPI:
     app = create_app()
     app.include_router(_build_router())
+    app.include_router(_two_methods_router())
     return app
 
 
@@ -186,6 +199,18 @@ async def test_wrong_method_is_405_and_keeps_allow_header(
 
     assert_problem(response, 405, "METHOD_NOT_ALLOWED", "/api/health")
     assert "GET" in response.headers["allow"]
+
+
+async def test_wrong_method_lists_every_method_of_the_path_in_allow(
+    client: AsyncClient,
+) -> None:
+    # RFC 9110 §15.5.6: Allow names all the methods of the resource, not only those
+    # of the first route of the path (TG-628: GET and POST share a path).
+    response = await client.put("/_test/two-methods")
+
+    assert_problem(response, 405, "METHOD_NOT_ALLOWED", "/_test/two-methods")
+    allowed = {method.strip() for method in response.headers["allow"].split(",")}
+    assert allowed == {"GET", "DELETE"}
 
 
 async def test_http_exception_with_other_status_uses_generic_code(

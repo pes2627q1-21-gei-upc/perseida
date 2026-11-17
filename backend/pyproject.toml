@@ -190,3 +190,31 @@ forbidden_modules = [
     "app.application.realtime",
     "app.application.users",
 ]
+
+[[tool.importlinter.contracts]]
+# The posts only need to know whether an event exists: they ask through their own
+# port (EventLookup), wired to the events repository in infrastructure (TG-628).
+name = "The posts do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.posts", "app.application.posts"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.chat",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.chat",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
+    "app.application.users",
+]

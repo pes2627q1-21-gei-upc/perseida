@@ -27,6 +27,7 @@ from app.infrastructure.logging import configure_logging
 from app.infrastructure.outings.router import router as outings_router
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
+from app.infrastructure.posts.router import router as posts_router
 from app.infrastructure.quiz.router import router as quiz_router
 from app.infrastructure.realtime.config import RealtimeSettings
 from app.infrastructure.realtime.router import router as realtime_router
@@ -145,6 +146,7 @@ def create_app() -> FastAPI:
     app.include_router(quiz_router, prefix="/api")
     app.include_router(streaks_router, prefix="/api")
     app.include_router(outings_router, prefix="/api")
+    app.include_router(posts_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 

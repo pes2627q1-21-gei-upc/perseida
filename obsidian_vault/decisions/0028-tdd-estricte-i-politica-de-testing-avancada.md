@@ -3,7 +3,7 @@ titol: "TDD estricte i política de testing avançada"
 tipus: adr
 estat: acceptada
 data: "2026-10-28"
-us: ["TG-353"]
+us: ["TG-353", "TG-628"]
 font: "decisió de l'equip al tancament de l'Sprint 1 (2026-10-28); Taiga TG-353 (tasques #354-#358); memòria §2.5"
 etiquetes: [adr, testing, tdd, cobertura, mutation, ia]
 ---
@@ -34,6 +34,12 @@ Es fa TDD estricte a totes les capes del backend i del frontend: el test en verm
 | Robustesa | pytest-randomly i pytest-xdist; quarantena dels tests inestables, sense reintents automàtics |
 | Seguretat | bandit, pip-audit i `pnpm audit` |
 | Migracions | upgrade -> downgrade -> upgrade |
+
+> [!note] Esmena (TG-628)
+> Al **frontend**, el mutation testing no muta els fitxers canviats sencers: muta només les **línies afegides o canviades** de cada fitxer. Un fitxer nou entra sencer. Ho fa `frontend/scripts/run-stryker-diff.mjs`, que passa a Stryker rangs `fitxer:inici-final`.
+> - **Motiu:** tocar dues línies d'un component existent (`EventSheet.tsx`, de TG-52) el feia mutar sencer. El score baixava al 54 % per codi aliè a la PR, i la majoria de supervivents eren valors d'estil.
+> - **Backend:** no canvia. `mutmut` continua mutant els fitxers de domini canviats sencers.
+> - **Font:** decisió de la persona responsable a TG-628 (17/11/2026), arran de la revisió de la PR #102. Detall a [[testing#Mutation testing sobre el diff (TG-359)]].
 
 **Abast d'aquesta ADR:** la política, la documentació i les eines d'IA (skills `testing-*`, subagents, plantilla de PR). L'automatització a la CI s'implanta progressivament: schemathesis, import-linter i migracions a TG-360; llindars de cobertura bloquejants i mutation testing sobre el diff (mutmut/Stryker) a TG-359. La resta d'eines (E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`) són pendents a les US #361 i #362 del backlog. L'ordre `test:` abans de `feat:` és una regla d'equip documentada a skills, subagents i plantilla de PR: no hi ha cap script de CI que la verifiqui; la comprova el revisor.
 
@@ -66,6 +72,7 @@ Es fa TDD estricte a totes les capes del backend i del frontend: el test en verm
 - TG-353 (política de testing TDD: memòria i eines d'IA)
 - TG-360 (CI: test del contracte d'OpenAPI, arquitectura i migracions reversibles)
 - TG-359 (CI: llindars de cobertura bloquejants i mutation testing sobre el diff)
+- TG-628 (esmena: el mutation testing del frontend muta només les línies canviades)
 - US #361-#362 (backlog): implantació a la CI de la resta d'eines de la política (E2E, robustesa, seguretat)
 
 ## Enllaços

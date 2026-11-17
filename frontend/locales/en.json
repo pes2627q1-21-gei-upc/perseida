@@ -14,16 +14,22 @@
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
     "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
+    "EVENT_NOT_FOUND": "This event no longer exists.",
     "GENERIC_FINAL": "Something went wrong.",
     "GOOGLE_SIGN_IN_EXPO_GO": "Google sign-in doesn't work in Expo Go. Use the installed app (development build).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "Google sign-in isn't available yet.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google is unavailable right now. Please try again in a while.",
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "INVALID_CURSOR": "More posts could not be loaded. Try again.",
     "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
     "INVALID_RESPONSE": "Something went wrong. We couldn't load the content.",
     "INVALID_SESSION": "Your session has expired. Please sign in again.",
     "NETWORK_ERROR": "No connection. Check your network and try again.",
     "NOT_FOUND": "We couldn't find what you were looking for.",
+    "POST_FORBIDDEN": "Only the person who wrote this post can edit or delete it.",
+    "POST_NOT_FOUND": "This post no longer exists.",
+    "POST_TEXT_EMPTY": "Write something before posting.",
+    "POST_TEXT_TOO_LONG": "The text can be at most 1,000 characters long.",
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
   },
   "events": {
@@ -85,5 +91,32 @@
   "home": {
     "apodLink": "Picture of the day",
     "mapLink": "Events map"
+  },
+  "posts": {
+    "form": {
+      "label": "Your post",
+      "hint": "Share observations and tips with the community.",
+      "counter": "{{count}} of {{max}} characters",
+      "publish": "Post",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "list": {
+      "title": "Posts",
+      "loading": "Loading posts",
+      "empty": "No posts yet. Share the first one!",
+      "retry": "Try again",
+      "retryHint": "Loads the posts again",
+      "more": "Load more"
+    },
+    "item": {
+      "edited": "edited",
+      "edit": "Edit",
+      "editHint": "Edits the text of your post",
+      "delete": "Delete",
+      "deleteHint": "Asks for confirmation before deleting the post",
+      "confirmDelete": "Delete this post? This cannot be undone.",
+      "anonymous": "User #{{tag}}"
+    }
   }
 }
