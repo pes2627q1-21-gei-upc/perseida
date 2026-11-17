@@ -140,7 +140,8 @@ jobs:
         run: |
           scp -q infra/docker-compose.yml infra/scripts/deploy.sh infra/scripts/install-http-top.sh virtech:/opt/perseida/
           # NPM fa `chown` a root d'`http_top.conf` en arrencar: `scp` no el pot sobreescriure i
-          # `install-http-top.sh` l'escriu des de dins d'NPM si cal (hotfix 0.2.2).
+          # `install-http-top.sh` l'escriu amb un contenidor d'un sol ús de la imatge d'NPM si cal,
+          # estigui el proxy en marxa o no (hotfix 0.2.2).
           scp -q infra/nginx-proxy-manager/http_top.conf virtech:/opt/perseida/http_top.conf.new
           ssh virtech 'cd /opt/perseida && sh install-http-top.sh http_top.conf.new && rm -f http_top.conf.new'
           ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
