@@ -3,7 +3,15 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, exists, func, select
+from sqlalchemy import (
+    ColumnElement,
+    Executable,
+    exists,
+    func,
+    literal_column,
+    select,
+    union_all,
+)
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col
@@ -12,9 +20,11 @@ from app.domain.events.models import (
     AstronomicalEvent,
     EventCategory,
     EventDraft,
+    EventQuery,
     Location,
+    Proximity,
 )
-from app.infrastructure.events.tables import AstronomicalEventRow
+from app.infrastructure.events.tables import LOCATION_GEOGRAPHY, AstronomicalEventRow
 
 
 def _to_entity(row: AstronomicalEventRow) -> AstronomicalEvent:
@@ -64,6 +74,58 @@ _UPDATABLE = (
 )
 
 
+def _within(near: Proximity) -> ColumnElement[bool]:
+    """Located rows within ``near``, written so the spatial index serves it.
+
+    ``ST_DWithin`` on the indexed expression becomes an ``Index Cond``;
+    ``ST_Distance(...) <= r`` would read every located row instead.
+    """
+    center = func.geography(
+        func.ST_SetSRID(
+            func.ST_MakePoint(near.location.longitude, near.location.latitude), 4326
+        )
+    )
+    return col(AstronomicalEventRow.latitude).is_not(None) & func.ST_DWithin(
+        literal_column(LOCATION_GEOGRAPHY), center, near.radius_km * 1000
+    )
+
+
+def _matching(query: EventQuery) -> list[ColumnElement[bool]]:
+    """Conditions shared by every row of a search: the dates and categories."""
+    conditions = [
+        col(AstronomicalEventRow.starts_at) < query.end,
+        col(AstronomicalEventRow.ends_at) >= query.start,
+    ]
+    if query.categories:
+        conditions.append(
+            col(AstronomicalEventRow.category).in_(
+                sorted(category.value for category in query.categories)
+            )
+        )
+    return conditions
+
+
+def _search_statement(query: EventQuery) -> Executable:
+    conditions = _matching(query)
+    if query.near is None:
+        return (
+            select(AstronomicalEventRow)
+            .where(*conditions)
+            .order_by(col(AstronomicalEventRow.starts_at), col(AstronomicalEventRow.id))
+        )
+    # One statement: the located rows near the point (by the spatial index)
+    # plus the ones without a location, which are visible from anywhere. An OR
+    # of both would keep PostgreSQL from using the index.
+    located = select(AstronomicalEventRow).where(*conditions, _within(query.near))
+    anywhere = select(AstronomicalEventRow).where(
+        *conditions, col(AstronomicalEventRow.latitude).is_(None)
+    )
+    both = union_all(located, anywhere).order_by(
+        literal_column("starts_at"), literal_column("id")
+    )
+    return select(AstronomicalEventRow).from_statement(both)
+
+
 class SqlEventRepository:
     """Astronomical events stored in PostgreSQL. Each call uses its own session."""
 
@@ -85,6 +147,11 @@ class SqlEventRepository:
             col(AstronomicalEventRow.starts_at) >= start,
             col(AstronomicalEventRow.starts_at) < end,
         )
+
+    async def search(self, query: EventQuery) -> list[AstronomicalEvent]:
+        async with self._session_factory() as session:
+            rows = await session.scalars(_search_statement(query))
+            return [_to_entity(row) for row in rows]
 
     async def upsert_many(self, drafts: Sequence[EventDraft]) -> None:
         if not drafts:
