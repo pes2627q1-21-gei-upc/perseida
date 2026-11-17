@@ -6,6 +6,9 @@ import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mo
 import * as tokenStorage from '../../auth/tokenStorage';
 import { ProfileScreen } from '../components/ProfileScreen';
 
+const mockReplace = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
+
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
@@ -40,6 +43,7 @@ beforeEach(() => {
 afterEach(() => {
   queryClient.clear();
   jest.restoreAllMocks();
+  mockReplace.mockClear();
 });
 
 describe('ProfileScreen (TG-385 #517)', () => {
@@ -76,6 +80,27 @@ describe('ProfileScreen (TG-385 #517)', () => {
     await renderProfile();
 
     expect(await screen.findByText(/^Membre des de 30 d.octubre del? 2026$/)).toBeOnTheScreen();
+  });
+
+  it('signs out from the profile: closes the server session, wipes the tokens and goes to /login (TG-385 criteri 3)', async () => {
+    const clearTokens = jest.spyOn(tokenStorage, 'clearTokens').mockResolvedValue();
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async (input) =>
+        String(input instanceof Request ? input.url : input).includes('/api/auth/logout')
+          ? new Response(null, { status: 204 })
+          : jsonResponse(mockUserProfile),
+      );
+
+    await renderProfile();
+    await fireEvent.press(await screen.findByRole('button', { name: /tanca la sessió/i }));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/login'));
+    const logoutCall = fetchSpy.mock.calls.find(([input]) =>
+      String(input instanceof Request ? input.url : input).includes('/api/auth/logout'),
+    );
+    expect(logoutCall).toBeDefined();
+    expect(clearTokens).toHaveBeenCalled();
   });
 
   it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
