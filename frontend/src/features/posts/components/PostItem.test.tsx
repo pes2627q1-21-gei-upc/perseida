@@ -111,6 +111,8 @@ describe('PostItem', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Desa' }));
 
     await waitFor(() => expect(screen.queryByLabelText('La teva publicació')).toBeNull());
+    // Back to the normal view: its actions are offered again.
+    expect(screen.getByRole('button', { name: 'Edita' })).toBeOnTheScreen();
     expect(calls[0]).toMatchObject({
       method: 'PATCH',
       pathname: `/api/posts/${makePost(1).id}`,
@@ -127,6 +129,7 @@ describe('PostItem', () => {
 
     expect(screen.queryByLabelText('La teva publicació')).toBeNull();
     expect(screen.getByText('Publicació 1')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Edita' })).toBeOnTheScreen();
     expect(calls).toHaveLength(0);
   });
 
@@ -135,10 +138,14 @@ describe('PostItem', () => {
     await renderItem(makePost(1), true);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Esborra' }));
-    expect(screen.getByText('Vols esborrar aquesta publicació? No es pot desfer.')).toBeTruthy();
+    // Announced, since the button that had the focus is gone (WCAG 2.4.3, 4.1.3).
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Vols esborrar aquesta publicació? No es pot desfer.',
+    );
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel·la' }));
 
     expect(screen.queryByText('Vols esborrar aquesta publicació? No es pot desfer.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Esborra' })).toBeOnTheScreen();
     expect(calls).toHaveLength(0);
   });
 
@@ -160,8 +167,36 @@ describe('PostItem', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Esborra' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Esborra' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Només qui ha escrit aquesta publicació la pot editar o esborrar.',
+    // The confirmation question is an alert too: the error is the other one.
+    expect(
+      await screen.findByRole('alert', {
+        name: 'Només qui ha escrit aquesta publicació la pot editar o esborrar.',
+      }),
+    ).toBeOnTheScreen();
+  });
+
+  it('explains what edit and delete do to screen reader users (WCAG 2.5.3, 3.3.2)', async () => {
+    await renderItem(makePost(1), true);
+
+    expect(screen.getByRole('button', { name: 'Edita' }).props.accessibilityHint).toBe(
+      'Edita el text de la teva publicació',
     );
+    expect(screen.getByRole('button', { name: 'Esborra' }).props.accessibilityHint).toBe(
+      "Demana confirmació abans d'esborrar la publicació",
+    );
+  });
+
+  it('forgets a failed delete when the deletion is asked again', async () => {
+    mockFetch(() => problemResponse(403, 'POST_FORBIDDEN'));
+    await renderItem(makePost(1), true);
+    const message = 'Només qui ha escrit aquesta publicació la pot editar o esborrar.';
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Esborra' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Esborra' }));
+    expect(await screen.findByText(message)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel·la' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Esborra' }));
+
+    await waitFor(() => expect(screen.queryByText(message)).toBeNull());
   });
 });

@@ -59,6 +59,28 @@ describe('PostForm (create)', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('counts characters as the server does, so emoji count once', async () => {
+    await render(<PostForm mode="create" onSubmit={jest.fn()} />);
+
+    await type('🔭'.repeat(POST_MAX_LENGTH));
+
+    expect(screen.getByLabelText('1000 de 1000 caràcters')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Publica' }).props.accessibilityState.disabled).toBe(
+      false,
+    );
+  });
+
+  it('describes the text error in the field itself, so it is read on focus (WCAG 3.3.1)', async () => {
+    await render(<PostForm mode="create" onSubmit={jest.fn()} />);
+
+    await type('a'.repeat(POST_MAX_LENGTH + 1));
+
+    expect(field().props.accessibilityHint).toBe(
+      'El text pot tenir com a màxim 1.000 caràcters. ' +
+        'Comparteix observacions i consells amb la comunitat.',
+    );
+  });
+
   it('sends the text, is busy meanwhile and empties the field after publishing', async () => {
     let finish!: () => void;
     const onSubmit = jest.fn(
@@ -104,6 +126,41 @@ describe('PostForm (create)', () => {
     expect(field().props.value).toBe('Hola');
   });
 
+  it('shows a too long text from the server next to the field, not as an alert', async () => {
+    const onSubmit = jest.fn().mockRejectedValue(serverError('POST_TEXT_TOO_LONG', 422));
+    await render(<PostForm mode="create" onSubmit={onSubmit} />);
+    await type('Hola');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Publica' }));
+
+    expect(
+      await screen.findByText('El text pot tenir com a màxim 1.000 caràcters.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('clears the previous error when it publishes again', async () => {
+    const onSubmit = jest
+      .fn()
+      .mockRejectedValueOnce(serverError('EVENT_NOT_FOUND', 404))
+      .mockResolvedValueOnce(undefined);
+    await render(<PostForm mode="create" onSubmit={onSubmit} />);
+    await type('Hola');
+    await fireEvent.press(screen.getByRole('button', { name: 'Publica' }));
+    expect(await screen.findByRole('alert')).toBeOnTheScreen();
+
+    await type('Hola de nou');
+    await fireEvent.press(screen.getByRole('button', { name: 'Publica' }));
+
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+
+  it('offers no cancel when creating, even if it is given one', async () => {
+    await render(<PostForm mode="create" onSubmit={jest.fn()} onCancel={jest.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Cancel·la' })).toBeNull();
+  });
+
   it('shows a generic message for an unexpected failure', async () => {
     const onSubmit = jest.fn().mockRejectedValue(new Error('boom'));
     await render(<PostForm mode="create" onSubmit={onSubmit} />);
@@ -111,7 +168,9 @@ describe('PostForm (create)', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Publica' }));
 
+    // A final message, not a «try again» one.
     expect(await screen.findByRole('alert')).toHaveTextContent('Alguna cosa ha anat malament.');
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/torna-ho a provar/i);
   });
 });
 
@@ -128,6 +187,12 @@ describe('PostForm (edit)', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith('Després'));
     expect(field().props.value).toBe('Després');
+  });
+
+  it('puts the focus in the field when editing starts (WCAG 2.4.3)', async () => {
+    await render(<PostForm mode="edit" initialText="Hola" onSubmit={jest.fn()} />);
+
+    expect(field().props.autoFocus).toBe(true);
   });
 
   it('can be cancelled without saving', async () => {
