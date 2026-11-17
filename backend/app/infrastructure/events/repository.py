@@ -17,7 +17,8 @@ from app.domain.events.models import (
 from app.infrastructure.events.tables import AstronomicalEventRow
 
 
-def _to_entity(row: AstronomicalEventRow) -> AstronomicalEvent:
+def to_entity(row: AstronomicalEventRow) -> AstronomicalEvent:
+    """Map a row of ``astronomical_events`` to the domain entity."""
     location = (
         None
         if row.latitude is None or row.longitude is None
@@ -112,7 +113,7 @@ class SqlEventRepository:
     async def get(self, event_id: uuid.UUID) -> AstronomicalEvent | None:
         async with self._session_factory() as session:
             row = await session.get(AstronomicalEventRow, event_id)
-            return None if row is None else _to_entity(row)
+            return None if row is None else to_entity(row)
 
     async def _list(self, *conditions: ColumnElement[bool]) -> list[AstronomicalEvent]:
         statement = (
@@ -122,4 +123,4 @@ class SqlEventRepository:
         )
         async with self._session_factory() as session:
             rows = await session.scalars(statement)
-            return [_to_entity(row) for row in rows]
+            return [to_entity(row) for row in rows]
