@@ -1,10 +1,12 @@
 import type { Icon } from 'phosphor-react-native';
 import { Flame, Trophy, User, Users } from 'phosphor-react-native';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppError, errorMessage } from '../../../shared/errors';
+import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
 import { LogoutButton } from '../../auth/components/LogoutButton';
@@ -15,6 +17,9 @@ export function ProfileScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data, isLoading, isError, error, refetch } = useUserProfile();
+  const [photoFailed, setPhotoFailed] = useState(false);
+  // Only plain https avatars reach <Image> (ADR-0024); anything else shows the initials.
+  const photo = photoFailed ? null : safeHttpsUrl(data?.avatar_url);
 
   const initials = data?.display_name
     ? data.display_name
@@ -130,8 +135,13 @@ export function ProfileScreen() {
                       },
                     ]}
                   >
-                    {data.avatar_url ? (
-                      <Image source={{ uri: data.avatar_url }} style={styles.avatarImage} />
+                    {photo ? (
+                      <Image
+                        testID="profile-avatar-image"
+                        source={{ uri: photo }}
+                        onError={() => setPhotoFailed(true)}
+                        style={styles.avatarImage}
+                      />
                     ) : (
                       <Text style={[theme.typography.title, { color: theme.colors.brand }]}>
                         {initials}
