@@ -6,8 +6,8 @@ from sqlalchemy import Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col
 
-from app.domain.events.models import Location
 from app.domain.outings.models import Outing, OutingAuthor, OutingDetails
+from app.domain.shared.location import Location
 from app.infrastructure.outings.tables import OutingRow
 from app.infrastructure.users.tables import UserRow
 

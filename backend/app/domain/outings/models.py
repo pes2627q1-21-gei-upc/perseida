@@ -13,7 +13,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.domain.events.models import Location
 from app.domain.outings.errors import (
     OUTING_DESCRIPTION_TOO_LONG,
     OUTING_ENDS_BEFORE_START,
@@ -22,6 +21,7 @@ from app.domain.outings.errors import (
     OUTING_TITLE_TOO_LONG,
 )
 from app.domain.shared.errors import ValidationError
+from app.domain.shared.location import Location
 
 # TG-629, criterion 1. Same limits as the columns of ``outings``.
 TITLE_MAX_LENGTH = 120

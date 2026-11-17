@@ -9,7 +9,6 @@ from app.application.shared.error_codes import (
     ACCOUNT_SUSPENDED,
     INVALID_SESSION,
 )
-from app.domain.events.models import Location
 from app.domain.outings.errors import (
     OUTING_DESCRIPTION_TOO_LONG,
     OUTING_ENDS_BEFORE_START,
@@ -21,6 +20,7 @@ from app.domain.outings.errors import (
     OUTING_TITLE_TOO_LONG,
 )
 from app.domain.outings.models import OutingChanges
+from app.domain.shared.location import Location
 from app.infrastructure.api.schemas import PROBLEM_CONTENT, ProblemDetails
 from app.infrastructure.auth.dependencies import CurrentSessionDep
 from app.infrastructure.outings.dependencies import OutingServiceDep

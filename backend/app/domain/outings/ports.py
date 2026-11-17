@@ -34,3 +34,12 @@ class OutingRepository(Protocol):
         """Return the outings with ``starts_at >= now``, sorted by ``starts_at`` and
         then ``id``, optionally only those of ``event_id`` or of ``author_id``."""
         ...
+
+
+class EventLookup(Protocol):
+    """Whether an astronomical event exists. An outing only points to an event by
+    id, so it needs nothing else from the events feature."""
+
+    async def exists(self, event_id: uuid.UUID) -> bool:
+        """Return whether an event with ``event_id`` is stored."""
+        ...

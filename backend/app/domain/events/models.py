@@ -12,6 +12,7 @@ from pydantic import (
 )
 
 from app.domain.shared.errors import ValidationError
+from app.domain.shared.location import Location as Location
 
 
 class EventCategory(StrEnum):
@@ -21,15 +22,6 @@ class EventCategory(StrEnum):
     SOLAR = "solar"
     METEOR_SHOWER = "meteor_shower"
     LAUNCH = "launch"
-
-
-class Location(BaseModel):
-    """A point on Earth (WGS 84 degrees)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    latitude: float = Field(ge=-90, le=90)
-    longitude: float = Field(ge=-180, le=180)
 
 
 class EventSourceName(StrEnum):

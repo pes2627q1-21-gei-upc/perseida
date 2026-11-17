@@ -18,8 +18,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from alembic import command
-from app.domain.events.models import Location
 from app.domain.outings.models import Outing, OutingAuthor, OutingChanges
+from app.domain.shared.location import Location
 from app.domain.users.models import User
 from app.infrastructure.outings.repository import SqlOutingRepository
 from app.infrastructure.persistence.config import DatabaseSettings

@@ -3,16 +3,15 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from app.application.shared.errors import ForbiddenError
-from app.domain.events.models import Location
-from app.domain.events.ports import EventRepository
 from app.domain.outings.errors import (
     OUTING_EVENT_NOT_FOUND,
     OUTING_FORBIDDEN,
     OUTING_NOT_FOUND,
 )
 from app.domain.outings.models import Outing, OutingChanges, OutingDetails
-from app.domain.outings.ports import OutingRepository
+from app.domain.outings.ports import EventLookup, OutingRepository
 from app.domain.shared.errors import NotFoundError, ValidationError
+from app.domain.shared.location import Location
 
 
 def _utc_now() -> datetime:
@@ -28,7 +27,7 @@ class OutingService:
     def __init__(
         self,
         repository: OutingRepository,
-        events: EventRepository,
+        events: EventLookup,
         now: Callable[[], datetime] = _utc_now,
     ) -> None:
         self._repository = repository

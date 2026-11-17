@@ -5,7 +5,7 @@ import pytest
 
 from app.application.outings.outing_service import OutingService
 from app.application.shared.errors import ForbiddenError
-from app.domain.events.models import AstronomicalEvent, EventCategory, Location
+from app.domain.events.models import AstronomicalEvent, EventCategory
 from app.domain.outings.errors import (
     OUTING_EVENT_NOT_FOUND,
     OUTING_FORBIDDEN,
@@ -14,6 +14,7 @@ from app.domain.outings.errors import (
 )
 from app.domain.outings.models import OutingAuthor, OutingChanges
 from app.domain.shared.errors import NotFoundError, ValidationError
+from app.domain.shared.location import Location
 from tests.fakes.events import FakeEventRepository
 from tests.fakes.outings import FakeOutingRepository
 

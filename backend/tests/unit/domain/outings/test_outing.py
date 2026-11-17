@@ -7,7 +7,6 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pydantic import ValidationError as PydanticValidationError
 
-from app.domain.events.models import Location
 from app.domain.outings.errors import (
     OUTING_DESCRIPTION_TOO_LONG,
     OUTING_ENDS_BEFORE_START,
@@ -22,6 +21,7 @@ from app.domain.outings.models import (
     OutingChanges,
 )
 from app.domain.shared.errors import ValidationError
+from app.domain.shared.location import Location
 
 NOW = datetime(2026, 11, 17, 10, 0, tzinfo=UTC)
 AUTHOR_ID = uuid.uuid7()
