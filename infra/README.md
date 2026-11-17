@@ -302,7 +302,7 @@ A single proxy host serves everything from the same origin:
 |---|---|
 | `/api/...` | `api:8000` (REST API; health check at `/api/health`) |
 | `/api/ws` | `api:8000` with the WebSocket upgrade (chat, TG-63) |
-| `/api/events/` | `api:8000` with a per-IP request limit (public endpoints for Spotwise, TG-351) |
+| `/api/events/` | `api:8000` with a shared request limit (public endpoints for Spotwise, TG-351, TG-643) |
 | `/media/` | NPM itself, from the `media_data` volume (user media) |
 | `/admin/` | NPM itself, from the `admin_dist` volume (admin panel SPA) |
 
@@ -352,9 +352,9 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
 
    A real client (e.g. `wscat -n -c wss://perseida.localhost/api/ws`) then has to send, as its first frame, `{"type":"auth","token":"<access token>"}`: the server closes with code 4401 if that frame does not arrive within `WS_AUTH_TIMEOUT_SECONDS` (default 10) or the token is not valid. After authenticating, the server sends a `ping` every `WS_HEARTBEAT_SECONDS` (default 30). Both are optional variables of `api` (they are in `.env.example`), as are `WS_MAX_ROOMS` (default 20), `WS_MAX_FRAME_BYTES` (default 65536) and `WS_SEND_TIMEOUT_SECONDS` (default 5) and `WS_MAX_CONNECTIONS_PER_USER` (default 3). The heartbeat must stay well below `proxy_read_timeout` (3600 s in `websocket.conf`) so the proxy never sees the connection as idle.
 
-### Request limit per IP
+### Request limit
 
-The public events endpoints (`/api/events/`, TG-351) allow 600 requests per minute per IP, with a burst of 100 served at once. In production the UPC NAT rewrites the source IP, so all clients share a single counter (TG-643). Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED`, `instance` and `Retry-After: 1`, without reaching the API.
+The public events endpoints (`/api/events/`, TG-351) allow 600 requests per minute across all clients, with a burst of 100 served at once. It is a single shared counter: in production the UPC NAT rewrites the source IP and the proxy cannot tell clients apart (TG-643). Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED`, `instance` and `Retry-After: 1`, without reaching the API.
 
 - The zone (`limit_req_zone`) must be in nginx's `http` block, which the *Advanced* tab cannot reach. It lives in `nginx-proxy-manager/http_top.conf`, which the Compose mounts read-only at `/data/nginx/custom/http_top.conf` (NPM includes it) and the CD copies to `/opt/perseida/nginx-proxy-manager/`.
 - The location that applies it is `nginx-proxy-manager/rate-limit.conf` (*Advanced* tab). It uses the zone and the map `$events_problem_instance`, both defined in `http_top.conf`.
@@ -363,6 +363,7 @@ The public events endpoints (`/api/events/`, TG-351) allow 600 requests per minu
 >
 > - **To enable it:** first deploy (the CD copies `http_top.conf` and reloads nginx), and only then paste `rate-limit.conf` into *Advanced*.
 > - **To remove it** (or before a revert that drops the `http_top.conf` mount): first delete `rate-limit.conf` from *Advanced* and save, and only then deploy.
+> - **If the zone key changes** (`$binary_remote_addr` → `$realip_remote_addr` in TG-643, or the revert of that change): a reload does not apply it. nginx rejects a live zone with a different key (`limit_req "events_per_ip" uses the "..." key while previously it used the "..." key`) and keeps the old configuration, yet the CD step still goes green: `nginx -t` does not compare against the live zone and `nginx -s reload` only sends the signal. No *Advanced* save is applied either until a restart. After that deploy, restart the proxy (a few seconds of downtime): `cd /opt/perseida && docker compose restart reverse-proxy`. Check it with `docker compose exec reverse-proxy nginx -T | grep limit_req_zone` (it shows the file, not the live zone, hence the restart), make sure `docker compose logs reverse-proxy` does not show that error, and only then paste `rate-limit.conf` into *Advanced* again.
 
 - `docker compose up` does not recreate the proxy when only the content of `http_top.conf` changes, so the CD validates and reloads nginx after each deploy (`nginx -t && nginx -s reload`). Locally: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it).
