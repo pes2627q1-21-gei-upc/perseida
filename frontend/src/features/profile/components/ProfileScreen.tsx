@@ -1,3 +1,4 @@
+import type { Icon } from 'phosphor-react-native';
 import { Flame, Trophy, User, Users } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -217,146 +218,10 @@ export function ProfileScreen() {
                 </View>
               </GlassPanel>
 
-              {/* Gamification Slot: Streak */}
-              <GlassPanel>
-                <View style={[styles.slotCard, { gap: theme.spacing.xs }]}>
-                  <View style={styles.slotHeader}>
-                    <View
-                      style={[
-                        styles.slotIconOrb,
-                        { backgroundColor: theme.colors.surface.glassSolid },
-                      ]}
-                    >
-                      <Flame size={theme.iconSizes.sm} color={theme.colors.brand} weight="fill" />
-                    </View>
-                    <Text
-                      accessibilityRole="header"
-                      style={[
-                        theme.typography.bodyStrong,
-                        { color: theme.colors.text.primary, flex: 1 },
-                      ]}
-                    >
-                      {t('profile.streak.title')}
-                    </Text>
-                    <View
-                      style={[
-                        styles.badge,
-                        {
-                          borderColor: theme.colors.surface.glassBorder,
-                          backgroundColor: theme.colors.surface.glass,
-                          borderRadius: theme.radii.pill,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          theme.typography.caption,
-                          { color: theme.colors.brand, fontWeight: '600' },
-                        ]}
-                      >
-                        {t('profile.streak.badge')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
-                    {t('profile.streak.desc')}
-                  </Text>
-                </View>
-              </GlassPanel>
-
-              {/* Gamification Slot: Achievements */}
-              <GlassPanel>
-                <View style={[styles.slotCard, { gap: theme.spacing.xs }]}>
-                  <View style={styles.slotHeader}>
-                    <View
-                      style={[
-                        styles.slotIconOrb,
-                        { backgroundColor: theme.colors.surface.glassSolid },
-                      ]}
-                    >
-                      <Trophy size={theme.iconSizes.sm} color={theme.colors.brand} weight="fill" />
-                    </View>
-                    <Text
-                      accessibilityRole="header"
-                      style={[
-                        theme.typography.bodyStrong,
-                        { color: theme.colors.text.primary, flex: 1 },
-                      ]}
-                    >
-                      {t('profile.achievements.title')}
-                    </Text>
-                    <View
-                      style={[
-                        styles.badge,
-                        {
-                          borderColor: theme.colors.surface.glassBorder,
-                          backgroundColor: theme.colors.surface.glass,
-                          borderRadius: theme.radii.pill,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          theme.typography.caption,
-                          { color: theme.colors.brand, fontWeight: '600' },
-                        ]}
-                      >
-                        {t('profile.achievements.badge')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
-                    {t('profile.achievements.desc')}
-                  </Text>
-                </View>
-              </GlassPanel>
-
-              {/* Gamification Slot: Followers (#62) */}
-              <GlassPanel>
-                <View style={[styles.slotCard, { gap: theme.spacing.xs }]}>
-                  <View style={styles.slotHeader}>
-                    <View
-                      style={[
-                        styles.slotIconOrb,
-                        { backgroundColor: theme.colors.surface.glassSolid },
-                      ]}
-                    >
-                      <Users size={theme.iconSizes.sm} color={theme.colors.brand} weight="fill" />
-                    </View>
-                    <Text
-                      accessibilityRole="header"
-                      style={[
-                        theme.typography.bodyStrong,
-                        { color: theme.colors.text.primary, flex: 1 },
-                      ]}
-                    >
-                      {t('profile.followers.title')}
-                    </Text>
-                    <View
-                      style={[
-                        styles.badge,
-                        {
-                          borderColor: theme.colors.surface.glassBorder,
-                          backgroundColor: theme.colors.surface.glass,
-                          borderRadius: theme.radii.pill,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          theme.typography.caption,
-                          { color: theme.colors.brand, fontWeight: '600' },
-                        ]}
-                      >
-                        {t('profile.followers.badge')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
-                    {t('profile.followers.desc')}
-                  </Text>
-                </View>
-              </GlassPanel>
+              {/* Gamification slots: streak (#57), achievements (#59), followers (#62) */}
+              {SLOTS.map((slot) => (
+                <ProfileSlot key={slot.key} i18nKey={slot.key} icon={slot.icon} />
+              ))}
 
               {/* Logout Action */}
               <View style={styles.logoutWrapper}>
@@ -367,6 +232,61 @@ export function ProfileScreen() {
         </View>
       </ScrollView>
     </SkyBackground>
+  );
+}
+
+/** Reserved gamification slots; the owning US replaces each one with real data. */
+const SLOTS = [
+  { key: 'streak', icon: Flame },
+  { key: 'achievements', icon: Trophy },
+  { key: 'followers', icon: Users },
+] as const satisfies readonly { key: string; icon: Icon }[];
+
+function ProfileSlot({
+  i18nKey,
+  icon: IconComponent,
+}: {
+  i18nKey: (typeof SLOTS)[number]['key'];
+  icon: Icon;
+}) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+
+  return (
+    <GlassPanel>
+      <View style={[styles.slotCard, { gap: theme.spacing.xs }]}>
+        <View style={styles.slotHeader}>
+          <View style={[styles.slotIconOrb, { backgroundColor: theme.colors.surface.glassSolid }]}>
+            <IconComponent size={theme.iconSizes.sm} color={theme.colors.brand} weight="fill" />
+          </View>
+          <Text
+            accessibilityRole="header"
+            style={[theme.typography.bodyStrong, { color: theme.colors.text.primary, flex: 1 }]}
+          >
+            {t(`profile.${i18nKey}.title`)}
+          </Text>
+          <View
+            style={[
+              styles.badge,
+              {
+                borderColor: theme.colors.surface.glassBorder,
+                backgroundColor: theme.colors.surface.glass,
+                borderRadius: theme.radii.pill,
+              },
+            ]}
+          >
+            <Text
+              style={[theme.typography.caption, { color: theme.colors.brand, fontWeight: '600' }]}
+            >
+              {t(`profile.${i18nKey}.badge`)}
+            </Text>
+          </View>
+        </View>
+        <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
+          {t(`profile.${i18nKey}.desc`)}
+        </Text>
+      </View>
+    </GlassPanel>
   );
 }
 
