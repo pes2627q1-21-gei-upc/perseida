@@ -40,5 +40,5 @@ async def _row_counts() -> dict[str, int]:
 
 
 def row_counts() -> dict[str, int]:
-    """Rows per table of users, quiz, streaks and subscriptions, read with a fresh connection."""
+    """Rows per table of users, quiz, streaks and subscriptions (fresh connection)."""
     return asyncio.run(_row_counts())

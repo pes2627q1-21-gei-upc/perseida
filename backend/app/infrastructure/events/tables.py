@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import ClassVar
 
 from sqlalchemy import (
     CheckConstraint,
@@ -9,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     String,
+    Table,
     Text,
     UniqueConstraint,
     Uuid,
@@ -86,6 +88,8 @@ class EventSubscriptionRow(SQLModel, table=True):
     ``EventSubscription``; deleting the user or the event deletes it."""
 
     __tablename__ = "event_subscriptions"
+    # Set by SQLModel; declared so that type checkers see the table.
+    __table__: ClassVar[Table]
     # One subscription per user and event; it also serves the queries by user
     # (``is_subscribed``, ``list_events_of``), which lead with ``user_id``.
     __table_args__ = (UniqueConstraint("user_id", "event_id"),)
