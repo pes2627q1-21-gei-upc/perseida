@@ -15,9 +15,11 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.infrastructure.api.correlation import CORRELATION_HEADER
 
+# Production only over HTTPS: Force SSL redirects `http://…:40430`, so no page is
+# served from it, and allowing it would let a page tampered with on the network
+# call the API with the user's session.
 DEFAULT_ALLOWED_ORIGINS = (
     "https://perseida.duckdns.org:40431",
-    "http://perseida.duckdns.org:40430",
     "https://perseida.duckdns.org",
     "http://localhost:8081",
     "http://127.0.0.1:8081",
