@@ -1,4 +1,5 @@
 import type { SocketAuth } from '../../shared/realtime';
+import { sessionUnavailable } from './api/authorized';
 import { refreshSession } from './api/refreshToken';
 import { getTokens } from './tokenStorage';
 
@@ -7,10 +8,11 @@ export const socketAuth: SocketAuth = {
   async getToken() {
     return (await getTokens())?.accessToken ?? null;
   },
-  // A refreshSession() that cannot renew returns null instead of rejecting, so this resolves too:
-  // the reconnection then finds no token (the session was cleared) or gets a second 4401, and
-  // either way the connection ends with INVALID_SESSION.
+  // Same rule as withSession: refreshSession() only clears the session when the server rejected
+  // it. Then this resolves and the reconnection finds no token (INVALID_SESSION); if the session
+  // is still stored, the failure was temporary and it rejects with SESSION_UNAVAILABLE.
   async refresh() {
-    await refreshSession();
+    if (await refreshSession()) return;
+    if (await getTokens()) throw sessionUnavailable();
   },
 };
