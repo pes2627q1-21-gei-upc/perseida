@@ -4,6 +4,7 @@ GET /api/me/subscriptions (TG-53, criteris 2-5 i 9).
 Services wired with in-memory fakes; the real auth flow, as in the users router.
 """
 
+import json
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
@@ -40,6 +41,7 @@ from tests.fakes.auth import (
 )
 from tests.fakes.event_subscriptions import InMemoryEventSubscriptionRepository
 from tests.fakes.events import FakeEventRepository
+from tests.fakes.pubsub import FakePubSub
 from tests.fakes.users import InMemoryUserRepository
 
 PROBLEM_JSON = "application/problem+json"
@@ -63,7 +65,9 @@ def _subscription_path(event_id: uuid.UUID | str) -> str:
 
 
 async def _client(
-    subscriptions: InMemoryEventSubscriptionRepository, me: User = ME
+    subscriptions: InMemoryEventSubscriptionRepository,
+    me: User = ME,
+    pubsub: FakePubSub | None = None,
 ) -> AsyncIterator[tuple[AsyncClient, dict[str, str]]]:
     auth = AuthService(
         FakeGoogleTokenVerifier(IDENTITY),
@@ -81,7 +85,10 @@ async def _client(
     )
     app.dependency_overrides[get_subscription_service] = lambda: (
         subscription_service.SubscriptionService(
-            FakeEventRepository(EVENTS), subscriptions, now=lambda: NOW
+            FakeEventRepository(EVENTS),
+            subscriptions,
+            pubsub or FakePubSub(),
+            now=lambda: NOW,
         )
     )
     tokens = await auth.login("google-id-token")
@@ -231,6 +238,20 @@ async def test_tg53_c3_delete_unsubscribes_with_204_and_no_body() -> None:
     assert response.status_code == 204
     assert response.content == b""
     assert list(repo.subscriptions) == [(OTHER.id, UPCOMING.id)]
+
+
+async def test_tg459_delete_announces_the_lost_room_to_the_session_sub() -> None:
+    pubsub = FakePubSub()
+    async for client, auth in _client(_repository((ME, UPCOMING)), pubsub=pubsub):
+        response = await client.delete(_subscription_path(UPCOMING.id), headers=auth)
+
+    assert response.status_code == 204
+    assert pubsub.published == [
+        (
+            f"room-revoked:{IDENTITY.google_sub}",
+            json.dumps({"room": f"chat:event:{UPCOMING.id}"}),
+        )
+    ]
 
 
 async def test_tg53_c3_delete_is_idempotent() -> None:

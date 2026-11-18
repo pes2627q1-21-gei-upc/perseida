@@ -1,22 +1,28 @@
 """SubscriptionService with in-memory fakes (TG-53, criteris 2-5 i 9)."""
 
+import json
+import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from app.application.events import subscription_service
+from app.application.shared.errors import ExternalServiceError
 from app.domain.events import errors as event_errors
 from app.domain.events.models import AstronomicalEvent, EventSubscription
+from app.domain.realtime.models import chat_event_room, room_revocation_channel
 from app.domain.shared.errors import ConflictError, NotFoundError
 from tests.factories.events import make_event
 from tests.fakes.event_subscriptions import InMemoryEventSubscriptionRepository
 from tests.fakes.events import FakeEventRepository
+from tests.fakes.pubsub import FakePubSub
 
 NOW = datetime(2026, 11, 17, 21, 0, tzinfo=UTC)
 ME = uuid.UUID("01a1bd9a-0000-7000-8000-000000000001")
 OTHER = uuid.UUID("01a1bd9a-0000-7000-8000-000000000002")
 UNKNOWN_EVENT = uuid.UUID("01a1bd9a-ffff-7000-8000-000000000000")
+ME_SUB = "google-me"
 
 UPCOMING = make_event(NOW + timedelta(days=2))
 IN_PROGRESS = make_event(NOW - timedelta(hours=1), NOW + timedelta(hours=1))
@@ -38,7 +44,7 @@ def _service(
 ]:
     subscriptions = InMemoryEventSubscriptionRepository(events)
     service = subscription_service.SubscriptionService(
-        FakeEventRepository(events), subscriptions, now=lambda: NOW
+        FakeEventRepository(events), subscriptions, FakePubSub(), now=lambda: NOW
     )
     return service, subscriptions
 
@@ -136,7 +142,10 @@ async def test_tg53_c5_the_clock_is_read_on_each_call() -> None:
     clock = [NOW - timedelta(days=1)]
     subscriptions = InMemoryEventSubscriptionRepository([IN_PROGRESS])
     service = subscription_service.SubscriptionService(
-        FakeEventRepository([IN_PROGRESS]), subscriptions, now=lambda: clock[0]
+        FakeEventRepository([IN_PROGRESS]),
+        subscriptions,
+        FakePubSub(),
+        now=lambda: clock[0],
     )
     assert await service.subscribe(ME, IN_PROGRESS.id) is True
 
@@ -150,7 +159,7 @@ async def test_tg53_c3_unsubscribe_removes_the_subscription() -> None:
     await service.subscribe(ME, UPCOMING.id)
     await service.subscribe(OTHER, UPCOMING.id)
 
-    await service.unsubscribe(ME, UPCOMING.id)
+    await service.unsubscribe(ME, UPCOMING.id, google_sub=ME_SUB)
 
     assert await subscriptions.is_subscribed(ME, UPCOMING.id) is False
     assert await subscriptions.is_subscribed(OTHER, UPCOMING.id) is True
@@ -159,8 +168,8 @@ async def test_tg53_c3_unsubscribe_removes_the_subscription() -> None:
 async def test_tg53_c3_unsubscribe_without_a_subscription_is_a_no_op() -> None:
     service, subscriptions = _service(UPCOMING)
 
-    await service.unsubscribe(ME, UPCOMING.id)
-    await service.unsubscribe(ME, UPCOMING.id)
+    await service.unsubscribe(ME, UPCOMING.id, google_sub=ME_SUB)
+    await service.unsubscribe(ME, UPCOMING.id, google_sub=ME_SUB)
 
     assert subscriptions.subscriptions == {}
 
@@ -168,16 +177,81 @@ async def test_tg53_c3_unsubscribe_without_a_subscription_is_a_no_op() -> None:
 async def test_tg53_c3_unsubscribe_does_not_check_that_the_event_exists() -> None:
     service, _ = _service()
 
-    await service.unsubscribe(ME, UNKNOWN_EVENT)
+    await service.unsubscribe(ME, UNKNOWN_EVENT, google_sub=ME_SUB)
 
 
 async def test_tg53_c3_unsubscribe_works_for_an_ended_event() -> None:
     service, subscriptions = _service(ENDED)
     await subscriptions.add(make_subscription(ME, ENDED, NOW - timedelta(days=2)))
 
-    await service.unsubscribe(ME, ENDED.id)
+    await service.unsubscribe(ME, ENDED.id, google_sub=ME_SUB)
 
     assert await subscriptions.is_subscribed(ME, ENDED.id) is False
+
+
+class _OrderedPubSub(FakePubSub):
+    """Records whether the user was still subscribed when something was published."""
+
+    def __init__(self, subscriptions: InMemoryEventSubscriptionRepository) -> None:
+        super().__init__()
+        self._subscriptions = subscriptions
+        self.still_subscribed: list[bool] = []
+
+    async def publish(self, channel: str, message: str) -> None:
+        self.still_subscribed.append(
+            (ME, UPCOMING.id) in self._subscriptions.subscriptions
+        )
+        await super().publish(channel, message)
+
+
+def _service_with(
+    pubsub: FakePubSub, subscriptions: InMemoryEventSubscriptionRepository
+) -> subscription_service.SubscriptionService:
+    return subscription_service.SubscriptionService(
+        FakeEventRepository([UPCOMING]), subscriptions, pubsub, now=lambda: NOW
+    )
+
+
+async def test_tg459_unsubscribe_announces_the_lost_chat_room_after_removing() -> None:
+    subscriptions = InMemoryEventSubscriptionRepository([UPCOMING])
+    pubsub = _OrderedPubSub(subscriptions)
+    service = _service_with(pubsub, subscriptions)
+    await service.subscribe(ME, UPCOMING.id)
+
+    await service.unsubscribe(ME, UPCOMING.id, google_sub=ME_SUB)
+
+    assert pubsub.published == [
+        (
+            room_revocation_channel(ME_SUB),
+            json.dumps({"room": chat_event_room(UPCOMING.id)}),
+        )
+    ]
+    assert pubsub.still_subscribed == [False]  # the removal came first
+
+
+async def test_tg459_a_failed_announcement_keeps_the_unsubscription_and_is_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    subscriptions = InMemoryEventSubscriptionRepository([UPCOMING])
+    pubsub = FakePubSub()
+    service = _service_with(pubsub, subscriptions)
+    await service.subscribe(ME, UPCOMING.id)
+    pubsub.fail(error=ExternalServiceError("PUBSUB_UNAVAILABLE"))
+
+    with caplog.at_level(logging.WARNING):
+        await service.unsubscribe(ME, UPCOMING.id, google_sub=ME_SUB)  # no raise
+
+    assert await subscriptions.is_subscribed(ME, UPCOMING.id) is False
+    assert any(r.levelno == logging.WARNING for r in caplog.records)
+
+
+async def test_tg459_subscribing_announces_nothing() -> None:
+    subscriptions = InMemoryEventSubscriptionRepository([UPCOMING])
+    pubsub = FakePubSub()
+
+    await _service_with(pubsub, subscriptions).subscribe(ME, UPCOMING.id)
+
+    assert pubsub.published == []
 
 
 async def test_tg53_c4_list_mine_returns_only_my_events_by_start() -> None:
