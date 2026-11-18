@@ -27,7 +27,7 @@ def _achievement(**overrides: object) -> Achievement:
         "position": 1,
     }
     data.update(overrides)
-    return Achievement(**data)  # type: ignore[arg-type]
+    return Achievement(**data)
 
 
 ALL_KINDS = {
