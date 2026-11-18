@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import * as Location from 'expo-location';
+import { useState } from 'react';
 
 import { formatCoordinate } from '../formatOuting';
 import { LocationField } from './LocationField';
@@ -60,20 +61,95 @@ describe('LocationField', () => {
     expect(onChange).toHaveBeenCalledWith({ latitude: 41.39, longitude: 2.17 });
   });
 
-  it('says which place is chosen', async () => {
+  it('does not say in a text which place is chosen: the fields show it', async () => {
     await render(
       <LocationField value={{ latitude: 42.05, longitude: 0.73 }} onChange={jest.fn()} />,
     );
 
-    const latitude = formatCoordinate(42.05, 'ca');
-    const longitude = formatCoordinate(0.73, 'ca');
-    expect(screen.getByText(`Lloc triat: ${latitude}, ${longitude}`)).toBeTruthy();
+    expect(screen.queryByText(/Lloc triat/)).toBeNull();
   });
 
-  it('says nothing is chosen yet when there is no value', async () => {
-    await render(<LocationField value={null} onChange={jest.fn()} />);
+  describe('the latitude and longitude fields show the chosen place', () => {
+    const latitude = (value: number) => formatCoordinate(value, 'ca');
 
-    expect(screen.queryByText(/Lloc triat/)).toBeNull();
+    /** The parent keeps the value, as the form does: choosing changes what the field gets. */
+    function Controlled({
+      initial = null,
+    }: {
+      initial?: { latitude: number; longitude: number } | null;
+    }) {
+      const [value, setValue] = useState(initial);
+      return <LocationField value={value} onChange={setValue} />;
+    }
+
+    it('are empty while there is no place', async () => {
+      await render(<Controlled />);
+
+      expect(screen.getByLabelText('Latitud').props.value).toBe('');
+      expect(screen.getByLabelText('Longitud').props.value).toBe('');
+    });
+
+    it('are filled with the place the outing already has', async () => {
+      await render(<Controlled initial={{ latitude: 42.05, longitude: 0.73 }} />);
+
+      expect(screen.getByLabelText('Latitud').props.value).toBe(latitude(42.05));
+      expect(screen.getByLabelText('Longitud').props.value).toBe(latitude(0.73));
+    });
+
+    it('are filled when the place under the reticle is chosen', async () => {
+      await render(<Controlled />);
+      await act(async () =>
+        mockMapProps.onCameraChange({ latitude: 41.39, longitude: 2.17, zoom: 12 }),
+      );
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Tria aquest lloc' }));
+
+      expect(screen.getByLabelText('Latitud').props.value).toBe(latitude(41.39));
+      expect(screen.getByLabelText('Longitud').props.value).toBe(latitude(2.17));
+    });
+
+    it('are filled when the location of the device is used', async () => {
+      permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+      position.mockResolvedValue({
+        coords: { latitude: 41.5, longitude: 2.2 },
+      } as Location.LocationObject);
+      await render(<Controlled />);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Usa la meva ubicació' }));
+
+      expect(screen.getByLabelText('Latitud').props.value).toBe(latitude(41.5));
+      expect(screen.getByLabelText('Longitud').props.value).toBe(latitude(2.2));
+    });
+
+    it('are written in the same way once typed coordinates are chosen', async () => {
+      await render(<Controlled />);
+      await fireEvent.changeText(screen.getByLabelText('Latitud'), '41.5');
+      await fireEvent.changeText(screen.getByLabelText('Longitud'), '2,2');
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Tria aquestes coordenades' }));
+
+      expect(screen.getByLabelText('Latitud').props.value).toBe(latitude(41.5));
+      expect(screen.getByLabelText('Longitud').props.value).toBe(latitude(2.2));
+    });
+
+    it('keep what was typed when the coordinates are not valid', async () => {
+      await render(<Controlled />);
+      await fireEvent.changeText(screen.getByLabelText('Latitud'), '91');
+      await fireEvent.changeText(screen.getByLabelText('Longitud'), '2');
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Tria aquestes coordenades' }));
+
+      expect(screen.getByLabelText('Latitud').props.value).toBe('91');
+      expect(screen.getByLabelText('Longitud').props.value).toBe('2');
+    });
+
+    it('can still be typed in while a place is chosen', async () => {
+      await render(<Controlled initial={{ latitude: 42.05, longitude: 0.73 }} />);
+
+      await fireEvent.changeText(screen.getByLabelText('Latitud'), '10');
+
+      expect(screen.getByLabelText('Latitud').props.value).toBe('10');
+    });
   });
 
   describe('my location', () => {
