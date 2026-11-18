@@ -8,7 +8,8 @@ import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { useTheme } from '../../../shared/theme';
 import { buildLeafletHtml } from './leafletHtml';
 import { markerPalette } from './markerIcon';
-import { BASE_MAP_MAX_ZOOM, type EventMapProps, type MapCamera } from './mapTiles';
+import { parseMapMessage, reportedCamera } from '../../../shared/map/cameraMessage';
+import type { EventMapProps, MapCamera } from '../../../shared/map/mapTiles';
 
 type ShouldStartLoadRequest = Parameters<
   NonNullable<WebViewProps['onShouldStartLoadWithRequest']>
@@ -26,35 +27,10 @@ function onlyMapPage(request: ShouldStartLoadRequest): boolean {
   return false;
 }
 
-function parse(data: string): object | undefined {
-  try {
-    const message: unknown = JSON.parse(data);
-    return typeof message === 'object' && message !== null ? message : undefined;
-  } catch {
-    // Not a message from the map page.
-    return undefined;
-  }
-}
-
 function selectedId(message: object): string | undefined {
   if (!('select' in message)) return undefined;
   const { select } = message as { select: unknown };
   return typeof select === 'string' ? select : undefined;
-}
-
-function inRange(value: unknown, min: number, max: number): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
-}
-
-/** The camera the page reports after a move, only if it is a real place on the map. */
-function reportedCamera(message: object): MapCamera | undefined {
-  if (!('view' in message)) return undefined;
-  const { view } = message as { view: unknown };
-  if (typeof view !== 'object' || view === null) return undefined;
-  const { latitude, longitude, zoom } = view as Record<string, unknown>;
-  if (!inRange(latitude, -90, 90) || !inRange(longitude, -180, 180)) return undefined;
-  if (!inRange(zoom, 0, BASE_MAP_MAX_ZOOM)) return undefined;
-  return { latitude, longitude, zoom };
 }
 
 /**
@@ -88,7 +64,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
   const ids = useMemo(() => new Set(markers.map((m) => m.id)), [markers]);
 
   function onMessage(event: WebViewMessageEvent) {
-    const message = parse(event.nativeEvent.data);
+    const message = parseMapMessage(event.nativeEvent.data);
     if (!message) return;
     const id = selectedId(message);
     if (id !== undefined && ids.has(id)) onSelect(id);

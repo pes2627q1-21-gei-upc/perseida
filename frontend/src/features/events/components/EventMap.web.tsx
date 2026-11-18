@@ -25,7 +25,7 @@ import {
   type MapMarker,
   WORLD_CENTER,
   WORLD_ZOOM,
-} from './mapTiles';
+} from '../../../shared/map/mapTiles';
 
 /**
  * Brings the first markers into view; with none, the world stays in view. Later markers (a new

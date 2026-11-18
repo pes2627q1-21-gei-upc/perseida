@@ -9,7 +9,7 @@ import {
   type MapMarker,
   WORLD_CENTER,
   WORLD_ZOOM,
-} from './mapTiles';
+} from '../../../shared/map/mapTiles';
 
 /**
  * Leaflet 1.9.4 from unpkg, pinned with subresource integrity: the hashes are those of the

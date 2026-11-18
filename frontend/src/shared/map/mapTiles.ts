@@ -1,4 +1,6 @@
-import type { EventCategory } from '../api/getEvents';
+import type { components } from '../api/schema';
+
+type EventCategory = components['schemas']['EventCategory'];
 
 /**
  * Base map of the events map (TG-52, ADR-0032): Esri World Dark Gray raster tiles, which need
