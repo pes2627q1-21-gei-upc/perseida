@@ -148,6 +148,7 @@
       "start": "Start",
       "end": "End",
       "where": "Place",
+      "event": "Event",
       "edit": "Edit",
       "delete": "Delete"
     },

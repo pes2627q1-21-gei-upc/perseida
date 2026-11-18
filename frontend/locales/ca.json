@@ -148,6 +148,7 @@
       "start": "Inici",
       "end": "Fi",
       "where": "Lloc",
+      "event": "Esdeveniment",
       "edit": "Edita",
       "delete": "Esborra"
     },
