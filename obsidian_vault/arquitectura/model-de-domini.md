@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-17"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026)"
+data: "2026-11-18"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -116,11 +116,11 @@ Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_cha
 | `event_chat_rooms` | `id` (UUIDv7), `event_id`, `created_at` | `event_id` FK a `astronomical_events` `ON DELETE CASCADE` i `UNIQUE` (una sala com a màxim per esdeveniment) |
 | `chat_messages` | `id` (UUIDv7), `room_id`, `author_id`, `text` (`varchar(1000)`), `sent_at` (`timestamptz`) | FK a la sala i a `users`, totes dues `ON DELETE CASCADE`; `CHECK length(text) >= 1` (xarxa de seguretat sobre el domini; el màxim el dona el tipus); índex `(room_id, sent_at DESC, id DESC)` per a l'històric i índex per `author_id` per a la cascada en esborrar un usuari |
 
-- `sent_at` no té `server_default`: l'assigna el domini i l'ordre del cursor en depèn.
+- `sent_at` té `server_default now()` (ADR-0023), però el domini sempre envia el valor: l'ordre del cursor en depèn.
 - `get_or_create_room` fa `INSERT ... ON CONFLICT (event_id) DO NOTHING RETURNING` i, si no retorna res, rellegeix la sala: dues peticions alhora deixen una sola fila. Si l'esdeveniment no existeix (o s'esborra a mig camí), `NotFoundError(EVENT_NOT_FOUND)`.
 - `page` demana `limit + 1` files, ordenades per `(sent_at, id)` descendent i estrictament anteriors al cursor; el `next_cursor` és el de l'últim missatge retornat només si hi ha més files. Rebutja `limit < 1` (el servei ja valida 1..50).
 - `list_rooms_of` és una sola consulta: sales existents dels esdeveniments subscrits (join amb `event_subscriptions`) amb l'últim missatge (`LEFT JOIN LATERAL`), per data de l'últim missatge descendent; les sales sense missatges van al final, per `created_at` descendent.
-- Errors: `OperationalError`, `InterfaceError` i `OSError` de la base de dades es tradueixen a `ExternalServiceError` amb el codi `DATABASE_UNAVAILABLE`; una violació de FK en desar un missatge és `NotFoundError(CHAT_ROOM_NOT_FOUND)` (els dos codis són a `app/application/chat/errors.py`), que també cobreix l'autor inexistent. Els dos codis encara no són al catàleg de `gestio-errors` ni als textos de l'app: es registraran quan el router (TG-455) els exposi.
+- Errors: `OperationalError`, `InterfaceError` i `OSError` de la base de dades es tradueixen a `ExternalServiceError` amb el codi `DATABASE_UNAVAILABLE` (a `app/application/shared/error_codes.py`, patró 503 per als repositoris; vegeu [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]). `add_message` només tradueix a `NotFoundError(CHAT_ROOM_NOT_FOUND)` (`app/application/chat/errors.py`) la violació de la FK `fk_chat_messages_room_id_event_chat_rooms`; qualsevol altra `IntegrityError` (id repetit, `CHECK` del text, autor inexistent) no es tradueix. Els dos codis són al catàleg de `gestio-errors` amb els textos pendents fins que el router (TG-455) els exposi.
 
 ## Esdeveniment astronòmic (implementat)
 

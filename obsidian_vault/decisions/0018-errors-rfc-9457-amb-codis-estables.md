@@ -3,7 +3,7 @@ titol: "Errors transversals: RFC 9457 amb codis estables traduïts al frontend"
 tipus: adr
 estat: acceptada
 data: "2026-10-07"
-us: ["TG-205", "TG-304", "TG-91", "TG-43"]
+us: ["TG-205", "TG-304", "TG-91", "TG-43", "TG-64"]
 font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable; tasca TG-304 de Taiga (2026-10-09)"
 etiquetes: [adr, backend, frontend, errors, i18n]
 ---
@@ -39,6 +39,10 @@ Guia d'ús: secció «Errors» de `backend/README.md` i catàleg de codis a la s
 ## Actualització (TG-91)
 
 El frontend ja tradueix per `code` (`errors.<CODE>`, `errorMessage` a `src/shared/errors`; vegeu [[frontend]]). **Excepció temporal:** encara no hi ha component `Toast`, així que la pantalla de l'APOD mostra l'error en un quadre propi, amb reintent. «Sempre com a *toast*» continua sent la decisió; l'excepció desapareix quan existeixi el `Toast` i les pantalles el facin servir.
+
+## Actualització (TG-64)
+
+`DATABASE_UNAVAILABLE` (503, `ExternalServiceError`) és el patró dels repositoris per a una base de dades inaccessible (connexió refusada, tancada o perduda): el codi viu a `app/application/shared/error_codes.py` i els detalls de la causa no surten de l'adaptador. El repositori del xat (TG-450) és el primer que l'aplica; la resta de repositoris (esdeveniments, subscripcions, sortides, publicacions) encara deixen aquests errors com a 500 `INTERNAL_ERROR` i l'adopten en una tasca a part.
 
 ## Actualització (TG-43)
 

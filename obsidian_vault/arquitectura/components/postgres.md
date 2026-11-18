@@ -2,9 +2,9 @@
 titol: "Component: postgres"
 tipus: component
 estat: vigent
-data: "2026-10-22"
+data: "2026-11-18"
 us: ["TG-85", "TG-37", "TG-40", "TG-41", "TG-70", "TG-46", "TG-64"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 (2026-10-22)"
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 (2026-10-22); TG-64, tasques #448 i #450 (persistència del xat, 2026-11-18)"
 etiquetes: [component, postgres, postgis, base-de-dades]
 ---
 
