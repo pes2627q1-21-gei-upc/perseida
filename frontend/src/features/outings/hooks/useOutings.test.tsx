@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
+import { saveTokens } from '../../auth/tokenStorage';
 import {
   outingKeys,
   useCreateOuting,
@@ -13,14 +14,25 @@ import {
   useUpdateOuting,
 } from './useOutings';
 
+// SecureStore is native: an in-memory store stands in for the device keychain.
+jest.mock('expo-secure-store', () => {
+  const store = new Map<string, string>();
+  return {
+    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
+  };
+});
+
 let client: QueryClient;
 
 function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+  await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
 });
 
 afterEach(() => {

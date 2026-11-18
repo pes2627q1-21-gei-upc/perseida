@@ -1,7 +1,22 @@
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
 import { AppError } from '../../../shared/errors';
+import { clearTokens, saveTokens } from '../../auth/tokenStorage';
 import { createOuting, deleteOuting, getOuting, listOutings, updateOuting } from './outings';
+
+// SecureStore is native: an in-memory store stands in for the device keychain.
+jest.mock('expo-secure-store', () => {
+  const store = new Map<string, string>();
+  return {
+    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
+  };
+});
+
+beforeEach(async () => {
+  await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+});
 
 afterEach(() => jest.restoreAllMocks());
 
@@ -155,4 +170,37 @@ describe('deleteOuting', () => {
 
     await expect(deleteOuting(myOuting.id)).rejects.toMatchObject({ code: 'OUTING_FORBIDDEN' });
   });
+});
+
+describe('the session', () => {
+  it.each([
+    ['list', () => listOutings({})],
+    ['get', () => getOuting(myOuting.id)],
+    ['create', () => createOuting(draft)],
+    ['update', () => updateOuting(myOuting.id, { title: 'x' })],
+    ['delete', () => deleteOuting(myOuting.id)],
+  ])('%s sends the access token of the session as Bearer', async (_, call) => {
+    const spy = mockFetch(() => jsonResponse(myOuting));
+
+    await call();
+
+    expect(sent(spy).request.headers.get('Authorization')).toBe('Bearer access-1');
+  });
+
+  it.each([
+    ['list', () => listOutings({})],
+    ['get', () => getOuting(myOuting.id)],
+    ['create', () => createOuting(draft)],
+    ['update', () => updateOuting(myOuting.id, { title: 'x' })],
+    ['delete', () => deleteOuting(myOuting.id)],
+  ])(
+    '%s fails with INVALID_SESSION without calling the API when there is no session',
+    async (_, call) => {
+      const spy = mockFetch(() => jsonResponse(myOuting));
+      await clearTokens();
+
+      await expect(call()).rejects.toMatchObject({ code: 'INVALID_SESSION', status: 401 });
+      expect(spy).not.toHaveBeenCalled();
+    },
+  );
 });
