@@ -67,7 +67,8 @@ export function ApodMedia({ apod }: Props) {
   }
 
   const onLoad = ({ nativeEvent }: ImageLoadEvent) => {
-    const { width, height } = nativeEvent.source;
+    // react-native-web does not fill `source` in the load event: the frame keeps the placeholder.
+    const { width, height } = nativeEvent.source ?? { width: 0, height: 0 };
     if (width > 0 && height > 0) setImageAspectRatio(width / height);
   };
 
