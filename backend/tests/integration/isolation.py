@@ -25,6 +25,8 @@ COUNTS = {
     "daily_streaks": text("SELECT count(*) FROM daily_streaks"),
     "event_subscriptions": text("SELECT count(*) FROM event_subscriptions"),
     "outings": text("SELECT count(*) FROM outings"),
+    "event_chat_rooms": text("SELECT count(*) FROM event_chat_rooms"),
+    "chat_messages": text("SELECT count(*) FROM chat_messages"),
 }
 
 
