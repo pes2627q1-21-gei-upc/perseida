@@ -30,6 +30,12 @@ Acabar TG-385: barra de cinc pestanyes, pantalles «Pròximament» i perfil amb 
   - `profile/index.ts` ja no re-exporta `LogoutButton`.
 - **Mutation testing:** els estils dels components queden fora de Stryker amb `createStyles` i `// Stryker disable all` (convenció nova a [[testing#Estils visuals als components del frontend (TG-385)]]). Resultat en local: Stryker 87,92 % (llindar 70 %), cobertura del codi nou 100 % i global 97 %. Els supervivents que queden són de la lògica de sessió del layout (TG-43) i de constants de temps.
 - Detall de la navegació a [[frontend#Navegació per pestanyes i perfil (TG-385)]].
+- **Merge de `develop`** (TG-628 i TG-629 ja fusionades): conflictes només a `locales/*.json` i al frontmatter de dues notes del vault, resolts mantenint les dues bandes. Calia per a la PR i perquè la BD local ja era a la migració de `posts`.
+- **Errors trobats a la prova manual web** (responsable de la US), arreglats amb TDD:
+  - Els botons «Obre el mapa d'esdeveniments» i «Imatge del dia» tornaven a l'inici: `href: null` a expo-router 58 treu la ruta del navegador. Ara les rutes amagades fan servir `tabBarButton: () => null`, amb un test de regressió amb el router real (els tests anteriors simulaven `push`).
+  - Etiquetes de la barra tallades en vertical (la barra de 49 dp no hi cabia) i «Gamificati…» en apaïsat: etiqueta sempre sota la icona i alçada de la barra calculada amb tokens.
+  - Les pantalles «Pròximament» no es podien desplaçar en finestres baixes: ara són un `ScrollView`.
+  - `typography` passa de `Record<…, TextStyle>` a `satisfies`, per sumar alçades de línia amb tipus (només tipus, cap canvi en temps d'execució).
 
 ## Decisions preses
 
@@ -49,7 +55,9 @@ Cap ADR nova. Decisions del responsable de la US:
 
 ## Pendent / següents passos
 
-- [ ] Prova manual a dispositiu: TalkBack/VoiceOver per les cinc pestanyes i el perfil, apaïsat (48 dp), mòbil petit i tauleta.
+- [x] Prova manual web (mòbil petit, apaïsat, idiomes, data d'alta, logout); tornar-la a passar després dels arreglaments.
+- [ ] Prova manual a dispositiu Android: TalkBack per les cinc pestanyes i el perfil, apaïsat (48 dp), mòbil petit.
+- [ ] El login web en local necessita CORS, que és TG-363 (PR #103, d'una altra persona): mentre no es fusioni, la prova web va amb un proxy local de proves (fora del repo).
 - [ ] El test d'integració de `/users/me` no s'ha executat en local (el fixture buida la BD de desenvolupament): el cobreix la CI.
 - [ ] PR cap a `develop`, revisió d'una altra persona, CI i Quality Gate de SonarQube Cloud.
 - [ ] Subtasques #517, #519, #520 i #521 i la US a «Ready for test» a Taiga.
