@@ -328,4 +328,43 @@ describe('Quiz screen', () => {
 
     expect(mockRouter.back).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    ['QUIZ_ALREADY_ANSWERED', 409],
+    ['QUIZ_EXPIRED', 409],
+    ['QUIZ_QUESTION_MISMATCH', 422],
+  ])(
+    'TG-61 c5-c7 shows the error with a retry when reloading after %s fails',
+    async (code, status) => {
+      const offline = () => {
+        throw new TypeError('Network request failed');
+      };
+      mockApi(
+        [
+          () => jsonResponse(quizQuestion),
+          offline,
+          offline,
+          () =>
+            jsonResponse(code === 'QUIZ_ALREADY_ANSWERED' ? answeredQuestion : nextQuizQuestion),
+        ],
+        [() => problemResponse(status, code)],
+      );
+      await renderScreen();
+      await screen.findByText(quizQuestion.statement);
+      await fireEvent.press(option('Venus'));
+
+      await fireEvent.press(screen.getByRole('button', { name: SUBMIT }));
+
+      expect(await screen.findByText(NETWORK_ERROR_TEXT)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: SUBMIT })).toBeNull();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+
+      if (code === 'QUIZ_ALREADY_ANSWERED') {
+        expect(await screen.findByRole('header', { name: "No l'has encertada" })).toBeTruthy();
+      } else {
+        expect(await screen.findByText(nextQuizQuestion.statement)).toBeTruthy();
+      }
+    },
+  );
 });
