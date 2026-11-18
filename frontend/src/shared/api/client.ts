@@ -17,28 +17,6 @@ export function fetchWithTimeout(timeoutMs: number): typeof globalThis.fetch {
   };
 }
 
-type AccessTokenProvider = () => Promise<string | undefined>;
-
-let accessTokenProvider: AccessTokenProvider | undefined;
-
-/**
- * Registers where the client reads the access token of the session. The auth feature does it
- * at startup: `shared` never imports a feature.
- */
-export function setAccessTokenProvider(provider: AccessTokenProvider | undefined): void {
-  accessTokenProvider = provider;
-}
-
-/** Adds `Authorization: Bearer` when there is a session; a header set by hand wins. */
-export const authMiddleware: Middleware = {
-  async onRequest({ request }) {
-    if (request.headers.has('Authorization')) return undefined;
-    const token = await accessTokenProvider?.();
-    if (token) request.headers.set('Authorization', `Bearer ${token}`);
-    return request;
-  },
-};
-
 /** Turns problem+json responses and network failures into AppError. */
 export const errorMiddleware: Middleware = {
   async onResponse({ response }) {
@@ -56,7 +34,6 @@ export function createApiClient(baseUrl: string, timeoutMs: number = config.requ
     throw new Error('EXPO_PUBLIC_API_BASE_URL is not defined');
   }
   const client = createClient<paths>({ baseUrl, fetch: fetchWithTimeout(timeoutMs) });
-  client.use(authMiddleware);
   client.use(errorMiddleware);
   return client;
 }
