@@ -161,6 +161,8 @@ export default function AppLayout() {
           name={route}
           options={{
             tabBarButton: () => null,
+            // The item wrapper keeps a flex: 1 slot even with no button: drop it too.
+            tabBarItemStyle: { display: 'none' },
             tabBarStyle: { display: 'none' },
           }}
         />
