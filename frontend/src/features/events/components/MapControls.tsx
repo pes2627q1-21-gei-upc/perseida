@@ -1,6 +1,6 @@
 import { ListBullets, MapTrifold } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
@@ -15,15 +15,23 @@ interface Props {
   onViewChange: (view: EventsView) => void;
   filter: EventFilter;
   onFilterChange: (filter: EventFilter) => void;
+  /** The outings could not be loaded: the panel says so (TG-646). */
+  outingsUnavailable?: boolean;
 }
 
 /**
- * Controls of the events map (TG-52): the Active | Upcoming | All filter (criterion 2) over the
+ * Controls of the events map (TG-52): the Active | Upcoming | Outings | All filter (criterion 2) over the
  * Map | List switch, in one glass panel at the bottom of the screen and in its flow: within
  * reach of the thumb, and never over the map or the list. It keeps clear of the home
  * indicator and stays at a readable width on wide screens.
  */
-export function MapControls({ view, onViewChange, filter, onFilterChange }: Props) {
+export function MapControls({
+  view,
+  onViewChange,
+  filter,
+  onFilterChange,
+  outingsUnavailable = false,
+}: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -31,6 +39,7 @@ export function MapControls({ view, onViewChange, filter, onFilterChange }: Prop
   const filters: SegmentOption<EventFilter>[] = [
     { value: 'active', label: t('events.filter.active') },
     { value: 'upcoming', label: t('events.filter.upcoming') },
+    { value: 'outings', label: t('events.filter.outings') },
     { value: 'all', label: t('events.filter.all') },
   ];
   const views: SegmentOption<EventsView>[] = [
@@ -61,6 +70,14 @@ export function MapControls({ view, onViewChange, filter, onFilterChange }: Prop
       <View testID="map-controls-panel" style={[styles.panel, { maxWidth: readingMaxWidth }]}>
         <GlassPanel>
           <View style={{ gap: theme.spacing.sm }}>
+            {outingsUnavailable && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[theme.typography.caption, { color: theme.colors.text.primary }]}
+              >
+                {t('events.outings.unavailable')}
+              </Text>
+            )}
             <GelSegmented
               options={filters}
               value={filter}
