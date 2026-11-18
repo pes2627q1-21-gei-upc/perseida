@@ -87,6 +87,16 @@ Codi a `src/features/posts/`; API a [[model-de-domini#Publicacions d'esdevenimen
 - **Pantalla:** `EventPosts` va al final del scroll de la fitxa (`EventSheet`), tant al full inferior del mòbil com al panell lateral. Té els estats de càrrega, buit i error (amb reintent només si l'error és transitori) i «Carrega'n més» per a la pàgina següent. `PostItem` mostra l'autora, la data, «editada» i el text, sempre com a text pla.
 - **Edició i esborrat al lloc:** editar substitueix el text pel formulari dins de la mateixa publicació. Esborrar demana confirmació també dins la publicació, i no amb `Alert.alert`, que React Native Web ignora (decisió de la persona responsable, 17/11/2026). Com que el botó que tenia el focus desapareix, en editar el focus va al camp de text (`autoFocus`) i la pregunta de confirmació és una alerta (WCAG 2.4.3 i 4.1.3).
 
+## Quiz diari (TG-61)
+
+Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal; a la pestanya de Gamificació quan existeixi, #385). Codi a `src/features/quiz/`; dades segons [[contracte-quiz]].
+
+- **Sessió:** és la primera pantalla que crida endpoints privats. `withSession` (`src/features/auth/api/authorized.ts`) hi posa la capçalera de `authHeaders` (`Authorization: Bearer <access token>`; sense sessió falla amb `INVALID_SESSION` sense cridar l'API). Amb un 401 renova la sessió un sol cop (`refreshSession`, que serialitza les renovacions) i repeteix la petició. Si la renovació falla però la sessió continua desada (xarxa, 5xx), acaba en `SESSION_UNAVAILABLE` reintentable, no en sessió caducada. Les altres features privades (ratxa, perfil) l'han de reutilitzar.
+- **Dades:** `useQuizToday(lang)` (TanStack Query, `staleTime` de 5 minuts, un reintent si l'error és transitori; torna a demanar la pregunta just després de mitjanit UTC amb la pantalla oberta i, amb `AppState`, en tornar al primer pla un altre dia) i `useAnswerQuiz(lang)`, que desa el resultat a la pregunta en memòria cau i marca obsoletes les dels altres idiomes. `lang` és l'idioma de l'app (`i18n.language`).
+- **Pantalla:** pregunta amb 4 opcions (`accessibilityRole="radio"`, estat `checked`; la selecció també es veu amb la icona i la vora, no només amb color) i botó de gel desactivat fins que es tria una opció i `busy` mentre s'envia. Resultat: capçalera encertada o no, cada opció amb icona i paraules («Resposta correcta», «La teva resposta»), explicació i enllaç a la font (`safeHttpsUrl`). Totes dues vistes tenen un `QuietButton` «Torna a l'inici» (`router.back()`, o `replace('/')` si no hi ha on tornar), com el mapa.
+- **Components compartits:** `StatusPanel` (`src/shared/ui`), el panell de càrrega i d'error amb reintent; l'APOD (`ApodStatus`) i el quiz (`QuizStatus`) només hi posen els seus textos.
+- **Errors:** càrrega amb missatge per codi i reintent si és transitori; si falla l'enviament, es conserva l'opció; `QUIZ_EXPIRED` i `QUIZ_QUESTION_MISMATCH` recarreguen la pregunta i mostren un avís; `QUIZ_ALREADY_ANSWERED` recarrega i mostra el resultat. Si la recàrrega falla, es mostra l'error amb reintent encara que hi hagi una pregunta anterior en memòria cau.
+
 ## Mode offline
 
 SQLite local com a outbox i cache de lectura, sincronitzats més tard amb política **last-write-wins** ([[0011-client-offline-sqlite-last-write-wins]]).

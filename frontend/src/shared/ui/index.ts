@@ -3,4 +3,5 @@ export { GelSegmented, type SegmentOption } from './GelSegmented';
 export { GlassPanel } from './GlassPanel';
 export { QuietButton } from './QuietButton';
 export { SkyBackground } from './SkyBackground';
+export { StatusPanel, type StatusPanelProps, type StatusTexts } from './StatusPanel';
 export { useReduceTransparency } from './useReduceTransparency';
