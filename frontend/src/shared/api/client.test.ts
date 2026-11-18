@@ -1,6 +1,6 @@
 import { apodImage, jsonResponse, problemResponse } from '../../../__mocks__/apod';
 import { AppError } from '../errors';
-import { createApiClient, fetchWithTimeout } from './client';
+import { createApiClient, fetchWithTimeout, setAccessTokenProvider } from './client';
 
 const BASE_URL = 'http://api.test';
 
@@ -86,5 +86,52 @@ describe('fetchWithTimeout', () => {
     await fetchWithTimeout(5000)('http://api.test/x');
 
     expect(jest.getTimerCount()).toBe(0);
+  });
+});
+
+describe('api client session token', () => {
+  afterEach(() => setAccessTokenProvider(undefined));
+
+  it('sends the access token as a Bearer header when there is one', async () => {
+    const fetchSpy = mockFetch(async () => jsonResponse(apodImage));
+    setAccessTokenProvider(async () => 'access-1');
+    const api = createApiClient(BASE_URL, 1000);
+
+    await api.GET('/api/apod');
+
+    expect((fetchSpy.mock.calls[0][0] as Request).headers.get('Authorization')).toBe(
+      'Bearer access-1',
+    );
+  });
+
+  it('sends no Authorization header without a token', async () => {
+    const fetchSpy = mockFetch(async () => jsonResponse(apodImage));
+    setAccessTokenProvider(async () => undefined);
+    const api = createApiClient(BASE_URL, 1000);
+
+    await api.GET('/api/apod');
+
+    expect((fetchSpy.mock.calls[0][0] as Request).headers.has('Authorization')).toBe(false);
+  });
+
+  it('sends no Authorization header when no provider is registered', async () => {
+    const fetchSpy = mockFetch(async () => jsonResponse(apodImage));
+    const api = createApiClient(BASE_URL, 1000);
+
+    await api.GET('/api/apod');
+
+    expect((fetchSpy.mock.calls[0][0] as Request).headers.has('Authorization')).toBe(false);
+  });
+
+  it('keeps the Authorization header a call sets by hand', async () => {
+    const fetchSpy = mockFetch(async () => jsonResponse(apodImage));
+    setAccessTokenProvider(async () => 'access-1');
+    const api = createApiClient(BASE_URL, 1000);
+
+    await api.GET('/api/apod', { headers: { Authorization: 'Bearer manual' } });
+
+    expect((fetchSpy.mock.calls[0][0] as Request).headers.get('Authorization')).toBe(
+      'Bearer manual',
+    );
   });
 });
