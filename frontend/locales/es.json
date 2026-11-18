@@ -56,6 +56,7 @@
     "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
     "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
+    "TOO_MANY_CONNECTIONS": "Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo.",
     "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
     "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
