@@ -5,6 +5,7 @@ A room whose name starts with a registered prefix is decided by its handler
 """
 
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -22,7 +23,11 @@ from app.application.shared.errors import (
     UnauthorizedError,
 )
 from app.domain.auth.models import AccountStatus, GoogleIdentity
-from app.domain.realtime.models import revocation_channel, room_channel
+from app.domain.realtime.models import (
+    revocation_channel,
+    room_channel,
+    room_revocation_channel,
+)
 from app.domain.realtime.ports import ConnectionClosed
 from app.domain.shared.errors import (
     BusinessRuleViolation,
@@ -345,6 +350,102 @@ async def test_the_longest_matching_prefix_wins(harness: Harness) -> None:
 
     assert len(specific.messages) == 1
     assert harness.handler.messages == []
+
+
+# --- loss of a room (the user left the event) -----------------------------------
+
+
+async def lose_room(harness: Harness, sub: str, payload: Any) -> None:
+    raw = payload if isinstance(payload, str) else json.dumps(payload)
+    await harness.pubsub.publish(room_revocation_channel(sub), raw)
+
+
+async def test_a_lost_room_is_left_and_the_client_gets_an_unsubscribe_frame(
+    harness: Harness,
+) -> None:
+    conn = await harness.connect()
+    await harness.join(conn)
+    await harness.join(conn, "talk:other")
+    before = len(conn.sent)
+
+    await lose_room(harness, harness.sub, {"room": ROOM})
+    await conn.wait_for_sent(before + 1)
+
+    assert conn.sent_frames()[before] == {
+        "type": "unsubscribe",
+        "room": ROOM,
+        "payload": {},
+    }
+    assert harness.pubsub.subscriber_count(room_channel(ROOM)) == 0
+    assert harness.pubsub.subscriber_count(room_channel("talk:other")) == 1
+    await assert_alive(conn)  # the socket stays open
+
+
+async def test_after_losing_a_room_a_message_to_it_is_not_subscribed(
+    harness: Harness,
+) -> None:
+    conn = await harness.connect()
+    await harness.join(conn)
+    before = len(conn.sent)
+    await lose_room(harness, harness.sub, {"room": ROOM})
+    await conn.wait_for_sent(before + 1)
+
+    reply = await request(conn, message(ROOM, "m1", {"text": "x"}))
+
+    assert reply["payload"]["code"] == "NOT_SUBSCRIBED"
+    assert harness.handler.messages == []
+
+
+async def test_a_room_lost_by_a_user_does_not_touch_the_connections_of_another(
+    harness: Harness,
+) -> None:
+    conn = await harness.connect()
+    await harness.join(conn)
+
+    await lose_room(harness, "someone-else", {"room": ROOM})
+
+    await assert_alive(conn)
+    assert harness.pubsub.subscriber_count(room_channel(ROOM)) == 1
+    assert len(conn.sent) == 3  # auth, subscribe ack and the pong of the check
+
+
+async def test_losing_a_room_that_was_not_joined_sends_nothing(
+    harness: Harness,
+) -> None:
+    conn = await harness.connect()
+    sent = len(conn.sent)
+
+    await lose_room(harness, harness.sub, {"room": ROOM})
+
+    await assert_alive(conn)
+    assert len(conn.sent) == sent + 1  # only the pong of the check
+
+
+@pytest.mark.parametrize(
+    "payload",
+    ["not json", "[]", {}, {"room": 7}, {"room": None}],
+    ids=["not-json", "list", "no-room", "room-not-str", "room-null"],
+)
+async def test_a_malformed_room_loss_is_ignored(harness: Harness, payload: Any) -> None:
+    conn = await harness.connect()
+    await harness.join(conn)
+
+    await lose_room(harness, harness.sub, payload)
+
+    await assert_alive(conn)
+    assert harness.pubsub.subscriber_count(room_channel(ROOM)) == 1
+
+
+async def test_a_room_without_handler_can_be_lost_too(harness: Harness) -> None:
+    conn = await harness.connect()
+    await harness.join(conn, "other:1")
+    before = len(conn.sent)
+
+    await lose_room(harness, harness.sub, {"room": "other:1"})
+    await conn.wait_for_sent(before + 1)
+
+    assert conn.sent_frames()[before]["type"] == "unsubscribe"
+    assert harness.pubsub.subscriber_count(room_channel("other:1")) == 0
 
 
 # --- errors of the handlers ------------------------------------------------------
