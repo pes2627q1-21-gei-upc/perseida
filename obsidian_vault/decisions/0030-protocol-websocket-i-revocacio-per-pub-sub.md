@@ -3,7 +3,7 @@ titol: "ADR-0030: Protocol WebSocket i revocació de sessió per pub/sub"
 tipus: adr
 estat: acceptada
 data: "2026-11-07"
-us: ["TG-63"]
+us: ["TG-63", "TG-64"]
 font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime; aprovació de la PR 78"
 etiquetes: [adr, backend, websocket, redis, pubsub, seguretat]
 ---
@@ -37,6 +37,16 @@ Un endpoint `/api/ws` amb un embolcall JSON únic, un catàleg d'errors comparti
 **Catàleg d'errors.** El frame `error` porta un `payload` RFC 9457 (`type`, `title`, `status`, `detail`, `code`, `correlation_id`) amb codis estables ([[0018-errors-rfc-9457-amb-codis-estables]]): `VALIDATION_ERROR`, `UNKNOWN_FRAME_TYPE`, `NOT_SUBSCRIBED`, `PUBSUB_UNAVAILABLE`, `INTERNAL_ERROR`, `FORBIDDEN` i `RATE_LIMITED`, amb els textos ca/es/en al catàleg de la skill `gestio-errors`. El `correlation_id` és el de la petició del handshake (`X-Correlation-ID` o generat), igual per a tots els errors d'una connexió i present als logs; el tancament amb 1011 no porta cos, i el seu `correlation_id` queda només al log. Els reutilitzen #64 i #65, i qualsevol canvi s'ha de comunicar a aquestes US.
 
 **Servidor.** uvicorn només accepta el handshake si hi ha una llibreria WebSocket instal·lada; sense ella respon 404 encara que els tests amb `TestClient` passin. Es fixa `websockets==17.4` a `backend/pyproject.toml` i un test d'integració comprova el `101` contra un uvicorn real. L'entrypoint fixa `UVICORN_WS_MAX_SIZE` al valor de `WS_MAX_FRAME_BYTES` (65536 per defecte): uvicorn rebutja els missatges que el superen amb el codi 1009 abans que arribin a l'aplicació.
+
+## Actualització (TG-64)
+
+El xat d'esdeveniment (#64) ha afegit un punt d'extensió sense canviar el protocol:
+
+- **Handlers per prefix de sala.** `RealtimeSession` rep un registre `prefix -> RoomHandler` (port a `app/application/realtime/room_handler.py`: `subscribe`, `unsubscribe` i `message`, amb `RoomRequest(sub, conn_id, room)`). El prefix més llarg que encaixa decideix; les sales sense handler es comporten exactament com abans. L'endpoint resol els handlers amb `get_room_handlers` (un joc per connexió), que construeix els services des de `app.state` quan arriba el primer frame de xat. El de xat és `ChatWsHandler` (`chat:event:`) a `infrastructure/chat`.
+- **`FORBIDDEN` el donen els handlers de sala.** Subscriure's o enviar un `message` sense estar subscrit a l'esdeveniment és `FORBIDDEN`, i el handler decideix abans del `NOT_SUBSCRIBED` genèric. La connexió continua oberta. Qualsevol `DomainError`/`ApplicationError` d'un handler passa al frame `error` amb el seu `code` si és al catàleg (nous: `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG`, `CHAT_MESSAGE_REJECTED`, `CHAT_ROOM_NOT_FOUND`, `EVENT_NOT_FOUND`, `DATABASE_UNAVAILABLE`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`); un `ExternalServiceError` desconegut és `PUBSUB_UNAVAILABLE` i la resta `INTERNAL_ERROR`, sense filtrar el missatge.
+- **Ack amb dades.** En una sala amb handler, l'ack d'un `message` porta `payload = {id, sent_at}` del missatge desat (en lloc de `{}`); el difós als altres és el DTO complet (`id`, `room_id`, `author_id`, `text`, `sent_at`) publicat pel servei, que és qui desa, modera i difon (la sessió no republica).
+- **`origin`.** El servei posa l'id de la connexió emissora a `from` del sobre (`ChatService.send_message(..., origin=conn_id)`), de manera que la sessió emissora no fa eco del seu missatge; amb `origin=None` el sobre no té emissor.
+- El `sub` de la sessió és el `google_sub`: el handler resol l'usuari amb `UserService.get_profile`, com el REST.
 
 ## Conseqüències
 
