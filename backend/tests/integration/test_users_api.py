@@ -240,7 +240,7 @@ async def test_a_suspended_or_banned_account_is_a_403_on_login_and_on_me(
 async def test_me_returns_the_profile_with_a_valid_session(
     client: AsyncClient, sub: str
 ) -> None:
-    # TG-140 / US #45 criteri 7
+    # TG-140 / US #45 criteri 7; TG-385 criteri 3 (data d'alta)
     tokens = (await login(client, sub, language="en")).json()
 
     response = await client.get("/api/users/me", headers=bearer(tokens))
@@ -248,6 +248,7 @@ async def test_me_returns_the_profile_with_a_valid_session(
     body = response.json()
     assert response.status_code == 200
     assert uuid.UUID(body.pop("id")).version == 7
+    assert datetime.fromisoformat(body.pop("created_at")).tzinfo is not None
     assert body == {
         "email": f"{sub}@example.test",
         "display_name": "Ana",

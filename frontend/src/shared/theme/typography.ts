@@ -10,11 +10,12 @@ export const fontFamilies = {
 
 type TypographyRole = 'caption' | 'body' | 'bodyStrong' | 'title' | 'headline' | 'display';
 
-export const typography: Record<TypographyRole, TextStyle> = {
+// `satisfies` keeps the literal sizes, so a layout can add up line heights (TG-385 #520).
+export const typography = {
   caption: { fontFamily: fontFamilies.sansRegular, fontSize: 12, lineHeight: 18 },
   body: { fontFamily: fontFamilies.sansRegular, fontSize: 16, lineHeight: 24 },
   bodyStrong: { fontFamily: fontFamilies.sansSemiBold, fontSize: 16, lineHeight: 24 },
   title: { fontFamily: fontFamilies.roundedBold, fontSize: 20, lineHeight: 28 },
   headline: { fontFamily: fontFamilies.roundedBold, fontSize: 26, lineHeight: 34 },
   display: { fontFamily: fontFamilies.roundedBold, fontSize: 44, lineHeight: 52 },
-};
+} satisfies Record<TypographyRole, TextStyle>;

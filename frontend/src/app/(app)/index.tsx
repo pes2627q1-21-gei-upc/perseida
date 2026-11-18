@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LogoutButton } from '../../features/auth/components/LogoutButton';
+import { useTabBarInset } from '../../features/navigation/useTabBarInset';
 import { useTheme } from '../../shared/theme';
 import { GelButton, SkyBackground } from '../../shared/ui';
 
@@ -18,12 +19,14 @@ export default function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarInset = useTabBarInset();
 
   return (
     <SkyBackground>
       <View
+        testID="home-screen"
         className="flex-1 items-center justify-center"
-        style={{ gap: theme.spacing.lg, paddingTop: insets.top, paddingBottom: insets.bottom }}
+        style={{ gap: theme.spacing.lg, paddingTop: insets.top, paddingBottom: tabBarInset }}
       >
         <Text
           accessibilityRole="header"

@@ -73,8 +73,8 @@ def _assert_problem(response: Response, status: int, code: str) -> None:
 
 
 async def test_me_returns_the_profile_of_the_authenticated_user() -> None:
-    # TG-139 / US #45 criteri 7
-    user = _user()
+    # TG-139 / US #45 criteri 7; TG-385 criteri 3 (data d'alta)
+    user = _user(created_at=datetime(2026, 10, 30, 9, 15, tzinfo=UTC))
     async for client, token in _client(user):
         response = await client.get(
             "/api/users/me", headers={"Authorization": f"Bearer {token}"}
@@ -88,6 +88,7 @@ async def test_me_returns_the_profile_of_the_authenticated_user() -> None:
         "avatar_url": "https://example.com/ana.png",
         "preferred_language": "ca",
         "role": "user",
+        "created_at": "2026-10-30T09:15:00Z",
     }
 
 

@@ -16,6 +16,16 @@
   "common": {
     "back": "Back"
   },
+  "comingSoon": {
+    "badge": "Coming soon",
+    "chatDesc": "A real-time space to share observations, photos, and stargazing meetups.",
+    "chatTitle": "Community & chat",
+    "eventsDesc": "Soon you will be able to check meteor showers, eclipses, and celestial events directly from here.",
+    "eventsMapButton": "Open events map",
+    "eventsTitle": "Astronomical events",
+    "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
+    "gamificationTitle": "Gamification & challenges"
+  },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
@@ -112,6 +122,42 @@
     "mapLink": "Events map",
     "quizLink": "Question of the day",
     "outingsLink": "My outings"
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Events",
+    "gamification": "Gamification",
+    "home": "Home",
+    "profile": "Profile"
+  },
+  "profile": {
+    "achievements": {
+      "desc": "Unlock badges by observing meteor showers and engaging with the community.",
+      "title": "Badges & achievements"
+    },
+    "followers": {
+      "desc": "How many people follow your observations and how many you follow.",
+      "title": "Followers"
+    },
+    "language": {
+      "ca": "Catalan",
+      "en": "English",
+      "es": "Spanish"
+    },
+    "loading": "Loading profile...",
+    "memberSince": "Member since {{date}}",
+    "retry": "Try again",
+    "retryHint": "Reload profile details",
+    "role": {
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "user": "Stargazer"
+    },
+    "streak": {
+      "desc": "Complete the daily quiz to keep your celestial streak alive.",
+      "title": "Stargazing streak"
+    },
+    "title": "Your profile"
   },
   "posts": {
     "form": {
