@@ -102,6 +102,16 @@ class ChatService:
             raise ForbiddenError("FORBIDDEN")
         return await self._repository.get_or_create_room(event_id)
 
+    async def open_room(
+        self, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> ChatRoomSummary:
+        """Return the room of the event, as in the list, with its latest message."""
+        room = await self.get_or_create_room(user_id, event_id)
+        newest = await self._repository.page(room.id, None, 1)
+        return ChatRoomSummary(
+            room=room, last_message=newest.messages[0] if newest.messages else None
+        )
+
     async def send_message(
         self,
         user_id: uuid.UUID,
