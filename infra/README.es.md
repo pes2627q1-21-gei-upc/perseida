@@ -126,6 +126,8 @@ El servicio FastAPI (`perseida-api`) utiliza las siguientes variables de entorno
 | `NASA_API_KEY` | Sí | Clave de la API de la NASA para el APOD (la API no arranca sin ella); en local vale `DEMO_KEY`, con límite de peticiones | `<clave de https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Tiempo de expiración de los access tokens en minutos (por defecto: 15) | `15` |
 | `REFRESH_TOKEN_DAYS` | No | Tiempo de expiración de los refresh tokens en días (por defecto: 30) | `30` |
+| `CORS_ALLOWED_ORIGINS` | No | Orígenes del navegador que admite CORS, separados por comas (por defecto: `https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org` y los puertos locales de Expo y de la API `8081`, `19006` y `8000` en `localhost`/`127.0.0.1`). Si se define, sustituye los por defecto | `https://perseida.duckdns.org:40431,http://localhost:8081` |
+| `CORS_ALLOWED_ORIGIN_REGEX` | No | Orígenes adicionales que admite CORS, como expresión regular (por defecto: ninguno) | `http://localhost:\d+` |
 
 ### Configuración inicial: hacer el paquete público (una sola vez, manual)
 
@@ -200,7 +202,7 @@ El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`
 
 La sonda corre en un contenedor temporal llamado `perseida-probe`, con el planificador desactivado (`SCHEDULER_ENABLED=false`), y espera hasta `PROBE_TIMEOUT` segundos (60 por defecto); termina antes si el contenedor sale. Si la sonda ni siquiera se puede crear (por ejemplo, la imagen anterior ya no está en el servidor y no se puede descargar), tampoco se deshace nada y el job falla diciéndolo. Un bloqueo (`/opt/perseida/.deploy.lock`, con `flock`) evita que un `--rollback` manual coincida con un despliegue; sin `flock` el script solo avisa y continúa. Antes de arrancar una versión nueva, el script guarda su tag en `.attempted-tag`; se borra cuando un despliegue o un rollback terminan bien. Si el CD deja la API parada sin deshacer nada (configuración, sonda que no se puede crear o nombres de variable cambiados), el esquema puede ser más nuevo que `.deployed-tag`, porque la imagen nueva ya ha aplicado sus migraciones. Tienes dos salidas: corregir el secreto o la variable y volver a ejecutar el CD, o volver a la versión anterior con `./deploy.sh --rollback <tag-anterior>`, que deshace las migraciones con la imagen de `.attempted-tag` (la que las conoce) y, por tanto, borra sus datos.
 
-El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales (por tanto, el primer despliegue tras pasar `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_IDS` tampoco puede hacer rollback a una imagen anterior a ese cambio). Si un despliegue falla por un valor erróneo (por ejemplo una clave), la sonda lo detecta, porque la imagen anterior falla igual: no se deshace nada; hay que corregir el secreto o la variable y volver a ejecutar el CD. La sonda no puede distinguir una base de datos caída, porque el healthcheck no la consulta. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
+El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales (por tanto, el primer despliegue tras pasar `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_IDS` tampoco puede hacer rollback a una imagen anterior a ese cambio). Si un despliegue falla por un valor erróneo (por ejemplo una clave), la sonda lo detecta, porque la imagen anterior falla igual: no se deshace nada; hay que corregir el secreto o la variable y volver a ejecutar el CD. El healthcheck comprueba PostgreSQL (`SELECT 1`) y Redis (`PING`) con un límite de 2 s cada uno (TG-49): si PostgreSQL está caído, `status` es `down`, así que, a partir del despliegue siguiente al que lleva TG-49 (la sonda arranca la imagen anterior), una base de datos caída también hace fallar la sonda y no se deshace nada; Redis caído solo marca `components.redis` como `down`, porque solo es caché. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
 
 ### Rollback manual a una versión concreta
 
@@ -302,7 +304,7 @@ Un solo *proxy host* lo sirve todo desde el mismo origen:
 |---|---|
 | `/api/...` | `api:8000` (API REST; comprobación de salud en `/api/health`) |
 | `/api/ws` | `api:8000` con el upgrade de WebSocket (chat, TG-63) |
-| `/api/events/` | `api:8000` con un límite de peticiones por IP (endpoints públicos para Spotwise, TG-351) |
+| `/api/events/` | `api:8000` con un límite de peticiones compartido (endpoints públicos para Spotwise, TG-351, TG-643) |
 | `/media/` | El propio NPM, desde el volumen `media_data` (multimedia de los usuarios) |
 | `/admin/` | El propio NPM, desde el volumen `admin_dist` (SPA del panel de administración) |
 
@@ -352,21 +354,22 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
 
    Un cliente real (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe enviar después, como primer frame, `{"type":"auth","token":"<access token>"}`: el servidor cierra con el código 4401 si ese frame no llega en `WS_AUTH_TIMEOUT_SECONDS` (por defecto 10) o el token no es válido. Una vez autenticado, el servidor envía un `ping` cada `WS_HEARTBEAT_SECONDS` (por defecto 30). Ambas son variables opcionales de `api` (están en `.env.example`), igual que `WS_MAX_ROOMS` (por defecto 20), `WS_MAX_FRAME_BYTES` (por defecto 65536) y `WS_SEND_TIMEOUT_SECONDS` (por defecto 5) y `WS_MAX_CONNECTIONS_PER_USER` (por defecto 3). El *heartbeat* debe ser mucho menor que `proxy_read_timeout` (3600 s en `websocket.conf`) para que el proxy nunca vea la conexión como inactiva.
 
-### Límite de peticiones por IP
+### Límite de peticiones
 
-Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 60 peticiones por minuto e IP, con una ráfaga de 20 servida de golpe. Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED`, `instance` y `Retry-After: 1`, sin llegar a la API.
+Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 600 peticiones por minuto entre todos los clientes, con una ráfaga de 100 servida de golpe. Es un solo contador compartido: en producción el NAT de la UPC reescribe la IP de origen y el proxy no distingue los clientes (TG-643). Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED`, `instance` y `Retry-After: 1`, sin llegar a la API.
 
-- La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en lectura en `/data/nginx/custom/http_top.conf` (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/`.
+- La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en `/data/nginx/custom/http_top.conf` (no en solo lectura: al arrancar, NPM hace `chown` de todo `/data` y falla con un fichero de solo lectura) (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/` con `infra/scripts/install-http-top.sh`: NPM hace el fichero de root al arrancar, así que el script lo escribe con un contenedor de un solo uso de la imagen de NPM (esté el proxy en marcha o no) cuando el usuario del despliegue ya no puede sobrescribirlo (hotfix 0.2.2).
 - La ubicación que lo aplica es `nginx-proxy-manager/rate-limit.conf` (pestaña *Advanced*). Usa la zona y el map `$events_problem_instance`, ambos definidos en `http_top.conf`.
 
 > **El orden importa.** `rate-limit.conf` necesita la zona y el map de `http_top.conf`. Si no están, nginx no arranca y cae todo el proxy host.
 >
 > - **Para activarlo:** primero despliega (el CD copia `http_top.conf` y recarga nginx) y solo después pega `rate-limit.conf` en *Advanced*.
 > - **Para retirarlo** (o antes de un revert que quite el montaje de `http_top.conf`): primero borra `rate-limit.conf` de *Advanced* y guarda, y solo después despliega.
+> - **Si cambia la clave de la zona** (`$binary_remote_addr` → `$realip_remote_addr` en TG-643, o el revert de ese cambio): el reload no la aplica. nginx rechaza una zona viva con una clave distinta (`limit_req "events_per_ip" uses the "..." key while previously it used the "..." key`) y se queda con la configuración antigua, pero el paso del CD sale verde igualmente: `nginx -t` no compara con la zona viva y `nginx -s reload` solo envía la señal. Tampoco se aplica ningún guardado de *Advanced* hasta que se reinicia. Tras ese despliegue hay que reiniciar el proxy (unos segundos de corte): `cd /opt/perseida && docker compose restart reverse-proxy`. Compruébalo con `docker compose exec reverse-proxy nginx -T | grep limit_req_zone` (muestra el fichero, no la zona viva, por eso hace falta el reinicio), mira que `docker compose logs reverse-proxy` no tenga ese error, y solo después vuelve a pegar `rate-limit.conf` en *Advanced*.
 
 - `docker compose up` no recrea el proxy si solo cambia el contenido de `http_top.conf`, así que el CD valida y recarga nginx tras cada despliegue (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
-- Test: `bash infra/scripts/test-rate-limit.sh` (requiere Docker; lo ejecuta el job `proxy` de la CI).
-- El límite cuenta la IP que nginx ve como `$remote_addr`. Tras un despliegue, comprueba en el registro de accesos de NPM que es la IP pública del cliente y no una privada del NAT o de Docker: si no, todos los clientes compartirían un solo contador.
+- Test: `bash infra/scripts/test-rate-limit.sh` (requiere Docker; lo ejecuta el job `proxy` de la CI). `bash infra/scripts/test-npm-startup.sh` arranca la imagen real de NPM con el montaje de `http_top.conf` del Compose y comprueba que se levanta y carga la zona, y que con un montaje de solo lectura falla (regresión del hotfix 0.2.1).
+- El límite cuenta la dirección de la conexión TCP (`$realip_remote_addr`), no la de `$remote_addr`: NPM se fía de la cabecera `X-Real-IP` cuando la petición llega de una red privada, y en producción llegan todas así (NAT de la UPC), de modo que un cliente podría elegirse la clave. El test lo comprueba con una `X-Real-IP` falsa en cada petición (TG-643).
 
 ### Volúmenes
 

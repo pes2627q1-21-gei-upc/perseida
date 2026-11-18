@@ -14,16 +14,22 @@
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
     "APOD_UNAVAILABLE": "Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato.",
     "EMAIL_ALREADY_REGISTERED": "Este correo ya está asociado a otra cuenta.",
+    "EVENT_NOT_FOUND": "Este evento ya no existe.",
     "GENERIC_FINAL": "Algo ha salido mal.",
     "GOOGLE_SIGN_IN_EXPO_GO": "El inicio de sesión con Google no funciona en Expo Go. Usa la app instalada (build de desarrollo).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "El inicio de sesión con Google aún no está disponible.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
     "INTERNAL_ERROR": "Algo ha salido mal. Inténtalo de nuevo.",
+    "INVALID_CURSOR": "No se han podido cargar más publicaciones. Vuelve a intentarlo.",
     "INVALID_GOOGLE_TOKEN": "No hemos podido verificar tu cuenta de Google. Vuelve a iniciar sesión.",
     "INVALID_RESPONSE": "Algo ha salido mal. No se ha podido cargar el contenido.",
     "INVALID_SESSION": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
     "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo.",
     "NOT_FOUND": "No se ha encontrado lo que buscas.",
+    "POST_FORBIDDEN": "Solo quien ha escrito esta publicación puede editarla o borrarla.",
+    "POST_NOT_FOUND": "Esta publicación ya no existe.",
+    "POST_TEXT_EMPTY": "Escribe algo antes de publicar.",
+    "POST_TEXT_TOO_LONG": "El texto puede tener como máximo 1.000 caracteres.",
     "QUIZ_ALREADY_ANSWERED": "Ya has respondido la pregunta de hoy.",
     "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
     "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
@@ -89,6 +95,33 @@
     "apodLink": "Imagen del día",
     "mapLink": "Mapa de eventos",
     "quizLink": "Pregunta del día"
+  },
+  "posts": {
+    "form": {
+      "cancel": "Cancelar",
+      "counter": "{{count}} de {{max}} caracteres",
+      "hint": "Comparte observaciones y consejos con la comunidad.",
+      "label": "Tu publicación",
+      "publish": "Publicar",
+      "save": "Guardar"
+    },
+    "item": {
+      "anonymous": "Usuario/a #{{tag}}",
+      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer.",
+      "delete": "Borrar",
+      "deleteHint": "Pide confirmación antes de borrar la publicación",
+      "edit": "Editar",
+      "editHint": "Edita el texto de tu publicación",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Todavía no hay publicaciones. ¡Comparte la primera!",
+      "loading": "Cargando las publicaciones",
+      "more": "Cargar más",
+      "retry": "Reintentar",
+      "retryHint": "Vuelve a cargar las publicaciones",
+      "title": "Publicaciones"
+    }
   },
   "quiz": {
     "backHome": "Volver al inicio",

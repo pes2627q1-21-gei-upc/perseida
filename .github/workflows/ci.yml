@@ -44,6 +44,9 @@ jobs:
             proxy:
               - "infra/nginx-proxy-manager/**"
               - "infra/scripts/test-rate-limit.sh"
+              - "infra/scripts/test-npm-startup.sh"
+              - "infra/scripts/install-http-top.sh"
+              - "infra/docker-compose.yml"
               - ".github/workflows/ci.yml"
       - name: Mostrar resultat de la detecció
         run: |
@@ -52,16 +55,19 @@ jobs:
           echo "proxy changed = ${{ steps.filter.outputs.proxy }}"
 
   # Límit de peticions per IP del proxy (TG-351): nginx amb les confs versionades
-  # d'nginx-proxy-manager i un upstream de prova.
+  # d'nginx-proxy-manager i un upstream de prova; i NPM real amb el muntatge del Compose.
   proxy:
     needs: changes
     if: needs.changes.outputs.proxy == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Límit de peticions per IP a /api/events/
         run: bash infra/scripts/test-rate-limit.sh
+      # Regressió del hotfix 0.2.1: NPM no arrencava amb `http_top.conf` de només lectura.
+      - name: NPM arrenca amb el muntatge d'http_top.conf del Compose
+        run: bash infra/scripts/test-npm-startup.sh
 
   backend:
     needs: changes
@@ -142,7 +148,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Stryker on the changed lines of a PR can take ~15 min with the 4 vCPUs of the runner.
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:
@@ -176,6 +183,8 @@ jobs:
           git diff --exit-code -- src/shared/api/schema.d.ts
       - name: Tests (jest amb cobertura)
         run: pnpm test --coverage --ci
+      - name: Tests dels scripts del frontend (node --test)
+        run: node --test scripts/*.test.mjs
       - name: Mutation testing al frontend (Stryker >= 70%)
         if: github.event_name == 'pull_request'
         run: pnpm test:mutation --base-branch origin/${{ github.base_ref }}

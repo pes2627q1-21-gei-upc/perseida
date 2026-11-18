@@ -9,7 +9,7 @@
 # L'upstream és un `server` de prova que respon 200, en lloc de l'API.
 #
 # Comprova:
-#   1. Les 21 primeres peticions a /api/events/... passen (1 r/s amb ràfega de 20, sense espera).
+#   1. Les 101 primeres peticions a /api/events/... passen (10 r/s amb ràfega de 100, sense espera).
 #   2. En superar el límit, la resposta és 429 en problem+json (RFC 9457) amb `code`
 #      RATE_LIMITED, `instance`, `Retry-After` i `X-Correlation-ID`.
 #   3. La resta de l'API (/api/health) no queda limitada.
@@ -24,7 +24,7 @@ IMAGE="nginx:1.27-alpine"
 NAME="perseida-rate-limit-test"
 PORT="${RATE_LIMIT_TEST_PORT:-18080}"
 BASE="http://127.0.0.1:$PORT"
-BURST=20
+BURST=100
 
 WORK_DIR="$(mktemp -d)"
 
@@ -52,6 +52,14 @@ done
 cat >"$WORK_DIR/nginx.conf" <<'EOF'
 events {}
 http {
+    # Com el nginx.conf d'NPM: confia en `X-Real-IP` quan la petició arriba d'una xarxa
+    # privada. A producció tot arriba del NAT de la UPC (`10.x`), i aquí de Docker (`172.x`).
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    real_ip_header X-Real-IP;
+    real_ip_recursive on;
+
     include /etc/nginx/perseida/http_top.conf;
 
     server {
@@ -101,7 +109,7 @@ for _ in $(seq 1 30); do
 done
 [ "$ready" = 1 ] || fail "nginx no arrenca amb les confs versionades"
 
-# 1. La ràfega passa sencera: la primera petició i les 20 de la ràfega. La primera
+# 1. La ràfega passa sencera: la primera petició i les 100 de la ràfega. La primera
 #    també comprova que el camí bo conserva l'HSTS del `server`.
 curl -s -D "$WORK_DIR/ok-headers" -o /dev/null "$BASE/api/events/upcoming?days=7"
 grep -qi '^strict-transport-security: ' "$WORK_DIR/ok-headers" || fail "el 200 de /api/events/ no porta HSTS"
@@ -110,17 +118,24 @@ for i in $(seq 2 $((BURST + 1))); do
   [ "$code" = "200" ] || fail "la petició $i dins del límit ha retornat $code (s'esperava 200)"
 done
 
-# 2. Superat el límit: 429 en problem+json. Unes quantes peticions més, per si en
-#    el temps de la ràfega s'ha recuperat algun testimoni (1 per segon).
-limited=0
-for _ in $(seq 1 5); do
-  code="$(curl -s -D "$WORK_DIR/headers" -o "$WORK_DIR/body" -w '%{http_code}' "$BASE/api/events/active")"
-  if [ "$code" = "429" ]; then
-    limited=1
-    break
-  fi
-done
-[ "$limited" = 1 ] || fail "cap petició per sobre del límit ha retornat 429"
+# Envia FLOOD peticions en paral·lel a un camí (`curl -Z`; el `?n=` no canvia `$uri`) i deixa
+# la primera resposta 429 a `$WORK_DIR/$2-headers` i `$WORK_DIR/$2-body`. En paral·lel perquè,
+# a 10 r/s, unes peticions seguides i lentes (Docker Desktop) no passarien mai del límit.
+FLOOD=300
+flood_until_429() {
+  local path="$1" name="$2" first
+  rm -f "$WORK_DIR/$name"-r*
+  curl -s -Z --parallel-max 50 -i -o "$WORK_DIR/$name-r#1" "$BASE$path?n=[1-$FLOOD]" || true
+  first="$(grep -l '^HTTP/1.1 429' "$WORK_DIR/$name"-r* 2>/dev/null | head -n 1 || true)"
+  [ -n "$first" ] || return 1
+  awk 'NR == 1, /^\r?$/' "$first" > "$WORK_DIR/$name-headers"
+  awk 'body { print } /^\r?$/ { body = 1 }' "$first" > "$WORK_DIR/$name-body"
+}
+
+# 2. Superat el límit: 429 en problem+json.
+flood_until_429 /api/events/active limited || fail "cap petició per sobre del límit ha retornat 429"
+mv "$WORK_DIR/limited-headers" "$WORK_DIR/headers"
+mv "$WORK_DIR/limited-body" "$WORK_DIR/body"
 
 grep -qi '^content-type: application/problem+json' "$WORK_DIR/headers" \
   || fail "el 429 no és application/problem+json"
@@ -144,13 +159,29 @@ EOF
 
 # 2b. `instance` mai copia text del client: un camí desconegut (aquí amb unes cometes,
 #     `%22`, que nginx descodifica a `$uri`) dona el prefix fix i el JSON continua vàlid.
-code="$(curl -s -o "$WORK_DIR/odd-body" -w '%{http_code}' "$BASE/api/events/%22x")"
-[ "$code" = "429" ] || fail "el camí desconegut ha retornat $code (s'esperava 429)"
+flood_until_429 /api/events/%22x odd || fail "el camí desconegut no ha retornat mai 429"
 python3 - "$WORK_DIR/odd-body" <<'EOF' || fail "el 429 d'un camí desconegut no porta instance /api/events/"
 import json, sys
 body = json.load(open(sys.argv[1], encoding="utf-8"))
 assert body["instance"] == "/api/events/", body
 EOF
+
+# 2c. Una `X-Real-IP` falsa no se salta el límit: FLOOD peticions en paral·lel, cadascuna
+#     amb una IP inventada diferent (`next` del fitxer de `curl -K`), han d'acabar en 429.
+#     `next` reinicia les opcions, així que `output` i `write-out` van a cada bloc.
+spoof_config="$WORK_DIR/spoof.curl"
+: >"$spoof_config"
+for i in $(seq 1 "$FLOOD"); do
+  {
+    printf 'url = "%s/api/events/active?n=%s"\n' "$BASE" "$i"
+    printf 'header = "X-Real-IP: 203.0.%s.%s"\n' "$((i / 250))" "$((i % 250 + 1))"
+    printf 'output = "/dev/null"\n'
+    printf '%s\n' 'write-out = "%{http_code}\n"' 'next'
+  } >>"$spoof_config"
+done
+spoof_codes="$(curl -s -Z --parallel-max 50 -K "$spoof_config" || true)"
+printf '%s\n' "$spoof_codes" | grep -qx 429 \
+  || fail "amb una X-Real-IP falsa a cada petició el límit no s'aplica"
 
 # 3. La resta de l'API no comparteix el límit.
 code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/health")"

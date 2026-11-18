@@ -2,9 +2,9 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-16"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026)"
+data: "2026-11-17"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -77,11 +77,21 @@ Ruta `/(app)/map` (de moment, accés des de l'inici temporal). Codi a `src/featu
 - **Estats:** càrrega, buit (segons el filtre), error amb reintent (si és transitori) i «cap té ubicació al mapa» amb un botó cap a la llista, en un panell de vidre damunt del mapa o de la llista.
 - **Components compartits nous:** `GelSegmented` (`src/shared/ui`), píndola de gel amb segments, anunciada com a pestanyes o com a opcions (`kind`).
 
+## Publicacions d'esdeveniment (TG-628)
+
+Codi a `src/features/posts/`; API a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
+
+- **Dades:** `api/posts.ts` (openapi-fetch) i `hooks/usePosts.ts` (`useEventPosts` amb `useInfiniteQuery` i cursor; `useCreatePost`, `useUpdatePost` i `useDeletePost`, que en acabar bé tornen a carregar la llista de l'esdeveniment). Només en línia. Sense sessió desada, fallen amb `INVALID_SESSION` sense cridar l'API (`features/auth/authHeaders.ts`, compartit).
+- **Qui és l'autora:** `useCurrentUser` (`features/auth/hooks`, `GET /api/users/me`, llegit un cop per sessió). Una publicació és pròpia si `author.id` coincideix amb el de la sessió; només llavors surten «Edita» i «Esborra».
+- **Formulari:** `PostForm`, amb `react-hook-form` i `zod` ([[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020]]). El mateix component crea i edita; comptador «N/1000» sempre visible, que compta caràcters com el servidor (punts de codi: un emoji compta un cop). Els errors del text (`POST_TEXT_*`) surten sota el camp i van també al principi de l'`accessibilityHint` del camp, perquè el lector els llegeixi en entrar-hi; la resta, com a alerta traduïda.
+- **Pantalla:** `EventPosts` va al final del scroll de la fitxa (`EventSheet`), tant al full inferior del mòbil com al panell lateral. Té els estats de càrrega, buit i error (amb reintent només si l'error és transitori) i «Carrega'n més» per a la pàgina següent. `PostItem` mostra l'autora, la data, «editada» i el text, sempre com a text pla.
+- **Edició i esborrat al lloc:** editar substitueix el text pel formulari dins de la mateixa publicació. Esborrar demana confirmació també dins la publicació, i no amb `Alert.alert`, que React Native Web ignora (decisió de la persona responsable, 17/11/2026). Com que el botó que tenia el focus desapareix, en editar el focus va al camp de text (`autoFocus`) i la pregunta de confirmació és una alerta (WCAG 2.4.3 i 4.1.3).
+
 ## Quiz diari (TG-61)
 
 Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal; a la pestanya de Gamificació quan existeixi, #385). Codi a `src/features/quiz/`; dades segons [[contracte-quiz]].
 
-- **Sessió:** és la primera pantalla que crida endpoints privats. `withSession` (`src/features/auth/api/authorized.ts`) hi posa `Authorization: Bearer <access token>`; amb un 401 renova la sessió un sol cop (`refreshSession`, que serialitza les renovacions) i repeteix la petició. Sense sessió falla amb `INVALID_SESSION` sense cridar l'API. Les altres features privades (ratxa, perfil) l'han de reutilitzar.
+- **Sessió:** és la primera pantalla que crida endpoints privats. `withSession` (`src/features/auth/api/authorized.ts`) hi posa la capçalera de `authHeaders` (`Authorization: Bearer <access token>`; sense sessió falla amb `INVALID_SESSION` sense cridar l'API). Amb un 401 renova la sessió un sol cop (`refreshSession`, que serialitza les renovacions) i repeteix la petició. Si la renovació falla però la sessió continua desada (xarxa, 5xx), acaba en `SESSION_UNAVAILABLE` reintentable, no en sessió caducada. Les altres features privades (ratxa, perfil) l'han de reutilitzar.
 - **Dades:** `useQuizToday(lang)` (TanStack Query, `staleTime` de 5 minuts, un reintent si l'error és transitori) i `useAnswerQuiz(lang)`, que desa el resultat a la pregunta en memòria cau i marca obsoletes les dels altres idiomes. `lang` és l'idioma de l'app (`i18n.language`).
 - **Pantalla:** pregunta amb 4 opcions (`accessibilityRole="radio"`, estat `checked`; la selecció també es veu amb la icona i la vora, no només amb color) i botó de gel desactivat fins que es tria una opció i `busy` mentre s'envia. Resultat: capçalera encertada o no, cada opció amb icona i paraules («Resposta correcta», «La teva resposta»), explicació i enllaç a la font (`safeHttpsUrl`). Totes dues vistes tenen un `QuietButton` «Torna a l'inici» (`router.back()`, o `replace('/')` si no hi ha on tornar), com el mapa.
 - **Errors:** càrrega amb missatge per codi i reintent si és transitori; si falla l'enviament, es conserva l'opció; `QUIZ_EXPIRED` i `QUIZ_QUESTION_MISMATCH` recarreguen la pregunta i mostren un avís; `QUIZ_ALREADY_ANSWERED` recarrega i mostra el resultat.

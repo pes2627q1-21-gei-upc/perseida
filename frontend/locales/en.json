@@ -14,16 +14,22 @@
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
     "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
+    "EVENT_NOT_FOUND": "This event no longer exists.",
     "GENERIC_FINAL": "Something went wrong.",
     "GOOGLE_SIGN_IN_EXPO_GO": "Google sign-in doesn't work in Expo Go. Use the installed app (development build).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "Google sign-in isn't available yet.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google is unavailable right now. Please try again in a while.",
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "INVALID_CURSOR": "More posts could not be loaded. Try again.",
     "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
     "INVALID_RESPONSE": "Something went wrong. We couldn't load the content.",
     "INVALID_SESSION": "Your session has expired. Please sign in again.",
     "NETWORK_ERROR": "No connection. Check your network and try again.",
     "NOT_FOUND": "We couldn't find what you were looking for.",
+    "POST_FORBIDDEN": "Only the person who wrote this post can edit or delete it.",
+    "POST_NOT_FOUND": "This post no longer exists.",
+    "POST_TEXT_EMPTY": "Write something before posting.",
+    "POST_TEXT_TOO_LONG": "The text can be at most 1,000 characters long.",
     "QUIZ_ALREADY_ANSWERED": "You have already answered today's question.",
     "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
     "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
@@ -89,6 +95,33 @@
     "apodLink": "Picture of the day",
     "mapLink": "Events map",
     "quizLink": "Question of the day"
+  },
+  "posts": {
+    "form": {
+      "cancel": "Cancel",
+      "counter": "{{count}} of {{max}} characters",
+      "hint": "Share observations and tips with the community.",
+      "label": "Your post",
+      "publish": "Post",
+      "save": "Save"
+    },
+    "item": {
+      "anonymous": "User #{{tag}}",
+      "confirmDelete": "Delete this post? This cannot be undone.",
+      "delete": "Delete",
+      "deleteHint": "Asks for confirmation before deleting the post",
+      "edit": "Edit",
+      "editHint": "Edits the text of your post",
+      "edited": "edited"
+    },
+    "list": {
+      "empty": "No posts yet. Share the first one!",
+      "loading": "Loading posts",
+      "more": "Load more",
+      "retry": "Try again",
+      "retryHint": "Loads the posts again",
+      "title": "Posts"
+    }
   },
   "quiz": {
     "backHome": "Back to home",

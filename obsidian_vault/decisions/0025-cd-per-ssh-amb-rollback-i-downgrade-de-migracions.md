@@ -3,7 +3,7 @@ titol: "CD per SSH amb rollback automàtic i downgrade de migracions"
 tipus: adr
 estat: acceptada
 data: "2026-10-22"
-us: ["TG-38"]
+us: ["TG-38", "TG-49"]
 font: "Taiga: US TG-38 (criteris d'acceptació); decisions de la persona responsable (2026-10-22) en implementar la US; .github/workflows/cd.yml i infra/scripts/deploy.sh"
 etiquetes: [adr, cd, desplegament, rollback, alembic, ghcr, infra]
 ---
@@ -30,6 +30,10 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 ### Negatives (assumides)
 
 - Desfer una migració elimina les taules i columnes que havia creat, amb les seves dades, i no hi ha còpies de seguretat. El README d'`infra/` ho avisa. La sonda evita el downgrade quan la causa és la configuració, però no distingeix una base de dades caiguda perquè el healthcheck no la consulta. Tampoc no desfà res quan els noms de variable del `.env` han canviat respecte del darrer desplegament bo (`.deployed-env`): si no es poden comparar, es considera que han canviat. El cost és que un error de codi coincident amb una variable nova deixa l'API aturada fins a una intervenció manual, sense perdre dades.
+
+> [!info] Actualització 2026-11-15 (TG-49): el healthcheck consulta PostgreSQL
+> `/api/health` ara comprova PostgreSQL i Redis amb un límit de 2 s cadascun. Si PostgreSQL és caigut, `status` és `down`: la sonda també falla i no es desfà cap migració. Redis no és crític i no fa fallar la sonda. Val a partir del desplegament següent al que porta TG-49, perquè la sonda arrenca la imatge anterior. Detall a [[api#Healthcheck (TG-49)]].
+
 - Si el `downgrade` falla, es redesplega igualment la imatge anterior (es prefereix un servei amb un esquema possiblement desquadrat que un servei caigut) i el job falla amb un avís explícit.
 - El primer desplegament no té versió anterior: només pot fallar.
 - Els logs dels contenidors no es mostren al workflow, perquè són públics; s'han de llegir al servidor.

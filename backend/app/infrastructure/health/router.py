@@ -19,7 +19,7 @@ class HealthResponse(BaseModel):
         ...,
         description="Diccionari amb l'estat detallat de "
         "cada component o servei extern depenent",
-        examples=[{"app": "ok"}],
+        examples=[{"app": "ok", "postgres": "ok", "redis": "ok"}],
     )
 
     @classmethod
@@ -45,7 +45,7 @@ class HealthResponse(BaseModel):
                 "application/json": {
                     "example": {
                         "status": "ok",
-                        "components": {"app": "ok"},
+                        "components": {"app": "ok", "postgres": "ok", "redis": "ok"},
                     }
                 }
             },
