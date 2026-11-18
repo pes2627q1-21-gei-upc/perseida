@@ -315,6 +315,30 @@ async def test_tg448_c4_before_is_exclusive(
     assert newest not in page.messages
 
 
+async def test_tg448_add_message_to_a_room_that_does_not_exist_is_not_found(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions)
+    ghost = EventChatRoom(id=uuid.uuid7(), event_id=uuid.uuid7(), created_at=NOW)
+
+    with pytest.raises(NotFoundError) as error:
+        await repo.add_message(_message(ghost, author, NOW))
+
+    assert error.value.code == "CHAT_ROOM_NOT_FOUND"
+
+
+async def test_tg448_add_message_with_a_repeated_id_is_not_a_missing_room(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    room = await _room_with(repo, sessions)
+    author = await _user(sessions)
+    message = _message(room, author, NOW)
+    await repo.add_message(message)
+
+    with pytest.raises(IntegrityError, match="pk_chat_messages"):
+        await repo.add_message(message)
+
+
 async def test_tg448_c5_a_page_has_at_most_limit_messages_and_a_next_cursor(
     repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
 ) -> None:

@@ -141,15 +141,47 @@ async def test_tg448_add_message_maps_a_database_failure(
     assert error.value.code == DATABASE_UNAVAILABLE
 
 
-async def test_tg448_add_message_with_a_missing_room_or_author_is_not_found() -> None:
+ROOM_FK = (
+    'insert or update on table "chat_messages" violates foreign key constraint '
+    '"fk_chat_messages_room_id_event_chat_rooms"'
+)
+
+
+async def test_tg448_add_message_with_a_missing_room_is_not_found() -> None:
     repository = _repository(
-        FakeSession({"execute": IntegrityError("INSERT", {}, Exception("fk"))})
+        FakeSession({"execute": IntegrityError("INSERT", {}, Exception(ROOM_FK))})
     )
 
     with pytest.raises(NotFoundError) as error:
         await repository.add_message(_message())
 
     assert error.value.code == "CHAT_ROOM_NOT_FOUND"
+
+
+@pytest.mark.parametrize(
+    "detail",
+    [
+        pytest.param(
+            'duplicate key value violates unique constraint "pk_chat_messages"',
+            id="duplicate-id",
+        ),
+        pytest.param(
+            'violates check constraint "ck_chat_messages_text_length"', id="text"
+        ),
+        pytest.param(
+            'violates foreign key constraint "fk_chat_messages_author_id_users"',
+            id="author",
+        ),
+    ],
+)
+async def test_tg448_add_message_lets_other_integrity_errors_through(
+    detail: str,
+) -> None:
+    failure = IntegrityError("INSERT", {}, Exception(detail))
+    repository = _repository(FakeSession({"execute": failure}))
+
+    with pytest.raises(IntegrityError):
+        await repository.add_message(_message())
 
 
 @pytest.mark.parametrize("failure", DB_FAILURES)
