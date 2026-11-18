@@ -138,9 +138,12 @@ jobs:
       - name: Copiar el Compose, la zona del proxy i el script de desplegament
         shell: bash
         run: |
-          scp -q infra/docker-compose.yml infra/scripts/deploy.sh virtech:/opt/perseida/
-          ssh virtech 'mkdir -p /opt/perseida/nginx-proxy-manager'
-          scp -q infra/nginx-proxy-manager/http_top.conf virtech:/opt/perseida/nginx-proxy-manager/
+          scp -q infra/docker-compose.yml infra/scripts/deploy.sh infra/scripts/install-http-top.sh virtech:/opt/perseida/
+          # NPM fa `chown` a root d'`http_top.conf` en arrencar: `scp` no el pot sobreescriure i
+          # `install-http-top.sh` l'escriu amb un contenidor d'un sol ús de la imatge d'NPM si cal,
+          # estigui el proxy en marxa o no (hotfix 0.2.2).
+          scp -q infra/nginx-proxy-manager/http_top.conf virtech:/opt/perseida/http_top.conf.new
+          ssh virtech 'cd /opt/perseida && sh install-http-top.sh http_top.conf.new && rm -f http_top.conf.new'
           ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
 
       # El servidor baixa la imatge de GHCR (paquet privat) amb el token efímer
@@ -161,9 +164,21 @@ jobs:
 
       # `docker compose up` no recrea el proxy si només canvia el contingut
       # d'`http_top.conf` (límit de peticions, TG-351): es valida i es recarrega.
+      # Si el desplegament l'ha recreat, NPM tarda a arrencar: fins que no genera
+      # `resolvers.conf`, `nginx -t` falla, i fins que nginx no corre, `nginx -s reload`
+      # tampoc té a qui avisar (hotfix 0.2.1). Es reintenta tot fins a 180 s, com
+      # `test-npm-startup.sh`; si no ho aconsegueix, el pas falla amb l'error de `nginx -t`.
       - name: Recarregar nginx-proxy-manager
         shell: bash
-        run: ssh virtech 'cd /opt/perseida && docker compose exec -T reverse-proxy sh -c "nginx -t && nginx -s reload"'
+        run: |
+          ssh virtech 'cd /opt/perseida || exit 1
+            for _ in $(seq 1 90); do
+              docker compose exec -T reverse-proxy sh -c "nginx -t && nginx -s reload" 2>/dev/null && exit 0
+              sleep 2
+            done
+            echo "nginx-proxy-manager no ha arrencat o no ha recarregat la configuració en 180 s" >&2
+            docker compose exec -T reverse-proxy nginx -t
+            exit 1'
 
       - name: Tancar la sessió de GHCR al servidor
         if: always()
