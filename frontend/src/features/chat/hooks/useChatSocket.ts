@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import type { components } from '../../../shared/api/schema';
-import { useSocket } from '../../../shared/realtime';
+import type { AppError } from '../../../shared/errors';
+import { errorOfFrame, useSocket } from '../../../shared/realtime';
 import { socketAuth } from '../../auth/socketAuth';
 
 export type ChatMessage = components['schemas']['ChatMessageResponse'];
@@ -13,6 +14,8 @@ export interface ChatSocketHandlers {
   onMessage: (message: ChatMessage) => void;
   /** The server took the user out of the room (e.g. they left the event). */
   onRevoked: () => void;
+  /** Joining the room failed (e.g. FORBIDDEN, CHAT_ROOM_NOT_FOUND, RATE_LIMITED). */
+  onError?: (error: AppError) => void;
 }
 
 /** Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. */
@@ -29,9 +32,15 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
   useEffect(
     () =>
       subscribe(room, (frame) => {
-        if (frame.id) return; // Answers to this client's own requests.
-        if (frame.type === 'message') handlersRef.current.onMessage(frame.payload as ChatMessage);
-        else if (frame.type === 'unsubscribe') handlersRef.current.onRevoked();
+        const current = handlersRef.current;
+        if (frame.id) {
+          // Answers to this client's own requests (the errors of sendMessage reject its promise
+          // instead): only a failed join of the room is reported.
+          if (frame.type === 'error') current.onError?.(errorOfFrame(frame));
+          return;
+        }
+        if (frame.type === 'message') current.onMessage(frame.payload as ChatMessage);
+        else if (frame.type === 'unsubscribe') current.onRevoked();
       }),
     [room, subscribe],
   );

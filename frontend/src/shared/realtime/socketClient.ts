@@ -152,8 +152,7 @@ function handleFrame(data: unknown): void {
   if (frame.id && request) {
     pending.delete(frame.id);
     if (frame.type === 'error') {
-      const problem = frame.payload ?? {};
-      request.reject(problemToAppError(problem, Number(problem.status)));
+      request.reject(errorOfFrame(frame));
     } else {
       request.resolve(frame);
     }
@@ -165,6 +164,12 @@ function handleFrame(data: unknown): void {
   // An `unsubscribe` the client did not ask for (no `id`) means the server revoked the room.
   if (frame.type === 'unsubscribe' && !frame.id) rooms.delete(frame.room);
   handlers?.forEach(({ handler }) => handler(frame));
+}
+
+/** The AppError of an `error` frame, whose payload is an RFC 9457 problem (ADR-0030). */
+export function errorOfFrame(frame: ServerFrame): AppError {
+  const problem = frame.payload ?? {};
+  return problemToAppError(problem, Number(problem.status));
 }
 
 function onAuthenticated(): void {
