@@ -46,7 +46,7 @@ export function ConfirmDialog({
       <View
         testID="confirm-dialog"
         accessibilityViewIsModal
-        style={[styles.veil, { backgroundColor: `${colors.text.primary}66`, padding: spacing.md }]}
+        style={[styles.veil, { backgroundColor: colors.surface.scrim, padding: spacing.md }]}
       >
         <View style={[styles.panel, { maxWidth: readingMaxWidth }]}>
           <GlassPanel>
