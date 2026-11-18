@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors';
 import { refreshSession } from './api/refreshToken';
 import { socketAuth } from './socketAuth';
 import { clearTokens, saveTokens } from './tokenStorage';
@@ -61,5 +62,31 @@ describe('socketAuth: la sessió de la feature auth per a la connexió en temps 
     mockedRefreshSession.mockRejectedValue(failure);
 
     await expect(socketAuth.refresh()).rejects.toBe(failure);
+  });
+
+  it('refresh() es rebutja amb SESSION_UNAVAILABLE (503, reintentable) si no renova però la sessió segueix desada', async () => {
+    mockedRefreshSession.mockResolvedValue(null);
+
+    const error: unknown = await socketAuth.refresh().then(
+      () => 'resolved',
+      (reason: unknown) => reason,
+    );
+
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).kind).toBe('http');
+    expect((error as AppError).code).toBe('SESSION_UNAVAILABLE');
+    expect((error as AppError).status).toBe(503);
+    expect((error as AppError).retryable).toBe(true);
+  });
+
+  it('refresh() es resol si no renova i ja no hi ha sessió desada (llavors getToken() dona null)', async () => {
+    mockedRefreshSession.mockImplementation(async () => {
+      await clearTokens(); // what refreshSession does when the server rejects the session
+      return null;
+    });
+
+    await socketAuth.refresh();
+
+    await expect(socketAuth.getToken()).resolves.toBeNull();
   });
 });

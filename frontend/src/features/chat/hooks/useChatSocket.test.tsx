@@ -33,7 +33,7 @@ const OTHERS_MESSAGE = {
 };
 
 let restoreWebSocket: () => void;
-let handlers: { onMessage: jest.Mock; onRevoked: jest.Mock };
+let handlers: { onMessage: jest.Mock; onRevoked: jest.Mock; onError: jest.Mock };
 
 /** Lets pending promises and the timers due in `ms` run, inside act (fake timers). */
 async function flush(ms = 0) {
@@ -99,7 +99,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   restoreWebSocket = installFakeWebSocket();
   _resetSocketForTests();
-  handlers = { onMessage: jest.fn(), onRevoked: jest.fn() };
+  handlers = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
   jest.mocked(socketAuth.getToken).mockReset().mockResolvedValue('access-1');
   jest.mocked(socketAuth.refresh).mockReset().mockResolvedValue(undefined);
 });
@@ -334,5 +334,126 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
       payload: { text: 'hola' },
       id: expect.any(String),
     });
+  });
+});
+
+describe('useChatSocket: errors de la sala a onError (TG-461, TG-64)', () => {
+  /** The `subscribe` this client sent for ROOM (its id is what the server's answer carries). */
+  const subscribeFrame = () => lastSocket().sentOfType('subscribe')[0];
+
+  it.each([
+    [403, 'FORBIDDEN', false],
+    [404, 'CHAT_ROOM_NOT_FOUND', false],
+    [404, 'EVENT_NOT_FOUND', false],
+    [422, 'VALIDATION_ERROR', false],
+    [429, 'RATE_LIMITED', true],
+    [503, 'PUBSUB_UNAVAILABLE', true],
+  ])(
+    'un error %s %s al subscribe arriba a onError com a AppError (retryable %s)',
+    async (status, code, retryable) => {
+      await mountChatConnected();
+
+      await serverSends({
+        type: 'error',
+        room: ROOM,
+        id: subscribeFrame()?.id,
+        payload: wsProblem(status, code),
+      });
+
+      expect(handlers.onError).toHaveBeenCalledTimes(1);
+      const error: unknown = handlers.onError.mock.calls[0]?.[0];
+      expect(error).toBeInstanceOf(AppError);
+      expect((error as AppError).kind).toBe('http');
+      expect((error as AppError).code).toBe(code);
+      expect((error as AppError).status).toBe(status);
+      expect((error as AppError).correlationId).toBe('c-1');
+      expect((error as AppError).retryable).toBe(retryable);
+      expect(handlers.onMessage).not.toHaveBeenCalled();
+      expect(handlers.onRevoked).not.toHaveBeenCalled();
+    },
+  );
+
+  it('l’ack d’un subscribe correcte no crida onError (ni onMessage ni onRevoked)', async () => {
+    await mountChatConnected();
+
+    await serverSends({ type: 'subscribe', room: ROOM, id: subscribeFrame()?.id, payload: {} });
+
+    expect(handlers.onError).not.toHaveBeenCalled();
+    expect(handlers.onMessage).not.toHaveBeenCalled();
+    expect(handlers.onRevoked).not.toHaveBeenCalled();
+  });
+
+  it('els errors d’una altra sala no arriben a onError', async () => {
+    await mountChatConnected();
+
+    await serverSends({
+      type: 'error',
+      room: OTHER_ROOM,
+      id: subscribeFrame()?.id,
+      payload: wsProblem(403, 'FORBIDDEN'),
+    });
+
+    expect(handlers.onError).not.toHaveBeenCalled();
+  });
+
+  it('l’error d’un sendMessage rebutja la promesa i no passa per onError', async () => {
+    const { result } = await mountChatConnected();
+    const { sending } = await startSending(result.current.sendMessage, 'hola');
+
+    await serverSends({
+      type: 'error',
+      room: ROOM,
+      id: lastSent()?.id,
+      payload: wsProblem(422, 'CHAT_MESSAGE_REJECTED'),
+    });
+    const error = await rejectionOf(sending);
+
+    expect(error.code).toBe('CHAT_MESSAGE_REJECTED');
+    expect(handlers.onError).not.toHaveBeenCalled();
+  });
+
+  it('onError és opcional: sense handler, un error de la sala no fa petar res', async () => {
+    const withoutOnError = { onMessage: jest.fn(), onRevoked: jest.fn() };
+    const { result } = await renderHook(() => useChatSocket(EVENT_ID, withoutOnError));
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await serverSends({
+      type: 'error',
+      room: ROOM,
+      id: subscribeFrame()?.id,
+      payload: wsProblem(403, 'FORBIDDEN'),
+    });
+
+    expect(result.current.status).toBe('open');
+    expect(withoutOnError.onMessage).not.toHaveBeenCalled();
+    expect(withoutOnError.onRevoked).not.toHaveBeenCalled();
+  });
+
+  it('si canvia onError entre renders, no es torna a subscriure però usa el nou', async () => {
+    const first = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
+    const second = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
+    const { rerender } = await renderHook(
+      ({ current }: { current: typeof first }) => useChatSocket(EVENT_ID, current),
+      { initialProps: { current: first } },
+    );
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await rerender({ current: second });
+    await flush();
+    await serverSends({
+      type: 'error',
+      room: ROOM,
+      id: subscribeFrame()?.id,
+      payload: wsProblem(403, 'FORBIDDEN'),
+    });
+
+    expect(lastSocket().sentOfType('subscribe')).toHaveLength(1);
+    expect(lastSocket().sentOfType('unsubscribe')).toHaveLength(0);
+    expect(second.onError).toHaveBeenCalledTimes(1);
+    expect(first.onError).not.toHaveBeenCalled();
   });
 });

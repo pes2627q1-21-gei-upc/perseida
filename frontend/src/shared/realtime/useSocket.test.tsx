@@ -585,6 +585,24 @@ describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
     expect(sockets()).toHaveLength(1);
   });
 
+  it('4401 i refresh() es rebutja amb un AppError: closed amb aquest mateix error, sense reconnectar', async () => {
+    const unavailable = new AppError({
+      kind: 'http',
+      code: 'SESSION_UNAVAILABLE',
+      status: 503,
+      retryable: true,
+    });
+    auth.refresh.mockRejectedValue(unavailable);
+    const { result } = await mountConnected();
+
+    await serverCloses(4401);
+    await flush(TEN_MINUTES);
+
+    expect(result.current.status).toBe('closed');
+    expect(result.current.error).toBe(unavailable);
+    expect(sockets()).toHaveLength(1);
+  });
+
   it('4429 (massa connexions): closed sense cap reintent', async () => {
     const { result } = await mount();
     await serverOpens();
@@ -827,6 +845,35 @@ describe('useSocket: getToken() rebutjat (TG-461; es tracta com si no hi hagués
 
     expect(sockets()).toHaveLength(1);
     expectInvalidSession(result.current);
+  });
+});
+
+describe('useSocket: frames d’un socket substituït (TG-461)', () => {
+  it('l’eco d’auth que arriba al socket vell no autentica el nou ni hi envia els subscribe', async () => {
+    const first = await mount();
+    const old = lastSocket();
+    await serverOpens(old);
+    await first.unmount();
+
+    const { result } = await mount();
+    const fresh = lastSocket();
+    await act(async () => {
+      result.current.subscribe(ROOM, jest.fn());
+    });
+    await serverOpens(fresh);
+    await serverSends(AUTH_ACK, old); // the old socket's echo, still on its way
+
+    expect(fresh).not.toBe(old);
+    expect(result.current.status).toBe('connecting');
+    expect(fresh.sent).toEqual([authFrame('access-1')]);
+
+    await serverSends(AUTH_ACK, fresh);
+
+    expect(result.current.status).toBe('open');
+    expect(fresh.sent).toEqual([
+      authFrame('access-1'),
+      { type: 'subscribe', room: ROOM, id: expect.any(String) },
+    ]);
   });
 });
 
