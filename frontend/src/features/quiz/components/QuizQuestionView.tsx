@@ -1,13 +1,13 @@
 import { CaretLeft } from 'phosphor-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, View } from 'react-native';
 
-import { readingMaxWidth, useTheme } from '../../../shared/theme';
+import { useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, QuietButton } from '../../../shared/ui';
 import type { QuizToday } from '../api/quiz';
 import { QuizOption } from './QuizOption';
+import { QuizAlert, QuizPage } from './QuizPage';
 
 interface Props {
   question: QuizToday;
@@ -26,93 +26,52 @@ interface Props {
 export function QuizQuestionView({ question, sending, onSubmit, onBack, error, notice }: Props) {
   const { t } = useTranslation();
   const { colors, iconSizes, spacing, typography } = useTheme();
-  const insets = useSafeAreaInsets();
   const [chosen, setChosen] = useState<number | null>(null);
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        paddingTop: insets.top + spacing.md,
-        paddingBottom: insets.bottom + spacing.xxl,
-        paddingLeft: insets.left + spacing.md,
-        paddingRight: insets.right + spacing.md,
-      }}
-    >
-      <View style={[styles.column, { maxWidth: readingMaxWidth, gap: spacing.md }]}>
-        <Text
-          accessibilityRole="header"
-          style={[typography.headline, { color: colors.text.primary }]}
-        >
-          {t('quiz.title')}
-        </Text>
+    <QuizPage title={t('quiz.title')}>
+      {notice ? <QuizAlert message={notice} /> : null}
 
-        {notice ? (
-          <GlassPanel>
-            <Text
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              style={[typography.body, { color: colors.text.primary }]}
-            >
-              {notice}
-            </Text>
-          </GlassPanel>
-        ) : null}
-
-        <GlassPanel>
-          <View style={{ gap: spacing.md }}>
-            <Text style={[typography.bodyStrong, { color: colors.text.primary }]}>
-              {question.statement}
-            </Text>
-            <View
-              accessibilityRole="radiogroup"
-              accessibilityLabel={t('quiz.optionsLabel')}
-              style={{ gap: spacing.sm }}
-            >
-              {question.options.map((option, position) => (
-                <QuizOption
-                  key={position}
-                  label={option}
-                  selected={chosen === position}
-                  disabled={sending}
-                  onPress={() => setChosen(position)}
-                />
-              ))}
-            </View>
+      <GlassPanel>
+        <View style={{ gap: spacing.md }}>
+          <Text style={[typography.bodyStrong, { color: colors.text.primary }]}>
+            {question.statement}
+          </Text>
+          <View
+            accessibilityRole="radiogroup"
+            accessibilityLabel={t('quiz.optionsLabel')}
+            style={{ gap: spacing.sm }}
+          >
+            {question.options.map((option, position) => (
+              <QuizOption
+                key={position}
+                label={option}
+                selected={chosen === position}
+                disabled={sending}
+                onPress={() => setChosen(position)}
+              />
+            ))}
           </View>
-        </GlassPanel>
+        </View>
+      </GlassPanel>
 
-        {error ? (
-          <GlassPanel>
-            <Text
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              style={[typography.body, { color: colors.text.primary }]}
-            >
-              {error}
-            </Text>
-          </GlassPanel>
-        ) : null}
+      {error ? <QuizAlert message={error} /> : null}
 
-        <GelButton
-          label={t('quiz.submit')}
-          accessibilityHint={t('quiz.submitHint')}
-          disabled={chosen === null}
-          busy={sending}
-          onPress={() => {
-            if (chosen !== null) onSubmit(chosen);
-          }}
-        />
+      <GelButton
+        label={t('quiz.submit')}
+        accessibilityHint={t('quiz.submitHint')}
+        disabled={chosen === null}
+        busy={sending}
+        onPress={() => {
+          if (chosen !== null) onSubmit(chosen);
+        }}
+      />
 
-        <QuietButton
-          label={t('quiz.backHome')}
-          icon={<CaretLeft size={iconSizes.sm} color={colors.text.primary} />}
-          onPress={onBack}
-        />
-      </View>
-    </ScrollView>
+      <QuietButton
+        label={t('quiz.backHome')}
+        icon={<CaretLeft size={iconSizes.sm} color={colors.text.primary} />}
+        onPress={onBack}
+      />
+    </QuizPage>
   );
 }
-
-const styles = StyleSheet.create({
-  column: { width: '100%', alignSelf: 'center' },
-});
