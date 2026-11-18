@@ -7,3 +7,7 @@ INVALID_SESSION = "INVALID_SESSION"
 # ForbiddenError (403); a banned account also answers ACCOUNT_SUSPENDED.
 ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED"
 ACCOUNT_DELETED = "ACCOUNT_DELETED"
+
+# ExternalServiceError (503): PostgreSQL is unreachable (connection refused, closed
+# or lost). Repositories map connection failures to this code.
+DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
