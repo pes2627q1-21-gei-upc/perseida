@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import { colors } from '../../../shared/theme';
 import { LocationMap } from './LocationMap';
@@ -18,6 +19,8 @@ const ZOOM = { zoomIn: 'Apropa', zoomOut: 'Allunya' };
 function message(data: string) {
   return { nativeEvent: { data } };
 }
+
+afterEach(() => jest.restoreAllMocks());
 
 describe('LocationMap (mobile)', () => {
   it('renders the page of the picker in the colours of the theme', async () => {
@@ -76,6 +79,7 @@ describe('LocationMap (mobile)', () => {
   });
 
   it('blocks any navigation away from the map page', async () => {
+    jest.spyOn(Linking, 'openURL').mockResolvedValue();
     await render(<LocationMap start={START} label={LABEL} onCameraChange={jest.fn()} />);
     const { onShouldStartLoadWithRequest } = screen.getByLabelText(LABEL).props;
 

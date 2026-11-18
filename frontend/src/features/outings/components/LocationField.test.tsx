@@ -52,7 +52,9 @@ describe('LocationField', () => {
     const onChange = jest.fn();
     await render(<LocationField value={null} onChange={onChange} />);
 
-    act(() => mockMapProps.onCameraChange({ latitude: 41.39, longitude: 2.17, zoom: 12 }));
+    await act(async () =>
+      mockMapProps.onCameraChange({ latitude: 41.39, longitude: 2.17, zoom: 12 }),
+    );
     await fireEvent.press(screen.getByRole('button', { name: 'Tria aquest lloc' }));
 
     expect(onChange).toHaveBeenCalledWith({ latitude: 41.39, longitude: 2.17 });

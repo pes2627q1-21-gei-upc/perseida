@@ -8,7 +8,8 @@ const mockSetView = jest.fn();
 let mockHandlers: { moveend?: () => void } = {};
 const mockMap = {
   setView: mockSetView,
-  getCenter: () => ({ lat: 42.05, lng: 0.73 }),
+  // A map dragged around the world reports a longitude beyond 180: `wrap` brings it back.
+  getCenter: () => ({ lat: 42.05, lng: 360.73, wrap: () => ({ lat: 42.05, lng: 0.73 }) }),
   getZoom: () => 12,
 };
 
