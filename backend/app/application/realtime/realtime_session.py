@@ -24,6 +24,7 @@ from app.domain.realtime.models import (
     FrameType,
     revocation_channel,
     room_channel,
+    room_revocation_channel,
 )
 from app.domain.realtime.ports import ConnectionClosed, RealtimeConnection
 from app.domain.shared.errors import DomainError
@@ -140,6 +141,9 @@ class RealtimeSession:
         await self._start_subscription(
             revocation_channel(claims.sub),
             lambda raw: self._on_revocation(raw, claims),
+        )
+        await self._start_subscription(
+            room_revocation_channel(claims.sub), self._on_room_revoked
         )
         # the token may have been revoked before the subscription was active
         if not await self._store.exists(TokenType.ACCESS, claims.jti):
@@ -370,6 +374,16 @@ class RealtimeSession:
             claims.sid,
         ):
             await self._close(errors.CLOSE_UNAUTHENTICATED)
+
+    async def _on_room_revoked(self, raw: str) -> None:
+        """The user lost a room (e.g. left the event): leave it, tell the client."""
+        try:
+            room = json.loads(raw)["room"]
+        except ValueError, KeyError, TypeError:
+            return
+        if isinstance(room, str) and room in self._rooms:
+            await self._leave(room)
+            await self._send(Frame(type=FrameType.UNSUBSCRIBE, room=room))
 
     # --- heartbeat ---------------------------------------------------------
 
