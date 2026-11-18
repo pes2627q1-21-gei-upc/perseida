@@ -52,7 +52,7 @@ describe('useOutings', () => {
   it('loads the outings of the filter', async () => {
     mockFetch(() => jsonResponse([myOuting, otherOuting]));
 
-    const { result } = renderHook(() => useOutings({ mine: true }), { wrapper });
+    const { result } = await renderHook(() => useOutings({ mine: true }), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([myOuting, otherOuting]);
@@ -61,7 +61,7 @@ describe('useOutings', () => {
   it('exposes the AppError of a failure and does not retry a final one', async () => {
     const spy = mockFetch(() => problemResponse(404, 'OUTING_NOT_FOUND'));
 
-    const { result } = renderHook(() => useOutings({}), { wrapper });
+    const { result } = await renderHook(() => useOutings({}), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toMatchObject({ code: 'OUTING_NOT_FOUND' });
@@ -71,7 +71,7 @@ describe('useOutings', () => {
   it('retries once a transient failure', async () => {
     const spy = mockFetch(() => problemResponse(503, 'EXTERNAL_UNAVAILABLE'));
 
-    const { result } = renderHook(() => useOutings({}), { wrapper });
+    const { result } = await renderHook(() => useOutings({}), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(spy).toHaveBeenCalledTimes(2);
@@ -82,7 +82,7 @@ describe('useOuting', () => {
   it('loads one outing', async () => {
     mockFetch(() => jsonResponse(myOuting));
 
-    const { result } = renderHook(() => useOuting(myOuting.id), { wrapper });
+    const { result } = await renderHook(() => useOuting(myOuting.id), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(myOuting);
@@ -100,7 +100,7 @@ describe('mutations refresh the outings', () => {
 
   it('creating one invalidates the lists', async () => {
     mockFetch(() => jsonResponse(myOuting, 201));
-    const { result } = renderHook(() => useCreateOuting(), { wrapper });
+    const { result } = await renderHook(() => useCreateOuting(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync(draft);
@@ -111,7 +111,7 @@ describe('mutations refresh the outings', () => {
 
   it('editing one invalidates the lists and the detail', async () => {
     mockFetch(() => jsonResponse(myOuting));
-    const { result } = renderHook(() => useUpdateOuting(myOuting.id), { wrapper });
+    const { result } = await renderHook(() => useUpdateOuting(myOuting.id), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync({ title: 'Nou' });
@@ -123,7 +123,7 @@ describe('mutations refresh the outings', () => {
 
   it('deleting one invalidates the lists', async () => {
     mockFetch(() => new Response(null, { status: 204 }));
-    const { result } = renderHook(() => useDeleteOuting(), { wrapper });
+    const { result } = await renderHook(() => useDeleteOuting(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync(myOuting.id);
@@ -134,7 +134,7 @@ describe('mutations refresh the outings', () => {
 
   it('invalidates nothing when the call fails', async () => {
     mockFetch(() => problemResponse(403, 'OUTING_FORBIDDEN'));
-    const { result } = renderHook(() => useDeleteOuting(), { wrapper });
+    const { result } = await renderHook(() => useDeleteOuting(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync(myOuting.id).catch(() => undefined);
