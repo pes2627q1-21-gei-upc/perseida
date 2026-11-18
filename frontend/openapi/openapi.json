@@ -422,7 +422,7 @@
             }
           },
           "429": {
-            "description": "Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "description": "Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -499,7 +499,7 @@
             }
           },
           "429": {
-            "description": "Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "description": "Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -838,6 +838,915 @@
           }
         ]
       }
+    },
+    "/api/outings": {
+      "post": {
+        "tags": [
+          "outings"
+        ],
+        "summary": "Crea una sortida d'observació",
+        "description": "Crea una sortida de la usuària de la sessió. L'esdeveniment relacionat és opcional; si se'n dona un, ha d'existir. La capçalera `Location` porta la URL de la sortida creada.",
+        "operationId": "create_outing",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutingCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "La sortida creada, amb l'autora.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "outings"
+        ],
+        "summary": "Sortides que encara no han començat",
+        "description": "Retorna les sortides amb l'inici a partir d'ara, ordenades per `starts_at` i després per `id`. Es poden filtrar per esdeveniment (`event_id`) i quedar-se només amb les de la usuària de la sessió (`mine=true`).",
+        "operationId": "list_outings",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Només les sortides d'aquest esdeveniment.",
+              "title": "Event Id"
+            },
+            "description": "Només les sortides d'aquest esdeveniment."
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Només les sortides de la usuària de la sessió.",
+              "default": false,
+              "title": "Mine"
+            },
+            "description": "Només les sortides de la usuària de la sessió."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Les sortides futures; buit si no n'hi ha cap.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OutingResponse"
+                  },
+                  "title": "Response List Outings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Paràmetre invàlid (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/outings/{outing_id}": {
+      "get": {
+        "tags": [
+          "outings"
+        ],
+        "summary": "Detall d'una sortida",
+        "description": "Retorna la sortida amb l'autora.",
+        "operationId": "get_outing",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "outing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Identificador de la sortida",
+              "title": "Outing Id"
+            },
+            "description": "Identificador de la sortida"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La sortida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La sortida no existeix (`OUTING_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Identificador mal format (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "outings"
+        ],
+        "summary": "Edita una sortida",
+        "description": "Només l'autora. Canvien només els camps enviats; `event_id: null` treu l'esdeveniment. Si canvien `starts_at` o `ends_at`, l'inici no pot ser en el passat; si no, es pot editar una sortida que ja ha començat.",
+        "operationId": "update_outing",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "outing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Identificador de la sortida",
+              "title": "Outing Id"
+            },
+            "description": "Identificador de la sortida"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutingUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La sortida editada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No ets l'autora de la sortida (`OUTING_FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La sortida no existeix (`OUTING_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "outings"
+        ],
+        "summary": "Esborra una sortida",
+        "description": "Només l'autora.",
+        "operationId": "delete_outing",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "outing_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Identificador de la sortida",
+              "title": "Outing Id"
+            },
+            "description": "Identificador de la sortida"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "La sortida s'ha esborrat."
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No ets l'autora de la sortida (`OUTING_FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La sortida no existeix (`OUTING_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Identificador mal format (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/{event_id}/posts": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Publica un text en un esdeveniment",
+        "description": "Crea una publicació de text de la usuària de la sessió.",
+        "operationId": "create_event_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostTextRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "La publicació creada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "L'esdeveniment no existeix (`EVENT_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Publicacions d'un esdeveniment",
+        "description": "Llista les publicacions de l'esdeveniment, de la més nova a la més antiga, paginades per cursor: per a la pàgina següent, envia `next_cursor` com a `cursor`.",
+        "operationId": "list_event_posts",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` de la pàgina anterior",
+              "title": "Cursor"
+            },
+            "description": "`next_cursor` de la pàgina anterior"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "Publicacions per pàgina",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Publicacions per pàgina"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Una pàgina de publicacions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "L'esdeveniment no existeix (`EVENT_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Cursor invàlid (`INVALID_CURSOR`) o `limit` fora de rang (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/posts/{post_id}": {
+      "patch": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Edita una publicació pròpia",
+        "description": "Substitueix el text i desa `edited_at`. Només ho pot fer l'autora.",
+        "operationId": "update_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostTextRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La publicació editada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`), o la publicació no és de la usuària de la sessió (`POST_FORBIDDEN`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La publicació no existeix (`POST_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Esborra una publicació pròpia",
+        "description": "Esborra la publicació. Només ho pot fer l'autora.",
+        "operationId": "delete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Publicació esborrada."
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`), o la publicació no és de la usuària de la sessió (`POST_FORBIDDEN`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La publicació no existeix (`POST_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Identificador de publicació invàlid (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1119,6 +2028,349 @@
           "video"
         ],
         "title": "MediaType"
+      },
+      "OutingAuthorResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador de l'autora"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Nom del perfil de Google"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "Avatar del perfil de Google"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "avatar_url"
+        ],
+        "title": "OutingAuthorResponse"
+      },
+      "OutingCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Títol, d'1 a 120 caràcters",
+            "examples": [
+              "Perseides al Montsec"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Descripció, de 0 a 2000 caràcters",
+            "default": ""
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts At",
+            "description": "Inici (ISO 8601 amb zona horària); no pot ser en el passat"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At",
+            "description": "Fi (ISO 8601 amb zona horària); no pot ser anterior a l'inici"
+          },
+          "location": {
+            "$ref": "#/components/schemas/EventLocation",
+            "description": "Lloc de trobada"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id",
+            "description": "Esdeveniment astronòmic relacionat; null si no n'hi ha"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "starts_at",
+          "ends_at",
+          "location"
+        ],
+        "title": "OutingCreate"
+      },
+      "OutingResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador de la sortida (UUIDv7)"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Títol, d'1 a 120 caràcters"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Descripció, de 0 a 2000 caràcters"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts At",
+            "description": "Inici (ISO 8601, UTC)"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At",
+            "description": "Fi (ISO 8601, UTC)"
+          },
+          "location": {
+            "$ref": "#/components/schemas/EventLocation",
+            "description": "Lloc de trobada"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id",
+            "description": "Esdeveniment astronòmic relacionat; null si no n'hi ha"
+          },
+          "author": {
+            "$ref": "#/components/schemas/OutingAuthorResponse",
+            "description": "Qui ha creat la sortida"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creació (ISO 8601, UTC)"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Última edició (ISO 8601, UTC)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "starts_at",
+          "ends_at",
+          "location",
+          "event_id",
+          "author",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OutingResponse"
+      },
+      "OutingUpdate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Títol, d'1 a 120 caràcters"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Descripció, de 0 a 2000 caràcters"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts At",
+            "description": "Inici (ISO 8601 amb zona horària); no pot ser en el passat"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At",
+            "description": "Fi (ISO 8601 amb zona horària); no pot ser anterior a l'inici"
+          },
+          "location": {
+            "$ref": "#/components/schemas/EventLocation",
+            "description": "Lloc de trobada"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id",
+            "description": "Esdeveniment astronòmic relacionat; null si no n'hi ha"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "OutingUpdate",
+        "description": "Only the fields sent change. ``event_id: null`` unlinks the event; the other\nfields may be left out but never be null."
+      },
+      "PostAuthorResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador de l'autora"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Nom del perfil de l'autora; `null` si no en té. Mai és el correu: l'app hi posa un nom genèric."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "PostAuthorResponse"
+      },
+      "PostPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PostResponse"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "De la més nova a la més antiga"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor",
+            "description": "Cursor opac de la pàgina següent; `null` si no n'hi ha més"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "PostPageResponse"
+      },
+      "PostResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador de la publicació"
+          },
+          "author": {
+            "$ref": "#/components/schemas/PostAuthorResponse"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Text pla; el client no l'ha de renderitzar"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "edited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited At",
+            "description": "Última edició; `null` si no s'ha editat mai"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "author",
+          "text",
+          "created_at",
+          "edited_at"
+        ],
+        "title": "PostResponse"
+      },
+      "PostTextRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Text pla de la publicació: d'1 a 1000 caràcters un cop retallats els blancs dels extrems. Mai s'interpreta com a HTML."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "PostTextRequest"
       },
       "ProblemDetails": {
         "properties": {

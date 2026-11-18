@@ -143,6 +143,33 @@ forbidden_modules = [
     "app.application.users",
 ]
 [[tool.importlinter.contracts]]
+# TG-629: an outing points to an event by id only; it checks that the event exists
+# through its own port (EventLookup), and Location lives in app.domain.shared.
+name = "The outings do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.outings", "app.application.outings"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.chat",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.chat",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
+    "app.application.users",
+]
+[[tool.importlinter.contracts]]
 name = "The chat does not import other features"
 type = "forbidden"
 source_modules = ["app.domain.chat"]
@@ -161,5 +188,33 @@ forbidden_modules = [
     "app.application.health",
     "app.application.quiz",
     "app.application.realtime",
+    "app.application.users",
+]
+
+[[tool.importlinter.contracts]]
+# The posts only need to know whether an event exists: they ask through their own
+# port (EventLookup), wired to the events repository in infrastructure (TG-628).
+name = "The posts do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.posts", "app.application.posts"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.chat",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.chat",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
     "app.application.users",
 ]

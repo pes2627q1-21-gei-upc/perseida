@@ -21,5 +21,5 @@
   },
   "coverageAnalysis": "perTest",
   "timeoutMS": 60000,
-  "concurrency": 2
+  "concurrency": 4
 }
