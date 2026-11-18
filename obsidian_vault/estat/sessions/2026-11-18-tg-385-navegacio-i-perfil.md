@@ -38,6 +38,12 @@ Acabar TG-385: barra de cinc pestanyes, pantalles «Pròximament» i perfil amb 
   - `typography` passa de `Record<…, TextStyle>` a `satisfies`, per sumar alçades de línia amb tipus (només tipus, cap canvi en temps d'execució).
 - **Prova a Android** (APK d'EAS `preview` contra el backend local per un túnel HTTPS): TalkBack llegeix les cinc pestanyes i el perfil. Error trobat i arreglat amb TDD: les pestanyes no ocupaven tota l'amplada perquè `map` i `apod`, tot i no tenir botó, conservaven el seu espai `flex: 1` a la barra. Ara també porten `tabBarItemStyle: { display: 'none' }`.
 
+- **Review de la PR #106** (canvis demanats), atesa amb TDD:
+  - La sessió del perfil té una sola font: `getUserProfile()` fa servir `authHeaders()` i el hook ja no llegeix els tokens ni crea l'`INVALID_SESSION` a mà.
+  - La càrrega del perfil s'anuncia com a *live region* i l'error com a `alert` (WCAG 4.1.3), igual que `MapStatus` i `EventPosts`.
+  - Una data d'alta invàlida ja no fa caure la pantalla (`RangeError` d'`Intl`): la línia «Membre des de» no surt.
+  - Els dos `header` del perfil (títol de la pantalla i nom) es mantenen: són dos nivells de navegació per títols i TalkBack els llegeix bé.
+
 ## Decisions preses
 
 Cap ADR nova. Decisions del responsable de la US:
@@ -61,7 +67,8 @@ Cap ADR nova. Decisions del responsable de la US:
 - [ ] El botó de tancar sessió surt en català amb l'app en castellà: és TG-93 (#618, #620), fora d'abast.
 - [ ] El login web en local necessita CORS, que és TG-363 (PR #103, d'una altra persona): mentre no es fusioni, la prova web va amb un proxy local de proves (fora del repo).
 - [ ] El test d'integració de `/users/me` no s'ha executat en local (el fixture buida la BD de desenvolupament): el cobreix la CI.
-- [ ] PR cap a `develop`, revisió d'una altra persona, CI i Quality Gate de SonarQube Cloud.
+- [x] PR #106 cap a `develop`; CI i SonarQube Cloud en verd.
+- [ ] Aprovació de la PR després de la review (pendent de VoiceOver a iOS, que cal fer amb un iPhone de l'equip).
 - [ ] Subtasques #517, #519, #520 i #521 i la US a «Ready for test» a Taiga.
 
 ## US de Taiga
