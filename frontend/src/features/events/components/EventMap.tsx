@@ -1,31 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import { WebView, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview';
+import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
-import { safeHttpsUrl } from '../../../shared/security/safeUrl';
+import { onlyMapPage } from '../../../shared/map/onlyMapPage';
 import { useTheme } from '../../../shared/theme';
 import { buildLeafletHtml } from './leafletHtml';
 import { markerPalette } from './markerIcon';
 import { parseMapMessage, reportedCamera } from '../../../shared/map/cameraMessage';
 import type { EventMapProps, MapCamera } from '../../../shared/map/mapTiles';
-
-type ShouldStartLoadRequest = Parameters<
-  NonNullable<WebViewProps['onShouldStartLoadWithRequest']>
->[0];
-
-/**
- * The WebView only shows the map page itself (loaded from a string, so `about:blank`).
- * Links on the map (the tile attribution) open in the system browser if they are plain https;
- * anything else is blocked without leaving the app.
- */
-function onlyMapPage(request: ShouldStartLoadRequest): boolean {
-  if (request.url === 'about:blank') return true;
-  const link = safeHttpsUrl(request.url);
-  if (link) Linking.openURL(link).catch(() => undefined);
-  return false;
-}
 
 function selectedId(message: object): string | undefined {
   if (!('select' in message)) return undefined;
