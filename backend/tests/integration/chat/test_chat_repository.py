@@ -31,6 +31,7 @@ from app.domain.events.errors import EVENT_NOT_FOUND
 from app.domain.events.models import AstronomicalEvent, EventSubscription
 from app.domain.shared.errors import NotFoundError
 from app.domain.users.models import User
+from app.infrastructure.chat.repository import SqlChatRepository
 from app.infrastructure.events.subscription_repository import (
     SqlEventSubscriptionRepository,
 )
@@ -113,9 +114,6 @@ def sessions(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 
 
 def _repository(sessions: async_sessionmaker[AsyncSession]) -> ChatRepository:
-    # Adapter arrives in TG-450: TG-450 removes this ignore.
-    from app.infrastructure.chat.repository import SqlChatRepository
-
     repository: ChatRepository = SqlChatRepository(sessions)
     return repository
 
@@ -506,12 +504,11 @@ async def test_tg448_the_database_rejects_a_text_of_1001_characters(
     engine: AsyncEngine,
     repo: ChatRepository,
 ) -> None:
-    # The column is varchar(1000), so PostgreSQL refuses it on the type before
-    # the CHECK is evaluated: the upper bound of the CHECK is a second net.
+    # The maximum is enforced by the column type (varchar(1000)), not the CHECK.
     room = await _room_with(repo, sessions)
     author = await _user(sessions)
 
-    with pytest.raises(DBAPIError):
+    with pytest.raises(DBAPIError, match="value too long for type"):
         await _insert_raw(engine, room, author, 1001)
 
     assert (await repo.page(room.id, None, 10)).messages == []

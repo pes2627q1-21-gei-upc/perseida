@@ -51,10 +51,9 @@ class ChatMessageRow(SQLModel, table=True):
     __tablename__ = "chat_messages"
     __table__: ClassVar[Table]
     __table_args__ = (
-        CheckConstraint(
-            "length(text) >= 1 AND length(text) <= 1000",
-            name="text_length",
-        ),
+        # Safety net on top of the domain; the maximum is enforced by the column
+        # type (String(1000)).
+        CheckConstraint("length(text) >= 1", name="text_length"),
         # History by keyset: newest first inside a room (also serves the room FK).
         Index(
             "ix_chat_messages_room_id_sent_at_id",
@@ -85,4 +84,5 @@ class ChatMessageRow(SQLModel, table=True):
         )
     )
     text: str = Field(sa_column=Column(String(1000), nullable=False))
+    # No server_default: the domain sets it and the cursor order depends on it.
     sent_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
