@@ -23,6 +23,12 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 |---|---|
 | <...> | <backend-service, frontend-pagina, estetica-frutiger-cosmo...> |
 
+## Divisió en PR
+<«Una sola PR» i per què (mida estimada per sota d'uns 400 mutants o peces inseparables), o la taula:>
+| PR | Branca | Tasques de Taiga | Fitxers | Mida estimada | Depèn de |
+|---|---|---|---|---|---|
+| 1 | feature/TG-<NN>-<part> | TG-<NN> | <rutes> | <fitxers/línies de lògica o mutants> | — |
+
 ## Tests (primer, en vermell, derivats dels criteris)
 <criteri → test (nivell: unitari/integració/E2E) i commit `test:` abans del `feat:`; unitaris dels components modificats; regressió si és un bug; quins queden exclosos de cobertura i per què>
 
