@@ -73,7 +73,7 @@ frontend/
 - **Session Cleanup (`features/auth/session.ts`)**: `clearSession()` purges both stored tokens and the in-memory TanStack Query cache. Used by `useLogout` and by token renewal on 401 `INVALID_SESSION`.
 - **Session Renewal (`features/auth/api/refreshToken.ts`)**: `refreshSession()` renews tokens via `POST /api/auth/refresh`. Serializes concurrent calls to ensure single-use refresh tokens are never burned.
 - **Route Guard (`app/(app)/_layout.tsx`)**: Redirects unauthenticated users to `/login`; `/login` redirects authenticated users into the app (`/(app)`).
-- **Private endpoints (`features/auth/api/authorized.ts`, TG-61)**: `withSession(request)` sends the access token as `Authorization: Bearer`. On a 401 it renews the session once and retries; without a session it fails with `INVALID_SESSION` without calling the API.
+- **Private endpoints (`features/auth/api/authorized.ts`, TG-61)**: `withSession(request)` sends the access token as `Authorization: Bearer`. On a 401 it renews the session once and retries; if the renewal fails for a temporary reason (network, 5xx) it ends as a retryable `SESSION_UNAVAILABLE`, not as an expired session. Without a session it fails with `INVALID_SESSION` without calling the API (`authHeaders`).
 
 ## Daily quiz (TG-61)
 
