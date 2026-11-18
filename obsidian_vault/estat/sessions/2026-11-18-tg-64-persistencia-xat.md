@@ -34,13 +34,15 @@ Cap ADR nova. Decisions de l'autor:
 - `list_rooms_of` retorna només les sales que existeixen, per l'últim missatge descendent; les sales sense missatges, al final.
 - FK amb `ON DELETE CASCADE` a l'esdeveniment, a la sala i a l'autor (com `event_subscriptions`); esborrar un usuari esborra els seus missatges.
 - `page` demana `limit + 1` files per calcular el cursor següent.
-- Errors de base de dades: tots els mètodes del repositori els tradueixen a `ExternalServiceError(DATABASE_UNAVAILABLE)`, amb el codi a `application/chat/errors.py` (un `errors.py` per mòdul, com `apod` i `realtime`).
+- Errors de base de dades: tots els mètodes del repositori els tradueixen a `ExternalServiceError(DATABASE_UNAVAILABLE)`. Després de la review de la PR #109, el codi viu a `application/shared/error_codes.py` i és el patró dels repositoris ([[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]], «Actualització (TG-64)»).
+- Review PR #109: `add_message` només tradueix la FK de la sala a `CHAT_ROOM_NOT_FOUND`; `sent_at` té `server_default now()` (ADR-0023); codis al catàleg de `gestio-errors`.
 - El `CHECK` del text només exigeix `length(text) >= 1`; el màxim de 1000 el dona el tipus `varchar(1000)`.
 - `page` rebutja `limit < 1` al repositori, a més de la validació del servei.
 
 ## Pendent / següents passos
 
-- [ ] Registrar `DATABASE_UNAVAILABLE` i `CHAT_ROOM_NOT_FOUND` al catàleg de `gestio-errors` (amb estat HTTP i textos ca/es/en) quan el router (TG-455) els exposi.
+- [ ] Textos ca/es/en de `DATABASE_UNAVAILABLE` i `CHAT_ROOM_NOT_FOUND` (al catàleg com a «(pendent)»): s'han de decidir a TG-455, quan el router els exposi.
+- [ ] Adoptar `DATABASE_UNAVAILABLE` a la resta de repositoris (esdeveniments, subscripcions, sortides, publicacions, usuaris, APOD): vegeu el deute a l'ADR-0018.
 - [ ] Guardar un `EXPLAIN` de `list_rooms_of` si l'equip ho vol a la PR.
 - [ ] TG-455 (router REST), TG-453 (tests de l'API), TG-457 i TG-459 (WebSocket), que reutilitzen aquest repositori.
 - [ ] Reintents i duplicats de la publicació a Redis: TG-459.

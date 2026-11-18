@@ -42,7 +42,15 @@ El frontend ja tradueix per `code` (`errors.<CODE>`, `errorMessage` a `src/share
 
 ## Actualització (TG-64)
 
-`DATABASE_UNAVAILABLE` (503, `ExternalServiceError`) és el patró dels repositoris per a una base de dades inaccessible (connexió refusada, tancada o perduda): el codi viu a `app/application/shared/error_codes.py` i els detalls de la causa no surten de l'adaptador. El repositori del xat (TG-450) és el primer que l'aplica; la resta de repositoris (esdeveniments, subscripcions, sortides, publicacions) encara deixen aquests errors com a 500 `INTERNAL_ERROR` i l'adopten en una tasca a part.
+`DATABASE_UNAVAILABLE` (503, `ExternalServiceError`) és el patró dels repositoris per a una base de dades inaccessible (connexió refusada, tancada o perduda): el codi viu a `app/application/shared/error_codes.py` i els detalls de la causa no surten de l'adaptador. El repositori del xat (TG-450) és el primer que l'aplica.
+
+**Deute conegut: adopció a la resta de repositoris.** Els d'esdeveniments, subscripcions, sortides, publicacions, usuaris i APOD no tradueixen els errors de connexió de PostgreSQL (`OperationalError`, `InterfaceError`, `OSError`): acaben al handler genèric com a 500 `INTERNAL_ERROR` amb `correlation_id`. La decisió, presa a la review de la PR #109, és que **no es corregeix dins de la PR del xat** (fora d'abast de TG-64) i que s'adopta com a tasca pròpia.
+
+- **Patró a seguir:** el context `_database_errors()` de `app/infrastructure/chat/repository.py` (captura `OperationalError`, `InterfaceError` i `OSError` i llança `ExternalServiceError(DATABASE_UNAVAILABLE)` encadenant la causa, sense detalls al missatge). Quan s'hi adopti a més d'un repositori, extreure'l a `infrastructure/persistence` en lloc de copiar-lo.
+- **Què no s'ha de traduir:** `IntegrityError` i la resta d'errors de dades. Cada repositori ha de traduir-los al seu codi de domini només quan coneix la restricció concreta (p. ex. la FK de la sala al xat), mai en bloc.
+- **Per a cada repositori:** test unitari en vermell que injecta els tres errors i comprova `ExternalServiceError` amb `DATABASE_UNAVAILABLE` (TDD estricte, ADR-0028).
+- **Frontend:** el `code` ja el rep via `problem+json`; el text `errors.DATABASE_UNAVAILABLE` (ca/es/en) és pendent d'aprovar i, mentre no hi sigui, el recuperable cau al missatge genèric d'`INTERNAL_ERROR`.
+- **Estat:** pendent de crear la issue/tasca a Taiga; mentrestant, qui toqui un repositori nou ha de seguir el patró.
 
 ## Actualització (TG-43)
 
