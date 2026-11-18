@@ -10,6 +10,7 @@ import {
   meteorShowerEvent,
   solarEvent,
 } from '../../../../__mocks__/events';
+import { myOuting, otherOuting } from '../../../../__mocks__/outings';
 import i18n from '../../../shared/i18n';
 import { colors } from '../../../shared/theme/colors';
 import { type ClassifiedEvent, classifyEvents } from '../classifyEvents';
@@ -17,6 +18,10 @@ import { formatEventDateTime } from '../formatEvent';
 import { EventSheet } from './EventSheet';
 
 // SecureStore is native: an empty in-memory store, so the posts of the sheet have no session.
+// The title of the event of an outing comes from the events of the map: here it is a given.
+let mockEventTitle: string | undefined;
+jest.mock('../../outings/hooks/useEventTitle', () => ({ useEventTitle: () => mockEventTitle }));
+
 jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(async () => undefined),
   getItemAsync: jest.fn(async () => null),
@@ -297,5 +302,109 @@ describe('EventSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     await unmount();
     expect(remove).toHaveBeenCalled();
+  });
+});
+
+// TG-646 criterion 3: the shell of the sheet (bottom sheet or side panel, Escape, focus, close
+// button) shows an outing instead of an event.
+describe('EventSheet with an outing (TG-646)', () => {
+  async function renderOuting(
+    outing: typeof myOuting | typeof otherOuting | null,
+    { onClose = jest.fn(), side = false, onOpenOuting = jest.fn() } = {},
+  ) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={client}>
+        <SafeAreaProvider initialMetrics={SAFE_AREA}>
+          <EventSheet
+            event={null}
+            outing={outing}
+            onClose={onClose}
+            side={side}
+            onOpenOuting={onOpenOuting}
+          />
+        </SafeAreaProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    mockEventTitle = undefined;
+  });
+
+  it('shows nothing without event nor outing', async () => {
+    await renderOuting(null);
+
+    expect(screen.queryByRole('header')).toBeNull();
+  });
+
+  it('shows the title, the start and the end of the outing', async () => {
+    await renderOuting(myOuting);
+
+    expect(screen.getByRole('header', { name: myOuting.title })).toBeTruthy();
+    expect(screen.getByText('Inici')).toBeTruthy();
+    expect(screen.getByText(formatEventDateTime(myOuting.starts_at, i18n.language))).toBeTruthy();
+    expect(screen.getByText('Fi')).toBeTruthy();
+    expect(screen.getByText(formatEventDateTime(myOuting.ends_at, i18n.language))).toBeTruthy();
+  });
+
+  it('shows who organises it, or says it is an anonymous user', async () => {
+    const view = await renderOuting(myOuting);
+    expect(screen.getByText(myOuting.author.display_name)).toBeTruthy();
+    view.unmount();
+
+    await renderOuting(otherOuting);
+    expect(screen.getByText('Una usuària de Perseida')).toBeTruthy();
+  });
+
+  it('shows the title of the event it is linked to', async () => {
+    mockEventTitle = meteorShowerEvent.title;
+
+    await renderOuting(myOuting);
+
+    expect(screen.getByText(meteorShowerEvent.title)).toBeTruthy();
+  });
+
+  it('has a button to the page of the outing that gives its id', async () => {
+    const onOpenOuting = jest.fn();
+    await renderOuting(myOuting, { onOpenOuting });
+
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
+
+    expect(i18n.t('events.outings.open')).not.toBe('events.outings.open');
+    expect(onOpenOuting).toHaveBeenCalledWith(myOuting.id);
+  });
+
+  it('has no event buttons nor community posts', async () => {
+    await renderOuting(myOuting);
+
+    expect(screen.queryByRole('button', { name: "Sortides d'aquest esdeveniment" })).toBeNull();
+    expect(screen.queryByRole('header', { name: 'Publicacions' })).toBeNull();
+  });
+
+  it('closes with its button and with the back gesture of the modal', async () => {
+    const onClose = jest.fn();
+    await renderOuting(myOuting, { onClose });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
+    screen.getByTestId('event-sheet').props.onRequestClose();
+
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('on wide screens is a side panel that closes with the back button', async () => {
+    const onClose = jest.fn();
+    let onBack: () => unknown = () => false;
+    jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_name, handler) => {
+      onBack = handler as () => unknown;
+      return { remove: jest.fn() };
+    });
+
+    await renderOuting(myOuting, { onClose, side: true });
+
+    expect(screen.getByTestId('event-sheet-side')).toBeTruthy();
+    expect(screen.getByRole('header', { name: myOuting.title })).toBeTruthy();
+    expect(onBack()).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
