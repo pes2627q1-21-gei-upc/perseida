@@ -167,8 +167,9 @@
       "save": "Guardar",
       "saving": "Guardando…",
       "linkedEvent": "Salida ligada a un evento",
-      "removeEvent": "Quitar el evento",
-      "locationRequired": "Elige dónde quedaréis."
+      "locationRequired": "Elige dónde quedaréis.",
+      "event": "Evento (opcional)",
+      "noEvent": "Ningún evento"
     },
     "picker": {
       "label": "Mapa para elegir el lugar",

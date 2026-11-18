@@ -167,8 +167,9 @@
       "save": "Save",
       "saving": "Saving…",
       "linkedEvent": "Outing linked to an event",
-      "removeEvent": "Remove the event",
-      "locationRequired": "Choose where you'll meet."
+      "locationRequired": "Choose where you'll meet.",
+      "event": "Event (optional)",
+      "noEvent": "No event"
     },
     "picker": {
       "label": "Map to choose the place",

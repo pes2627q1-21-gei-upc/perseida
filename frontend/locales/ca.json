@@ -167,8 +167,9 @@
       "save": "Desa",
       "saving": "Desant…",
       "linkedEvent": "Sortida lligada a un esdeveniment",
-      "removeEvent": "Treu l'esdeveniment",
-      "locationRequired": "Tria on us trobareu."
+      "locationRequired": "Tria on us trobareu.",
+      "event": "Esdeveniment (opcional)",
+      "noEvent": "Cap esdeveniment"
     },
     "picker": {
       "label": "Mapa per triar el lloc",
