@@ -96,7 +96,7 @@ Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.
 
 ## Xat d'esdeveniment (domini implementat)
 
-Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64; encara sense persistència ni API). Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
+Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64). La persistència és implementada (TG-448 i TG-450; vegeu [[#Persistència del xat]]); l'API encara no. Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
 
 | Entitat | Camps | Notes |
 |---|---|---|
@@ -106,6 +106,21 @@ Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i cod
 Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`) i els separadors de línia i de paràgraf (`Zl`, `Zp`), excepte el salt de línia i la tabulació. A més, s'eliminen només els invisibles perillosos, que són els de la propietat Unicode `Default_Ignorable_Code_Point` (UCD 18) menys els benignes: bidi embeddings, overrides i isolates, zero-width space, word joiner, guionet suau, fillers de hangul, selectors de variació que no són d'emoji i tots els tags (poden amagar text ASCII). Es conserven ZWJ i ZWNJ (emojis compostos i alguns scripts), LRM, RLM i ALM (marques direccionals d'un sol caràcter), els selectors d'emoji `FE0E`/`FE0F` i, de les tag sequences, només les banderes d'Anglaterra, Escòcia i Gal·les. No s'elimina cap caràcter pel fet de ser no assignat (`Cn`): els emojis nous passen encara que la versió d'Unicode de Python no els conegui. Un text amb només marques invisibles (o el braille en blanc) és buit. Efecte acceptat per l'equip (11/11/2026): l'escriptura mongola (selectors de variació i separador de vocal) i els selectors de variació ideogràfics perden aquests caràcters. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
 
 Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (`is_subscribed(user_id, event_id)`, que compleix `SqlEventSubscriptionRepository` de TG-53; vegeu [[#Subscripció a un esdeveniment (implementat al backend)]]). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
+
+### Persistència del xat
+
+Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_chat`, darrere de la de `event_subscriptions`) i adaptador `SqlChatRepository` a `app/infrastructure/chat/repository.py` (TG-448 i TG-450). Segueix [[0023-convencions-del-model-de-dades]] i [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss|ADR-0024]] (només paràmetres lligats).
+
+| Taula | Camps | Restriccions i índexs |
+|---|---|---|
+| `event_chat_rooms` | `id` (UUIDv7), `event_id`, `created_at` | `event_id` FK a `astronomical_events` `ON DELETE CASCADE` i `UNIQUE` (una sala com a màxim per esdeveniment) |
+| `chat_messages` | `id` (UUIDv7), `room_id`, `author_id`, `text` (`varchar(1000)`), `sent_at` (`timestamptz`) | FK a la sala i a `users`, totes dues `ON DELETE CASCADE`; `CHECK length(text) >= 1` (xarxa de seguretat sobre el domini; el màxim el dona el tipus); índex `(room_id, sent_at DESC, id DESC)` per a l'històric i índex per `author_id` per a la cascada en esborrar un usuari |
+
+- `sent_at` no té `server_default`: l'assigna el domini i l'ordre del cursor en depèn.
+- `get_or_create_room` fa `INSERT ... ON CONFLICT (event_id) DO NOTHING RETURNING` i, si no retorna res, rellegeix la sala: dues peticions alhora deixen una sola fila. Si l'esdeveniment no existeix (o s'esborra a mig camí), `NotFoundError(EVENT_NOT_FOUND)`.
+- `page` demana `limit + 1` files, ordenades per `(sent_at, id)` descendent i estrictament anteriors al cursor; el `next_cursor` és el de l'últim missatge retornat només si hi ha més files. Rebutja `limit < 1` (el servei ja valida 1..50).
+- `list_rooms_of` és una sola consulta: sales existents dels esdeveniments subscrits (join amb `event_subscriptions`) amb l'últim missatge (`LEFT JOIN LATERAL`), per data de l'últim missatge descendent; les sales sense missatges van al final, per `created_at` descendent.
+- Errors: `OperationalError`, `InterfaceError` i `OSError` de la base de dades es tradueixen a `ExternalServiceError` amb el codi `DATABASE_UNAVAILABLE` (`app/application/chat/errors.py`); una violació de FK en desar un missatge és `NotFoundError(CHAT_ROOM_NOT_FOUND)`, que també cobreix l'autor inexistent. Els dos codis encara no són al catàleg de `gestio-errors` ni als textos de l'app: es registraran quan el router (TG-455) els exposi.
 
 ## Esdeveniment astronòmic (implementat)
 
