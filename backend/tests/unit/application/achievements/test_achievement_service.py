@@ -188,3 +188,14 @@ async def test_record_unlocks_like_record_activity() -> None:
     await _service(repo).record(USER_ID, "streak_days", 3)
 
     assert await repo.list_unlocked_ids(USER_ID) == {STREAK_3.id}
+
+
+# TG-58 criteri 7: la ratxa només compta per a les fites de ratxa
+async def test_a_live_streak_does_not_count_for_other_kinds() -> None:
+    repo = FakeAchievementRepository(STREAK_7, QUIZ_10)
+
+    items = await _service(repo, _Streak(days=5)).list_progress(USER_ID)
+
+    by_id = {item.achievement.id: item for item in items}
+    assert by_id[STREAK_7.id].current == 5
+    assert by_id[QUIZ_10.id].current == 0
