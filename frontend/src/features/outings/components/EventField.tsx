@@ -41,7 +41,7 @@ function Option({ label, checked, onPress, detail }: OptionProps) {
         borderRadius: radii.md,
         borderWidth: checked ? 2 : 1,
         borderColor: checked ? colors.focusRing : colors.surface.glassBorder,
-        backgroundColor: colors.surface.glass,
+        backgroundColor: colors.surface.onGlass,
       }}
     >
       <Text style={[typography.bodyStrong, { color: colors.text.primary }]}>{label}</Text>

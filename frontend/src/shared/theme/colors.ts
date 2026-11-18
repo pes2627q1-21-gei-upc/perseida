@@ -5,8 +5,18 @@ export type ThemeName = 'dia' | 'posta' | 'nit' | 'vermell';
 
 export interface ThemeColors {
   sky: { top: string; low: string };
-  /** `scrim` is the veil behind a dialog: dark on every theme, so the screen is dimmed, not lit. */
-  surface: { glass: string; glassSolid: string; glassBorder: string; scrim: string };
+  /**
+   * `scrim` is the veil behind a dialog: dark on every theme, so the screen is dimmed, not lit.
+   * `onGlass` is a layer on top of a glass panel (a pressed button, a field, a chip): on the dark
+   * glass it is light, so it is seen (TG-650).
+   */
+  surface: {
+    glass: string;
+    onGlass: string;
+    glassSolid: string;
+    glassBorder: string;
+    scrim: string;
+  };
   text: { primary: string; secondary: string };
   brand: string;
   /** Fill only, never text. */
@@ -60,6 +70,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     sky: { top: '#5EC8F2', low: '#BFE9F7' },
     surface: {
       glass: 'rgba(255,255,255,0.78)',
+      onGlass: 'rgba(255,255,255,0.78)',
       glassSolid: '#F4FBFE',
       glassBorder: 'rgba(255,255,255,0.65)',
       scrim: 'rgba(2,5,16,0.55)',
@@ -102,6 +113,7 @@ export const colors: Record<ThemeName, ThemeColors> = {
     sky: { top: '#2B2F6B', low: '#E8885A' },
     surface: {
       glass: 'rgba(10,20,48,0.62)',
+      onGlass: 'rgba(10,20,48,0.62)',
       glassSolid: '#1B2350',
       glassBorder: 'rgba(255,255,255,0.28)',
       scrim: 'rgba(2,5,16,0.55)',
@@ -143,7 +155,8 @@ export const colors: Record<ThemeName, ThemeColors> = {
   nit: {
     sky: { top: '#0A1430', low: '#13265A' },
     surface: {
-      glass: 'rgba(255,255,255,0.12)',
+      glass: 'rgba(10,20,48,0.80)',
+      onGlass: 'rgba(255,255,255,0.12)',
       glassSolid: '#22305F',
       glassBorder: 'rgba(255,255,255,0.28)',
       scrim: 'rgba(2,5,16,0.55)',
@@ -186,7 +199,8 @@ export const colors: Record<ThemeName, ThemeColors> = {
   vermell: {
     sky: { top: '#14060A', low: '#2A0B12' },
     surface: {
-      glass: 'rgba(255,107,94,0.10)',
+      glass: 'rgba(20,6,10,0.80)',
+      onGlass: 'rgba(255,107,94,0.10)',
       glassSolid: '#3A141A',
       glassBorder: 'rgba(255,140,125,0.30)',
       scrim: 'rgba(16,0,0,0.6)',

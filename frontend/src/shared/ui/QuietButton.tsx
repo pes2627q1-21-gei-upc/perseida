@@ -40,7 +40,7 @@ export function QuietButton({ label, onPress, accessibilityHint, icon, busy = fa
         borderRadius: theme.radii.pill,
         borderWidth: 1,
         borderColor: surface.glassBorder,
-        backgroundColor: pressed ? surface.glass : 'transparent',
+        backgroundColor: pressed ? surface.onGlass : 'transparent',
         opacity: busy ? 0.6 : 1,
       })}
     >

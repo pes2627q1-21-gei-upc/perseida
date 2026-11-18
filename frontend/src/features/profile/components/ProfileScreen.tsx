@@ -231,7 +231,7 @@ function createStyles({ colors, radii, spacing, typography, iconSizes }: Theme) 
   const glassChip = {
     borderWidth: 1,
     borderColor: colors.surface.glassBorder,
-    backgroundColor: colors.surface.glass,
+    backgroundColor: colors.surface.onGlass,
     borderRadius: radii.pill,
   };
   const centered = { alignItems: 'center', justifyContent: 'center' } as const;
