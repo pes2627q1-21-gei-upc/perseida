@@ -490,6 +490,26 @@ def test_tg457_a_message_from_a_user_not_subscribed_to_the_event_is_forbidden(
         assert harness.history("ana", event_id) == []  # and nothing was stored
 
 
+def test_tg457_a_message_without_a_previous_subscribe_is_not_subscribed(
+    harness: Harness,
+) -> None:
+    harness.login("ana")
+    harness.login("bob")
+    event_id = harness.event("ana", "bob")
+    room = room_of(event_id)
+    with ExitStack() as stack:
+        listener = harness.connect("bob", stack)
+        sender = harness.connect("ana", stack)  # subscribed to the event, not joined
+        harness.join(listener, room)
+
+        reply = harness.send(sender, room, {"text": "hola"}, "m1")
+
+        assert_error(reply, "NOT_SUBSCRIBED", "m1", room)
+        harness.assert_alive(sender)
+        harness.assert_alive(listener)  # nothing was delivered
+        assert harness.history("ana", event_id) == []  # and nothing was stored
+
+
 # --- validation ----------------------------------------------------------------
 
 
