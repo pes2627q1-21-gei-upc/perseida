@@ -35,7 +35,7 @@ export function QuizOption({ label, selected, disabled, onPress }: Props) {
         borderRadius: radii.md,
         borderWidth: selected ? 2 : 1,
         borderColor: selected ? colors.text.primary : colors.surface.glassBorder,
-        // Stryker disable next-line all: visual only, the border and the icon tell the selection
+        // Stryker disable next-line ConditionalExpression,LogicalOperator,StringLiteral: background only, the border and the icon tell the selection
         backgroundColor: pressed || selected ? colors.surface.onGlass : 'transparent',
       })}
     >

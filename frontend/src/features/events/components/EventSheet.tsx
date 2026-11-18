@@ -113,7 +113,6 @@ function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
               borderRadius: theme.radii.pill,
               alignItems: 'center',
               justifyContent: 'center',
-              // Stryker disable next-line all: pressed look only (visual style)
               backgroundColor: pressed ? colors.surface.onGlass : 'transparent',
             })}
           >
