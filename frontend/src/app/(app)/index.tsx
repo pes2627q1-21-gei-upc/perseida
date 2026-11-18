@@ -9,8 +9,8 @@ import { useTheme } from '../../shared/theme';
 import { GelButton, SkyBackground } from '../../shared/ui';
 
 /**
- * TEMPORARY home (TG-118): there is no real home screen yet, only a way into /apod and /map.
- * Replace this whole file when the home US is done; keep the links to /apod and /map (TG-52).
+ * TEMPORARY home (TG-118): there is no real home screen yet, only a way into /apod, /map and
+ * /quiz. Replace this whole file when the home US is done; keep the links (TG-52, TG-61).
  * Its only text goes through i18next; the title is the app name.
  */
 export default function HomeScreen() {
@@ -35,6 +35,7 @@ export default function HomeScreen() {
         </Text>
         <GelButton label={t('home.apodLink')} onPress={() => router.push('/apod')} />
         <GelButton label={t('home.mapLink')} onPress={() => router.push('/map')} />
+        <GelButton label={t('home.quizLink')} onPress={() => router.push('/quiz')} />
         <LogoutButton />
       </View>
     </SkyBackground>

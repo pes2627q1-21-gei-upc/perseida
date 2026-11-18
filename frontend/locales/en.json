@@ -6,6 +6,13 @@
     "retryHint": "Reload the APOD",
     "videoLabel": "APOD video"
   },
+  "auth": {
+    "continueWithGoogle": "Continue with Google",
+    "logout": "Sign out",
+    "logoutHint": "Signs out of this device and goes back to the sign-in screen",
+    "logoutNotConfirmed": "You have been signed out on this device, but the server could not confirm it.",
+    "tagline": "Look up"
+  },
   "common": {
     "back": "Back"
   },
@@ -40,6 +47,9 @@
     "POST_NOT_FOUND": "This post no longer exists.",
     "POST_TEXT_EMPTY": "Write something before posting.",
     "POST_TEXT_TOO_LONG": "The text can be at most 1,000 characters long.",
+    "QUIZ_ALREADY_ANSWERED": "You have already answered today's question.",
+    "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
+    "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
   },
   "events": {
@@ -100,7 +110,8 @@
   },
   "home": {
     "apodLink": "Picture of the day",
-    "mapLink": "Events map"
+    "mapLink": "Events map",
+    "quizLink": "Question of the day"
   },
   "nav": {
     "chat": "Chat",
@@ -140,29 +151,51 @@
   },
   "posts": {
     "form": {
-      "label": "Your post",
-      "hint": "Share observations and tips with the community.",
+      "cancel": "Cancel",
       "counter": "{{count}} of {{max}} characters",
+      "hint": "Share observations and tips with the community.",
+      "label": "Your post",
       "publish": "Post",
-      "save": "Save",
-      "cancel": "Cancel"
-    },
-    "list": {
-      "title": "Posts",
-      "loading": "Loading posts",
-      "empty": "No posts yet. Share the first one!",
-      "retry": "Try again",
-      "retryHint": "Loads the posts again",
-      "more": "Load more"
+      "save": "Save"
     },
     "item": {
-      "edited": "edited",
-      "edit": "Edit",
-      "editHint": "Edits the text of your post",
+      "anonymous": "User #{{tag}}",
+      "confirmDelete": "Delete this post? This cannot be undone.",
       "delete": "Delete",
       "deleteHint": "Asks for confirmation before deleting the post",
-      "confirmDelete": "Delete this post? This cannot be undone.",
-      "anonymous": "User #{{tag}}"
+      "edit": "Edit",
+      "editHint": "Edits the text of your post",
+      "edited": "edited"
+    },
+    "list": {
+      "empty": "No posts yet. Share the first one!",
+      "loading": "Loading posts",
+      "more": "Load more",
+      "retry": "Try again",
+      "retryHint": "Loads the posts again",
+      "title": "Posts"
     }
+  },
+  "quiz": {
+    "backHome": "Back to home",
+    "loadingLabel": "Loading the question of the day",
+    "optionsLabel": "Answer options",
+    "questionChanged": "The question has changed because it is a new day. This is the new one.",
+    "result": {
+      "comeBack": "There will be a new question tomorrow.",
+      "explanation": "Why",
+      "right": "You got it right!",
+      "rightAndYours": "Right answer and your answer",
+      "rightAnswer": "Right answer",
+      "source": "Read the source",
+      "sourceHint": "Opens the source in the browser",
+      "wrong": "You didn't get it right",
+      "yourAnswer": "Your answer"
+    },
+    "retry": "Try again",
+    "retryHint": "Loads the question of the day again",
+    "submit": "Send answer",
+    "submitHint": "Sends the chosen option",
+    "title": "Question of the day"
   }
 }

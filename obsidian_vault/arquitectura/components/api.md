@@ -3,8 +3,8 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-11-17"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -32,6 +32,10 @@ Estructura hexagonal: [[backend-hexagonal]].
 
 - Qui el crida: [[nginx-proxy-manager]] (`proxy_pass`), que rep REST/WSS de l'app Android i del navegador d'admin; Spotwise, per `GET /api/events/active` i `/upcoming` ([[contracte-spotwise]]).
 - A qui crida: [[postgres]] (font de veritat), [[redis]] (cache i pub/sub), [[moderation]] (HTTP síncron), NASA, APIs de meteorologia i contaminació lumínica, FCM, i Google (JWKS) ([[serveis-externs]]). Comparteix el volum de media amb nginx-proxy-manager.
+
+## Healthcheck (TG-49)
+
+`GET /api/health` és públic i respon sempre 200 amb `status` i `components` (`ok`/`down`). Comprova `app`, `postgres` (`SELECT 1`), `redis` (`PING`) i `scheduler` si està activat, en paral·lel i amb un límit de 2 s per comprovació: una que tarda més o falla compta com a `down` i l'endpoint no es penja. `status` és `down` només si cau un component crític (`app`, `postgres` o `scheduler`); [[redis]] no ho és, perquè només és cache ([[0005-redis-nomes-com-a-cache-lazy]]). El CD fa rollback si `status` no és `ok` ([[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]). Les comprovacions implementen el port `HealthCheck` (propietat `critical`) i el `HealthService` es construeix al lifespan.
 
 ## Errors i correlació
 
@@ -77,6 +81,8 @@ Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zon
 
 Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
 
+CORS (TG-363): `CORSMiddleware` amb orígens explícits, mai `*` (`app/infrastructure/api/cors.py`). Per defecte admet els orígens HTTPS de DuckDNS (`https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org`; mai `http://…:40430`, que *Force SSL* redirigeix i que una pàgina manipulada a la xarxa podria fer servir amb la sessió de l'usuari) i els ports locals d'Expo i de l'API (`8081`, `19006` i `8000` a `localhost`/`127.0.0.1`); `CORS_ALLOWED_ORIGINS` els substitueix i `CORS_ALLOWED_ORIGIN_REGEX` n'hi afegeix. Admet credencials, els mètodes `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` i `HEAD`, les capçaleres `Authorization` i `Content-Type`, i exposa `X-Correlation-ID`. És el middleware més intern (Security → Correlation → CORS → routers): el preflight es respon abans dels routers i porta el correlation id i les capçaleres de seguretat.
+
 ## Configuració
 
 Variables de `.env.example` que li afecten: `APP_ENV`, `JWT_SECRET` (mínim 32 caràcters), `GOOGLE_CLIENT_IDS` (llista separada per comes dels clients OAuth: web, Android i iOS), `ACCESS_TOKEN_MINUTES` i `REFRESH_TOKEN_DAYS` (opcionals al backend, 15 i 30; a `infra/.env.example` hi són i el CD les exigeix), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `REDIS_HOST`, `REDIS_PORT`, `SCHEDULER_ENABLED` (per defecte `true`) i `SCHEDULER_TIMEZONE` (per defecte `UTC`; un fus desconegut falla a l'arrencada). El `.env` el renderitza el CD des dels secrets de GitHub; mai es versiona. Veure `.env.example`.
@@ -104,6 +110,16 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 
 Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/problem+json`. Els dos de `/api/events/{event_id}/posts` també poden rebre el 429 `RATE_LIMITED` del proxy (el bloc `/api/events/` de `rate-limit.conf`); `PATCH` i `DELETE` de `/api/posts/` encara no tenen límit. Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
 
+## Subscripcions a esdeveniments (TG-53)
+
+| Endpoint | Què fa |
+|---|---|
+| `PUT /api/events/{event_id}/subscription` | Subscriu l'usuari de la sessió, sense cos. 201 si és nova, 200 si ja hi estava; 404 `EVENT_NOT_FOUND`, 409 `EVENT_ALREADY_ENDED`, 422 |
+| `DELETE /api/events/{event_id}/subscription` | Dona de baixa, idempotent. 204; 422 si l'identificador no és vàlid |
+| `GET /api/me/subscriptions` | Esdeveniments subscrits com a `EventResponse[]`, per `starts_at` i `id` |
+
+Tots demanen sessió (`CurrentSessionDep` + `get_profile`: 401, 403 i 503) i tots els errors són `application/problem+json`. El `PUT` i el `DELETE` són sota `/api/events/`, així que comparteixen el 429 `RATE_LIMITED` del proxy (600 per minut entre tots els clients, [[nginx-proxy-manager]]); `GET /api/me/subscriptions` no. Regles i taula a [[model-de-domini#Subscripció a un esdeveniment (implementat al backend)]].
+
 ## US de Taiga relacionades
 
 - TG-36 (Imatge Docker del backend i publicació a GHCR)
@@ -116,6 +132,7 @@ Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/p
 - TG-46 (cache APOD)
 - TG-60 (quiz diari)
 - TG-628 (publicacions de text en un esdeveniment)
+- TG-53 (subscripció i baixa d'un esdeveniment)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-63 (endpoint WebSocket `/api/ws`)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
@@ -134,6 +151,7 @@ Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/p
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
 - **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
 - **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
+- **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, pendent (PR 2).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 

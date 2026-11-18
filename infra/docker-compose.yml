@@ -16,7 +16,9 @@ services:
       - media_data:/media:ro
       - admin_dist:/admin:ro
       # Zona del límit de peticions per IP (TG-351): NPM l'inclou al bloc `http`.
-      - ./nginx-proxy-manager/http_top.conf:/data/nginx/custom/http_top.conf:ro
+      # Sense `:ro`: en arrencar, NPM fa `chown` de tot `/data` i, si el fitxer és de només
+      # lectura, l'arrencada falla i nginx no s'aixeca (hotfix 0.2.1).
+      - ./nginx-proxy-manager/http_top.conf:/data/nginx/custom/http_top.conf
     networks:
       - gateway
     depends_on:

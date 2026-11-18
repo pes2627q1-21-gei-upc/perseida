@@ -73,6 +73,15 @@ frontend/
 - **Limpieza de sesión (`features/auth/session.ts`)**: `clearSession()` borra tanto los tokens guardados como la caché en memoria de TanStack Query. Utilizada por `useLogout` y por la renovación de token ante 401 `INVALID_SESSION`.
 - **Renovación de sesión (`features/auth/api/refreshToken.ts`)**: `refreshSession()` renueva los tokens mediante `POST /api/auth/refresh`. Serializa las llamadas concurrentes para garantizar que los refresh tokens de un solo uso no se gasten dos veces.
 - **Guard de ruta (`app/(app)/_layout.tsx`)**: Redirige a usuarios sin sesión a `/login`; `/login` redirige a usuarios autenticados hacia la aplicación (`/(app)`).
+- **Endpoints privados (`features/auth/api/authorized.ts`, TG-61)**: `withSession(request)` envía el access token como `Authorization: Bearer`. Ante un 401 renueva la sesión una vez y vuelve a intentarlo; si la renovación falla por una causa temporal (red, 5xx) acaba en `SESSION_UNAVAILABLE` reintentable, no en sesión caducada. Sin sesión falla con `INVALID_SESSION` sin llamar a la API (`authHeaders`).
+
+## Quiz diario (TG-61)
+
+Ruta `/(app)/quiz` (de momento, acceso desde el inicio temporal). Código en `src/features/quiz/`; contrato de la API en `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+- **Datos:** `useQuizToday(lang)` pide `GET /api/quiz/today?lang=<idioma de la app>`; `useAnswerQuiz(lang)` envía `POST /api/quiz/today/answer` y guarda el resultado en la pregunta en caché. Una entrada de caché por idioma. Con la pantalla abierta, la pregunta se vuelve a pedir justo después de medianoche UTC, y al volver la app al primer plano otro día.
+- **Pantalla:** la pregunta con sus 4 opciones (botones de radio) y un botón de enviar desactivado hasta que se elige una opción y ocupado mientras se envía. Una vez respondida (o si ya lo estaba), el resultado: si se ha acertado, la opción correcta y la elegida con palabras e iconos, la explicación y un enlace a la fuente. Las dos vistas tienen un botón «Volver al inicio», así no hace falta el botón atrás del sistema.
+- **Errores:** los de carga muestran un mensaje traducido con reintento si son transitorios. Si falla el envío, la opción elegida se conserva. Tras `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` se carga la pregunta nueva con un aviso; tras `QUIZ_ALREADY_ANSWERED`, el resultado. Si esa recarga falla, se muestra el error con reintento aunque haya una pregunta anterior en caché.
 
 ## Ejecutar y testear
 

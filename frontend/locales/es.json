@@ -6,6 +6,13 @@
     "retryHint": "Vuelve a cargar el APOD",
     "videoLabel": "Vídeo del APOD"
   },
+  "auth": {
+    "continueWithGoogle": "Continúa con Google",
+    "logout": "Cierra la sesión",
+    "logoutHint": "Cierra la sesión de este dispositivo y vuelve a la pantalla de inicio de sesión",
+    "logoutNotConfirmed": "Se ha cerrado la sesión en este dispositivo, pero no se ha podido confirmar en el servidor.",
+    "tagline": "Mira hacia arriba"
+  },
   "common": {
     "back": "Volver"
   },
@@ -40,6 +47,9 @@
     "POST_NOT_FOUND": "Esta publicación ya no existe.",
     "POST_TEXT_EMPTY": "Escribe algo antes de publicar.",
     "POST_TEXT_TOO_LONG": "El texto puede tener como máximo 1.000 caracteres.",
+    "QUIZ_ALREADY_ANSWERED": "Ya has respondido la pregunta de hoy.",
+    "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
+    "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
   },
   "events": {
@@ -100,7 +110,8 @@
   },
   "home": {
     "apodLink": "Imagen del día",
-    "mapLink": "Mapa de eventos"
+    "mapLink": "Mapa de eventos",
+    "quizLink": "Pregunta del día"
   },
   "nav": {
     "chat": "Chat",
@@ -140,29 +151,51 @@
   },
   "posts": {
     "form": {
-      "label": "Tu publicación",
-      "hint": "Comparte observaciones y consejos con la comunidad.",
+      "cancel": "Cancelar",
       "counter": "{{count}} de {{max}} caracteres",
+      "hint": "Comparte observaciones y consejos con la comunidad.",
+      "label": "Tu publicación",
       "publish": "Publicar",
-      "save": "Guardar",
-      "cancel": "Cancelar"
-    },
-    "list": {
-      "title": "Publicaciones",
-      "loading": "Cargando las publicaciones",
-      "empty": "Todavía no hay publicaciones. ¡Comparte la primera!",
-      "retry": "Reintentar",
-      "retryHint": "Vuelve a cargar las publicaciones",
-      "more": "Cargar más"
+      "save": "Guardar"
     },
     "item": {
-      "edited": "editada",
-      "edit": "Editar",
-      "editHint": "Edita el texto de tu publicación",
+      "anonymous": "Usuario/a #{{tag}}",
+      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer.",
       "delete": "Borrar",
       "deleteHint": "Pide confirmación antes de borrar la publicación",
-      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer.",
-      "anonymous": "Usuario/a #{{tag}}"
+      "edit": "Editar",
+      "editHint": "Edita el texto de tu publicación",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Todavía no hay publicaciones. ¡Comparte la primera!",
+      "loading": "Cargando las publicaciones",
+      "more": "Cargar más",
+      "retry": "Reintentar",
+      "retryHint": "Vuelve a cargar las publicaciones",
+      "title": "Publicaciones"
     }
+  },
+  "quiz": {
+    "backHome": "Volver al inicio",
+    "loadingLabel": "Cargando la pregunta del día",
+    "optionsLabel": "Opciones de respuesta",
+    "questionChanged": "La pregunta ha cambiado porque ya es otro día. Esta es la nueva.",
+    "result": {
+      "comeBack": "Mañana habrá una pregunta nueva.",
+      "explanation": "Por qué",
+      "right": "¡La has acertado!",
+      "rightAndYours": "Respuesta correcta y tu respuesta",
+      "rightAnswer": "Respuesta correcta",
+      "source": "Lee la fuente",
+      "sourceHint": "Abre la fuente en el navegador",
+      "wrong": "No la has acertado",
+      "yourAnswer": "Tu respuesta"
+    },
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar la pregunta del día",
+    "submit": "Envía la respuesta",
+    "submitHint": "Envía la opción elegida",
+    "title": "Pregunta del día"
   }
 }
