@@ -1,4 +1,5 @@
 import { AppError } from '../../../shared/errors';
+import * as tokenStorage from '../../auth/tokenStorage';
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
 import { getUserProfile } from '../api/getUserProfile';
 
@@ -9,6 +10,13 @@ afterEach(() => {
 describe('getUserProfile (TG-385 #518)', () => {
   const token = 'test-token-123';
 
+  // The session has a single source, authHeaders (PR #106 review): the caller passes no token.
+  beforeEach(() => {
+    jest
+      .spyOn(tokenStorage, 'getTokens')
+      .mockResolvedValue({ accessToken: token, refreshToken: 'test-refresh' });
+  });
+
   it('sends GET /api/users/me with Bearer authorization and returns the user profile', async () => {
     let capturedRequest: Request | undefined;
     jest.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -16,7 +24,7 @@ describe('getUserProfile (TG-385 #518)', () => {
       return jsonResponse(mockUserProfile);
     });
 
-    const profile = await getUserProfile(token);
+    const profile = await getUserProfile();
 
     expect(profile).toEqual(mockUserProfile);
     expect(capturedRequest?.headers.get('Authorization')).toBe(`Bearer ${token}`);
@@ -28,7 +36,7 @@ describe('getUserProfile (TG-385 #518)', () => {
       .spyOn(globalThis, 'fetch')
       .mockImplementation(async () => new Response(null, { status: 200 }));
 
-    const error = await getUserProfile(token).catch((err: unknown) => err);
+    const error = await getUserProfile().catch((err: unknown) => err);
 
     expect(error).toBeInstanceOf(AppError);
     expect(error).toMatchObject({
@@ -43,7 +51,7 @@ describe('getUserProfile (TG-385 #518)', () => {
       .spyOn(globalThis, 'fetch')
       .mockImplementation(async () => problemResponse(401, 'INVALID_SESSION'));
 
-    const error = await getUserProfile(token).catch((err: unknown) => err);
+    const error = await getUserProfile().catch((err: unknown) => err);
 
     expect(error).toBeInstanceOf(AppError);
     expect(error).toMatchObject({
@@ -58,12 +66,23 @@ describe('getUserProfile (TG-385 #518)', () => {
       throw new TypeError('Network request failed');
     });
 
-    const error = await getUserProfile(token).catch((err: unknown) => err);
+    const error = await getUserProfile().catch((err: unknown) => err);
 
     expect(error).toBeInstanceOf(AppError);
     expect(error).toMatchObject({
       kind: 'network',
       retryable: true,
     });
+  });
+
+  it('without a stored session fails with INVALID_SESSION and does not call the API', async () => {
+    jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(null);
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+
+    const error = await getUserProfile().catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toMatchObject({ code: 'INVALID_SESSION', status: 401, retryable: false });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
