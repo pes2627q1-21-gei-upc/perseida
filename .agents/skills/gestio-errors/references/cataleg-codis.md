@@ -117,6 +117,14 @@ Textos presentats a la persona responsable a la tasca #634 (17/11/2026). `EVENT_
 | `POST_TEXT_TOO_LONG` | 422 | `ValidationError` | No | El text pot tenir com a màxim 1.000 caràcters. | El texto puede tener como máximo 1.000 caracteres. | The text can be at most 1,000 characters long. | domain/posts |
 | `INVALID_CURSOR` | 422 | `ValidationError` | No | No s'han pogut carregar més publicacions. Torna-ho a provar. | No se han podido cargar más publicaciones. Vuelve a intentarlo. | More posts could not be loaded. Try again. | application/posts |
 
+## Codis de les subscripcions a esdeveniments (TG-53)
+
+Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND` és a la secció de TG-628 i també el llança `application/events` (subscripcions).
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `EVENT_ALREADY_ENDED` | 409 | `ConflictError` | No | Aquest esdeveniment ja ha acabat. | Este evento ya ha terminado. | This event has already ended. | domain/events |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |

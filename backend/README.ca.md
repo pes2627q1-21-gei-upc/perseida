@@ -96,7 +96,7 @@ El mòdul `health` és l'exemple de referència. Per a un mòdul nou `<nom>`:
 
 1. **Domini** (`app/domain/<nom>/`): entitats/value objects a `models.py` i els ports a `ports.py` (p. ex. `HealthReport` i el protocol `HealthCheck`).
 2. **Application** (`app/application/<nom>/`): el service que usa els ports (`HealthService`), sense FastAPI.
-3. **Infrastructure** (`app/infrastructure/<nom>/`): els adaptadors que implementen els ports (`checks.py`), el provider `get_<nom>_service` amb `@lru_cache` i `<Nom>ServiceDep` (`dependencies.py`), i el router amb el seu model de resposta (`router.py`).
+3. **Infrastructure** (`app/infrastructure/<nom>/`): els adaptadors que implementen els ports (`checks.py`), el provider `get_<nom>_service` amb `@lru_cache` i `<Nom>ServiceDep` (`dependencies.py`); si el service necessita un recurs creat al lifespan (engine, Redis, client HTTP), el provider rep `HTTPConnection` i el llegeix d'`app.state`, com fan `health` i `auth` (ADR-0017), i el router amb el seu model de resposta (`router.py`).
 4. Registra el router a `create_app()` (`app/main.py`).
 5. **Tests** primer (TDD estricte, test `test:` en vermell abans del `feat:`): unitaris amb fakes (`tests/fakes/`), integració de l'API amb `dependency_overrides`; el test d'arquitectura continua verificant les capes.
 

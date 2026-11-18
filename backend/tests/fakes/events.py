@@ -33,6 +33,9 @@ class FakeEventRepository:
     async def exists(self, event_id: uuid.UUID) -> bool:
         return any(event.id == event_id for event in self._events)
 
+    async def get(self, event_id: uuid.UUID) -> AstronomicalEvent | None:
+        return next((event for event in self._events if event.id == event_id), None)
+
 
 class FakeEventSource:
     """EventSource that returns ``drafts``, or raises ``error``; counts calls."""

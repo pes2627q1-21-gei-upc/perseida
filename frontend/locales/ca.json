@@ -30,6 +30,9 @@
     "POST_NOT_FOUND": "Aquesta publicació ja no existeix.",
     "POST_TEXT_EMPTY": "Escriu alguna cosa abans de publicar.",
     "POST_TEXT_TOO_LONG": "El text pot tenir com a màxim 1.000 caràcters.",
+    "QUIZ_ALREADY_ANSWERED": "Ja has respost la pregunta d'avui.",
+    "QUIZ_EXPIRED": "Aquesta pregunta ja no es pot respondre: ha canviat el dia.",
+    "QUIZ_QUESTION_MISMATCH": "Aquesta ja no és la pregunta d'avui.",
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
     "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
     "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
@@ -100,34 +103,57 @@
   "home": {
     "apodLink": "Imatge del dia",
     "mapLink": "Mapa d'esdeveniments",
+    "quizLink": "Pregunta del dia",
     "outingsLink": "Les meves sortides"
   },
   "posts": {
     "form": {
-      "label": "La teva publicació",
-      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "cancel": "Cancel·la",
       "counter": "{{count}} de {{max}} caràcters",
+      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "label": "La teva publicació",
       "publish": "Publica",
-      "save": "Desa",
-      "cancel": "Cancel·la"
-    },
-    "list": {
-      "title": "Publicacions",
-      "loading": "Carregant les publicacions",
-      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
-      "retry": "Torna-ho a provar",
-      "retryHint": "Torna a carregar les publicacions",
-      "more": "Carrega'n més"
+      "save": "Desa"
     },
     "item": {
-      "edited": "editada",
-      "edit": "Edita",
-      "editHint": "Edita el text de la teva publicació",
+      "anonymous": "Usuari/a #{{tag}}",
+      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
       "delete": "Esborra",
       "deleteHint": "Demana confirmació abans d'esborrar la publicació",
-      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
-      "anonymous": "Usuari/a #{{tag}}"
+      "edit": "Edita",
+      "editHint": "Edita el text de la teva publicació",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
+      "loading": "Carregant les publicacions",
+      "more": "Carrega'n més",
+      "retry": "Torna-ho a provar",
+      "retryHint": "Torna a carregar les publicacions",
+      "title": "Publicacions"
     }
+  },
+  "quiz": {
+    "backHome": "Torna a l'inici",
+    "loadingLabel": "Carregant la pregunta del dia",
+    "optionsLabel": "Opcions de resposta",
+    "questionChanged": "La pregunta ha canviat perquè ja és un altre dia. Aquesta és la nova.",
+    "result": {
+      "comeBack": "Demà hi haurà una pregunta nova.",
+      "explanation": "Per què",
+      "right": "L'has encertada!",
+      "rightAndYours": "Resposta correcta i la teva resposta",
+      "rightAnswer": "Resposta correcta",
+      "source": "Llegeix la font",
+      "sourceHint": "Obre la font al navegador",
+      "wrong": "No l'has encertada",
+      "yourAnswer": "La teva resposta"
+    },
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar la pregunta del dia",
+    "submit": "Envia la resposta",
+    "submitHint": "Envia l'opció triada",
+    "title": "Pregunta del dia"
   },
   "outings": {
     "myTitle": "Les meves sortides",
