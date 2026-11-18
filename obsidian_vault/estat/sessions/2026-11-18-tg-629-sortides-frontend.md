@@ -43,7 +43,7 @@ Cap ADR nova. Decisions de Raquel:
 
 - [ ] PR del frontend cap a `develop` quan Raquel ho demani.
 - [ ] Afegir `surface.scrim` a `.agents/skills/estetica-frutiger-cosmo/references/tokens.md` (la skill es manté a `.agents/skills/` i es sincronitza amb `node .agents/scripts/sync-skills.mjs`).
-- [ ] El mutation testing complet de la PR són 808 mutants i uns 3 h 30 min en local: es va fer només sobre la lògica pura; la resta, a la CI.
+- [ ] Mutation testing (≥ 70 %): no s'ha executat en local, perquè són uns 800 mutants i unes 3 h 30 min. El fa la CI, bloquejant, a la PR.
 - [ ] Troballes menors de la revisió que no s'han fet: la clau `outings.form.saving` no s'usa, «Cancel·la» continua actiu mentre s'esborra, el camp de text no porta `aria-invalid`, un `422 VALIDATION_ERROR` amb `fieldErrors` no va al seu camp i hi ha una mica de codi de Leaflet repetit.
 - [ ] Provar a mà el mapa del selector de lloc en un dispositiu Android i a la web (els tests no executen Leaflet).
 - [ ] Paginació keyset de `GET /api/outings` (#644, Sprint 3).
