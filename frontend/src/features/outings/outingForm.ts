@@ -122,3 +122,17 @@ export function toChanges(values: OutingFormValues, initial: OutingFormValues): 
   if (values.eventId !== initial.eventId) changes.event_id = values.eventId;
   return changes;
 }
+
+const DECIMAL = /^-?\d+(\.\d+)?$/;
+
+/**
+ * A place typed as two numbers, or null if either is not a plain number inside its range. A
+ * comma is accepted as the decimal separator, since many keyboards only have that one.
+ */
+export function parseCoordinates(latitude: string, longitude: string): OutingLocation | null {
+  const [lat, lon] = [latitude, longitude].map((text) => text.trim().replace(',', '.'));
+  if (!DECIMAL.test(lat) || !DECIMAL.test(lon)) return null;
+  const place = { latitude: Number(lat), longitude: Number(lon) };
+  const inRange = Math.abs(place.latitude) <= 90 && Math.abs(place.longitude) <= 180;
+  return inRange ? place : null;
+}

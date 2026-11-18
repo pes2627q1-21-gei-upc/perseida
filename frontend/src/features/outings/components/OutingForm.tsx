@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage, isAppError } from '../../../shared/errors';
 import { useTheme } from '../../../shared/theme';
@@ -10,6 +10,7 @@ import { GelButton, QuietButton } from '../../../shared/ui';
 import { type OutingFormValues, outingFormSchema } from '../outingForm';
 import { DateTimeField } from './DateTimeField';
 import { LocationField } from './LocationField';
+import { TextField } from './TextField';
 
 /** The field each business code of the server is about; the rest are not about one field. */
 const FIELD_OF_CODE: Record<string, keyof OutingFormValues> = {
@@ -32,61 +33,6 @@ interface Props {
   editing?: boolean;
   /** Sends the values. A rejection keeps what was typed and shows the error. */
   onSubmit: (values: OutingFormValues) => Promise<unknown>;
-}
-
-interface TextFieldProps {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  onBlur: () => void;
-  multiline?: boolean;
-  /** Already translated message of the field. */
-  error?: string;
-}
-
-function TextField({ label, value, onChangeText, onBlur, multiline, error }: TextFieldProps) {
-  const { colors, radii, spacing, touch, typography } = useTheme();
-  const [focused, setFocused] = useState(false);
-  const highlighted = focused || Boolean(error);
-
-  return (
-    <View style={{ gap: spacing.xs }}>
-      <Text style={[typography.bodyStrong, { color: colors.text.primary }]}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        // The error goes in the hint, so it is read when the field gets the focus.
-        accessibilityHint={error}
-        multiline={multiline}
-        textAlignVertical={multiline ? 'top' : 'center'}
-        value={value}
-        onChangeText={onChangeText}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          setFocused(false);
-          onBlur();
-        }}
-        style={[
-          typography.body,
-          styles.input,
-          {
-            minHeight: multiline ? touch.min * 2 : touch.min,
-            padding: spacing.md,
-            borderRadius: radii.md,
-            color: colors.text.primary,
-            backgroundColor: colors.surface.glass,
-            borderColor: highlighted ? colors.focusRing : colors.surface.glassBorder,
-            borderWidth: highlighted ? 2 : 1,
-          },
-        ]}
-      />
-      <Text
-        accessibilityLiveRegion="polite"
-        style={[typography.caption, { color: colors.state.danger }]}
-      >
-        {error ?? ''}
-      </Text>
-    </View>
-  );
 }
 
 /**
@@ -216,7 +162,6 @@ export function OutingForm({ initial, editing = false, onSubmit }: Props) {
 }
 
 const styles = StyleSheet.create({
-  input: { width: '100%' },
   row: { flexDirection: 'row', alignItems: 'center' },
   grow: { flex: 1 },
   actions: { alignItems: 'flex-end' },

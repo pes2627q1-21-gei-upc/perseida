@@ -8,8 +8,9 @@ import { type MapCamera, WORLD_CENTER, WORLD_ZOOM } from '../../../shared/map/ma
 import { useTheme } from '../../../shared/theme';
 import { QuietButton } from '../../../shared/ui';
 import { formatCoordinate } from '../formatOuting';
-import type { OutingLocation } from '../outingForm';
+import { type OutingLocation, parseCoordinates } from '../outingForm';
 import { LocationMap } from './LocationMap';
+import { TextField } from './TextField';
 
 /** The map opens this close to a place that is already chosen, and to the device's location. */
 const PLACE_ZOOM = 13;
@@ -31,8 +32,8 @@ function startOf(value: OutingLocation | null): MapCamera {
 
 /**
  * Where the outing meets (TG-629): move the map until the reticle is over the place and choose
- * it, or use the location of the device. The map is not the only way: the button of the
- * location works for people who cannot use a map. Moving the map is not choosing: the value
+ * it, use the location of the device, or type the coordinates. The map is not the only way,
+ * for people who cannot drag it (WCAG 2.5.7). Moving the map is not choosing: the value
  * only changes when the person chooses.
  */
 export function LocationField({ value, onChange, error }: Props) {
@@ -42,6 +43,9 @@ export function LocationField({ value, onChange, error }: Props) {
   const [center, setCenter] = useState(start);
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [invalidCoordinates, setInvalidCoordinates] = useState(false);
 
   async function locateMe() {
     setLocating(true);
@@ -61,6 +65,14 @@ export function LocationField({ value, onChange, error }: Props) {
     } finally {
       setLocating(false);
     }
+  }
+
+  function chooseCoordinates() {
+    const place = parseCoordinates(latitude, longitude);
+    setInvalidCoordinates(place === null);
+    if (!place) return;
+    setStart({ ...place, zoom: PLACE_ZOOM });
+    onChange(place);
   }
 
   return (
@@ -104,6 +116,33 @@ export function LocationField({ value, onChange, error }: Props) {
           onPress={() => void locateMe()}
         />
       </View>
+      <View style={[styles.buttons, { gap: spacing.sm }]}>
+        <View style={styles.coordinate}>
+          <TextField
+            label={t('outings.picker.latitude')}
+            value={latitude}
+            onChangeText={setLatitude}
+            keyboardType="numbers-and-punctuation"
+          />
+        </View>
+        <View style={styles.coordinate}>
+          <TextField
+            label={t('outings.picker.longitude')}
+            value={longitude}
+            onChangeText={setLongitude}
+            keyboardType="numbers-and-punctuation"
+          />
+        </View>
+      </View>
+      <QuietButton label={t('outings.picker.useCoordinates')} onPress={chooseCoordinates} />
+      {invalidCoordinates ? (
+        <Text
+          accessibilityRole="alert"
+          style={[typography.caption, { color: colors.state.danger }]}
+        >
+          {t('outings.picker.invalidCoordinates')}
+        </Text>
+      ) : null}
       {denied ? (
         <Text
           accessibilityRole="alert"
@@ -129,4 +168,5 @@ const styles = StyleSheet.create({
   // The reticle sits on the middle of the map, which is the place that is chosen.
   reticle: { alignItems: 'center', justifyContent: 'center' },
   buttons: { flexDirection: 'row', flexWrap: 'wrap' },
+  coordinate: { flex: 1, minWidth: 140 },
 });
