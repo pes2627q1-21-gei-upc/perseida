@@ -78,13 +78,15 @@
       "all": "No hay eventos activos ni en los próximos 30 días.",
       "noLocation": "Ninguno de estos eventos tiene una ubicación en el mapa.",
       "showList": "Ver la lista",
-      "upcoming": "No hay eventos en los próximos 30 días."
+      "upcoming": "No hay eventos en los próximos 30 días.",
+      "outings": "No hay salidas próximas."
     },
     "filter": {
       "active": "Activos",
       "all": "Todos",
       "label": "Mostrar",
-      "upcoming": "Futuros"
+      "upcoming": "Futuros",
+      "outings": "Salidas"
     },
     "list": {
       "label": "Lista de eventos"
@@ -121,6 +123,11 @@
       "label": "Vista",
       "list": "Lista",
       "map": "Mapa"
+    },
+    "outings": {
+      "kind": "Salida",
+      "open": "Abre la salida",
+      "unavailable": "No se han podido cargar las salidas."
     }
   },
   "home": {
