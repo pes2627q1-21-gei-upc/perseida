@@ -84,5 +84,9 @@ class ChatMessageRow(SQLModel, table=True):
         )
     )
     text: str = Field(sa_column=Column(String(1000), nullable=False))
-    # No server_default: the domain sets it and the cursor order depends on it.
-    sent_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
+    # The domain sends the value; the default follows ADR-0023.
+    sent_at: datetime = Field(
+        sa_column=Column(
+            DateTime(timezone=True), nullable=False, server_default=sa_text("now()")
+        )
+    )

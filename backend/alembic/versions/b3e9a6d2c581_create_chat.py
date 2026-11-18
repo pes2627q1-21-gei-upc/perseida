@@ -39,8 +39,13 @@ def upgrade() -> None:
         sa.Column("room_id", sa.Uuid(), nullable=False),
         sa.Column("author_id", sa.Uuid(), nullable=False),
         sa.Column("text", sa.String(length=1000), nullable=False),
-        # No server_default: the domain sets it and the cursor order depends on it.
-        sa.Column("sent_at", sa.DateTime(timezone=True), nullable=False),
+        # The domain sends the value; the default follows ADR-0023.
+        sa.Column(
+            "sent_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         # Safety net on top of the domain; the maximum is enforced by the column
         # type (String(1000)).
         sa.CheckConstraint(
