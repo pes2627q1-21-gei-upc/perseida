@@ -351,7 +351,7 @@ describe('EventSheet with an outing (TG-646)', () => {
   it('shows who organises it, or says it is an anonymous user', async () => {
     const view = await renderOuting(myOuting);
     expect(screen.getByText(myOuting.author.display_name)).toBeTruthy();
-    view.unmount();
+    await view.unmount();
 
     await renderOuting(otherOuting);
     expect(screen.getByText('Una usuària de Perseida')).toBeTruthy();

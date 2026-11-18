@@ -92,7 +92,7 @@ describe('MapControls', () => {
       ),
     ).toBeTruthy();
     expect(i18n.t('events.outings.unavailable')).not.toBe('events.outings.unavailable');
-    view.unmount();
+    await view.unmount();
 
     await renderControls();
     expect(screen.queryByText(i18n.t('events.outings.unavailable'))).toBeNull();
