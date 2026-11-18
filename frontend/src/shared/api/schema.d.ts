@@ -478,7 +478,7 @@ export interface paths {
     get?: never;
     /**
      * Obre la sala de xat d'un esdeveniment
-     * @description Retorna la sala de l'esdeveniment, i la crea si encara no existeix. És idempotent: sempre respon 200 amb la mateixa sala. Cal estar subscrita a l'esdeveniment; si no, 403 i no es crea res.
+     * @description Retorna la sala de l'esdeveniment, i la crea si encara no existeix. És idempotent: sempre respon 200 amb la mateixa sala. Inclou el darrer missatge o `null` si encara no en té, igual que `GET /chat/rooms`. Cal estar subscrita a l'esdeveniment; si no, 403 i no es crea res.
      */
     put: operations['open_event_chat_room'];
     post?: never;
