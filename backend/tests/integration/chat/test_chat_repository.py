@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 from alembic.config import Config
 from sqlalchemy import TextClause, text
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -445,3 +446,72 @@ async def test_tg448_c8_messages_survive_a_new_session_and_engine(
         await fresh_engine.dispose()
 
     assert page.messages == [message]
+
+
+INSERT_RAW_MESSAGE = text(
+    "INSERT INTO chat_messages (id, room_id, author_id, text, sent_at)"
+    " VALUES (:id, :room, :author, :body, :sent_at)"
+)
+
+
+async def _insert_raw(
+    engine: AsyncEngine, room: EventChatRoom, author: User, length: int
+) -> None:
+    # Straight into the table, bypassing the domain.
+    async with engine.begin() as connection:
+        await connection.execute(
+            INSERT_RAW_MESSAGE,
+            {
+                "id": uuid.uuid7(),
+                "room": room.id,
+                "author": author.id,
+                "body": "a" * length,
+                "sent_at": NOW,
+            },
+        )
+
+
+@pytest.mark.parametrize("length", [1, 1000])
+async def test_tg448_check_text_length_accepts_the_limits(
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+    repo: ChatRepository,
+    length: int,
+) -> None:
+    room = await _room_with(repo, sessions)
+    author = await _user(sessions)
+
+    await _insert_raw(engine, room, author, length)
+
+    page = await repo.page(room.id, None, 10)
+    assert [len(message.text) for message in page.messages] == [length]
+
+
+async def test_tg448_check_text_length_rejects_an_empty_text(
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+    repo: ChatRepository,
+) -> None:
+    room = await _room_with(repo, sessions)
+    author = await _user(sessions)
+
+    with pytest.raises(IntegrityError, match="ck_chat_messages_text_length"):
+        await _insert_raw(engine, room, author, 0)
+
+    assert (await repo.page(room.id, None, 10)).messages == []
+
+
+async def test_tg448_the_database_rejects_a_text_of_1001_characters(
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+    repo: ChatRepository,
+) -> None:
+    # The column is varchar(1000), so PostgreSQL refuses it on the type before
+    # the CHECK is evaluated: the upper bound of the CHECK is a second net.
+    room = await _room_with(repo, sessions)
+    author = await _user(sessions)
+
+    with pytest.raises(DBAPIError):
+        await _insert_raw(engine, room, author, 1001)
+
+    assert (await repo.page(room.id, None, 10)).messages == []
