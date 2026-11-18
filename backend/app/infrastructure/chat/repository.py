@@ -25,6 +25,8 @@ from app.infrastructure.events.tables import (
     EventSubscriptionRow,
 )
 
+_ROOM_FOREIGN_KEY = "fk_chat_messages_room_id_event_chat_rooms"
+
 
 @contextmanager
 def _database_errors() -> Iterator[None]:
@@ -115,8 +117,11 @@ class SqlChatRepository:
                 async with self._session_factory() as session:
                     await session.execute(statement)
                     await session.commit()
-            except IntegrityError:
-                # The room or the author does not exist (foreign keys).
+            except IntegrityError as exc:
+                # Only the room foreign key means "room not found"; a repeated id,
+                # the text CHECK or a missing author are other failures.
+                if _ROOM_FOREIGN_KEY not in str(exc.orig):
+                    raise
                 raise NotFoundError(
                     CHAT_ROOM_NOT_FOUND, f"Room {message.room_id} does not exist"
                 ) from None

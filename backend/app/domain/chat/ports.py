@@ -36,6 +36,7 @@ class ChatRepository(Protocol):
         """Store ``message``.
 
         Raises:
+            NotFoundError: if the room of the message does not exist.
             ExternalServiceError: if the database is unavailable.
         """
         ...
