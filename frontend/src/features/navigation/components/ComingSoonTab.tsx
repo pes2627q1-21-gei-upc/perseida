@@ -1,6 +1,6 @@
 import type { Icon } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { breakpoints, fontFamilies, type Theme, useTheme } from '../../../shared/theme';
@@ -35,9 +35,10 @@ export function ComingSoonTab({
 
   return (
     <SkyBackground>
-      <View
+      {/* Scrolls when the window is shorter than the card (a phone in landscape). */}
+      <ScrollView
         testID="coming-soon-tab"
-        style={[
+        contentContainerStyle={[
           styles.container,
           {
             // Stryker disable next-line ArithmeticOperator: visual spacing under the status bar.
@@ -45,6 +46,8 @@ export function ComingSoonTab({
             paddingBottom: tabBarInset + theme.spacing.lg,
           },
         ]}
+        // Stryker disable next-line BooleanLiteral: visual only.
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
           <GlassPanel>
@@ -76,7 +79,7 @@ export function ComingSoonTab({
             </View>
           </GlassPanel>
         </View>
-      </View>
+      </ScrollView>
     </SkyBackground>
   );
 }
@@ -88,7 +91,7 @@ export function ComingSoonTab({
 function createStyles({ colors, radii, spacing, typography, iconSizes }: Theme) {
   return StyleSheet.create({
     container: {
-      flex: 1,
+      flexGrow: 1,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: spacing.md,
