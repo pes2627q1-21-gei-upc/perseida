@@ -196,6 +196,8 @@ describe('EditOutingScreen', () => {
     await wrap(<EditOutingScreen id={myOuting.id} />);
 
     expect(await screen.findByRole('header', { name: 'Edita la sortida' })).toBeOnTheScreen();
+    // The title is there while the outing loads: wait for the form before reading its props.
+    await screen.findByRole('button', { name: 'send form' });
     expect(mockFormProps.editing).toBe(true);
     expect(mockFormProps.initial).toEqual(outingToValues(myOuting));
   });
