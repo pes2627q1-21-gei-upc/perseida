@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -41,6 +42,15 @@ const SAFE_AREA = {
 const MAP_LABEL = 'Mapa dels esdeveniments amb ubicació';
 
 let client: QueryClient;
+
+/** The host view that holds the top bar and the controls: the column of the screen. */
+function columnOf(bar: ReturnType<typeof screen.getByTestId>) {
+  let node = bar.parent;
+  while (node && !(typeof node.type === 'string' && within(node).queryByTestId('map-controls'))) {
+    node = node.parent;
+  }
+  return node!;
+}
 
 function urlOf(input: RequestInfo | URL): URL {
   if (typeof input === 'string') return new URL(input);
@@ -337,6 +347,54 @@ describe('Events map screen', () => {
     expect(screen.getByTestId('event-sheet-side')).toBeTruthy();
     expect(screen.getByLabelText(MAP_LABEL)).toBeTruthy();
     expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
+  });
+
+  it('on wide screens puts the summary in a row, beside the column of bar, map and controls (TG-647)', async () => {
+    mockWide = true;
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+
+    const side = screen.getByTestId('event-sheet-side');
+    const row = side.parent!;
+    expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
+    const column = columnOf(screen.getByTestId('map-top-bar'));
+    expect(StyleSheet.flatten(column.parent!.props.style).flexDirection).toBe('row');
+    expect(within(column.parent!).getByTestId('event-sheet-side')).toBeTruthy();
+    expect(column).not.toBe(side);
+    expect(within(column).getByTestId('map-area')).toBeTruthy();
+    expect(within(column).getByTestId('map-controls')).toBeTruthy();
+    expect(within(column).queryByTestId('event-sheet-side')).toBeNull();
+  });
+
+  it('on wide screens the column takes the whole width while no event is selected (TG-647)', async () => {
+    mockWide = true;
+    await renderScreen();
+
+    expect(screen.queryByTestId('event-sheet-side')).toBeNull();
+    const column = columnOf(screen.getByTestId('map-top-bar'));
+    expect(StyleSheet.flatten(column.props.style).flex).toBe(1);
+    expect(StyleSheet.flatten(column.parent!.props.style).flexDirection).toBe('row');
+    expect(within(column).getByTestId('map-controls')).toBeTruthy();
+  });
+
+  it('on narrow screens the summary is a bottom modal sheet, not a side panel (TG-647)', async () => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+
+    expect(screen.queryByTestId('event-sheet-side')).toBeNull();
+    const modal = screen.getByTestId('event-sheet');
+    expect(modal.props.visible).toBe(true);
+    expect(modal.props.transparent).toBe(true);
   });
 
   it('goes back to where the user came from', async () => {

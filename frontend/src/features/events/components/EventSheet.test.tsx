@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 import * as ReactNative from 'react-native';
-import { AccessibilityInfo, BackHandler, Linking, Platform } from 'react-native';
+import { AccessibilityInfo, BackHandler, Linking, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
@@ -186,6 +186,30 @@ describe('EventSheet', () => {
     expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('on wide screens the content fills the panel and scrolls, without a fixed maxHeight (TG-647)', async () => {
+    await renderSheet(launch, jest.fn(), true);
+
+    const [scroll] = screen.root!.queryAll((node) => node.type === 'RCTScrollView');
+    const style = StyleSheet.flatten(scroll.props.style);
+    expect(style.flex).toBe(1);
+    expect(style.maxHeight).toBeUndefined();
+  });
+
+  it('on wide screens has no top inset: only the spacing of the panel (TG-647)', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const legacy = { topInset: 80 };
+    await render(
+      <QueryClientProvider client={client}>
+        <SafeAreaProvider initialMetrics={SAFE_AREA}>
+          <EventSheet event={launch} onClose={jest.fn()} side {...legacy} />
+        </SafeAreaProvider>
+      </QueryClientProvider>,
+    );
+
+    const panel = StyleSheet.flatten(screen.getByTestId('event-sheet-side').props.style);
+    expect(panel.paddingTop).toBe(16);
   });
 
   it('on wide screens shows nothing while no event is selected', async () => {

@@ -74,6 +74,18 @@ describe('MapControls', () => {
     expect(bar).toMatchObject({ paddingBottom: 34 + 8, paddingLeft: 4 + 16, paddingRight: 6 + 16 });
     expect(bar.position).toBeUndefined();
     const panel = StyleSheet.flatten(screen.getByTestId('map-controls-panel').props.style);
-    expect(panel).toMatchObject({ width: '100%', maxWidth: readingMaxWidth });
+    expect(panel).toMatchObject({ maxWidth: readingMaxWidth });
+  });
+
+  it('aligns the panel to the left, at its own width, with the margin of the screen (TG-647)', async () => {
+    await renderControls();
+
+    const bar = StyleSheet.flatten(screen.getByTestId('map-controls').props.style);
+    const panel = StyleSheet.flatten(screen.getByTestId('map-controls-panel').props.style);
+    expect(panel.alignSelf).toBe('flex-start');
+    expect(panel.width).toBeUndefined();
+    expect(bar.alignItems).not.toBe('center');
+    // The left margin is spacing.md (16) beside the safe area.
+    expect(bar.paddingLeft).toBe(4 + 16);
   });
 });
