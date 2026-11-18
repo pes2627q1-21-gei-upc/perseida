@@ -3,6 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { refreshSession } from '../../features/auth/api/refreshToken';
 import { getTokens } from '../../features/auth/tokenStorage';
@@ -28,13 +29,15 @@ const TAB_BAR_FRAME = { position: 'absolute', borderTopWidth: 1, elevation: 0 } 
  * Navigation tab skeleton (TG-385 #388):
  * - 5 main tabs (Inici, Esdeveniments, Xat, Gamificació, Perfil).
  * - Frutiger Cosmo floating glass tab bar.
- * - Sub-routes (map, apod) hidden from bottom navigation via href: null.
+ * - Sub-routes (map, apod) hidden from the bar with tabBarButton: () => null. Not href: null,
+ *   which in expo-router 58 removes the route and sends router.push('/map') back home.
  */
 export default function AppLayout() {
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
+  const insets = useSafeAreaInsets();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -106,8 +109,12 @@ export default function AppLayout() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.brand,
         tabBarInactiveTintColor: theme.colors.text.secondary,
+        // Labels always below the icon: beside it, a phone in landscape cuts «Gamificació».
+        tabBarLabelPosition: 'below-icon',
         tabBarStyle: {
           ...TAB_BAR_FRAME,
+          // The default 49 dp cuts the caption label: room for a 48 dp target plus its label.
+          height: theme.touch.min + theme.typography.caption.lineHeight + insets.bottom,
           backgroundColor: reduceTransparency
             ? theme.colors.surface.glassSolid
             : theme.colors.surface.glass,
@@ -153,7 +160,7 @@ export default function AppLayout() {
           key={route}
           name={route}
           options={{
-            href: null,
+            tabBarButton: () => null,
             tabBarStyle: { display: 'none' },
           }}
         />
