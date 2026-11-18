@@ -6,6 +6,13 @@
     "retryHint": "Torna a carregar l'APOD",
     "videoLabel": "Vídeo de l'APOD"
   },
+  "auth": {
+    "continueWithGoogle": "Continua amb Google",
+    "logout": "Tanca la sessió",
+    "logoutHint": "Tanca la sessió d'aquest dispositiu i torna a la pantalla d'inici de sessió",
+    "logoutNotConfirmed": "S'ha tancat la sessió en aquest dispositiu, però no s'ha pogut confirmar al servidor.",
+    "tagline": "Mira cap amunt"
+  },
   "common": {
     "back": "Torna"
   },
@@ -94,29 +101,29 @@
   },
   "posts": {
     "form": {
-      "label": "La teva publicació",
-      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "cancel": "Cancel·la",
       "counter": "{{count}} de {{max}} caràcters",
+      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "label": "La teva publicació",
       "publish": "Publica",
-      "save": "Desa",
-      "cancel": "Cancel·la"
-    },
-    "list": {
-      "title": "Publicacions",
-      "loading": "Carregant les publicacions",
-      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
-      "retry": "Torna-ho a provar",
-      "retryHint": "Torna a carregar les publicacions",
-      "more": "Carrega'n més"
+      "save": "Desa"
     },
     "item": {
-      "edited": "editada",
-      "edit": "Edita",
-      "editHint": "Edita el text de la teva publicació",
+      "anonymous": "Usuari/a #{{tag}}",
+      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
       "delete": "Esborra",
       "deleteHint": "Demana confirmació abans d'esborrar la publicació",
-      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
-      "anonymous": "Usuari/a #{{tag}}"
+      "edit": "Edita",
+      "editHint": "Edita el text de la teva publicació",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
+      "loading": "Carregant les publicacions",
+      "more": "Carrega'n més",
+      "retry": "Torna-ho a provar",
+      "retryHint": "Torna a carregar les publicacions",
+      "title": "Publicacions"
     }
   }
 }
