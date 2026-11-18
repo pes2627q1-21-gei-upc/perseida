@@ -84,7 +84,33 @@ describe('withSession', () => {
 
     expect(failure).toMatchObject({ code: 'INVALID_SESSION', status: 401 });
     expect(request).toHaveBeenCalledTimes(1);
+    expect(await getTokens()).toBeNull();
   });
+
+  it.each([
+    [
+      'the network',
+      async () => {
+        throw new TypeError('Network request failed');
+      },
+    ],
+    ['a 503', async () => problemResponse(503, 'SESSION_UNAVAILABLE')],
+  ])(
+    'reports a retryable SESSION_UNAVAILABLE when the renewal fails because of %s',
+    async (_cause, refresh) => {
+      // Review of PR #96: a temporary failure must not look like an expired session.
+      jest.spyOn(globalThis, 'fetch').mockImplementation(refresh);
+      const request = jest.fn(async () => {
+        throw unauthorized();
+      });
+
+      const failure = await withSession(request).catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(AppError);
+      expect(failure).toMatchObject({ code: 'SESSION_UNAVAILABLE', retryable: true });
+      expect(await getTokens()).toEqual({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+    },
+  );
 
   it('does not renew the session for other errors', async () => {
     const post = jest.spyOn(api, 'POST');

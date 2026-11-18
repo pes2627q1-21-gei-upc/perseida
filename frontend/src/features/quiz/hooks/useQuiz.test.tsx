@@ -100,7 +100,7 @@ describe('useAnswerQuiz', () => {
       });
 
       await waitFor(() => expect(today.result.current.data).toEqual(nextQuizQuestion));
-      expect(result.current.error?.code).toBe(code);
+      await waitFor(() => expect(result.current.error?.code).toBe(code));
     },
   );
 
@@ -115,7 +115,8 @@ describe('useAnswerQuiz', () => {
       await result.current.mutateAsync(answer).catch(() => undefined);
     });
 
-    expect(result.current.error?.code).toBe('SESSION_UNAVAILABLE');
+    // The mutation state reaches the hook after the rejected promise: wait for it (CI is slower).
+    await waitFor(() => expect(result.current.error?.code).toBe('SESSION_UNAVAILABLE'));
     expect(client.getQueryData(quizKeys.today('ca'))).toEqual(quizQuestion);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
