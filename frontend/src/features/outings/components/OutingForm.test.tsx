@@ -60,6 +60,37 @@ jest.mock('./LocationField', () => {
   };
 });
 
+jest.mock('./EventField', () => {
+  const { Pressable, Text } = jest.requireActual('react-native');
+  return {
+    EventField: ({
+      value,
+      onChange,
+    }: {
+      value: string | null;
+      onChange: (eventId: string | null) => void;
+    }) => (
+      <>
+        <Text testID="event-value">{value ?? 'none'}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="choose event"
+          onPress={() => onChange('event-2')}
+        >
+          <Text>e</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="no event"
+          onPress={() => onChange(null)}
+        >
+          <Text>n</Text>
+        </Pressable>
+      </>
+    ),
+  };
+});
+
 function filled(overrides: Partial<OutingFormValues> = {}): OutingFormValues {
   return {
     ...newOutingValues(),
@@ -208,20 +239,42 @@ describe('OutingForm', () => {
   });
 
   describe('the event of the outing', () => {
-    it('says the outing is linked to an event and lets the person remove it', async () => {
+    it('gives the event field the event the outing has', async () => {
+      await render(<OutingForm initial={filled({ eventId: 'event-1' })} onSubmit={jest.fn()} />);
+
+      expect(screen.getByTestId('event-value')).toHaveTextContent('event-1');
+    });
+
+    it('gives the event field none when the outing has no event', async () => {
+      await render(<OutingForm initial={filled()} onSubmit={jest.fn()} />);
+
+      expect(screen.getByTestId('event-value')).toHaveTextContent('none');
+    });
+
+    it('sends the event the person chooses', async () => {
+      const onSubmit = jest.fn().mockResolvedValue(undefined);
+      await render(<OutingForm initial={filled()} onSubmit={onSubmit} />);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'choose event' }));
+      expect(screen.getByTestId('event-value')).toHaveTextContent('event-2');
+      await save();
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0].eventId).toBe('event-2');
+    });
+
+    it('sends no event when the person chooses none', async () => {
       const onSubmit = jest.fn().mockResolvedValue(undefined);
       await render(<OutingForm initial={filled({ eventId: 'event-1' })} onSubmit={onSubmit} />);
-      expect(screen.getByText('Sortida lligada a un esdeveniment')).toBeOnTheScreen();
 
-      await fireEvent.press(screen.getByRole('button', { name: "Treu l'esdeveniment" }));
-      expect(screen.queryByText('Sortida lligada a un esdeveniment')).toBeNull();
+      await fireEvent.press(screen.getByRole('button', { name: 'no event' }));
       await save();
 
       await waitFor(() => expect(onSubmit).toHaveBeenCalled());
       expect(onSubmit.mock.calls[0][0].eventId).toBeNull();
     });
 
-    it('keeps the event when it is not removed', async () => {
+    it('keeps the event when the person does not touch it', async () => {
       const onSubmit = jest.fn().mockResolvedValue(undefined);
       await render(<OutingForm initial={filled({ eventId: 'event-1' })} onSubmit={onSubmit} />);
 
@@ -229,13 +282,6 @@ describe('OutingForm', () => {
 
       await waitFor(() => expect(onSubmit).toHaveBeenCalled());
       expect(onSubmit.mock.calls[0][0].eventId).toBe('event-1');
-    });
-
-    it('shows nothing about an event when there is none', async () => {
-      await render(<OutingForm initial={filled()} onSubmit={jest.fn()} />);
-
-      expect(screen.queryByText('Sortida lligada a un esdeveniment')).toBeNull();
-      expect(screen.queryByRole('button', { name: "Treu l'esdeveniment" })).toBeNull();
     });
   });
 
