@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
+import type { Outing } from '../api/outings';
 import { formatCoordinate, formatDateTime } from '../formatOuting';
 import { OutingDetail } from './OutingDetail';
 
-async function renderDetail(outing = myOuting, isAuthor = true) {
+async function renderDetail(outing: Outing = myOuting, isAuthor = true) {
   const onEdit = jest.fn();
   const onDelete = jest.fn();
   await render(

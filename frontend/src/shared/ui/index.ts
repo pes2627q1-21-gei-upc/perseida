@@ -5,3 +5,4 @@ export { QuietButton } from './QuietButton';
 export { SkyBackground } from './SkyBackground';
 export { TopBar } from './TopBar';
 export { useReduceTransparency } from './useReduceTransparency';
+export { ConfirmDialog } from './ConfirmDialog';

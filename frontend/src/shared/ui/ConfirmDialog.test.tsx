@@ -2,10 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ConfirmDialog } from './ConfirmDialog';
 
-function renderDialog(overrides: Partial<React.ComponentProps<typeof ConfirmDialog>> = {}) {
+async function renderDialog(overrides: Partial<React.ComponentProps<typeof ConfirmDialog>> = {}) {
   const onConfirm = jest.fn();
   const onCancel = jest.fn();
-  const view = render(
+  await render(
     <ConfirmDialog
       visible
       title="Vols esborrar aquesta sortida?"
@@ -17,7 +17,7 @@ function renderDialog(overrides: Partial<React.ComponentProps<typeof ConfirmDial
       {...overrides}
     />,
   );
-  return { onConfirm, onCancel, view };
+  return { onConfirm, onCancel };
 }
 
 describe('ConfirmDialog', () => {

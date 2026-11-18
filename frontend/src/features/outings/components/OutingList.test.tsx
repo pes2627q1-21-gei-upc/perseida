@@ -24,7 +24,8 @@ describe('OutingList', () => {
   it('is a list with an accessible name', async () => {
     await renderList();
 
-    expect(screen.getByRole('list', { name: LABEL })).toBeOnTheScreen();
+    // A list is a container, not an accessibility element, so it is found by its label.
+    expect(screen.getByLabelText(LABEL).props.accessibilityRole).toBe('list');
   });
 
   it('shows one row per outing with its title, when it starts and who organises it', async () => {
