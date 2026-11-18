@@ -20,6 +20,8 @@
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
     "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
+    "CHAT_ROOM_NOT_FOUND": "This chat room no longer exists.",
+    "DATABASE_UNAVAILABLE": "The service isn't available right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
     "EVENT_NOT_FOUND": "This event no longer exists.",
     "GENERIC_FINAL": "Something went wrong.",
