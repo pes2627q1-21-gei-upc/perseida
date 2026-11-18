@@ -167,6 +167,37 @@ describe('Quiz screen', () => {
     ]);
   });
 
+  it('TG-653 sends the answer once when the button is pressed twice before the screen re-renders', async () => {
+    let respond!: (response: Response) => void;
+    const fetchSpy = mockApi(
+      [() => jsonResponse(quizQuestion)],
+      [
+        () =>
+          new Promise<Response>((resolve) => {
+            respond = resolve;
+          }),
+      ],
+    );
+    await renderScreen();
+    await screen.findByText(quizQuestion.statement);
+    await fireEvent.press(option('Venus'));
+    const submit = screen.getByRole('button', { name: SUBMIT });
+
+    // Both presses happen before React renders the screen as busy (a slow phone, a quick tap):
+    // nested in one act, React renders only when the outer act ends.
+    await act(async () => {
+      await Promise.all([fireEvent.press(submit), fireEvent.press(submit)]);
+    });
+    await act(async () => {
+      respond(jsonResponse(rightResult, 201));
+    });
+
+    expect(await screen.findByRole('header', { name: "L'has encertada!" })).toBeTruthy();
+    expect(await postedBodies(fetchSpy)).toEqual([
+      { date: quizQuestion.date, question_id: quizQuestion.question_id, chosen_option: 1 },
+    ]);
+  });
+
   it('TG-61 c4 c9 marks the right option and the wrong one with words, not only colour', async () => {
     mockApi([() => jsonResponse(quizQuestion)], [() => jsonResponse(wrongResult, 201)]);
     await renderScreen();
