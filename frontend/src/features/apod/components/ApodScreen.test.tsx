@@ -10,6 +10,9 @@ import { formatApodDate } from '../formatApodDate';
 import { apodKeys } from '../hooks/useApodToday';
 import { keepInPlayer, PLAYER_REFERER } from './ApodVideo';
 
+const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn() };
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
+
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
 jest.mock('react-native-webview', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -38,6 +41,7 @@ async function renderScreen() {
 }
 
 beforeEach(() => {
+  mockRouter.canGoBack.mockReturnValue(true);
   // retryDelay 0 so the hook's single retry does not slow the tests down.
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
 });
@@ -108,6 +112,45 @@ describe('APOD screen', () => {
     await fireEvent(image, 'load', { nativeEvent: { source: { width: 1000, height: 2000 } } });
 
     expect(screen.getByTestId('apod-image')).toHaveStyle({ aspectRatio: 0.5 });
+  });
+
+  it('TG-651 keeps the frame when the image load event has no source (react-native-web)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    await renderScreen();
+    const image = await screen.findByTestId('apod-image');
+
+    await fireEvent(image, 'load', { nativeEvent: {} });
+
+    expect(screen.getByTestId('apod-image')).toBeOnTheScreen();
+    expect(screen.queryByText("No s'ha pogut carregar la imatge o el vídeo.")).toBeNull();
+  });
+
+  it('TG-651 has a back button with the title that goes back', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    await renderScreen();
+
+    expect(await screen.findByText('Imatge del dia')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
+
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('TG-651 goes home when there is nowhere to go back to', async () => {
+    mockRouter.canGoBack.mockReturnValue(false);
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Torna' }));
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/');
+    expect(mockRouter.back).not.toHaveBeenCalled();
+  });
+
+  it('TG-651 keeps the back button while loading', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(() => {}));
+    await renderScreen();
+
+    expect(screen.getByRole('button', { name: 'Torna' })).toBeOnTheScreen();
   });
 
   it('renders a video APOD in an embedded player (criterion 3)', async () => {
