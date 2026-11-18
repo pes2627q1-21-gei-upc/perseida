@@ -45,3 +45,15 @@ class EventLookup(Protocol):
     async def exists(self, event_id: uuid.UUID) -> bool:
         """Return whether an event with ``event_id`` is stored."""
         ...
+
+
+class PostWriteRateLimiter(Protocol):
+    """Per-user counter that limits how often posts are edited or deleted."""
+
+    async def hit(self, user_id: uuid.UUID) -> bool:
+        """Count one write of ``user_id``; return False if the limit is exceeded.
+
+        Raises:
+            ExternalServiceError: if the counter is not available.
+        """
+        ...
