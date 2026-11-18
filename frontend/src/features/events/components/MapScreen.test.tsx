@@ -5,7 +5,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
+import { myOuting, otherOuting } from '../../../../__mocks__/outings';
 import MapScreen from '../../../app/(app)/map';
+import i18n from '../../../shared/i18n';
+import { clearTokens, saveTokens } from '../../auth/tokenStorage';
+import { describeOuting } from '../../outings/formatOuting';
 
 const mockRouter = {
   back: jest.fn(),
@@ -15,6 +19,16 @@ const mockRouter = {
 };
 
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
+
+// SecureStore is native: an in-memory store stands in for the device keychain.
+jest.mock('expo-secure-store', () => {
+  const store = new Map<string, string>();
+  return {
+    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
+  };
+});
 
 // Phone layout unless a test asks for a wide screen.
 let mockWide = false;
@@ -413,5 +427,191 @@ describe('Events map screen', () => {
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/');
     expect(mockRouter.back).not.toHaveBeenCalled();
+  });
+});
+
+// TG-646 (TG-52): the outings on the map, next to the events.
+describe('Events map screen with outings (TG-646)', () => {
+  /** Events as in the rest of the file, plus the outings route of the API. */
+  function mockApi(outings: () => Response | Promise<Response> = () => jsonResponse([myOuting])) {
+    jest.restoreAllMocks();
+    const events = mockEventsApi();
+    const base = events.getMockImplementation()!;
+    events.mockImplementation(async (input, init) =>
+      urlOf(input).pathname === '/api/outings' ? outings() : base(input, init),
+    );
+    return events;
+  }
+
+  function outingRequests(spy: jest.SpyInstance) {
+    return spy.mock.calls
+      .map(([input]) => urlOf(input as RequestInfo | URL))
+      .filter((url) => url.pathname === '/api/outings');
+  }
+
+  async function tapMarker(id: string) {
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: id }) } }),
+    );
+  }
+
+  beforeEach(async () => {
+    await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+  });
+
+  afterEach(async () => {
+    await clearTokens();
+  });
+
+  it('asks for every future outing, not only the ones of the person or of an event (criterion 5)', async () => {
+    const spy = mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    const [request, ...others] = outingRequests(spy);
+    expect(others).toEqual([]);
+    expect(request.searchParams.has('mine')).toBe(false);
+    expect(request.searchParams.has('event_id')).toBe(false);
+  });
+
+  it('puts the outings on the map next to the events with the All filter (criterion 2)', async () => {
+    mockApi();
+    await renderScreen();
+
+    const html = await waitForMapHtml((page) => page.includes(myOuting.id));
+    expect(html).toContain(launchEvent.id);
+    expect(html).toContain('"kind":"outing"');
+  });
+
+  it('names the marker of an outing with its title, "Sortida" and its date (criterion 4)', async () => {
+    mockApi();
+    await renderScreen();
+
+    const html = await waitForMapHtml((page) => page.includes(myOuting.id));
+    const OUTING_LABEL = describeOuting(myOuting, i18n.getFixedT('ca'), 'ca');
+    expect(OUTING_LABEL).toContain(`${myOuting.title}, Sortida, `);
+    expect(html).toContain(JSON.stringify(OUTING_LABEL).slice(1, -1));
+  });
+
+  it('shows only the outings with the Outings filter (criterion 2)', async () => {
+    mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
+
+    const html = await waitForMapHtml((page) => !page.includes(launchEvent.id));
+    expect(html).toContain(myOuting.id);
+  });
+
+  it('leaves the outings out with the Active and Upcoming filters (criterion 2)', async () => {
+    mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Futurs' }));
+    expect(await waitForMapHtml((page) => page.includes(launchEvent.id))).not.toContain(
+      myOuting.id,
+    );
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Actius' }));
+    expect(await waitForMapHtml((page) => !page.includes(launchEvent.id))).not.toContain(
+      myOuting.id,
+    );
+  });
+
+  it('keeps the list view with the events only (criterion 2)', async () => {
+    mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
+    expect(await screen.findByText(lunarEvent.title)).toBeTruthy();
+    expect(screen.queryByText(myOuting.title)).toBeNull();
+  });
+
+  it('says so when there are no outings with the Outings filter', async () => {
+    mockApi(() => jsonResponse([]));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
+
+    expect(await screen.findByText(i18n.t('events.empty.outings'))).toBeTruthy();
+    expect(i18n.t('events.empty.outings')).not.toBe('events.empty.outings');
+  });
+
+  it('opens the summary of the outing the user taps, with the button to its page (criterion 3)', async () => {
+    mockApi(() => jsonResponse([myOuting, otherOuting]));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    await tapMarker(myOuting.id);
+
+    expect(screen.getByRole('header', { name: myOuting.title })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
+    expect(mockRouter.push).toHaveBeenCalledWith(`/outings/${myOuting.id}`);
+  });
+
+  it('still opens the summary of an event when the user taps its marker', async () => {
+    mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    await tapMarker(launchEvent.id);
+
+    expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: i18n.t('events.outings.open') })).toBeNull();
+  });
+
+  it('keeps the events on the map and warns in the controls when the outings fail (criterion 5)', async () => {
+    mockApi(() => problemResponse(500, 'INTERNAL_ERROR'));
+    await renderScreen();
+
+    const html = await waitForMapHtml((page) => page.includes(launchEvent.id));
+    expect(html).not.toContain(myOuting.id);
+    expect(
+      await within(screen.getByTestId('map-controls')).findByText(
+        i18n.t('events.outings.unavailable'),
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('does the same when there is no session (INVALID_SESSION, criterion 5)', async () => {
+    await clearTokens();
+    mockApi();
+    await renderScreen();
+
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    expect(
+      await within(screen.getByTestId('map-controls')).findByText(
+        i18n.t('events.outings.unavailable'),
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('gives no warning when the outings load', async () => {
+    mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    expect(screen.queryByText(i18n.t('events.outings.unavailable'))).toBeNull();
+  });
+
+  it('shows an error status with the Outings filter when the outings fail (criterion 5)', async () => {
+    mockApi(() => problemResponse(500, 'INTERNAL_ERROR'));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Alguna cosa ha anat malament. Torna-ho a provar.',
+    );
   });
 });
