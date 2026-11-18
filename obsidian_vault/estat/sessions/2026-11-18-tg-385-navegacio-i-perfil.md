@@ -36,6 +36,7 @@ Acabar TG-385: barra de cinc pestanyes, pantalles «Pròximament» i perfil amb 
   - Etiquetes de la barra tallades en vertical (la barra de 49 dp no hi cabia) i «Gamificati…» en apaïsat: etiqueta sempre sota la icona i alçada de la barra calculada amb tokens.
   - Les pantalles «Pròximament» no es podien desplaçar en finestres baixes: ara són un `ScrollView`.
   - `typography` passa de `Record<…, TextStyle>` a `satisfies`, per sumar alçades de línia amb tipus (només tipus, cap canvi en temps d'execució).
+- **Prova a Android** (APK d'EAS `preview` contra el backend local per un túnel HTTPS): TalkBack llegeix les cinc pestanyes i el perfil. Error trobat i arreglat amb TDD: les pestanyes no ocupaven tota l'amplada perquè `map` i `apod`, tot i no tenir botó, conservaven el seu espai `flex: 1` a la barra. Ara també porten `tabBarItemStyle: { display: 'none' }`.
 
 ## Decisions preses
 
@@ -56,7 +57,8 @@ Cap ADR nova. Decisions del responsable de la US:
 ## Pendent / següents passos
 
 - [x] Prova manual web (mòbil petit, apaïsat, idiomes, data d'alta, logout); tornar-la a passar després dels arreglaments.
-- [ ] Prova manual a dispositiu Android: TalkBack per les cinc pestanyes i el perfil, apaïsat (48 dp), mòbil petit.
+- [x] Prova manual a dispositiu Android: TalkBack per les cinc pestanyes i el perfil. Tornar a comprovar l'amplada de la barra després de l'arreglament.
+- [ ] El botó de tancar sessió surt en català amb l'app en castellà: és TG-93 (#618, #620), fora d'abast.
 - [ ] El login web en local necessita CORS, que és TG-363 (PR #103, d'una altra persona): mentre no es fusioni, la prova web va amb un proxy local de proves (fora del repo).
 - [ ] El test d'integració de `/users/me` no s'ha executat en local (el fixture buida la BD de desenvolupament): el cobreix la CI.
 - [ ] PR cap a `develop`, revisió d'una altra persona, CI i Quality Gate de SonarQube Cloud.
