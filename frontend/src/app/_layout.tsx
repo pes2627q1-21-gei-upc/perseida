@@ -12,12 +12,16 @@ import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { registerSessionToken } from '../features/auth/registerSessionToken';
 import { queryClient } from '../shared/api/queryClient';
 import '../shared/i18n';
 import { useTheme } from '../shared/theme';
 
 // Intercepts OAuth deep link redirection (perseida:// or web callback) and dismisses web browser
 WebBrowser.maybeCompleteAuthSession();
+
+// Every API call carries the access token of the session (TG-629).
+registerSessionToken();
 
 export default function RootLayout() {
   const theme = useTheme();
