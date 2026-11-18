@@ -8,13 +8,16 @@
 // The session comes from outside (SocketAuth), so shared/ does not depend on any feature.
 
 import { config } from '../config';
-import { AppError, networkError, problemToAppError } from '../errors';
+import { AppError, isAppError, networkError, problemToAppError } from '../errors';
 
 /** The session the connection authenticates with; the auth feature provides it. */
 export interface SocketAuth {
   /** The current access token, read on every connection; null when there is no session. */
   getToken: () => Promise<string | null>;
-  /** Renews the session after a 4401; rejects when it cannot be renewed. */
+  /**
+   * Renews the session after a 4401; rejects when it cannot be renewed. An AppError rejection
+   * becomes the connection's error; any other one means INVALID_SESSION.
+   */
   refresh: () => Promise<void>;
 }
 
@@ -203,8 +206,9 @@ function renewSession(): void {
     () => {
       if (startedIn === generation) connect();
     },
-    () => {
-      if (startedIn === generation) stop(invalidSession());
+    // An AppError says why (e.g. SESSION_UNAVAILABLE, temporary); anything else means no session.
+    (reason: unknown) => {
+      if (startedIn === generation) stop(isAppError(reason) ? reason : invalidSession());
     },
   );
 }
