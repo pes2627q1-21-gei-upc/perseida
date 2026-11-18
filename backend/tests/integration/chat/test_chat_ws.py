@@ -510,6 +510,59 @@ def test_tg457_a_message_without_a_previous_subscribe_is_not_subscribed(
         assert harness.history("ana", event_id) == []  # and nothing was stored
 
 
+# --- leaving the event (TG-459) ------------------------------------------------
+
+
+def test_tg459_leaving_the_event_by_rest_drops_the_room_of_the_open_sockets(
+    harness: Harness,
+) -> None:
+    harness.login("ana")
+    harness.login("bob")
+    harness.login("carol")
+    event_id = harness.event("ana", "bob", "carol")
+    other_event = harness.event("ana")
+    room, other_room = room_of(event_id), room_of(other_event)
+    with ExitStack() as stack:
+        leaver = harness.connect("ana", stack)
+        sender = harness.connect("bob", stack)
+        stayer = harness.connect("carol", stack)
+        for ws in (leaver, sender, stayer):
+            harness.join(ws, room)
+        harness.join(leaver, other_room)
+        sent = harness.send(sender, room, {"text": "abans"}, "m1")
+        assert sent["type"] == "message"
+        assert leaver.receive_json()["payload"]["text"] == "abans"
+        assert stayer.receive_json()["payload"]["text"] == "abans"
+
+        response = harness.client.delete(
+            f"/api/events/{event_id}/subscription",
+            headers={"Authorization": f"Bearer {harness.tokens['ana']}"},
+        )
+
+        assert response.status_code == 204
+        assert leaver.receive_json() == {
+            "type": "unsubscribe",
+            "room": room,
+            "payload": {},
+        }
+        harness.send(sender, room, {"text": "despres"}, "m2")
+        assert stayer.receive_json()["payload"]["text"] == "despres"  # others: yes
+        harness.assert_alive(leaver)  # the socket lives and got nothing else
+        harness.assert_alive(sender)
+        # no longer a subscriber of the event: the handler refuses before
+        # the generic NOT_SUBSCRIBED
+        refused = harness.send(leaver, room, {"text": "intrus"}, "m3")
+        assert_error(refused, "FORBIDDEN", "m3", room)
+        # another room of the same socket is untouched
+        harness.send(leaver, other_room, {"text": "segueixo"}, "m4")
+        assert harness.history("ana", other_event)[0]["text"] == "segueixo"
+        # the history lists the newest first; the refused message is not there
+        assert [m["text"] for m in harness.history("bob", event_id)] == [
+            "despres",
+            "abans",
+        ]
+
+
 # --- validation ----------------------------------------------------------------
 
 
