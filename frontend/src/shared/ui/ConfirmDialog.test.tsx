@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
+import { colors } from '../theme';
 import { ConfirmDialog } from './ConfirmDialog';
 
 async function renderDialog(overrides: Partial<React.ComponentProps<typeof ConfirmDialog>> = {}) {
@@ -42,6 +43,15 @@ describe('ConfirmDialog', () => {
     await renderDialog();
 
     expect(screen.getByTestId('confirm-dialog').props.accessibilityViewIsModal).toBe(true);
+  });
+
+  it('darkens the screen behind it with the scrim of the theme', async () => {
+    await renderDialog();
+
+    // Jest's colour scheme is light, so the theme is `dia`.
+    expect(screen.getByTestId('confirm-dialog')).toHaveStyle({
+      backgroundColor: colors.dia.surface.scrim,
+    });
   });
 
   it('confirms with the confirm button and does not cancel', async () => {
