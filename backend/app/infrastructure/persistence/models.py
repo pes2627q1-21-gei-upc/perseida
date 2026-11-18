@@ -14,6 +14,7 @@ from app.infrastructure.events.tables import (  # noqa: E402, F401
     AstronomicalEventRow,
     EventSubscriptionRow,
 )
+from app.infrastructure.outings.tables import OutingRow  # noqa: E402, F401
 from app.infrastructure.posts.tables import PostRow  # noqa: E402, F401
 from app.infrastructure.quiz.tables import (  # noqa: E402, F401
     QuizAnswerRow,

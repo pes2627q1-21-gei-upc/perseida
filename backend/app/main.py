@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
+from app.infrastructure.api.cors import add_cors
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.openapi import install_openapi_cleanup
 from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
@@ -25,8 +26,10 @@ from app.infrastructure.events.subscriptions_router import (
     router as subscriptions_router,
 )
 from app.infrastructure.events.usno import UsnoSolarEclipseSource
+from app.infrastructure.health.dependencies import build_health_service
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
+from app.infrastructure.outings.router import router as outings_router
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.posts.router import router as posts_router
@@ -75,6 +78,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     expire_on_commit=False,
                 )
                 app.state.session_factory = session_factory
+                app.state.health_service = build_health_service(
+                    session_factory, redis, scheduler
+                )
                 user_service = build_user_service(session_factory)
                 app.state.user_service = user_service
                 app.state.auth_service = build_auth_service(
@@ -130,13 +136,15 @@ def create_app() -> FastAPI:
         title="Perseida API",
         description="Backend oficial del projecte Perseida - "
         "Arquitectura Hexagonal i API",
-        version="0.1.0",
+        version="0.2.2",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
     register_error_handlers(app)
+    # Reverse wrap (Security > Correlation > CORS): preflights get both headers.
+    add_cors(app)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(health_router, prefix="/api")
@@ -148,6 +156,7 @@ def create_app() -> FastAPI:
     app.include_router(subscriptions_router, prefix="/api")
     app.include_router(quiz_router, prefix="/api")
     app.include_router(streaks_router, prefix="/api")
+    app.include_router(outings_router, prefix="/api")
     app.include_router(posts_router, prefix="/api")
     install_openapi_cleanup(app)
     return app

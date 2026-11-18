@@ -1,6 +1,6 @@
 [project]
 name = "backend"
-version = "0.1.0"
+version = "0.2.2"
 description = "Backend de Perseida (API FastAPI)"
 requires-python = "==3.14.*"
 dependencies = [
@@ -140,6 +140,33 @@ forbidden_modules = [
     "app.application.events",
     "app.application.health",
     "app.application.realtime",
+    "app.application.users",
+]
+[[tool.importlinter.contracts]]
+# TG-629: an outing points to an event by id only; it checks that the event exists
+# through its own port (EventLookup), and Location lives in app.domain.shared.
+name = "The outings do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.outings", "app.application.outings"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.chat",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.chat",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
     "app.application.users",
 ]
 [[tool.importlinter.contracts]]

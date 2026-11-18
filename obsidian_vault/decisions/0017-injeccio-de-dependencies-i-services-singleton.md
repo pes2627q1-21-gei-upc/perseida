@@ -2,9 +2,9 @@
 titol: "Injecció de dependències amb Depends i services singleton pythònics"
 tipus: adr
 estat: acceptada
-data: "2026-10-22"
-us: ["TG-205", "TG-46"]
-font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable; actualització de TG-46 (2026-10-22)"
+data: "2026-11-18"
+us: ["TG-205", "TG-46", "TG-49"]
+font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable; actualització de TG-46 (2026-10-22); review de la PR #104 (TG-49, 18/11/2026)"
 etiquetes: [adr, backend, fastapi, di, patrons]
 ---
 
@@ -29,6 +29,16 @@ Els casos d'ús de `application` són serveis sense estat que no cal instanciar 
 >
 > Primer cas: `get_apod_provider` i `get_apod_service` (`app/infrastructure/apod/dependencies.py`). La resta de la decisió no canvia.
 
+> [!info] Actualització 2026-11-18 (TG-49): services construïts un sol cop al `lifespan`
+> Variant de l'anterior per a un service que depèn de recursos del `lifespan` i que ha de viure tant com el procés (perquè guarda estat tècnic entre peticions o perquè és car de construir):
+> - es construeix **un sol cop** al `lifespan` (`build_<nom>_service(...)`) i es desa a `app.state`;
+> - el provider rep `HTTPConnection` i el llegeix d'`app.state`, sense construir res;
+> - als tests es continua substituint amb `app.dependency_overrides`.
+>
+> Si el service pot ser lleuger i sense estat, es fa servir la variant per petició. Casos: `auth_service` (`app/infrastructure/auth/dependencies.py`) i `health_service` (`app/infrastructure/health/dependencies.py`).
+>
+> **Excepció acceptada a «sense estat»:** `HealthService` guarda en un conjunt (`_abandoned`) les comprovacions que ha abandonat per temps esgotat, fins que acaben de cancel·lar-se. asyncio només en guarda referències febles: sense aquest conjunt, una comprovació a mig cancel·lar es podria destruir («Task was destroyed but it is pending»). És estat tècnic del procés, no de negoci: cap resposta en depèn i no s'ha de compartir entre instàncies. Una variable global del mòdul no és alternativa, perquè seria estat global mutable.
+
 ## Conseqüències
 
 ### Positives
@@ -38,7 +48,7 @@ Els casos d'ús de `application` són serveis sense estat que no cal instanciar 
 
 ### Negatives (assumides)
 
-- Els services han de ser sense estat; l'estat va a la base de dades, a Redis o als recursos de `lifespan`.
+- Els services han de ser sense estat; l'estat va a la base de dades, a Redis o als recursos de `lifespan`. L'única excepció és l'estat tècnic de `HealthService` (vegeu l'actualització de TG-49).
 
 ## Alternatives descartades
 
@@ -50,6 +60,7 @@ Els casos d'ús de `application` són serveis sense estat que no cal instanciar 
 
 - TG-205 (subagents i skills agnòstiques)
 - TG-46 (actualització: adaptadors per petició sobre recursos de `lifespan`)
+- TG-49 (actualització: services construïts un sol cop al `lifespan` i estat tècnic de `HealthService`)
 
 ## Enllaços
 

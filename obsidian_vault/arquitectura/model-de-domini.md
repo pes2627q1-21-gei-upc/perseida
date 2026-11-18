@@ -3,7 +3,7 @@ titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-17"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-53"]
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
@@ -182,6 +182,31 @@ Endpoints (privats, amb sessió; l'usuari s'obté de la sessió com a `GET /api/
 > [!todo] Pendent
 > - Les rutes i el format de resposta els ha decidit TG-56; la visualització a l'app (TG-57) els ha de consumir i, si cal canviar-los, acordar-ho amb qui la faci.
 > - Mutation testing del domini (`app/domain/streaks/`) pendent de l'eina (US #359-#362).
+
+## Sortida d'observació (implementat)
+
+Entitat `Outing` a `app/domain/outings/models.py` (la ubicació és el `Location` compartit de `app/domain/shared/location.py`); ports `OutingRepository` i `EventLookup` a `app/domain/outings/ports.py` (la sortida no importa res de la funcionalitat d'esdeveniments: ho vigila un contracte d'import-linter); cas d'ús `OutingService` a `app/application/outings/outing_service.py`; taula `outings` a `app/infrastructure/outings/tables.py` (migració `create_outings`), repositori `SqlOutingRepository` i router `app/infrastructure/outings/router.py` (TG-629). Una sortida la crea una usuària per quedar amb altres persones a observar el cel. **No és un esdeveniment astronòmic**: té una taula a part i mai surt a `/api/events/*`, així que el contracte amb Spotwise ([[contracte-spotwise]]) no canvia.
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7, el genera el domini; per defecte `uuidv7()` al servidor ([[0023-convencions-del-model-de-dades\|ADR-0023]]) |
+| `author_id` | `uuid`, FK a `users.id` amb `ON DELETE RESTRICT` |
+| `event_id` | `uuid` o null: l'esdeveniment astronòmic relacionat. FK a `astronomical_events.id` amb `ON DELETE SET NULL` |
+| `title` | 1-120 caràcters, sense blancs als extrems ni caràcters de control |
+| `description` | 0-2.000 caràcters; conserva salts de línia i tabuladors |
+| `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` |
+| `latitude`, `longitude` | obligatòries; `CHECK` de rang −90..90 i −180..180 |
+| `created_at`, `updated_at` | les posa el servei amb el rellotge injectat; per defecte `now()` al servidor |
+
+Regles:
+
+- **Crear:** l'inici no pot ser abans d'ara (`OUTING_STARTS_IN_PAST`) i la fi no pot ser anterior a l'inici (`OUTING_ENDS_BEFORE_START`). Un text massa llarg és un error, mai es retalla.
+- **Editar** (`Outing.update` amb `OutingChanges`): només canvien els camps enviats; `event_id: null` treu l'esdeveniment. La regla de l'inici futur només s'aplica si canvien `starts_at` o `ends_at`: es pot corregir el títol d'una sortida que ja ha començat (decisió de Raquel, 17/11/2026).
+- **Permisos** (`OutingService`): qualsevol sessió llegeix; només l'autora edita o esborra (`ForbiddenError` `OUTING_FORBIDDEN`, 403). Una sortida que no existeix és `NotFoundError` `OUTING_NOT_FOUND` (404).
+- **Esdeveniment relacionat:** si se'n dona un que no existeix, `ValidationError` `OUTING_EVENT_NOT_FOUND` (422): és un camp del cos, no la URL (decisió de Raquel, 17/11/2026). La FK n'és la defensa en profunditat.
+- **Autora a la resposta:** `OutingDetails` porta l'`OutingAuthor` (`id`, `display_name`, `avatar_url`) amb un join a `users`; mai el correu.
+
+Endpoints a [[api#Sortides d'observació (TG-629)]].
 
 ## Publicacions d'esdeveniment (implementat)
 
