@@ -104,6 +104,8 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
         // `href: null` would make expo-router 58 drop the route (see hiddenRoutes.test.tsx).
         expect(screenOptions).not.toHaveProperty('href');
         expect((screenOptions?.tabBarButton as () => unknown)()).toBeNull();
+        // Without it the empty item keeps its flex: 1 slot and leaves a gap on the right.
+        expect(screenOptions?.tabBarItemStyle).toEqual({ display: 'none' });
         expect(screenOptions?.tabBarStyle).toEqual({ display: 'none' });
       }
     });

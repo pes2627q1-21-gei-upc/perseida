@@ -1,7 +1,7 @@
 import { act, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
-import { Platform, Text } from 'react-native';
+import { Platform, StyleSheet, Text } from 'react-native';
 
 import AppLayout from '../../../app/(app)/_layout';
 import * as refreshTokenModule from '../../auth/api/refreshToken';
@@ -75,5 +75,19 @@ describe('Sub-routes hidden from the tab bar (TG-385 #388)', () => {
       'Gamificació',
       'Perfil',
     ]);
+  });
+
+  it('gives the whole width of the bar to the five main tabs', async () => {
+    await renderApp();
+
+    // Each route gets a flex: 1 slot in the tablist; a hidden route must not keep an empty one.
+    const role = Platform.OS === 'ios' ? 'button' : 'tab';
+    let tablist = screen.getAllByRole(role)[0].parent;
+    while (tablist && tablist.props.role !== 'tablist') tablist = tablist.parent;
+    const visibleSlots = (tablist?.children ?? []).filter(
+      (slot) =>
+        typeof slot !== 'string' && StyleSheet.flatten(slot.props.style)?.display !== 'none',
+    );
+    expect(visibleSlots).toHaveLength(5);
   });
 });
