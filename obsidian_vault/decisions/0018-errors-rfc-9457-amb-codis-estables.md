@@ -2,9 +2,9 @@
 titol: "Errors transversals: RFC 9457 amb codis estables traduïts al frontend"
 tipus: adr
 estat: acceptada
-data: "2026-10-07"
+data: "2026-11-18"
 us: ["TG-205", "TG-304", "TG-91", "TG-43", "TG-64"]
-font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable; tasca TG-304 de Taiga (2026-10-09)"
+font: "sessió de treball del 2026-10-07 (TG-205); decisions de la persona responsable; tasca TG-304 de Taiga (2026-10-09); review de la PR #109 (TG-64, tasques #448 i #450, 2026-11-18)"
 etiquetes: [adr, backend, frontend, errors, i18n]
 ---
 
