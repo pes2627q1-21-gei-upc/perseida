@@ -43,9 +43,25 @@ export function LocationField({ value, onChange, error }: Props) {
   const [center, setCenter] = useState(start);
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [latitude, setLatitude] = useState(() =>
+    value ? formatCoordinate(value.latitude, i18n.language) : '',
+  );
+  const [longitude, setLongitude] = useState(() =>
+    value ? formatCoordinate(value.longitude, i18n.language) : '',
+  );
   const [invalidCoordinates, setInvalidCoordinates] = useState(false);
+
+  // The fields show the chosen place, however it was chosen: the map, the device or typing.
+  // Adjusted while rendering, when the value changes (not in an effect: that would be a second
+  // render with the old text).
+  const [shownValue, setShownValue] = useState(value);
+  if (value !== shownValue) {
+    setShownValue(value);
+    if (value) {
+      setLatitude(formatCoordinate(value.latitude, i18n.language));
+      setLongitude(formatCoordinate(value.longitude, i18n.language));
+    }
+  }
 
   async function locateMe() {
     setLocating(true);
@@ -94,17 +110,6 @@ export function LocationField({ value, onChange, error }: Props) {
           <Crosshair size={32} color={colors.accentGlow} />
         </View>
       </View>
-      {value ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[typography.body, { color: colors.text.primary }]}
-        >
-          {t('outings.picker.chosen', {
-            latitude: formatCoordinate(value.latitude, i18n.language),
-            longitude: formatCoordinate(value.longitude, i18n.language),
-          })}
-        </Text>
-      ) : null}
       <View style={[styles.buttons, { gap: spacing.sm }]}>
         <QuietButton
           label={t('outings.picker.choose')}
