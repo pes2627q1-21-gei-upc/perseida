@@ -45,6 +45,7 @@ Acabar TG-385: barra de cinc pestanyes, pantalles «Pròximament» i perfil amb 
   - Els dos `header` del perfil (títol de la pantalla i nom) es mantenen: són dos nivells de navegació per títols i TalkBack els llegeix bé.
 
 - **Merge de `develop` per resoldre el conflicte de la PR #106:** l'únic conflicte era el resum d'estat de [[frontend]] (TG-93 hi deia que el login ja està traduït); es mantenen les dues bandes. TG-61 hi afegia la ruta `(app)/quiz`, que hauria sortit com a sisena pestanya: ara és a `HIDDEN_ROUTES`, amb un test que comprova que cada ruta del grup és pestanya o ruta amagada.
+- **Segon merge de `develop`** (TG-448/TG-450 i TG-652): conflicte només a [[testing]], perquè `develop` el va desar amb salts de línia CRLF i tot el fitxer semblava diferent. Fusionat a mà: el frontmatter (`us` i `font`) amb les dues bandes, i la secció d'estils de Stryker de TG-385 després del punt de Stryker de `develop`, mantenint-ne els CRLF perquè el diff de la PR sigui només el contingut. No hi ha cap ruta nova al grup `(app)`.
 
 ## Decisions preses
 
