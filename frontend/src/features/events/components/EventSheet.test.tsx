@@ -365,6 +365,18 @@ describe('EventSheet with an outing (TG-646)', () => {
     expect(screen.getByText(meteorShowerEvent.title)).toBeTruthy();
   });
 
+  it('names the linked event with its own text when its title is not known (TG-646)', async () => {
+    mockEventTitle = undefined;
+
+    await renderOuting(myOuting);
+
+    const own = i18n.t('events.outings.linkedEvent');
+    expect(own).not.toBe('events.outings.linkedEvent');
+    expect(screen.getByText(own)).toBeTruthy();
+    expect(i18n.t('outings.form.linkedEvent')).not.toBe(own);
+    expect(screen.queryByText(i18n.t('outings.form.linkedEvent'))).toBeNull();
+  });
+
   it('has a button to the page of the outing that gives its id', async () => {
     const onOpenOuting = jest.fn();
     await renderOuting(myOuting, { onOpenOuting });

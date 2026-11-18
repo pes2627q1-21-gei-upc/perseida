@@ -567,32 +567,57 @@ describe('Events map screen with outings (TG-646)', () => {
     expect(screen.queryByRole('button', { name: i18n.t('events.outings.open') })).toBeNull();
   });
 
-  it('keeps the events on the map and warns in the controls when the outings fail (criterion 5)', async () => {
+  /** The warning of the controls, the only alert on the screen while the events are fine. */
+  async function findWarning() {
+    const warning = await within(screen.getByTestId('map-controls')).findByRole('alert');
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    return warning;
+  }
+
+  it('keeps the events on the map and warns in the controls with the message of the error (criterion 5)', async () => {
     mockApi(() => problemResponse(500, 'INTERNAL_ERROR'));
     await renderScreen();
 
     const html = await waitForMapHtml((page) => page.includes(launchEvent.id));
     expect(html).not.toContain(myOuting.id);
-    expect(
-      await within(screen.getByTestId('map-controls')).findByText(
-        i18n.t('events.outings.unavailable'),
-      ),
-    ).toBeTruthy();
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(await findWarning()).toHaveTextContent(i18n.t('errors.INTERNAL_ERROR'));
+    expect(screen.queryByText(i18n.t('events.outings.unavailable'))).toBeNull();
   });
 
-  it('does the same when there is no session (INVALID_SESSION, criterion 5)', async () => {
+  it('warns with the message of the session when there is no session (INVALID_SESSION, criterion 5)', async () => {
     await clearTokens();
     mockApi();
     await renderScreen();
 
     await waitForMapHtml((page) => page.includes(launchEvent.id));
-    expect(
-      await within(screen.getByTestId('map-controls')).findByText(
-        i18n.t('events.outings.unavailable'),
-      ),
-    ).toBeTruthy();
-    expect(screen.queryByRole('alert')).toBeNull();
+    const warning = await findWarning();
+    expect(warning).toHaveTextContent(i18n.t('errors.INVALID_SESSION'));
+    expect(i18n.t('errors.INVALID_SESSION')).not.toBe('errors.INVALID_SESSION');
+  });
+
+  it('warns with the message of whatever code the outings fail with', async () => {
+    mockApi(() => problemResponse(404, 'NOT_FOUND'));
+    await renderScreen();
+
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    expect(await findWarning()).toHaveTextContent(i18n.t('errors.NOT_FOUND'));
+  });
+
+  it('shows the warning only with the Outings and All filters, not with Active nor Upcoming', async () => {
+    mockApi(() => problemResponse(401, 'INVALID_SESSION'));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    const text = i18n.t('errors.INVALID_SESSION');
+    await findWarning();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Actius' }));
+    expect(screen.queryByText(text)).toBeNull();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Futurs' }));
+    expect(screen.queryByText(text)).toBeNull();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Tots' }));
+    expect(await screen.findByText(text)).toBeTruthy();
   });
 
   it('gives no warning when the outings load', async () => {
@@ -600,7 +625,7 @@ describe('Events map screen with outings (TG-646)', () => {
     await renderScreen();
     await waitForMapHtml((page) => page.includes(myOuting.id));
 
-    expect(screen.queryByText(i18n.t('events.outings.unavailable'))).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('shows an error status with the Outings filter when the outings fail (criterion 5)', async () => {
@@ -613,5 +638,18 @@ describe('Events map screen with outings (TG-646)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Alguna cosa ha anat malament. Torna-ho a provar.',
     );
+  });
+
+  it('shows the message of the error code in the status of the Outings filter and in the warning (criterion 5)', async () => {
+    await clearTokens();
+    mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
+
+    const text = i18n.t('errors.INVALID_SESSION');
+    expect(await screen.findAllByText(text)).toHaveLength(2);
+    expect(screen.getAllByRole('alert')).toHaveLength(2);
   });
 });

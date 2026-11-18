@@ -38,6 +38,7 @@ describe('locales', () => {
         'events.outings.kind',
         'events.outings.unavailable',
         'events.outings.open',
+        'events.outings.linkedEvent',
       ]) {
         expect(keys).toContain(key);
       }

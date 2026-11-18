@@ -2,7 +2,6 @@ import { fireEvent, render, screen, within } from '@testing-library/react-native
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import i18n from '../../../shared/i18n';
 import { readingMaxWidth } from '../../../shared/theme';
 import { MapControls } from './MapControls';
 
@@ -16,7 +15,7 @@ async function renderControls(
   props: Partial<{
     onViewChange: jest.Mock;
     onFilterChange: jest.Mock;
-    outingsUnavailable: boolean;
+    outingsWarning: string;
   }> = {},
 ) {
   return render(
@@ -26,7 +25,7 @@ async function renderControls(
         onViewChange={props.onViewChange ?? jest.fn()}
         filter="all"
         onFilterChange={props.onFilterChange ?? jest.fn()}
-        outingsUnavailable={props.outingsUnavailable}
+        outingsWarning={props.outingsWarning}
       />
     </SafeAreaProvider>,
   );
@@ -83,19 +82,18 @@ describe('MapControls', () => {
     expect(onFilterChange).toHaveBeenCalledWith('outings');
   });
 
-  it('says in its panel that the outings could not be loaded, only when so (TG-646 criterion 5)', async () => {
-    const view = await renderControls({ outingsUnavailable: true });
+  it('says in its panel, as an alert, the warning it is given, only when so (TG-646 criterion 5)', async () => {
+    const view = await renderControls({ outingsWarning: 'Sessió caducada de prova' });
 
-    expect(
-      within(screen.getByTestId('map-controls-panel')).getByText(
-        i18n.t('events.outings.unavailable'),
-      ),
-    ).toBeTruthy();
-    expect(i18n.t('events.outings.unavailable')).not.toBe('events.outings.unavailable');
+    const warning = within(screen.getByTestId('map-controls-panel')).getByText(
+      'Sessió caducada de prova',
+    );
+    expect(warning.props.accessibilityRole).toBe('alert');
+    expect(screen.getByRole('alert')).toBe(warning);
     await view.unmount();
 
     await renderControls();
-    expect(screen.queryByText(i18n.t('events.outings.unavailable'))).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('sits above the home indicator, between the side margins', async () => {
