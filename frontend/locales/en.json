@@ -30,7 +30,15 @@
     "POST_NOT_FOUND": "This post no longer exists.",
     "POST_TEXT_EMPTY": "Write something before posting.",
     "POST_TEXT_TOO_LONG": "The text can be at most 1,000 characters long.",
-    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
+    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
+    "OUTING_TITLE_EMPTY": "Give the outing a title.",
+    "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
+    "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
+    "OUTING_ENDS_BEFORE_START": "The outing can't end before it starts.",
+    "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
+    "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
+    "OUTING_NOT_FOUND": "This outing doesn't exist or was deleted.",
+    "OUTING_FORBIDDEN": "Only the person who created the outing can change it."
   },
   "events": {
     "category": {
@@ -77,7 +85,8 @@
       "end": "Ends",
       "moreInfo": "More information",
       "openHint": "Opens the event details",
-      "start": "Starts"
+      "start": "Starts",
+      "outings": "Outings for this event"
     },
     "status": {
       "active": "Happening now"
@@ -90,7 +99,8 @@
   },
   "home": {
     "apodLink": "Picture of the day",
-    "mapLink": "Events map"
+    "mapLink": "Events map",
+    "outingsLink": "My outings"
   },
   "posts": {
     "form": {
@@ -117,6 +127,56 @@
       "deleteHint": "Asks for confirmation before deleting the post",
       "confirmDelete": "Delete this post? This cannot be undone.",
       "anonymous": "User #{{tag}}"
+    }
+  },
+  "outings": {
+    "myTitle": "My outings",
+    "eventTitle": "Event outings",
+    "list": {
+      "label": "List of outings"
+    },
+    "empty": {
+      "mine": "You haven't created any outing yet.",
+      "event": "There are no outings for this event yet."
+    },
+    "loading": "Loading outings",
+    "retry": "Try again",
+    "new": "Create an outing",
+    "detail": {
+      "author": "Organised by",
+      "unknownAuthor": "A Perseida user",
+      "start": "Start",
+      "end": "End",
+      "where": "Place",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Delete this outing?",
+      "message": "This can't be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "newTitle": "New outing",
+      "editTitle": "Edit outing",
+      "title": "Title",
+      "description": "Description (optional)",
+      "startsAt": "Start",
+      "endsAt": "End",
+      "save": "Save",
+      "saving": "Saving…",
+      "linkedEvent": "Outing linked to an event",
+      "removeEvent": "Remove the event",
+      "locationRequired": "Choose where you'll meet."
+    },
+    "picker": {
+      "label": "Map to choose the place",
+      "hint": "Move the map until the crosshair is over the place.",
+      "choose": "Choose this place",
+      "useMine": "Use my location",
+      "denied": "We couldn't get your location. Move the map to choose the place.",
+      "chosen": "Chosen place: {{latitude}}, {{longitude}}"
     }
   }
 }
