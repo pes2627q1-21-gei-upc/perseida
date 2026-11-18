@@ -31,7 +31,7 @@ Cap ADR nova. Decisions de Raquel:
 
 - El token va amb `authHeaders` a cada crida, com les publicacions. Es va provar primer un middleware al client d'API i es va revertir en veure que `develop` ja tenia aquesta manera de fer-ho.
 - El lloc es tria movent el mapa sota una mira central i prement «Tria aquest lloc», amb «Usa la meva ubicació» com a alternativa.
-- L'esdeveniment relacionat només es pot treure, no triar: surt preseleccionat si es crea des de la fitxa d'un esdeveniment.
+- L'esdeveniment relacionat primer només es podia treure; després Raquel va demanar poder-lo triar (tasca #648): `EventField`, amb «Cap esdeveniment» i els actius i futurs del mapa. Surt preseleccionat si es crea des de la fitxa d'un esdeveniment.
 - Data i hora: control natiu a iOS, dia i hora seguits a Android i `datetime-local` a la web.
 - Esborrat amb un diàleg de vidre propi, perquè `Alert.alert` no fa res a la web.
 - Alternativa a arrossegar el mapa (WCAG 2.5.7, suggerida per la revisió): camps de latitud i longitud, a més de la ubicació del dispositiu.
@@ -47,7 +47,6 @@ Cap ADR nova. Decisions de Raquel:
 - [ ] Troballes menors de la revisió que no s'han fet: la clau `outings.form.saving` no s'usa, «Cancel·la» continua actiu mentre s'esborra, el camp de text no porta `aria-invalid`, un `422 VALIDATION_ERROR` amb `fieldErrors` no va al seu camp i hi ha una mica de codi de Leaflet repetit.
 - [ ] Provar a mà el mapa del selector de lloc en un dispositiu Android i a la web (els tests no executen Leaflet).
 - [ ] Paginació keyset de `GET /api/outings` (#644, Sprint 3).
-- [ ] Un selector d'esdeveniments al formulari, si es vol (fora de la US).
 
 ## US de Taiga
 
