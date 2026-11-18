@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Self
 
 from fastapi import APIRouter, status
@@ -39,6 +40,7 @@ class UserResponse(BaseModel):
     avatar_url: str | None = Field(..., description="Avatar del perfil de Google")
     preferred_language: Language = Field(..., description="Idioma preferit")
     role: Role = Field(..., description="Rol de l'usuari")
+    created_at: datetime = Field(..., description="Data d'alta del compte (UTC)")
 
     @classmethod
     def from_user(cls, user: User) -> Self:
@@ -49,6 +51,7 @@ class UserResponse(BaseModel):
             avatar_url=user.avatar_url,
             preferred_language=user.preferred_language,
             role=user.role,
+            created_at=user.created_at,
         )
 
 

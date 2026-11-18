@@ -16,6 +16,16 @@
   "common": {
     "back": "Volver"
   },
+  "comingSoon": {
+    "badge": "Próximamente",
+    "chatDesc": "Un espacio en tiempo real para compartir observaciones, fotos y encuentros astronómicos.",
+    "chatTitle": "Comunidad y chat",
+    "eventsDesc": "Muy pronto podrás consultar lluvias de estrellas, eclipses y fenómenos celestes directamente desde aquí.",
+    "eventsMapButton": "Abrir el mapa de eventos",
+    "eventsTitle": "Eventos astronómicos",
+    "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
+    "gamificationTitle": "Gamificación y retos"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
@@ -102,6 +112,42 @@
     "apodLink": "Imagen del día",
     "mapLink": "Mapa de eventos",
     "quizLink": "Pregunta del día"
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Eventos",
+    "gamification": "Gamificación",
+    "home": "Inicio",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "achievements": {
+      "desc": "Desbloquea insignias observando lluvias de estrellas y participando en la comunidad.",
+      "title": "Logros e insignias"
+    },
+    "followers": {
+      "desc": "Cuántas personas siguen tus observaciones y a cuántas sigues tú.",
+      "title": "Seguidores"
+    },
+    "language": {
+      "ca": "Catalán",
+      "en": "Inglés",
+      "es": "Español"
+    },
+    "loading": "Cargando el perfil...",
+    "memberSince": "Miembro desde {{date}}",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los datos del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "streak": {
+      "desc": "Completa el cuestionario diario para mantener viva tu racha celeste.",
+      "title": "Racha de observación"
+    },
+    "title": "Tu perfil"
   },
   "posts": {
     "form": {

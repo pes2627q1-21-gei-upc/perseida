@@ -16,6 +16,16 @@
   "common": {
     "back": "Torna"
   },
+  "comingSoon": {
+    "badge": "Pròximament",
+    "chatDesc": "Un espai en temps real per compartir observacions, fotos i trobades astronòmiques.",
+    "chatTitle": "Comunitat i xat",
+    "eventsDesc": "Molt aviat podràs consultar pluges d'estels, eclipsis i fenòmens celestes directament des d'aquí.",
+    "eventsMapButton": "Obre el mapa d'esdeveniments",
+    "eventsTitle": "Esdeveniments astronòmics",
+    "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
+    "gamificationTitle": "Gamificació i reptes"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
@@ -102,6 +112,42 @@
     "apodLink": "Imatge del dia",
     "mapLink": "Mapa d'esdeveniments",
     "quizLink": "Pregunta del dia"
+  },
+  "nav": {
+    "chat": "Xat",
+    "events": "Esdeveniments",
+    "gamification": "Gamificació",
+    "home": "Inici",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "achievements": {
+      "desc": "Desbloqueja insígnies observant pluges d'estels i participant a la comunitat.",
+      "title": "Fites i assoliments"
+    },
+    "followers": {
+      "desc": "Quantes persones segueixen les teves observacions i quantes en segueixes tu.",
+      "title": "Seguidors"
+    },
+    "language": {
+      "ca": "Català",
+      "en": "Anglès",
+      "es": "Castellà"
+    },
+    "loading": "Carregant el perfil...",
+    "memberSince": "Membre des de {{date}}",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les dades del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "streak": {
+      "desc": "Completa el qüestionari diari per mantenir viva la teva ratxa celest.",
+      "title": "Ratxa d'observació"
+    },
+    "title": "El teu perfil"
   },
   "posts": {
     "form": {
