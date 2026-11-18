@@ -1,3 +1,9 @@
+from app.application.shared.error_codes import (
+    ACCOUNT_DELETED,
+    ACCOUNT_SUSPENDED,
+    DATABASE_UNAVAILABLE,
+    INVALID_SESSION,
+)
 from app.domain.realtime.models import Frame, FrameType
 
 VALIDATION_ERROR = "VALIDATION_ERROR"
@@ -13,7 +19,8 @@ CHAT_MESSAGE_TOO_LONG = "CHAT_MESSAGE_TOO_LONG"
 CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
 CHAT_ROOM_NOT_FOUND = "CHAT_ROOM_NOT_FOUND"
 EVENT_NOT_FOUND = "EVENT_NOT_FOUND"
-DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
+# DATABASE_UNAVAILABLE, INVALID_SESSION and ACCOUNT_* are shared with REST
+# (application.shared.error_codes) and imported above.
 
 CLOSE_GOING_AWAY = 1001
 CLOSE_INTERNAL_ERROR = 1011
@@ -35,6 +42,9 @@ _STATUS = {
     CHAT_ROOM_NOT_FOUND: 404,
     EVENT_NOT_FOUND: 404,
     DATABASE_UNAVAILABLE: 503,
+    INVALID_SESSION: 401,
+    ACCOUNT_SUSPENDED: 403,
+    ACCOUNT_DELETED: 403,
 }
 _TITLE = {
     422: "Unprocessable Entity",
@@ -44,6 +54,7 @@ _TITLE = {
     403: "Forbidden",
     429: "Too Many Requests",
     404: "Not Found",
+    401: "Unauthorized",
 }
 
 

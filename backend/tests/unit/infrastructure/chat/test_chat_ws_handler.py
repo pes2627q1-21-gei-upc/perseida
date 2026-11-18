@@ -48,7 +48,8 @@ def account(
         id=user_id,
         google_sub=sub,
         email=f"{sub}@example.com",
-        status=status,
+        # a deleted account keeps its status; ``deleted_at`` is what marks it
+        status=AccountStatus.ACTIVE if status == AccountStatus.DELETED else status,
         created_at=now,
         last_login_at=now,
         deleted_at=now if status == AccountStatus.DELETED else None,
