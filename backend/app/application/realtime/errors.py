@@ -1,3 +1,9 @@
+from app.application.shared.error_codes import (
+    ACCOUNT_DELETED,
+    ACCOUNT_SUSPENDED,
+    DATABASE_UNAVAILABLE,
+    INVALID_SESSION,
+)
 from app.domain.realtime.models import Frame, FrameType
 
 VALIDATION_ERROR = "VALIDATION_ERROR"
@@ -7,6 +13,14 @@ PUBSUB_UNAVAILABLE = "PUBSUB_UNAVAILABLE"
 INTERNAL_ERROR = "INTERNAL_ERROR"
 FORBIDDEN = "FORBIDDEN"
 RATE_LIMITED = "RATE_LIMITED"
+# Codes of the room handlers (chat, TG-459); they travel unchanged, as in REST.
+CHAT_MESSAGE_EMPTY = "CHAT_MESSAGE_EMPTY"
+CHAT_MESSAGE_TOO_LONG = "CHAT_MESSAGE_TOO_LONG"
+CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
+CHAT_ROOM_NOT_FOUND = "CHAT_ROOM_NOT_FOUND"
+EVENT_NOT_FOUND = "EVENT_NOT_FOUND"
+# DATABASE_UNAVAILABLE, INVALID_SESSION and ACCOUNT_* are shared with REST
+# (application.shared.error_codes) and imported above.
 
 CLOSE_GOING_AWAY = 1001
 CLOSE_INTERNAL_ERROR = 1011
@@ -22,6 +36,15 @@ _STATUS = {
     INTERNAL_ERROR: 500,
     FORBIDDEN: 403,
     RATE_LIMITED: 429,
+    CHAT_MESSAGE_EMPTY: 422,
+    CHAT_MESSAGE_TOO_LONG: 422,
+    CHAT_MESSAGE_REJECTED: 422,
+    CHAT_ROOM_NOT_FOUND: 404,
+    EVENT_NOT_FOUND: 404,
+    DATABASE_UNAVAILABLE: 503,
+    INVALID_SESSION: 401,
+    ACCOUNT_SUSPENDED: 403,
+    ACCOUNT_DELETED: 403,
 }
 _TITLE = {
     422: "Unprocessable Entity",
@@ -30,7 +53,19 @@ _TITLE = {
     500: "Internal Server Error",
     403: "Forbidden",
     429: "Too Many Requests",
+    404: "Not Found",
+    401: "Unauthorized",
 }
+
+
+def is_known(code: str) -> bool:
+    """Whether ``code`` is one the real-time layer can put in an error frame."""
+    return code in _STATUS
+
+
+def title_of(code: str) -> str:
+    """Generic text of a known ``code`` (its HTTP title), safe to show as detail."""
+    return _TITLE[_STATUS[code]]
 
 
 def error_frame(

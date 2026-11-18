@@ -147,6 +147,40 @@ async def test_tg439_room_idempotent_and_missing(
         await service.get_or_create_room(env.user, env.event)
 
 
+async def test_tg453_open_room_returns_the_latest_message(
+    service: ChatService, env: ChatFakes
+) -> None:
+    empty = await service.open_room(env.user, env.event)
+    assert empty.room == env.room
+    assert empty.last_message is None
+    now = datetime.now(UTC)
+    env.messages = [
+        ChatMessage(
+            id=uuid.uuid7(),
+            room_id=env.room.id,
+            author_id=env.user,
+            text=str(i),
+            sent_at=now + timedelta(seconds=i),
+        )
+        for i in range(3)
+    ]
+    summary = await service.open_room(env.user, env.event)
+    assert summary.last_message == env.messages[2]
+
+
+async def test_tg453_open_room_requires_subscription_and_event(
+    service: ChatService, env: ChatFakes
+) -> None:
+    env.subscribed = False
+    with pytest.raises(ForbiddenError):
+        await service.open_room(env.user, env.event)
+    assert "room" not in env.calls
+    env.subscribed = True
+    env.missing = True
+    with pytest.raises(NotFoundError):
+        await service.open_room(env.user, env.event)
+
+
 async def test_tg439_cursor_order_and_limits(
     service: ChatService, env: ChatFakes
 ) -> None:
@@ -206,3 +240,27 @@ async def test_tg439_deep_cursor_is_validation_error(
     )
     with pytest.raises(ValidationError):
         await service.history(env.user, env.event, before=cursor)
+
+
+async def test_tg459_published_envelope_carries_the_origin_of_the_connection(
+    service: ChatService, env: ChatFakes
+) -> None:
+    message = await service.send_message(env.user, env.event, "hola", origin="conn-1")
+
+    envelope = json.loads(env.published[0])
+    assert envelope["from"] == "conn-1"
+    assert envelope["frame"]["type"] == "message"
+    assert envelope["frame"]["room"] == f"chat:event:{env.event}"
+    assert envelope["frame"]["payload"] == message.model_dump(mode="json")
+
+
+@pytest.mark.parametrize("explicit_none", [True, False], ids=["origin=None", "default"])
+async def test_tg459_without_origin_the_envelope_has_no_sender(
+    service: ChatService, env: ChatFakes, explicit_none: bool
+) -> None:
+    if explicit_none:
+        await service.send_message(env.user, env.event, "hola", origin=None)
+    else:
+        await service.send_message(env.user, env.event, "hola")
+
+    assert json.loads(env.published[0])["from"] is None

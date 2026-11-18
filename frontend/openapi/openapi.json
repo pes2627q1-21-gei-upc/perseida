@@ -1995,6 +1995,275 @@
           }
         }
       }
+    },
+    "/api/chat/rooms": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Sales de xat de les teves subscripcions",
+        "description": "Retorna les sales dels esdeveniments als quals està subscrita la usuària de la sessió, ordenades pel darrer missatge (o, si no en tenen, per creació) de més nou a més antic. Cada sala inclou el darrer missatge o `null`. Els esdeveniments sense sala encara no hi surten. Array buit si no n'hi ha cap.",
+        "operationId": "list_my_chat_rooms",
+        "responses": {
+          "200": {
+            "description": "Les sales de la usuària.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChatRoomResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List My Chat Rooms"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/events/{event_id}/chat/room": {
+      "put": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Obre la sala de xat d'un esdeveniment",
+        "description": "Retorna la sala de l'esdeveniment, i la crea si encara no existeix. És idempotent: sempre respon 200 amb la mateixa sala. Inclou el darrer missatge o `null` si encara no en té, igual que `GET /chat/rooms`. Cal estar subscrita a l'esdeveniment; si no, 403 i no es crea res.",
+        "operationId": "open_event_chat_room",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La sala de l'esdeveniment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatRoomResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No estàs subscrita a l'esdeveniment (`FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "L'esdeveniment no existeix (`EVENT_NOT_FOUND`) o no té sala (`CHAT_ROOM_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Identificador d'esdeveniment invàlid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/{event_id}/chat/messages": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Historial de xat d'un esdeveniment",
+        "description": "Retorna una pàgina de l'historial, del missatge més nou al més antic. `limit` va de 1 a 50 (per defecte 50). `before` és el `next_cursor` de la pàgina anterior; `next_cursor` és `null` quan no hi ha missatges més antics. Cal estar subscrita a l'esdeveniment. Crea la sala si encara no existeix.",
+        "operationId": "list_event_chat_messages",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cursor de la pàgina anterior (opac).",
+              "title": "Before"
+            },
+            "description": "Cursor de la pàgina anterior (opac)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Missatges per pàgina (1 a 50).",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Missatges per pàgina (1 a 50)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Una pàgina de missatges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No estàs subscrita a l'esdeveniment (`FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "L'esdeveniment no existeix (`EVENT_NOT_FOUND`) o no té sala (`CHAT_ROOM_NOT_FOUND`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`limit` fora de rang (`CHAT_INVALID_LIMIT`), cursor invàlid (`CHAT_INVALID_CURSOR`) o identificador d'esdeveniment invàlid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2051,6 +2320,117 @@
           "url"
         ],
         "title": "ApodResponse"
+      },
+      "ChatHistoryResponse": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageResponse"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "Pàgina d'historial, del missatge més nou al més antic."
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor",
+            "description": "Cursor opac per a `before`; null si no hi ha més antics."
+          }
+        },
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "title": "ChatHistoryResponse"
+      },
+      "ChatMessageResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador del missatge (UUIDv7)."
+          },
+          "room_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Room Id",
+            "description": "Sala a la qual pertany."
+          },
+          "author_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Author Id",
+            "description": "Identificador de l'autora."
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Text del missatge, ja netejat pel servidor."
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Sent At",
+            "description": "Instant d'enviament (el posa el servidor)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "room_id",
+          "author_id",
+          "text",
+          "sent_at"
+        ],
+        "title": "ChatMessageResponse"
+      },
+      "ChatRoomResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador de la sala."
+          },
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id",
+            "description": "Esdeveniment de la sala (n'hi ha una per esdeveniment)."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Instant de creació de la sala."
+          },
+          "last_message": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatMessageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Últim missatge de la sala; null si encara no n'hi ha."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "created_at"
+        ],
+        "title": "ChatRoomResponse"
       },
       "EventCategory": {
         "type": "string",

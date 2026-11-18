@@ -1,3 +1,4 @@
+import uuid
 from enum import StrEnum
 from typing import Any
 
@@ -7,6 +8,8 @@ ROOM_PATTERN = r"^[a-z0-9_-]+(:[a-z0-9_-]+)*$"
 ROOM_MAX_LENGTH = 64
 ROOM_CHANNEL_PREFIX = "room:"
 REVOCATION_CHANNEL_PREFIX = "session-revoked:"
+ROOM_REVOCATION_CHANNEL_PREFIX = "room-revoked:"
+CHAT_EVENT_ROOM_PREFIX = "chat:event:"
 
 
 class FrameType(StrEnum):
@@ -40,3 +43,13 @@ def room_channel(room: str) -> str:
 def revocation_channel(sub: str) -> str:
     """Channel where the session store announces that a user's sessions were revoked."""
     return f"{REVOCATION_CHANNEL_PREFIX}{sub}"
+
+
+def room_revocation_channel(sub: str) -> str:
+    """Channel announcing that a user lost a room (payload ``{room}``)."""
+    return ROOM_REVOCATION_CHANNEL_PREFIX + sub
+
+
+def chat_event_room(event_id: uuid.UUID) -> str:
+    """Room of the chat of an event."""
+    return CHAT_EVENT_ROOM_PREFIX + str(event_id)

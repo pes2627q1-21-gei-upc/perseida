@@ -106,7 +106,7 @@ async def unsubscribe_from_event(
 ) -> None:
     """Dona de baixa la usuària de l'esdeveniment."""
     user = await users.get_profile(session.sub)
-    await subscriptions.unsubscribe(user.id, event_id)
+    await subscriptions.unsubscribe(user.id, event_id, google_sub=session.sub)
 
 
 @router.get(

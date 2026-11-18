@@ -102,9 +102,29 @@ class ChatService:
             raise ForbiddenError("FORBIDDEN")
         return await self._repository.get_or_create_room(event_id)
 
+    async def open_room(
+        self, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> ChatRoomSummary:
+        """Return the room of the event, as in the list, with its latest message."""
+        room = await self.get_or_create_room(user_id, event_id)
+        newest = await self._repository.page(room.id, None, 1)
+        return ChatRoomSummary(
+            room=room, last_message=newest.messages[0] if newest.messages else None
+        )
+
     async def send_message(
-        self, user_id: uuid.UUID, event_id: uuid.UUID, text: str
+        self,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        text: str,
+        *,
+        origin: str | None = None,
     ) -> ChatMessage:
+        """Store, moderate and fan out a message.
+
+        ``origin`` is the id of the sender's connection (it is put in ``from`` of
+        the published envelope so that its own session does not echo it back).
+        """
         room = await self.get_or_create_room(user_id, event_id)
         message = ChatMessage.create(room_id=room.id, author_id=user_id, text=text)
         if len(message.text) > self._message_max_length:
@@ -114,16 +134,18 @@ class ChatService:
         if not (await self._moderator.moderate(message.text)).approved:
             raise BusinessRuleViolation(CHAT_MESSAGE_REJECTED)
         await self._repository.add_message(message)
-        await self._publish(message, event_id)
+        await self._publish(message, event_id, origin)
         return message
 
-    async def _publish(self, message: ChatMessage, event_id: uuid.UUID) -> None:
+    async def _publish(
+        self, message: ChatMessage, event_id: uuid.UUID, origin: str | None
+    ) -> None:
         """Fan the stored message out; on failure it stays stored (history)."""
         room = f"chat:event:{event_id}"
         frame = Frame(
             type=FrameType.MESSAGE, room=room, payload=message.model_dump(mode="json")
         )
-        envelope = {"from": None, "frame": frame.model_dump(mode="json")}
+        envelope = {"from": origin, "frame": frame.model_dump(mode="json")}
         try:
             await self._pubsub.publish(room_channel(room), json.dumps(envelope))
         except ExternalServiceError as exc:
