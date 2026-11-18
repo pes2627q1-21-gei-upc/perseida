@@ -9,13 +9,13 @@ from pathlib import Path
 
 import pytest
 from alembic.config import Config
-from app.infrastructure.achievements.repository import SqlAchievementRepository
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from alembic import command
 from app.domain.achievements.models import Achievement
 from app.domain.users.models import User
+from app.infrastructure.achievements.repository import SqlAchievementRepository
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.repository import SqlUserRepository
 from tests.integration.isolation import row_counts

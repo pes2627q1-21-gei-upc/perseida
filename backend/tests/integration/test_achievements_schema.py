@@ -208,11 +208,15 @@ async def test_tg572_user_achievements_rejects_unknown_user_and_achievement(
     with pytest.raises(IntegrityError):
         async with engine.begin() as connection:
             await connection.execute(
+                # The user is created in the same transaction, which the failed
+                # insert rolls back: it works on an empty database too.
                 text(
-                    "INSERT INTO user_achievements (user_id, achievement_id,"
-                    " unlocked_at) SELECT id, :a, now() FROM users LIMIT 1"
+                    "WITH u AS (INSERT INTO users (email, display_name)"
+                    " VALUES (:e, 'Ada') RETURNING id)"
+                    " INSERT INTO user_achievements (user_id, achievement_id,"
+                    " unlocked_at) SELECT id, :a, now() FROM u"
                 ),
-                {"a": uuid.uuid4()},
+                {"a": uuid.uuid4(), "e": f"{PREFIX}-{uuid.uuid4().hex}@example.test"},
             )
 
 
@@ -224,10 +228,10 @@ async def test_tg572_unique_user_and_achievement_pair_and_restrict(
         user_id = (
             await connection.execute(
                 text(
-                    "INSERT INTO users (google_sub, email, display_name)"
-                    " VALUES (:s, :e, 'Ada') RETURNING id"
+                    "INSERT INTO users (email, display_name)"
+                    " VALUES (:e, 'Ada') RETURNING id"
                 ),
-                {"s": f"sub-{unique}", "e": f"{unique}@example.test"},
+                {"e": f"{unique}@example.test"},
             )
         ).scalar_one()
     insert = text(
