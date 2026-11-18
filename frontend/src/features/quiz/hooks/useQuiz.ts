@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { AppState } from 'react-native';
 
 import type { AppError } from '../../../shared/errors';
 import type { Language } from '../../../shared/i18n';
@@ -29,15 +31,43 @@ const RELOAD_CODES: ReadonlySet<string> = new Set([
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
-/** Today's question in `lang`. It changes once a day (UTC); online only. */
+/** A little after midnight, so the server is surely on the new day too. */
+const NEW_DAY_MARGIN_MS = 1000;
+
+/** Milliseconds from `now` to the next midnight UTC, when the question changes. */
+export function msUntilNextUtcDay(now: number = Date.now()): number {
+  const day = new Date(now);
+  return Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1) - now;
+}
+
+function utcToday(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Today's question in `lang`; online only. It changes once a day (UTC), so with the screen
+ * open it is asked again just after midnight, and when the app comes back to the
+ * foreground on another day (timers do not run in the background).
+ */
 export function useQuizToday(lang: Language) {
-  return useQuery<QuizToday, AppError>({
+  const query = useQuery<QuizToday, AppError>({
     queryKey: quizKeys.today(lang),
     queryFn: () => getQuizToday(lang),
     staleTime: FIVE_MINUTES_MS,
     // One retry, and only when the error is transient (network, 408, 429, 5xx).
     retry: (failureCount, error) => failureCount < 1 && error.retryable,
+    refetchInterval: () => msUntilNextUtcDay() + NEW_DAY_MARGIN_MS,
   });
+  const { data, refetch } = query;
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && data && data.date !== utcToday()) void refetch();
+    });
+    return () => subscription.remove();
+  }, [data, refetch]);
+
+  return query;
 }
 
 /**

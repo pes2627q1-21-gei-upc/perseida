@@ -33,7 +33,13 @@ export function QuizScreen() {
   }
 
   let content;
-  if (data?.result) {
+  if (error && !isFetching) {
+    // Also when there is an older question in the cache: a failed reload (after
+    // QUIZ_ALREADY_ANSWERED, QUIZ_EXPIRED or QUIZ_QUESTION_MISMATCH, or a new day) must
+    // not leave it on screen as if it were current.
+    const onRetry = error.retryable ? () => void refetch() : undefined;
+    content = <QuizStatus state="error" code={error.code} onRetry={onRetry} />;
+  } else if (data?.result) {
     content = <QuizResultView question={data} result={data.result} onBack={goBack} />;
   } else if (data) {
     content = (
@@ -54,9 +60,6 @@ export function QuizScreen() {
         }
       />
     );
-  } else if (error && !isFetching) {
-    const onRetry = error.retryable ? () => void refetch() : undefined;
-    content = <QuizStatus state="error" code={error.code} onRetry={onRetry} />;
   } else {
     content = <QuizStatus state="loading" />;
   }
