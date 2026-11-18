@@ -64,6 +64,47 @@ describe('ProfileScreen (TG-385 #517)', () => {
     resolveFetch(jsonResponse(mockUserProfile));
   });
 
+  it('announces the loading state to screen readers (WCAG 4.1.3)', async () => {
+    let resolveFetch!: (res: Response) => void;
+    jest.spyOn(globalThis, 'fetch').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+
+    await renderProfile();
+
+    const loading = await screen.findByText('Carregant el perfil...');
+    expect(loading.props.accessibilityLiveRegion).toBe('polite');
+    resolveFetch(jsonResponse(mockUserProfile));
+  });
+
+  it('announces the error to screen readers as an alert (WCAG 4.1.3)', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(503, 'INTERNAL_ERROR'));
+
+    await renderProfile();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.props.accessibilityLiveRegion).toBe('polite');
+    expect(alert).toHaveTextContent(/.+/);
+  });
+
+  it('with an invalid sign-up date, still shows the profile and leaves out «member since»', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () =>
+        jsonResponse({ ...mockUserProfile, created_at: 'not-a-date' }),
+      );
+
+    await renderProfile();
+
+    expect(await screen.findByText('Àlex García')).toBeOnTheScreen();
+    expect(screen.queryByText(/Membre des de/)).toBeNull();
+  });
+
   it('renders user details when profile data is loaded successfully', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
