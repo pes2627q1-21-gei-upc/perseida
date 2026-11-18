@@ -44,6 +44,8 @@ Acabar TG-385: barra de cinc pestanyes, pantalles «Pròximament» i perfil amb 
   - Una data d'alta invàlida ja no fa caure la pantalla (`RangeError` d'`Intl`): la línia «Membre des de» no surt.
   - Els dos `header` del perfil (títol de la pantalla i nom) es mantenen: són dos nivells de navegació per títols i TalkBack els llegeix bé.
 
+- **Merge de `develop` per resoldre el conflicte de la PR #106:** l'únic conflicte era el resum d'estat de [[frontend]] (TG-93 hi deia que el login ja està traduït); es mantenen les dues bandes. TG-61 hi afegia la ruta `(app)/quiz`, que hauria sortit com a sisena pestanya: ara és a `HIDDEN_ROUTES`, amb un test que comprova que cada ruta del grup és pestanya o ruta amagada.
+
 ## Decisions preses
 
 Cap ADR nova. Decisions del responsable de la US:
@@ -64,7 +66,7 @@ Cap ADR nova. Decisions del responsable de la US:
 
 - [x] Prova manual web (mòbil petit, apaïsat, idiomes, data d'alta, logout); tornar-la a passar després dels arreglaments.
 - [x] Prova manual a dispositiu Android: TalkBack per les cinc pestanyes i el perfil. Tornar a comprovar l'amplada de la barra després de l'arreglament.
-- [ ] El botó de tancar sessió surt en català amb l'app en castellà: és TG-93 (#618, #620), fora d'abast.
+- [x] El botó de tancar sessió surt en català amb l'app en castellà: ho arregla TG-93 (#618, #620), ja fusionada a `develop`.
 - [ ] El login web en local necessita CORS, que és TG-363 (PR #103, d'una altra persona): mentre no es fusioni, la prova web va amb un proxy local de proves (fora del repo).
 - [ ] El test d'integració de `/users/me` no s'ha executat en local (el fixture buida la BD de desenvolupament): el cobreix la CI.
 - [x] PR #106 cap a `develop`; CI i SonarQube Cloud en verd.
