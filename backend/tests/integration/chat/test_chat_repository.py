@@ -113,9 +113,7 @@ def sessions(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 
 def _repository(sessions: async_sessionmaker[AsyncSession]) -> ChatRepository:
     # Adapter arrives in TG-450: TG-450 removes this ignore.
-    from app.infrastructure.chat.repository import (  # type: ignore[import-not-found]
-        SqlChatRepository,
-    )
+    from app.infrastructure.chat.repository import SqlChatRepository
 
     repository: ChatRepository = SqlChatRepository(sessions)
     return repository
