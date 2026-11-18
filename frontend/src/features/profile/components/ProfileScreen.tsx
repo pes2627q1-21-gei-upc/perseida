@@ -39,6 +39,13 @@ export function ProfileScreen() {
   const roleText = data ? optionalText(`profile.role.${data.role}`) : '';
   const languageText = data ? optionalText(`profile.language.${data.preferred_language}`) : '';
 
+  // Intl throws RangeError on an invalid date: then the line is left out, not the whole screen.
+  const createdAt = data ? new Date(data.created_at) : null;
+  const memberSince =
+    createdAt && !Number.isNaN(createdAt.getTime())
+      ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(createdAt)
+      : '';
+
   const errorText =
     error instanceof AppError
       ? errorMessage(t, error.code, error.retryable)
@@ -73,7 +80,9 @@ export function ProfileScreen() {
                   size="large"
                   color={theme.colors.brand}
                 />
-                <Text style={styles.secondaryText}>{t('profile.loading')}</Text>
+                <Text accessibilityLiveRegion="polite" style={styles.secondaryText}>
+                  {t('profile.loading')}
+                </Text>
               </View>
             </GlassPanel>
           )}
@@ -81,7 +90,13 @@ export function ProfileScreen() {
           {isError && (
             <GlassPanel>
               <View style={styles.error}>
-                <Text style={styles.errorText}>{errorText}</Text>
+                <Text
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite"
+                  style={styles.errorText}
+                >
+                  {errorText}
+                </Text>
                 <GelButton
                   label={t('profile.retry')}
                   accessibilityHint={t('profile.retryHint')}
@@ -121,13 +136,11 @@ export function ProfileScreen() {
 
                   {data.display_name ? <Text style={styles.email}>{data.email}</Text> : null}
 
-                  <Text style={styles.memberSince}>
-                    {t('profile.memberSince', {
-                      date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(
-                        new Date(data.created_at),
-                      ),
-                    })}
-                  </Text>
+                  {memberSince ? (
+                    <Text style={styles.memberSince}>
+                      {t('profile.memberSince', { date: memberSince })}
+                    </Text>
+                  ) : null}
 
                   <View style={styles.chips}>
                     {roleText ? (
