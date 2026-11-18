@@ -21,6 +21,8 @@ Que el contingut dels panells de vidre es llegeixi als temes foscos, també sobr
 - **Test (TDD, primer en vermell):** `frontend/src/shared/theme/glassColors.test.ts` comprova que el vidre dels temes foscos és ≥ 60 % opac, que el text primari, el secundari i la marca fan ≥ 4.5:1 a través del vidre sobre el pitjor fons de `nit` i `vermell`, que `onGlass` es distingeix del panell (≥ 1.1:1, com les capes del llac) amb el text primari a ≥ 4.5:1, que a `dia` i `posta` `onGlass` és el mateix vidre (sense canvi d'aspecte) i que el vidre de `vermell` no té blau ni verd. Els ternaris de l'estat premut d'`EventSheet` i `QuizOption` porten `Stryker disable next-line all` perquè són estil visual (`convencions/testing.md`).
 - **Brief:** `.agents/skills/estetica-frutiger-cosmo/references/tokens.md` (valors, contrastos recalculats i nota a «Vidre»), sincronitzat a `.claude/skills/`.
 
+- **Quality Gate de SonarQube Cloud (PR #117):** fallaven la cobertura del codi nou (87.5 %, la branca «premut» del botó de tancar d'`EventSheet` no s'executava) i la duplicació (5.1 %, a `colors.ts`). S'ha afegit un test que manté premut el botó al tema `nit` (`userEvent.longPress`) i s'ha exclòs `colors.ts` del càlcul de duplicació (`sonar.cpd.exclusions`): el CPD compara la forma dels quatre objectes de tema, que és la mateixa per disseny, i qualsevol token nou hi compta com a duplicat. Documentat a [[qualitat]].
+
 ## Decisions
 
 Cap ADR nova (canvi de valors de tokens dins de l'ADR-0020). Decisions de la persona:
