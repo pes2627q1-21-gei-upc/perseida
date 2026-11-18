@@ -793,3 +793,211 @@ describe('socketClient: estat inicial i _resetSocketForTests (TG-461)', () => {
     expect(lastSocket().sentOfType('subscribe')).toEqual([]);
   });
 });
+
+/** A promise the test settles by hand, to hold getToken() or refresh() half-way. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+describe('useSocket: getToken() rebutjat (TG-461; es tracta com si no hi hagués sessió)', () => {
+  // Jest fails the test by itself if the rejection is left unhandled (it reports the reason).
+  it('en muntar: closed amb INVALID_SESSION, sense obrir cap socket ni deixar cap rebuig sense gestionar', async () => {
+    auth.getToken.mockRejectedValue(new Error('SecureStore unavailable'));
+
+    const { result } = await mount();
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(0);
+    expectInvalidSession(result.current);
+  });
+
+  it('en reconnectar: closed amb INVALID_SESSION, sense obrir cap socket ni deixar cap rebuig sense gestionar', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    auth.getToken.mockRejectedValue(new Error('SecureStore unavailable'));
+
+    await networkDrops();
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(1);
+    expectInvalidSession(result.current);
+  });
+});
+
+describe('useSocket: feina asíncrona que acaba després de desmuntar (TG-461)', () => {
+  it('si es desmunta mentre getToken() no ha acabat, en acabar no obre cap socket', async () => {
+    const token1 = deferred<string | null>();
+    auth.getToken.mockReturnValueOnce(token1.promise);
+    const { unmount } = await mount();
+
+    await unmount();
+    await act(async () => token1.resolve('access-1'));
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(0);
+    expect(getSocketState().status).toBe('closed');
+  });
+
+  it('desmuntar i tornar a muntar mentre getToken() no ha acabat no duplica la connexió', async () => {
+    const token1 = deferred<string | null>();
+    auth.getToken.mockReturnValueOnce(token1.promise);
+    const first = await mount();
+    await first.unmount();
+
+    await mount();
+    await act(async () => token1.resolve('access-1'));
+    await flush();
+
+    expect(sockets()).toHaveLength(1);
+  });
+
+  it('si es desmunta mentre auth.refresh() no ha acabat (4401), en acabar no obre cap socket', async () => {
+    const renewal = deferred<void>();
+    auth.refresh.mockReturnValueOnce(renewal.promise);
+    const { unmount } = await mountConnected();
+    await serverCloses(4401);
+
+    await unmount();
+    await act(async () => renewal.resolve());
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(1);
+    expect(getSocketState()).toEqual({ status: 'closed', error: null });
+  });
+
+  it('si es desmunta mentre auth.refresh() no ha acabat i després es rebutja, l’estat no canvia', async () => {
+    const renewal = deferred<void>();
+    auth.refresh.mockReturnValueOnce(renewal.promise);
+    const { unmount } = await mountConnected();
+    await serverCloses(4401);
+
+    await unmount();
+    await act(async () => renewal.reject(new Error('refresh failed')));
+    await flush(TEN_MINUTES);
+
+    expect(getSocketState()).toEqual({ status: 'closed', error: null });
+  });
+});
+
+describe('useSocket: send pendent quan la connexió s’acaba (TG-461)', () => {
+  /** Settles `sending` into a value the test can inspect without awaiting it forever. */
+  async function outcomeOf(sending: Promise<unknown>) {
+    let outcome: unknown = 'pending';
+    sending.then(
+      () => (outcome = 'resolved'),
+      (error: unknown) => (outcome = error),
+    );
+    await flush();
+    return outcome;
+  }
+
+  it.each([
+    ['la xarxa cau (1006)', (socket: FakeWebSocket) => socket.networkFailure()],
+    ['el servidor tanca amb 1013', (socket: FakeWebSocket) => socket.serverClose(1013)],
+  ])('es rebutja amb NETWORK_ERROR quan %s abans de l’ack', async (_label, close) => {
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+
+    await act(async () => close(lastSocket()));
+    const outcome = await outcomeOf(sending);
+
+    expect(outcome).toBeInstanceOf(AppError);
+    expect((outcome as AppError).code).toBe('NETWORK_ERROR');
+  });
+
+  it('es rebutja amb NETWORK_ERROR quan es desmunta l’últim consumidor abans de l’ack', async () => {
+    const { result, unmount } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+
+    await unmount();
+    const outcome = await outcomeOf(sending);
+
+    expect(outcome).toBeInstanceOf(AppError);
+    expect((outcome as AppError).code).toBe('NETWORK_ERROR');
+  });
+});
+
+describe('useSocket: estat després de desmuntar l’últim consumidor (TG-461)', () => {
+  it('l’estat queda closed i una connexió nova no hereta les sales que ja s’han deixat', async () => {
+    const { result, unmount } = await mountConnected();
+    let leave = () => {};
+    await act(async () => {
+      leave = result.current.subscribe(ROOM, jest.fn());
+    });
+    const old = lastSocket();
+
+    await unmount();
+    await act(async () => leave()); // what a consumer's own cleanup does
+
+    expect(getSocketState().status).toBe('closed');
+    expect(old.sentOfType('unsubscribe')).toEqual([]);
+
+    await mountConnected();
+
+    expect(sockets()).toHaveLength(2);
+    expect(lastSocket().sentOfType('subscribe')).toEqual([]);
+  });
+});
+
+describe('useSocket: abans de l’ack de l’auth (TG-461)', () => {
+  it('un frame que no és auth no autentica: continua connecting, no respon i send es rebutja', async () => {
+    const { result } = await mount();
+    await serverOpens();
+
+    await serverSends({ type: 'ping', id: 'p-1' });
+    await serverSends({ type: 'subscribe', room: ROOM, id: '1', payload: {} });
+
+    expect(result.current.status).toBe('connecting');
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
+
+    const { sending } = await startSending(result.current.send);
+    const error = await rejectionOf(sending);
+
+    expect(error.code).toBe('NETWORK_ERROR');
+  });
+
+  it('deixar l’última sala sense estar autenticat no envia unsubscribe', async () => {
+    const { result } = await mount();
+    await serverOpens();
+    let leave = () => {};
+    await act(async () => {
+      leave = result.current.subscribe(ROOM, jest.fn());
+    });
+
+    await act(async () => leave());
+    await serverSends(AUTH_ACK);
+
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
+  });
+});
+
+describe('useSocket: reconnect() quan l’estat no és closed (TG-461)', () => {
+  it('amb la connexió oberta no fa res', async () => {
+    const { result } = await mountConnected();
+
+    await act(async () => result.current.reconnect());
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(1);
+    expect(lastSocket().closedByClientWith).toBeUndefined();
+    expect(result.current.status).toBe('open');
+  });
+
+  it('mentre espera per reconnectar no avança el reintent ni canvia l’estat', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await networkDrops();
+
+    await act(async () => result.current.reconnect());
+    await flush(999);
+
+    expect(sockets()).toHaveLength(1);
+    expect(result.current.status).toBe('reconnecting');
+  });
+});

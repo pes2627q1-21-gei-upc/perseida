@@ -314,4 +314,25 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     expect(first.onMessage).not.toHaveBeenCalled();
     expect(first.onRevoked).not.toHaveBeenCalled();
   });
+
+  it('sendMessage després de canviar eventId envia a la sala nova', async () => {
+    const { result, rerender } = await renderHook(
+      ({ eventId }: { eventId: string }) => useChatSocket(eventId, handlers),
+      { initialProps: { eventId: EVENT_ID } },
+    );
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+    await rerender({ eventId: OTHER_EVENT_ID });
+    await flush();
+
+    await startSending(result.current.sendMessage, 'hola');
+
+    expect(lastSent()).toEqual({
+      type: 'message',
+      room: OTHER_ROOM,
+      payload: { text: 'hola' },
+      id: expect.any(String),
+    });
+  });
 });
