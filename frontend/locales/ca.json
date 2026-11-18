@@ -176,7 +176,6 @@
       "choose": "Tria aquest lloc",
       "useMine": "Usa la meva ubicació",
       "denied": "No hem pogut obtenir la teva ubicació. Mou el mapa per triar el lloc.",
-      "chosen": "Lloc triat: {{latitude}}, {{longitude}}",
       "latitude": "Latitud",
       "longitude": "Longitud",
       "useCoordinates": "Tria aquestes coordenades",
