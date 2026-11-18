@@ -10,6 +10,10 @@ SQLModel.metadata.naming_convention = {
 
 # Import the table models after the naming convention is set so that
 # ``SQLModel.metadata`` (used by Alembic) knows every table.
+from app.infrastructure.chat.tables import (  # noqa: E402, F401
+    ChatMessageRow,
+    EventChatRoomRow,
+)
 from app.infrastructure.events.tables import (  # noqa: E402, F401
     AstronomicalEventRow,
     EventSubscriptionRow,

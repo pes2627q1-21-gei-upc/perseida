@@ -80,6 +80,10 @@ def get_changed_domain_files(base_branch: str) -> list[str] | None:
         clean = line.strip()
         if not clean or not clean.endswith(".py"):
             continue
+        # Els ports són Protocols sense lògica: cap test unitari n'executa els
+        # cos i mutmut s'atura amb "no test case for any mutant".
+        if Path(clean).name == "ports.py":
+            continue
         if clean.startswith("backend/"):
             clean = clean[len("backend/") :]
         if Path(clean).is_file():
