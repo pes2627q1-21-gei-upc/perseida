@@ -46,8 +46,6 @@ interface Props {
   onShowOutings?: (eventId: string) => void;
   /** Wide screens: a panel beside the map instead of a sheet over it. */
   side?: boolean;
-  /** Side panel only: room at the top for the floating bar of the screen. */
-  topInset?: number;
 }
 
 interface BodyProps {
@@ -56,6 +54,8 @@ interface BodyProps {
   onShowOutings?: (eventId: string) => void;
   /** Side panel only: the title, which takes the focus when the panel opens. */
   titleRef?: Ref<ComponentRef<typeof Text>>;
+  /** Side panel: fills the height and the content scrolls inside it. */
+  side?: boolean;
 }
 
 function DateRow({ label, value }: { label: string; value: string }) {
@@ -73,7 +73,7 @@ function DateRow({ label, value }: { label: string; value: string }) {
 }
 
 /** What the summary says: the same in the bottom sheet and in the side panel. */
-function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
+function SheetBody({ event, onClose, onShowOutings, titleRef, side = false }: BodyProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { height } = useWindowDimensions();
@@ -82,8 +82,8 @@ function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
   const active = event.status === 'active';
 
   return (
-    <GlassPanel>
-      <View style={{ gap: spacing.md }}>
+    <GlassPanel fill={side}>
+      <View style={[{ gap: spacing.md }, side && styles.fill]}>
         <View style={[styles.header, { gap: spacing.md }]}>
           <EventOrb category={event.category} active={active} />
           <View style={[styles.headerText, { gap: spacing.xs }]}>
@@ -121,7 +121,7 @@ function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
         </View>
 
         <ScrollView
-          style={{ maxHeight: height * MAX_CONTENT_SHARE }}
+          style={side ? styles.fill : { maxHeight: height * MAX_CONTENT_SHARE }}
           contentContainerStyle={{ gap: spacing.md }}
         >
           <View style={{ gap: spacing.xs }}>
@@ -220,7 +220,7 @@ function BottomSheet({ event, onClose, onShowOutings }: BodyProps) {
  * reader) goes to its title, which announces it; on the web, closing it gives the focus back to
  * where it was, usually the marker (WCAG 2.2: 2.4.3 focus order).
  */
-function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { topInset: number }) {
+function SidePanel({ event, onClose, onShowOutings }: BodyProps) {
   const { spacing } = useTheme();
   const insets = useSafeAreaInsets();
   const titleRef = useRef<ComponentRef<typeof Text>>(null);
@@ -271,7 +271,7 @@ function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { to
       testID="event-sheet-side"
       style={{
         width: SIDE_WIDTH,
-        paddingTop: topInset + spacing.md,
+        paddingTop: spacing.md,
         paddingBottom: spacing.md,
         paddingRight: insets.right + spacing.md,
       }}
@@ -281,6 +281,7 @@ function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { to
         onClose={onClose}
         onShowOutings={onShowOutings}
         titleRef={titleRef}
+        side
       />
     </View>
   );
@@ -294,15 +295,10 @@ function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { to
  * It closes with its button, with Escape (web) or the back button (Android), and on phones
  * also by tapping outside it. No sounds.
  */
-export function EventSheet({ event, onClose, onShowOutings, side = false, topInset = 0 }: Props) {
+export function EventSheet({ event, onClose, onShowOutings, side = false }: Props) {
   if (side) {
     return event ? (
-      <SidePanel
-        event={event}
-        onClose={onClose}
-        onShowOutings={onShowOutings}
-        topInset={topInset}
-      />
+      <SidePanel event={event} onClose={onClose} onShowOutings={onShowOutings} />
     ) : null;
   }
   return (
@@ -319,6 +315,7 @@ export function EventSheet({ event, onClose, onShowOutings, side = false, topIns
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   root: { flex: 1, justifyContent: 'flex-end' },
   sheet: { width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center' },

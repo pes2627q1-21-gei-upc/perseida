@@ -50,7 +50,6 @@ export function MapControls({ view, onViewChange, filter, onFilterChange }: Prop
     <View
       testID="map-controls"
       style={[
-        styles.bar,
         {
           paddingTop: theme.spacing.sm,
           paddingBottom: insets.bottom + theme.spacing.sm,
@@ -83,6 +82,5 @@ export function MapControls({ view, onViewChange, filter, onFilterChange }: Prop
 }
 
 const styles = StyleSheet.create({
-  bar: { alignItems: 'center' },
-  panel: { width: '100%' },
+  panel: { alignSelf: 'flex-start' },
 });

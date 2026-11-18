@@ -81,9 +81,9 @@ export default function MapScreen() {
 
   return (
     <SkyBackground>
-      <MapTopBar onBack={goBack} onLayout={setBarBottom} />
-      <View style={StyleSheet.absoluteFill}>
-        <View style={[styles.fill, wide && styles.row]}>
+      <View style={[StyleSheet.absoluteFill, wide && styles.row]}>
+        <View style={styles.fill}>
+          <MapTopBar onBack={goBack} onLayout={setBarBottom} />
           <View style={styles.fill}>
             {/* The map is never unmounted: a new mount reloads it and loses the zoom and
                 position. Under the list it stays laid out but invisible, untouchable and out
@@ -103,22 +103,16 @@ export default function MapScreen() {
             )}
             {status}
           </View>
-          {wide && (
-            <EventSheet
-              side
-              event={selected}
-              onClose={closeSheet}
-              onShowOutings={showOutings}
-              topInset={barBottom}
-            />
-          )}
+          <MapControls
+            view={view}
+            onViewChange={setView}
+            filter={filter}
+            onFilterChange={setFilter}
+          />
         </View>
-        <MapControls
-          view={view}
-          onViewChange={setView}
-          filter={filter}
-          onFilterChange={setFilter}
-        />
+        {wide && (
+          <EventSheet side event={selected} onClose={closeSheet} onShowOutings={showOutings} />
+        )}
       </View>
       {!wide && <EventSheet event={selected} onClose={closeSheet} onShowOutings={showOutings} />}
     </SkyBackground>
