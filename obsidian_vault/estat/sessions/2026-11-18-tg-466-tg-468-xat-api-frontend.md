@@ -35,3 +35,9 @@ Capa de dades del xat al frontend: crides REST a les sales i a l'històric amb c
 - [ ] Hook de WebSocket compartit (branca `feature/TG-461-xat-socket`).
 - [ ] Pantalles, i18n i accessibilitat (TG-469), amb els seus tests abans.
 - [ ] Nota global del flux d'un missatge i actualitzar `api` i `redis` (TG-470).
+
+## US de Taiga
+
+- TG-64
+- TG-466
+- TG-468
