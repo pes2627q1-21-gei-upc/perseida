@@ -11,14 +11,14 @@ const { all } = classifyEvents([meteorShowerEvent], [launchEvent, lunarEvent]);
 // The events are the ones of the map; their own tests cover how they load.
 let mockEvents: {
   data: { all: typeof all } | undefined;
-  isPending: boolean;
+  isLoading: boolean;
   error: AppError | null;
   refetch: jest.Mock;
 };
 jest.mock('../../events/hooks/useEvents', () => ({ useMapEvents: () => mockEvents }));
 
 beforeEach(() => {
-  mockEvents = { data: { all }, isPending: false, error: null, refetch: jest.fn() };
+  mockEvents = { data: { all }, isLoading: false, error: null, refetch: jest.fn() };
 });
 
 const when = (iso: string) => formatDateTime(iso, 'ca');
@@ -107,7 +107,7 @@ describe('EventField', () => {
   });
 
   it('says it is loading and offers only "no event" meanwhile', async () => {
-    mockEvents = { data: undefined, isPending: true, error: null, refetch: jest.fn() };
+    mockEvents = { data: undefined, isLoading: true, error: null, refetch: jest.fn() };
 
     await render(<EventField value={null} onChange={jest.fn()} />);
 
@@ -116,7 +116,7 @@ describe('EventField', () => {
   });
 
   it('keeps the selected event while the events load', async () => {
-    mockEvents = { data: undefined, isPending: true, error: null, refetch: jest.fn() };
+    mockEvents = { data: undefined, isLoading: true, error: null, refetch: jest.fn() };
 
     await render(<EventField value="event-1" onChange={jest.fn()} />);
 
@@ -127,7 +127,7 @@ describe('EventField', () => {
 
   it('says why the events did not load and lets the person try again when it is transient', async () => {
     const error = new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable: true });
-    mockEvents = { data: undefined, isPending: false, error, refetch: jest.fn() };
+    mockEvents = { data: undefined, isLoading: false, error, refetch: jest.fn() };
     await render(<EventField value={null} onChange={jest.fn()} />);
 
     expect(screen.getByRole('alert')).toBeOnTheScreen();
@@ -138,7 +138,7 @@ describe('EventField', () => {
 
   it('offers no retry when the error is final, and "no event" can still be chosen', async () => {
     const error = new AppError({ kind: 'http', code: 'NOT_FOUND', status: 404, retryable: false });
-    mockEvents = { data: undefined, isPending: false, error, refetch: jest.fn() };
+    mockEvents = { data: undefined, isLoading: false, error, refetch: jest.fn() };
     const onChange = jest.fn();
     await render(<EventField value="event-1" onChange={onChange} />);
 

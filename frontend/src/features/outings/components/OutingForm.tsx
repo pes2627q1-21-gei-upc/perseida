@@ -1,14 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from 'react';
-import { Controller, useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage, isAppError } from '../../../shared/errors';
 import { useTheme } from '../../../shared/theme';
-import { GelButton, QuietButton } from '../../../shared/ui';
+import { GelButton } from '../../../shared/ui';
 import { type OutingFormValues, outingFormSchema } from '../outingForm';
 import { DateTimeField } from './DateTimeField';
+import { EventField } from './EventField';
 import { LocationField } from './LocationField';
 import { TextField } from './TextField';
 
@@ -39,18 +40,17 @@ interface Props {
  * Create or edit an outing (TG-629): title, description, start, end and place. Validation of
  * convenience runs in the form with no network; the server stays the real check and its
  * business codes land next to their field. Whatever is not about one field is announced as an
- * alert. The event the outing is linked to cannot be chosen here, only removed.
+ * alert. The event the outing is linked to is chosen among the active and upcoming ones.
  */
 export function OutingForm({ initial, editing = false, onSubmit }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const schema = useMemo(() => outingFormSchema(editing ? initial : undefined), [editing, initial]);
-  const { control, handleSubmit, setError, setValue, formState } = useForm<OutingFormValues>({
+  const { control, handleSubmit, setError, formState } = useForm<OutingFormValues>({
     resolver: zodResolver(schema),
     defaultValues: initial,
   });
-  const eventId = useWatch({ control, name: 'eventId' });
   const { errors } = formState;
   const message = (key?: string) => (key ? t(key) : undefined);
 
@@ -134,17 +134,11 @@ export function OutingForm({ initial, editing = false, onSubmit }: Props) {
           />
         )}
       />
-      {eventId ? (
-        <View style={[styles.row, { gap: spacing.md }]}>
-          <Text style={[typography.body, styles.grow, { color: colors.text.primary }]}>
-            {t('outings.form.linkedEvent')}
-          </Text>
-          <QuietButton
-            label={t('outings.form.removeEvent')}
-            onPress={() => setValue('eventId', null)}
-          />
-        </View>
-      ) : null}
+      <Controller
+        control={control}
+        name="eventId"
+        render={({ field }) => <EventField value={field.value} onChange={field.onChange} />}
+      />
       <View style={styles.actions}>
         <GelButton
           label={t('outings.form.save')}
