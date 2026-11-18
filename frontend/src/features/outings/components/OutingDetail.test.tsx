@@ -1,9 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
+import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
+import { classifyEvents } from '../../events/classifyEvents';
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
 import type { Outing } from '../api/outings';
 import { formatCoordinate, formatDateTime } from '../formatOuting';
 import { OutingDetail } from './OutingDetail';
+
+// The title of the event comes from the events of the map, which have their own tests.
+const mockEvents = classifyEvents([meteorShowerEvent], [launchEvent, lunarEvent]);
+jest.mock('../../events/hooks/useEvents', () => ({
+  useMapEvents: () => ({ data: mockEvents }),
+}));
 
 async function renderDetail(outing: Outing = myOuting, isAuthor = true) {
   const onEdit = jest.fn();
@@ -71,5 +79,26 @@ describe('OutingDetail', () => {
 
     expect(screen.queryByRole('button', { name: 'Edita' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Esborra' })).toBeNull();
+  });
+
+  it('shows the event the outing is linked to, with its title', async () => {
+    await renderDetail();
+
+    expect(screen.getByText('Esdeveniment')).toBeOnTheScreen();
+    expect(screen.getByText(meteorShowerEvent.title)).toBeOnTheScreen();
+  });
+
+  it('says the outing is linked to an event when its title is not known', async () => {
+    await renderDetail({ ...myOuting, event_id: 'gone-event' });
+
+    expect(screen.getByText('Esdeveniment')).toBeOnTheScreen();
+    expect(screen.getByText('Sortida lligada a un esdeveniment')).toBeOnTheScreen();
+  });
+
+  it('shows nothing about an event when the outing has none', async () => {
+    await renderDetail(otherOuting, false);
+
+    expect(screen.queryByText('Esdeveniment')).toBeNull();
+    expect(screen.queryByText('Sortida lligada a un esdeveniment')).toBeNull();
   });
 });

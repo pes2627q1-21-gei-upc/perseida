@@ -1,9 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
+import { classifyEvents } from '../../events/classifyEvents';
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
 import { formatDateTime } from '../formatOuting';
 import { OutingList } from './OutingList';
+
+// The title of the event comes from the events of the map, which have their own tests.
+const mockEvents = classifyEvents([meteorShowerEvent], [launchEvent, lunarEvent]);
+jest.mock('../../events/hooks/useEvents', () => ({
+  useMapEvents: () => ({ data: mockEvents }),
+}));
 
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -48,7 +56,9 @@ describe('OutingList', () => {
 
     const when = formatDateTime(myOuting.starts_at, 'ca');
     expect(
-      screen.getByRole('button', { name: `${myOuting.title}, ${when}, Organitza: Raquel` }),
+      screen.getByRole('button', {
+        name: `${myOuting.title}, ${when}, Organitza: Raquel, Esdeveniment: ${meteorShowerEvent.title}`,
+      }),
     ).toBeOnTheScreen();
   });
 
@@ -58,5 +68,33 @@ describe('OutingList', () => {
     await fireEvent.press(screen.getByText(otherOuting.title));
 
     expect(onSelect).toHaveBeenCalledWith(otherOuting.id);
+  });
+
+  it('says which event the outing is linked to, with its title', async () => {
+    await renderList();
+
+    expect(screen.getByText(`Esdeveniment: ${meteorShowerEvent.title}`)).toBeOnTheScreen();
+  });
+
+  it('says nothing about an event when the outing has none', async () => {
+    await renderList();
+
+    // Only the outing with an event has the line: the other one has none.
+    expect(screen.getAllByText(/^Esdeveniment: /)).toHaveLength(1);
+  });
+
+  it('says the outing is linked to an event when its title is not known', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <OutingList
+          outings={[{ ...myOuting, event_id: 'gone-event' }]}
+          label={LABEL}
+          onSelect={jest.fn()}
+        />
+      </SafeAreaProvider>,
+    );
+
+    expect(screen.getByText('Sortida lligada a un esdeveniment')).toBeOnTheScreen();
+    expect(screen.queryByText(/^Esdeveniment: /)).toBeNull();
   });
 });
