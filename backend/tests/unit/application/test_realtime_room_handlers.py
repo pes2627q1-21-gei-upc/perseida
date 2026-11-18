@@ -23,6 +23,7 @@ from app.application.shared.errors import (
 )
 from app.domain.auth.models import AccountStatus, GoogleIdentity
 from app.domain.realtime.models import revocation_channel, room_channel
+from app.domain.realtime.ports import ConnectionClosed
 from app.domain.shared.errors import (
     BusinessRuleViolation,
     DomainError,
@@ -394,6 +395,64 @@ async def test_an_unknown_error_does_not_leak_its_message(harness: Harness) -> N
     reply = await request(conn, message(ROOM, "m1", {}))
 
     assert "secret internals" not in str(reply)
+
+
+@pytest.mark.parametrize(
+    ("failure", "title"),
+    [
+        (
+            ForbiddenError("FORBIDDEN", "user 7 is not in the room of event 9"),
+            "Forbidden",
+        ),
+        (
+            NotFoundError("EVENT_NOT_FOUND", "no row in astronomical_events"),
+            "Not Found",
+        ),
+        (
+            ExternalServiceError("DATABASE_UNAVAILABLE", "host db:5432 down"),
+            "Service Unavailable",
+        ),
+    ],
+    ids=["forbidden", "not-found", "database"],
+)
+async def test_a_known_code_goes_with_a_generic_detail_not_the_raw_message(
+    harness: Harness, failure: Exception, title: str
+) -> None:
+    harness.handler.failure = failure
+    conn = await harness.connect()
+
+    reply = await request(conn, message(ROOM, "m1", {"text": "x"}))
+
+    assert reply["payload"]["code"] == failure.code  # type: ignore[attr-defined]
+    assert reply["payload"]["detail"] == title
+    assert str(failure.message) not in str(reply)  # type: ignore[attr-defined]
+
+
+async def test_an_unexpected_exception_of_a_handler_is_an_internal_error_frame(
+    harness: Harness,
+) -> None:
+    harness.handler.failure = RuntimeError("boom: secret internals")
+    conn = await harness.connect()
+
+    reply = await request(conn, message(ROOM, "m1", {"text": "x"}))
+
+    assert (reply["type"], reply["room"], reply["id"]) == ("error", ROOM, "m1")
+    assert reply["payload"]["code"] == "INTERNAL_ERROR"
+    assert reply["payload"]["status"] == 500
+    assert "secret internals" not in str(reply)
+    await assert_alive(conn)  # the connection stays open
+
+
+async def test_a_connection_closed_in_a_handler_still_ends_the_session(
+    harness: Harness,
+) -> None:
+    harness.handler.failure = ConnectionClosed()
+    conn = await harness.connect()
+
+    conn.feed_frame(message(ROOM, "m1", {"text": "x"}))
+    await wait_until(lambda: harness.tasks[-1].done())
+
+    assert conn.sent_frames()[1:] == []  # no INTERNAL_ERROR frame was attempted
 
 
 async def test_an_error_of_one_client_does_not_affect_another(
