@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
@@ -11,7 +11,12 @@ from app.application.auth.auth_service import AuthService
 from app.application.realtime import errors
 from app.application.realtime.connection_limiter import ConnectionLimiter
 from app.application.realtime.errors import error_frame
-from app.application.shared.errors import ExternalServiceError, UnauthorizedError
+from app.application.realtime.room_handler import RoomHandler, RoomRequest
+from app.application.shared.errors import (
+    ApplicationError,
+    ExternalServiceError,
+    UnauthorizedError,
+)
 from app.domain.auth.models import SessionClaims, TokenType
 from app.domain.auth.ports import SessionStore
 from app.domain.realtime.models import (
@@ -21,6 +26,7 @@ from app.domain.realtime.models import (
     room_channel,
 )
 from app.domain.realtime.ports import ConnectionClosed, RealtimeConnection
+from app.domain.shared.errors import DomainError
 from app.domain.shared.ports import PubSub
 
 logger = logging.getLogger(__name__)
@@ -61,6 +67,7 @@ class RealtimeSession:
         conn_id: str,
         correlation_id: str | None = None,
         limiter: ConnectionLimiter | None = None,
+        handlers: Mapping[str, RoomHandler] | None = None,
     ) -> None:
         self._conn = conn
         self._auth = auth
@@ -70,6 +77,11 @@ class RealtimeSession:
         self._conn_id = conn_id
         self._correlation_id = correlation_id or conn_id
         self._limiter = limiter
+        # the room prefixes, longest first so that the most specific one wins
+        self._handlers = sorted(
+            (handlers or {}).items(), key=lambda item: len(item[0]), reverse=True
+        )
+        self._sub = ""
         self._slot: str | None = None
         self._send_lock = asyncio.Lock()
         self._close_code: int | None = None
@@ -121,6 +133,7 @@ class RealtimeSession:
         return token if isinstance(token, str) else None
 
     async def _serve(self, claims: SessionClaims) -> None:
+        self._sub = claims.sub
         if not self._acquire_slot(claims.sub):
             await self._close(errors.CLOSE_TOO_MANY_CONNECTIONS)
             return
@@ -212,24 +225,49 @@ class RealtimeSession:
         else:
             try:
                 reply = await self._room_action(frame, frame.room)
-            except ExternalServiceError:
-                reply = self._error(
-                    errors.PUBSUB_UNAVAILABLE,
-                    "Real-time bus unavailable.",
-                    frame.id,
-                    frame.room,
-                )
+            except (DomainError, ApplicationError) as exc:
+                reply = self._room_error(exc, frame.id, frame.room)
         await self._send(reply)
 
+    def _room_error(
+        self, exc: DomainError | ApplicationError, frame_id: str | None, room: str
+    ) -> Frame:
+        """Error frame of a refusal: its own code if known, a safe one otherwise."""
+        if errors.is_known(exc.code):
+            code, detail = exc.code, exc.message
+        elif isinstance(exc, ExternalServiceError):
+            code, detail = errors.PUBSUB_UNAVAILABLE, exc.message
+        else:
+            logger.error("Unmapped error code %s in a room.", exc.code, exc_info=exc)
+            code, detail = errors.INTERNAL_ERROR, "Unexpected error."
+        if code == errors.PUBSUB_UNAVAILABLE:
+            detail = "Real-time bus unavailable."
+        return self._error(code, detail, frame_id, room)
+
+    def _handler_for(self, room: str) -> RoomHandler | None:
+        for prefix, handler in self._handlers:
+            if room.startswith(prefix):
+                return handler
+        return None
+
     async def _room_action(self, frame: Frame, room: str) -> Frame:
+        handler = self._handler_for(room)
+        request = RoomRequest(sub=self._sub, conn_id=self._conn_id, room=room)
         if frame.type == FrameType.SUBSCRIBE:
             if room not in self._rooms and len(self._rooms) >= self._config.max_rooms:
                 return self._error(
                     errors.RATE_LIMITED, "Too many rooms.", frame.id, room
                 )
+            if handler is not None:
+                await handler.subscribe(request)
             await self._join(room)
         elif frame.type == FrameType.UNSUBSCRIBE:
+            if handler is not None:
+                await handler.unsubscribe(request)
             await self._leave(room)
+        elif handler is not None:
+            ack = await handler.message(request, frame.payload)
+            return Frame(type=frame.type, room=room, id=frame.id, payload=ack)
         elif room not in self._rooms:
             return self._error(
                 errors.NOT_SUBSCRIBED, "Subscribe to the room first.", frame.id, room

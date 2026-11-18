@@ -24,7 +24,10 @@ from app.domain.realtime.models import revocation_channel
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.auth.dependencies import get_auth_service, get_session_store
 from app.infrastructure.cache.dependencies import get_pubsub
-from app.infrastructure.realtime.dependencies import get_realtime_config
+from app.infrastructure.realtime.dependencies import (
+    get_realtime_config,
+    get_room_handlers,
+)
 from app.infrastructure.realtime.router import router
 from tests.fakes.auth import (
     FakeAccountGateway,
@@ -73,6 +76,8 @@ def client(env: Env) -> Iterator[TestClient]:
     app.dependency_overrides[get_pubsub] = lambda: env.pubsub
     app.dependency_overrides[get_session_store] = lambda: env.store
     app.dependency_overrides[get_realtime_config] = lambda: env.config
+    # these tests are about the generic protocol: no chat (it needs the app state)
+    app.dependency_overrides[get_room_handlers] = lambda: {}
     with TestClient(app) as test_client:
         yield test_client
 

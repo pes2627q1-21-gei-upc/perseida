@@ -7,6 +7,13 @@ PUBSUB_UNAVAILABLE = "PUBSUB_UNAVAILABLE"
 INTERNAL_ERROR = "INTERNAL_ERROR"
 FORBIDDEN = "FORBIDDEN"
 RATE_LIMITED = "RATE_LIMITED"
+# Codes of the room handlers (chat, TG-459); they travel unchanged, as in REST.
+CHAT_MESSAGE_EMPTY = "CHAT_MESSAGE_EMPTY"
+CHAT_MESSAGE_TOO_LONG = "CHAT_MESSAGE_TOO_LONG"
+CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
+CHAT_ROOM_NOT_FOUND = "CHAT_ROOM_NOT_FOUND"
+EVENT_NOT_FOUND = "EVENT_NOT_FOUND"
+DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
 
 CLOSE_GOING_AWAY = 1001
 CLOSE_INTERNAL_ERROR = 1011
@@ -22,6 +29,12 @@ _STATUS = {
     INTERNAL_ERROR: 500,
     FORBIDDEN: 403,
     RATE_LIMITED: 429,
+    CHAT_MESSAGE_EMPTY: 422,
+    CHAT_MESSAGE_TOO_LONG: 422,
+    CHAT_MESSAGE_REJECTED: 422,
+    CHAT_ROOM_NOT_FOUND: 404,
+    EVENT_NOT_FOUND: 404,
+    DATABASE_UNAVAILABLE: 503,
 }
 _TITLE = {
     422: "Unprocessable Entity",
@@ -30,7 +43,13 @@ _TITLE = {
     500: "Internal Server Error",
     403: "Forbidden",
     429: "Too Many Requests",
+    404: "Not Found",
 }
+
+
+def is_known(code: str) -> bool:
+    """Whether ``code`` is one the real-time layer can put in an error frame."""
+    return code in _STATUS
 
 
 def error_frame(
