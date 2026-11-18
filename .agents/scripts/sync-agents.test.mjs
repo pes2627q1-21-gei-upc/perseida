@@ -48,7 +48,7 @@ test('genera un fitxer per eina i agent, amb marca', () =>
   withTmp((root) => {
     repo(root);
     const { changed } = syncAgents({ root });
-    assert.equal(changed.length, ADAPTERS.length * 2);
+    assert.equal(changed.length, ADAPTERS.length * 2 + 1);
     for (const p of [
       '.claude/agents/backend.md',
       '.codex/agents/backend.toml',
@@ -86,7 +86,7 @@ test('TOML escapa barres i cometes triples del cos', () =>
 test('--check no escriu i detecta divergències', () =>
   withTmp((root) => {
     repo(root);
-    assert.equal(syncAgents({ root, check: true }).changed.length, ADAPTERS.length * 2);
+    assert.equal(syncAgents({ root, check: true }).changed.length, ADAPTERS.length * 2 + 1);
     assert.ok(!existsSync(join(root, '.claude')));
     syncAgents({ root });
     assert.deepEqual(syncAgents({ root, check: true }).changed, []);

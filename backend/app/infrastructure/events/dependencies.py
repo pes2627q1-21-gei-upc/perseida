@@ -4,8 +4,12 @@ from fastapi import Depends
 from starlette.requests import HTTPConnection
 
 from app.application.events.event_service import EventService
-from app.infrastructure.cache.dependencies import CacheDep
+from app.application.events.subscription_service import SubscriptionService
+from app.infrastructure.cache.dependencies import CacheDep, PubSubDep
 from app.infrastructure.events.repository import SqlEventRepository
+from app.infrastructure.events.subscription_repository import (
+    SqlEventSubscriptionRepository,
+)
 
 
 def get_event_service(conn: HTTPConnection, cache: CacheDep) -> EventService:
@@ -17,3 +21,20 @@ def get_event_service(conn: HTTPConnection, cache: CacheDep) -> EventService:
 
 
 EventServiceDep = Annotated[EventService, Depends(get_event_service)]
+
+
+def get_subscription_service(
+    conn: HTTPConnection, pubsub: PubSubDep
+) -> SubscriptionService:
+    # Light objects over the engine's session factory, owned by the lifespan.
+    session_factory = conn.app.state.session_factory
+    return SubscriptionService(
+        SqlEventRepository(session_factory),
+        SqlEventSubscriptionRepository(session_factory),
+        pubsub,
+    )
+
+
+SubscriptionServiceDep = Annotated[
+    SubscriptionService, Depends(get_subscription_service)
+]

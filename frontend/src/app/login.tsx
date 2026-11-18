@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,13 +9,14 @@ import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
 import { useGoogleAuth } from '../features/auth/hooks/useGoogleAuth';
 import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
-import { authStrings, toAuthErrorMessage } from '../features/auth/strings';
+import { toAuthErrorMessage } from '../features/auth/strings';
 import { getTokens, saveTokens } from '../features/auth/tokenStorage';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
 
 /** Sign-in screen. Its memorable element is the Perseid shower over the lake. */
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -22,7 +24,7 @@ export default function LoginScreen() {
   // A sign-out that the server could not confirm sends us here with a notice param.
   const [pressedNotice, setPressedNotice] = useState<string | null>(null);
   const notice =
-    pressedNotice ?? (noticeParam === LOGOUT_NOTICE ? authStrings.logoutNotConfirmed : null);
+    pressedNotice ?? (noticeParam === LOGOUT_NOTICE ? t('auth.logoutNotConfirmed') : null);
 
   const { signIn, isAuthenticating } = useGoogleAuth({
     onSuccess: async (idToken) => {
@@ -88,7 +90,8 @@ export default function LoginScreen() {
           accessibilityRole="header"
           style={[theme.typography.display, { color: theme.colors.text.primary }]}
         >
-          {authStrings.appName}
+          {/* The name of the app is not translated (US #93). */}
+          Perseida
         </Text>
         <View style={{ width: '100%', maxWidth: theme.breakpoints.phone }}>
           <GlassPanel>
@@ -99,10 +102,10 @@ export default function LoginScreen() {
                   { color: theme.colors.text.secondary, textAlign: 'center' },
                 ]}
               >
-                {authStrings.tagline}
+                {t('auth.tagline')}
               </Text>
               <GelButton
-                label={authStrings.continueWithGoogle}
+                label={t('auth.continueWithGoogle')}
                 icon={<GoogleLogo />}
                 onPress={handleContinue}
                 busy={isAuthenticating}

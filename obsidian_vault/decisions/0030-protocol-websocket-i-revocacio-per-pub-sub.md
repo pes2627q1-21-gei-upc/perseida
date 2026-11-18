@@ -3,7 +3,7 @@ titol: "ADR-0030: Protocol WebSocket i revocació de sessió per pub/sub"
 tipus: adr
 estat: acceptada
 data: "2026-11-07"
-us: ["TG-63"]
+us: ["TG-63", "TG-64"]
 font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime; aprovació de la PR 78"
 etiquetes: [adr, backend, websocket, redis, pubsub, seguretat]
 ---
@@ -38,6 +38,19 @@ Un endpoint `/api/ws` amb un embolcall JSON únic, un catàleg d'errors comparti
 
 **Servidor.** uvicorn només accepta el handshake si hi ha una llibreria WebSocket instal·lada; sense ella respon 404 encara que els tests amb `TestClient` passin. Es fixa `websockets==17.4` a `backend/pyproject.toml` i un test d'integració comprova el `101` contra un uvicorn real. L'entrypoint fixa `UVICORN_WS_MAX_SIZE` al valor de `WS_MAX_FRAME_BYTES` (65536 per defecte): uvicorn rebutja els missatges que el superen amb el codi 1009 abans que arribin a l'aplicació.
 
+## Actualització (TG-64)
+
+El xat d'esdeveniment (#64) ha afegit un punt d'extensió sense canviar el protocol:
+
+- **Handlers per prefix de sala.** `RealtimeSession` rep un registre `prefix -> RoomHandler` (port a `app/application/realtime/room_handler.py`: `subscribe`, `unsubscribe` i `message`, amb `RoomRequest(sub, conn_id, room)`). El prefix més llarg que encaixa decideix; les sales sense handler es comporten exactament com abans. L'endpoint resol els handlers amb `get_room_handlers` (un joc per connexió), que construeix els services des de `app.state` quan arriba el primer frame de xat. El de xat és `ChatWsHandler` (`chat:event:`) a `infrastructure/chat`.
+- **`FORBIDDEN` el donen els handlers de sala.** Subscriure's o enviar un `message` sense estar subscrit a l'esdeveniment és `FORBIDDEN`, i el handler decideix abans del `NOT_SUBSCRIBED` genèric. La connexió continua oberta.
+- **`message` exigeix haver-se unit a la sala.** En una sala amb handler, un `message` d'una connexió que no ha fet `subscribe` a la sala rep `NOT_SUBSCRIBED` (409) i no es desa ni es difon res. Qui no pot unir-se continua rebent `FORBIDDEN`: la sessió pregunta primer al handler amb `subscribe` (el mateix permís que per unir-se) i només si l'accepta respon `NOT_SUBSCRIBED`. Després d'un `unsubscribe` també cal tornar a unir-se. Canvi de contracte respecte de la primera versió, on n'hi havia prou amb ser subscriptor de l'esdeveniment.
+- **Errors de sala.** Qualsevol `DomainError`/`ApplicationError` d'un handler passa al frame `error` amb el seu `code` si és al catàleg (nous: `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG`, `CHAT_MESSAGE_REJECTED`, `CHAT_ROOM_NOT_FOUND`, `EVENT_NOT_FOUND`, `DATABASE_UNAVAILABLE`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`); un `ExternalServiceError` desconegut és `PUBSUB_UNAVAILABLE` i la resta `INTERNAL_ERROR`. El missatge cru de l'excepció no arriba mai al client: el `detail` és el títol HTTP genèric i el text localitzat surt del `code`. Una excepció inesperada d'un handler (un bug) també respon `INTERNAL_ERROR` (amb avís al log) sense tancar la connexió; `ConnectionClosed` i `CancelledError` no s'hi capturen.
+- **Ack amb dades.** En una sala amb handler, l'ack d'un `message` porta `payload = {id, sent_at}` del missatge desat (en lloc de `{}`); el difós als altres és el DTO complet (`id`, `room_id`, `author_id`, `text`, `sent_at`) publicat pel servei, que és qui desa, modera i difon (la sessió no republica).
+- **`origin`.** El servei posa l'id de la connexió emissora a `from` del sobre (`ChatService.send_message(..., origin=conn_id)`), de manera que la sessió emissora no fa eco del seu missatge; amb `origin=None` el sobre no té emissor.
+- **Sala perduda: `unsubscribe` del servidor.** Quan un usuari es dona de baixa de l'esdeveniment (`DELETE /api/events/{id}/subscription`), `SubscriptionService.unsubscribe(user_id, event_id, *, google_sub)` desa la baixa i després publica `{"room": "chat:event:<id>"}` a `room-revoked:<google_sub>` (via `PubSub`; el router passa `session.sub`). Cada connexió s'hi subscriu en autenticar-se: si és unida a la sala, la deixa i envia al client `{"type":"unsubscribe","room":...,"payload":{}}` sense tancar el socket ni tocar altres sales o usuaris; un `room` absent, no text o no unit s'ignora. Un `message` posterior és `FORBIDDEN` (el handler ja no el deixa unir-se) o `NOT_SUBSCRIBED` en una sala sense permís al handler. Si la publicació falla, la baixa es manté, es registra un avís i no es propaga: la connexió conservaria la unió i el handler ja refusa els seus `message` (`FORBIDDEN`), però continuaria rebent els missatges de la sala fins que es reconnecti. El **catàleg de frames** admet doncs que el servidor enviï `unsubscribe` (a més de l'eco de l'ack). Cada connexió té un canal pub/sub més (`room-revoked:<sub>`): fins a `WS_MAX_ROOMS + 2` per socket.
+- El `sub` de la sessió és el `google_sub`: el handler resol l'usuari amb `UserService.get_profile`, com el REST.
+
 ## Conseqüències
 
 ### Positives
@@ -52,7 +65,7 @@ Un endpoint `/api/ws` amb un embolcall JSON únic, un catàleg d'errors comparti
 - Sense `message` persistit ni garantia d'entrega: els missatges publicats mentre un client és desconnectat es perden.
 - Mentre #64 i #65 no afegeixin permisos per sala, qualsevol usuari autenticat es pot subscriure i publicar a qualsevol sala amb un nom vàlid (`FORBIDDEN` està definit però encara no s'emet). L'endpoint és infraestructura genèrica, no s'hi han de lligar sales sensibles abans d'aquests permisos.
 - Sense límit de freqüència de frames `message` per connexió: només hi ha el límit de mida (`WS_MAX_FRAME_BYTES`) i de sales (`WS_MAX_ROOMS`). El rate limit de frames queda per a #64 i #65.
-- Cada `subscribe` obre una connexió pub/sub de Redis pròpia, més la de revocació: fins a `WS_MAX_ROOMS + 1` (21) per socket. Amb `WS_MAX_CONNECTIONS_PER_USER` (3) un sol usuari en pot ocupar fins a 63, i amb molts usuaris es pot arribar al `maxclients` de Redis, que també serveix les sessions ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]). El límit per usuari ho acota però no ho elimina. Feina futura: una sola connexió pub/sub per socket i un límit global de connexions.
+- Cada `subscribe` obre una connexió pub/sub de Redis pròpia, més la de revocació: fins a `WS_MAX_ROOMS + 2` (22) per socket (revocació de sessió i de sala). Amb `WS_MAX_CONNECTIONS_PER_USER` (3) un sol usuari en pot ocupar fins a 66, i amb molts usuaris es pot arribar al `maxclients` de Redis, que també serveix les sessions ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]). El límit per usuari ho acota però no ho elimina. Feina futura: una sola connexió pub/sub per socket i un límit global de connexions.
 - El límit per usuari és en memòria i per procés: si l'API passés a diverses rèpliques, cada una tindria el seu comptador.
 - `mutmut` genera 0 mutants al domini realtime (només hi ha constants de mòdul, cossos de classe i f-strings, que no muta); el llindar del 70 % s'ha comprovat amb 39 mutants manuals (vegeu la nota de sessió i la PR), sense un script reproduïble al repositori.
 - En el contenidor, els missatges que superen `WS_MAX_FRAME_BYTES` es tanquen amb 1009 a uvicorn; no reben el frame `VALIDATION_ERROR` ni el tancament 4401 de l'aplicació. Una ordre uvicorn alternativa ha de mantenir aquest límit.

@@ -6,7 +6,9 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.routing import Match
 
+from app.application.chat.errors import RateLimitedError
 from app.application.shared.errors import (
     ApplicationError,
     ExternalServiceError,
@@ -26,6 +28,7 @@ from app.infrastructure.api.problem import problem_response, status_phrase
 logger = logging.getLogger(__name__)
 
 STATUS_BY_ERROR: dict[type[Exception], int] = {
+    RateLimitedError: HTTPStatus.TOO_MANY_REQUESTS,
     NotFoundError: HTTPStatus.NOT_FOUND,
     ConflictError: HTTPStatus.CONFLICT,
     ValidationError: HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -140,16 +143,42 @@ async def _handle_validation_error(request: Request, exc: Exception) -> Response
     )
 
 
+_HTTP_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
+
+
+def _allowed_methods(request: Request) -> str:
+    """Every method of the path (RFC 9110 §15.5.6).
+
+    Starlette only names the methods of the first route that matches the path, and
+    a path can be served by several routes (one per method). Each method is tried
+    against the routes, which also reach the ones of the included routers.
+    """
+    routes = request.app.router.routes
+    return ", ".join(
+        method
+        for method in _HTTP_METHODS
+        if any(
+            route.matches({**request.scope, "method": method})[0] is Match.FULL
+            for route in routes
+        )
+    )
+
+
 async def _handle_http_exception(request: Request, exc: Exception) -> Response:
     if not isinstance(exc, StarletteHTTPException):
         raise exc
     code = _CODE_BY_HTTP_STATUS.get(exc.status_code, f"HTTP_{exc.status_code}")
+    headers = dict(exc.headers) if exc.headers else {}
+    if exc.status_code == HTTPStatus.METHOD_NOT_ALLOWED and (
+        allowed := _allowed_methods(request)
+    ):
+        headers["Allow"] = allowed
     return problem_response(
         request,
         exc.status_code,
         code,
         str(exc.detail) if exc.detail else status_phrase(exc.status_code),
-        headers=dict(exc.headers) if exc.headers else None,
+        headers=headers or None,
     )
 
 

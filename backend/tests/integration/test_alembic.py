@@ -169,3 +169,66 @@ def test_every_revision_can_be_undone() -> None:
             command.upgrade(config, revision.revision)
     finally:
         command.upgrade(config, "head")
+
+
+async def _fetch(query: str) -> list[tuple[object, ...]]:
+    settings = DatabaseSettings()
+    connection = await asyncpg.connect(
+        host=settings.postgres_host,
+        port=settings.postgres_port,
+        user=settings.postgres_user,
+        password=settings.postgres_password,
+        database=settings.postgres_db,
+    )
+    try:
+        return [tuple(row) for row in await connection.fetch(query)]
+    finally:
+        await connection.close()
+
+
+def _revision_before(table: str) -> str:
+    """The revision just before the one that creates ``table``."""
+    for revision in ScriptDirectory.from_config(_alembic_config()).walk_revisions():
+        source = Path(str(revision.module.__file__)).read_text(encoding="utf-8")
+        if f'"{table}"' in source and "create_table" in source:
+            return str(revision.down_revision or "base")
+    raise AssertionError(f"no migration creates {table}")
+
+
+# Foreign keys (with their ON DELETE action) and unique keys of the table.
+EVENT_SUBSCRIPTION_KEYS = """
+    SELECT k.contype::text,
+           (SELECT array_agg(a.attname::text ORDER BY u.ord)
+              FROM unnest(k.conkey) WITH ORDINALITY AS u(attnum, ord)
+              JOIN pg_attribute a
+                ON a.attrelid = k.conrelid AND a.attnum = u.attnum),
+           CASE WHEN k.contype = 'f' THEN k.confrelid::regclass::text END,
+           CASE WHEN k.contype = 'f' THEN k.confdeltype::text END
+    FROM pg_constraint k
+    WHERE k.conrelid = 'public.event_subscriptions'::regclass
+      AND k.contype IN ('f', 'u')
+    ORDER BY 1, 2"""
+
+
+@pytest.mark.skipif(
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires POSTGRES_HOST",
+)
+def test_tg53_c1_migration_creates_event_subscriptions_and_undoes_it() -> None:
+    # TG-53 criteri 1 (ADR-0023): FK en cascada a users i astronomical_events,
+    # UNIQUE (user_id, event_id); upgrade -> downgrade -> upgrade.
+    config = _alembic_config()
+    command.upgrade(config, "head")
+    try:
+        assert asyncio.run(_fetch(EVENT_SUBSCRIPTION_KEYS)) == [
+            ("f", ["event_id"], "astronomical_events", "c"),
+            ("f", ["user_id"], "users", "c"),
+            ("u", ["user_id", "event_id"], None, None),
+        ]
+
+        command.downgrade(config, _revision_before("event_subscriptions"))
+        assert asyncio.run(
+            _fetch("SELECT to_regclass('public.event_subscriptions')")
+        ) == [(None,)]
+    finally:
+        command.upgrade(config, "head")

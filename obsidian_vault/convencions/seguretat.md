@@ -2,9 +2,9 @@
 titol: "Seguretat: injecció SQL, XSS i dependències"
 tipus: convencio
 estat: vigent
-data: "2026-10-24"
+data: "2026-11-17"
 us: ["TG-45", "TG-89"]
-font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89)"
+font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89); revisió de TG-628 (17/11/2026)"
 etiquetes: [convencio, seguretat, sql-injection, xss, csp, dependencies]
 ---
 
@@ -30,7 +30,7 @@ Cap valor que vingui de fora (usuari, Google, NASA, un fitxer pujat) arriba a la
 |---|---|---|
 | API | Només JSON, mai HTML; cap resposta construïda amb text d'usuari sense escapar | `app/infrastructure/api/` |
 | API | `nosniff`, `X-Frame-Options`, `Referrer-Policy`, CSP `default-src 'none'`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS | `security_headers.py` |
-| Domini | Caràcters de control fora, longituds acotades, enllaços només `https` sense credencials; el marcatge es desa tal qual i l'escapa la sortida | `app/domain/shared/text.py` |
+| Domini | Caràcters de control fora, longituds acotades, enllaços només `https` sense credencials; el marcatge es desa tal qual i l'escapa la sortida. El text que escriuen les usuàries (xat, publicacions) passa per `clean_user_text`, que també treu els invisibles perillosos | `app/domain/shared/text.py` |
 | App | Tot enllaç que vingui de l'API o d'un tercer passa per `safeHttpsUrl` abans d'`<Image>`, `WebView` o `Linking.openURL` | `frontend/src/shared/security/safeUrl.ts` |
 | App | `WebView` amb `originWhitelist` a `https`, `mixedContentMode="never"`, sense accés a fitxers ni galetes de tercers | `ApodMedia.tsx` |
 | App | Prohibits `eval`, `new Function`, `javascript:`, `dangerouslySetInnerHTML`, `innerHTML`, `document.write` | `frontend/.eslintrc.js` (la CI executa `pnpm lint`) |

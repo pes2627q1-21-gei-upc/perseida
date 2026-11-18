@@ -1,6 +1,4 @@
 # GENERAT per .agents/scripts/sync-agents.mjs. No l'editis.
-name = "devops"
-description = "Delega-hi la infraestructura i el CI/CD de Perseida (Docker, Docker Compose, GitHub Actions, GHCR, servidor Virtech per SSH, nginx-proxy-manager, SonarQube Cloud, secrets i desplegament)."
 sandbox_mode = "workspace-write"
 developer_instructions = """
 # Subagent devops

@@ -1,6 +1,6 @@
 import { duration, iconSizes, type ThemeColors, touch } from '../../../shared/theme';
 import type { EventCategory } from '../api/getEvents';
-import type { MapMarker } from './mapTiles';
+import type { MapMarker } from '../../../shared/map/mapTiles';
 
 /**
  * Phosphor icons (regular weight) of each category, as SVG paths on a 256 grid. Leaflet draws

@@ -1,6 +1,4 @@
 # GENERAT per .agents/scripts/sync-agents.mjs. No l'editis.
-name = "frontend"
-description = "Delega-hi tot el codi i el disseny del frontend de Perseida (TypeScript, React Native, Expo, UI/UX mòbil i panell d'admin, components, pàgines, formularis, crides a l'API i jocs)."
 sandbox_mode = "workspace-write"
 developer_instructions = """
 # Subagent frontend

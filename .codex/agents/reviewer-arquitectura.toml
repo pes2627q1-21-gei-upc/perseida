@@ -1,6 +1,4 @@
 # GENERAT per .agents/scripts/sync-agents.mjs. No l'editis.
-name = "reviewer-arquitectura"
-description = "Delega-hi la revisió de codi d'una US o PR de Perseida contra l'arquitectura hexagonal, la DoD i el checklist de PR (eficiència de consultes, seguretat, errors, estètica i responsive); informa de troballes sense editar res."
 sandbox_mode = "read-only"
 developer_instructions = """
 # Subagent reviewer-arquitectura

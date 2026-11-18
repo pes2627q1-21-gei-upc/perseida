@@ -25,7 +25,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
-import { GlassPanel } from '../../../shared/ui';
+import { GlassPanel, QuietButton } from '../../../shared/ui';
+import { EventPosts } from '../../posts/components/EventPosts';
 import type { ClassifiedEvent } from '../classifyEvents';
 import { formatEventDateTime, formatEventWhere } from '../formatEvent';
 import { EventOrb } from './EventOrb';
@@ -41,6 +42,8 @@ interface Props {
   /** The event to show; `null` hides the sheet. */
   event: ClassifiedEvent | null;
   onClose: () => void;
+  /** Opens the outings of the event. Without it the sheet has no button for them. */
+  onShowOutings?: (eventId: string) => void;
   /** Wide screens: a panel beside the map instead of a sheet over it. */
   side?: boolean;
   /** Side panel only: room at the top for the floating bar of the screen. */
@@ -50,6 +53,7 @@ interface Props {
 interface BodyProps {
   event: ClassifiedEvent;
   onClose: () => void;
+  onShowOutings?: (eventId: string) => void;
   /** Side panel only: the title, which takes the focus when the panel opens. */
   titleRef?: Ref<ComponentRef<typeof Text>>;
 }
@@ -69,7 +73,7 @@ function DateRow({ label, value }: { label: string; value: string }) {
 }
 
 /** What the summary says: the same in the bottom sheet and in the side panel. */
-function SheetBody({ event, onClose, titleRef }: BodyProps) {
+function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { height } = useWindowDimensions();
@@ -148,6 +152,13 @@ function SheetBody({ event, onClose, titleRef }: BodyProps) {
               </Text>
             </Pressable>
           )}
+          {onShowOutings && (
+            <QuietButton
+              label={t('events.sheet.outings')}
+              onPress={() => onShowOutings(event.id)}
+            />
+          )}
+          <EventPosts eventId={event.id} />
         </ScrollView>
       </View>
     </GlassPanel>
@@ -155,7 +166,7 @@ function SheetBody({ event, onClose, titleRef }: BodyProps) {
 }
 
 /** Phones: a sheet from the bottom, over the screen. */
-function BottomSheet({ event, onClose }: BodyProps) {
+function BottomSheet({ event, onClose, onShowOutings }: BodyProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -197,7 +208,7 @@ function BottomSheet({ event, onClose }: BodyProps) {
           enter,
         ]}
       >
-        <SheetBody event={event} onClose={onClose} />
+        <SheetBody event={event} onClose={onClose} onShowOutings={onShowOutings} />
       </Animated.View>
     </View>
   );
@@ -209,7 +220,7 @@ function BottomSheet({ event, onClose }: BodyProps) {
  * reader) goes to its title, which announces it; on the web, closing it gives the focus back to
  * where it was, usually the marker (WCAG 2.2: 2.4.3 focus order).
  */
-function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number }) {
+function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { topInset: number }) {
   const { spacing } = useTheme();
   const insets = useSafeAreaInsets();
   const titleRef = useRef<ComponentRef<typeof Text>>(null);
@@ -265,7 +276,12 @@ function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number 
         paddingRight: insets.right + spacing.md,
       }}
     >
-      <SheetBody event={event} onClose={onClose} titleRef={titleRef} />
+      <SheetBody
+        event={event}
+        onClose={onClose}
+        onShowOutings={onShowOutings}
+        titleRef={titleRef}
+      />
     </View>
   );
 }
@@ -273,13 +289,21 @@ function SidePanel({ event, onClose, topInset }: BodyProps & { topInset: number 
 /**
  * Summary of an event (TG-52, criterion 3): the title, the category, the start and end dates,
  * the summary, where it can be seen and a link to the source (plain https only, opened in the
- * browser). On phones, a glass sheet from the bottom; on wide screens, a panel beside the map.
+ * browser), followed by the community posts (TG-628). On phones, a glass sheet from the bottom;
+ * on wide screens, a panel beside the map.
  * It closes with its button, with Escape (web) or the back button (Android), and on phones
  * also by tapping outside it. No sounds.
  */
-export function EventSheet({ event, onClose, side = false, topInset = 0 }: Props) {
+export function EventSheet({ event, onClose, onShowOutings, side = false, topInset = 0 }: Props) {
   if (side) {
-    return event ? <SidePanel event={event} onClose={onClose} topInset={topInset} /> : null;
+    return event ? (
+      <SidePanel
+        event={event}
+        onClose={onClose}
+        onShowOutings={onShowOutings}
+        topInset={topInset}
+      />
+    ) : null;
   }
   return (
     <Modal
@@ -289,7 +313,7 @@ export function EventSheet({ event, onClose, side = false, topInset = 0 }: Props
       animationType="none"
       onRequestClose={onClose}
     >
-      {event && <BottomSheet event={event} onClose={onClose} />}
+      {event && <BottomSheet event={event} onClose={onClose} onShowOutings={onShowOutings} />}
     </Modal>
   );
 }

@@ -2,9 +2,9 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-07"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44"
+data: "2026-11-17"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -33,6 +33,10 @@ Estructura hexagonal: [[backend-hexagonal]].
 - Qui el crida: [[nginx-proxy-manager]] (`proxy_pass`), que rep REST/WSS de l'app Android i del navegador d'admin; Spotwise, per `GET /api/events/active` i `/upcoming` ([[contracte-spotwise]]).
 - A qui crida: [[postgres]] (font de veritat), [[redis]] (cache i pub/sub), [[moderation]] (HTTP síncron), NASA, APIs de meteorologia i contaminació lumínica, FCM, i Google (JWKS) ([[serveis-externs]]). Comparteix el volum de media amb nginx-proxy-manager.
 
+## Healthcheck (TG-49)
+
+`GET /api/health` és públic i respon sempre 200 amb `status` i `components` (`ok`/`down`). Comprova `app`, `postgres` (`SELECT 1`), `redis` (`PING`) i `scheduler` si està activat, en paral·lel i amb un límit de 2 s per comprovació: una que tarda més o falla compta com a `down` i l'endpoint no es penja. `status` és `down` només si cau un component crític (`app`, `postgres` o `scheduler`); [[redis]] no ho és, perquè només és cache ([[0005-redis-nomes-com-a-cache-lazy]]). El CD fa rollback si `status` no és `ok` ([[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]). Les comprovacions implementen el port `HealthCheck` (propietat `critical`) i el `HealthService` es construeix al lifespan.
+
 ## Errors i correlació
 
 Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i `correlation_id`; el 500 no exposa detalls interns. Cada resposta porta la capçalera `X-Correlation-ID` (generada amb `uuid4` o reutilitzada si el valor entrant és vàlid). Jerarquia a `app/domain/shared/errors.py` i `app/application/shared/errors.py`; handlers i middleware a `app/infrastructure/api/`. Detall a [[0018-errors-rfc-9457-amb-codis-estables]].
@@ -59,9 +63,25 @@ Els endpoints privats usen `CurrentSessionDep`. L'estat del compte arriba pel po
 
 `QuizService` (`app/application/quiz/`) guarda la pregunta del dia a [[redis]] (`cache:quiz:daily:<data>:<idioma>`) fins a mitjanit UTC; el banc i les respostes són a [[postgres]] ([[model-de-domini#Quiz diari (implementat)]]). Contracte a [[contracte-quiz]]; guia a la secció «Daily quiz» de `backend/README.md`.
 
+## Sortides d'observació (TG-629)
+
+Privats, amb sessió; l'usuària s'obté de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503. Model a [[model-de-domini#Sortida d'observació (implementat)]].
+
+| Endpoint | Què fa |
+|---|---|
+| `POST /api/outings` | Crea una sortida de la usuària de la sessió. `201` amb la sortida i la capçalera `Location`; `422` si les dades no són vàlides |
+| `GET /api/outings` | Sortides que encara no han començat, per `starts_at` i `id`. Filtres opcionals `event_id` i `mine=true` («les meves sortides», decisió de Raquel, 17/11/2026) |
+| `GET /api/outings/{id}` | Detall amb l'autora (`id`, `display_name`, `avatar_url`); `404 OUTING_NOT_FOUND` |
+| `PATCH /api/outings/{id}` | Només l'autora (`403 OUTING_FORBIDDEN`). Canvien només els camps enviats; només `event_id` pot ser null |
+| `DELETE /api/outings/{id}` | Només l'autora; `204` |
+
+Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
+
 ## Seguretat (TG-45)
 
 Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
+
+CORS (TG-363): `CORSMiddleware` amb orígens explícits, mai `*` (`app/infrastructure/api/cors.py`). Per defecte admet els orígens HTTPS de DuckDNS (`https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org`; mai `http://…:40430`, que *Force SSL* redirigeix i que una pàgina manipulada a la xarxa podria fer servir amb la sessió de l'usuari) i els ports locals d'Expo i de l'API (`8081`, `19006` i `8000` a `localhost`/`127.0.0.1`); `CORS_ALLOWED_ORIGINS` els substitueix i `CORS_ALLOWED_ORIGIN_REGEX` n'hi afegeix. Admet credencials, els mètodes `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` i `HEAD`, les capçaleres `Authorization` i `Content-Type`, i exposa `X-Correlation-ID`. És el middleware més intern (Security → Correlation → CORS → routers): el preflight es respon abans dels routers i porta el correlation id i les capçaleres de seguretat.
 
 ## Configuració
 
@@ -79,6 +99,27 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - [[0018-errors-rfc-9457-amb-codis-estables]]
 - [[0022-logging-json-global-amb-stdlib]]
 
+## Publicacions d'esdeveniment (TG-628)
+
+| Endpoint | Què fa |
+|---|---|
+| `POST /api/events/{event_id}/posts` | Crea una publicació de text de l'usuària de la sessió. 201, 404 `EVENT_NOT_FOUND`, 422 `POST_TEXT_EMPTY` o `POST_TEXT_TOO_LONG` |
+| `GET /api/events/{event_id}/posts` | Llista paginada per cursor, de la més nova a la més antiga. 404 `EVENT_NOT_FOUND`, 422 `INVALID_CURSOR` |
+| `PATCH /api/posts/{post_id}` | Edita el text (només l'autora). 403 `POST_FORBIDDEN`, 404 `POST_NOT_FOUND`, 422 |
+| `DELETE /api/posts/{post_id}` | Esborra (només l'autora). 204, 403, 404, 422 si l'identificador no és vàlid |
+
+Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/problem+json`. Els dos de `/api/events/{event_id}/posts` també poden rebre el 429 `RATE_LIMITED` del proxy (el bloc `/api/events/` de `rate-limit.conf`); `PATCH` i `DELETE` de `/api/posts/` encara no tenen límit. Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
+
+## Subscripcions a esdeveniments (TG-53)
+
+| Endpoint | Què fa |
+|---|---|
+| `PUT /api/events/{event_id}/subscription` | Subscriu l'usuari de la sessió, sense cos. 201 si és nova, 200 si ja hi estava; 404 `EVENT_NOT_FOUND`, 409 `EVENT_ALREADY_ENDED`, 422 |
+| `DELETE /api/events/{event_id}/subscription` | Dona de baixa, idempotent. 204; 422 si l'identificador no és vàlid |
+| `GET /api/me/subscriptions` | Esdeveniments subscrits com a `EventResponse[]`, per `starts_at` i `id` |
+
+Tots demanen sessió (`CurrentSessionDep` + `get_profile`: 401, 403 i 503) i tots els errors són `application/problem+json`. El `PUT` i el `DELETE` són sota `/api/events/`, així que comparteixen el 429 `RATE_LIMITED` del proxy (600 per minut entre tots els clients, [[nginx-proxy-manager]]); `GET /api/me/subscriptions` no. Regles i taula a [[model-de-domini#Subscripció a un esdeveniment (implementat al backend)]].
+
 ## US de Taiga relacionades
 
 - TG-36 (Imatge Docker del backend i publicació a GHCR)
@@ -90,9 +131,12 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - TG-45 (model d'usuari, alta automàtica i tancament de sessió)
 - TG-46 (cache APOD)
 - TG-60 (quiz diari)
+- TG-628 (publicacions de text en un esdeveniment)
+- TG-53 (subscripció i baixa d'un esdeveniment)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-63 (endpoint WebSocket `/api/ws`)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
+- TG-629 (sortides d'observació creades pels usuaris)
 
 ## Estat d'implementació
 
@@ -105,6 +149,9 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - **Usuari, alta automàtica i tancament de sessió (TG-45)**: implementat (`UserService`, `SqlUserRepository` amb alta concurrent segura, `/api/auth/logout`, `/api/users/me`, error `EMAIL_ALREADY_REGISTERED`).
 - **WebSocket `/api/ws` (TG-63)**: implementat (`RealtimeSession` a `application/realtime`, router a `infrastructure/realtime`, embolcall `{type, room?, payload, id}`, autenticació pel primer frame, heartbeat i revocació per pub/sub; vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Requereix la llibreria `websockets` perquè uvicorn accepti el handshake. Les sales concretes són de TG-64 i TG-65.
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
+- **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
+- **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
+- **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, pendent (PR 2).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 
