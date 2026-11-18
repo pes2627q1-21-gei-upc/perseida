@@ -7,40 +7,35 @@ import {
   lastSocket,
   wsProblem,
 } from '../../../__mocks__/fakeWebSocket';
-import { refreshSession } from '../../features/auth/api/refreshToken';
-import { saveTokens } from '../../features/auth/tokenStorage';
 import { AppError } from '../errors';
-import { _resetSocketForTests } from './socketClient';
+import type { SocketAuth } from '.';
+import { _resetSocketForTests, getSocketState } from './socketClient';
 import { useSocket } from './useSocket';
-
-// SecureStore is native: an in-memory store stands in for the device keychain.
-jest.mock('expo-secure-store', () => {
-  const store = new Map<string, string>();
-  return {
-    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
-    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
-    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
-  };
-});
-
-jest.mock('../../features/auth/api/refreshToken', () => ({
-  refreshSession: jest.fn(),
-  _resetActiveRefreshPromise: jest.fn(),
-}));
-
-const mockedRefreshSession = jest.mocked(refreshSession);
 
 const WS_URL = 'ws://api.test/api/ws';
 const ROOM = 'chat:event:ev-1';
 const OTHER_ROOM = 'chat:event:ev-2';
 const AUTH_ACK: Frame = { type: 'auth', payload: {} };
-const auth = (token: string): Frame => ({ type: 'auth', token });
+const authFrame = (token: string): Frame => ({ type: 'auth', token });
 const MESSAGE = { type: 'message' as const, room: ROOM, payload: { text: 'hola' } };
 const TEN_MINUTES = 10 * 60_000;
 // Base wait before each reconnection attempt: 1 s, doubling, capped at 30 s.
 const BACKOFF_BASES = [1000, 2000, 4000, 8000, 16_000, 30_000, 30_000, 30_000];
 
 let restoreWebSocket: () => void;
+/** What the fake session hands out on the next getToken(); refresh() renews it to access-2. */
+let token: string | null;
+let auth: ReturnType<typeof makeAuth>;
+
+/** Fake SocketAuth injected into useSocket: shared/realtime does not import features/auth. */
+function makeAuth() {
+  return {
+    getToken: jest.fn(async (): Promise<string | null> => token),
+    refresh: jest.fn(async (): Promise<void> => {
+      token = 'access-2';
+    }),
+  } satisfies SocketAuth;
+}
 
 /** Lets pending promises and the timers due in `ms` run, inside act (fake timers). */
 async function flush(ms = 0) {
@@ -74,7 +69,7 @@ const lastSent = (socket = lastSocket()) => socket.sent[socket.sent.length - 1];
 
 /** Mounts a consumer of useSocket without completing the handshake. */
 async function mount() {
-  const hook = await renderHook(() => useSocket());
+  const hook = await renderHook(() => useSocket(auth));
   await flush();
   return hook;
 }
@@ -100,6 +95,16 @@ async function startSending(send: (frame: typeof MESSAGE) => Promise<unknown>) {
   return { sending };
 }
 
+/** The connection ended for good because the session is not valid (ADR-0030, 4401). */
+function expectInvalidSession(current: { status: string; error: AppError | null }) {
+  expect(current.status).toBe('closed');
+  expect(current.error).toBeInstanceOf(AppError);
+  expect(current.error?.kind).toBe('http');
+  expect(current.error?.code).toBe('INVALID_SESSION');
+  expect(current.error?.status).toBe(401);
+  expect(current.error?.retryable).toBe(false);
+}
+
 /** Awaits a promise that must reject with an AppError and returns that error. */
 async function rejectionOf(promise: Promise<unknown>): Promise<AppError> {
   try {
@@ -111,12 +116,12 @@ async function rejectionOf(promise: Promise<unknown>): Promise<AppError> {
   throw new Error('The promise resolved, but a rejection with an AppError was expected');
 }
 
-beforeEach(async () => {
+beforeEach(() => {
   jest.useFakeTimers();
   restoreWebSocket = installFakeWebSocket();
   _resetSocketForTests();
-  mockedRefreshSession.mockReset();
-  await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+  token = 'access-1';
+  auth = makeAuth();
 });
 
 afterEach(() => {
@@ -136,7 +141,7 @@ describe('useSocket: connexió i autenticació (TG-461, US TG-64, ADR-0030)', ()
 
     await serverOpens();
 
-    expect(lastSocket().sent).toEqual([auth('access-1')]);
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
   });
 
   it('continua a connecting fins a l’ack de l’auth i llavors passa a open sense error', async () => {
@@ -158,12 +163,12 @@ describe('useSocket: connexió i autenticació (TG-461, US TG-64, ADR-0030)', ()
     });
     await serverOpens();
 
-    expect(lastSocket().sent).toEqual([auth('access-1')]);
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
 
     await serverSends(AUTH_ACK);
 
     expect(lastSocket().sent).toEqual([
-      auth('access-1'),
+      authFrame('access-1'),
       { type: 'subscribe', room: ROOM, id: expect.any(String) },
     ]);
   });
@@ -265,7 +270,7 @@ describe('useSocket: send (TG-461)', () => {
     const error = await rejectionOf(sending);
 
     expect(error.code).toBe('NETWORK_ERROR');
-    expect(lastSocket().sent).toEqual([auth('access-1')]);
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
   });
 
   it('envia el frame amb un id i es resol amb l’ack del servidor', async () => {
@@ -341,7 +346,7 @@ describe('useSocket: reconnexió amb espera exponencial (TG-461)', () => {
     await act(async () => {
       result.current.subscribe(ROOM, jest.fn());
     });
-    await saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' });
+    token = 'access-2';
 
     await networkDrops();
     await flush(1000);
@@ -350,14 +355,14 @@ describe('useSocket: reconnexió amb espera exponencial (TG-461)', () => {
 
     await serverOpens();
 
-    expect(lastSocket().sent).toEqual([auth('access-2')]);
+    expect(lastSocket().sent).toEqual([authFrame('access-2')]);
     expect(result.current.status).toBe('reconnecting');
 
     await serverSends(AUTH_ACK);
 
     expect(result.current.status).toBe('open');
     expect(lastSocket().sent).toEqual([
-      auth('access-2'),
+      authFrame('access-2'),
       { type: 'subscribe', room: ROOM, id: expect.any(String) },
     ]);
   });
@@ -505,33 +510,18 @@ describe('useSocket: neteja i connexió compartida (TG-461)', () => {
 });
 
 describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
-  const TOKENS_2 = {
-    access_token: 'access-2',
-    refresh_token: 'refresh-2',
-    token_type: 'bearer' as const,
-    expires_in: 900,
-  };
-
-  function refreshSucceeds() {
-    mockedRefreshSession.mockImplementation(async () => {
-      await saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' });
-      return TOKENS_2;
-    });
-  }
-
   it('4401: renova la sessió un sol cop i reconnecta amb el token nou', async () => {
-    refreshSucceeds();
     const { result } = await mountConnected();
 
     await serverCloses(4401);
     await flush(1000);
 
-    expect(mockedRefreshSession).toHaveBeenCalledTimes(1);
+    expect(auth.refresh).toHaveBeenCalledTimes(1);
     expect(sockets()).toHaveLength(2);
 
     await serverOpens();
 
-    expect(lastSocket().sent).toEqual([auth('access-2')]);
+    expect(lastSocket().sent).toEqual([authFrame('access-2')]);
 
     await serverSends(AUTH_ACK);
 
@@ -539,7 +529,6 @@ describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
   });
 
   it('4401 un altre cop després de renovar: closed amb INVALID_SESSION i cap bucle de reconnexions', async () => {
-    refreshSucceeds();
     const { result } = await mountConnected();
     await serverCloses(4401);
     await flush(1000);
@@ -549,20 +538,18 @@ describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
     await flush(TEN_MINUTES);
 
     expect(result.current.status).toBe('closed');
-    expect(result.current.error?.code).toBe('INVALID_SESSION');
-    expect(mockedRefreshSession).toHaveBeenCalledTimes(1);
+    expectInvalidSession(result.current);
+    expect(auth.refresh).toHaveBeenCalledTimes(1);
     expect(sockets()).toHaveLength(2);
   });
 
   it('4401 de nou després d’una auth correcta: el comptador es reinicia, renova un altre cop i reconnecta', async () => {
-    mockedRefreshSession
+    auth.refresh
       .mockImplementationOnce(async () => {
-        await saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' });
-        return TOKENS_2;
+        token = 'access-2';
       })
       .mockImplementationOnce(async () => {
-        await saveTokens({ accessToken: 'access-3', refreshToken: 'refresh-3' });
-        return { ...TOKENS_2, access_token: 'access-3', refresh_token: 'refresh-3' };
+        token = 'access-3';
       });
     const { result } = await mountConnected();
     await serverCloses(4401);
@@ -573,28 +560,28 @@ describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
     await serverCloses(4401); // later on, the token expires again
     await flush(1000);
 
-    expect(mockedRefreshSession).toHaveBeenCalledTimes(2);
+    expect(auth.refresh).toHaveBeenCalledTimes(2);
     expect(sockets()).toHaveLength(3);
 
     await serverOpens();
 
-    expect(lastSocket().sent).toEqual([auth('access-3')]);
+    expect(lastSocket().sent).toEqual([authFrame('access-3')]);
 
     await serverSends(AUTH_ACK);
 
     expect(result.current.status).toBe('open');
   });
 
-  it('4401 i la renovació falla: closed amb INVALID_SESSION sense reconnectar', async () => {
-    mockedRefreshSession.mockResolvedValue(null);
+  it('4401 i refresh() es rebutja: closed amb INVALID_SESSION sense reconnectar', async () => {
+    auth.refresh.mockRejectedValue(new Error('refresh failed'));
     const { result } = await mountConnected();
 
     await serverCloses(4401);
     await flush(TEN_MINUTES);
 
-    expect(mockedRefreshSession).toHaveBeenCalledTimes(1);
+    expect(auth.refresh).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe('closed');
-    expect(result.current.error?.code).toBe('INVALID_SESSION');
+    expectInvalidSession(result.current);
     expect(sockets()).toHaveLength(1);
   });
 
@@ -607,7 +594,7 @@ describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
 
     expect(result.current.status).toBe('closed');
     expect(sockets()).toHaveLength(1);
-    expect(mockedRefreshSession).not.toHaveBeenCalled();
+    expect(auth.refresh).not.toHaveBeenCalled();
   });
 
   it('4429 exposa un AppError TOO_MANY_CONNECTIONS (http, 429, no reintentable)', async () => {
@@ -645,6 +632,164 @@ describe('useSocket: sala revocada pel servidor (TG-461, ADR-0030 actualització
     await serverSends(AUTH_ACK);
 
     expect(result.current.status).toBe('open');
-    expect(lastSocket().sent).toEqual([auth('access-1')]);
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
+  });
+
+  it('rebre un message d’una sala no la treu de les sales que es resubscriuen en reconnectar', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await act(async () => {
+      result.current.subscribe(ROOM, jest.fn());
+    });
+    await serverSends({
+      type: 'message',
+      room: ROOM,
+      payload: { id: 'm-9', text: 'bona nit', sent_at: '2026-11-18T21:00:00Z' },
+    });
+
+    await networkDrops();
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(lastSocket().sentOfType('subscribe')).toEqual([
+      { type: 'subscribe', room: ROOM, id: expect.any(String) },
+    ]);
+  });
+});
+
+describe('useSocket: SocketAuth injectat (TG-461; shared/realtime no importa features/auth)', () => {
+  it('crida auth.getToken() a cada connexió i s’autentica amb el token que retorna', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    await mountConnected();
+
+    expect(auth.getToken).toHaveBeenCalledTimes(1);
+
+    token = 'access-2';
+    await networkDrops();
+    await flush(1000);
+    await serverOpens();
+
+    expect(auth.getToken).toHaveBeenCalledTimes(2);
+    expect(lastSocket().sent).toEqual([authFrame('access-2')]);
+  });
+
+  it('si getToken() retorna null en muntar, no obre cap socket i queda closed amb INVALID_SESSION', async () => {
+    token = null;
+
+    const { result } = await mount();
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(0);
+    expectInvalidSession(result.current);
+  });
+
+  it('si getToken() retorna null en reconnectar, no obre cap socket i queda closed amb INVALID_SESSION', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    token = null;
+
+    await networkDrops();
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(1);
+    expectInvalidSession(result.current);
+  });
+
+  it('la connexió usa l’auth del primer consumidor: el d’un segon consumidor no el substitueix', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const otherAuth = {
+      getToken: jest.fn(async (): Promise<string | null> => 'access-other'),
+      refresh: jest.fn(async (): Promise<void> => undefined),
+    } satisfies SocketAuth;
+    await mountConnected();
+    await renderHook(() => useSocket(otherAuth));
+    await flush();
+
+    await networkDrops();
+    await flush(1000);
+    await serverOpens();
+
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
+    expect(otherAuth.getToken).not.toHaveBeenCalled();
+  });
+
+  it('mentre auth.refresh() no acaba després d’un 4401, l’estat és reconnecting i no s’obre cap socket', async () => {
+    let finishRefresh = () => {};
+    auth.refresh.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishRefresh = () => {
+            token = 'access-2';
+            resolve();
+          };
+        }),
+    );
+    const { result } = await mountConnected();
+
+    await serverCloses(4401);
+    await flush(TEN_MINUTES);
+
+    expect(result.current.status).toBe('reconnecting');
+    expect(sockets()).toHaveLength(1);
+
+    await act(async () => finishRefresh());
+    await flush(1000);
+    await serverOpens();
+
+    expect(lastSocket().sent).toEqual([authFrame('access-2')]);
+  });
+});
+
+describe('useSocket: send després d’una caiguda (TG-461)', () => {
+  it('es rebutja amb NETWORK_ERROR sense enviar res mentre espera per reconnectar', async () => {
+    const { result } = await mountConnected();
+    const dropped = lastSocket();
+    await networkDrops();
+    let outcome: unknown = 'pending';
+
+    const { sending } = await startSending(result.current.send);
+    sending.then(
+      () => (outcome = 'resolved'),
+      (error: unknown) => (outcome = error),
+    );
+    await flush();
+
+    expect(outcome).toBeInstanceOf(AppError);
+    expect((outcome as AppError).code).toBe('NETWORK_ERROR');
+    expect(dropped.sent).toEqual([authFrame('access-1')]);
+    expect(sockets()).toHaveLength(1);
+  });
+});
+
+describe('socketClient: estat inicial i _resetSocketForTests (TG-461)', () => {
+  it('abans del primer consumidor l’estat és closed sense error', () => {
+    // A fresh copy of the module, never touched by _resetSocketForTests or any other test.
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fresh = require('./socketClient') as typeof import('./socketClient');
+
+      expect(fresh.getSocketState()).toEqual({ status: 'closed', error: null });
+    });
+  });
+
+  it('_resetSocketForTests torna a l’estat inicial: closed sense error, sense consumidors ni sales', async () => {
+    const { result } = await mount();
+    await act(async () => {
+      result.current.subscribe(ROOM, jest.fn());
+    });
+    await serverOpens();
+    await serverCloses(4429);
+
+    expect(getSocketState().error).not.toBeNull();
+
+    await act(async () => _resetSocketForTests());
+
+    expect(getSocketState()).toEqual({ status: 'closed', error: null });
+
+    await mountConnected();
+
+    expect(sockets()).toHaveLength(2);
+    expect(lastSocket().sentOfType('subscribe')).toEqual([]);
   });
 });

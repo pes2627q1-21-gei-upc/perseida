@@ -10,26 +10,19 @@ import {
 import { AppError } from '../../../shared/errors';
 import { _resetSocketForTests } from '../../../shared/realtime/socketClient';
 import { useSocket } from '../../../shared/realtime/useSocket';
-import { saveTokens } from '../../auth/tokenStorage';
+import { socketAuth } from '../../auth/socketAuth';
 import { useChatSocket } from './useChatSocket';
 
-// SecureStore is native: an in-memory store stands in for the device keychain.
-jest.mock('expo-secure-store', () => {
-  const store = new Map<string, string>();
-  return {
-    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
-    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
-    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
-  };
-});
-
-jest.mock('../../auth/api/refreshToken', () => ({
-  refreshSession: jest.fn(),
-  _resetActiveRefreshPromise: jest.fn(),
+// The chat feature hands the auth feature's SocketAuth to the shared connection (feature ->
+// feature is allowed); here it is a fake with a fixed token.
+jest.mock('../../auth/socketAuth', () => ({
+  socketAuth: { getToken: jest.fn(), refresh: jest.fn() },
 }));
 
 const EVENT_ID = '7d1f0c2e-3b4a-4c5d-8e9f-0a1b2c3d4e5f';
 const ROOM = `chat:event:${EVENT_ID}`;
+const OTHER_EVENT_ID = '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
+const OTHER_ROOM = `chat:event:${OTHER_EVENT_ID}`;
 const AUTH_ACK: Frame = { type: 'auth', payload: {} };
 const OTHERS_MESSAGE = {
   id: 'm-9',
@@ -102,12 +95,13 @@ async function rejectionOf(promise: Promise<unknown>): Promise<AppError> {
   throw new Error('The promise resolved, but a rejection with an AppError was expected');
 }
 
-beforeEach(async () => {
+beforeEach(() => {
   jest.useFakeTimers();
   restoreWebSocket = installFakeWebSocket();
   _resetSocketForTests();
   handlers = { onMessage: jest.fn(), onRevoked: jest.fn() };
-  await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+  jest.mocked(socketAuth.getToken).mockReset().mockResolvedValue('access-1');
+  jest.mocked(socketAuth.refresh).mockReset().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -128,7 +122,7 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
 
   it('en desmuntar es dessubscriu de la sala (amb la connexió encara en ús per un altre consumidor)', async () => {
     const chat = await mountChatConnected();
-    await renderHook(() => useSocket());
+    await renderHook(() => useSocket(socketAuth));
     await flush();
 
     await chat.unmount();
@@ -248,5 +242,76 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     expect(lastSocket().sentOfType('subscribe')).toEqual([
       { type: 'subscribe', room: ROOM, id: expect.any(String) },
     ]);
+  });
+
+  it('es connecta amb el token de socketAuth de la feature auth', async () => {
+    await mountChatConnected();
+
+    expect(socketAuth.getToken).toHaveBeenCalledTimes(1);
+    expect(lastSocket().sent[0]).toEqual({ type: 'auth', token: 'access-1' });
+  });
+
+  it('ignora els frames amb id (respostes a peticions): no crida onMessage ni onRevoked', async () => {
+    await mountChatConnected();
+
+    await serverSends({ type: 'message', room: ROOM, id: 'x-1', payload: OTHERS_MESSAGE });
+    await serverSends({ type: 'unsubscribe', room: ROOM, id: 'x-2', payload: {} });
+
+    expect(handlers.onMessage).not.toHaveBeenCalled();
+    expect(handlers.onRevoked).not.toHaveBeenCalled();
+  });
+
+  it('un frame de la sala que no és message ni unsubscribe no crida onRevoked ni onMessage', async () => {
+    await mountChatConnected();
+
+    await serverSends({ type: 'error', room: ROOM, payload: wsProblem(403, 'FORBIDDEN') });
+
+    expect(handlers.onRevoked).not.toHaveBeenCalled();
+    expect(handlers.onMessage).not.toHaveBeenCalled();
+  });
+
+  it('si canvia eventId, es dessubscriu de la sala vella i se subscriu a la nova', async () => {
+    const { rerender } = await renderHook(
+      ({ eventId }: { eventId: string }) => useChatSocket(eventId, handlers),
+      { initialProps: { eventId: EVENT_ID } },
+    );
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await rerender({ eventId: OTHER_EVENT_ID });
+    await flush();
+
+    expect(lastSocket().sentOfType('unsubscribe')).toEqual([
+      { type: 'unsubscribe', room: ROOM, id: expect.any(String) },
+    ]);
+    expect(lastSocket().sentOfType('subscribe')).toEqual([
+      { type: 'subscribe', room: ROOM, id: expect.any(String) },
+      { type: 'subscribe', room: OTHER_ROOM, id: expect.any(String) },
+    ]);
+  });
+
+  it('si canvien els handlers, no es torna a subscriure però usa els nous', async () => {
+    const first = { onMessage: jest.fn(), onRevoked: jest.fn() };
+    const second = { onMessage: jest.fn(), onRevoked: jest.fn() };
+    const { rerender } = await renderHook(
+      ({ current }: { current: typeof first }) => useChatSocket(EVENT_ID, current),
+      { initialProps: { current: first } },
+    );
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await rerender({ current: second });
+    await flush();
+    await serverSends({ type: 'message', room: ROOM, payload: OTHERS_MESSAGE });
+    await serverSends({ type: 'unsubscribe', room: ROOM, payload: {} });
+
+    expect(lastSocket().sentOfType('subscribe')).toHaveLength(1);
+    expect(lastSocket().sentOfType('unsubscribe')).toHaveLength(0);
+    expect(second.onMessage).toHaveBeenCalledWith(OTHERS_MESSAGE);
+    expect(second.onRevoked).toHaveBeenCalledTimes(1);
+    expect(first.onMessage).not.toHaveBeenCalled();
+    expect(first.onRevoked).not.toHaveBeenCalled();
   });
 });
