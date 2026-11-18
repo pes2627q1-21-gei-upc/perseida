@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -155,7 +155,8 @@ describe('Quiz screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: SUBMIT }));
     await fireEvent.press(screen.getByRole('button', { name: SUBMIT }));
 
-    expect(screen.getByRole('button', { name: SUBMIT })).toBeBusy();
+    // TanStack Query tells the screen that the answer is pending on a later tick, not at once.
+    await waitFor(() => expect(screen.getByRole('button', { name: SUBMIT })).toBeBusy());
     await act(async () => {
       respond(jsonResponse(rightResult, 201));
     });
