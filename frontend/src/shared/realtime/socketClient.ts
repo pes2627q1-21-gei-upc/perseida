@@ -97,14 +97,20 @@ function sendFrame(frame: Record<string, unknown>): void {
   socket?.send(JSON.stringify(frame));
 }
 
-/** Reads the token (fresh on every connection) and opens the socket; without a session, stops. */
+/**
+ * Reads the token (fresh on every connection) and opens the socket. Without a session, or when the
+ * token cannot be read, it stops with INVALID_SESSION.
+ */
 function connect(): void {
   const startedIn = generation;
-  void auth!.getToken().then((token) => {
-    if (startedIn !== generation) return;
-    if (token) open(token);
-    else stop(invalidSession());
-  });
+  void auth!
+    .getToken()
+    .catch(() => null)
+    .then((token) => {
+      if (startedIn !== generation) return;
+      if (token) open(token);
+      else stop(invalidSession());
+    });
 }
 
 function open(token: string): void {
