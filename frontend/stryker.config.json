@@ -20,6 +20,6 @@
     "break": 70
   },
   "coverageAnalysis": "perTest",
-  "timeoutMS": 60000,
+  "timeoutMS": 15000,
   "concurrency": 4
 }

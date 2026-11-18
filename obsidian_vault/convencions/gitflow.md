@@ -2,9 +2,9 @@
 titol: "GitFlow i política de pull requests"
 tipus: convencio
 estat: vigent
-data: "2026-10-28"
-us: ["TG-85", "TG-33", "TG-353"]
-font: "memòria §2.2"
+data: "2026-11-18"
+us: ["TG-85", "TG-33", "TG-353", "TG-652"]
+font: "memòria §2.2; TG-652 (CI cancel·lada per temps a TG-646)"
 etiquetes: [convencio, git, gitflow, pull-requests]
 ---
 
@@ -33,6 +33,7 @@ Com que el projecte fa TDD estricte ([[0028-tdd-estricte-i-politica-de-testing-a
 ## Pull requests i revisions
 
 - Idealment, cada tasca té la seva branca i PR; es poden agrupar tasques de la mateixa US (totes passen alhora a READY FOR TEST).
+- Al frontend, una PR no hauria de passar d'uns 400 mutants de Stryker (uns 12 min a la CI): una US gran es divideix en diverses PR, per tasques o per dependències. El criteri és a la skill `implementar-us` (TG-652).
 - PR cap a `develop`: CI verda i almenys una aprovació d'una persona aliena al desenvolupament.
 - PR cap a `main`: CI verda; l'aprovació és opcional (els hotfixes poden ser crítics).
 - La plantilla de PR (`.github/pull_request_template.md`) l'elabora qui s'encarrega d'aquesta tasca.
