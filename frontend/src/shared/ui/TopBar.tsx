@@ -1,0 +1,88 @@
+import { CaretLeft } from 'phosphor-react-native';
+import { useTranslation } from 'react-i18next';
+import { type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { readingMaxWidth, useTheme } from '../theme';
+import { GlassPanel } from './GlassPanel';
+
+interface Props {
+  /** Name of the screen, shown as its header. */
+  title: string;
+  /** Prefix of the test ids of the bar and its panel (`<id>`, `<id>-panel`). */
+  testID: string;
+  onBack: () => void;
+  /** Reports the height the bar covers from the top, so the list can start under it. */
+  onLayout?: (bottom: number) => void;
+}
+
+/**
+ * Floating glass bar of a screen (TG-52): back and screen title. It floats over the content
+ * (the events map, the outings), so it is kept small.
+ */
+export function TopBar({ title, testID, onBack, onLayout }: Props) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const { text, surface } = theme.colors;
+
+  function reportLayout(event: LayoutChangeEvent) {
+    const { y, height } = event.nativeEvent.layout;
+    onLayout?.(y + height);
+  }
+
+  return (
+    // Pinned to both edges with the margins as padding: never a width of 100 % plus an offset,
+    // which pushed the bar out of the screen on the right.
+    <View
+      testID={testID}
+      pointerEvents="box-none"
+      onLayout={reportLayout}
+      style={[
+        styles.bar,
+        {
+          top: insets.top + theme.spacing.sm,
+          paddingLeft: insets.left + theme.spacing.md,
+          paddingRight: insets.right + theme.spacing.md,
+        },
+      ]}
+    >
+      <View testID={`${testID}-panel`} style={[styles.panel, { maxWidth: readingMaxWidth }]}>
+        <GlassPanel>
+          <View style={[styles.titleRow, { gap: theme.spacing.sm }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
+              onPress={onBack}
+              style={({ pressed }) => ({
+                width: theme.touch.min,
+                height: theme.touch.min,
+                borderRadius: theme.radii.pill,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: pressed ? surface.glass : 'transparent',
+              })}
+            >
+              <CaretLeft size={theme.iconSizes.md} color={text.primary} />
+            </Pressable>
+            <Text
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={[theme.typography.title, styles.title, { color: text.primary }]}
+            >
+              {title}
+            </Text>
+          </View>
+        </GlassPanel>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  // Drawn over the content, but first in the tree: screen readers start with the title.
+  bar: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 1 },
+  panel: { width: '100%' },
+  titleRow: { flexDirection: 'row', alignItems: 'center' },
+  title: { flex: 1 },
+});
