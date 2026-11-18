@@ -1,6 +1,7 @@
 import { api } from '../../../shared/api/client';
 import type { components } from '../../../shared/api/schema';
 import { AppError } from '../../../shared/errors';
+import { authHeaders } from '../../auth/authHeaders';
 
 export type Outing = components['schemas']['OutingResponse'];
 export type OutingDraft = components['schemas']['OutingCreate'];
@@ -17,10 +18,11 @@ function invalidResponse(status: number): AppError {
   return new AppError({ kind: 'http', code: 'INVALID_RESPONSE', status, retryable: false });
 }
 
-/** The client middleware already throws AppError on failures and adds the session token. */
+/** Every outings endpoint needs a session (TG-629 criterion 4): see authHeaders. */
 export async function listOutings({ mine, eventId }: OutingFilter): Promise<Outing[]> {
   const { data, response } = await api.GET('/api/outings', {
     params: { query: { mine, event_id: eventId } },
+    headers: await authHeaders(),
   });
   if (!data) throw invalidResponse(response.status);
   return data;
@@ -29,13 +31,17 @@ export async function listOutings({ mine, eventId }: OutingFilter): Promise<Outi
 export async function getOuting(id: string): Promise<Outing> {
   const { data, response } = await api.GET('/api/outings/{outing_id}', {
     params: { path: { outing_id: id } },
+    headers: await authHeaders(),
   });
   if (!data) throw invalidResponse(response.status);
   return data;
 }
 
 export async function createOuting(draft: OutingDraft): Promise<Outing> {
-  const { data, response } = await api.POST('/api/outings', { body: draft });
+  const { data, response } = await api.POST('/api/outings', {
+    body: draft,
+    headers: await authHeaders(),
+  });
   if (!data) throw invalidResponse(response.status);
   return data;
 }
@@ -45,11 +51,15 @@ export async function updateOuting(id: string, changes: OutingChanges): Promise<
   const { data, response } = await api.PATCH('/api/outings/{outing_id}', {
     params: { path: { outing_id: id } },
     body: changes,
+    headers: await authHeaders(),
   });
   if (!data) throw invalidResponse(response.status);
   return data;
 }
 
 export async function deleteOuting(id: string): Promise<void> {
-  await api.DELETE('/api/outings/{outing_id}', { params: { path: { outing_id: id } } });
+  await api.DELETE('/api/outings/{outing_id}', {
+    params: { path: { outing_id: id } },
+    headers: await authHeaders(),
+  });
 }
