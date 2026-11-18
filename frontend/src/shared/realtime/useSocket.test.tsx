@@ -420,6 +420,45 @@ describe('useSocket: reconnexió amb espera exponencial (TG-461)', () => {
 
     expect(result.current.status).toBe('open');
   });
+
+  it('reconnect() des de closed passa l’estat a connecting, no a reconnecting', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await networkDrops();
+    for (const base of BACKOFF_BASES) {
+      await flush(base);
+      await networkDrops();
+    }
+
+    await act(async () => result.current.reconnect());
+
+    expect(result.current.status).toBe('connecting');
+
+    await flush(1000);
+    await serverOpens();
+
+    expect(result.current.status).toBe('connecting');
+  });
+
+  it('en tornar a open després d’una reconnexió bona, error torna a ser null', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await networkDrops();
+    for (const base of BACKOFF_BASES) {
+      await flush(base);
+      await networkDrops();
+    }
+
+    expect(result.current.error?.code).toBe('NETWORK_ERROR');
+
+    await act(async () => result.current.reconnect());
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(result.current.status).toBe('open');
+    expect(result.current.error).toBeNull();
+  });
 });
 
 describe('useSocket: neteja i connexió compartida (TG-461)', () => {
@@ -515,6 +554,37 @@ describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
     expect(sockets()).toHaveLength(2);
   });
 
+  it('4401 de nou després d’una auth correcta: el comptador es reinicia, renova un altre cop i reconnecta', async () => {
+    mockedRefreshSession
+      .mockImplementationOnce(async () => {
+        await saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' });
+        return TOKENS_2;
+      })
+      .mockImplementationOnce(async () => {
+        await saveTokens({ accessToken: 'access-3', refreshToken: 'refresh-3' });
+        return { ...TOKENS_2, access_token: 'access-3', refresh_token: 'refresh-3' };
+      });
+    const { result } = await mountConnected();
+    await serverCloses(4401);
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK); // the renewed session is accepted
+
+    await serverCloses(4401); // later on, the token expires again
+    await flush(1000);
+
+    expect(mockedRefreshSession).toHaveBeenCalledTimes(2);
+    expect(sockets()).toHaveLength(3);
+
+    await serverOpens();
+
+    expect(lastSocket().sent).toEqual([auth('access-3')]);
+
+    await serverSends(AUTH_ACK);
+
+    expect(result.current.status).toBe('open');
+  });
+
   it('4401 i la renovació falla: closed amb INVALID_SESSION sense reconnectar', async () => {
     mockedRefreshSession.mockResolvedValue(null);
     const { result } = await mountConnected();
@@ -538,6 +608,20 @@ describe('useSocket: tancaments del servidor (TG-461, ADR-0030)', () => {
     expect(result.current.status).toBe('closed');
     expect(sockets()).toHaveLength(1);
     expect(mockedRefreshSession).not.toHaveBeenCalled();
+  });
+
+  it('4429 exposa un AppError TOO_MANY_CONNECTIONS (http, 429, no reintentable)', async () => {
+    const { result } = await mount();
+    await serverOpens();
+
+    await serverCloses(4429);
+
+    expect(result.current.status).toBe('closed');
+    expect(result.current.error).toBeInstanceOf(AppError);
+    expect(result.current.error?.kind).toBe('http');
+    expect(result.current.error?.code).toBe('TOO_MANY_CONNECTIONS');
+    expect(result.current.error?.status).toBe(429);
+    expect(result.current.error?.retryable).toBe(false);
   });
 });
 
