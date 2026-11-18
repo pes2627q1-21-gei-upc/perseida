@@ -13,6 +13,9 @@ NEW_CODES = {
     "DATABASE_UNAVAILABLE": (503, "Service Unavailable"),
     "EVENT_NOT_FOUND": (404, "Not Found"),
     "CHAT_ROOM_NOT_FOUND": (404, "Not Found"),
+    "INVALID_SESSION": (401, "Unauthorized"),
+    "ACCOUNT_SUSPENDED": (403, "Forbidden"),
+    "ACCOUNT_DELETED": (403, "Forbidden"),
 }
 
 

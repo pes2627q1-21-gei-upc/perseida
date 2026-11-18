@@ -2,16 +2,27 @@
 
 import json
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
-from app.application.realtime.room_handler import RoomHandler, RoomRequest
-from app.infrastructure.chat.ws_handler import CHAT_ROOM_PREFIX, ChatWsHandler
 
 from app.application.chat.chat_service import ChatService
-from app.application.shared.errors import ExternalServiceError, ForbiddenError
+from app.application.realtime.room_handler import RoomHandler, RoomRequest
+from app.application.shared.errors import (
+    ExternalServiceError,
+    ForbiddenError,
+    UnauthorizedError,
+)
+from app.application.users.user_service import UserService
+from app.domain.shared.account import AccountStatus
 from app.domain.shared.errors import NotFoundError, ValidationError
+from app.domain.users.models import User
+from app.infrastructure.chat.ws_handler import CHAT_ROOM_PREFIX, ChatWsHandler
 from tests.fakes.chat import ChatFakes
+from tests.fakes.users import InMemoryUserRepository
+
+SUB = "google-sub-1"
 
 
 @pytest.fixture
@@ -20,13 +31,34 @@ def env() -> ChatFakes:
 
 
 @pytest.fixture
-def handler(env: ChatFakes) -> ChatWsHandler:
-    return ChatWsHandler(ChatService(env, env, env, env, env))
+def accounts(env: ChatFakes) -> InMemoryUserRepository:
+    return InMemoryUserRepository(account(env.user, SUB))
+
+
+@pytest.fixture
+def handler(env: ChatFakes, accounts: InMemoryUserRepository) -> ChatWsHandler:
+    return ChatWsHandler(ChatService(env, env, env, env, env), UserService(accounts))
+
+
+def account(
+    user_id: uuid.UUID, sub: str, status: AccountStatus = AccountStatus.ACTIVE
+) -> User:
+    now = datetime.now(UTC)
+    return User(
+        id=user_id,
+        google_sub=sub,
+        email=f"{sub}@example.com",
+        status=status,
+        created_at=now,
+        last_login_at=now,
+        deleted_at=now if status == AccountStatus.DELETED else None,
+    )
 
 
 def request(env: ChatFakes, room: str | None = None, conn: str = "c-1") -> RoomRequest:
+    # ``sub`` of a session is the Google subject, not the id of the user
     return RoomRequest(
-        sub=str(env.user), conn_id=conn, room=room or f"{CHAT_ROOM_PREFIX}{env.event}"
+        sub=SUB, conn_id=conn, room=room or f"{CHAT_ROOM_PREFIX}{env.event}"
     )
 
 
@@ -75,11 +107,10 @@ async def test_subscribing_to_an_unknown_event_is_event_not_found(
 
 
 async def test_another_user_is_forbidden(
-    handler: ChatWsHandler, env: ChatFakes
+    handler: ChatWsHandler, env: ChatFakes, accounts: InMemoryUserRepository
 ) -> None:
-    other = RoomRequest(
-        sub=str(uuid.uuid7()), conn_id="c", room=f"{CHAT_ROOM_PREFIX}{env.event}"
-    )
+    accounts.users["other"] = account(uuid.uuid7(), "other")
+    other = RoomRequest(sub="other", conn_id="c", room=f"{CHAT_ROOM_PREFIX}{env.event}")
 
     with pytest.raises(ForbiddenError):
         await handler.subscribe(other)
@@ -116,15 +147,47 @@ async def test_a_malformed_event_id_in_the_room_is_a_validation_error(
     assert env.calls == []  # nothing was asked to the service
 
 
-async def test_a_sub_that_is_not_a_user_id_is_forbidden(
-    handler: ChatWsHandler, env: ChatFakes
+@pytest.mark.parametrize("action", ["subscribe", "message"])
+async def test_a_session_without_an_account_is_an_invalid_session(
+    handler: ChatWsHandler, env: ChatFakes, action: str
 ) -> None:
-    bad = RoomRequest(
-        sub="google-123", conn_id="c", room=f"{CHAT_ROOM_PREFIX}{env.event}"
+    ghost = RoomRequest(
+        sub="no-account", conn_id="c", room=f"{CHAT_ROOM_PREFIX}{env.event}"
+    )
+    call = (
+        handler.message(ghost, {"text": "hola"})
+        if action == "message"
+        else handler.subscribe(ghost)
     )
 
-    with pytest.raises(ForbiddenError):
-        await handler.subscribe(bad)
+    with pytest.raises(UnauthorizedError) as exc:
+        await call
+
+    assert exc.value.code == "INVALID_SESSION"
+    assert env.calls == []
+
+
+@pytest.mark.parametrize(
+    ("status", "code"),
+    [
+        (AccountStatus.SUSPENDED, "ACCOUNT_SUSPENDED"),
+        (AccountStatus.BANNED, "ACCOUNT_SUSPENDED"),
+        (AccountStatus.DELETED, "ACCOUNT_DELETED"),
+    ],
+)
+async def test_a_suspended_or_deleted_account_cannot_use_the_chat(
+    handler: ChatWsHandler,
+    env: ChatFakes,
+    accounts: InMemoryUserRepository,
+    status: AccountStatus,
+    code: str,
+) -> None:
+    accounts.users[SUB] = account(env.user, SUB, status)
+
+    with pytest.raises(ForbiddenError) as exc:
+        await handler.message(request(env), {"text": "hola"})
+
+    assert exc.value.code == code
     assert env.calls == []
 
 

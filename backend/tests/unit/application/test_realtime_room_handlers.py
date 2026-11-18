@@ -9,16 +9,17 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
-from app.application.realtime.room_handler import RoomHandler, RoomRequest
 
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.chat.errors import RateLimitedError
 from app.application.realtime import errors
 from app.application.realtime.realtime_session import RealtimeConfig, RealtimeSession
+from app.application.realtime.room_handler import RoomHandler, RoomRequest
 from app.application.shared.errors import (
     ApplicationError,
     ExternalServiceError,
     ForbiddenError,
+    UnauthorizedError,
 )
 from app.domain.auth.models import AccountStatus, GoogleIdentity
 from app.domain.realtime.models import revocation_channel, room_channel
@@ -323,6 +324,9 @@ CASES: list[tuple[Exception, str, int]] = [
     (NotFoundError("EVENT_NOT_FOUND"), "EVENT_NOT_FOUND", 404),
     (NotFoundError("CHAT_ROOM_NOT_FOUND"), "CHAT_ROOM_NOT_FOUND", 404),
     (ForbiddenError("FORBIDDEN"), "FORBIDDEN", 403),
+    (ForbiddenError("ACCOUNT_SUSPENDED"), "ACCOUNT_SUSPENDED", 403),
+    (ForbiddenError("ACCOUNT_DELETED"), "ACCOUNT_DELETED", 403),
+    (UnauthorizedError("INVALID_SESSION"), "INVALID_SESSION", 401),
     (RateLimitedError("RATE_LIMITED"), "RATE_LIMITED", 429),
     (ExternalServiceError("PUBSUB_UNAVAILABLE"), "PUBSUB_UNAVAILABLE", 503),
     (ExternalServiceError("DATABASE_UNAVAILABLE"), "DATABASE_UNAVAILABLE", 503),
