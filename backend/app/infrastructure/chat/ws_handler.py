@@ -9,6 +9,7 @@ frames ``error``.
 """
 
 import uuid
+from collections.abc import Callable
 from typing import Any
 
 from app.application.chat.chat_service import ChatService
@@ -39,7 +40,12 @@ def _event_of(room: str) -> uuid.UUID:
 
 
 class ChatWsHandler:
-    def __init__(self, service: ChatService, users: UserService) -> None:
+    def __init__(
+        self, service: Callable[[], ChatService], users: Callable[[], UserService]
+    ) -> None:
+        # Providers, not instances: the services are built over the resources of
+        # the app when the first chat frame arrives, so a connection that never
+        # uses the chat (or an app without database) does not need them.
         self._service = service
         self._users = users
 
@@ -49,11 +55,12 @@ class ChatWsHandler:
         Raises ``UnauthorizedError`` (INVALID_SESSION) or ``ForbiddenError``
         (ACCOUNT_SUSPENDED, ACCOUNT_DELETED), the same as the REST endpoints.
         """
-        return (await self._users.get_profile(request.sub)).id
+        return (await self._users().get_profile(request.sub)).id
 
     async def subscribe(self, request: RoomRequest) -> None:
         event_id = _event_of(request.room)
-        await self._service.get_or_create_room(await self._user_of(request), event_id)
+        user_id = await self._user_of(request)
+        await self._service().get_or_create_room(user_id, event_id)
 
     async def unsubscribe(self, request: RoomRequest) -> None:
         _event_of(request.room)
@@ -65,8 +72,9 @@ class ChatWsHandler:
         text = payload.get("text")
         if not isinstance(text, str):
             raise ValidationError(VALIDATION_ERROR, "The message needs a text.")
-        message = await self._service.send_message(
-            await self._user_of(request), event_id, text, origin=request.conn_id
+        user_id = await self._user_of(request)
+        message = await self._service().send_message(
+            user_id, event_id, text, origin=request.conn_id
         )
         stored = message.model_dump(mode="json")
         return {"id": stored["id"], "sent_at": stored["sent_at"]}

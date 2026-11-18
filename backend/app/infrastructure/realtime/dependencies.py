@@ -7,9 +7,9 @@ from starlette.requests import HTTPConnection
 from app.application.realtime.connection_limiter import ConnectionLimiter
 from app.application.realtime.realtime_session import RealtimeConfig
 from app.application.realtime.room_handler import RoomHandler
-from app.infrastructure.chat.dependencies import ChatServiceDep
+from app.infrastructure.chat.dependencies import ChatSettingsDep, get_chat_service
 from app.infrastructure.chat.ws_handler import CHAT_ROOM_PREFIX, ChatWsHandler
-from app.infrastructure.users.dependencies import UserServiceDep
+from app.infrastructure.users.dependencies import get_user_service
 
 
 def get_realtime_config(conn: HTTPConnection) -> RealtimeConfig:
@@ -31,11 +31,16 @@ def get_connection_limiter(
 
 
 def get_room_handlers(
-    chat: ChatServiceDep, users: UserServiceDep
+    conn: HTTPConnection, settings: ChatSettingsDep
 ) -> Mapping[str, RoomHandler]:
-    """The handlers of the rooms by prefix, built for each connection.
+    """The handlers of the rooms by prefix, one set per connection.
 
-    A WebSocket has no per-request ``Depends`` after the handshake, so the
-    endpoint resolves them once, over the resources of the app (``state``).
+    A WebSocket has no ``Depends`` per frame after the handshake, so the endpoint
+    resolves the handlers once; they build their services from the ``state`` of
+    the app (lifespan resources) when a frame needs them.
     """
-    return {CHAT_ROOM_PREFIX: ChatWsHandler(chat, users)}
+    return {
+        CHAT_ROOM_PREFIX: ChatWsHandler(
+            lambda: get_chat_service(conn, settings), lambda: get_user_service(conn)
+        )
+    }
