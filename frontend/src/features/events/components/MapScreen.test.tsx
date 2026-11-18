@@ -6,7 +6,12 @@ import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
 import MapScreen from '../../../app/(app)/map';
 
-const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn() };
+const mockRouter = {
+  back: jest.fn(),
+  canGoBack: jest.fn(() => true),
+  push: jest.fn(),
+  replace: jest.fn(),
+};
 
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
@@ -220,6 +225,23 @@ describe('Events map screen', () => {
 
     expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
     expect(screen.getByText('Inici')).toBeTruthy();
+  });
+
+  it('opens the outings of the event from its summary (TG-629)', async () => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: "Sortides d'aquest esdeveniment" }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith({
+      pathname: '/outings',
+      params: { eventId: launchEvent.id },
+    });
   });
 
   it('opens the summary from the list too, and closes it', async () => {

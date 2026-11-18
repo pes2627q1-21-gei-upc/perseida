@@ -30,12 +30,17 @@ const { active, upcoming } = classifyEvents([meteorShowerEvent], [launchEvent, s
 const [leonids] = active;
 const [launch, eclipse] = upcoming;
 
-async function renderSheet(event: ClassifiedEvent | null, onClose = jest.fn(), side = false) {
+async function renderSheet(
+  event: ClassifiedEvent | null,
+  onClose = jest.fn(),
+  side = false,
+  onShowOutings?: (eventId: string) => void,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <SafeAreaProvider initialMetrics={SAFE_AREA}>
-        <EventSheet event={event} onClose={onClose} side={side} />
+        <EventSheet event={event} onClose={onClose} side={side} onShowOutings={onShowOutings} />
       </SafeAreaProvider>
     </QueryClientProvider>,
   );
@@ -72,6 +77,21 @@ describe('EventSheet', () => {
 
     expect(screen.getByRole('header', { name: 'Publicacions' })).toBeTruthy();
     expect(screen.getByLabelText('La teva publicació')).toBeTruthy();
+  });
+
+  it('has a button to the outings of the event that opens them (TG-629)', async () => {
+    const onShowOutings = jest.fn();
+    await renderSheet(launch, jest.fn(), false, onShowOutings);
+
+    await fireEvent.press(screen.getByRole('button', { name: "Sortides d'aquest esdeveniment" }));
+
+    expect(onShowOutings).toHaveBeenCalledWith(launch.id);
+  });
+
+  it('has no button to the outings when the screen gives no way to open them', async () => {
+    await renderSheet(launch);
+
+    expect(screen.queryByRole('button', { name: "Sortides d'aquest esdeveniment" })).toBeNull();
   });
 
   it('adds the summary and where the event can be seen', async () => {
