@@ -1,6 +1,7 @@
 import { act, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { AccessibilityInfo } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppLayout from '../../../app/(app)/_layout';
 import * as refreshTokenModule from '../../auth/api/refreshToken';
@@ -39,6 +40,20 @@ jest.mock('expo-router', () => {
   };
 });
 
+// expo-router puts a SafeAreaProvider above every layout; the tests do it by hand.
+function renderLayout({ bottom = 0 } = {}) {
+  return render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 360, height: 640 },
+        insets: { top: 0, left: 0, right: 0, bottom },
+      }}
+    >
+      <AppLayout />
+    </SafeAreaProvider>,
+  );
+}
+
 describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
   const validTokens = {
     accessToken: 'valid-acc',
@@ -64,7 +79,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
 
   it('renders a 5-tab navigation structure when authenticated', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
@@ -77,27 +92,26 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
     });
   });
 
-  it('hides sub-routes (map and apod) from the bottom tab bar with href: null', async () => {
+  it('hides sub-routes (map and apod) from the tab bar without removing them from the router', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
-      const mapScreen = mockTabsScreens.find((s) => s.name === 'map');
-      const apodScreen = mockTabsScreens.find((s) => s.name === 'apod');
-
-      expect(mapScreen).toBeDefined();
-      expect(mapScreen?.options?.href).toBeNull();
-
-      expect(apodScreen).toBeDefined();
-      expect(apodScreen?.options?.href).toBeNull();
-      expect(apodScreen?.options?.tabBarStyle).toEqual({ display: 'none' });
+      for (const name of ['map', 'apod']) {
+        const screenOptions = mockTabsScreens.find((s) => s.name === name)?.options;
+        expect(screenOptions).toBeDefined();
+        // `href: null` would make expo-router 58 drop the route (see hiddenRoutes.test.tsx).
+        expect(screenOptions).not.toHaveProperty('href');
+        expect((screenOptions?.tabBarButton as () => unknown)()).toBeNull();
+        expect(screenOptions?.tabBarStyle).toEqual({ display: 'none' });
+      }
     });
   });
 
   it('configures tab bar styling with Frutiger Cosmo theme tokens', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
@@ -110,7 +124,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
 
   it('labels the tabs with the caption type of the theme, not a smaller ad hoc size (TG-385 criteri 5)', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() =>
@@ -120,7 +134,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
 
   it('gives every tab a touch target of at least 48 dp, also in compact landscape (TG-385 #520)', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
@@ -129,14 +143,36 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
     });
   });
 
+  it('keeps the labels below the icons, so a narrow or landscape bar does not cut them (TG-385 #520)', async () => {
+    await act(async () => {
+      renderLayout();
+    });
+
+    await waitFor(() =>
+      expect(mockScreenOptions.mock.calls.at(-1)?.[0].tabBarLabelPosition).toBe('below-icon'),
+    );
+  });
+
+  it('makes the bar tall enough for a 48 dp target, its caption label and the bottom safe area (TG-385 #520)', async () => {
+    await act(async () => {
+      renderLayout({ bottom: 34 });
+    });
+
+    await waitFor(() =>
+      expect(mockScreenOptions.mock.calls.at(-1)?.[0].tabBarStyle.height).toBe(
+        touch.min + typography.caption.lineHeight + 34,
+      ),
+    );
+  });
+
   it('labels every tab for screen readers with its translated title (TG-385 #520)', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
       const labels = mockTabsScreens
-        .filter((s) => s.options.href !== null)
+        .filter((s) => !s.options.tabBarButton)
         .map((s) => s.options.tabBarAccessibilityLabel);
       expect(labels).toEqual(['Inici', 'Esdeveniments', 'Xat', 'Gamificació', 'Perfil']);
     });
@@ -144,7 +180,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
 
   it('draws the tab bar as blurred glass, light by day (TG-385 criteri 5)', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => expect(mockScreenOptions).toHaveBeenCalled());
@@ -156,7 +192,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
   it('draws the tab bar as dark blurred glass at night (TG-385 criteri 5)', async () => {
     mockColorScheme.mockReturnValue('dark');
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => expect(mockScreenOptions).toHaveBeenCalled());
@@ -168,7 +204,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
   it('draws solid glass without blur with «Reduce transparency» (TG-385 criteri 5)', async () => {
     jest.spyOn(AccessibilityInfo, 'isReduceTransparencyEnabled').mockResolvedValue(true);
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() =>
@@ -181,7 +217,7 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
 
   it('fills the icon of the focused tab and keeps the others regular (TG-385 criteri 5)', async () => {
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => expect(mockTabsScreens.some((s) => s.name === 'index')).toBe(true));
