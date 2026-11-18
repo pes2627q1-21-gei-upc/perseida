@@ -1,6 +1,7 @@
 import { api } from '../../../shared/api/client';
 import type { components } from '../../../shared/api/schema';
 import { AppError } from '../../../shared/errors';
+import { authHeaders } from '../../auth/authHeaders';
 
 export type UserProfile = components['schemas']['UserResponse'];
 
@@ -10,12 +11,11 @@ function invalidResponse(status: number): AppError {
 
 /**
  * Fetches the authenticated user profile (GET /api/users/me).
- * Throws AppError on failures via errorMiddleware.
+ * The session comes from authHeaders (INVALID_SESSION without one, before calling the API);
+ * the other failures become AppError via errorMiddleware.
  */
-export async function getUserProfile(accessToken: string): Promise<UserProfile> {
-  const { data, response } = await api.GET('/api/users/me', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function getUserProfile(): Promise<UserProfile> {
+  const { data, response } = await api.GET('/api/users/me', { headers: await authHeaders() });
   if (!data) throw invalidResponse(response.status);
   return data;
 }
