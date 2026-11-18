@@ -4,6 +4,7 @@ import {
   type OutingFormValues,
   outingFormSchema,
   outingToValues,
+  parseCoordinates,
   toChanges,
   toDraft,
 } from './outingForm';
@@ -177,5 +178,37 @@ describe('toChanges', () => {
 
   it('refuses to remove the location', () => {
     expect(() => toChanges({ ...initial, location: null }, initial)).toThrow('location');
+  });
+});
+
+describe('parseCoordinates', () => {
+  it('reads a latitude and a longitude', () => {
+    expect(parseCoordinates('41.5', '2.2')).toEqual({ latitude: 41.5, longitude: 2.2 });
+  });
+
+  it('accepts a comma as the decimal separator and spaces around the numbers', () => {
+    expect(parseCoordinates(' 41,5 ', ' -2,25 ')).toEqual({ latitude: 41.5, longitude: -2.25 });
+  });
+
+  it('accepts the limits and zero', () => {
+    expect(parseCoordinates('-90', '180')).toEqual({ latitude: -90, longitude: 180 });
+    expect(parseCoordinates('90', '-180')).toEqual({ latitude: 90, longitude: -180 });
+    expect(parseCoordinates('0', '0')).toEqual({ latitude: 0, longitude: 0 });
+  });
+
+  it.each([
+    ['', '2'],
+    ['41', ''],
+    ['   ', '2'],
+    ['abc', '2'],
+    ['41', '2x'],
+    ['1e1', '2'],
+    ['41', 'Infinity'],
+    ['90.0001', '0'],
+    ['-90.0001', '0'],
+    ['0', '180.0001'],
+    ['0', '-180.0001'],
+  ])('rejects %j, %j', (latitude, longitude) => {
+    expect(parseCoordinates(latitude, longitude)).toBeNull();
   });
 });

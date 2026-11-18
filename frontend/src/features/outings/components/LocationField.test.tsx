@@ -139,6 +139,59 @@ describe('LocationField', () => {
     });
   });
 
+  describe('coordinates', () => {
+    async function typeCoordinates(latitude: string, longitude: string) {
+      await fireEvent.changeText(screen.getByLabelText('Latitud'), latitude);
+      await fireEvent.changeText(screen.getByLabelText('Longitud'), longitude);
+      await fireEvent.press(screen.getByRole('button', { name: 'Tria aquestes coordenades' }));
+    }
+
+    it('has a field for the latitude and one for the longitude, with decimal keyboards', async () => {
+      await render(<LocationField value={null} onChange={jest.fn()} />);
+
+      expect(screen.getByLabelText('Latitud').props.keyboardType).toBe('numbers-and-punctuation');
+      expect(screen.getByLabelText('Longitud').props.keyboardType).toBe('numbers-and-punctuation');
+    });
+
+    it('chooses the place of the coordinates and moves the map there', async () => {
+      const onChange = jest.fn();
+      await render(<LocationField value={null} onChange={onChange} />);
+
+      await typeCoordinates('41,5', '2.2');
+
+      expect(onChange).toHaveBeenCalledWith({ latitude: 41.5, longitude: 2.2 });
+      expect(mockMapProps.start).toMatchObject({ latitude: 41.5, longitude: 2.2 });
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it.each([
+      ['', ''],
+      ['abc', '2'],
+      ['91', '2'],
+      ['41', '181'],
+    ])('explains it and chooses nothing for %j, %j', async (latitude, longitude) => {
+      const onChange = jest.fn();
+      await render(<LocationField value={null} onChange={onChange} />);
+
+      await typeCoordinates(latitude, longitude);
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "La latitud ha d'estar entre −90 i 90, i la longitud entre −180 i 180.",
+      );
+    });
+
+    it('clears the explanation once the coordinates are right', async () => {
+      await render(<LocationField value={null} onChange={jest.fn()} />);
+
+      await typeCoordinates('91', '2');
+      expect(screen.getByRole('alert')).toBeOnTheScreen();
+      await typeCoordinates('41', '2');
+
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
   it('shows the error of the field, already translated, as an alert', async () => {
     await render(<LocationField value={null} onChange={jest.fn()} error="Tria on us trobareu." />);
 
