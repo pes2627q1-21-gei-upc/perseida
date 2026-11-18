@@ -79,9 +79,9 @@ frontend/
 
 Ruta `/(app)/quiz` (de momento, acceso desde el inicio temporal). Código en `src/features/quiz/`; contrato de la API en `obsidian_vault/arquitectura/contracte-quiz.md`.
 
-- **Datos:** `useQuizToday(lang)` pide `GET /api/quiz/today?lang=<idioma de la app>`; `useAnswerQuiz(lang)` envía `POST /api/quiz/today/answer` y guarda el resultado en la pregunta en caché. Una entrada de caché por idioma.
+- **Datos:** `useQuizToday(lang)` pide `GET /api/quiz/today?lang=<idioma de la app>`; `useAnswerQuiz(lang)` envía `POST /api/quiz/today/answer` y guarda el resultado en la pregunta en caché. Una entrada de caché por idioma. Con la pantalla abierta, la pregunta se vuelve a pedir justo después de medianoche UTC, y al volver la app al primer plano otro día.
 - **Pantalla:** la pregunta con sus 4 opciones (botones de radio) y un botón de enviar desactivado hasta que se elige una opción y ocupado mientras se envía. Una vez respondida (o si ya lo estaba), el resultado: si se ha acertado, la opción correcta y la elegida con palabras e iconos, la explicación y un enlace a la fuente. Las dos vistas tienen un botón «Volver al inicio», así no hace falta el botón atrás del sistema.
-- **Errores:** los de carga muestran un mensaje traducido con reintento si son transitorios. Si falla el envío, la opción elegida se conserva. Tras `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` se carga la pregunta nueva con un aviso; tras `QUIZ_ALREADY_ANSWERED`, el resultado.
+- **Errores:** los de carga muestran un mensaje traducido con reintento si son transitorios. Si falla el envío, la opción elegida se conserva. Tras `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` se carga la pregunta nueva con un aviso; tras `QUIZ_ALREADY_ANSWERED`, el resultado. Si esa recarga falla, se muestra el error con reintento aunque haya una pregunta anterior en caché.
 
 ## Ejecutar y testear
 

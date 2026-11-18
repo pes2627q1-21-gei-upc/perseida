@@ -79,9 +79,9 @@ frontend/
 
 Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal). Codi a `src/features/quiz/`; contracte de l'API a `obsidian_vault/arquitectura/contracte-quiz.md`.
 
-- **Dades:** `useQuizToday(lang)` demana `GET /api/quiz/today?lang=<idioma de l'app>`; `useAnswerQuiz(lang)` envia `POST /api/quiz/today/answer` i desa el resultat a la pregunta en memòria cau. Una entrada de cache per idioma.
+- **Dades:** `useQuizToday(lang)` demana `GET /api/quiz/today?lang=<idioma de l'app>`; `useAnswerQuiz(lang)` envia `POST /api/quiz/today/answer` i desa el resultat a la pregunta en memòria cau. Una entrada de cache per idioma. Amb la pantalla oberta, la pregunta es torna a demanar just després de mitjanit UTC, i en tornar l'app al primer pla un altre dia.
 - **Pantalla:** la pregunta amb les 4 opcions (botons de ràdio) i un botó d'enviar desactivat fins que es tria una opció i ocupat mentre s'envia. Un cop resposta (o si ja ho estava), el resultat: si s'ha encertat, l'opció correcta i la triada amb paraules i icones, l'explicació i un enllaç a la font. Totes dues vistes tenen un botó «Torna a l'inici», així no cal el botó enrere del sistema.
-- **Errors:** els de càrrega mostren un missatge traduït amb reintent si són transitoris. Si falla l'enviament, l'opció triada es conserva. Després de `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` es carrega la pregunta nova amb un avís; després de `QUIZ_ALREADY_ANSWERED`, el resultat.
+- **Errors:** els de càrrega mostren un missatge traduït amb reintent si són transitoris. Si falla l'enviament, l'opció triada es conserva. Després de `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` es carrega la pregunta nova amb un avís; després de `QUIZ_ALREADY_ANSWERED`, el resultat. Si aquesta recàrrega falla, es mostra l'error amb reintent encara que hi hagi una pregunta anterior en memòria cau.
 
 ## Executar i testejar
 

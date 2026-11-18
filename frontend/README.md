@@ -79,9 +79,9 @@ frontend/
 
 Route `/(app)/quiz` (for now, linked from the temporary home). Code in `src/features/quiz/`; API contract in `obsidian_vault/arquitectura/contracte-quiz.md`.
 
-- **Data:** `useQuizToday(lang)` asks for `GET /api/quiz/today?lang=<app language>`; `useAnswerQuiz(lang)` sends `POST /api/quiz/today/answer` and puts the result into the cached question. One cache entry per language.
+- **Data:** `useQuizToday(lang)` asks for `GET /api/quiz/today?lang=<app language>`; `useAnswerQuiz(lang)` sends `POST /api/quiz/today/answer` and puts the result into the cached question. One cache entry per language. With the screen open, the question is asked again just after midnight UTC, and when the app comes back to the foreground on another day.
 - **Screen:** the question with its 4 options (radio buttons) and a send button that stays disabled until an option is chosen and busy while sending. Once answered (or if it already was), the result: right or not, the right option and the chosen one in words and icons, the explanation and a link to the source. Both views have a "Back to home" button, so the system back button is not needed.
-- **Errors:** loading errors show a translated message with retry when transient. If sending fails, the chosen option stays. After `QUIZ_EXPIRED` or `QUIZ_QUESTION_MISMATCH` the new question is loaded with a notice; after `QUIZ_ALREADY_ANSWERED`, the result.
+- **Errors:** loading errors show a translated message with retry when transient. If sending fails, the chosen option stays. After `QUIZ_EXPIRED` or `QUIZ_QUESTION_MISMATCH` the new question is loaded with a notice; after `QUIZ_ALREADY_ANSWERED`, the result. If that reload fails, the error is shown with retry even if an older question is cached.
 
 ## Run and test
 
