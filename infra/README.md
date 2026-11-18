@@ -126,6 +126,8 @@ The FastAPI backend service (`perseida-api`) uses the following environment vari
 | `NASA_API_KEY` | Yes | NASA API key for the APOD (the API does not start without it); `DEMO_KEY` works locally, rate-limited | `<key from https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Expiration time for access tokens in minutes (default: 15) | `15` |
 | `REFRESH_TOKEN_DAYS` | No | Expiration time for refresh tokens in days (default: 30) | `30` |
+| `CORS_ALLOWED_ORIGINS` | No | Browser origins allowed by CORS, comma-separated (default: `https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org` and the local Expo and API ports `8081`, `19006` and `8000` on `localhost`/`127.0.0.1`). Setting it replaces the defaults | `https://perseida.duckdns.org:40431,http://localhost:8081` |
+| `CORS_ALLOWED_ORIGIN_REGEX` | No | Extra origins allowed by CORS, as a regular expression (default: none) | `http://localhost:\d+` |
 
 ### First-time setup: make the package public (one-time, manual)
 
@@ -356,7 +358,7 @@ The panel only listens on `127.0.0.1`, never from outside. The first time you lo
 
 The public events endpoints (`/api/events/`, TG-351) allow 600 requests per minute across all clients, with a burst of 100 served at once. It is a single shared counter: in production the UPC NAT rewrites the source IP and the proxy cannot tell clients apart (TG-643). Beyond that the proxy answers `429` in `application/problem+json` with `code: RATE_LIMITED`, `instance` and `Retry-After: 1`, without reaching the API.
 
-- The zone (`limit_req_zone`) must be in nginx's `http` block, which the *Advanced* tab cannot reach. It lives in `nginx-proxy-manager/http_top.conf`, which the Compose mounts read-only at `/data/nginx/custom/http_top.conf` (NPM includes it) and the CD copies to `/opt/perseida/nginx-proxy-manager/`.
+- The zone (`limit_req_zone`) must be in nginx's `http` block, which the *Advanced* tab cannot reach. It lives in `nginx-proxy-manager/http_top.conf`, which the Compose mounts at `/data/nginx/custom/http_top.conf` (not read-only: NPM `chown`s all of `/data` at startup and fails on a read-only file) (NPM includes it) and the CD copies to `/opt/perseida/nginx-proxy-manager/` with `infra/scripts/install-http-top.sh`: NPM makes the file root-owned at startup, so the script writes it with a one-off container of the NPM image (whether the proxy is running or not) when the deploy user can no longer overwrite it (hotfix 0.2.2).
 - The location that applies it is `nginx-proxy-manager/rate-limit.conf` (*Advanced* tab). It uses the zone and the map `$events_problem_instance`, both defined in `http_top.conf`.
 
 > **Order matters.** `rate-limit.conf` needs the zone and the map of `http_top.conf`. If they are missing, nginx does not start and the whole proxy host goes down.
@@ -366,7 +368,7 @@ The public events endpoints (`/api/events/`, TG-351) allow 600 requests per minu
 > - **If the zone key changes** (`$binary_remote_addr` → `$realip_remote_addr` in TG-643, or the revert of that change): a reload does not apply it. nginx rejects a live zone with a different key (`limit_req "events_per_ip" uses the "..." key while previously it used the "..." key`) and keeps the old configuration, yet the CD step still goes green: `nginx -t` does not compare against the live zone and `nginx -s reload` only sends the signal. No *Advanced* save is applied either until a restart. After that deploy, restart the proxy (a few seconds of downtime): `cd /opt/perseida && docker compose restart reverse-proxy`. Check it with `docker compose exec reverse-proxy nginx -T | grep limit_req_zone` (it shows the file, not the live zone, hence the restart), make sure `docker compose logs reverse-proxy` does not show that error, and only then paste `rate-limit.conf` into *Advanced* again.
 
 - `docker compose up` does not recreate the proxy when only the content of `http_top.conf` changes, so the CD validates and reloads nginx after each deploy (`nginx -t && nginx -s reload`). Locally: `docker compose exec reverse-proxy nginx -s reload`.
-- Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it).
+- Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it). `bash infra/scripts/test-npm-startup.sh` starts the real NPM image with the Compose mount of `http_top.conf` and checks that it boots and loads the zone, and that a read-only mount makes it fail (regression of hotfix 0.2.1).
 - The limit counts the address of the TCP connection (`$realip_remote_addr`), not `$remote_addr`: NPM trusts the `X-Real-IP` header when the request comes from a private network, and in production every request does (UPC NAT), so a client could pick its own key. The test checks it with a forged `X-Real-IP` on every request (TG-643).
 
 ### Volumes

@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
+from app.infrastructure.api.cors import add_cors
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.openapi import install_openapi_cleanup
 from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
@@ -132,13 +133,15 @@ def create_app() -> FastAPI:
         title="Perseida API",
         description="Backend oficial del projecte Perseida - "
         "Arquitectura Hexagonal i API",
-        version="0.1.0",
+        version="0.2.2",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
     register_error_handlers(app)
+    # Reverse wrap (Security > Correlation > CORS): preflights get both headers.
+    add_cors(app)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(health_router, prefix="/api")
