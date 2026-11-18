@@ -56,6 +56,7 @@
     "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
     "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
+    "TOO_MANY_CONNECTIONS": "You have too many connections open at once (on other devices or tabs). Close one and try again.",
     "OUTING_TITLE_EMPTY": "Give the outing a title.",
     "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
     "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",

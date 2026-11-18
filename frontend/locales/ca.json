@@ -56,6 +56,7 @@
     "QUIZ_EXPIRED": "Aquesta pregunta ja no es pot respondre: ha canviat el dia.",
     "QUIZ_QUESTION_MISMATCH": "Aquesta ja no és la pregunta d'avui.",
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "TOO_MANY_CONNECTIONS": "Tens massa connexions obertes alhora (en altres dispositius o pestanyes). Tanca'n alguna i torna-ho a provar.",
     "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
     "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripció pot tenir com a màxim 2.000 caràcters.",
