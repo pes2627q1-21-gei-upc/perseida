@@ -206,3 +206,27 @@ async def test_tg439_deep_cursor_is_validation_error(
     )
     with pytest.raises(ValidationError):
         await service.history(env.user, env.event, before=cursor)
+
+
+async def test_tg459_published_envelope_carries_the_origin_of_the_connection(
+    service: ChatService, env: ChatFakes
+) -> None:
+    message = await service.send_message(env.user, env.event, "hola", origin="conn-1")
+
+    envelope = json.loads(env.published[0])
+    assert envelope["from"] == "conn-1"
+    assert envelope["frame"]["type"] == "message"
+    assert envelope["frame"]["room"] == f"chat:event:{env.event}"
+    assert envelope["frame"]["payload"] == message.model_dump(mode="json")
+
+
+@pytest.mark.parametrize("explicit_none", [True, False], ids=["origin=None", "default"])
+async def test_tg459_without_origin_the_envelope_has_no_sender(
+    service: ChatService, env: ChatFakes, explicit_none: bool
+) -> None:
+    if explicit_none:
+        await service.send_message(env.user, env.event, "hola", origin=None)
+    else:
+        await service.send_message(env.user, env.event, "hola")
+
+    assert json.loads(env.published[0])["from"] is None
