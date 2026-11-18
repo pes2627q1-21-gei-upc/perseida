@@ -145,8 +145,10 @@ async def client(
     users = build_user_service(factory)
     async with httpx.AsyncClient() as google:
         app: FastAPI = create_app()
-        # The subscription service is built per request from this session factory.
+        # The subscription service is built per request from this session factory
+        # and the Redis of the app (the pub/sub that announces a lost chat room).
         app.state.session_factory = factory
+        app.state.redis = redis
         app.state.user_service = users
         app.state.auth_service = AuthService(
             GoogleJwksVerifier(google, [CLIENT_ID]),
