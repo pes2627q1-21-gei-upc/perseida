@@ -255,15 +255,46 @@ async def test_the_handler_decides_a_message_before_the_generic_not_subscribed(
     assert (reply["room"], reply["id"]) == (ROOM, "m1")
 
 
-async def test_a_message_of_a_handled_room_works_without_joining_it(
+# Contract change (TG-459, decision of the architecture review): before, a
+# ``message`` to a handled room worked without a previous ``subscribe``. Now the
+# connection must have joined: whoever may join but has not is NOT_SUBSCRIBED.
+async def test_a_message_of_a_handled_room_needs_the_connection_to_have_joined_it(
     harness: Harness,
 ) -> None:
     conn = await harness.connect()
 
     reply = await request(conn, message(ROOM, "m1", {"text": "x"}))
 
-    assert reply["type"] == "message"
-    assert len(harness.handler.messages) == 1
+    assert (reply["type"], reply["room"], reply["id"]) == ("error", ROOM, "m1")
+    assert reply["payload"]["code"] == "NOT_SUBSCRIBED"
+    assert harness.handler.messages == []  # nothing is handled, stored or sent
+    assert harness.pubsub.published == []
+    await assert_alive(conn)
+
+
+async def test_the_forbidden_of_the_handler_wins_over_not_subscribed(
+    harness: Harness,
+) -> None:
+    conn = await harness.connect()
+    harness.handler.failure = ForbiddenError(errors.FORBIDDEN)
+
+    reply = await request(conn, message(ROOM, "m1", {"text": "x"}))
+
+    assert reply["payload"]["code"] == "FORBIDDEN"
+    assert harness.handler.messages == []
+
+
+async def test_after_leaving_a_handled_room_a_message_is_not_subscribed(
+    harness: Harness,
+) -> None:
+    conn = await harness.connect()
+    await harness.join(conn)
+    await request(conn, {"type": "unsubscribe", "room": ROOM, "id": "u1"})
+
+    reply = await request(conn, message(ROOM, "m1", {"text": "x"}))
+
+    assert reply["payload"]["code"] == "NOT_SUBSCRIBED"
+    assert harness.handler.messages == []
 
 
 async def test_a_room_without_handler_behaves_as_before(harness: Harness) -> None:
@@ -307,6 +338,7 @@ async def test_the_longest_matching_prefix_wins(harness: Harness) -> None:
     conn = await harness.connect(
         handlers={"talk:": harness.handler, "talk:vip:": specific}
     )
+    await harness.join(conn, "talk:vip:1")
 
     await request(conn, message("talk:vip:1", "m1", {}))
 

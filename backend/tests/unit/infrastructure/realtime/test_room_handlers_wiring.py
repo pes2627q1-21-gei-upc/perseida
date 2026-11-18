@@ -115,6 +115,9 @@ def test_the_endpoint_hands_the_registered_handlers_to_the_session(
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json() == {"type": "auth", "payload": {}}
 
+        # a message needs the connection to have joined the room
+        ws.send_json({"type": "subscribe", "room": "talk:1", "id": "s"})
+        assert ws.receive_json()["type"] == "subscribe"
         ws.send_json({"type": "message", "room": "talk:1", "id": "m", "payload": {}})
         reply = ws.receive_json()
 
