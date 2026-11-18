@@ -80,3 +80,16 @@ def test_tg448_c4_migration_creates_the_tables_and_undoes_them() -> None:
         ]
     finally:
         command.upgrade(config, "head")
+
+
+def test_tg448_c5_sent_at_has_a_server_default_now() -> None:
+    # ADR-0023: timestamps are timestamptz with server_default now().
+    config = _alembic_config()
+    command.upgrade(config, "head")
+
+    assert asyncio.run(
+        _fetch(
+            "SELECT column_default FROM information_schema.columns "
+            "WHERE table_name = 'chat_messages' AND column_name = 'sent_at'"
+        )
+    ) == [("now()",)]
