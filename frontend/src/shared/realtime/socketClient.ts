@@ -118,9 +118,12 @@ function open(token: string): void {
   socket = current;
   authenticated = false;
   current.onopen = () => current.send(JSON.stringify({ type: 'auth', token }));
-  current.onmessage = (event: MessageEvent) => handleFrame(event.data);
+  // A socket this client closed itself (or replaced) no longer matters: its late frames and its
+  // close event are ignored.
+  current.onmessage = (event: MessageEvent) => {
+    if (socket === current) handleFrame(event.data);
+  };
   current.onclose = (event: CloseEvent) => {
-    // A socket this client closed itself (or replaced) no longer matters.
     if (socket === current) handleClose(event.code);
   };
 }
