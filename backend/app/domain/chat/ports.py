@@ -36,6 +36,7 @@ class ChatRepository(Protocol):
         """Store ``message``.
 
         Raises:
+            NotFoundError: if the room or the author does not exist.
             ExternalServiceError: if the database is unavailable.
         """
         ...
@@ -43,7 +44,13 @@ class ChatRepository(Protocol):
     async def page(
         self, room_id: uuid.UUID, before: ChatCursor | None, limit: int
     ) -> ChatRepositoryPage:
-        """Return newest first by (sent_at, id), before the exclusive key."""
+        """Return newest first by (sent_at, id), before the exclusive key.
+
+        The service validates ``limit`` in 1..50; the adapter rejects < 1.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
         ...
 
     async def list_rooms_of(self, user_id: uuid.UUID) -> list[ChatRoomSummary]:

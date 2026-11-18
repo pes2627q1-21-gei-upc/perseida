@@ -1,4 +1,6 @@
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from sqlalchemy import exists, select, true
 from sqlalchemy.dialects.postgresql import insert
@@ -6,7 +8,9 @@ from sqlalchemy.exc import IntegrityError, InterfaceError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col, tuple_
 
+from app.application.chat.errors import DATABASE_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
+from app.domain.chat.errors import CHAT_ROOM_NOT_FOUND
 from app.domain.chat.models import (
     ChatCursor,
     ChatMessage,
@@ -22,7 +26,14 @@ from app.infrastructure.events.tables import (
     EventSubscriptionRow,
 )
 
-DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
+
+@contextmanager
+def _database_errors() -> Iterator[None]:
+    """Map a connection failure to ``ExternalServiceError`` (no details leak)."""
+    try:
+        yield
+    except (OperationalError, InterfaceError, OSError) as exc:
+        raise ExternalServiceError(DATABASE_UNAVAILABLE) from exc
 
 
 def _room(row: EventChatRoomRow) -> EventChatRoom:
@@ -55,9 +66,10 @@ class SqlChatRepository:
         return bool(await session.scalar(statement))
 
     async def require_event(self, event_id: uuid.UUID) -> None:
-        async with self._session_factory() as session:
-            if not await self._event_exists(session, event_id):
-                raise _event_not_found(event_id)
+        with _database_errors():
+            async with self._session_factory() as session:
+                if not await self._event_exists(session, event_id):
+                    raise _event_not_found(event_id)
 
     async def get_or_create_room(self, event_id: uuid.UUID) -> EventChatRoom:
         new_room = EventChatRoom.create(event_id=event_id)
@@ -76,19 +88,20 @@ class SqlChatRepository:
         find_room = select(EventChatRoomRow).where(
             col(EventChatRoomRow.event_id) == event_id
         )
-        async with self._session_factory() as session:
-            if not await self._event_exists(session, event_id):
-                raise _event_not_found(event_id)
-            try:
-                created = await session.scalar(insert_room)
-                await session.commit()
-            except IntegrityError:
-                # The event was deleted between the check and the insert.
-                await session.rollback()
-                raise _event_not_found(event_id) from None
-            if created is not None:
-                return _room(created)
-            return _room((await session.scalars(find_room)).one())
+        with _database_errors():
+            async with self._session_factory() as session:
+                if not await self._event_exists(session, event_id):
+                    raise _event_not_found(event_id)
+                try:
+                    created = await session.scalar(insert_room)
+                    await session.commit()
+                except IntegrityError:
+                    # The event was deleted between the check and the insert.
+                    await session.rollback()
+                    raise _event_not_found(event_id) from None
+                if created is not None:
+                    return _room(created)
+                return _room((await session.scalars(find_room)).one())
 
     async def add_message(self, message: ChatMessage) -> None:
         statement = insert(ChatMessageRow).values(
@@ -98,16 +111,22 @@ class SqlChatRepository:
             text=message.text,
             sent_at=message.sent_at,
         )
-        try:
-            async with self._session_factory() as session:
-                await session.execute(statement)
-                await session.commit()
-        except (OperationalError, InterfaceError, OSError) as exc:
-            raise ExternalServiceError(DATABASE_UNAVAILABLE) from exc
+        with _database_errors():
+            try:
+                async with self._session_factory() as session:
+                    await session.execute(statement)
+                    await session.commit()
+            except IntegrityError:
+                # The room or the author does not exist (foreign keys).
+                raise NotFoundError(
+                    CHAT_ROOM_NOT_FOUND, f"Room {message.room_id} does not exist"
+                ) from None
 
     async def page(
         self, room_id: uuid.UUID, before: ChatCursor | None, limit: int
     ) -> ChatRepositoryPage:
+        if limit < 1:
+            raise ValueError("limit must be >= 1")
         # The index (room_id, sent_at DESC, id DESC) serves filter and order.
         statement = select(ChatMessageRow).where(col(ChatMessageRow.room_id) == room_id)
         if before is not None:
@@ -118,8 +137,9 @@ class SqlChatRepository:
         statement = statement.order_by(
             col(ChatMessageRow.sent_at).desc(), col(ChatMessageRow.id).desc()
         ).limit(limit + 1)
-        async with self._session_factory() as session:
-            rows = list((await session.scalars(statement)).all())
+        with _database_errors():
+            async with self._session_factory() as session:
+                rows = list((await session.scalars(statement)).all())
         messages = [_message(row) for row in rows[:limit]]
         next_cursor = (
             ChatCursor(sent_at=messages[-1].sent_at, id=messages[-1].id)
@@ -140,14 +160,13 @@ class SqlChatRepository:
         )
         statement = (
             select(
-                col(EventChatRoomRow.id),
-                col(EventChatRoomRow.event_id),
-                col(EventChatRoomRow.created_at),
-                last.c.id,
-                last.c.room_id,
-                last.c.author_id,
-                last.c.text,
-                last.c.sent_at,
+                col(EventChatRoomRow.id).label("room_id"),
+                col(EventChatRoomRow.event_id).label("event_id"),
+                col(EventChatRoomRow.created_at).label("room_created_at"),
+                last.c.id.label("message_id"),
+                last.c.author_id.label("author_id"),
+                last.c.text.label("text"),
+                last.c.sent_at.label("sent_at"),
             )
             .join(
                 EventSubscriptionRow,
@@ -161,20 +180,25 @@ class SqlChatRepository:
                 col(EventChatRoomRow.id).desc(),
             )
         )
-        async with self._session_factory() as session:
-            rows = (await session.execute(statement)).all()
+        with _database_errors():
+            async with self._session_factory() as session:
+                rows = (await session.execute(statement)).all()
         return [
             ChatRoomSummary(
-                room=EventChatRoom(id=row[0], event_id=row[1], created_at=row[2]),
+                room=EventChatRoom(
+                    id=row.room_id,
+                    event_id=row.event_id,
+                    created_at=row.room_created_at,
+                ),
                 last_message=(
                     None
-                    if row[3] is None
+                    if row.message_id is None
                     else ChatMessage(
-                        id=row[3],
-                        room_id=row[4],
-                        author_id=row[5],
-                        text=row[6],
-                        sent_at=row[7],
+                        id=row.message_id,
+                        room_id=row.room_id,
+                        author_id=row.author_id,
+                        text=row.text,
+                        sent_at=row.sent_at,
                     )
                 ),
             )
