@@ -8,9 +8,8 @@ from sqlalchemy.exc import IntegrityError, InterfaceError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col, tuple_
 
-from app.application.chat.errors import DATABASE_UNAVAILABLE
+from app.application.chat.errors import CHAT_ROOM_NOT_FOUND, DATABASE_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
-from app.domain.chat.errors import CHAT_ROOM_NOT_FOUND
 from app.domain.chat.models import (
     ChatCursor,
     ChatMessage,
