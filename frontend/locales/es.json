@@ -6,6 +6,13 @@
     "retryHint": "Vuelve a cargar el APOD",
     "videoLabel": "Vídeo del APOD"
   },
+  "auth": {
+    "continueWithGoogle": "Continúa con Google",
+    "logout": "Cierra la sesión",
+    "logoutHint": "Cierra la sesión de este dispositivo y vuelve a la pantalla de inicio de sesión",
+    "logoutNotConfirmed": "Se ha cerrado la sesión en este dispositivo, pero no se ha podido confirmar en el servidor.",
+    "tagline": "Mira hacia arriba"
+  },
   "common": {
     "back": "Volver"
   },

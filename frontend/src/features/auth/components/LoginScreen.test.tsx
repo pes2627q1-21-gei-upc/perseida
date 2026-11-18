@@ -6,11 +6,21 @@ import { LOGOUT_NOTICE } from '../hooks/useLogout';
 import * as googleAuthHook from '../hooks/useGoogleAuth';
 import { HILL_REFLECTION_SHARE, HILL_SHARE, LAKE_SHARE } from '../../../shared/ui/lakeLayout';
 import { LIMITS, PerseidShower, REDUCED_MOTION_COUNT, SLOT_COUNT } from './PerseidShower';
-import { authErrorMessage, authStrings } from '../strings';
+import { authErrorMessage } from '../strings';
+import i18n from '../../../shared/i18n';
 import { AppError, networkError } from '../../../shared/errors';
 import * as googleSignInModule from '../api/googleSignIn';
 import * as tokenStorage from '../tokenStorage';
 import LoginScreen from '../../../app/login';
+
+// Texts of the sign-in UI in Catalan, the language of the tests (jest.setup.js), US #93.
+const TEXT = {
+  appName: 'Perseida',
+  tagline: 'Mira cap amunt',
+  continueWithGoogle: 'Continua amb Google',
+  logoutNotConfirmed:
+    "S'ha tancat la sessió en aquest dispositiu, però no s'ha pogut confirmar al servidor.",
+} as const;
 
 const mockReplace = jest.fn();
 let mockParams: Record<string, string> = {};
@@ -103,20 +113,20 @@ describe('Login screen', () => {
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(authErrorMessage('INTERNAL_ERROR')),
     );
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
     expect(signIn).toHaveBeenCalled();
   });
   it('shows the app name as the screen heading and the tagline', async () => {
     await renderScreen();
 
-    expect(screen.getByRole('header', { name: authStrings.appName })).toBeOnTheScreen();
-    expect(screen.getByText(authStrings.tagline)).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: TEXT.appName })).toBeOnTheScreen();
+    expect(screen.getByText(TEXT.tagline)).toBeOnTheScreen();
   });
 
   it('TG-43 Criteri 1: offers the Google button, reachable by role and name', async () => {
     await renderScreen();
 
-    expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: TEXT.continueWithGoogle })).toBeOnTheScreen();
   });
 
   it('shows no notice until the button is pressed', async () => {
@@ -144,7 +154,7 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     expect(mockSignIn).toHaveBeenCalled();
   });
@@ -157,7 +167,7 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    const button = screen.getByRole('button', { name: authStrings.continueWithGoogle });
+    const button = screen.getByRole('button', { name: TEXT.continueWithGoogle });
     expect(button.props.accessibilityState).toEqual({ busy: true, disabled: true });
 
     await fireEvent.press(button);
@@ -189,7 +199,7 @@ describe('Login screen', () => {
 
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     expect(googleSignInModule.signInWithGoogle).toHaveBeenCalledWith('id-token-valid');
     expect(saveSpy).toHaveBeenCalledWith({ accessToken: 'acc-1', refreshToken: 'ref-1' });
@@ -210,10 +220,10 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: TEXT.continueWithGoogle })).toBeOnTheScreen();
   });
 
   it('TG-43 Criteri 5: displays and announces error notice when authentication encounters a network error', async () => {
@@ -231,7 +241,7 @@ describe('Login screen', () => {
     const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     const expectedText = authErrorMessage('NETWORK_ERROR');
     expect(screen.getByText(expectedText)).toBeOnTheScreen();
@@ -258,7 +268,7 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     expect(screen.getByText(authErrorMessage('INVALID_GOOGLE_TOKEN'))).toBeOnTheScreen();
   });
@@ -283,7 +293,7 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
     expect(screen.getByText(authErrorMessage('ACCOUNT_SUSPENDED'))).toBeOnTheScreen();
   });
 
@@ -307,7 +317,7 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
     expect(screen.getByText(authErrorMessage('ACCOUNT_DELETED'))).toBeOnTheScreen();
   });
 
@@ -331,7 +341,7 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     expect(screen.getByText(authErrorMessage('EMAIL_ALREADY_REGISTERED'))).toBeOnTheScreen();
   });
@@ -356,7 +366,7 @@ describe('Login screen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     expect(screen.getByText(authErrorMessage('IDENTITY_PROVIDER_UNAVAILABLE'))).toBeOnTheScreen();
   });
@@ -366,7 +376,7 @@ describe('Login screen', () => {
 
     await renderScreen();
 
-    expect(screen.getByText(authStrings.logoutNotConfirmed)).toBeOnTheScreen();
+    expect(screen.getByText(TEXT.logoutNotConfirmed)).toBeOnTheScreen();
   });
 
   it('shows no notice for an unknown notice param', async () => {
@@ -374,7 +384,7 @@ describe('Login screen', () => {
 
     await renderScreen();
 
-    expect(screen.queryByText(authStrings.logoutNotConfirmed)).not.toBeOnTheScreen();
+    expect(screen.queryByText(TEXT.logoutNotConfirmed)).not.toBeOnTheScreen();
   });
 
   it('leaves the announcement to the live region on Android', async () => {
@@ -393,7 +403,7 @@ describe('Login screen', () => {
     const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+    await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
 
     const expectedText = authErrorMessage('NETWORK_ERROR');
     expect(screen.getByText(expectedText)).toBeOnTheScreen();
@@ -411,12 +421,10 @@ describe('Login screen', () => {
       mockPromptAsync.mockRejectedValueOnce(new Error('prompt failed'));
       await renderScreen();
       await act(async () => {
-        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+        await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
       });
       expect(screen.getByRole('alert')).toHaveTextContent(authErrorMessage('INTERNAL_ERROR'));
-      expect(
-        screen.getByRole('button', { name: authStrings.continueWithGoogle }),
-      ).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: TEXT.continueWithGoogle })).not.toBeDisabled();
     });
 
     it('completes the full authentication flow end-to-end, persists tokens, and redirects (TG-43 Criteris 1, 2, 3, 4, 6, 8)', async () => {
@@ -443,7 +451,7 @@ describe('Login screen', () => {
       await renderScreen();
 
       await act(async () => {
-        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+        await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
       });
 
       // 1. AuthRequest launched with PKCE
@@ -482,7 +490,7 @@ describe('Login screen', () => {
       await renderScreen();
 
       await act(async () => {
-        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+        await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
       });
 
       expect(mockPromptAsync).toHaveBeenCalled();
@@ -490,9 +498,7 @@ describe('Login screen', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
       expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
-      expect(
-        screen.getByRole('button', { name: authStrings.continueWithGoogle }),
-      ).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: TEXT.continueWithGoogle })).toBeOnTheScreen();
     });
 
     it('handles backend 401 INVALID_GOOGLE_TOKEN and shows translated alert (TG-43 Criteri 5, 8)', async () => {
@@ -520,7 +526,7 @@ describe('Login screen', () => {
       await renderScreen();
 
       await act(async () => {
-        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+        await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
       });
 
       expect(screen.getByText(authErrorMessage('INVALID_GOOGLE_TOKEN'))).toBeOnTheScreen();
@@ -553,7 +559,7 @@ describe('Login screen', () => {
       await renderScreen();
 
       await act(async () => {
-        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+        await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
       });
 
       expect(screen.getByText(authErrorMessage('ACCOUNT_SUSPENDED'))).toBeOnTheScreen();
@@ -585,7 +591,7 @@ describe('Login screen', () => {
       await renderScreen();
 
       await act(async () => {
-        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+        await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
       });
 
       expect(screen.getByText(authErrorMessage('IDENTITY_PROVIDER_UNAVAILABLE'))).toBeOnTheScreen();
@@ -607,7 +613,7 @@ describe('Login screen', () => {
       await renderScreen();
 
       await act(async () => {
-        await fireEvent.press(screen.getByRole('button', { name: authStrings.continueWithGoogle }));
+        await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
       });
 
       expect(screen.getByText(authErrorMessage('NETWORK_ERROR'))).toBeOnTheScreen();
@@ -882,6 +888,47 @@ describe('Login screen', () => {
 
     expect(mockLaunches).toHaveLength(0);
     expect(mockWithTiming).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: authStrings.continueWithGoogle })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: TEXT.continueWithGoogle })).toBeOnTheScreen();
+  });
+});
+
+describe('Login screen in the language of the app (US #93)', () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage('ca');
+    });
+  });
+
+  it('TG-93 c1 c6 shows the sign-in texts in the language of the app and follows a change', async () => {
+    await renderScreen();
+
+    await act(async () => {
+      await i18n.changeLanguage('es');
+    });
+    expect(screen.getByRole('button', { name: 'Continúa con Google' })).toBeOnTheScreen();
+    expect(screen.getByText('Mira hacia arriba')).toBeOnTheScreen();
+
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeOnTheScreen();
+    expect(screen.getByText('Look up')).toBeOnTheScreen();
+    // c3: the name of the app is not translated.
+    expect(screen.getByRole('header', { name: 'Perseida' })).toBeOnTheScreen();
+  });
+
+  it('TG-93 c2 explains the unconfirmed sign-out in the language of the app', async () => {
+    mockParams = { notice: LOGOUT_NOTICE };
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+
+    await renderScreen();
+
+    expect(
+      screen.getByText(
+        'You have been signed out on this device, but the server could not confirm it.',
+      ),
+    ).toBeOnTheScreen();
   });
 });
