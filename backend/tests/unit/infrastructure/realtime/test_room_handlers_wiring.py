@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import ExitStack
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,16 +16,15 @@ from fastapi.testclient import TestClient
 from starlette.requests import HTTPConnection
 
 from app.application.auth.auth_service import AuthService, SessionDurations
-from app.application.chat.chat_service import ChatService
 from app.application.realtime.realtime_session import RealtimeConfig
-from app.application.realtime.room_handler import RoomHandler
+from app.application.realtime.room_handler import RoomHandler, RoomRequest
+from app.application.shared.errors import UnauthorizedError
 from app.application.users.user_service import UserService
 from app.domain.auth.models import GoogleIdentity
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.auth.dependencies import get_auth_service, get_session_store
 from app.infrastructure.cache.dependencies import get_pubsub
 from app.infrastructure.chat.config import ChatSettings
-from app.infrastructure.chat.dependencies import get_chat_service
 from app.infrastructure.chat.ws_handler import CHAT_ROOM_PREFIX, ChatWsHandler
 from app.infrastructure.realtime.dependencies import (
     get_realtime_config,
@@ -38,7 +37,6 @@ from tests.fakes.auth import (
     FakeTokenCodec,
     InMemorySessionStore,
 )
-from tests.fakes.chat import ChatFakes
 from tests.fakes.pubsub import FakePubSub
 from tests.fakes.room_handler import FakeRoomHandler
 from tests.fakes.users import InMemoryUserRepository
@@ -46,30 +44,37 @@ from tests.fakes.users import InMemoryUserRepository
 URL = "/api/ws"
 
 
-def test_the_chat_handler_is_registered_under_the_prefix_of_the_chat_rooms() -> None:
-    fakes = ChatFakes()
+def _conn(**state: Any) -> HTTPConnection:
+    app = SimpleNamespace(state=SimpleNamespace(**state))
+    return cast(HTTPConnection, SimpleNamespace(app=app))
 
-    handlers = get_room_handlers(
-        ChatService(fakes, fakes, fakes, fakes, fakes),
-        UserService(InMemoryUserRepository()),
-    )
+
+def test_the_chat_handler_is_registered_under_the_prefix_of_the_chat_rooms() -> None:
+    handlers = get_room_handlers(_conn(), ChatSettings())
 
     assert list(handlers) == [CHAT_ROOM_PREFIX]
     assert isinstance(handlers[CHAT_ROOM_PREFIX], ChatWsHandler)
 
 
-def test_the_handlers_are_built_with_the_chat_service_of_the_app() -> None:
-    state = SimpleNamespace(session_factory=MagicMock(), redis=MagicMock())
-    conn = cast(HTTPConnection, SimpleNamespace(app=SimpleNamespace(state=state)))
+def test_the_handlers_do_not_touch_the_app_state_until_a_chat_frame_arrives() -> None:
+    # an app without database or Redis still serves the plain rooms: the state
+    # would raise AttributeError if the handshake read it
+    get_room_handlers(_conn(), ChatSettings())
 
-    service = get_chat_service(conn, ChatSettings())
 
-    assert isinstance(
-        get_room_handlers(service, UserService(InMemoryUserRepository()))[
-            CHAT_ROOM_PREFIX
-        ],
-        ChatWsHandler,
-    )
+async def test_a_chat_frame_builds_the_services_over_the_resources_of_the_app() -> None:
+    state = {
+        "session_factory": MagicMock(),
+        "redis": MagicMock(),
+        "user_service": UserService(InMemoryUserRepository()),
+    }
+    handler = get_room_handlers(_conn(**state), ChatSettings())[CHAT_ROOM_PREFIX]
+    room = f"{CHAT_ROOM_PREFIX}{uuid.uuid7()}"
+
+    with pytest.raises(UnauthorizedError) as exc:  # no account for this sub
+        await handler.subscribe(RoomRequest(sub="nobody", conn_id="c", room=room))
+
+    assert exc.value.code == "INVALID_SESSION"
 
 
 @pytest.fixture
