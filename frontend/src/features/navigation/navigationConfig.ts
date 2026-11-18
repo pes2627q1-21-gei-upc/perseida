@@ -2,7 +2,7 @@ import type { Icon } from 'phosphor-react-native';
 import { Chats, House, Planet, Trophy, User } from 'phosphor-react-native';
 
 export type TabRouteName = 'index' | 'events' | 'chat' | 'gamification' | 'profile';
-export type HiddenRouteName = 'map' | 'apod';
+export type HiddenRouteName = 'map' | 'apod' | 'quiz';
 
 export interface TabItem {
   name: TabRouteName;
@@ -44,4 +44,4 @@ export const TAB_CONFIG: readonly TabItem[] = [
   },
 ] as const;
 
-export const HIDDEN_ROUTES: readonly HiddenRouteName[] = ['map', 'apod'] as const;
+export const HIDDEN_ROUTES: readonly HiddenRouteName[] = ['map', 'apod', 'quiz'] as const;
