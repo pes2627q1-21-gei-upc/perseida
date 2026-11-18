@@ -6,6 +6,7 @@ import { readingMaxWidth, useTheme } from '../../../shared/theme';
 import { GlassPanel } from '../../../shared/ui';
 import type { Outing } from '../api/outings';
 import { formatDateTime } from '../formatOuting';
+import { useEventTitle } from '../hooks/useEventTitle';
 
 interface Props {
   outings: Outing[];
@@ -25,17 +26,28 @@ function OutingRow({ outing, onPress }: { outing: Outing; onPress: () => void })
   const author = `${t('outings.detail.author')}: ${
     outing.author.display_name ?? t('outings.detail.unknownAuthor')
   }`;
+  const eventTitle = useEventTitle(outing.event_id);
+  // The title is looked up among the events of the map: if it is not known, only that there is one.
+  let event: string | null = null;
+  if (outing.event_id) {
+    event = eventTitle
+      ? `${t('outings.detail.event')}: ${eventTitle}`
+      : t('outings.form.linkedEvent');
+  }
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${outing.title}, ${when}, ${author}`}
+      accessibilityLabel={[outing.title, when, author, event].filter(Boolean).join(', ')}
       onPress={onPress}
       style={({ pressed }) => [{ gap: spacing.xs, opacity: pressed ? 0.7 : 1 }]}
     >
       <Text style={[typography.bodyStrong, { color: colors.text.primary }]}>{outing.title}</Text>
       <Text style={[typography.caption, { color: colors.text.secondary }]}>{when}</Text>
       <Text style={[typography.caption, { color: colors.text.secondary }]}>{author}</Text>
+      {event ? (
+        <Text style={[typography.caption, { color: colors.text.secondary }]}>{event}</Text>
+      ) : null}
     </Pressable>
   );
 }

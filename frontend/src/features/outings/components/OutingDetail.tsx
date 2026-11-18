@@ -5,6 +5,7 @@ import { useTheme } from '../../../shared/theme';
 import { GelButton, QuietButton } from '../../../shared/ui';
 import type { Outing } from '../api/outings';
 import { formatCoordinate, formatDateTime } from '../formatOuting';
+import { useEventTitle } from '../hooks/useEventTitle';
 
 interface Props {
   outing: Outing;
@@ -29,6 +30,7 @@ export function OutingDetail({ outing, isAuthor, onEdit, onDelete }: Props) {
   const { t, i18n } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const { latitude, longitude } = outing.location;
+  const eventTitle = useEventTitle(outing.event_id);
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -55,6 +57,12 @@ export function OutingDetail({ outing, isAuthor, onEdit, onDelete }: Props) {
         label={t('outings.detail.where')}
         value={`${formatCoordinate(latitude, i18n.language)} · ${formatCoordinate(longitude, i18n.language)}`}
       />
+      {outing.event_id ? (
+        <DetailRow
+          label={t('outings.detail.event')}
+          value={eventTitle ?? t('outings.form.linkedEvent')}
+        />
+      ) : null}
       <DetailRow
         label={t('outings.detail.author')}
         value={outing.author.display_name ?? t('outings.detail.unknownAuthor')}
