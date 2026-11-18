@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import type { components } from '../../../shared/api/schema';
 import { useSocket } from '../../../shared/realtime';
+import { socketAuth } from '../../auth/socketAuth';
 
 export type ChatMessage = components['schemas']['ChatMessageResponse'];
 /** What the server's ack of a sent message carries (ADR-0030, TG-64). */
@@ -16,7 +17,7 @@ export interface ChatSocketHandlers {
 
 /** Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. */
 export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
-  const { status, error, subscribe, send, reconnect } = useSocket();
+  const { status, error, subscribe, send, reconnect } = useSocket(socketAuth);
   const room = `chat:event:${eventId}`;
 
   // The latest handlers, without leaving and joining the room again on every render.

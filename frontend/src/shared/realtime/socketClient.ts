@@ -5,11 +5,18 @@
 // server echoes it. Pings are answered with pongs. Requests carry an `id` and the server answers
 // with the same `id` (ack or `error`). On a dropped connection it retries with exponential backoff
 // and joins its rooms again; 4401 renews the session once, and 4429 (too many connections) stops.
+// The session comes from outside (SocketAuth), so shared/ does not depend on any feature.
 
-import { refreshSession } from '../../features/auth/api/refreshToken';
-import { getTokens } from '../../features/auth/tokenStorage';
 import { config } from '../config';
 import { AppError, networkError, problemToAppError } from '../errors';
+
+/** The session the connection authenticates with; the auth feature provides it. */
+export interface SocketAuth {
+  /** The current access token, read on every connection; null when there is no session. */
+  getToken: () => Promise<string | null>;
+  /** Renews the session after a 4401; rejects when it cannot be renewed. */
+  refresh: () => Promise<void>;
+}
 
 export type SocketStatus = 'connecting' | 'open' | 'reconnecting' | 'closed';
 
@@ -47,6 +54,8 @@ let state: SocketState = { status: 'closed', error: null };
 const stateListeners = new Set<() => void>();
 
 let consumers = 0;
+/** The SocketAuth of the first consumer; later consumers share the connection as it is. */
+let auth: SocketAuth | null = null;
 let socket: WebSocket | null = null;
 let authenticated = false;
 /** Reconnection attempts since the last successful authentication. */
@@ -88,18 +97,21 @@ function sendFrame(frame: Record<string, unknown>): void {
   socket?.send(JSON.stringify(frame));
 }
 
+/** Reads the token (fresh on every connection) and opens the socket; without a session, stops. */
 function connect(): void {
+  const startedIn = generation;
+  void auth!.getToken().then((token) => {
+    if (startedIn !== generation) return;
+    if (token) open(token);
+    else stop(invalidSession());
+  });
+}
+
+function open(token: string): void {
   const current = new WebSocket(config.wsUrl);
   socket = current;
   authenticated = false;
-  current.onopen = () => {
-    // Read the token now, not when connecting: a reconnection must use the freshest one.
-    void getTokens().then((tokens) => {
-      if (socket === current) {
-        current.send(JSON.stringify({ type: 'auth', token: tokens?.accessToken ?? '' }));
-      }
-    });
-  };
+  current.onopen = () => current.send(JSON.stringify({ type: 'auth', token }));
   current.onmessage = (event: MessageEvent) => handleFrame(event.data);
   current.onclose = (event: CloseEvent) => {
     // A socket this client closed itself (or replaced) no longer matters.
@@ -178,11 +190,14 @@ function renewSession(): void {
   sessionRenewed = true;
   setState({ status: 'reconnecting' });
   const startedIn = generation;
-  void refreshSession().then((tokens) => {
-    if (startedIn !== generation) return;
-    if (tokens) connect();
-    else stop(invalidSession());
-  });
+  void auth!.refresh().then(
+    () => {
+      if (startedIn === generation) connect();
+    },
+    () => {
+      if (startedIn === generation) stop(invalidSession());
+    },
+  );
 }
 
 function scheduleRetry(): void {
@@ -217,10 +232,11 @@ function shutdown(): void {
   setState({ status: 'closed' });
 }
 
-/** A consumer starts using the connection; the first one opens it. */
-export function retainSocket(): void {
+/** A consumer starts using the connection; the first one opens it with its `session`. */
+export function retainSocket(session: SocketAuth): void {
   consumers += 1;
   if (consumers > 1) return;
+  auth = session;
   attempts = 0;
   sessionRenewed = false;
   setState({ status: 'connecting', error: null });
@@ -282,6 +298,7 @@ export function send(frame: OutgoingFrame): Promise<ServerFrame> {
 export function _resetSocketForTests(): void {
   consumers = 0;
   shutdown();
+  auth = null;
   rooms.clear();
   state = { status: 'closed', error: null };
 }
