@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { errorMessage } from '../../../shared/errors';
@@ -25,6 +26,22 @@ export function QuizScreen() {
   const answer = useAnswerQuiz(lang);
   const sendError = answer.error;
   const questionChanged = sendError !== null && QUESTION_CHANGED_CODES.has(sendError.code);
+  // `answer.isPending` only changes on the next render: a second press before it would send
+  // the answer again (TG-653). The ref blocks it at once and lets it go when the answer settles.
+  const sending = useRef(false);
+
+  function submit(date: string, questionId: string, chosenOption: number) {
+    if (sending.current) return;
+    sending.current = true;
+    answer.mutate(
+      { date, questionId, chosenOption },
+      {
+        onSettled: () => {
+          sending.current = false;
+        },
+      },
+    );
+  }
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
@@ -49,9 +66,7 @@ export function QuizScreen() {
         question={data}
         sending={answer.isPending}
         onBack={goBack}
-        onSubmit={(chosenOption) =>
-          answer.mutate({ date: data.date, questionId: data.question_id, chosenOption })
-        }
+        onSubmit={(chosenOption) => submit(data.date, data.question_id, chosenOption)}
         notice={questionChanged ? t('quiz.questionChanged') : undefined}
         error={
           sendError && !questionChanged && sendError.code !== 'QUIZ_ALREADY_ANSWERED'
