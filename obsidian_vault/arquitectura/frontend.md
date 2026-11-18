@@ -3,7 +3,7 @@ titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-18"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385"]
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64"]
 font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026); Taiga: TG-629, tasques #640-#642, i decisions de Raquel (18/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
@@ -130,6 +130,14 @@ Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal; a la pestanya de 
 - **Pantalla:** pregunta amb 4 opcions (`accessibilityRole="radio"`, estat `checked`; la selecció també es veu amb la icona i la vora, no només amb color) i botó de gel desactivat fins que es tria una opció i `busy` mentre s'envia. Resultat: capçalera encertada o no, cada opció amb icona i paraules («Resposta correcta», «La teva resposta»), explicació i enllaç a la font (`safeHttpsUrl`). Totes dues vistes tenen un `QuietButton` «Torna a l'inici» (`router.back()`, o `replace('/')` si no hi ha on tornar), com el mapa.
 - **Components compartits:** `StatusPanel` (`src/shared/ui`), el panell de càrrega i d'error amb reintent; l'APOD (`ApodStatus`) i el quiz (`QuizStatus`) només hi posen els seus textos.
 - **Errors:** càrrega amb missatge per codi i reintent si és transitori; si falla l'enviament, es conserva l'opció; `QUIZ_EXPIRED` i `QUIZ_QUESTION_MISMATCH` recarreguen la pregunta i mostren un avís; `QUIZ_ALREADY_ANSWERED` recarrega i mostra el resultat. Si la recàrrega falla, es mostra l'error amb reintent encara que hi hagi una pregunta anterior en memòria cau.
+
+## Xat d'esdeveniment: API i hooks (TG-64)
+
+Codi a `src/features/chat/`; el contracte REST i el protocol WebSocket són els del backend ([[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Les pantalles, la connexió en temps real i els textos són de les tasques següents de la US (TG-469 i el hook de WebSocket).
+
+- **Dades:** `api/chat.ts` (openapi-fetch) amb `listRooms` (`GET /api/chat/rooms`), `ensureRoom` (`PUT /api/events/{id}/chat/room`, idempotent) i `fetchMessages` (`GET …/chat/messages?limit=50&before=<cursor>`; el cursor és opac i només s'envia si n'hi ha). Només en línia.
+- **Sessió:** totes passen per `withSession` (`features/auth/api/authorized.ts`): `Bearer`, un sol refresc en un 401 i `INVALID_SESSION` sense cridar l'API si no hi ha sessió desada.
+- **Hooks** (`hooks/useChat.ts`): `useRooms` (`useQuery`) i `useRoomMessages(eventId)` (`useInfiniteQuery`: primera pàgina sense `before`, la següent amb el `next_cursor`, i sense pàgina següent quan és `null`; deshabilitat si no hi ha `eventId`). Un sol reintent i només si l'error és transitori. Claus a `chatKeys`.
 
 ## Mode offline
 
