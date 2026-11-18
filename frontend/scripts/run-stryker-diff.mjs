@@ -97,10 +97,15 @@ export function changedRanges(diffText) {
   return ranges;
 }
 
-/** Objectius de `--mutate` de Stryker: un `fitxer:inici-final` per rang dels fitxers a mutar. */
+/**
+ * Objectius de `--mutate` de Stryker: un `fitxer:inici-final` per rang dels fitxers a mutar.
+ * Stryker llegeix el fitxer com un glob: els claudàtors d'una ruta dinàmica (`[id]`) s'escapen.
+ */
 export function mutateTargets(files, ranges) {
   return files.flatMap((file) =>
-    (ranges[file] ?? []).map(([start, end]) => `${file}:${start}-${end}`),
+    (ranges[file] ?? []).map(
+      ([start, end]) => `${file.replace(/[[\]]/g, (bracket) => `\\${bracket}`)}:${start}-${end}`,
+    ),
   );
 }
 
