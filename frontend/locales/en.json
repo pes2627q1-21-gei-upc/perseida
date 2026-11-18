@@ -6,6 +6,13 @@
     "retryHint": "Reload the APOD",
     "videoLabel": "APOD video"
   },
+  "auth": {
+    "continueWithGoogle": "Continue with Google",
+    "logout": "Sign out",
+    "logoutHint": "Signs out of this device and goes back to the sign-in screen",
+    "logoutNotConfirmed": "You have been signed out on this device, but the server could not confirm it.",
+    "tagline": "Look up"
+  },
   "common": {
     "back": "Back"
   },
