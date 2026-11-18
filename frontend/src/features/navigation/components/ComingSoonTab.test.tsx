@@ -60,6 +60,25 @@ describe('ComingSoonTab (TG-385 #388)', () => {
       </SafeAreaProvider>,
     );
 
-    expect(screen.getByTestId('coming-soon-tab')).toHaveStyle({ paddingBottom: 83 + spacing.lg });
+    expect(screen.getByTestId('coming-soon-tab').props.contentContainerStyle).toEqual(
+      expect.arrayContaining([expect.objectContaining({ paddingBottom: 83 + spacing.lg })]),
+    );
+  });
+
+  it('scrolls when the window is too short for the card, e.g. a phone in landscape (TG-385 #520)', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <ComingSoonTab
+          title="Esdeveniments astronòmics"
+          description="Explora el mapa."
+          icon={Planet}
+          action={{ label: 'Obre el mapa', onPress: jest.fn() }}
+        />
+      </SafeAreaProvider>,
+    );
+
+    const scroll = screen.getByTestId('coming-soon-tab');
+    expect(scroll.type).toBe('RCTScrollView');
+    expect(scroll).toContainElement(screen.getByRole('button', { name: 'Obre el mapa' }));
   });
 });
