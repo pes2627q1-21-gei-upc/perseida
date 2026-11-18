@@ -377,6 +377,38 @@ async def test_tg453_c2_put_room_returns_the_room_that_already_exists(
     assert await rooms_count(connection, event_id) == 1
 
 
+async def test_tg453_c2_put_room_returns_its_latest_message(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    headers = await login_headers(client)
+    event_id = await subscribed_event(client, connection, headers)
+    me_id = await user_id_of(client, headers)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, me_id, NOW, "antic")
+    latest = await seed_message(
+        connection, room_id, me_id, NOW + timedelta(minutes=5), "ultim"
+    )
+
+    response = await client.put(room_of(event_id), headers=headers)
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["last_message"]["id"] == str(latest)
+    assert body["last_message"]["text"] == "ultim"
+
+
+async def test_tg453_c2_put_room_without_messages_has_no_last_message(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    headers = await login_headers(client)
+    event_id = await subscribed_event(client, connection, headers)
+
+    response = await client.put(room_of(event_id), headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["last_message"] is None
+
+
 async def test_tg453_c2_two_users_of_an_event_share_its_room(
     client: AsyncClient, connection: AsyncConnection
 ) -> None:

@@ -147,6 +147,40 @@ async def test_tg439_room_idempotent_and_missing(
         await service.get_or_create_room(env.user, env.event)
 
 
+async def test_tg453_open_room_returns_the_latest_message(
+    service: ChatService, env: ChatFakes
+) -> None:
+    empty = await service.open_room(env.user, env.event)
+    assert empty.room == env.room
+    assert empty.last_message is None
+    now = datetime.now(UTC)
+    env.messages = [
+        ChatMessage(
+            id=uuid.uuid7(),
+            room_id=env.room.id,
+            author_id=env.user,
+            text=str(i),
+            sent_at=now + timedelta(seconds=i),
+        )
+        for i in range(3)
+    ]
+    summary = await service.open_room(env.user, env.event)
+    assert summary.last_message == env.messages[2]
+
+
+async def test_tg453_open_room_requires_subscription_and_event(
+    service: ChatService, env: ChatFakes
+) -> None:
+    env.subscribed = False
+    with pytest.raises(ForbiddenError):
+        await service.open_room(env.user, env.event)
+    assert "room" not in env.calls
+    env.subscribed = True
+    env.missing = True
+    with pytest.raises(NotFoundError):
+        await service.open_room(env.user, env.event)
+
+
 async def test_tg439_cursor_order_and_limits(
     service: ChatService, env: ChatFakes
 ) -> None:
