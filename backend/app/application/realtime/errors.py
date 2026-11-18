@@ -63,6 +63,11 @@ def is_known(code: str) -> bool:
     return code in _STATUS
 
 
+def title_of(code: str) -> str:
+    """Generic text of a known ``code`` (its HTTP title), safe to show as detail."""
+    return _TITLE[_STATUS[code]]
+
+
 def error_frame(
     code: str,
     detail: str,

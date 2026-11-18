@@ -232,17 +232,39 @@ class RealtimeSession:
     def _room_error(
         self, exc: DomainError | ApplicationError, frame_id: str | None, room: str
     ) -> Frame:
-        """Error frame of a refusal: its own code if known, a safe one otherwise."""
+        """Error frame of a refusal: its own code if known, a safe one otherwise.
+
+        The raw message of the exception never reaches the client: the detail is
+        generic and the text is localized from the ``code`` (ADR-0018).
+        """
         if errors.is_known(exc.code):
-            code, detail = exc.code, exc.message
+            code, detail = exc.code, errors.title_of(exc.code)
         elif isinstance(exc, ExternalServiceError):
-            code, detail = errors.PUBSUB_UNAVAILABLE, exc.message
+            code, detail = (
+                errors.PUBSUB_UNAVAILABLE,
+                errors.title_of(errors.PUBSUB_UNAVAILABLE),
+            )
         else:
             logger.error("Unmapped error code %s in a room.", exc.code, exc_info=exc)
             code, detail = errors.INTERNAL_ERROR, "Unexpected error."
         if code == errors.PUBSUB_UNAVAILABLE:
             detail = "Real-time bus unavailable."
         return self._error(code, detail, frame_id, room)
+
+    @staticmethod
+    async def _guarded[T](call: Awaitable[T]) -> T:
+        """Await a handler call; a bug in it becomes ``INTERNAL_ERROR``.
+
+        Refusals (``DomainError``/``ApplicationError``) and ``ConnectionClosed``
+        pass as they are; ``CancelledError`` is not an ``Exception``.
+        """
+        try:
+            return await call
+        except DomainError, ApplicationError, ConnectionClosed:
+            raise
+        except Exception as exc:
+            logger.error("Unexpected error in a room handler.", exc_info=exc)
+            raise ApplicationError(errors.INTERNAL_ERROR) from exc
 
     def _handler_for(self, room: str) -> RoomHandler | None:
         for prefix, handler in self._handlers:
@@ -259,24 +281,24 @@ class RealtimeSession:
                     errors.RATE_LIMITED, "Too many rooms.", frame.id, room
                 )
             if handler is not None:
-                await handler.subscribe(request)
+                await self._guarded(handler.subscribe(request))
             await self._join(room)
         elif frame.type == FrameType.UNSUBSCRIBE:
             if handler is not None:
-                await handler.unsubscribe(request)
+                await self._guarded(handler.unsubscribe(request))
             await self._leave(room)
         elif handler is not None:
             if room not in self._rooms:
                 # The handler refuses first whoever may not join (FORBIDDEN);
                 # whoever may but has not joined is NOT_SUBSCRIBED.
-                await handler.subscribe(request)
+                await self._guarded(handler.subscribe(request))
                 return self._error(
                     errors.NOT_SUBSCRIBED,
                     "Subscribe to the room first.",
                     frame.id,
                     room,
                 )
-            ack = await handler.message(request, frame.payload)
+            ack = await self._guarded(handler.message(request, frame.payload))
             return Frame(type=frame.type, room=room, id=frame.id, payload=ack)
         elif room not in self._rooms:
             return self._error(
