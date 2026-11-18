@@ -266,6 +266,16 @@ class RealtimeSession:
                 await handler.unsubscribe(request)
             await self._leave(room)
         elif handler is not None:
+            if room not in self._rooms:
+                # The handler refuses first whoever may not join (FORBIDDEN);
+                # whoever may but has not joined is NOT_SUBSCRIBED.
+                await handler.subscribe(request)
+                return self._error(
+                    errors.NOT_SUBSCRIBED,
+                    "Subscribe to the room first.",
+                    frame.id,
+                    room,
+                )
             ack = await handler.message(request, frame.payload)
             return Frame(type=frame.type, room=room, id=frame.id, payload=ack)
         elif room not in self._rooms:
