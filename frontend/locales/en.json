@@ -176,7 +176,11 @@
       "choose": "Choose this place",
       "useMine": "Use my location",
       "denied": "We couldn't get your location. Move the map to choose the place.",
-      "chosen": "Chosen place: {{latitude}}, {{longitude}}"
+      "chosen": "Chosen place: {{latitude}}, {{longitude}}",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "useCoordinates": "Choose these coordinates",
+      "invalidCoordinates": "Latitude must be between −90 and 90, and longitude between −180 and 180."
     }
   }
 }

@@ -176,7 +176,11 @@
       "choose": "Tria aquest lloc",
       "useMine": "Usa la meva ubicació",
       "denied": "No hem pogut obtenir la teva ubicació. Mou el mapa per triar el lloc.",
-      "chosen": "Lloc triat: {{latitude}}, {{longitude}}"
+      "chosen": "Lloc triat: {{latitude}}, {{longitude}}",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useCoordinates": "Tria aquestes coordenades",
+      "invalidCoordinates": "La latitud ha d'estar entre −90 i 90, i la longitud entre −180 i 180."
     }
   }
 }
