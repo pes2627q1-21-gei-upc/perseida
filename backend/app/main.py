@@ -23,6 +23,7 @@ from app.infrastructure.events.meteor_catalog import MeteorShowerCatalogSource
 from app.infrastructure.events.router import router as events_router
 from app.infrastructure.events.skyfield_source import SkyfieldLunarSource
 from app.infrastructure.events.usno import UsnoSolarEclipseSource
+from app.infrastructure.health.dependencies import build_health_service
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.outings.router import router as outings_router
@@ -74,6 +75,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     expire_on_commit=False,
                 )
                 app.state.session_factory = session_factory
+                app.state.health_service = build_health_service(
+                    session_factory, redis, scheduler
+                )
                 user_service = build_user_service(session_factory)
                 app.state.user_service = user_service
                 app.state.auth_service = build_auth_service(

@@ -541,7 +541,9 @@ export interface components {
        * Components
        * @description Diccionari amb l'estat detallat de cada component o servei extern depenent
        * @example {
-       *       "app": "ok"
+       *       "app": "ok",
+       *       "postgres": "ok",
+       *       "redis": "ok"
        *     }
        */
       components: {
@@ -990,7 +992,9 @@ export interface operations {
            * @example {
            *       "status": "ok",
            *       "components": {
-           *         "app": "ok"
+           *         "app": "ok",
+           *         "postgres": "ok",
+           *         "redis": "ok"
            *       }
            *     }
            */

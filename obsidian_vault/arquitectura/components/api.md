@@ -3,7 +3,7 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-11-17"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363"]
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363)"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
@@ -32,6 +32,10 @@ Estructura hexagonal: [[backend-hexagonal]].
 
 - Qui el crida: [[nginx-proxy-manager]] (`proxy_pass`), que rep REST/WSS de l'app Android i del navegador d'admin; Spotwise, per `GET /api/events/active` i `/upcoming` ([[contracte-spotwise]]).
 - A qui crida: [[postgres]] (font de veritat), [[redis]] (cache i pub/sub), [[moderation]] (HTTP síncron), NASA, APIs de meteorologia i contaminació lumínica, FCM, i Google (JWKS) ([[serveis-externs]]). Comparteix el volum de media amb nginx-proxy-manager.
+
+## Healthcheck (TG-49)
+
+`GET /api/health` és públic i respon sempre 200 amb `status` i `components` (`ok`/`down`). Comprova `app`, `postgres` (`SELECT 1`), `redis` (`PING`) i `scheduler` si està activat, en paral·lel i amb un límit de 2 s per comprovació: una que tarda més o falla compta com a `down` i l'endpoint no es penja. `status` és `down` només si cau un component crític (`app`, `postgres` o `scheduler`); [[redis]] no ho és, perquè només és cache ([[0005-redis-nomes-com-a-cache-lazy]]). El CD fa rollback si `status` no és `ok` ([[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]). Les comprovacions implementen el port `HealthCheck` (propietat `critical`) i el `HealthService` es construeix al lifespan.
 
 ## Errors i correlació
 

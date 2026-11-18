@@ -11,5 +11,9 @@ class SchedulerCheck:
     def name(self) -> str:
         return "scheduler"
 
+    @property
+    def critical(self) -> bool:
+        return True
+
     async def is_up(self) -> bool:
         return self._scheduler.running
