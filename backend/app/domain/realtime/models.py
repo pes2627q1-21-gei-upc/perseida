@@ -47,9 +47,9 @@ def revocation_channel(sub: str) -> str:
 
 def room_revocation_channel(sub: str) -> str:
     """Channel announcing that a user lost a room (payload ``{room}``)."""
-    return f"{ROOM_REVOCATION_CHANNEL_PREFIX}{sub}"
+    return ROOM_REVOCATION_CHANNEL_PREFIX + sub
 
 
 def chat_event_room(event_id: uuid.UUID) -> str:
     """Room of the chat of an event."""
-    return f"{CHAT_EVENT_ROOM_PREFIX}{event_id}"
+    return CHAT_EVENT_ROOM_PREFIX + str(event_id)
