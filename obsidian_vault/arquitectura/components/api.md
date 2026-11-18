@@ -3,8 +3,8 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-11-17"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363)"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -110,6 +110,16 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 
 Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/problem+json`. Els dos de `/api/events/{event_id}/posts` també poden rebre el 429 `RATE_LIMITED` del proxy (el bloc `/api/events/` de `rate-limit.conf`); `PATCH` i `DELETE` de `/api/posts/` encara no tenen límit. Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
 
+## Subscripcions a esdeveniments (TG-53)
+
+| Endpoint | Què fa |
+|---|---|
+| `PUT /api/events/{event_id}/subscription` | Subscriu l'usuari de la sessió, sense cos. 201 si és nova, 200 si ja hi estava; 404 `EVENT_NOT_FOUND`, 409 `EVENT_ALREADY_ENDED`, 422 |
+| `DELETE /api/events/{event_id}/subscription` | Dona de baixa, idempotent. 204; 422 si l'identificador no és vàlid |
+| `GET /api/me/subscriptions` | Esdeveniments subscrits com a `EventResponse[]`, per `starts_at` i `id` |
+
+Tots demanen sessió (`CurrentSessionDep` + `get_profile`: 401, 403 i 503) i tots els errors són `application/problem+json`. El `PUT` i el `DELETE` són sota `/api/events/`, així que comparteixen el 429 `RATE_LIMITED` del proxy (600 per minut entre tots els clients, [[nginx-proxy-manager]]); `GET /api/me/subscriptions` no. Regles i taula a [[model-de-domini#Subscripció a un esdeveniment (implementat al backend)]].
+
 ## US de Taiga relacionades
 
 - TG-36 (Imatge Docker del backend i publicació a GHCR)
@@ -122,6 +132,7 @@ Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/p
 - TG-46 (cache APOD)
 - TG-60 (quiz diari)
 - TG-628 (publicacions de text en un esdeveniment)
+- TG-53 (subscripció i baixa d'un esdeveniment)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-63 (endpoint WebSocket `/api/ws`)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
@@ -140,6 +151,7 @@ Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/p
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
 - **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
 - **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
+- **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, pendent (PR 2).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
 
