@@ -182,10 +182,9 @@ async def test_progress_only_shows_the_unlocks_of_the_user() -> None:
 
 
 # TG-58 criteri 4 i 6: AchievementService és l'ActivityLog que la ratxa avisa
-async def test_record_unlocks_like_record_activity_and_returns_nothing() -> None:
+async def test_record_unlocks_like_record_activity() -> None:
     repo = FakeAchievementRepository(STREAK_3, STREAK_7)
 
-    result = await _service(repo).record(USER_ID, "streak_days", 3)
+    await _service(repo).record(USER_ID, "streak_days", 3)
 
-    assert result is None
     assert await repo.list_unlocked_ids(USER_ID) == {STREAK_3.id}

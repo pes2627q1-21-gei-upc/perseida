@@ -52,6 +52,10 @@ class AchievementService:
             user_id, {achievement.id for achievement in reached}
         )
 
+    async def record(self, user_id: uuid.UUID, activity: str, value: int) -> None:
+        """``ActivityLog`` entry point: unlock what the activity reaches."""
+        await self.record_activity(user_id, activity, value)
+
     async def list_progress(self, user_id: uuid.UUID) -> list[AchievementProgress]:
         """Return every catalog achievement with the user's progress on it."""
         catalog = await self._achievements.list_catalog()
