@@ -53,14 +53,17 @@ describe('routes of the outings (TG-629)', () => {
     expect(screen.getByTestId('screen')).toHaveTextContent('outings:event-1');
   });
 
-  it('/outings/new opens a new outing, linked to the event if there is one', async () => {
+  it('/outings/new opens a new outing', async () => {
     mockParams = {};
-    const { unmount } = await render(<NewOutingRoute />);
-    expect(screen.getByTestId('screen')).toHaveTextContent('new:-');
-    unmount();
+    await render(<NewOutingRoute />);
 
+    expect(screen.getByTestId('screen')).toHaveTextContent('new:-');
+  });
+
+  it('/outings/new?eventId= opens a new outing linked to the event', async () => {
     mockParams = { eventId: 'event-1' };
     await render(<NewOutingRoute />);
+
     expect(screen.getByTestId('screen')).toHaveTextContent('new:event-1');
   });
 
