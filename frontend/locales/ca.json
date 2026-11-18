@@ -50,7 +50,15 @@
     "QUIZ_ALREADY_ANSWERED": "Ja has respost la pregunta d'avui.",
     "QUIZ_EXPIRED": "Aquesta pregunta ja no es pot respondre: ha canviat el dia.",
     "QUIZ_QUESTION_MISMATCH": "Aquesta ja no és la pregunta d'avui.",
-    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
+    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
+    "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
+    "OUTING_DESCRIPTION_TOO_LONG": "La descripció pot tenir com a màxim 2.000 caràcters.",
+    "OUTING_ENDS_BEFORE_START": "La sortida no pot acabar abans de començar.",
+    "OUTING_STARTS_IN_PAST": "La sortida no pot començar en el passat.",
+    "OUTING_EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
+    "OUTING_NOT_FOUND": "Aquesta sortida no existeix o s'ha esborrat.",
+    "OUTING_FORBIDDEN": "Només qui ha creat la sortida la pot canviar."
   },
   "events": {
     "category": {
@@ -97,7 +105,8 @@
       "end": "Fi",
       "moreInfo": "Més informació",
       "openHint": "Obre la fitxa de l'esdeveniment",
-      "start": "Inici"
+      "start": "Inici",
+      "outings": "Sortides d'aquest esdeveniment"
     },
     "status": {
       "active": "Actiu ara"
@@ -111,7 +120,8 @@
   "home": {
     "apodLink": "Imatge del dia",
     "mapLink": "Mapa d'esdeveniments",
-    "quizLink": "Pregunta del dia"
+    "quizLink": "Pregunta del dia",
+    "outingsLink": "Les meves sortides"
   },
   "nav": {
     "chat": "Xat",
@@ -197,5 +207,60 @@
     "submit": "Envia la resposta",
     "submitHint": "Envia l'opció triada",
     "title": "Pregunta del dia"
+  },
+  "outings": {
+    "myTitle": "Les meves sortides",
+    "eventTitle": "Sortides de l'esdeveniment",
+    "list": {
+      "label": "Llista de sortides"
+    },
+    "empty": {
+      "mine": "Encara no has creat cap sortida.",
+      "event": "Encara no hi ha cap sortida per a aquest esdeveniment."
+    },
+    "loading": "Carregant sortides",
+    "retry": "Torna-ho a provar",
+    "new": "Crea una sortida",
+    "detail": {
+      "author": "Organitza",
+      "unknownAuthor": "Una usuària de Perseida",
+      "start": "Inici",
+      "end": "Fi",
+      "where": "Lloc",
+      "event": "Esdeveniment",
+      "edit": "Edita",
+      "delete": "Esborra"
+    },
+    "delete": {
+      "title": "Vols esborrar aquesta sortida?",
+      "message": "No es pot desfer.",
+      "confirm": "Esborra",
+      "cancel": "Cancel·la"
+    },
+    "form": {
+      "newTitle": "Nova sortida",
+      "editTitle": "Edita la sortida",
+      "title": "Títol",
+      "description": "Descripció (opcional)",
+      "startsAt": "Inici",
+      "endsAt": "Fi",
+      "save": "Desa",
+      "saving": "Desant…",
+      "linkedEvent": "Sortida lligada a un esdeveniment",
+      "locationRequired": "Tria on us trobareu.",
+      "event": "Esdeveniment (opcional)",
+      "noEvent": "Cap esdeveniment"
+    },
+    "picker": {
+      "label": "Mapa per triar el lloc",
+      "hint": "Mou el mapa fins que la mira quedi sobre el lloc.",
+      "choose": "Tria aquest lloc",
+      "useMine": "Usa la meva ubicació",
+      "denied": "No hem pogut obtenir la teva ubicació. Mou el mapa per triar el lloc.",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useCoordinates": "Tria aquestes coordenades",
+      "invalidCoordinates": "La latitud ha d'estar entre −90 i 90, i la longitud entre −180 i 180."
+    }
   }
 }

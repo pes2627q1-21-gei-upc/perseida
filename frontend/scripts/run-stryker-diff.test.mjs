@@ -50,3 +50,10 @@ test('gives Stryker one file:start-end target per range, only for the files to m
     'src/features/events/components/EventSheet.tsx:151-153',
   ]);
 });
+
+test('escapes the brackets of a dynamic route, which Stryker would read as a glob', () => {
+  const file = 'src/app/(app)/outings/[id]/edit.tsx';
+  assert.deepEqual(mutateTargets([file], { [file]: [[1, 9]] }), [
+    'src/app/(app)/outings/\\[id\\]/edit.tsx:1-9',
+  ]);
+});

@@ -50,7 +50,15 @@
     "QUIZ_ALREADY_ANSWERED": "Ya has respondido la pregunta de hoy.",
     "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
     "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
-    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
+    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
+    "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
+    "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
+    "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
+    "OUTING_ENDS_BEFORE_START": "La salida no puede terminar antes de empezar.",
+    "OUTING_STARTS_IN_PAST": "La salida no puede empezar en el pasado.",
+    "OUTING_EVENT_NOT_FOUND": "Este evento ya no existe.",
+    "OUTING_NOT_FOUND": "Esta salida no existe o se ha borrado.",
+    "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla."
   },
   "events": {
     "category": {
@@ -97,7 +105,8 @@
       "end": "Fin",
       "moreInfo": "Más información",
       "openHint": "Abre la ficha del evento",
-      "start": "Inicio"
+      "start": "Inicio",
+      "outings": "Salidas de este evento"
     },
     "status": {
       "active": "Activo ahora"
@@ -111,7 +120,8 @@
   "home": {
     "apodLink": "Imagen del día",
     "mapLink": "Mapa de eventos",
-    "quizLink": "Pregunta del día"
+    "quizLink": "Pregunta del día",
+    "outingsLink": "Mis salidas"
   },
   "nav": {
     "chat": "Chat",
@@ -197,5 +207,60 @@
     "submit": "Envía la respuesta",
     "submitHint": "Envía la opción elegida",
     "title": "Pregunta del día"
+  },
+  "outings": {
+    "myTitle": "Mis salidas",
+    "eventTitle": "Salidas del evento",
+    "list": {
+      "label": "Lista de salidas"
+    },
+    "empty": {
+      "mine": "Aún no has creado ninguna salida.",
+      "event": "Aún no hay ninguna salida para este evento."
+    },
+    "loading": "Cargando salidas",
+    "retry": "Vuelve a intentarlo",
+    "new": "Crea una salida",
+    "detail": {
+      "author": "Organiza",
+      "unknownAuthor": "Una usuaria de Perseida",
+      "start": "Inicio",
+      "end": "Fin",
+      "where": "Lugar",
+      "event": "Evento",
+      "edit": "Edita",
+      "delete": "Borra"
+    },
+    "delete": {
+      "title": "¿Quieres borrar esta salida?",
+      "message": "No se puede deshacer.",
+      "confirm": "Borrar",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "newTitle": "Nueva salida",
+      "editTitle": "Edita la salida",
+      "title": "Título",
+      "description": "Descripción (opcional)",
+      "startsAt": "Inicio",
+      "endsAt": "Fin",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "linkedEvent": "Salida ligada a un evento",
+      "locationRequired": "Elige dónde quedaréis.",
+      "event": "Evento (opcional)",
+      "noEvent": "Ningún evento"
+    },
+    "picker": {
+      "label": "Mapa para elegir el lugar",
+      "hint": "Mueve el mapa hasta que la mira quede sobre el lugar.",
+      "choose": "Elige este lugar",
+      "useMine": "Usa mi ubicación",
+      "denied": "No hemos podido obtener tu ubicación. Mueve el mapa para elegir el lugar.",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useCoordinates": "Elige estas coordenadas",
+      "invalidCoordinates": "La latitud debe estar entre −90 y 90, y la longitud entre −180 y 180."
+    }
   }
 }

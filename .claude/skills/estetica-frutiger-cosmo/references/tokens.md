@@ -13,6 +13,7 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 | `surface.glass` (fons de vidre) | `rgba(255,255,255,.78)` | `rgba(10,20,48,.62)` | `rgba(255,255,255,.12)` | `rgba(255,107,94,.10)` |
 | `surface.glassSolid` (fallback opac, sense blur) | `#F4FBFE` | `#1B2350` | `#22305F` | `#3A141A` |
 | `surface.glassBorder` | `rgba(255,255,255,.65)` | `rgba(255,255,255,.28)` | `rgba(255,255,255,.28)` | `rgba(255,140,125,.30)` |
+| `surface.scrim` (vel darrere d'un diàleg: enfosqueix, no il·lumina) | `rgba(2,5,16,.55)` | `rgba(2,5,16,.55)` | `rgba(2,5,16,.55)` | `rgba(16,0,0,.6)` (sense blau) |
 | `text.primary` | `#10223F` | `#EAF4FF` | `#EAF4FF` | `#FFB3A7` |
 | `text.secondary` | `#3A4F6E` | `#B4C6E6` | `#B4C6E6` | `#E08A7E` |
 | `brand` (text/enllaç) | `#4B4BD8` | `#B3B3FF` | `#B3B3FF` | `#FF6B5E` |

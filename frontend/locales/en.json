@@ -50,7 +50,15 @@
     "QUIZ_ALREADY_ANSWERED": "You have already answered today's question.",
     "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
     "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
-    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
+    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
+    "OUTING_TITLE_EMPTY": "Give the outing a title.",
+    "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
+    "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
+    "OUTING_ENDS_BEFORE_START": "The outing can't end before it starts.",
+    "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
+    "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
+    "OUTING_NOT_FOUND": "This outing doesn't exist or was deleted.",
+    "OUTING_FORBIDDEN": "Only the person who created the outing can change it."
   },
   "events": {
     "category": {
@@ -97,7 +105,8 @@
       "end": "Ends",
       "moreInfo": "More information",
       "openHint": "Opens the event details",
-      "start": "Starts"
+      "start": "Starts",
+      "outings": "Outings for this event"
     },
     "status": {
       "active": "Happening now"
@@ -111,7 +120,8 @@
   "home": {
     "apodLink": "Picture of the day",
     "mapLink": "Events map",
-    "quizLink": "Question of the day"
+    "quizLink": "Question of the day",
+    "outingsLink": "My outings"
   },
   "nav": {
     "chat": "Chat",
@@ -197,5 +207,60 @@
     "submit": "Send answer",
     "submitHint": "Sends the chosen option",
     "title": "Question of the day"
+  },
+  "outings": {
+    "myTitle": "My outings",
+    "eventTitle": "Event outings",
+    "list": {
+      "label": "List of outings"
+    },
+    "empty": {
+      "mine": "You haven't created any outing yet.",
+      "event": "There are no outings for this event yet."
+    },
+    "loading": "Loading outings",
+    "retry": "Try again",
+    "new": "Create an outing",
+    "detail": {
+      "author": "Organised by",
+      "unknownAuthor": "A Perseida user",
+      "start": "Start",
+      "end": "End",
+      "where": "Place",
+      "event": "Event",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Delete this outing?",
+      "message": "This can't be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "newTitle": "New outing",
+      "editTitle": "Edit outing",
+      "title": "Title",
+      "description": "Description (optional)",
+      "startsAt": "Start",
+      "endsAt": "End",
+      "save": "Save",
+      "saving": "Saving…",
+      "linkedEvent": "Outing linked to an event",
+      "locationRequired": "Choose where you'll meet.",
+      "event": "Event (optional)",
+      "noEvent": "No event"
+    },
+    "picker": {
+      "label": "Map to choose the place",
+      "hint": "Move the map until the crosshair is over the place.",
+      "choose": "Choose this place",
+      "useMine": "Use my location",
+      "denied": "We couldn't get your location. Move the map to choose the place.",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "useCoordinates": "Choose these coordinates",
+      "invalidCoordinates": "Latitude must be between −90 and 90, and longitude between −180 and 180."
+    }
   }
 }
