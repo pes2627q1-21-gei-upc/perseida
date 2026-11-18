@@ -183,8 +183,11 @@ describe('Quiz screen', () => {
     await fireEvent.press(option('Venus'));
     const submit = screen.getByRole('button', { name: SUBMIT });
 
-    // Both presses start before React renders the screen as busy (a slow phone, a quick tap).
-    await Promise.all([fireEvent.press(submit), fireEvent.press(submit)]);
+    // Both presses happen before React renders the screen as busy (a slow phone, a quick tap):
+    // nested in one act, React renders only when the outer act ends.
+    await act(async () => {
+      await Promise.all([fireEvent.press(submit), fireEvent.press(submit)]);
+    });
     await act(async () => {
       respond(jsonResponse(rightResult, 201));
     });
