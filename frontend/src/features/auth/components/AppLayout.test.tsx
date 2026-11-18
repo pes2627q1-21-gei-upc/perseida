@@ -1,4 +1,5 @@
 import { act, render, waitFor } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppLayout, { SESSION_REFRESH_INTERVAL_MS } from '../../../app/(app)/_layout';
 import * as refreshTokenModule from '../api/refreshToken';
@@ -9,7 +10,22 @@ const mockRouter = { replace: mockReplace };
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
   Stack: () => null,
+  Tabs: Object.assign(({ children }: { children?: React.ReactNode }) => children ?? null, {
+    Screen: () => null,
+  }),
 }));
+
+// expo-router puts a SafeAreaProvider above every layout; the tab bar height reads its insets.
+const SAFE_AREA = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
+const renderLayout = () =>
+  render(
+    <SafeAreaProvider initialMetrics={SAFE_AREA}>
+      <AppLayout />
+    </SafeAreaProvider>,
+  );
 
 describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
   const validTokens = {
@@ -31,7 +47,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(null);
 
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
@@ -50,7 +66,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
 
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
@@ -70,7 +86,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
       .mockImplementation(async () => (hasTokens ? validTokens : null));
 
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
@@ -84,7 +100,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
 
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
@@ -104,7 +120,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
 
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     expect(refreshSpy).toHaveBeenCalledTimes(1);
@@ -125,7 +141,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
       .mockResolvedValueOnce(null)
       .mockRejectedValueOnce(new Error('transient failure'));
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
     await act(async () => {
       jest.advanceTimersByTime(SESSION_REFRESH_INTERVAL_MS);
@@ -146,7 +162,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
           }),
       );
     jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
-    const view = await render(<AppLayout />);
+    const view = await renderLayout();
     await act(async () => {});
     await view.unmount();
     await act(async () => {
@@ -162,7 +178,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
       const getTokens = jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
       jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
       await act(async () => {
-        render(<AppLayout />);
+        renderLayout();
       });
       if (failedRead === 'final read') getTokens.mockResolvedValueOnce(validTokens);
       getTokens.mockRejectedValueOnce(new Error('storage'));
@@ -178,7 +194,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     const getTokens = jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
     jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
     getTokens.mockResolvedValueOnce(validTokens).mockResolvedValueOnce(null);
     await act(async () => {
@@ -191,7 +207,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     jest.useFakeTimers();
     const getTokens = jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
     jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
-    const view = await render(<AppLayout />);
+    const view = await renderLayout();
     await act(async () => {});
     let finish!: (value: null) => void;
     getTokens.mockResolvedValueOnce(validTokens).mockImplementationOnce(
@@ -214,7 +230,7 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
     jest.spyOn(tokenStorage, 'getTokens').mockRejectedValueOnce(new Error('Storage failure'));
 
     await act(async () => {
-      render(<AppLayout />);
+      renderLayout();
     });
 
     await waitFor(() => {
