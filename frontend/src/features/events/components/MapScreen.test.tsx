@@ -533,15 +533,130 @@ describe('Events map screen with outings (TG-646)', () => {
     );
   });
 
-  it('keeps the list view with the events only (criterion 2)', async () => {
+  it('lists the events and then the outings in the list view with the All filter (TG-52)', async () => {
+    mockApi(() => jsonResponse([myOuting, otherOuting]));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
+    for (const title of [lunarEvent.title, myOuting.title, otherOuting.title]) {
+      expect(await screen.findByText(title)).toBeTruthy();
+    }
+    const names = screen.getAllByRole('button').map((row) => String(row.props.accessibilityLabel));
+    const position = (title: string) => names.findIndex((name) => name.startsWith(title));
+    expect(position(lunarEvent.title)).toBeGreaterThanOrEqual(0);
+    expect(position(lunarEvent.title)).toBeLessThan(position(myOuting.title));
+  });
+
+  it('lists only the outings in the list view with the Outings filter (TG-52)', async () => {
+    mockApi(() => jsonResponse([myOuting, otherOuting]));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
+    expect(await screen.findByText(otherOuting.title)).toBeTruthy();
+    expect(screen.getByText(myOuting.title)).toBeTruthy();
+    expect(screen.queryByText(lunarEvent.title)).toBeNull();
+    expect(screen.queryByText(i18n.t('events.empty.outings'))).toBeNull();
+  });
+
+  it('leaves the outings out of the list view with the Upcoming filter (TG-52)', async () => {
+    mockApi();
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(myOuting.id));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Futurs' }));
+
+    expect(await screen.findByText(lunarEvent.title)).toBeTruthy();
+    expect(screen.queryByText(myOuting.title)).toBeNull();
+  });
+
+  it('opens the summary of an outing from the list, with the button to its page (TG-52)', async () => {
+    mockApi(() => jsonResponse([otherOuting]));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(otherOuting.id));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
+    const row = await screen.findByRole('button', {
+      name: new RegExp(`^${otherOuting.title}`),
+    });
+    await fireEvent.press(row);
+
+    expect(screen.getByRole('header', { name: otherOuting.title })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
+    expect(mockRouter.push).toHaveBeenCalledWith(`/outings/${otherOuting.id}`);
+  });
+
+  it('names a row of an outing in the list with its title, "Sortida" and its date (TG-52)', async () => {
     mockApi();
     await renderScreen();
     await waitForMapHtml((page) => page.includes(myOuting.id));
 
     await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
 
+    const label = describeOuting(myOuting, i18n.getFixedT('ca'), 'ca');
+    expect(await screen.findByRole('button', { name: label })).toBeTruthy();
+  });
+
+  it('keeps the events in the list and warns in the controls when the outings fail with the All filter (TG-52)', async () => {
+    mockApi(() => problemResponse(500, 'INTERNAL_ERROR'));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+
     expect(await screen.findByText(lunarEvent.title)).toBeTruthy();
-    expect(screen.queryByText(myOuting.title)).toBeNull();
+    expect(await findWarning()).toHaveTextContent(i18n.t('errors.INTERNAL_ERROR'));
+  });
+
+  describe('state of the list view with the Outings filter (TG-52)', () => {
+    async function openOutingsList() {
+      await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
+      await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
+    }
+
+    it('does not cover the outings with the error of the events', async () => {
+      jest.restoreAllMocks();
+      const spy = mockEventsApi({ active: () => problemResponse(500, 'INTERNAL_ERROR') });
+      const base = spy.getMockImplementation()!;
+      spy.mockImplementation(async (input, init) =>
+        urlOf(input).pathname === '/api/outings' ? jsonResponse([myOuting]) : base(input, init),
+      );
+      await renderScreen();
+
+      await openOutingsList();
+
+      expect(await screen.findByText(myOuting.title)).toBeTruthy();
+      expect(queryStatusAlerts()).toHaveLength(0);
+    });
+
+    it('shows the error of the outings, not an empty list, when only they fail', async () => {
+      mockApi(() => problemResponse(500, 'INTERNAL_ERROR'));
+      await renderScreen();
+      await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+      await openOutingsList();
+
+      expect(await findStatusAlert()).toHaveTextContent(i18n.t('errors.INTERNAL_ERROR'));
+      expect(screen.queryByText(i18n.t('events.empty.outings'))).toBeNull();
+      expect(screen.queryByText(lunarEvent.title)).toBeNull();
+    });
+
+    it('shows loading while the outings load, not the events', async () => {
+      mockApi(() => new Promise<Response>(() => undefined));
+      await renderScreen();
+      await waitForMapHtml((page) => page.includes(launchEvent.id));
+
+      await openOutingsList();
+
+      expect(await screen.findByLabelText(i18n.t('events.loading'))).toBeTruthy();
+      expect(screen.queryByText(lunarEvent.title)).toBeNull();
+    });
   });
 
   it('says so when there are no outings with the Outings filter', async () => {

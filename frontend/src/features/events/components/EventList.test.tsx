@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
+import { myOuting, otherOuting } from '../../../../__mocks__/outings';
 import { classifyEvents } from '../classifyEvents';
 import { EventList } from './EventList';
 
@@ -60,5 +61,23 @@ describe('EventList', () => {
     await fireEvent.press(row);
 
     expect(onSelect).toHaveBeenCalledWith(lunarEvent.id);
+  });
+
+  it('lists the outings after the events', async () => {
+    const onSelect = jest.fn();
+    render(
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <EventList
+          events={all}
+          outings={[myOuting, otherOuting]}
+          label="Llista d'esdeveniments"
+          onSelect={onSelect}
+        />
+      </SafeAreaProvider>,
+    );
+
+    expect(screen.getByText(myOuting.title)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^Nit de Leonides, Sortida, / }));
+    expect(onSelect).toHaveBeenCalledWith(otherOuting.id);
   });
 });
