@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { type Theme, useTheme } from '../../../shared/theme';
+import { spacing, type Theme, useTheme } from '../../../shared/theme';
 import { QuietButton, useReduceTransparency } from '../../../shared/ui';
 import { type BubbleSurface, bubbleSurface } from '../bubbleSurface';
 import type { MessageItem, PendingItem } from '../chatItems';
@@ -36,7 +36,7 @@ const HIGHLIGHT_INSET = 18;
 /** The gloss of my bubbles fits in the top padding (spacing.sm), above the text. */
 const GLOSS_HEIGHT = 6;
 const styles = StyleSheet.create({
-  column: { width: '100%' },
+  column: { width: '100%', gap: spacing.xs },
   mine: { alignItems: 'flex-end' },
   others: { alignItems: 'flex-start' },
   bubble: { maxWidth: '80%', overflow: 'hidden', borderWidth: 1 },
@@ -90,6 +90,112 @@ function SendingDot({ color }: { color: string }) {
     />
   );
 }
+
+/** The text styles of a bubble: the colours of its surface, at the sizes of the theme. */
+function textLook({ typography }: Theme, surface: BubbleSurface) {
+  return {
+    author: [typography.caption, { color: surface.secondaryText }],
+    body: [typography.body, { color: surface.text }],
+    meta: [typography.caption, styles.meta, { color: surface.secondaryText }],
+    status: [typography.caption, { color: surface.secondaryText }],
+  };
+}
+
+/**
+ * The material under the text: the gel body with its gloss pill (a message on its way is matte,
+ * not yet set), or the 1 px highlight of the glass.
+ */
+function BubbleSkin({ surface, sending }: { surface: BubbleSurface; sending: boolean }) {
+  const { colors, radii } = useTheme();
+  if (!surface.gradient) {
+    return (
+      <LinearGradient
+        colors={colors.gel.highlight}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        pointerEvents="none"
+        style={[styles.line, { left: HIGHLIGHT_INSET, right: HIGHLIGHT_INSET }]}
+      />
+    );
+  }
+  return (
+    <>
+      <LinearGradient colors={surface.gradient} style={StyleSheet.absoluteFill} />
+      {!sending && (
+        // The gloss stays in the top padding, above the text (tokens.md).
+        <LinearGradient
+          colors={colors.gel.highlight}
+          pointerEvents="none"
+          style={[
+            styles.gloss,
+            { left: radii.md, right: radii.md, height: GLOSS_HEIGHT, borderRadius: radii.pill },
+          ]}
+        />
+      )}
+    </>
+  );
+}
+
+/** «Enviant» with its pulsing dot, at the foot of the bubble. */
+function SendingStatus({ surface, label }: { surface: BubbleSurface; label: string }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.meta, { gap: theme.spacing.xs }]}>
+      <SendingDot color={surface.secondaryText} />
+      <Text style={textLook(theme, surface).status}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * Why a message did not go, on a glass note next to the bubble: an icon and the text in the
+ * danger colour, measured legible on that glass over the whole scene (never on the bare sky).
+ */
+function ProblemNote({ failed, text }: { failed: boolean; text: string }) {
+  const { colors, iconSizes, radii, spacing, typography } = useTheme();
+  const reduceTransparency = useReduceTransparency();
+  const Icon = failed ? WarningCircle : Warning;
+  return (
+    <View
+      style={[
+        styles.note,
+        {
+          gap: spacing.sm,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          borderRadius: radii.md,
+          borderColor: colors.surface.glassBorder,
+          backgroundColor: rowSurface(colors.surface, reduceTransparency),
+        },
+      ]}
+    >
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Icon size={iconSizes.sm} color={colors.state.danger} weight="fill" />
+      </View>
+      <Text
+        accessibilityLiveRegion="polite"
+        style={[typography.body, styles.noteText, { color: colors.state.danger }]}
+      >
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+/** Float-up of a message that has just arrived; at once with reduced motion or for the history. */
+function useFloatIn(entering: boolean) {
+  const { duration } = useTheme();
+  const reduceMotion = useReducedMotion();
+  const shown = useSharedValue(entering && !reduceMotion ? 0 : 1);
+  useEffect(() => {
+    if (shown.value === 1) return;
+    shown.value = withTiming(1, { duration: duration.base, easing: Easing.out(Easing.cubic) });
+  }, [shown, duration.base]);
+  return useAnimatedStyle(() => ({
+    opacity: shown.value,
+    transform: [{ translateY: (1 - shown.value) * ENTER_OFFSET }],
+  }));
+}
 // Stryker restore all
 
 /**
@@ -100,12 +206,12 @@ function SendingDot({ color }: { color: string }) {
 export function MessageBubble({ item, onRetry, entering = false }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const { colors, spacing, typography, radii, iconSizes } = theme;
   const reduceTransparency = useReduceTransparency();
-  const reduceMotion = useReducedMotion();
+  const enter = useFloatIn(entering);
 
   const mine = item.kind === 'pending' || item.mine;
-  const surface = bubbleSurface(colors, mine, reduceTransparency);
+  const surface = bubbleSurface(theme.colors, mine, reduceTransparency);
+  const look = textLook(theme, surface);
   const you = t('chat.you');
   const sending = item.kind === 'pending' && item.status === 'sending';
   const problem =
@@ -130,25 +236,9 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
   }
   const text = item.kind === 'message' ? item.message.text : item.text;
 
-  // Stryker disable all: entrance motion, visual only.
-  const shown = useSharedValue(entering && !reduceMotion ? 0 : 1);
-  useEffect(() => {
-    if (shown.value === 1) return;
-    shown.value = withTiming(1, {
-      duration: theme.duration.base,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [shown, theme.duration.base]);
-  const enter = useAnimatedStyle(() => ({
-    opacity: shown.value,
-    transform: [{ translateY: (1 - shown.value) * ENTER_OFFSET }],
-  }));
-  // Stryker restore all
-
   return (
-    <Animated.View
-      style={[styles.column, mine ? styles.mine : styles.others, { gap: spacing.xs }, enter]}
-    >
+    // Stryker disable next-line all: alignment and spacing, visual only.
+    <Animated.View style={[styles.column, mine ? styles.mine : styles.others, enter]}>
       <View
         testID={`chat-message-${item.key}`}
         accessible
@@ -156,83 +246,17 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
         accessibilityState={{ busy: sending }}
         style={[styles.bubble, bubbleStyle(theme, surface, mine)]}
       >
-        {surface.gradient && (
-          <LinearGradient colors={surface.gradient} style={StyleSheet.absoluteFill} />
-        )}
-        {surface.gradient && !sending && (
-          // The gloss stays in the top padding, above the text (tokens.md).
-          <LinearGradient
-            colors={colors.gel.highlight}
-            pointerEvents="none"
-            style={[
-              styles.gloss,
-              {
-                left: radii.md,
-                right: radii.md,
-                height: GLOSS_HEIGHT,
-                borderRadius: radii.pill,
-              },
-            ]}
-          />
-        )}
-        {!surface.gradient && (
-          <LinearGradient
-            colors={colors.gel.highlight}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            pointerEvents="none"
-            style={[styles.line, { left: HIGHLIGHT_INSET, right: HIGHLIGHT_INSET }]}
-          />
-        )}
-        {author !== undefined && (
-          <Text style={[typography.caption, { color: surface.secondaryText }]}>{author}</Text>
-        )}
-        <Text selectable style={[typography.body, { color: surface.text }]}>
+        <BubbleSkin surface={surface} sending={sending} />
+        {author !== undefined && <Text style={look.author}>{author}</Text>}
+        <Text selectable style={look.body}>
           {text}
         </Text>
-        {time !== undefined && (
-          <Text style={[typography.caption, styles.meta, { color: surface.secondaryText }]}>
-            {time}
-          </Text>
-        )}
-        {sending && (
-          <View style={[styles.meta, { gap: spacing.xs }]}>
-            <SendingDot color={surface.secondaryText} />
-            <Text style={[typography.caption, { color: surface.secondaryText }]}>
-              {t('chat.message.sending')}
-            </Text>
-          </View>
-        )}
+        {time !== undefined && <Text style={look.meta}>{time}</Text>}
+        {sending && <SendingStatus surface={surface} label={t('chat.message.sending')} />}
       </View>
       {item.kind === 'pending' && problem !== '' && (
         <>
-          <View
-            style={[
-              styles.note,
-              {
-                gap: spacing.sm,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                borderRadius: radii.md,
-                borderColor: colors.surface.glassBorder,
-                backgroundColor: rowSurface(colors.surface, reduceTransparency),
-              },
-            ]}
-          >
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              {item.status === 'failed' ? (
-                <WarningCircle size={iconSizes.sm} color={colors.state.danger} weight="fill" />
-              ) : (
-                <Warning size={iconSizes.sm} color={colors.state.danger} weight="fill" />
-              )}
-            </View>
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[typography.body, styles.noteText, { color: colors.state.danger }]}
-            >
-              {problem}
-            </Text>
-          </View>
+          <ProblemNote failed={item.status === 'failed'} text={problem} />
           {onRetry && (
             <QuietButton
               label={t('chat.message.retry')}
