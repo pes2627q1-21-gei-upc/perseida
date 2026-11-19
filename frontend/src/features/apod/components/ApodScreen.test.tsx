@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, Linking } from 'react-native';
+import { AccessibilityInfo, Image, Linking } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { apodImage, apodVideo, jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -114,7 +114,24 @@ describe('APOD screen', () => {
     expect(screen.getByTestId('apod-image')).toHaveStyle({ aspectRatio: 0.5 });
   });
 
-  it('TG-651 keeps the frame when the image load event has no source (react-native-web)', async () => {
+  it('TG-651 gets the size of the image when the load event has no source (react-native-web)', async () => {
+    const getSize = jest
+      .spyOn(Image, 'getSize')
+      .mockImplementation((_uri, onSize) => onSize?.(1000, 2000));
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    await renderScreen();
+    const image = await screen.findByTestId('apod-image');
+
+    await fireEvent(image, 'load', { nativeEvent: {} });
+
+    expect(getSize).toHaveBeenCalledWith(apodImage.url, expect.any(Function), expect.any(Function));
+    expect(screen.getByTestId('apod-image')).toHaveStyle({ aspectRatio: 0.5 });
+  });
+
+  it('TG-651 keeps the frame when the size of the image cannot be read', async () => {
+    jest
+      .spyOn(Image, 'getSize')
+      .mockImplementation((_uri, _onSize, onError) => onError?.(new Error('x')));
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
     await renderScreen();
     const image = await screen.findByTestId('apod-image');
