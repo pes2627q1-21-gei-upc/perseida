@@ -43,3 +43,18 @@ export function makeSubscribedEvent(n: number, overrides: Record<string, unknown
 export function makePage(messages: unknown[], nextCursor: string | null = null) {
   return { messages, next_cursor: nextCursor };
 }
+
+/** Authors of the room tests: `makeMessage` writes as Laia by default; Pau is another person. */
+export const LAIA_ID = '01a1bd9a-0000-7000-8000-0000000000aa';
+export const PAU_ID = '01a1bd9a-0000-7000-8000-0000000000bb';
+export const PAU = { id: PAU_ID, name: 'Pau' };
+
+/** The cache of the history of a room (TanStack `InfiniteData`): one page per list, newest first. */
+export function makeHistoryData(pages: unknown[][]) {
+  return {
+    pages: pages.map((messages, i) =>
+      makePage(messages, i < pages.length - 1 ? `cursor-${i}` : null),
+    ),
+    pageParams: pages.map((_, i) => (i === 0 ? undefined : `cursor-${i - 1}`)),
+  };
+}
