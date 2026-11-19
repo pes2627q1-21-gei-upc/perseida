@@ -58,6 +58,19 @@ class ChatFakes:
     ) -> AbstractAsyncContextManager[AsyncIterator[str]]:
         raise NotImplementedError
 
+    async def find_by_client_id(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> ChatMessage | None:
+        self.calls.append("find")
+        return next(
+            (
+                m
+                for m in self.messages
+                if m.author_id == author_id and m.client_message_id == client_message_id
+            ),
+            None,
+        )
+
     async def add_message(self, message: ChatMessage) -> None:
         self.calls.append("save")
         if self.fail_save:

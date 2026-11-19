@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
@@ -29,9 +31,15 @@ def test_tg446_settings_defaults_and_bounds() -> None:
 async def test_tg446_configured_maximum_checks_cleaned_text_before_rate() -> None:
     env = ChatFakes()
     service = ChatService(env, env, env, env, env, message_max_length=3)
-    assert (await service.send_message(env.user, env.event, " abc ")).text == "abc"
+    assert (
+        await service.send_message(
+            env.user, env.event, " abc ", client_message_id=uuid.uuid4()
+        )
+    ).text == "abc"
     env.calls.clear()
     with pytest.raises(ValidationError) as exc:
-        await service.send_message(env.user, env.event, "abcd")
+        await service.send_message(
+            env.user, env.event, "abcd", client_message_id=uuid.uuid4()
+        )
     assert exc.value.code == CHAT_MESSAGE_TOO_LONG
     assert "rate" not in env.calls
