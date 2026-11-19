@@ -142,8 +142,9 @@ class SqlChatRepository:
         with _database_errors():
             try:
                 async with self._session_factory() as session:
-                    created = await session.scalar(statement)
+                    result = await session.execute(statement)
                     await session.commit()
+                    created = result.scalar_one_or_none()
                     if created is not None:
                         return _message(created)
                     # A concurrent retry stored it first: that one is the result.
