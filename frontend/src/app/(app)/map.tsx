@@ -33,8 +33,9 @@ const ALL_OUTINGS = {};
  * Events map (TG-52): active and upcoming events, as glass orbs on a map (only the ones with a
  * location) or as a list (all of them, also the ones visible from anywhere), filtered by
  * Active | Upcoming | Outings | All (All by default). The outings (TG-646) are markers of their
- * own on the map with Outings and All; the list is only for events (with Outings it shows all
- * of them) and a failure of the outings only warns in the controls. A marker or a row opens the summary sheet.
+ * own on the map with Outings and All, and rows of the list (also the ones without a location);
+ * a failure of the outings only warns in the controls with All and is the error with Outings.
+ * The loading and error states follow the data the filter shows. A marker or a row opens the summary sheet.
  * Title on top, the controls at the bottom; loading, empty and error states float over the map
  * or the list. On wide screens the summary sits beside the map. The page only orchestrates:
  * data comes from the hook.
@@ -55,8 +56,8 @@ export default function MapScreen() {
   const onlyOutings = filter === 'outings';
   const withOutings = onlyOutings || filter === 'all';
   const events = data ? filterEvents(data, filter) : NO_EVENTS;
-  // The list only has events: the Outings filter has none of its own, so it shows them all.
-  const listEvents = onlyOutings && data ? data.all : events;
+  // The list has what the filter selects, outings too (also the ones without a location).
+  const listOutings = withOutings ? outings : NO_OUTINGS;
   const markers = useMemo(
     () => [
       ...toMapMarkers(events, (event) => describeEvent(event, t)),
@@ -68,7 +69,7 @@ export default function MapScreen() {
   );
   // Looked up in every event and outing, so the sheet stays open if the filter changes behind it.
   const selected = data?.all.find((event) => event.id === selectedId) ?? null;
-  // A failure of the outings only warns in the controls while they are on the map.
+  // A failure of the outings only warns in the controls with the All filter; with Outings it is the error.
   const outingsError = withOutings ? outingsQuery.error : null;
   const outingsWarning = outingsError
     ? errorMessage(t, outingsError.code, outingsError.retryable)
@@ -78,8 +79,7 @@ export default function MapScreen() {
 
   // The Outings filter does not need the events: it waits for, and fails with, the outings.
   const source = onlyOutings ? outingsQuery : { data, error: eventsError, isFetching, refetch };
-  const shown =
-    view === 'list' ? listEvents.length : events.length + (withOutings ? outings.length : 0);
+  const shown = events.length + listOutings.length;
   let status: ReactNode = null;
   if (!source.data) {
     // A retry shows the loading state again until the new answer arrives.
@@ -125,7 +125,8 @@ export default function MapScreen() {
             {view === 'list' && (
               <View style={StyleSheet.absoluteFill}>
                 <EventList
-                  events={listEvents}
+                  events={events}
+                  outings={listOutings}
                   label={t('events.list.label')}
                   topInset={barBottom}
                   onSelect={setSelectedId}

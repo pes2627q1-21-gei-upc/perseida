@@ -65,7 +65,7 @@ describe('EventList', () => {
 
   it('lists the outings after the events', async () => {
     const onSelect = jest.fn();
-    render(
+    await render(
       <SafeAreaProvider initialMetrics={SAFE_AREA}>
         <EventList
           events={all}
