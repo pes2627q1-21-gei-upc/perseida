@@ -4,11 +4,11 @@ from collections.abc import AsyncIterator
 from uuid import uuid4
 
 import pytest
-from app.infrastructure.chat.republish_guard import RedisRepublishGuard
 from redis.asyncio import Redis
 
 from app.application.shared.errors import ExternalServiceError
 from app.domain.chat.ports import RepublishGuard
+from app.infrastructure.chat.republish_guard import RedisRepublishGuard
 
 pytestmark = pytest.mark.skipif(not os.getenv("REDIS_HOST"), reason="Redis required")
 
