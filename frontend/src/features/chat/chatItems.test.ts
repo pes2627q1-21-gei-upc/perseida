@@ -2,7 +2,6 @@ import { LAIA_ID, makeMessage, PAU, PAU_ID } from '../../../__mocks__/chat';
 import type { ChatMessage } from './api/chat';
 import { buildChatItems, type OutgoingMessage } from './chatItems';
 
-const NOW = new Date('2026-11-19T15:00:00Z');
 const ME = LAIA_ID;
 
 /** `n` makes the id; messages are written newest first, as the history comes. */
@@ -19,7 +18,6 @@ function build(
     messages,
     myUserId: options.myUserId ?? ME,
     pending: options.pending ?? [],
-    now: NOW,
     timeZone: options.timeZone ?? 'UTC',
   });
 }
