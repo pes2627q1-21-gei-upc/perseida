@@ -774,12 +774,20 @@ def test_tg654_an_identical_retry_gets_the_same_ack_and_is_stored_once(
         retry = harness.send(
             sender, room, {"text": " Hola ", "client_message_id": key}, "m2"
         )
-        republished = listener.receive_json()
 
         assert first["type"] == retry["type"] == "message"
         assert retry["id"] == "m2"
         assert retry["payload"] == first["payload"]  # same id and sent_at
-        # republished: the others may have missed the first broadcast
+        # TG-654 (approved contract change): in the cooldown the retry is not published
+        # again (the listener only has the first publish).
+        harness.assert_alive(listener)
+        # when the key is not marked (first publish failed; here the mark is deleted)
+        # the retry is published again, because the others may have missed the broadcast
+        harness.call(
+            harness.direct.delete, f"chat:republished:{harness.users['ana']}:{key}"
+        )
+        harness.send(sender, room, {"text": "Hola", "client_message_id": key}, "m3")
+        republished = listener.receive_json()
         assert republished["payload"] == original["payload"]
         harness.assert_alive(sender)
         harness.assert_alive(listener)
@@ -792,12 +800,15 @@ def test_tg654_an_identical_retry_does_not_count_towards_the_rate_limit(
     harness: Harness,
 ) -> None:
     harness.login("ana")
-    event_id = harness.event("ana")
+    harness.login("bob")
+    event_id = harness.event("ana", "bob")
     room = room_of(event_id)
     key = str(uuid4())
     with ExitStack() as stack:
         sender = harness.connect("ana", stack)
+        listener = harness.connect("bob", stack)
         harness.join(sender, room)
+        harness.join(listener, room)
 
         replies = [
             harness.send(
@@ -808,6 +819,9 @@ def test_tg654_an_identical_retry_does_not_count_towards_the_rate_limit(
 
         assert {r["type"] for r in replies} == {"message"}
         assert {r["payload"]["id"] for r in replies} == {replies[0]["payload"]["id"]}
+        # TG-654: the 24 retries are inside the cooldown: only one message is published
+        assert listener.receive_json()["payload"]["id"] == replies[0]["payload"]["id"]
+        harness.assert_alive(listener)
 
 
 def test_tg654_the_same_key_with_another_text_is_a_409_conflict(
