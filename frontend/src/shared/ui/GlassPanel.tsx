@@ -9,15 +9,13 @@ const TOP_HIGHLIGHT = 'rgba(255,255,255,0.5)';
 
 interface Props {
   children: ReactNode;
-  /** A tight layer around a control (a composer): spacing.sm inside instead of spacing.md. */
-  compact?: boolean;
 }
 
 /**
  * Floating glass layer (receptes.md). The background opacity of surface.glass is what
  * gives the contrast, not the blur. With "Reduce transparency" it becomes opaque.
  */
-export function GlassPanel({ children, compact = false }: Props) {
+export function GlassPanel({ children }: Props) {
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
   const { surface } = theme.colors;
@@ -43,7 +41,7 @@ export function GlassPanel({ children, compact = false }: Props) {
       <View
         style={{
           backgroundColor: reduceTransparency ? surface.glassSolid : surface.glass,
-          padding: compact ? theme.spacing.sm : theme.spacing.md,
+          padding: theme.spacing.md,
         }}
       >
         {children}
