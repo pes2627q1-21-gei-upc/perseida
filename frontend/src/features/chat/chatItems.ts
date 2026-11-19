@@ -99,11 +99,14 @@ function floatsIn(item: ChatListItem): boolean {
  * The keys of what arrived while the room was open (TG-469): the new items at the newest end of
  * `items` that `before` did not have. The first list is the history and a list that shares
  * nothing with the previous one is a new history, so neither has arrivals; older pages come at
- * the other end and are not arrivals either.
+ * the other end and are not arrivals either. So the first message of an empty room appears at
+ * once: an empty list cannot be told apart from one that is still loading.
  */
 export function arrivedKeys(items: ChatListItem[], before: ChatListItem[]): Set<string> {
   const known = new Set(before.map((item) => item.key));
-  const newest = items.findIndex((item) => known.has(item.key));
+  // Pending messages stay at the bottom until they are confirmed, so they do not mark where the
+  // history that was already there begins.
+  const newest = items.findIndex((item) => item.kind !== 'pending' && known.has(item.key));
   if (newest < 0) return new Set();
   return new Set(
     items
