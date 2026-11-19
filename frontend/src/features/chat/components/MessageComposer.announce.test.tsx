@@ -3,6 +3,9 @@ import { AccessibilityInfo, Platform } from 'react-native';
 
 import { MessageComposer } from './MessageComposer';
 
+// announceForAccessibility is already a mock in jest-expo: spying on it keeps the calls of the
+// previous test, so they are cleared first.
+beforeEach(() => jest.clearAllMocks());
 afterEach(() => jest.restoreAllMocks());
 
 // Android reads a live region by itself; iOS needs an explicit announcement (TG-469).
