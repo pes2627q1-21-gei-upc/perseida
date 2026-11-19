@@ -27,6 +27,26 @@
     "empty": {
       "message": "Aún no te has suscrito a ningún evento. Suscríbete a uno para charlar con la comunidad.",
       "cta": "Explora los eventos"
+    },
+    "you": "Tú",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Enviando",
+      "sending": "Enviando",
+      "failed": "No se ha podido enviar el mensaje.",
+      "uncertain": "Es posible que el mensaje ya se haya enviado. Si lo reintentas, no se duplicará.",
+      "retry": "Reintentar"
+    },
+    "composer": {
+      "label": "Escribe un mensaje",
+      "send": "Enviar",
+      "counter": "{{count}} de {{max}} caracteres",
+      "tooLong": "El mensaje puede tener como máximo 1.000 caracteres."
+    },
+    "messages": {
+      "label": "Mensajes del chat",
+      "loadingOlder": "Cargando mensajes anteriores"
     }
   },
   "common": {

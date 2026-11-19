@@ -27,6 +27,26 @@
     "empty": {
       "message": "You haven't subscribed to any event yet. Subscribe to one to chat with the community.",
       "cta": "Explore events"
+    },
+    "you": "You",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Sending",
+      "sending": "Sending",
+      "failed": "The message could not be sent.",
+      "uncertain": "The message may have been sent already. If you retry, it won't be duplicated.",
+      "retry": "Retry"
+    },
+    "composer": {
+      "label": "Write a message",
+      "send": "Send",
+      "counter": "{{count}} of {{max}} characters",
+      "tooLong": "A message can be up to 1,000 characters long."
+    },
+    "messages": {
+      "label": "Chat messages",
+      "loadingOlder": "Loading earlier messages"
     }
   },
   "common": {

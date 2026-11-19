@@ -27,6 +27,26 @@
     "empty": {
       "message": "Encara no t'has subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
       "cta": "Explora els esdeveniments"
+    },
+    "you": "Tu",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Enviant",
+      "sending": "Enviant",
+      "failed": "No s'ha pogut enviar el missatge.",
+      "uncertain": "És possible que el missatge ja s'hagi enviat. Si el reintentes, no es duplicarà.",
+      "retry": "Reintenta"
+    },
+    "composer": {
+      "label": "Escriu un missatge",
+      "send": "Envia",
+      "counter": "{{count}} de {{max}} caràcters",
+      "tooLong": "El missatge pot tenir com a màxim 1.000 caràcters."
+    },
+    "messages": {
+      "label": "Missatges del xat",
+      "loadingOlder": "Carregant missatges anteriors"
     }
   },
   "common": {
