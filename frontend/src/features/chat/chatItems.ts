@@ -111,7 +111,7 @@ export function arrivedKeys(items: ChatListItem[], before: ChatListItem[]): Set<
   return new Set(
     items
       .slice(0, newest)
-      .filter(floatsIn)
+      .filter((item) => !known.has(item.key) && floatsIn(item))
       .map((item) => item.key),
   );
 }
