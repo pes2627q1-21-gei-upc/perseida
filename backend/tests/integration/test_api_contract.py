@@ -29,6 +29,7 @@ from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.events.launch_library import LAUNCH_LIBRARY_URL
 from app.infrastructure.events.usno import USNO_SOLAR_URL
 from app.infrastructure.persistence.config import DatabaseSettings
+from app.infrastructure.posts.dependencies import get_posts_settings
 from app.infrastructure.scheduler.dependencies import get_scheduler_settings
 from app.main import create_app
 from tests.factories.google import CLIENT_ID, KEY, jwk, token
@@ -101,7 +102,12 @@ def api_schema() -> Iterator[Any]:
     mp.setenv("GOOGLE_CLIENT_IDS", CLIENT_ID)
     mp.setenv("JWT_SECRET", "c" * 32)
     mp.setenv("NASA_API_KEY", "contract-test-key")
+    # Every fuzzed PATCH/DELETE comes from the same session: the per-user write
+    # limit (TG-645) would turn them into 429 and hide the contract. Its 429 is
+    # covered by the posts router and service tests.
+    mp.setenv("POSTS_WRITE_RATE_LIMIT", "100000")
     get_scheduler_settings.cache_clear()
+    get_posts_settings.cache_clear()
     _migrate()
     asyncio.run(_clean_state())
     apod = json.loads((FIXTURES / "nasa_apod_image.json").read_text(encoding="utf-8"))
@@ -186,6 +192,7 @@ def api_schema() -> Iterator[Any]:
             asyncio.run(_clean_state())
             mp.undo()
             get_scheduler_settings.cache_clear()
+            get_posts_settings.cache_clear()
 
 
 schema = schemathesis.pytest.from_fixture("api_schema")

@@ -73,6 +73,15 @@ frontend/
 - **Session Cleanup (`features/auth/session.ts`)**: `clearSession()` purges both stored tokens and the in-memory TanStack Query cache. Used by `useLogout` and by token renewal on 401 `INVALID_SESSION`.
 - **Session Renewal (`features/auth/api/refreshToken.ts`)**: `refreshSession()` renews tokens via `POST /api/auth/refresh`. Serializes concurrent calls to ensure single-use refresh tokens are never burned.
 - **Route Guard (`app/(app)/_layout.tsx`)**: Redirects unauthenticated users to `/login`; `/login` redirects authenticated users into the app (`/(app)`).
+- **Private endpoints (`features/auth/api/authorized.ts`, TG-61)**: `withSession(request)` sends the access token as `Authorization: Bearer`. On a 401 it renews the session once and retries; if the renewal fails for a temporary reason (network, 5xx) it ends as a retryable `SESSION_UNAVAILABLE`, not as an expired session. Without a session it fails with `INVALID_SESSION` without calling the API (`authHeaders`).
+
+## Daily quiz (TG-61)
+
+Route `/(app)/quiz` (for now, linked from the temporary home). Code in `src/features/quiz/`; API contract in `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+- **Data:** `useQuizToday(lang)` asks for `GET /api/quiz/today?lang=<app language>`; `useAnswerQuiz(lang)` sends `POST /api/quiz/today/answer` and puts the result into the cached question. One cache entry per language. With the screen open, the question is asked again just after midnight UTC, and when the app comes back to the foreground on another day.
+- **Screen:** the question with its 4 options (radio buttons) and a send button that stays disabled until an option is chosen and busy while sending. Once answered (or if it already was), the result: right or not, the right option and the chosen one in words and icons, the explanation and a link to the source. Both views have a "Back to home" button, so the system back button is not needed.
+- **Errors:** loading errors show a translated message with retry when transient. If sending fails, the chosen option stays. After `QUIZ_EXPIRED` or `QUIZ_QUESTION_MISMATCH` the new question is loaded with a notice; after `QUIZ_ALREADY_ANSWERED`, the result. If that reload fails, the error is shown with retry even if an older question is cached.
 
 ## Run and test
 

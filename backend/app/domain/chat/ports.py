@@ -32,10 +32,24 @@ class ChatRepository(Protocol):
         """
         ...
 
-    async def add_message(self, message: ChatMessage) -> None:
-        """Store ``message``.
+    async def find_by_client_id(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> ChatMessage | None:
+        """Return the message ``author_id`` sent with ``client_message_id``, if any.
 
         Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def add_message(self, message: ChatMessage) -> ChatMessage:
+        """Store ``message`` and return the stored one.
+
+        If the author already stored a message with the same ``client_message_id``
+        (a concurrent retry), nothing is inserted and that one is returned.
+
+        Raises:
+            NotFoundError: if the room of the message does not exist.
             ExternalServiceError: if the database is unavailable.
         """
         ...
@@ -68,6 +82,30 @@ class SendRateLimiter(Protocol):
 
         Raises:
             ExternalServiceError: if the counter is unavailable.
+        """
+        ...
+
+
+class RepublishGuard(Protocol):
+    """Remembers for a while which messages were just published (anti-flood)."""
+
+    async def was_published_recently(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> bool:
+        """Return whether the message was marked in the cooldown window.
+
+        Raises:
+            ExternalServiceError: if the store is unavailable.
+        """
+        ...
+
+    async def mark_published(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> None:
+        """Mark the message as published now.
+
+        Raises:
+            ExternalServiceError: if the store is unavailable.
         """
         ...
 

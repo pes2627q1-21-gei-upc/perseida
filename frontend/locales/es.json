@@ -6,13 +6,36 @@
     "retryHint": "Vuelve a cargar el APOD",
     "videoLabel": "Vídeo del APOD"
   },
+  "auth": {
+    "continueWithGoogle": "Continúa con Google",
+    "logout": "Cierra la sesión",
+    "logoutHint": "Cierra la sesión de este dispositivo y vuelve a la pantalla de inicio de sesión",
+    "logoutNotConfirmed": "Se ha cerrado la sesión en este dispositivo, pero no se ha podido confirmar en el servidor.",
+    "tagline": "Mira hacia arriba"
+  },
   "common": {
     "back": "Volver"
+  },
+  "comingSoon": {
+    "badge": "Próximamente",
+    "chatDesc": "Un espacio en tiempo real para compartir observaciones, fotos y encuentros astronómicos.",
+    "chatTitle": "Comunidad y chat",
+    "eventsDesc": "Muy pronto podrás consultar lluvias de estrellas, eclipses y fenómenos celestes directamente desde aquí.",
+    "eventsMapButton": "Abrir el mapa de eventos",
+    "eventsTitle": "Eventos astronómicos",
+    "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
+    "gamificationTitle": "Gamificación y retos"
   },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
     "APOD_UNAVAILABLE": "Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato.",
+    "CHAT_ROOM_NOT_FOUND": "Esta sala de chat ya no existe.",
+    "CHAT_MESSAGE_EMPTY": "El mensaje no puede estar vacío.",
+    "CHAT_MESSAGE_TOO_LONG": "El mensaje es demasiado largo (máximo 1000 caracteres).",
+    "CHAT_MESSAGE_REJECTED": "Este mensaje no se puede publicar porque no cumple las normas de la comunidad.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "Este mensaje ya existe con otro contenido.",
+    "DATABASE_UNAVAILABLE": "El servicio no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
     "EMAIL_ALREADY_REGISTERED": "Este correo ya está asociado a otra cuenta.",
     "EVENT_NOT_FOUND": "Este evento ya no existe.",
     "GENERIC_FINAL": "Algo ha salido mal.",
@@ -30,7 +53,20 @@
     "POST_NOT_FOUND": "Esta publicación ya no existe.",
     "POST_TEXT_EMPTY": "Escribe algo antes de publicar.",
     "POST_TEXT_TOO_LONG": "El texto puede tener como máximo 1.000 caracteres.",
-    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
+    "QUIZ_ALREADY_ANSWERED": "Ya has respondido la pregunta de hoy.",
+    "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
+    "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
+    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
+    "TOO_MANY_CONNECTIONS": "Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo.",
+    "SEND_UNCERTAIN": "No se ha podido confirmar el envío. Vuelve a intentarlo.",
+    "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
+    "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
+    "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
+    "OUTING_ENDS_BEFORE_START": "La salida no puede terminar antes de empezar.",
+    "OUTING_STARTS_IN_PAST": "La salida no puede empezar en el pasado.",
+    "OUTING_EVENT_NOT_FOUND": "Este evento ya no existe.",
+    "OUTING_NOT_FOUND": "Esta salida no existe o se ha borrado.",
+    "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla."
   },
   "events": {
     "category": {
@@ -77,7 +113,8 @@
       "end": "Fin",
       "moreInfo": "Más información",
       "openHint": "Abre la ficha del evento",
-      "start": "Inicio"
+      "start": "Inicio",
+      "outings": "Salidas de este evento"
     },
     "status": {
       "active": "Activo ahora"
@@ -90,33 +127,148 @@
   },
   "home": {
     "apodLink": "Imagen del día",
-    "mapLink": "Mapa de eventos"
+    "mapLink": "Mapa de eventos",
+    "quizLink": "Pregunta del día",
+    "outingsLink": "Mis salidas"
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Eventos",
+    "gamification": "Gamificación",
+    "home": "Inicio",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "achievements": {
+      "desc": "Desbloquea insignias observando lluvias de estrellas y participando en la comunidad.",
+      "title": "Logros e insignias"
+    },
+    "followers": {
+      "desc": "Cuántas personas siguen tus observaciones y a cuántas sigues tú.",
+      "title": "Seguidores"
+    },
+    "language": {
+      "ca": "Catalán",
+      "en": "Inglés",
+      "es": "Español"
+    },
+    "loading": "Cargando el perfil...",
+    "memberSince": "Miembro desde {{date}}",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los datos del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "streak": {
+      "desc": "Completa el cuestionario diario para mantener viva tu racha celeste.",
+      "title": "Racha de observación"
+    },
+    "title": "Tu perfil"
   },
   "posts": {
     "form": {
-      "label": "Tu publicación",
-      "hint": "Comparte observaciones y consejos con la comunidad.",
+      "cancel": "Cancelar",
       "counter": "{{count}} de {{max}} caracteres",
+      "hint": "Comparte observaciones y consejos con la comunidad.",
+      "label": "Tu publicación",
       "publish": "Publicar",
-      "save": "Guardar",
-      "cancel": "Cancelar"
-    },
-    "list": {
-      "title": "Publicaciones",
-      "loading": "Cargando las publicaciones",
-      "empty": "Todavía no hay publicaciones. ¡Comparte la primera!",
-      "retry": "Reintentar",
-      "retryHint": "Vuelve a cargar las publicaciones",
-      "more": "Cargar más"
+      "save": "Guardar"
     },
     "item": {
-      "edited": "editada",
-      "edit": "Editar",
-      "editHint": "Edita el texto de tu publicación",
+      "anonymous": "Usuario/a #{{tag}}",
+      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer.",
       "delete": "Borrar",
       "deleteHint": "Pide confirmación antes de borrar la publicación",
-      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer.",
-      "anonymous": "Usuario/a #{{tag}}"
+      "edit": "Editar",
+      "editHint": "Edita el texto de tu publicación",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Todavía no hay publicaciones. ¡Comparte la primera!",
+      "loading": "Cargando las publicaciones",
+      "more": "Cargar más",
+      "retry": "Reintentar",
+      "retryHint": "Vuelve a cargar las publicaciones",
+      "title": "Publicaciones"
+    }
+  },
+  "quiz": {
+    "backHome": "Volver al inicio",
+    "loadingLabel": "Cargando la pregunta del día",
+    "optionsLabel": "Opciones de respuesta",
+    "questionChanged": "La pregunta ha cambiado porque ya es otro día. Esta es la nueva.",
+    "result": {
+      "comeBack": "Mañana habrá una pregunta nueva.",
+      "explanation": "Por qué",
+      "right": "¡La has acertado!",
+      "rightAndYours": "Respuesta correcta y tu respuesta",
+      "rightAnswer": "Respuesta correcta",
+      "source": "Lee la fuente",
+      "sourceHint": "Abre la fuente en el navegador",
+      "wrong": "No la has acertado",
+      "yourAnswer": "Tu respuesta"
+    },
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar la pregunta del día",
+    "submit": "Envía la respuesta",
+    "submitHint": "Envía la opción elegida",
+    "title": "Pregunta del día"
+  },
+  "outings": {
+    "myTitle": "Mis salidas",
+    "eventTitle": "Salidas del evento",
+    "list": {
+      "label": "Lista de salidas"
+    },
+    "empty": {
+      "mine": "Aún no has creado ninguna salida.",
+      "event": "Aún no hay ninguna salida para este evento."
+    },
+    "loading": "Cargando salidas",
+    "retry": "Vuelve a intentarlo",
+    "new": "Crea una salida",
+    "detail": {
+      "author": "Organiza",
+      "unknownAuthor": "Una usuaria de Perseida",
+      "start": "Inicio",
+      "end": "Fin",
+      "where": "Lugar",
+      "event": "Evento",
+      "edit": "Edita",
+      "delete": "Borra"
+    },
+    "delete": {
+      "title": "¿Quieres borrar esta salida?",
+      "message": "No se puede deshacer.",
+      "confirm": "Borrar",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "newTitle": "Nueva salida",
+      "editTitle": "Edita la salida",
+      "title": "Título",
+      "description": "Descripción (opcional)",
+      "startsAt": "Inicio",
+      "endsAt": "Fin",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "linkedEvent": "Salida ligada a un evento",
+      "locationRequired": "Elige dónde quedaréis.",
+      "event": "Evento (opcional)",
+      "noEvent": "Ningún evento"
+    },
+    "picker": {
+      "label": "Mapa para elegir el lugar",
+      "hint": "Mueve el mapa hasta que la mira quede sobre el lugar.",
+      "choose": "Elige este lugar",
+      "useMine": "Usa mi ubicación",
+      "denied": "No hemos podido obtener tu ubicación. Mueve el mapa para elegir el lugar.",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useCoordinates": "Elige estas coordenadas",
+      "invalidCoordinates": "La latitud debe estar entre −90 y 90, y la longitud entre −180 y 180."
     }
   }
 }

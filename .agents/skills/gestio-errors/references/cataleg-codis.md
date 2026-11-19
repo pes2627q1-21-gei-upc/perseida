@@ -25,6 +25,8 @@ Els genera el frontend, no el backend. Text en català aprovat per la persona re
 | `INVALID_RESPONSE` | 200 sense cos vàlid | `AppError` `kind: 'http'` (resposta il·legible) | No | Alguna cosa ha anat malament. No s'ha pogut carregar el contingut. | Algo ha salido mal. No se ha podido cargar el contenido. | Something went wrong. We couldn't load the content. | frontend `features/apod/api/getApodToday.ts` |
 | `GOOGLE_SIGN_IN_EXPO_GO` | — | `AppError` `kind: 'http'` (client, `status: 0`) | No | L'inici de sessió amb Google no funciona a Expo Go. Usa l'app instal·lada (build de desenvolupament). | El inicio de sesión con Google no funciona en Expo Go. Usa la app instalada (build de desarrollo). | Google sign-in doesn't work in Expo Go. Use the installed app (development build). | frontend `features/auth/googleAuth.ts` (TG-342) |
 | `GOOGLE_SIGN_IN_UNAVAILABLE` | — | `AppError` `kind: 'http'` (client, `status: 0`) | No | L'inici de sessió amb Google encara no està disponible. | El inicio de sesión con Google aún no está disponible. | Google sign-in isn't available yet. | frontend `features/auth/googleAuth.ts` (sense client id; TG-342) |
+| `TOO_MANY_CONNECTIONS` | 429 | `AppError` `kind: 'http'` (client; el servidor tanca el WebSocket amb 4429, sense frame `error`) | No | Tens massa connexions obertes alhora (en altres dispositius o pestanyes). Tanca'n alguna i torna-ho a provar. | Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo. | You have too many connections open at once (on other devices or tabs). Close one and try again. | client: tancament 4429 del WebSocket, `shared/realtime` (TG-64; límit `WS_MAX_CONNECTIONS_PER_USER`, ADR-0030) |
+| `SEND_UNCERTAIN` | — | `AppError` `kind: 'network'` (client; l'últim intent d'enviament no va rebre resposta, o la connexió va acabar amb el missatge ja enviat) | Sí | No s'ha pogut confirmar l'enviament. Torna-ho a provar. | No se ha podido confirmar el envío. Vuelve a intentarlo. | We couldn't confirm the message was sent. Please try again. | client: cua de `send` de `shared/realtime` (TG-654; reintent amb el mateix `client_message_id`, ADR-0030) |
 
 Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els errors **recuperables** sense text propi fan servir `errors.INTERNAL_ERROR` (el text d'`INTERNAL_ERROR` de dalt). Els **no recuperables** sense text propi fan servir `errors.GENERIC_FINAL`: «Alguna cosa ha anat malament.» / «Algo ha salido mal.» / «Something went wrong.» (decidit per la persona responsable a TG-91; no convida a reintentar perquè no hi ha botó de reintent). `NOT_FOUND`, `APOD_UNAVAILABLE`, `INTERNAL_ERROR` i `GENERIC_FINAL` també tenen clau al frontend.
 
@@ -35,6 +37,11 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `APOD_DATE_IN_FUTURE` | 422 | `ValidationError` | Sí | Aquesta data encara no ha arribat. Tria la d'avui o una d'anterior. | Esta fecha aún no ha llegado. Elige la de hoy o una anterior. | This date hasn't arrived yet. Choose today or an earlier date. | domain/apod |
 | `APOD_DATE_BEFORE_START` | 422 | `ValidationError` | Sí | L'APOD només està disponible a partir del 16 de juny de 1995. | El APOD solo está disponible a partir del 16 de junio de 1995. | APOD is only available from June 16, 1995 onwards. | domain/apod |
 | `APOD_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona. | Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato. | We couldn't load the APOD right now. Please try again in a while. | application/apod (constant `APOD_UNAVAILABLE`; l'adaptador de TG-46 la llança) |
+| `DATABASE_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona. | El servicio no está disponible ahora mismo. Vuelve a intentarlo en un rato. | The service isn't available right now. Please try again in a while. | application/shared (`error_codes.py`; els repositoris la llancen si PostgreSQL no és accessible; TG-450) |
+| `CHAT_ROOM_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta sala de xat ja no existeix. | Esta sala de chat ya no existe. | This chat room no longer exists. | application/chat (`add_message` amb una sala inexistent; TG-455) |
+| `CHAT_MESSAGE_EMPTY` | 422 | `ValidationError` | Sí | El missatge no pot estar buit. | El mensaje no puede estar vacío. | The message can't be empty. | domain/chat (TG-453, TG-455) |
+| `CHAT_MESSAGE_TOO_LONG` | 422 | `ValidationError` | Sí | El missatge és massa llarg (màxim 1000 caràcters). | El mensaje es demasiado largo (máximo 1000 caracteres). | The message is too long (1000 characters max). | application/chat (TG-453, TG-455) |
+| `CHAT_MESSAGE_REJECTED` | 422 | `BusinessRuleViolation` | Sí | Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat. | Este mensaje no se puede publicar porque no cumple las normas de la comunidad. | This message can't be posted because it doesn't follow the community guidelines. | application/chat (moderació, ADR-0007; TG-453, TG-455) |
 | `USER_EMAIL_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
 | `USER_EMAIL_INVALID` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users (correu massa llarg o amb espais o caràcters de control) |
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
@@ -79,6 +86,7 @@ Textos aprovats per Raquel (17/11/2026).
 | `RATE_LIMITED` | 429 | `RateLimitedError` (REST) i frame `error` del WebSocket | Sí | Massa missatges seguits. Espera una mica. | Demasiados mensajes seguidos. Espera un poco. | Too many messages. Please wait a moment. | application/realtime (TG-63; límit de sales) i application/chat (TG-442; límit d'enviament per REST) |
 | `CHAT_INVALID_CURSOR` | 422 | `ValidationError` | No | El cursor de l'historial no és vàlid. | El cursor del historial no es válido. | The history cursor is not valid. | application/chat (TG-442) |
 | `CHAT_INVALID_LIMIT` | 422 | `ValidationError` | No | El límit de l'historial no és vàlid. | El límite del historial no es válido. | The history limit is not valid. | application/chat (TG-442) |
+| `CHAT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` (frame `error` del WebSocket) | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/chat (`send_message` amb un `client_message_id` ja usat amb un altre text; TG-654) |
 
 ## Codis d'autenticació (TG-44)
 
@@ -116,6 +124,14 @@ Textos presentats a la persona responsable a la tasca #634 (17/11/2026). `EVENT_
 | `POST_TEXT_EMPTY` | 422 | `ValidationError` | No | Escriu alguna cosa abans de publicar. | Escribe algo antes de publicar. | Write something before posting. | domain/posts |
 | `POST_TEXT_TOO_LONG` | 422 | `ValidationError` | No | El text pot tenir com a màxim 1.000 caràcters. | El texto puede tener como máximo 1.000 caracteres. | The text can be at most 1,000 characters long. | domain/posts |
 | `INVALID_CURSOR` | 422 | `ValidationError` | No | No s'han pogut carregar més publicacions. Torna-ho a provar. | No se han podido cargar más publicaciones. Vuelve a intentarlo. | More posts could not be loaded. Try again. | application/posts |
+
+## Codis de les subscripcions a esdeveniments (TG-53)
+
+Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND` és a la secció de TG-628 i també el llança `application/events` (subscripcions).
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `EVENT_ALREADY_ENDED` | 409 | `ConflictError` | No | Aquest esdeveniment ja ha acabat. | Este evento ya ha terminado. | This event has already ended. | domain/events |
 
 ## Taula plantilla
 

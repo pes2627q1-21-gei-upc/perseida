@@ -15,3 +15,6 @@ CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
 # ``1..PAGE_MAX_LIMIT``.
 CHAT_INVALID_CURSOR = "CHAT_INVALID_CURSOR"
 CHAT_INVALID_LIMIT = "CHAT_INVALID_LIMIT"
+# The same ``client_message_id`` was already used by the author for another message
+# (other room or other text).
+CHAT_IDEMPOTENCY_CONFLICT = "CHAT_IDEMPOTENCY_CONFLICT"

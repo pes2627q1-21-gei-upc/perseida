@@ -6,13 +6,36 @@
     "retryHint": "Torna a carregar l'APOD",
     "videoLabel": "Vídeo de l'APOD"
   },
+  "auth": {
+    "continueWithGoogle": "Continua amb Google",
+    "logout": "Tanca la sessió",
+    "logoutHint": "Tanca la sessió d'aquest dispositiu i torna a la pantalla d'inici de sessió",
+    "logoutNotConfirmed": "S'ha tancat la sessió en aquest dispositiu, però no s'ha pogut confirmar al servidor.",
+    "tagline": "Mira cap amunt"
+  },
   "common": {
     "back": "Torna"
+  },
+  "comingSoon": {
+    "badge": "Pròximament",
+    "chatDesc": "Un espai en temps real per compartir observacions, fotos i trobades astronòmiques.",
+    "chatTitle": "Comunitat i xat",
+    "eventsDesc": "Molt aviat podràs consultar pluges d'estels, eclipsis i fenòmens celestes directament des d'aquí.",
+    "eventsMapButton": "Obre el mapa d'esdeveniments",
+    "eventsTitle": "Esdeveniments astronòmics",
+    "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
+    "gamificationTitle": "Gamificació i reptes"
   },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
     "APOD_UNAVAILABLE": "Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona.",
+    "CHAT_ROOM_NOT_FOUND": "Aquesta sala de xat ja no existeix.",
+    "CHAT_MESSAGE_EMPTY": "El missatge no pot estar buit.",
+    "CHAT_MESSAGE_TOO_LONG": "El missatge és massa llarg (màxim 1000 caràcters).",
+    "CHAT_MESSAGE_REJECTED": "Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "Aquest missatge ja existeix amb un altre contingut.",
+    "DATABASE_UNAVAILABLE": "El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
     "EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
@@ -30,7 +53,20 @@
     "POST_NOT_FOUND": "Aquesta publicació ja no existeix.",
     "POST_TEXT_EMPTY": "Escriu alguna cosa abans de publicar.",
     "POST_TEXT_TOO_LONG": "El text pot tenir com a màxim 1.000 caràcters.",
-    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
+    "QUIZ_ALREADY_ANSWERED": "Ja has respost la pregunta d'avui.",
+    "QUIZ_EXPIRED": "Aquesta pregunta ja no es pot respondre: ha canviat el dia.",
+    "QUIZ_QUESTION_MISMATCH": "Aquesta ja no és la pregunta d'avui.",
+    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "TOO_MANY_CONNECTIONS": "Tens massa connexions obertes alhora (en altres dispositius o pestanyes). Tanca'n alguna i torna-ho a provar.",
+    "SEND_UNCERTAIN": "No s'ha pogut confirmar l'enviament. Torna-ho a provar.",
+    "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
+    "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
+    "OUTING_DESCRIPTION_TOO_LONG": "La descripció pot tenir com a màxim 2.000 caràcters.",
+    "OUTING_ENDS_BEFORE_START": "La sortida no pot acabar abans de començar.",
+    "OUTING_STARTS_IN_PAST": "La sortida no pot començar en el passat.",
+    "OUTING_EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
+    "OUTING_NOT_FOUND": "Aquesta sortida no existeix o s'ha esborrat.",
+    "OUTING_FORBIDDEN": "Només qui ha creat la sortida la pot canviar."
   },
   "events": {
     "category": {
@@ -77,7 +113,8 @@
       "end": "Fi",
       "moreInfo": "Més informació",
       "openHint": "Obre la fitxa de l'esdeveniment",
-      "start": "Inici"
+      "start": "Inici",
+      "outings": "Sortides d'aquest esdeveniment"
     },
     "status": {
       "active": "Actiu ara"
@@ -90,33 +127,148 @@
   },
   "home": {
     "apodLink": "Imatge del dia",
-    "mapLink": "Mapa d'esdeveniments"
+    "mapLink": "Mapa d'esdeveniments",
+    "quizLink": "Pregunta del dia",
+    "outingsLink": "Les meves sortides"
+  },
+  "nav": {
+    "chat": "Xat",
+    "events": "Esdeveniments",
+    "gamification": "Gamificació",
+    "home": "Inici",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "achievements": {
+      "desc": "Desbloqueja insígnies observant pluges d'estels i participant a la comunitat.",
+      "title": "Fites i assoliments"
+    },
+    "followers": {
+      "desc": "Quantes persones segueixen les teves observacions i quantes en segueixes tu.",
+      "title": "Seguidors"
+    },
+    "language": {
+      "ca": "Català",
+      "en": "Anglès",
+      "es": "Castellà"
+    },
+    "loading": "Carregant el perfil...",
+    "memberSince": "Membre des de {{date}}",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les dades del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "streak": {
+      "desc": "Completa el qüestionari diari per mantenir viva la teva ratxa celest.",
+      "title": "Ratxa d'observació"
+    },
+    "title": "El teu perfil"
   },
   "posts": {
     "form": {
-      "label": "La teva publicació",
-      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "cancel": "Cancel·la",
       "counter": "{{count}} de {{max}} caràcters",
+      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "label": "La teva publicació",
       "publish": "Publica",
-      "save": "Desa",
-      "cancel": "Cancel·la"
-    },
-    "list": {
-      "title": "Publicacions",
-      "loading": "Carregant les publicacions",
-      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
-      "retry": "Torna-ho a provar",
-      "retryHint": "Torna a carregar les publicacions",
-      "more": "Carrega'n més"
+      "save": "Desa"
     },
     "item": {
-      "edited": "editada",
-      "edit": "Edita",
-      "editHint": "Edita el text de la teva publicació",
+      "anonymous": "Usuari/a #{{tag}}",
+      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
       "delete": "Esborra",
       "deleteHint": "Demana confirmació abans d'esborrar la publicació",
-      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
-      "anonymous": "Usuari/a #{{tag}}"
+      "edit": "Edita",
+      "editHint": "Edita el text de la teva publicació",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
+      "loading": "Carregant les publicacions",
+      "more": "Carrega'n més",
+      "retry": "Torna-ho a provar",
+      "retryHint": "Torna a carregar les publicacions",
+      "title": "Publicacions"
+    }
+  },
+  "quiz": {
+    "backHome": "Torna a l'inici",
+    "loadingLabel": "Carregant la pregunta del dia",
+    "optionsLabel": "Opcions de resposta",
+    "questionChanged": "La pregunta ha canviat perquè ja és un altre dia. Aquesta és la nova.",
+    "result": {
+      "comeBack": "Demà hi haurà una pregunta nova.",
+      "explanation": "Per què",
+      "right": "L'has encertada!",
+      "rightAndYours": "Resposta correcta i la teva resposta",
+      "rightAnswer": "Resposta correcta",
+      "source": "Llegeix la font",
+      "sourceHint": "Obre la font al navegador",
+      "wrong": "No l'has encertada",
+      "yourAnswer": "La teva resposta"
+    },
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar la pregunta del dia",
+    "submit": "Envia la resposta",
+    "submitHint": "Envia l'opció triada",
+    "title": "Pregunta del dia"
+  },
+  "outings": {
+    "myTitle": "Les meves sortides",
+    "eventTitle": "Sortides de l'esdeveniment",
+    "list": {
+      "label": "Llista de sortides"
+    },
+    "empty": {
+      "mine": "Encara no has creat cap sortida.",
+      "event": "Encara no hi ha cap sortida per a aquest esdeveniment."
+    },
+    "loading": "Carregant sortides",
+    "retry": "Torna-ho a provar",
+    "new": "Crea una sortida",
+    "detail": {
+      "author": "Organitza",
+      "unknownAuthor": "Una usuària de Perseida",
+      "start": "Inici",
+      "end": "Fi",
+      "where": "Lloc",
+      "event": "Esdeveniment",
+      "edit": "Edita",
+      "delete": "Esborra"
+    },
+    "delete": {
+      "title": "Vols esborrar aquesta sortida?",
+      "message": "No es pot desfer.",
+      "confirm": "Esborra",
+      "cancel": "Cancel·la"
+    },
+    "form": {
+      "newTitle": "Nova sortida",
+      "editTitle": "Edita la sortida",
+      "title": "Títol",
+      "description": "Descripció (opcional)",
+      "startsAt": "Inici",
+      "endsAt": "Fi",
+      "save": "Desa",
+      "saving": "Desant…",
+      "linkedEvent": "Sortida lligada a un esdeveniment",
+      "locationRequired": "Tria on us trobareu.",
+      "event": "Esdeveniment (opcional)",
+      "noEvent": "Cap esdeveniment"
+    },
+    "picker": {
+      "label": "Mapa per triar el lloc",
+      "hint": "Mou el mapa fins que la mira quedi sobre el lloc.",
+      "choose": "Tria aquest lloc",
+      "useMine": "Usa la meva ubicació",
+      "denied": "No hem pogut obtenir la teva ubicació. Mou el mapa per triar el lloc.",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useCoordinates": "Tria aquestes coordenades",
+      "invalidCoordinates": "La latitud ha d'estar entre −90 i 90, i la longitud entre −180 i 180."
     }
   }
 }

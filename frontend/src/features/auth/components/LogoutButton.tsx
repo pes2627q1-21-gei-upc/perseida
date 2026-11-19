@@ -1,20 +1,21 @@
 import { SignOut } from 'phosphor-react-native';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { useTheme } from '../../../shared/theme';
 import { QuietButton } from '../../../shared/ui';
 import { useLogout } from '../hooks/useLogout';
-import { authStrings } from '../strings';
 
 /** Secondary action: signs the user out and goes back to the sign-in screen. */
 export function LogoutButton() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { mutate, isPending } = useLogout();
 
   return (
     <QuietButton
-      label={authStrings.logout}
-      accessibilityHint={authStrings.logoutHint}
+      label={t('auth.logout')}
+      accessibilityHint={t('auth.logoutHint')}
       busy={isPending}
       onPress={() => mutate()}
       icon={

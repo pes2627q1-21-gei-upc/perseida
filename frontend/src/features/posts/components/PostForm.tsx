@@ -109,7 +109,7 @@ export function PostForm({ mode, initialText = '', onSubmit, onCancel }: Props) 
                 padding: spacing.md,
                 borderRadius: radii.md,
                 color: colors.text.primary,
-                backgroundColor: colors.surface.glass,
+                backgroundColor: colors.surface.onGlass,
                 borderColor: focused || fieldCode ? colors.focusRing : colors.surface.glassBorder,
                 borderWidth: focused || fieldCode ? 2 : 1,
               },

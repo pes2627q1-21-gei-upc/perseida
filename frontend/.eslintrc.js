@@ -34,6 +34,24 @@ module.exports = {
   },
   overrides: [
     {
+      // shared/ does not depend on any feature (ADR-0030): what it needs from one comes in as a
+      // parameter (e.g. SocketAuth).
+      files: ['src/shared/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['**/features/**'],
+                message: 'shared/ must not import from features/: inject what it needs instead.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
       // The tests feed hostile strings such as `javascript:` to prove they are refused.
       files: ['**/*.test.ts', '**/*.test.tsx'],
       rules: { 'no-script-url': 'off' },

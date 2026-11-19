@@ -27,7 +27,8 @@ from app.domain.events.models import (
 from app.infrastructure.events.tables import LOCATION_GEOGRAPHY, AstronomicalEventRow
 
 
-def _to_entity(row: AstronomicalEventRow) -> AstronomicalEvent:
+def to_entity(row: AstronomicalEventRow) -> AstronomicalEvent:
+    """Map a row of ``astronomical_events`` to the domain entity."""
     location = (
         None
         if row.latitude is None or row.longitude is None
@@ -151,7 +152,7 @@ class SqlEventRepository:
     async def search(self, query: EventQuery) -> list[AstronomicalEvent]:
         async with self._session_factory() as session:
             rows = await session.scalars(_search_statement(query))
-            return [_to_entity(row) for row in rows]
+            return [to_entity(row) for row in rows]
 
     async def upsert_many(self, drafts: Sequence[EventDraft]) -> None:
         if not drafts:
@@ -176,6 +177,11 @@ class SqlEventRepository:
         async with self._session_factory() as session:
             return bool(await session.scalar(statement))
 
+    async def get(self, event_id: uuid.UUID) -> AstronomicalEvent | None:
+        async with self._session_factory() as session:
+            row = await session.get(AstronomicalEventRow, event_id)
+            return None if row is None else to_entity(row)
+
     async def _list(self, *conditions: ColumnElement[bool]) -> list[AstronomicalEvent]:
         statement = (
             select(AstronomicalEventRow)
@@ -184,4 +190,4 @@ class SqlEventRepository:
         )
         async with self._session_factory() as session:
             rows = await session.scalars(statement)
-            return [_to_entity(row) for row in rows]
+            return [to_entity(row) for row in rows]

@@ -6,7 +6,7 @@ import {
   BASE_MAP_TILES,
   MAP_ATTRIBUTION_PREFIX,
   type MapMarker,
-} from './mapTiles';
+} from '../../../shared/map/mapTiles';
 
 const MARKERS: MapMarker[] = [
   {

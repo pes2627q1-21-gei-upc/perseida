@@ -2,8 +2,8 @@
 titol: "Component: redis"
 tipus: component
 estat: vigent
-data: "2026-11-07"
-us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87", "TG-143", "TG-63"]
+data: "2026-11-15"
+us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87", "TG-143", "TG-63", "TG-49"]
 font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16); Taiga TG-46 (2026-10-22); Taiga TG-143 (2026-10-22)"
 etiquetes: [component, redis, cache, pubsub]
 ---
@@ -20,7 +20,7 @@ Redis 8 (versió fixada).
 
 ## Interfícies
 
-- Qui el crida: [[api]].
+- Qui el crida: [[api]]. El healthcheck hi fa `PING` amb un límit de 2 s: si Redis és caigut, `components.redis` és `down` però `status` continua `ok`, perquè l'app funciona sense cache (TG-49).
 - A qui crida: ningú.
 
 ## Configuració
@@ -36,6 +36,7 @@ Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix 
 - Sessions (TG-44): el port `SessionStore` (`save`, `exists`, `delete`) i l'adaptador `RedisSessionStore` (`app/infrastructure/auth/`) desen cada token emès. A diferència de la cache, si Redis falla llança `SESSION_UNAVAILABLE` (503) en lloc de comportar-se com un *miss*.
 
 - WebSocket (TG-63): el pub/sub porta dos tipus de canal, `room:<room>` per a les sales i `session-revoked:<sub>` per a la revocació de sessió. `RedisSessionStore` hi publica `{"sid": ...}` (`null` si es revoquen totes les sessions) i el WebSocket de l'usuari es tanca amb 4401. Si la publicació falla, la revocació del token es manté i el socket es tanca al tic de heartbeat següent. Protocol complet a [[0030-protocol-websocket-i-revocacio-per-pub-sub]].
+- WebSocket (TG-459): tercer canal, `room-revoked:<google_sub>` amb `{"room": ...}`; `SubscriptionService` hi publica en esborrar una subscripció i les connexions de l'usuari deixen la sala de xat (`unsubscribe` al client). Si falla, la baixa es manté.
 
 ## Convenció de claus
 

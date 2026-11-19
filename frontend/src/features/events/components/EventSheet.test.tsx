@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, userEvent } from '@testing-library/react-native';
+import * as ReactNative from 'react-native';
 import { AccessibilityInfo, BackHandler, Linking, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -10,6 +11,7 @@ import {
   solarEvent,
 } from '../../../../__mocks__/events';
 import i18n from '../../../shared/i18n';
+import { colors } from '../../../shared/theme/colors';
 import { type ClassifiedEvent, classifyEvents } from '../classifyEvents';
 import { formatEventDateTime } from '../formatEvent';
 import { EventSheet } from './EventSheet';
@@ -30,12 +32,17 @@ const { active, upcoming } = classifyEvents([meteorShowerEvent], [launchEvent, s
 const [leonids] = active;
 const [launch, eclipse] = upcoming;
 
-async function renderSheet(event: ClassifiedEvent | null, onClose = jest.fn(), side = false) {
+async function renderSheet(
+  event: ClassifiedEvent | null,
+  onClose = jest.fn(),
+  side = false,
+  onShowOutings?: (eventId: string) => void,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <SafeAreaProvider initialMetrics={SAFE_AREA}>
-        <EventSheet event={event} onClose={onClose} side={side} />
+        <EventSheet event={event} onClose={onClose} side={side} onShowOutings={onShowOutings} />
       </SafeAreaProvider>
     </QueryClientProvider>,
   );
@@ -72,6 +79,21 @@ describe('EventSheet', () => {
 
     expect(screen.getByRole('header', { name: 'Publicacions' })).toBeTruthy();
     expect(screen.getByLabelText('La teva publicació')).toBeTruthy();
+  });
+
+  it('has a button to the outings of the event that opens them (TG-629)', async () => {
+    const onShowOutings = jest.fn();
+    await renderSheet(launch, jest.fn(), false, onShowOutings);
+
+    await fireEvent.press(screen.getByRole('button', { name: "Sortides d'aquest esdeveniment" }));
+
+    expect(onShowOutings).toHaveBeenCalledWith(launch.id);
+  });
+
+  it('has no button to the outings when the screen gives no way to open them', async () => {
+    await renderSheet(launch);
+
+    expect(screen.queryByRole('button', { name: "Sortides d'aquest esdeveniment" })).toBeNull();
   });
 
   it('adds the summary and where the event can be seen', async () => {
@@ -118,6 +140,20 @@ describe('EventSheet', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('at night lights up the close button while it is held, with the layer over the glass (TG-650)', async () => {
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+    await renderSheet(launch);
+    const close = screen.getByRole('button', { name: 'Tanca la fitxa' });
+    expect(close).toHaveStyle({ backgroundColor: 'transparent' });
+
+    // While the finger is down (a long press holds it), the button shows the pressed layer.
+    const holding = userEvent.setup().longPress(close, { duration: 400 });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
+
+    expect(close).toHaveStyle({ backgroundColor: colors.nit.surface.onGlass });
+    await holding;
   });
 
   it('closes when the user taps outside it', async () => {

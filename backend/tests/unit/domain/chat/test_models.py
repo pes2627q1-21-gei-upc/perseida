@@ -15,7 +15,12 @@ AUTHOR_ID = uuid.uuid7()
 
 
 def _message(text: str) -> ChatMessage:
-    return ChatMessage.create(room_id=ROOM_ID, author_id=AUTHOR_ID, text=text)
+    return ChatMessage.create(
+        room_id=ROOM_ID,
+        author_id=AUTHOR_ID,
+        text=text,
+        client_message_id=uuid.uuid4(),
+    )
 
 
 def test_create_message_keeps_room_author_and_text() -> None:
@@ -317,3 +322,49 @@ def test_room_is_frozen() -> None:
 
     with pytest.raises(PydanticValidationError):
         room.event_id = uuid.uuid7()  # type: ignore[misc]
+
+
+# --- TG-654: client_message_id (idempotencia) ----------------------------------
+
+
+def test_tg654_create_message_keeps_the_client_message_id() -> None:
+    key = uuid.uuid4()
+
+    message = ChatMessage.create(
+        room_id=ROOM_ID, author_id=AUTHOR_ID, text="hola", client_message_id=key
+    )
+
+    assert message.client_message_id == key
+
+
+def test_tg654_create_message_requires_a_client_message_id() -> None:
+    with pytest.raises(TypeError):
+        ChatMessage.create(  # type: ignore[call-arg]
+            room_id=ROOM_ID, author_id=AUTHOR_ID, text="hola"
+        )
+
+
+def test_tg654_a_message_cannot_be_built_without_a_client_message_id() -> None:
+    with pytest.raises(PydanticValidationError):
+        ChatMessage(  # type: ignore[call-arg]
+            id=uuid.uuid7(),
+            room_id=ROOM_ID,
+            author_id=AUTHOR_ID,
+            text="hola",
+            sent_at=datetime.now(UTC),
+        )
+
+
+def test_tg654_the_client_message_id_is_in_the_serialized_message() -> None:
+    key = uuid.uuid4()
+    message = ChatMessage.create(
+        room_id=ROOM_ID, author_id=AUTHOR_ID, text="hola", client_message_id=key
+    )
+
+    assert message.model_dump(mode="json")["client_message_id"] == str(key)
+
+
+def test_tg654_the_conflict_code_is_a_stable_constant() -> None:
+    from app.domain.chat.errors import CHAT_IDEMPOTENCY_CONFLICT
+
+    assert CHAT_IDEMPOTENCY_CONFLICT == "CHAT_IDEMPOTENCY_CONFLICT"

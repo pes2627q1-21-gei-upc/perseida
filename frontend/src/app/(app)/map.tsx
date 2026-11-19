@@ -70,6 +70,9 @@ export default function MapScreen() {
     status = <MapStatus state="noLocation" onShowList={() => setView('list')} />;
   }
 
+  const showOutings = (eventId: string) =>
+    router.push({ pathname: '/outings', params: { eventId } });
+
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
     if (router.canGoBack()) router.back();
@@ -100,7 +103,15 @@ export default function MapScreen() {
             )}
             {status}
           </View>
-          {wide && <EventSheet side event={selected} onClose={closeSheet} topInset={barBottom} />}
+          {wide && (
+            <EventSheet
+              side
+              event={selected}
+              onClose={closeSheet}
+              onShowOutings={showOutings}
+              topInset={barBottom}
+            />
+          )}
         </View>
         <MapControls
           view={view}
@@ -109,7 +120,7 @@ export default function MapScreen() {
           onFilterChange={setFilter}
         />
       </View>
-      {!wide && <EventSheet event={selected} onClose={closeSheet} />}
+      {!wide && <EventSheet event={selected} onClose={closeSheet} onShowOutings={showOutings} />}
     </SkyBackground>
   );
 }

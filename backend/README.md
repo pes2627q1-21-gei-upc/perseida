@@ -117,7 +117,7 @@ The `health` module is the reference example. For a new module `<name>`:
 
 1. **Domain** (`app/domain/<name>/`): entities/value objects in `models.py` and the ports in `ports.py` (e.g. `HealthReport` and the `HealthCheck` protocol).
 2. **Application** (`app/application/<name>/`): the service that uses the ports (`HealthService`), with no FastAPI.
-3. **Infrastructure** (`app/infrastructure/<name>/`): the adapters implementing the ports (`checks.py`), the provider `get_<name>_service` with `@lru_cache` and `<Name>ServiceDep` (`dependencies.py`), and the router with its response model (`router.py`).
+3. **Infrastructure** (`app/infrastructure/<name>/`): the adapters implementing the ports (`checks.py`), the provider `get_<name>_service` with `@lru_cache` and `<Name>ServiceDep` (`dependencies.py`); if the service needs a resource created in the lifespan (engine, Redis, HTTP client), the provider takes an `HTTPConnection` and reads it from `app.state` instead, as `health` and `auth` do (ADR-0017), and the router with its response model (`router.py`).
 4. Register the router in `create_app()` (`app/main.py`).
 5. **Tests** first (strict TDD, red `test:` commit before `feat:`): unit tests with fakes (`tests/fakes/`), API integration tests with `dependency_overrides`; the architecture test keeps checking the layers.
 

@@ -8,11 +8,11 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Match
 
-from app.application.chat.errors import RateLimitedError
 from app.application.shared.errors import (
     ApplicationError,
     ExternalServiceError,
     ForbiddenError,
+    RateLimitedError,
     UnauthorizedError,
 )
 from app.domain.shared.errors import (

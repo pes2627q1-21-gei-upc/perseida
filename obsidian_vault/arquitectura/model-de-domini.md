@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-17"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026)"
+data: "2026-11-19"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -23,6 +23,9 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!info] Implementat: ratxa diària
 > `DailyStreak` ja té entitat, taula i endpoints (TG-56); vegeu [[#Ratxa diària (implementat)]].
+
+> [!info] Implementat: fites
+> `Achievement` i `UserAchievement` ja tenen entitats, taules, catàleg de 34 fites i el motor que les desbloqueja (TG-58); vegeu [[#Fites (implementat)]].
 
 ## Gamificació
 
@@ -96,7 +99,7 @@ Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.
 
 ## Xat d'esdeveniment (domini implementat)
 
-Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64; encara sense persistència ni API). Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
+Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64). La persistència és implementada (TG-448 i TG-450; vegeu [[#Persistència del xat]]); l'API encara no. Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
 
 | Entitat | Camps | Notes |
 |---|---|---|
@@ -105,7 +108,22 @@ Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i cod
 
 Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`) i els separadors de línia i de paràgraf (`Zl`, `Zp`), excepte el salt de línia i la tabulació. A més, s'eliminen només els invisibles perillosos, que són els de la propietat Unicode `Default_Ignorable_Code_Point` (UCD 18) menys els benignes: bidi embeddings, overrides i isolates, zero-width space, word joiner, guionet suau, fillers de hangul, selectors de variació que no són d'emoji i tots els tags (poden amagar text ASCII). Es conserven ZWJ i ZWNJ (emojis compostos i alguns scripts), LRM, RLM i ALM (marques direccionals d'un sol caràcter), els selectors d'emoji `FE0E`/`FE0F` i, de les tag sequences, només les banderes d'Anglaterra, Escòcia i Gal·les. No s'elimina cap caràcter pel fet de ser no assignat (`Cn`): els emojis nous passen encara que la versió d'Unicode de Python no els conegui. Un text amb només marques invisibles (o el braille en blanc) és buit. Efecte acceptat per l'equip (11/11/2026): l'escriptura mongola (selectors de variació i separador de vocal) i els selectors de variació ideogràfics perden aquests caràcters. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
 
-Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (que implementarà #53 amb el mateix `is_subscribed(user_id, event_id)`). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
+Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (`is_subscribed(user_id, event_id)`, que compleix `SqlEventSubscriptionRepository` de TG-53; vegeu [[#Subscripció a un esdeveniment (implementat al backend)]]). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
+
+### Persistència del xat
+
+Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_chat`, darrere de la de `event_subscriptions`) i adaptador `SqlChatRepository` a `app/infrastructure/chat/repository.py` (TG-448 i TG-450). Segueix [[0023-convencions-del-model-de-dades]] i [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss|ADR-0024]] (només paràmetres lligats).
+
+| Taula | Camps | Restriccions i índexs |
+|---|---|---|
+| `event_chat_rooms` | `id` (UUIDv7), `event_id`, `created_at` | `event_id` FK a `astronomical_events` `ON DELETE CASCADE` i `UNIQUE` (una sala com a màxim per esdeveniment) |
+| `chat_messages` | `id` (UUIDv7), `room_id`, `author_id`, `text` (`varchar(1000)`), `sent_at` (`timestamptz`), `client_message_id` (`uuid`, `NOT NULL`, el genera el client; TG-654) | FK a la sala i a `users`, totes dues `ON DELETE CASCADE`; `UNIQUE(author_id, client_message_id)` (idempotència dels reenviaments, [[0030-protocol-websocket-i-revocacio-per-pub-sub]]); `CHECK length(text) >= 1` (xarxa de seguretat sobre el domini; el màxim el dona el tipus); índex `(room_id, sent_at DESC, id DESC)` per a l'històric i índex per `author_id` per a la cascada en esborrar un usuari |
+
+- `sent_at` té `server_default now()` (ADR-0023), però el domini sempre envia el valor: l'ordre del cursor en depèn.
+- `get_or_create_room` fa `INSERT ... ON CONFLICT (event_id) DO NOTHING RETURNING` i, si no retorna res, rellegeix la sala: dues peticions alhora deixen una sola fila. Si l'esdeveniment no existeix (o s'esborra a mig camí), `NotFoundError(EVENT_NOT_FOUND)`.
+- `page` demana `limit + 1` files, ordenades per `(sent_at, id)` descendent i estrictament anteriors al cursor; el `next_cursor` és el de l'últim missatge retornat només si hi ha més files. Rebutja `limit < 1` (el servei ja valida 1..50).
+- `list_rooms_of` és una sola consulta: sales existents dels esdeveniments subscrits (join amb `event_subscriptions`) amb l'últim missatge (`LEFT JOIN LATERAL`), per data de l'últim missatge descendent; les sales sense missatges van al final, per `created_at` descendent.
+- Errors: `OperationalError`, `InterfaceError` i `OSError` de la base de dades es tradueixen a `ExternalServiceError` amb el codi `DATABASE_UNAVAILABLE` (a `app/application/shared/error_codes.py`, patró 503 per als repositoris; vegeu [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]). `add_message` només tradueix a `NotFoundError(CHAT_ROOM_NOT_FOUND)` (`app/application/chat/errors.py`) la violació de la FK `fk_chat_messages_room_id_event_chat_rooms`; qualsevol altra `IntegrityError` (id repetit, `CHECK` del text, autor inexistent) no es tradueix. Els dos codis són al catàleg de `gestio-errors` amb els textos pendents fins que el router (TG-455) els exposi.
 
 ## Esdeveniment astronòmic (implementat)
 
@@ -131,6 +149,7 @@ Escriptura i consulta per id (TG-50):
 
 - `upsert_many(drafts)`: desa els `EventDraft` (l'esdeveniment tal com el dona una font, amb `source` i `external_id` i sense `id`). Si `(source, external_id)` ja hi és, n'actualitza les dades i `updated_at` (`now()`) i en conserva l'`id` i `created_at`. Si el lot repeteix una clau, es desa l'últim.
 - `exists(event_id)`: si l'esdeveniment existeix (el fa servir TG-64 per a la sala de xat).
+- `get(event_id)`: l'esdeveniment, o `None` si no existeix (TG-53, per saber si ha acabat abans de subscriure-s'hi).
 
 Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventService` les refresca sota demanda abans de cada consulta ([[0031-fonts-d-esdeveniments-sota-demanda]]).
 
@@ -245,6 +264,39 @@ A l'app (`src/features/posts/`), la secció `EventPosts` va al final de la fitxa
 > [!todo] Pendent
 > - Moderació del text (TG-81) i imatges (TG-68).
 
+## Subscripció a un esdeveniment (implementat al backend)
+
+Un usuari se subscriu a un esdeveniment per tenir-lo a «Els meus esdeveniments» i entrar a la seva sala de xat (TG-53). Viu dins la feature `events`, perquè necessita l'esdeveniment sencer (`ends_at`) i la seva forma pública (`EventResponse`); així no s'importa cap altra feature (vegeu [[backend-hexagonal]]). Entitat `EventSubscription` a `app/domain/events/models.py`; port `EventSubscriptionRepository` a `app/domain/events/ports.py`; codis a `app/domain/events/errors.py`; cas d'ús `SubscriptionService` a `app/application/events/subscription_service.py`; taula `event_subscriptions` a `app/infrastructure/events/tables.py` (migració `create_event_subscriptions`), repositori `SqlEventSubscriptionRepository` i router `app/infrastructure/events/subscriptions_router.py`. Convencions de la taula: [[0023-convencions-del-model-de-dades]].
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7 (`uuidv7()`), clau primària |
+| `user_id` | FK a `users.id` amb `ON DELETE CASCADE` |
+| `event_id` | FK a `astronomical_events.id` amb `ON DELETE CASCADE`; índex `ix_event_subscriptions_event_id` |
+| `created_at` | `timestamptz`, `now()` per defecte |
+
+`UNIQUE (user_id, event_id)` (`uq_event_subscriptions_user_id`), que també serveix per a les consultes per usuari.
+
+Regles:
+
+- **Acabat:** `AstronomicalEvent.has_ended(now)` és `ends_at < now`. Un esdeveniment en curs, o que acaba just ara, s'hi pot subscriure. `EventSubscription.create(user_id, event, now)` refusa un esdeveniment acabat amb `EVENT_ALREADY_ENDED` (409, `ConflictError`).
+- **Ordre al servei** (`subscribe`): esdeveniment inexistent → `EVENT_NOT_FOUND` (404); ja subscrit → no canvia res (200), encara que l'esdeveniment hagi acabat; acabat → 409; si no, es crea (201). La idempotència va primer perquè un `PUT` repetit no canviï de resposta (decisió de la persona responsable, 17/11/2026).
+- **Concurrència:** `INSERT ... ON CONFLICT (user_id, event_id) DO NOTHING RETURNING id`; dues peticions alhora deixen una sola fila i només una rep 201.
+- **Baixa:** idempotent; no comprova que l'esdeveniment existeixi.
+- **Les meves subscripcions:** tots els esdeveniments subscrits, també els acabats, ordenats per `starts_at` i després per `id`, sense paginar.
+- **Xat (TG-64):** `SqlEventSubscriptionRepository.is_subscribed(user_id, event_id)` compleix per estructura el port `EventSubscriptions` de `app/domain/chat/ports.py`, que ja fa servir `ChatService`. La connexió del repositori amb el servei del xat és feina de TG-64.
+
+Endpoints (privats, amb sessió; l'usuari surt de la sessió com a `GET /api/users/me`, amb els mateixos 401, 403 i 503):
+
+| Ruta | Què fa | Resposta |
+|---|---|---|
+| `PUT /api/events/{event_id}/subscription` | Subscriu l'usuari de la sessió | `201` o `200`, sense cos; 404, 409, 422 |
+| `DELETE /api/events/{event_id}/subscription` | Dona de baixa | `204`; 422 si l'identificador no és vàlid |
+| `GET /api/me/subscriptions` | Esdeveniments subscrits | `200` `EventResponse[]` ([[contracte-esdeveniments]]) |
+
+> [!todo] Pendent
+> - L'app (botó al llistat de TG-51 i secció «Els meus esdeveniments») va a la PR 2 de TG-53.
+
 ## Diagrama (transcripció)
 
 ```mermaid
@@ -353,6 +405,36 @@ classDiagram
     User --> ChatMessage : envia
     User "2" --> "0..*" DirectConversation : participants
 ```
+
+## Fites (implementat)
+
+Entitats `Achievement` i `UserAchievement` a `app/domain/achievements/models.py`; regles pures (`unlockable`, `progress`, `next_achievement`) a `rules.py`; port `AchievementRepository` a `ports.py`; cas d'ús `AchievementService` a `app/application/achievements/achievement_service.py`; taules `achievements` i `user_achievements` a `app/infrastructure/achievements/tables.py`, repositori `SqlAchievementRepository` i migració amb el catàleg inicial. Convencions de les taules: [[0023-convencions-del-model-de-dades]]. El catàleg de partida és a [[catalog-de-fites]].
+
+`Achievement` (una fila del catàleg; s'amplia afegint files, sense tocar el motor):
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7 |
+| `code` | text únic i no buit; identifica la fita en les dades |
+| `name`, `description` | text |
+| `kind` | tipus d'activitat que mesura (13 valors: `streak_days`, `quiz_completed`, `event_subscription`, `message_sent`...) |
+| `threshold` | enter `>= 1`: el valor del `kind` que la desbloqueja |
+| `category` | secció del catàleg: ratxes, quiz, esdeveniments, social o minijoc (independent del `kind`) |
+| `position` | enter `>= 1`: ordre dins la categoria |
+
+`UserAchievement` (una fita desbloquejada): `id`, `user_id` (FK a `users.id`, `ON DELETE RESTRICT`), `achievement_id` (FK a `achievements.id`, `ON DELETE RESTRICT`) i `unlocked_at` (`timestamptz`, sempre en UTC). El parell (`user_id`, `achievement_id`) és únic: un usuari no pot tenir dues vegades la mateixa fita.
+
+Flux del motor (`AchievementService`):
+
+- **Desbloquejar** (`record_activity(user_id, activity, value)`): `value` és el total de l'usuari per a aquella activitat (p. ex. 7 dies de ratxa). Desbloqueja les fites d'aquell `kind` amb `threshold <= value` que encara faltin. Una activitat desconeguda no falla ni desbloqueja res. Només retorna les desbloquejades en aquesta crida.
+- **Només un cop:** `unlock` insereix amb `ON CONFLICT DO NOTHING` sobre el parell únic; dues peticions alhora no desbloquegen dues vegades i la que perd no ho informa.
+- **Progrés** (`list_progress(user_id)`): per a cada fita, valor actual i meta. El valor actual mai passa de la meta i una fita desbloquejada surt sempre amb la barra plena. Per a les de ratxa és `StreakService.get_current_streak` (0 si ha caducat); les altres queden a 0 fins que la seva US hi connecti l'activitat.
+
+**Connexió amb la ratxa:** `StreakService.register_activity` avisa un port genèric, `ActivityLog` (`app/domain/shared/ports.py`), amb l'activitat `"streak_days"` i la ratxa actual. `AchievementService` implementa aquest port (`record`). El port viu a `domain/shared` i l'activitat és un text perquè les features no s'importin entre elles ([[backend-hexagonal]]). Si el motor falla, la ratxa ja registrada es manté i només es registra un avís. Quiz (TG-61) i subscripció (TG-53) hi connectaran la seva activitat de la mateixa manera, sense tocar el motor.
+
+> [!todo] Pendent
+> - Registrar l'activitat en consultar l'APOD, l'endpoint `GET /api/users/me/achievements` (amb data de desbloqueig, progrés i meta) i els errors documentats: següent PR de TG-58. El port `AchievementRepository` encara només retorna els ids desbloquejats; caldrà afegir-hi les dates.
+> - Les fites de quiz i subscripció queden a 0 fins que TG-61 i TG-53 hi connectin l'activitat.
 
 ## Enllaços
 

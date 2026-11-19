@@ -1,5 +1,5 @@
 import type { ClassifiedEvent } from './classifyEvents';
-import type { MapMarker } from './components/mapTiles';
+import type { MapMarker } from '../../shared/map/mapTiles';
 
 /**
  * Markers of the map: only the events with a location can go on it; the rest are in the list

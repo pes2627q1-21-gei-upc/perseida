@@ -10,9 +10,11 @@ Estat dels valors: **acordats** amb la persona el 2026-10-13, llevat dels marcat
 |---|---|---|---|---|
 | `sky.top` | `#5EC8F2` | `#2B2F6B` | `#0A1430` | `#14060A` |
 | `sky.low` (horitzó) | `#BFE9F7` | `#E8885A` | `#13265A` | `#2A0B12` |
-| `surface.glass` (fons de vidre) | `rgba(255,255,255,.78)` | `rgba(10,20,48,.62)` | `rgba(255,255,255,.12)` | `rgba(255,107,94,.10)` |
+| `surface.glass` (fons de vidre) | `rgba(255,255,255,.78)` | `rgba(10,20,48,.62)` | `rgba(10,20,48,.80)` | `rgba(20,6,10,.80)` |
+| `surface.onGlass` (capa damunt d'un panell de vidre: botó premut, camp, xip; TG-650) | `rgba(255,255,255,.78)` | `rgba(10,20,48,.62)` | `rgba(255,255,255,.12)` | `rgba(255,107,94,.10)` |
 | `surface.glassSolid` (fallback opac, sense blur) | `#F4FBFE` | `#1B2350` | `#22305F` | `#3A141A` |
 | `surface.glassBorder` | `rgba(255,255,255,.65)` | `rgba(255,255,255,.28)` | `rgba(255,255,255,.28)` | `rgba(255,140,125,.30)` |
+| `surface.scrim` (vel darrere d'un diàleg: enfosqueix, no il·lumina) | `rgba(2,5,16,.55)` | `rgba(2,5,16,.55)` | `rgba(2,5,16,.55)` | `rgba(16,0,0,.6)` (sense blau) |
 | `text.primary` | `#10223F` | `#EAF4FF` | `#EAF4FF` | `#FFB3A7` |
 | `text.secondary` | `#3A4F6E` | `#B4C6E6` | `#B4C6E6` | `#E08A7E` |
 | `brand` (text/enllaç) | `#4B4BD8` | `#B3B3FF` | `#B3B3FF` | `#FF6B5E` |
@@ -56,9 +58,9 @@ Primitius de natura (decoratius, sense text a sobre): prat `#6DBE45` / `#3FA535`
 | `dia` focus `#0B78B5` (UI) | 4.2 |
 | `posta` text `#EAF4FF` sobre vidre sobre cel `#2B2F6B` / `#E8885A` | 14.4 / 8.3 |
 | `posta` text secundari `#B4C6E6` sobre vidre sobre l'horitzó `#E8885A` | 5.3 |
-| `nit` text `#EAF4FF` / secundari `#B4C6E6` sobre vidre sobre `#13265A` | 9.1 / 5.9 |
-| `nit` cian `#2EE6D6`, èxit `#6FD65A`, avís `#F2B33D`, marca `#B3B3FF`, perill `#FF9A92` | 6.5 / 5.5 / 5.4 / 5.2 / 5.0 |
-| `vermell` text `#FFB3A7` / secundari `#E08A7E` / accent `#FF6B5E` | 9.2 / 6.1 / 5.6 |
+| `nit` text `#EAF4FF` / secundari `#B4C6E6` sobre vidre sobre la lluna `#CFE0FF` (pitjor fons; TG-650) / sobre blanc (etiquetes del mapa) | 9.7 / 6.3 · 8.9 / 5.7 |
+| `nit` cian `#2EE6D6`, èxit `#6FD65A`, avís `#F2B33D`, marca `#B3B3FF`, perill `#FF9A92` sobre vidre sobre `#CFE0FF` | 6.9 / 5.9 / 5.8 / 5.6 / 5.3 |
+| `vermell` text `#FFB3A7` / secundari `#E08A7E` / accent `#FF6B5E` sobre vidre sobre la llum `#FF8A7A` (pitjor fons; TG-650) | 8.4 / 5.5 / 5.1 |
 | Caps (`head`) de `meteors` sobre el cel: `dia`, els 5 sobre `#5EC8F2` / `#BFE9F7` (mínim 3.1 / 4.5); `posta` i `nit`, els 5 sobre `#0A1430` i `#2B2F6B` (mínim 6.0); `vermell`, els 4 sobre `#14060A` / `#2A0B12` (mínim 7.1). A `posta` sobre l'horitzó `#E8885A` cau, però els estels només creuen la part alta del cel i són decoratius. Un test comprova ≥3 a cada tema | ≥3 al cel visible |
 | `vermell` perill: text `#FFB3A7` sobre el fons de perill / vora i icona `#FF6B5E` (UI) | 6.8 / 4.2 |
 | `glassSolid` (mínim dels textos i estats de cada tema) | `dia` 5.6 · `posta` 7.3 · `nit` 6.2 · `vermell` 5.8 |
@@ -72,7 +74,7 @@ Reprodueix-los amb `python .agents/skills/estetica-frutiger-cosmo/scripts/contra
 |---|---|
 | `blur.glassLight` | intensitat 40 (targetes, tab bar) |
 | `blur.glassStrong` | intensitat 70 (sheets, modals) |
-| Opacitat mínima darrere de text | **≥ .60 en fosc, ≥ .75 en clar** (ja a `surface.glass`) |
+| Opacitat mínima darrere de text | **≥ .60 en fosc, ≥ .75 en clar** (ja a `surface.glass`). `nit` i `vermell` van a `.80` amb vidre fosc (TG-650, acordat el 2026-11-18): a `.12`/`.10` el text queia a 1.2:1 sobre la lluna o les etiquetes del mapa. Ho comprova `src/shared/theme/glassColors.test.ts` |
 | Vora | 1 px `surface.glassBorder`, més un reflex de 1 px a dalt (`rgba(255,255,255,.5)`) |
 | Ombra | llum, no grisa, **marcada**: `0 10 32` amb `accent.glow` al 30 %. Vigila el cost a Android i que no embruti el cel de dia |
 | Fallback sense blur | `surface.glassSolid`: color **opac** per tema (taula), no «més opacitat»: als temes foscos més blanc empitjora el contrast. S'usa amb «Redueix la transparència» del sistema i en dispositius modestos. Contrast verificat ≥5.5:1 a tots els textos i estats dels quatre temes |

@@ -6,13 +6,36 @@
     "retryHint": "Reload the APOD",
     "videoLabel": "APOD video"
   },
+  "auth": {
+    "continueWithGoogle": "Continue with Google",
+    "logout": "Sign out",
+    "logoutHint": "Signs out of this device and goes back to the sign-in screen",
+    "logoutNotConfirmed": "You have been signed out on this device, but the server could not confirm it.",
+    "tagline": "Look up"
+  },
   "common": {
     "back": "Back"
+  },
+  "comingSoon": {
+    "badge": "Coming soon",
+    "chatDesc": "A real-time space to share observations, photos, and stargazing meetups.",
+    "chatTitle": "Community & chat",
+    "eventsDesc": "Soon you will be able to check meteor showers, eclipses, and celestial events directly from here.",
+    "eventsMapButton": "Open events map",
+    "eventsTitle": "Astronomical events",
+    "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
+    "gamificationTitle": "Gamification & challenges"
   },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
     "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
+    "CHAT_ROOM_NOT_FOUND": "This chat room no longer exists.",
+    "CHAT_MESSAGE_EMPTY": "The message can't be empty.",
+    "CHAT_MESSAGE_TOO_LONG": "The message is too long (1000 characters max).",
+    "CHAT_MESSAGE_REJECTED": "This message can't be posted because it doesn't follow the community guidelines.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "This message already exists with different content.",
+    "DATABASE_UNAVAILABLE": "The service isn't available right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
     "EVENT_NOT_FOUND": "This event no longer exists.",
     "GENERIC_FINAL": "Something went wrong.",
@@ -30,7 +53,20 @@
     "POST_NOT_FOUND": "This post no longer exists.",
     "POST_TEXT_EMPTY": "Write something before posting.",
     "POST_TEXT_TOO_LONG": "The text can be at most 1,000 characters long.",
-    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
+    "QUIZ_ALREADY_ANSWERED": "You have already answered today's question.",
+    "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
+    "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
+    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
+    "TOO_MANY_CONNECTIONS": "You have too many connections open at once (on other devices or tabs). Close one and try again.",
+    "SEND_UNCERTAIN": "We couldn't confirm the message was sent. Please try again.",
+    "OUTING_TITLE_EMPTY": "Give the outing a title.",
+    "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
+    "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
+    "OUTING_ENDS_BEFORE_START": "The outing can't end before it starts.",
+    "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
+    "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
+    "OUTING_NOT_FOUND": "This outing doesn't exist or was deleted.",
+    "OUTING_FORBIDDEN": "Only the person who created the outing can change it."
   },
   "events": {
     "category": {
@@ -77,7 +113,8 @@
       "end": "Ends",
       "moreInfo": "More information",
       "openHint": "Opens the event details",
-      "start": "Starts"
+      "start": "Starts",
+      "outings": "Outings for this event"
     },
     "status": {
       "active": "Happening now"
@@ -90,33 +127,148 @@
   },
   "home": {
     "apodLink": "Picture of the day",
-    "mapLink": "Events map"
+    "mapLink": "Events map",
+    "quizLink": "Question of the day",
+    "outingsLink": "My outings"
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Events",
+    "gamification": "Gamification",
+    "home": "Home",
+    "profile": "Profile"
+  },
+  "profile": {
+    "achievements": {
+      "desc": "Unlock badges by observing meteor showers and engaging with the community.",
+      "title": "Badges & achievements"
+    },
+    "followers": {
+      "desc": "How many people follow your observations and how many you follow.",
+      "title": "Followers"
+    },
+    "language": {
+      "ca": "Catalan",
+      "en": "English",
+      "es": "Spanish"
+    },
+    "loading": "Loading profile...",
+    "memberSince": "Member since {{date}}",
+    "retry": "Try again",
+    "retryHint": "Reload profile details",
+    "role": {
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "user": "Stargazer"
+    },
+    "streak": {
+      "desc": "Complete the daily quiz to keep your celestial streak alive.",
+      "title": "Stargazing streak"
+    },
+    "title": "Your profile"
   },
   "posts": {
     "form": {
-      "label": "Your post",
-      "hint": "Share observations and tips with the community.",
+      "cancel": "Cancel",
       "counter": "{{count}} of {{max}} characters",
+      "hint": "Share observations and tips with the community.",
+      "label": "Your post",
       "publish": "Post",
-      "save": "Save",
-      "cancel": "Cancel"
-    },
-    "list": {
-      "title": "Posts",
-      "loading": "Loading posts",
-      "empty": "No posts yet. Share the first one!",
-      "retry": "Try again",
-      "retryHint": "Loads the posts again",
-      "more": "Load more"
+      "save": "Save"
     },
     "item": {
-      "edited": "edited",
-      "edit": "Edit",
-      "editHint": "Edits the text of your post",
+      "anonymous": "User #{{tag}}",
+      "confirmDelete": "Delete this post? This cannot be undone.",
       "delete": "Delete",
       "deleteHint": "Asks for confirmation before deleting the post",
-      "confirmDelete": "Delete this post? This cannot be undone.",
-      "anonymous": "User #{{tag}}"
+      "edit": "Edit",
+      "editHint": "Edits the text of your post",
+      "edited": "edited"
+    },
+    "list": {
+      "empty": "No posts yet. Share the first one!",
+      "loading": "Loading posts",
+      "more": "Load more",
+      "retry": "Try again",
+      "retryHint": "Loads the posts again",
+      "title": "Posts"
+    }
+  },
+  "quiz": {
+    "backHome": "Back to home",
+    "loadingLabel": "Loading the question of the day",
+    "optionsLabel": "Answer options",
+    "questionChanged": "The question has changed because it is a new day. This is the new one.",
+    "result": {
+      "comeBack": "There will be a new question tomorrow.",
+      "explanation": "Why",
+      "right": "You got it right!",
+      "rightAndYours": "Right answer and your answer",
+      "rightAnswer": "Right answer",
+      "source": "Read the source",
+      "sourceHint": "Opens the source in the browser",
+      "wrong": "You didn't get it right",
+      "yourAnswer": "Your answer"
+    },
+    "retry": "Try again",
+    "retryHint": "Loads the question of the day again",
+    "submit": "Send answer",
+    "submitHint": "Sends the chosen option",
+    "title": "Question of the day"
+  },
+  "outings": {
+    "myTitle": "My outings",
+    "eventTitle": "Event outings",
+    "list": {
+      "label": "List of outings"
+    },
+    "empty": {
+      "mine": "You haven't created any outing yet.",
+      "event": "There are no outings for this event yet."
+    },
+    "loading": "Loading outings",
+    "retry": "Try again",
+    "new": "Create an outing",
+    "detail": {
+      "author": "Organised by",
+      "unknownAuthor": "A Perseida user",
+      "start": "Start",
+      "end": "End",
+      "where": "Place",
+      "event": "Event",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Delete this outing?",
+      "message": "This can't be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "newTitle": "New outing",
+      "editTitle": "Edit outing",
+      "title": "Title",
+      "description": "Description (optional)",
+      "startsAt": "Start",
+      "endsAt": "End",
+      "save": "Save",
+      "saving": "Saving…",
+      "linkedEvent": "Outing linked to an event",
+      "locationRequired": "Choose where you'll meet.",
+      "event": "Event (optional)",
+      "noEvent": "No event"
+    },
+    "picker": {
+      "label": "Map to choose the place",
+      "hint": "Move the map until the crosshair is over the place.",
+      "choose": "Choose this place",
+      "useMine": "Use my location",
+      "denied": "We couldn't get your location. Move the map to choose the place.",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "useCoordinates": "Choose these coordinates",
+      "invalidCoordinates": "Latitude must be between −90 and 90, and longitude between −180 and 180."
     }
   }
 }
