@@ -3,7 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import ChatScreen from '../../../app/(app)/chat';
 import EventsScreen from '../../../app/(app)/events';
 import GamificationScreen from '../../../app/(app)/gamification';
 import HomeScreen from '../../../app/(app)/index';
@@ -33,7 +32,6 @@ afterEach(() => mockPush.mockClear());
 
 describe('Tab routes (TG-385 #388)', () => {
   it.each([
-    ['chat', ChatScreen, 'Comunitat i xat', /^Un espai en temps real/],
     ['events', EventsScreen, 'Esdeveniments astronòmics', /^Molt aviat podràs consultar/],
     ['gamification', GamificationScreen, 'Gamificació i reptes', /^Completa qüestionaris diaris/],
   ])('%s shows its translated «coming soon» screen', async (_name, Route, title, description) => {
