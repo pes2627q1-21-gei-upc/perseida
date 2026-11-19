@@ -150,8 +150,10 @@ def test_tg654_c3_the_migration_undoes_and_redoes_the_idempotency_key() -> None:
     assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == [("uuid", "NO")]
 
 
-def test_tg654_c4_the_migration_builds_on_the_chat_migration() -> None:
-    assert _revision_of_client_message_id().down_revision == "b3e9a6d2c581"
+# develop added the achievements migration after the chat one; ours must follow it so
+# that Alembic keeps a single head (test_alembic_has_single_head).
+def test_tg654_c4_the_migration_builds_on_the_achievements_migration() -> None:
+    assert _revision_of_client_message_id().down_revision == "e7a3c5b9d201"
 
 
 def test_tg654_c5_messages_from_before_the_migration_get_a_distinct_key() -> None:
