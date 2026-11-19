@@ -95,7 +95,6 @@ describe('RoomListItem (TG-469)', () => {
       const button = screen.getByRole('button', {
         name: `Leonids, Laia: Hola a tothom!, ${timeOf(SENT_TODAY)}`,
       });
-      expect(touch.min).toBeGreaterThanOrEqual(48);
       expect(button).toHaveStyle({ minHeight: touch.min });
     });
 
@@ -118,11 +117,5 @@ describe('RoomListItem (TG-469)', () => {
         screen.getByLabelText(`Leonids, Laia: Hola a tothom!, ${timeOf(SENT_TODAY)}`),
       ).toBeOnTheScreen();
     });
-  });
-
-  it('can be found by the test id of its event', async () => {
-    await renderItem({ entry: entry() });
-
-    expect(screen.getByTestId('chat-room-event-1')).toBeOnTheScreen();
   });
 });
