@@ -5,6 +5,8 @@
 // server echoes it. Pings are answered with pongs. Requests carry an `id` and the server answers
 // with the same `id` (ack or `error`). On a dropped connection it retries with exponential backoff
 // and joins its rooms again; 4401 renews the session once, and 4429 (too many connections) stops.
+// A connection that stays silent for DEAD_AFTER_MS is dead (the server pings every 30 s): it is
+// closed and treated like a drop.
 // The session comes from outside (SocketAuth), so shared/ does not depend on any feature.
 
 import { config } from '../config';
@@ -52,6 +54,8 @@ const CLOSE_TOO_MANY_CONNECTIONS = 4429;
 const MAX_ATTEMPTS = 8;
 const FIRST_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30_000;
+/** 2 x WS_HEARTBEAT_SECONDS (30 s on the server, ADR-0030): without any frame, the link is dead. */
+const DEAD_AFTER_MS = 60_000;
 
 let state: SocketState = { status: 'closed', error: null };
 const stateListeners = new Set<() => void>();
@@ -66,6 +70,7 @@ let attempts = 0;
 /** Whether the session was already renewed after a 4401 since the last successful authentication. */
 let sessionRenewed = false;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
+let deadTimer: ReturnType<typeof setTimeout> | undefined;
 /** Bumped on every shutdown, so async work started before it does not touch a newer connection. */
 let generation = 0;
 let lastId = 0;
@@ -126,15 +131,26 @@ function open(token: string): void {
   }
   socket = current;
   authenticated = false;
+  armDeadTimer();
   current.onopen = () => current.send(JSON.stringify({ type: 'auth', token }));
   // A socket this client closed itself (or replaced) no longer matters: its late frames and its
   // close event are ignored.
   current.onmessage = (event: MessageEvent) => {
-    if (socket === current) handleFrame(event.data);
+    if (socket !== current) return;
+    armDeadTimer(); // Any frame proves the link is alive.
+    handleFrame(event.data);
   };
   current.onclose = (event: CloseEvent) => {
     if (socket === current) handleClose(event.code);
   };
+}
+
+function armDeadTimer(): void {
+  clearTimeout(deadTimer);
+  deadTimer = setTimeout(() => {
+    socket?.close(CLOSE_NORMAL);
+    handleClose(1006);
+  }, DEAD_AFTER_MS);
 }
 
 function handleFrame(data: unknown): void {
@@ -189,6 +205,7 @@ function onAuthenticated(): void {
 }
 
 function handleClose(code: number): void {
+  clearTimeout(deadTimer);
   socket = null;
   authenticated = false;
   rejectPending();
@@ -250,6 +267,7 @@ function rejectPending(): void {
 function shutdown(): void {
   generation += 1;
   clearTimeout(retryTimer);
+  clearTimeout(deadTimer);
   const current = socket;
   socket = null;
   authenticated = false;
