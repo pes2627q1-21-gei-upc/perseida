@@ -1,13 +1,12 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { PaperPlaneRight } from 'phosphor-react-native';
 import { type ComponentRef, useContext, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { type EdgeInsets, SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { type AppError, errorMessage } from '../../../shared/errors';
 import { readingMaxWidth, type Theme, useTheme } from '../../../shared/theme';
-import { GlassPanel } from '../../../shared/ui';
+import { GelIconButton, GlassPanel } from '../../../shared/ui';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
 
 /**
@@ -36,78 +35,12 @@ interface Props {
 // (convencions/testing.md, «Mutation testing»).
 // Stryker disable all
 const VISIBLE_LINES = 5;
-const DISABLED_OPACITY = 0.6;
 const styles = StyleSheet.create({
   frame: { width: '100%', alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'flex-end' },
   input: { flex: 1, borderWidth: 1, textAlignVertical: 'top' },
   counter: { alignSelf: 'flex-end' },
-  send: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  gloss: { position: 'absolute', top: 0, left: 0, right: 0 },
-  rim: { borderWidth: 1, opacity: 0.5 },
 });
-
-interface SendButtonProps {
-  label: string;
-  onPress: () => void;
-  disabled: boolean;
-  busy: boolean;
-}
-
-/** Round gel button with a paper plane. The gloss stays above the icon, so it keeps its 3:1. */
-function SendButton({ label, onPress, disabled, busy }: SendButtonProps) {
-  const { colors, touch, radii, iconSizes } = useTheme();
-  const { gel } = colors;
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled, busy }}
-      disabled={disabled}
-      onPress={onPress}
-      style={[
-        styles.send,
-        {
-          minHeight: touch.min,
-          width: touch.min,
-          borderRadius: radii.pill,
-          boxShadow: `0 6px 16px ${gel.rim}59`,
-          opacity: disabled && !busy ? DISABLED_OPACITY : 1,
-        },
-      ]}
-    >
-      {({ pressed }) => (
-        <>
-          <LinearGradient
-            colors={pressed ? [gel.bodyPressed, gel.bodyPressed] : gel.body}
-            style={StyleSheet.absoluteFill}
-          />
-          {!pressed && (
-            <LinearGradient
-              colors={gel.highlight}
-              pointerEvents="none"
-              style={[styles.gloss, { height: (touch.min - iconSizes.md) / 2 }]}
-            />
-          )}
-          <View
-            pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFill,
-              styles.rim,
-              { borderRadius: radii.pill, borderColor: gel.rim },
-            ]}
-          />
-          {busy ? (
-            <ActivityIndicator color={gel.text} />
-          ) : (
-            <PaperPlaneRight size={iconSizes.md} color={gel.text} weight="fill" />
-          )}
-        </>
-      )}
-    </Pressable>
-  );
-}
 
 /** Every style of the composer that depends on the theme or on the state of the field. */
 function composerLook(
@@ -165,6 +98,7 @@ function composerLook(
 export function MessageComposer({ onSend, busy = false, disabledReason, error }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { colors, iconSizes } = theme;
   const insets = useContext(SafeAreaInsetsContext);
   const field = useRef<ComponentRef<typeof TextInput>>(null);
   const inFlight = useRef(false);
@@ -230,8 +164,9 @@ export function MessageComposer({ onSend, busy = false, disabledReason, error }:
               onBlur={() => setFocused(false)}
               style={look.field}
             />
-            <SendButton
+            <GelIconButton
               label={t('chat.composer.send')}
+              icon={<PaperPlaneRight size={iconSizes.md} color={colors.gel.text} weight="fill" />}
               onPress={() => void send()}
               disabled={!canSend}
               busy={busy || sending}
