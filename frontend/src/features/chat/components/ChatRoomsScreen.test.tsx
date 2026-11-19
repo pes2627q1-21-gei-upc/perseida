@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -421,7 +421,7 @@ describe('ChatRoomsScreen when a reload fails with the list on screen', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
 
-    expect(screen.queryByRole('alert')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
     expect(screen.getByText('Leonids')).toBeOnTheScreen();
   });
 
