@@ -3,7 +3,7 @@ titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-19"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654"]
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654", "TG-469"]
 font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026); Taiga: TG-629, tasques #640-#642, i decisions de Raquel (18/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521); Taiga: issue TG-654 (connexió morta, AppState i cua de reintents del client WebSocket, 2026-11-19)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
@@ -156,6 +156,16 @@ Client genèric a `src/shared/realtime/` (sense lògica de xat; el xat directe d
 - **Límit de `shared/`:** una regla d'ESLint (`no-restricted-imports`) impedeix que `src/shared/**` importi de `features/`.
 - **Límits coneguts:** la cua no sobreviu al tancament de l'app (outbox persistent, fora d'abast); un error o ack tardà amb l'`id` d'un `send` ja resolt o rebutjat arriba al gestor de la sala.
 - **Fora d'abast (TG-469):** integrar els missatges en temps real amb la memòria cau de TanStack Query i la política de `staleTime` de l'històric.
+
+### Sala de xat: peces de la pantalla (TG-469)
+
+Peces de la sala d'un esdeveniment, a `src/features/chat/`; la pantalla que les munta és una PR posterior de TG-64.
+
+- **Dades pures:** `chatCache.ts` (`addMessage` afegeix un missatge a la pàgina més nova de l'`InfiniteData` sense duplicar-lo per `id`; `flattenMessages` aplana les pàgines i en treu els repetits) i `chatItems.ts` (`buildChatItems` fa la llista invertida: pendents primer, històric, un separador de dia per dia calendari del dispositiu i l'autor només al primer missatge d'una tirada d'una altra persona; `arrivedKeys` diu què ha arribat amb la sala oberta, que és l'únic que entra amb moviment).
+- **`bubbleSurface.ts`:** la bombolla pròpia és el gel del botó (opac); la dels altres, vidre sense blur com les files (`rowSurface`), opac amb «Redueix la transparència». Text a 4,5:1 mesurat sobre tota l'escena.
+- **`MessageBubble`:** un sol element accessible («autor, hora: text»; «Tu» per als propis); en enviament, `busy`, gel mat i un punt que batega (quiet amb *reduce motion*); si falla o és incert, una nota de vidre amb icona i text i un `QuietButton` «Reintenta» germà que torna el mateix `clientMessageId`. Només mostra l'hora.
+- **`MessageComposer`:** càpsula de `GlassPanel` (`compact`) amb camp multilínia (Enter fa salt de línia), comptador per punts de codi contra 1000 (constant pròpia del xat, no compartida amb les publicacions), alerta si se supera, error de l'enviament per `code` i botó rodó `GelIconButton` (nou a `src/shared/ui`). Un enviament rebutjat conserva el text; en enviar, torna el focus al camp.
+- **`MessageList`:** `FlatList` invertida amb separadors de dia (capçalera, data llarga), càrrega de pàgines anteriors en arribar a dalt (una alhora) i columna limitada a `readingMaxWidth`.
 
 ## Mode offline
 
