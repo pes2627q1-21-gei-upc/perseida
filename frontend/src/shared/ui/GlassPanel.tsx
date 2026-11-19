@@ -11,13 +11,15 @@ interface Props {
   children: ReactNode;
   /** Fills the height of its parent, so the content inside can scroll (side panels). */
   fill?: boolean;
+  /** A tight layer around a control (a composer): spacing.sm inside instead of spacing.md. */
+  compact?: boolean;
 }
 
 /**
  * Floating glass layer (receptes.md). The background opacity of surface.glass is what
  * gives the contrast, not the blur. With "Reduce transparency" it becomes opaque.
  */
-export function GlassPanel({ children, fill = false }: Props) {
+export function GlassPanel({ children, fill = false, compact = false }: Props) {
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
   const { surface } = theme.colors;
@@ -46,7 +48,7 @@ export function GlassPanel({ children, fill = false }: Props) {
           fill && styles.fill,
           {
             backgroundColor: reduceTransparency ? surface.glassSolid : surface.glass,
-            padding: theme.spacing.md,
+            padding: compact ? theme.spacing.sm : theme.spacing.md,
           },
         ]}
       >
