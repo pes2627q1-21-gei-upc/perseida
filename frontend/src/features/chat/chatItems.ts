@@ -40,8 +40,6 @@ interface BuildInput {
   myUserId: string;
   /** My messages not confirmed yet, newest first. */
   pending: OutgoingMessage[];
-  /** The moment the list is built. Not read yet: the separators say the full date, not «today». */
-  now: Date;
   /** Only for tests: the days are the ones of the device. */
   timeZone?: string;
 }
