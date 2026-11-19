@@ -1,19 +1,19 @@
 ---
-titol: Catàleg de fites (esborrany)
+titol: Catàleg de fites
 tipus: producte
-estat: esborrany
-data: 2026-11-16
+estat: vigent
+data: 2026-11-18
 us: ["TG-58"]
 font: "not-list (YES), tasca TG-58 #627"
 etiquetes: [producte, fites, gamificacio]
 ---
 
-# Catàleg de fites (esborrany)
+# Catàleg de fites
 
-Llista de fites que podria tenir Perseida, pensada per al motor de [[epiques-i-us|TG-58]]. Cada fita és una fila del catàleg amb un `kind` (tipus d'activitat) i un `threshold` (llindar). Surt només de les funcionalitats del **YES** de la [[not-list]].
+Llista de fites de Perseida, carregada al catàleg inicial del motor de [[epiques-i-us|TG-58]]. Cada fita és una fila del catàleg amb un `kind` (tipus d'activitat) i un `threshold` (llindar). Surt només de les funcionalitats del **YES** de la [[not-list]].
 
-> [!warning] Esborrany per revisar
-> Els noms, els textos i els llindars són una proposta. Cal que la persona i l'equip els validin abans de carregar-los al catàleg.
+> [!info] Catàleg vigent
+> Els noms, els textos i els llindars són els del catàleg inicial, que carrega la migració `create_achievements` (TG-572). Per ampliar-lo n'hi ha prou d'afegir files com a dades; només un tipus d'activitat nou demana un `kind` nou al codi. Vegeu [[model-de-domini#Fites (implementat)]].
 
 > [!tip] Regla dels noms
 > Només la fita màxima de **Ratxes** es diu **Perseida** (365 dies seguits, un any com la pluja d'estels). La resta de noms tenen a veure amb l'astronomia.
@@ -87,10 +87,15 @@ Llista de fites que podria tenir Perseida, pensada per al motor de [[epiques-i-u
 | Gran mestre estel·lar | `minigame_won` ≥ 50 | proposta, depèn, tipus nou |
 | Llegenda còsmica | `minigame_won` ≥ 100 | proposta, depèn, tipus nou |
 
-## Decisions que cal prendre
+## Decisions
 
-- Quines de les «proposta» entren al catàleg inicial.
-- Quins `kind` nous accepta el motor ara i quins esperen les seves US.
+Preses:
+
+- Totes les fites d'aquest catàleg entren al catàleg inicial: la migració `create_achievements` en carrega 34 (TG-572).
+- El motor accepta els 13 tipus d'activitat (`kind`) de `AchievementKind`. Els que depenen d'altres US queden a 0 fins que hi connectin l'activitat.
+
+Obertes:
+
 - Si es volen fites ocultes (sorpresa) o només visibles.
 
 ## Enllaços

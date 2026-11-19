@@ -12,7 +12,7 @@ etiquetes: [sessio, backend, fites, gamificacio, ratxa]
 
 ## Objectiu
 
-Tancar la part interna del motor de fites de [[epiques-i-us|TG-58]]: el servei que desbloqueja fites i la connexió amb la ratxa diària, perquè arribar a 3 i a 7 dies en desbloquegi la fita corresponent una sola vegada.
+Tancar la part interna del motor de fites de [[epiques-i-us|TG-58]]: el servei que desbloqueja fites i la connexió amb la ratxa diària, perquè arribar als dies de ratxa del catàleg (1, 7, 14, 30, 100 i 365) en desbloquegi la fita corresponent una sola vegada.
 
 ## Què s'ha fet
 
@@ -32,11 +32,13 @@ Cap ADR nova; el port segueix [[backend-hexagonal]] (cap feature n'importa una a
 
 - `ActivityLog` viu a `domain/shared` i l'activitat és un text, perquè la ratxa no depengui del motor.
 - Si el motor falla en avisar-lo, la ratxa ja registrada es manté (només un avís al log). Decisió de la persona en aquesta sessió.
+- La tasca TG-573 i els primers textos d'aquesta PR parlaven de «3 i 7 dies», però el catàleg de [[catalog-de-fites]] no té cap fita de 3 dies (les ratxes són d'1, 7, 14, 30, 100 i 365) i el criteri 4 de TG-58 només diu 7 dies. Decisió de la persona: es manté el catàleg (ara `vigent`) i es corregeix el text de la tasca TG-573.
 - La PR es parteix en dues: TG-570 a TG-573 (motor intern) i, després, APOD i endpoint (decisió de l'equip: PR petites).
 
 ## Canvis al vault
 
 - [[model-de-domini]]: secció «Fites (implementat)» amb els camps, el flux del motor i la connexió amb la ratxa.
+- [[catalog-de-fites]]: passa d'`esborrany` a `vigent`, perquè la migració ja el carrega.
 
 ## Pendent / següents passos
 
