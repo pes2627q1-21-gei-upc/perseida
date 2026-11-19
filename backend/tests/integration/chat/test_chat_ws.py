@@ -73,14 +73,7 @@ JWT_SECRET = "s" * 40
 SOCKET_TIMEOUT_SECONDS = 1.0
 RATE_LIMIT_WINDOW_SECONDS = 3
 RATE_LIMIT_MESSAGES = 10
-MESSAGE_KEYS = {
-    "id",
-    "room_id",
-    "author_id",
-    "client_message_id",
-    "text",
-    "sent_at",
-}
+MESSAGE_KEYS = {"id", "room_id", "author_id", "text", "sent_at"}
 
 INSERT_EVENT = text(
     "INSERT INTO astronomical_events"
