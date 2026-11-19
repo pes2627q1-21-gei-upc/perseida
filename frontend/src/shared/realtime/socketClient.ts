@@ -8,8 +8,9 @@
 // A connection that stays silent for DEAD_AFTER_MS is dead (the server pings every 30 s): it is
 // closed and treated like a drop.
 // In the background the socket is closed (the OS would freeze it anyway) and nothing is retried;
-// coming back to the foreground connects at once, with the backoff reset.
-// send() queues the request in memory: it goes out once the connection is authenticated, with a
+// coming back to the foreground connects at once, with the backoff reset. `inactive` (iOS fires it
+// for the control centre or Face ID) does nothing: the connection stays as it is.
+// send() queues the request in memory (at most OUTBOX_MAX; beyond that it is rejected at once): it goes out once the connection is authenticated, with a
 // fixed `id` and the same payload on every retry (the server deduplicates), is sent again after
 // MAX_SEND_ATTEMPTS-bounded timeouts, drops and retryable errors, and gives up with SEND_UNCERTAIN
 // when the last attempt got no answer, since the server may have processed it.
@@ -65,6 +66,8 @@ const MAX_DELAY_MS = 30_000;
 /** 2 x WS_HEARTBEAT_SECONDS (30 s on the server, ADR-0030): without any frame, the link is dead. */
 const DEAD_AFTER_MS = 60_000;
 const MAX_SEND_ATTEMPTS = 3;
+/** Requests waiting in memory; a send() beyond it is rejected at once with NETWORK_ERROR. */
+const OUTBOX_MAX = 50;
 
 let state: SocketState = { status: 'closed', error: null };
 const stateListeners = new Set<() => void>();
@@ -95,6 +98,8 @@ interface Outgoing {
   attempts: number;
   /** The ack timeout of the attempt in flight, or the wait before the next one. */
   timer?: ReturnType<typeof setTimeout>;
+  /** Whether `timer` is the wait before the next attempt (not the ack timeout of one in flight). */
+  waitingToRetry?: boolean;
   resolve: (frame: ServerFrame) => void;
   reject: (error: AppError) => void;
 }
@@ -264,8 +269,9 @@ function renewSession(): void {
 }
 
 /**
- * Background / inactive: close the socket and wait, keeping the queue and the rooms. Active:
- * connect at once. The generation bump drops any token or renewal still in flight.
+ * Background: close the socket and wait, keeping the queue and the rooms (`inactive` does nothing).
+ * Active: connect at once. The generation bump drops any token or renewal still in flight, and
+ * `sessionRenewed` is cleared so that a later 4401 renews the session again.
  */
 function onAppStateChange(next: AppStateStatus): void {
   if (next === 'active') {
@@ -273,8 +279,9 @@ function onAppStateChange(next: AppStateStatus): void {
     clearTimeout(retryTimer);
     generation += 1;
     attempts = 0;
+    sessionRenewed = false;
     connect();
-  } else if ((next === 'background' || next === 'inactive') && state.status !== 'closed') {
+  } else if (next === 'background' && state.status !== 'closed') {
     clearTimeout(retryTimer);
     clearTimeout(deadTimer);
     generation += 1;
@@ -331,6 +338,7 @@ function rejectOutbox(): void {
 /** Writes the request (the same `id` and payload every time) and waits `requestTimeoutMs` for it. */
 function transmit(entry: Outgoing): void {
   entry.attempts += 1;
+  entry.waitingToRetry = false;
   sendFrame({ ...entry.frame, id: entry.id });
   entry.timer = setTimeout(() => attemptFailed(entry, null), config.requestTimeoutMs);
 }
@@ -340,10 +348,12 @@ function transmit(entry: Outgoing): void {
  * next attempt follows at once after a silence, after a 1 s / 2 s wait after an error.
  */
 function attemptFailed(entry: Outgoing, error: AppError | null): void {
+  if (error && entry.waitingToRetry) return; // Already waiting for the next attempt.
   clearTimeout(entry.timer);
   if (entry.attempts >= MAX_SEND_ATTEMPTS) {
     settle(entry, ({ reject }) => reject(error ?? sendUncertain()));
   } else if (error) {
+    entry.waitingToRetry = true;
     entry.timer = setTimeout(() => transmit(entry), jitter(FIRST_DELAY_MS * entry.attempts));
   } else {
     transmit(entry);
@@ -354,6 +364,7 @@ function attemptFailed(entry: Outgoing, error: AppError | null): void {
 function suspendOutbox(): void {
   outbox.forEach((entry) => {
     clearTimeout(entry.timer);
+    entry.waitingToRetry = false;
     // Only an attempt in flight can be the last one, so there is nothing left to send again.
     if (entry.attempts >= MAX_SEND_ATTEMPTS) {
       settle(entry, ({ reject }) => reject(sendUncertain()));
@@ -433,7 +444,7 @@ export function subscribe(room: string, onFrame: FrameHandler): () => void {
  * ends for good. A `closed` connection rejects with NETWORK_ERROR at once.
  */
 export function send(frame: OutgoingFrame): Promise<ServerFrame> {
-  if (state.status === 'closed') return Promise.reject(networkError());
+  if (state.status === 'closed' || outbox.size >= OUTBOX_MAX) return Promise.reject(networkError());
   return new Promise((resolve, reject) => {
     const entry: Outgoing = { id: nextId(), frame, attempts: 0, resolve, reject };
     outbox.set(entry.id, entry);
