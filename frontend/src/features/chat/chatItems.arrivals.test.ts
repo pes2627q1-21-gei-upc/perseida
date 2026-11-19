@@ -59,6 +59,15 @@ describe('arrivedKeys (TG-469)', () => {
     expect(arrivedKeys([m3, d18, m2, m1, d17], [m2, m1, d17])).toEqual(new Set(keys(m3)));
   });
 
+  it('a pending message drawn below does not hide a message of someone else that has just arrived', () => {
+    const failed = pending('c1');
+    const m3 = message(3);
+
+    expect(arrivedKeys([failed, m3, m2, m1, d17], [failed, m2, m1, d17])).toEqual(
+      new Set(keys(m3)),
+    );
+  });
+
   it('a list that shares nothing with the previous one is a new history, not arrivals', () => {
     expect(arrivedKeys([message(9), message(8)], [m2, m1, d17])).toEqual(new Set());
   });
