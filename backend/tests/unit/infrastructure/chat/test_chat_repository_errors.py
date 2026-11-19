@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.application.shared.error_codes import DATABASE_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
-from app.domain.chat.models import ChatMessage
+from app.domain.chat.models import ChatAuthor, ChatMessage
 from app.domain.events.errors import EVENT_NOT_FOUND
 from app.domain.shared.errors import NotFoundError
 from app.infrastructure.chat.repository import SqlChatRepository
@@ -73,7 +73,7 @@ def _message() -> ChatMessage:
     return ChatMessage(
         id=uuid.uuid7(),
         room_id=uuid.uuid7(),
-        author_id=uuid.uuid7(),
+        author=ChatAuthor(id=uuid.uuid7(), name=None),
         client_message_id=uuid.uuid4(),
         text="Hola",
         sent_at=datetime(2026, 11, 17, 21, 0, tzinfo=UTC),

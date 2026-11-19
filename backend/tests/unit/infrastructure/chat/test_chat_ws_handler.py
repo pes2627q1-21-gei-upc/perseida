@@ -219,7 +219,7 @@ async def test_a_message_is_sent_with_the_connection_as_origin(
 
     [stored] = env.messages
     assert stored.text == "hola"
-    assert stored.author_id == env.user
+    assert stored.author.id == env.user
     envelope = json.loads(env.published[0])
     assert envelope["from"] == "conn-5"
     assert envelope["frame"]["payload"] == stored.model_dump(
