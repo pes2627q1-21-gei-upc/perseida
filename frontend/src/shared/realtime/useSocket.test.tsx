@@ -1046,7 +1046,7 @@ describe('useSocket: estat després de desmuntar l’últim consumidor (TG-461)'
 });
 
 describe('useSocket: abans de l’ack de l’auth (TG-461)', () => {
-  it('un frame que no és auth no autentica: continua connecting, no respon i send es rebutja', async () => {
+  it('un frame que no és auth no autentica: continua connecting i no respon; send queda pendent i en el tancament definitiu es rebutja amb NETWORK_ERROR', async () => {
     const { result } = await mount();
     await serverOpens();
 
@@ -1056,7 +1056,20 @@ describe('useSocket: abans de l’ack de l’auth (TG-461)', () => {
     expect(result.current.status).toBe('connecting');
     expect(lastSocket().sent).toEqual([authFrame('access-1')]);
 
+    // TG-654: without an authenticated connection send waits in the queue (it is not rejected)
     const { sending } = await startSending(result.current.send);
+    let outcome: unknown = 'pending';
+    sending.then(
+      () => (outcome = 'resolved'),
+      (reason: unknown) => (outcome = reason),
+    );
+    await flush();
+
+    expect(outcome).toBe('pending');
+    expect(lastSocket().sent).toEqual([authFrame('access-1')]);
+
+    // the connection ends for good before the message ever went out
+    await serverCloses(4429);
     const error = await rejectionOf(sending);
 
     expect(error.code).toBe('NETWORK_ERROR');
@@ -1566,6 +1579,8 @@ describe('useSocket: AppState (TG-654 F4)', () => {
       listeners.push(listener as (state: AppStateStatus) => void);
       return { remove } as never;
     });
+    // The RN preset's AppState.addEventListener is a jest.fn: the spy inherits its call history.
+    spy.mockClear();
     const emit = (state: AppStateStatus) => act(async () => listeners.forEach((l) => l(state)));
     return { spy, remove, listeners, emit };
   }
