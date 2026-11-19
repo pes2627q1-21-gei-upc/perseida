@@ -52,7 +52,9 @@ async def test_tg439_send_flow_and_cleaned_text(
     assert envelope["from"] is None
     assert envelope["frame"]["type"] == "message"
     assert envelope["frame"]["room"] == f"chat:event:{env.event}"
-    assert envelope["frame"]["payload"] == message.model_dump(mode="json")
+    assert envelope["frame"]["payload"] == message.model_dump(
+        mode="json", exclude={"client_message_id"}
+    )
 
 
 async def test_tg439_validation_stops_before_rate(
@@ -282,7 +284,9 @@ async def test_tg459_published_envelope_carries_the_origin_of_the_connection(
     assert envelope["from"] == "conn-1"
     assert envelope["frame"]["type"] == "message"
     assert envelope["frame"]["room"] == f"chat:event:{env.event}"
-    assert envelope["frame"]["payload"] == message.model_dump(mode="json")
+    assert envelope["frame"]["payload"] == message.model_dump(
+        mode="json", exclude={"client_message_id"}
+    )
 
 
 @pytest.mark.parametrize("explicit_none", [True, False], ids=["origin=None", "default"])
@@ -378,7 +382,9 @@ async def test_tg654_an_identical_retry_republishes_the_original_message(
     envelope = json.loads(env.published[1])
     assert envelope["from"] == "conn-2"
     assert envelope["frame"]["room"] == f"chat:event:{env.event}"
-    assert envelope["frame"]["payload"] == first.model_dump(mode="json")
+    assert envelope["frame"]["payload"] == first.model_dump(
+        mode="json", exclude={"client_message_id"}
+    )
 
 
 async def test_tg654_a_retry_is_identical_when_the_cleaned_text_is_the_same(
@@ -510,3 +516,38 @@ def test_tg654_idempotency_conflict_is_http_409_and_a_known_realtime_code() -> N
     frame = error_frame("CHAT_IDEMPOTENCY_CONFLICT", "conflict", correlation_id="c-1")
     assert frame.payload["status"] == 409
     assert frame.payload["code"] == "CHAT_IDEMPOTENCY_CONFLICT"
+
+
+async def test_tg654_the_published_frame_does_not_carry_the_client_message_id(
+    service: ChatService, env: ChatFakes
+) -> None:
+    # TG-654: els receptors dedupliquen per id; la clau del client no es difon
+    await service.send_message(
+        env.user, env.event, "hola", client_message_id=uuid.uuid4()
+    )
+
+    payload = json.loads(env.published[0])["frame"]["payload"]
+    assert "client_message_id" not in payload
+    assert set(payload) == {"id", "room_id", "author_id", "text", "sent_at"}
+
+
+async def test_tg654_when_a_concurrent_retry_wins_its_message_is_published_and_returned(
+    service: ChatService, env: ChatFakes
+) -> None:
+    # TG-654: add_message retorna el desat; si ha perdut la cursa no es el construit
+    key = uuid.uuid4()
+    winner = _stored(env, client_message_id=key, sent_at=datetime.now(UTC))
+    env.race_winner = winner
+
+    message = await service.send_message(
+        env.user, env.event, "hola", client_message_id=key, origin="conn-9"
+    )
+
+    assert message == winner
+    envelope = json.loads(env.published[0])
+    assert envelope["from"] == "conn-9"
+    assert envelope["frame"]["payload"]["id"] == str(winner.id)
+    assert (
+        envelope["frame"]["payload"]["sent_at"]
+        == winner.model_dump(mode="json")["sent_at"]
+    )

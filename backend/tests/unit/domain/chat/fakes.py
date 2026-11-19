@@ -37,8 +37,14 @@ class InMemoryChatRepository:
             None,
         )
 
-    async def add_message(self, message: ChatMessage) -> None:
+    async def add_message(self, message: ChatMessage) -> ChatMessage:
+        existing = await self.find_by_client_id(
+            message.author_id, message.client_message_id
+        )
+        if existing is not None:
+            return existing
         self.messages.append(message)
+        return message
 
     async def page(
         self, room_id: uuid.UUID, before: ChatCursor | None, limit: int

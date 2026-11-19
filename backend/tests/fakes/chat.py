@@ -26,6 +26,7 @@ class ChatFakes:
         self.allowed = True
         self.approved = True
         self.fail_save = False
+        self.race_winner: ChatMessage | None = None
         self.fail_publish = False
         self.missing = False
         self.channels: list[str] = []
@@ -71,11 +72,14 @@ class ChatFakes:
             None,
         )
 
-    async def add_message(self, message: ChatMessage) -> None:
+    async def add_message(self, message: ChatMessage) -> ChatMessage:
         self.calls.append("save")
         if self.fail_save:
             raise ExternalServiceError("DATABASE_UNAVAILABLE")
-        self.messages.append(message)
+        # A concurrent retry stored its message first: that one is the stored one.
+        stored = self.race_winner or message
+        self.messages.append(stored)
+        return stored
 
     async def publish(self, channel: str, message: str) -> None:
         self.calls.append("publish")
