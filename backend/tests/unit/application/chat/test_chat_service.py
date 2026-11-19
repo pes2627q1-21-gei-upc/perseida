@@ -26,7 +26,7 @@ def env() -> ChatFakes:
 
 @pytest.fixture
 def service(env: ChatFakes) -> ChatService:
-    return ChatService(env, env, env, env, env)
+    return ChatService(env, env, env, env, env, env)
 
 
 async def test_tg439_send_flow_and_cleaned_text(
@@ -45,6 +45,7 @@ async def test_tg439_send_flow_and_cleaned_text(
         "moderate",
         "save",
         "publish",
+        "mark",
     ]
     assert env.messages == [message]
     assert env.channels == [f"room:chat:event:{env.event}"]
@@ -343,13 +344,15 @@ async def test_tg654_a_new_message_keeps_the_client_message_id_and_looks_up_firs
         "moderate",
         "save",
         "publish",
+        "mark",
     ]
 
 
 async def test_tg654_an_identical_retry_returns_the_stored_message_without_new_work(
     service: ChatService, env: ChatFakes
 ) -> None:
-    # TG-654: duplicat identic = no modera, no compta al rate limit, no desa
+    # TG-654: duplicat identic = no modera, no compta al rate limit, no desa; dins del
+    # cooldown (el primer publish consta) tampoc no es torna a publicar
     key = uuid.uuid4()
     first = await service.send_message(
         env.user, env.event, "hola", client_message_id=key
@@ -362,17 +365,20 @@ async def test_tg654_an_identical_retry_returns_the_stored_message_without_new_w
 
     assert (second.id, second.sent_at) == (first.id, first.sent_at)
     assert env.messages == [first]
-    assert env.calls == ["event", "subscription", "room", "find", "publish"]
+    assert env.calls == ["event", "subscription", "room", "find", "recent"]
+    assert len(env.published) == 1
 
 
 async def test_tg654_an_identical_retry_republishes_the_original_message(
     service: ChatService, env: ChatFakes
 ) -> None:
-    # TG-654: es republica perque la primera difusio potser no va arribar
+    # TG-654: es republica (fora del cooldown): la primera difusio potser no va arribar
     key = uuid.uuid4()
     first = await service.send_message(
         env.user, env.event, "hola", client_message_id=key, origin="conn-1"
     )
+    env.recent.clear()  # the cooldown is over (or the mark was lost)
+    env.calls.clear()
 
     await service.send_message(
         env.user, env.event, "hola", client_message_id=key, origin="conn-2"
@@ -385,6 +391,15 @@ async def test_tg654_an_identical_retry_republishes_the_original_message(
     assert envelope["frame"]["payload"] == first.model_dump(
         mode="json", exclude={"client_message_id"}
     )
+    assert env.calls == [
+        "event",
+        "subscription",
+        "room",
+        "find",
+        "recent",
+        "publish",
+        "mark",
+    ]
 
 
 async def test_tg654_a_retry_is_identical_when_the_cleaned_text_is_the_same(
@@ -431,13 +446,16 @@ async def test_tg654_an_identical_retry_still_reports_a_pubsub_failure(
     # TG-654: si la republicacio falla, el client ha de poder tornar a provar
     key = uuid.uuid4()
     await service.send_message(env.user, env.event, "hola", client_message_id=key)
+    env.recent.clear()
     env.fail_publish = True
+    env.calls.clear()
 
     with pytest.raises(ExternalServiceError) as error:
         await service.send_message(env.user, env.event, "hola", client_message_id=key)
 
     assert error.value.code == "PUBSUB_UNAVAILABLE"
     assert len(env.messages) == 1
+    assert "mark" not in env.calls
 
 
 async def test_tg654_the_same_key_with_another_text_is_an_idempotency_conflict(
@@ -491,7 +509,7 @@ async def test_tg654_the_same_key_of_another_author_is_not_a_duplicate(
 
     assert message.author_id == env.user
     assert len(env.messages) == 2
-    assert env.calls[-4:] == ["rate", "moderate", "save", "publish"]
+    assert env.calls[-5:] == ["rate", "moderate", "save", "publish", "mark"]
 
 
 async def test_tg654_an_invalid_text_is_rejected_before_looking_up_the_key(
@@ -551,3 +569,134 @@ async def test_tg654_when_a_concurrent_retry_wins_its_message_is_published_and_r
         envelope["frame"]["payload"]["sent_at"]
         == winner.model_dump(mode="json")["sent_at"]
     )
+
+
+# --- TG-654: cursa i limit de republicacio -------------------------------------
+
+
+def test_tg654_the_republish_cooldown_is_10_seconds() -> None:
+    from app.application.chat.chat_service import REPUBLISH_COOLDOWN_SECONDS
+
+    assert REPUBLISH_COOLDOWN_SECONDS == 10
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [{"text": "un altre text"}, {"room_id": uuid.uuid7()}],
+    ids=["other-text", "other-room"],
+)
+async def test_tg654_a_race_winner_with_another_text_or_room_is_a_conflict(
+    service: ChatService, env: ChatFakes, overrides: dict[str, object]
+) -> None:
+    # TG-654: add_message torna un guanyador que no es el que s'ha enviat: conflicte
+    key = uuid.uuid4()
+    winner = _stored(env, client_message_id=key, **overrides)
+    env.race_winner = winner
+
+    with pytest.raises(ConflictError) as error:
+        await service.send_message(env.user, env.event, "hola", client_message_id=key)
+
+    assert error.value.code == "CHAT_IDEMPOTENCY_CONFLICT"
+    assert env.published == []
+    assert "publish" not in env.calls
+    assert "mark" not in env.calls
+
+
+async def test_tg654_a_race_winner_with_the_same_text_and_room_is_published_and_marked(
+    service: ChatService, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+    winner = _stored(env, client_message_id=key)
+    env.race_winner = winner
+
+    message = await service.send_message(
+        env.user, env.event, "hola", client_message_id=key
+    )
+
+    assert message == winner
+    assert env.calls[-2:] == ["publish", "mark"]
+    assert (env.user, key) in env.recent
+
+
+async def test_tg654_a_successful_publish_marks_the_message_as_published(
+    service: ChatService, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+
+    await service.send_message(env.user, env.event, "hola", client_message_id=key)
+
+    assert env.recent == {(env.user, key)}
+
+
+async def test_tg654_a_failure_marking_is_ignored_because_the_publish_went_out(
+    service: ChatService, env: ChatFakes
+) -> None:
+    env.fail_mark = True
+
+    message = await service.send_message(
+        env.user, env.event, "hola", client_message_id=uuid.uuid4()
+    )
+
+    assert env.messages == [message]
+    assert len(env.published) == 1
+
+
+async def test_tg654_a_failed_publish_is_not_marked_and_the_retry_publishes_again(
+    service: ChatService, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+    env.fail_publish = True
+    with pytest.raises(ExternalServiceError):
+        await service.send_message(env.user, env.event, "hola", client_message_id=key)
+    assert env.recent == set()
+    env.fail_publish = False
+    env.calls.clear()
+
+    message = await service.send_message(
+        env.user, env.event, "hola", client_message_id=key
+    )
+
+    assert env.calls == [
+        "event",
+        "subscription",
+        "room",
+        "find",
+        "recent",
+        "publish",
+        "mark",
+    ]
+    assert len(env.messages) == 1
+    assert env.messages == [message]
+    assert len(env.published) == 1
+
+
+async def test_tg654_an_identical_retry_inside_the_cooldown_does_not_publish(
+    service: ChatService, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+    first = await service.send_message(
+        env.user, env.event, "hola", client_message_id=key
+    )
+    env.calls.clear()
+
+    second = await service.send_message(
+        env.user, env.event, "hola", client_message_id=key, origin="conn-2"
+    )
+
+    assert second == first
+    assert env.calls == ["event", "subscription", "room", "find", "recent"]
+    assert len(env.published) == 1
+
+
+async def test_tg654_a_failure_asking_the_guard_is_pubsub_unavailable(
+    service: ChatService, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+    await service.send_message(env.user, env.event, "hola", client_message_id=key)
+    env.fail_recent = True
+
+    with pytest.raises(ExternalServiceError) as error:
+        await service.send_message(env.user, env.event, "hola", client_message_id=key)
+
+    assert error.value.code == "PUBSUB_UNAVAILABLE"
+    assert len(env.published) == 1

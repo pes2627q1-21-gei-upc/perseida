@@ -27,6 +27,10 @@ class ChatFakes:
         self.approved = True
         self.fail_save = False
         self.race_winner: ChatMessage | None = None
+        # TG-654: (author, client_message_id) published less than the cooldown ago
+        self.recent: set[tuple[uuid.UUID, uuid.UUID]] = set()
+        self.fail_recent = False
+        self.fail_mark = False
         self.fail_publish = False
         self.missing = False
         self.channels: list[str] = []
@@ -71,6 +75,22 @@ class ChatFakes:
             ),
             None,
         )
+
+    async def was_published_recently(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> bool:
+        self.calls.append("recent")
+        if self.fail_recent:
+            raise ExternalServiceError("REDIS_DOWN")
+        return (author_id, client_message_id) in self.recent
+
+    async def mark_published(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> None:
+        self.calls.append("mark")
+        if self.fail_mark:
+            raise ExternalServiceError("REDIS_DOWN")
+        self.recent.add((author_id, client_message_id))
 
     async def add_message(self, message: ChatMessage) -> ChatMessage:
         self.calls.append("save")

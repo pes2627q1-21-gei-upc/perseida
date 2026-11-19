@@ -30,7 +30,7 @@ def test_tg446_settings_defaults_and_bounds() -> None:
 
 async def test_tg446_configured_maximum_checks_cleaned_text_before_rate() -> None:
     env = ChatFakes()
-    service = ChatService(env, env, env, env, env, message_max_length=3)
+    service = ChatService(env, env, env, env, env, env, message_max_length=3)
     assert (
         await service.send_message(
             env.user, env.event, " abc ", client_message_id=uuid.uuid4()

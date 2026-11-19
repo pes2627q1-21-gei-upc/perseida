@@ -37,7 +37,7 @@ def accounts(env: ChatFakes) -> InMemoryUserRepository:
 
 @pytest.fixture
 def handler(env: ChatFakes, accounts: InMemoryUserRepository) -> ChatWsHandler:
-    service = ChatService(env, env, env, env, env)
+    service = ChatService(env, env, env, env, env, env)
     users = UserService(accounts)
     return ChatWsHandler(lambda: service, lambda: users)
 
