@@ -14,13 +14,26 @@
     "logoutNotConfirmed": "Se ha cerrado la sesión en este dispositivo, pero no se ha podido confirmar en el servidor.",
     "tagline": "Mira hacia arriba"
   },
+  "chat": {
+    "title": "Chat",
+    "loading": "Cargando salas de chat",
+    "retry": "Inténtalo de nuevo",
+    "retryHint": "Vuelve a cargar las salas de chat",
+    "noMessages": "Todavía no hay mensajes",
+    "unknownAuthor": "Una usuaria de Perseida",
+    "list": {
+      "label": "Salas de chat"
+    },
+    "empty": {
+      "message": "Aún no te has suscrito a ningún evento. Suscríbete a uno para charlar con la comunidad.",
+      "cta": "Explora los eventos"
+    }
+  },
   "common": {
     "back": "Volver"
   },
   "comingSoon": {
     "badge": "Próximamente",
-    "chatDesc": "Un espacio en tiempo real para compartir observaciones, fotos y encuentros astronómicos.",
-    "chatTitle": "Comunidad y chat",
     "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
     "gamificationTitle": "Gamificación y retos"
   },
@@ -64,7 +77,14 @@
     "OUTING_STARTS_IN_PAST": "La salida no puede empezar en el pasado.",
     "OUTING_EVENT_NOT_FOUND": "Este evento ya no existe.",
     "OUTING_NOT_FOUND": "Esta salida no existe o se ha borrado.",
-    "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla."
+    "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla.",
+    "FORBIDDEN": "No tienes permiso para hacer esto.",
+    "RATE_LIMITED": "Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo.",
+    "NOT_SUBSCRIBED": "Primero tienes que unirte a la sala.",
+    "PUBSUB_UNAVAILABLE": "El chat no está disponible ahora mismo. Inténtalo de nuevo en un rato.",
+    "VALIDATION_ERROR": "Revisa los datos introducidos.",
+    "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Inténtalo de nuevo.",
+    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Inténtalo de nuevo."
   },
   "events": {
     "category": {
