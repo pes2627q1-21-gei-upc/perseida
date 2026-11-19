@@ -19,6 +19,7 @@
     "loading": "Loading chat rooms",
     "retry": "Try again",
     "retryHint": "Loads the chat rooms again",
+    "refresh": "Refresh",
     "noMessages": "No messages yet",
     "unknownAuthor": "A Perseida user",
     "list": {

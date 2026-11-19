@@ -5,10 +5,12 @@ import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
-import { GelButton, GlassPanel, SkyBackground, StatusPanel } from '../../../shared/ui';
+import { GelButton, GlassPanel, QuietButton, SkyBackground, StatusPanel } from '../../../shared/ui';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useMySubscriptions, useRooms } from '../hooks/useChat';
 import { buildRoomList } from '../roomList';
+import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { ReloadFailedAlert } from './ReloadFailedAlert';
 import { RoomListItem } from './RoomListItem';
 
 // Layout only: purely visual, left out of mutation testing on purpose
@@ -18,6 +20,8 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   column: { width: '100%', alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { flex: 1 },
 });
 // Stryker restore all
 
@@ -40,6 +44,10 @@ export function ChatRoomsScreen() {
     subscriptions.data && rooms.data ? buildRoomList(subscriptions.data, rooms.data) : undefined;
   const error = subscriptions.error ?? rooms.error;
   const fetching = subscriptions.isFetching || rooms.isFetching;
+  // A reload that failed, with the list the person already had still on screen.
+  const reloadError = entries && error && !fetching ? error : undefined;
+  const emptyMessage = entries?.length === 0 ? t('chat.empty.message') : undefined;
+  useAnnounceOnIos(emptyMessage);
 
   async function reload() {
     await Promise.all([subscriptions.refetch(), rooms.refetch()]);
@@ -114,7 +122,7 @@ export function ChatRoomsScreen() {
                 accessibilityLiveRegion="polite"
                 style={[typography.body, { color: colors.text.primary }]}
               >
-                {t('chat.empty.message')}
+                {emptyMessage}
               </Text>
               <GelButton label={t('chat.empty.cta')} onPress={() => router.push('/events')} />
             </View>
@@ -154,12 +162,29 @@ export function ChatRoomsScreen() {
             },
           ]}
         >
-          <Text
-            accessibilityRole="header"
-            style={[typography.headline, { color: colors.text.primary }]}
-          >
-            {t('chat.title')}
-          </Text>
+          <View style={[styles.titleRow, { gap: spacing.md }]}>
+            <Text
+              accessibilityRole="header"
+              style={[typography.headline, styles.title, { color: colors.text.primary }]}
+            >
+              {t('chat.title')}
+            </Text>
+            {entries && (
+              <QuietButton
+                label={t('chat.refresh')}
+                onPress={() => void reload()}
+                busy={fetching}
+              />
+            )}
+          </View>
+          {reloadError && (
+            <View style={{ marginTop: spacing.md }}>
+              <ReloadFailedAlert
+                code={reloadError.code}
+                onRetry={reloadError.retryable ? () => void reload() : undefined}
+              />
+            </View>
+          )}
         </View>
         {body}
       </View>

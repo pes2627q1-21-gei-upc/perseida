@@ -19,6 +19,7 @@
     "loading": "Cargando salas de chat",
     "retry": "Inténtalo de nuevo",
     "retryHint": "Vuelve a cargar las salas de chat",
+    "refresh": "Actualizar",
     "noMessages": "Todavía no hay mensajes",
     "unknownAuthor": "Una usuaria de Perseida",
     "list": {
