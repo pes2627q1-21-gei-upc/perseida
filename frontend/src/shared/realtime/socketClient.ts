@@ -10,8 +10,9 @@
 // In the background the socket is closed (the OS would freeze it anyway) and nothing is retried;
 // coming back to the foreground connects at once, with the backoff reset. `inactive` (iOS fires it
 // for the control centre or Face ID) does nothing: the connection stays as it is.
-// send() queues the request in memory (at most OUTBOX_MAX; beyond that it is rejected at once): it goes out once the connection is authenticated, with a
-// fixed `id` and the same payload on every retry (the server deduplicates), is sent again after
+// send() queues the request in memory (at most OUTBOX_MAX; beyond that it is rejected at once):
+// it goes out once the connection is authenticated, with a fixed `id` and the same payload on
+// every retry (the server deduplicates), is sent again after
 // MAX_SEND_ATTEMPTS-bounded timeouts, drops and retryable errors, and gives up with SEND_UNCERTAIN
 // when the last attempt got no answer, since the server may have processed it.
 // The session comes from outside (SocketAuth), so shared/ does not depend on any feature.
@@ -79,7 +80,7 @@ let socket: WebSocket | null = null;
 let authenticated = false;
 /** Reconnection attempts since the last successful authentication. */
 let attempts = 0;
-/** Whether the session was already renewed after a 4401 since the last successful authentication. */
+/** Whether the session was already renewed after a 4401 since the last authentication. */
 let sessionRenewed = false;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let deadTimer: ReturnType<typeof setTimeout> | undefined;
@@ -340,7 +341,7 @@ function rejectOutbox(): void {
   );
 }
 
-/** Writes the request (the same `id` and payload every time) and waits `requestTimeoutMs` for it. */
+/** Writes the request (same `id` and payload every time) and waits `requestTimeoutMs` for it. */
 function transmit(entry: Outgoing): void {
   entry.attempts += 1;
   entry.waitingToRetry = false;
