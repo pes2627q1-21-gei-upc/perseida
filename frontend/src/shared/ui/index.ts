@@ -1,4 +1,5 @@
 export { GelButton } from './GelButton';
+export { GelIconButton } from './GelIconButton';
 export { GelSegmented, type SegmentOption } from './GelSegmented';
 export { GlassPanel } from './GlassPanel';
 export { QuietButton } from './QuietButton';
