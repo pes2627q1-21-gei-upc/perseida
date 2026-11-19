@@ -86,6 +86,30 @@ class SendRateLimiter(Protocol):
         ...
 
 
+class RepublishGuard(Protocol):
+    """Remembers for a while which messages were just published (anti-flood)."""
+
+    async def was_published_recently(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> bool:
+        """Return whether the message was marked in the cooldown window.
+
+        Raises:
+            ExternalServiceError: if the store is unavailable.
+        """
+        ...
+
+    async def mark_published(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> None:
+        """Mark the message as published now.
+
+        Raises:
+            ExternalServiceError: if the store is unavailable.
+        """
+        ...
+
+
 class EventSubscriptions(Protocol):
     """Who follows which event (US #53)."""
 
