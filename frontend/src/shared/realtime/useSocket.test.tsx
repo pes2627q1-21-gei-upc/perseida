@@ -234,7 +234,7 @@ describe('useSocket: subscripcions (TG-461)', () => {
       payload: {
         id: 'm-9',
         room_id: 'r-1',
-        author_id: 'u-2',
+        author: { id: 'u-2', name: 'Bob' },
         text: 'bona nit',
         sent_at: '2026-11-18T21:00:00Z',
       },

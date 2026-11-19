@@ -33,7 +33,7 @@ const AUTH_ACK: Frame = { type: 'auth', payload: {} };
 const OTHERS_MESSAGE = {
   id: 'm-9',
   room_id: 'r-1',
-  author_id: 'u-2',
+  author: { id: 'u-2', name: 'Bob' },
   text: 'Es veu Júpiter!',
   sent_at: '2026-11-18T21:00:00Z',
 };
