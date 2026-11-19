@@ -96,7 +96,7 @@ function composerLook(
  * retry of its own (the bubble of the message offers it).
  */
 export function MessageComposer({ onSend, busy = false, disabledReason, error }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { colors, iconSizes } = theme;
   const insets = useContext(SafeAreaInsetsContext);
@@ -109,7 +109,11 @@ export function MessageComposer({ onSend, busy = false, disabledReason, error }:
   const count = characterCount(text);
   const tooLong = count > MESSAGE_MAX_LENGTH;
   const canSend = count > 0 && !tooLong && !busy && !sending && !disabledReason;
-  const tooLongText = tooLong ? t('chat.composer.tooLong') : '';
+  const tooLongText = tooLong
+    ? t('chat.composer.tooLong', {
+        max: new Intl.NumberFormat(i18n.language).format(MESSAGE_MAX_LENGTH),
+      })
+    : '';
   const errorText = error ? errorMessage(t, error.code, error.retryable) : '';
   useAnnounceOnIos(tooLongText || undefined);
   useAnnounceOnIos(errorText || undefined);

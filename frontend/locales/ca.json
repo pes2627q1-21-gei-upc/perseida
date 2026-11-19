@@ -43,7 +43,7 @@
       "label": "Escriu un missatge",
       "send": "Envia",
       "counter": "{{count}} de {{max}} caràcters",
-      "tooLong": "El missatge pot tenir com a màxim 1.000 caràcters."
+      "tooLong": "El missatge pot tenir com a màxim {{max}} caràcters."
     },
     "messages": {
       "label": "Missatges del xat",

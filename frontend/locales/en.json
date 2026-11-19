@@ -43,7 +43,7 @@
       "label": "Write a message",
       "send": "Send",
       "counter": "{{count}} of {{max}} characters",
-      "tooLong": "A message can be up to 1,000 characters long."
+      "tooLong": "A message can be up to {{max}} characters long."
     },
     "messages": {
       "label": "Chat messages",
