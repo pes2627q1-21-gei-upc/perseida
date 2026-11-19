@@ -38,7 +38,7 @@ class ChatMessage(BaseModel):
     text: str
     sent_at: AwareDatetime
     # Idempotency key chosen by the sender: unique per author, so a retry of the
-    # same send never stores a second message.
+    # same send never stores a second message (it is not published to the room).
     client_message_id: uuid.UUID
 
     @field_validator("text")
