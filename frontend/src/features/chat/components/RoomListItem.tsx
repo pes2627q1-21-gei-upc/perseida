@@ -11,11 +11,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { useTheme } from '../../../shared/theme';
+import { type Theme, useTheme } from '../../../shared/theme';
 import { useReduceTransparency } from '../../../shared/ui';
 import { EventOrb } from '../../events/components/EventOrb';
 import { formatMessageTime } from '../formatChat';
 import type { RoomListEntry } from '../roomList';
+import { rowSurface } from '../rowSurface';
 
 interface Props {
   entry: RoomListEntry;
@@ -41,6 +42,23 @@ const styles = StyleSheet.create({
   title: { flex: 1 },
   highlight: { position: 'absolute', top: 0, height: 1 },
 });
+
+/** The card of the row: glass without blur, with a soft glow; a pressed row gets the glow rim. */
+function rowStyle(
+  { colors, spacing, radii, touch }: Theme,
+  reduceTransparency: boolean,
+  pressed: boolean,
+) {
+  return {
+    minHeight: touch.min,
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    borderColor: pressed ? colors.accentGlow : colors.surface.glassBorder,
+    backgroundColor: rowSurface(colors.surface, reduceTransparency),
+    boxShadow: `0 8px 24px ${colors.accentGlow}33`,
+  };
+}
 // Stryker restore all
 
 /**
@@ -52,7 +70,7 @@ const styles = StyleSheet.create({
 export function RoomListItem({ entry, now, onPress, index = 0 }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const { colors, spacing, typography, radii, touch } = theme;
+  const { colors, spacing, typography } = theme;
   const reduceTransparency = useReduceTransparency();
   const reduceMotion = useReducedMotion();
 
@@ -76,15 +94,6 @@ export function RoomListItem({ entry, now, onPress, index = 0 }: Props) {
   const time = lastMessage ? formatMessageTime(lastMessage.sentAt, now, i18n.language) : undefined;
   const label = [entry.title, preview, time].filter(Boolean).join(', ');
 
-  const cardStyle = {
-    minHeight: touch.min,
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radii.lg,
-    borderColor: colors.surface.glassBorder,
-    backgroundColor: reduceTransparency ? colors.surface.glassSolid : colors.surface.glass,
-    boxShadow: `0 8px 24px ${colors.accentGlow}33`,
-  };
   const content = (
     <>
       <LinearGradient
@@ -122,7 +131,7 @@ export function RoomListItem({ entry, now, onPress, index = 0 }: Props) {
           accessibilityRole="button"
           accessibilityLabel={label}
           onPress={onPress}
-          style={({ pressed }) => [styles.row, cardStyle, { opacity: pressed ? 0.7 : 1 }]}
+          style={({ pressed }) => [styles.row, rowStyle(theme, reduceTransparency, pressed)]}
         >
           {content}
         </Pressable>
@@ -131,7 +140,7 @@ export function RoomListItem({ entry, now, onPress, index = 0 }: Props) {
           testID={`chat-room-${entry.eventId}`}
           accessible
           accessibilityLabel={label}
-          style={[styles.row, cardStyle]}
+          style={[styles.row, rowStyle(theme, reduceTransparency, false)]}
         >
           {content}
         </View>
