@@ -476,8 +476,9 @@ async def test_tg448_c8_messages_survive_a_new_session_and_engine(
 
 
 INSERT_RAW_MESSAGE = text(
-    "INSERT INTO chat_messages (id, room_id, author_id, text, sent_at)"
-    " VALUES (:id, :room, :author, :body, :sent_at)"
+    "INSERT INTO chat_messages"
+    " (id, room_id, author_id, client_message_id, text, sent_at)"
+    " VALUES (:id, :room, :author, :client_message_id, :body, :sent_at)"
 )
 
 
@@ -492,6 +493,7 @@ async def _insert_raw(
                 "id": uuid.uuid7(),
                 "room": room.id,
                 "author": author.id,
+                "client_message_id": uuid.uuid4(),
                 "body": "a" * length,
                 "sent_at": NOW,
             },
@@ -563,7 +565,7 @@ async def test_tg654_find_by_client_id_returns_the_stored_message(
     room = await _room_with(repo, sessions)
     key = uuid.uuid4()
     message = _message(room, author, NOW, "Hola", key)
-    await repo.add_message(message)
+    assert await repo.add_message(message) == message
 
     assert await repo.find_by_client_id(author.id, key) == message
 
@@ -624,35 +626,6 @@ async def test_tg654_the_database_rejects_the_same_key_of_the_same_author(
     )
 
 
-async def test_tg654_the_database_accepts_many_messages_without_a_key(
-    repo: ChatRepository,
-    sessions: async_sessionmaker[AsyncSession],
-    engine: AsyncEngine,
-) -> None:
-    # The column is nullable: NULL keys never collide (rows from before TG-654).
-    author = await _user(sessions)
-    room = await _room_with(repo, sessions)
-    async with engine.begin() as connection:
-        for offset in range(2):
-            await connection.execute(
-                INSERT_KEYED_MESSAGE,
-                {
-                    "id": uuid.uuid7(),
-                    "room_id": room.id,
-                    "author_id": author.id,
-                    "client_message_id": None,
-                    "sent_at": NOW + timedelta(seconds=offset),
-                },
-            )
-
-    async with engine.connect() as connection:
-        stored = await connection.scalar(
-            text("SELECT count(*) FROM chat_messages WHERE room_id = :room"),
-            {"room": room.id},
-        )
-    assert stored == 2
-
-
 async def test_tg654_adding_a_second_message_with_the_same_key_keeps_the_first(
     repo: ChatRepository,
     sessions: async_sessionmaker[AsyncSession],
@@ -665,8 +638,9 @@ async def test_tg654_adding_a_second_message_with_the_same_key_keeps_the_first(
     first = _message(room, author, NOW, "primer", key)
     second = _message(room, author, NOW + timedelta(seconds=1), "segon", key)
 
-    await repo.add_message(first)
-    await repo.add_message(second)
+    assert await repo.add_message(first) == first
+    # the loser gets the stored one back, not its own message
+    assert await repo.add_message(second) == first
 
     assert await repo.find_by_client_id(author.id, key) == first
     assert (await repo.page(room.id, None, 50)).messages == [first]
@@ -690,12 +664,28 @@ async def test_tg654_concurrent_adds_of_the_same_key_store_a_single_message(
         for n in range(10)
     ]
 
-    await asyncio.gather(*(repo.add_message(attempt) for attempt in attempts))
+    results = await asyncio.gather(*(repo.add_message(a) for a in attempts))
 
     stored = await repo.find_by_client_id(author.id, key)
     assert stored in attempts
+    assert results == [stored] * len(attempts)  # everyone gets the winner
     assert (await repo.page(room.id, None, 50)).messages == [stored]
     assert (
         await _count(engine, COUNT_KEYED, author_id=author.id, client_message_id=key)
         == 1
     )
+
+
+async def test_tg654_a_repeated_message_id_is_still_a_primary_key_error(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    # The conflict target is (author_id, client_message_id) only: a repeated id
+    # with another key must not be swallowed by ON CONFLICT DO NOTHING.
+    room = await _room_with(repo, sessions)
+    author = await _user(sessions)
+    message = _message(room, author, NOW)
+    await repo.add_message(message)
+    other_key = message.model_copy(update={"client_message_id": uuid.uuid4()})
+
+    with pytest.raises(IntegrityError, match="pk_chat_messages"):
+        await repo.add_message(other_key)

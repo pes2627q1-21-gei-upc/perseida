@@ -106,11 +106,11 @@ CLIENT_ID_COLUMN = """
     WHERE table_name = 'chat_messages' AND column_name = 'client_message_id'"""
 
 
-def test_tg654_c1_messages_have_a_nullable_uuid_client_message_id() -> None:
+def test_tg654_c1_messages_have_a_not_null_uuid_client_message_id() -> None:
     config = _alembic_config()
     command.upgrade(config, "head")
 
-    assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == [("uuid", "YES")]
+    assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == [("uuid", "NO")]
 
 
 def test_tg654_c2_the_client_message_id_is_unique_per_author() -> None:
@@ -147,8 +147,59 @@ def test_tg654_c3_the_migration_undoes_and_redoes_the_idempotency_key() -> None:
     finally:
         command.upgrade(config, "head")
 
-    assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == [("uuid", "YES")]
+    assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == [("uuid", "NO")]
 
 
 def test_tg654_c4_the_migration_builds_on_the_chat_migration() -> None:
     assert _revision_of_client_message_id().down_revision == "b3e9a6d2c581"
+
+
+def test_tg654_c5_messages_from_before_the_migration_get_a_distinct_key() -> None:
+    # Backfill with gen_random_uuid(): old rows end up with a non-null key and
+    # the unique (author_id, client_message_id) holds even for the same author.
+    config = _alembic_config()
+    command.upgrade(config, "head")
+    before = str(_revision_of_client_message_id().down_revision)
+    user = "0198a000-0000-7000-8000-0000000065a1"
+    event = "0198a000-0000-7000-8000-0000000065a2"
+    room = "0198a000-0000-7000-8000-0000000065a3"
+    old = (
+        "0198a000-0000-7000-8000-0000000065b1",
+        "0198a000-0000-7000-8000-0000000065b2",
+    )
+    command.downgrade(config, before)
+    try:
+        for statement in (
+            f"INSERT INTO users (id, email) VALUES ('{user}', 'tg654@example.test')"
+            " RETURNING id",
+            "INSERT INTO astronomical_events (id, source, external_id, title, summary,"
+            " category, starts_at, ends_at) VALUES"
+            f" ('{event}', 'catalog', 'tg654-backfill', 'Event', 'Summary', 'lunar',"
+            " now(), now() + interval '1 hour') RETURNING id",
+            f"INSERT INTO event_chat_rooms (id, event_id) VALUES ('{room}', '{event}')"
+            " RETURNING id",
+            *(
+                "INSERT INTO chat_messages (id, room_id, author_id, text) VALUES"
+                f" ('{message}', '{room}', '{user}', 'abans') RETURNING id"
+                for message in old
+            ),
+        ):
+            asyncio.run(_fetch(statement))
+
+        command.upgrade(config, "head")
+
+        keys = asyncio.run(
+            _fetch(
+                "SELECT client_message_id FROM chat_messages"
+                f" WHERE author_id = '{user}' ORDER BY id"
+            )
+        )
+        assert len(keys) == 2
+        assert all(row[0] is not None for row in keys)
+        assert keys[0] != keys[1]
+    finally:
+        command.upgrade(config, "head")
+        asyncio.run(
+            _fetch(f"DELETE FROM astronomical_events WHERE id = '{event}' RETURNING id")
+        )
+        asyncio.run(_fetch(f"DELETE FROM users WHERE id = '{user}' RETURNING id"))
