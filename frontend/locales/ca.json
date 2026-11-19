@@ -24,7 +24,7 @@
       "label": "Sales de xat"
     },
     "empty": {
-      "message": "Encara no estàs subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
+      "message": "Encara no t'has subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
       "cta": "Explora els esdeveniments"
     }
   },

@@ -56,7 +56,12 @@ export function ChatRoomsScreen() {
     retry: t('chat.retry'),
     retryHint: t('chat.retryHint'),
   };
-  const gutter = { paddingHorizontal: spacing.md };
+  // StatusPanel keeps its own margin of spacing.md: here only the side insets are added.
+  const statusFrame = {
+    paddingBottom: tabBarInset,
+    paddingLeft: insets.left,
+    paddingRight: insets.right,
+  };
 
   let body;
   if (entries && entries.length > 0) {
@@ -91,7 +96,17 @@ export function ChatRoomsScreen() {
     );
   } else if (entries) {
     body = (
-      <View style={[styles.center, gutter, { paddingBottom: tabBarInset }]}>
+      <View
+        testID="chat-rooms-empty"
+        style={[
+          styles.center,
+          {
+            paddingBottom: tabBarInset,
+            paddingLeft: insets.left + spacing.md,
+            paddingRight: insets.right + spacing.md,
+          },
+        ]}
+      >
         <View style={[styles.column, { maxWidth: readingMaxWidth }]}>
           <GlassPanel>
             <View style={{ gap: spacing.md }}>
@@ -109,7 +124,7 @@ export function ChatRoomsScreen() {
     );
   } else if (error && !fetching) {
     body = (
-      <View style={[styles.fill, { paddingBottom: tabBarInset }]}>
+      <View testID="chat-rooms-status" style={[styles.fill, statusFrame]}>
         <StatusPanel
           state="error"
           code={error.code}
@@ -120,7 +135,7 @@ export function ChatRoomsScreen() {
     );
   } else {
     body = (
-      <View style={[styles.fill, { paddingBottom: tabBarInset }]}>
+      <View testID="chat-rooms-status" style={[styles.fill, statusFrame]}>
         <StatusPanel state="loading" texts={statusTexts} />
       </View>
     );
