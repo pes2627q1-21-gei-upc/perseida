@@ -128,6 +128,17 @@ describe('APOD screen', () => {
     expect(screen.getByTestId('apod-image')).toHaveStyle({ aspectRatio: 0.5 });
   });
 
+  it('TG-651 keeps the frame when the size of the image is empty', async () => {
+    jest.spyOn(Image, 'getSize').mockImplementation((_uri, onSize) => onSize?.(0, 0));
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    await renderScreen();
+    const image = await screen.findByTestId('apod-image');
+
+    await fireEvent(image, 'load', { nativeEvent: {} });
+
+    expect(screen.getByTestId('apod-image')).toHaveStyle({ aspectRatio: 4 / 3 });
+  });
+
   it('TG-651 keeps the frame when the size of the image cannot be read', async () => {
     jest
       .spyOn(Image, 'getSize')
