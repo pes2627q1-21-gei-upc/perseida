@@ -1,14 +1,22 @@
 import base64
 import json
+import logging
 import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.application.shared.errors import ForbiddenError
+from app.application.shared.error_codes import RATE_LIMITED
+from app.application.shared.errors import (
+    ExternalServiceError,
+    ForbiddenError,
+    RateLimitedError,
+)
 from app.domain.posts.models import Post, PostAuthor, PostCursor
-from app.domain.posts.ports import EventLookup, PostRepository
+from app.domain.posts.ports import EventLookup, PostRepository, PostWriteRateLimiter
 from app.domain.shared.errors import NotFoundError, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 def _encode_cursor(cursor: PostCursor) -> str:
@@ -58,9 +66,29 @@ class PostPage(BaseModel):
 class PostService:
     """Application use cases for community event posts."""
 
-    def __init__(self, posts: PostRepository, events: EventLookup) -> None:
+    def __init__(
+        self,
+        posts: PostRepository,
+        events: EventLookup,
+        limiter: PostWriteRateLimiter,
+    ) -> None:
         self._posts = posts
         self._events = events
+        self._limiter = limiter
+
+    async def _check_write_rate(self, author_id: uuid.UUID) -> None:
+        # Fail open: Redis is only a cache (ADR-0005), so a down counter
+        # must not block editing or deleting posts.
+        try:
+            allowed = await self._limiter.hit(author_id)
+        except ExternalServiceError:
+            logger.warning(
+                "Post write rate limiter unavailable; allowing the write",
+                exc_info=True,
+            )
+            return
+        if not allowed:
+            raise RateLimitedError(RATE_LIMITED)
 
     async def create_post(
         self,
@@ -103,6 +131,7 @@ class PostService:
         new_text: str,
     ) -> Post:
         """Update the text of an existing post. Only the author is allowed."""
+        await self._check_write_rate(author_id)
         post = await self._posts.get_by_id(post_id)
         if post is None:
             raise NotFoundError("POST_NOT_FOUND", f"Post {post_id} does not exist")
@@ -117,6 +146,7 @@ class PostService:
         author_id: uuid.UUID,
     ) -> None:
         """Delete an existing post. Only the author is allowed."""
+        await self._check_write_rate(author_id)
         post = await self._posts.get_by_id(post_id)
         if post is None:
             raise NotFoundError("POST_NOT_FOUND", f"Post {post_id} does not exist")

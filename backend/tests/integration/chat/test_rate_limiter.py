@@ -42,3 +42,21 @@ async def test_tg444_redis_unavailable_is_translated() -> None:
             await RedisSendRateLimiter(client).hit(uuid4())
     finally:
         await client.aclose()
+
+
+async def test_tg645_posts_prefix_uses_its_own_key_and_counter(redis: Redis) -> None:
+    # TG-645: el límit de posts no comparteix comptador amb el del xat
+    posts = RedisSendRateLimiter(redis, limit=1, window_seconds=60, key_prefix="posts")
+    chat = RedisSendRateLimiter(redis, limit=1, window_seconds=60)
+    user = uuid4()
+    try:
+        assert await posts.hit(user)
+        assert not await posts.hit(user)
+        assert await chat.hit(user)
+        posts_count = await redis.get(f"ratelimit:posts:{user}")
+        chat_count = await redis.get(f"ratelimit:chat:{user}")
+        assert posts_count is not None and int(posts_count) == 2
+        assert chat_count is not None and int(chat_count) == 1
+        assert 0 < await redis.ttl(f"ratelimit:posts:{user}") <= 60
+    finally:
+        await redis.delete(f"ratelimit:posts:{user}", f"ratelimit:chat:{user}")

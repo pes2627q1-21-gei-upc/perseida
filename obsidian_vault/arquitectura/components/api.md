@@ -105,10 +105,10 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 |---|---|
 | `POST /api/events/{event_id}/posts` | Crea una publicació de text de l'usuària de la sessió. 201, 404 `EVENT_NOT_FOUND`, 422 `POST_TEXT_EMPTY` o `POST_TEXT_TOO_LONG` |
 | `GET /api/events/{event_id}/posts` | Llista paginada per cursor, de la més nova a la més antiga. 404 `EVENT_NOT_FOUND`, 422 `INVALID_CURSOR` |
-| `PATCH /api/posts/{post_id}` | Edita el text (només l'autora). 403 `POST_FORBIDDEN`, 404 `POST_NOT_FOUND`, 422 |
-| `DELETE /api/posts/{post_id}` | Esborra (només l'autora). 204, 403, 404, 422 si l'identificador no és vàlid |
+| `PATCH /api/posts/{post_id}` | Edita el text (només l'autora). 403 `POST_FORBIDDEN`, 404 `POST_NOT_FOUND`, 422, 429 `RATE_LIMITED` |
+| `DELETE /api/posts/{post_id}` | Esborra (només l'autora). 204, 403, 404, 422 si l'identificador no és vàlid, 429 `RATE_LIMITED` |
 
-Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/problem+json`. Els dos de `/api/events/{event_id}/posts` també poden rebre el 429 `RATE_LIMITED` del proxy (el bloc `/api/events/` de `rate-limit.conf`); `PATCH` i `DELETE` de `/api/posts/` encara no tenen límit. Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
+Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/problem+json`. Els dos de `/api/events/{event_id}/posts` també poden rebre el 429 `RATE_LIMITED` del proxy (el bloc `/api/events/` de `rate-limit.conf`); `PATCH` i `DELETE` de `/api/posts/` tenen un límit per usuària a l'API (TG-645): 10 edicions o esborrats per finestra fixa de 60 s, amb un sol comptador per a tots dos (`POSTS_WRITE_RATE_LIMIT`, `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`). `PostService` el comprova abans de buscar la publicació, amb el port `PostWriteRateLimiter` i el `RedisSendRateLimiter` del xat (clau `ratelimit:posts:{user_id}`), i respon 429 `RATE_LIMITED`. No va al proxy perquè el NAT de la UPC amaga la IP del client i un límit per IP hi seria global (TG-643). Si [[redis]] no respon, deixa passar la petició i en registra un avís ([[0005-redis-nomes-com-a-cache-lazy]]). `RateLimitedError` i el codi `RATE_LIMITED` són a `app.application.shared` perquè els comparteixen el xat i les publicacions. Regles, taula i cursor a [[model-de-domini#Publicacions d'esdeveniment (implementat)]].
 
 ## Subscripcions a esdeveniments (TG-53)
 

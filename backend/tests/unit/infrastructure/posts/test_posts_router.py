@@ -1,6 +1,7 @@
 """Event posts API: POST/GET /api/events/{id}/posts, PATCH/DELETE /api/posts/{id}.
 
-TG-633 (US TG-628). Services wired with in-memory fakes; the real auth flow.
+TG-633 (US TG-628); write rate limit TG-645. Services wired with in-memory fakes;
+the real auth flow.
 """
 
 import uuid
@@ -38,7 +39,7 @@ from tests.fakes.auth import (
     InMemorySessionStore,
 )
 from tests.fakes.events import FakeEventRepository
-from tests.fakes.posts import FakePostRepository
+from tests.fakes.posts import FakePostRepository, FakeRateLimiter
 from tests.fakes.users import InMemoryUserRepository
 
 PROBLEM_JSON = "application/problem+json"
@@ -68,7 +69,9 @@ def _post(author: User, text: str = "Hola", minutes: int = 0) -> Post:
 
 
 async def _client(
-    posts: FakePostRepository, me: User = ME
+    posts: FakePostRepository,
+    me: User = ME,
+    limiter: FakeRateLimiter | None = None,
 ) -> AsyncIterator[tuple[AsyncClient, dict[str, str]]]:
     auth = AuthService(
         FakeGoogleTokenVerifier(IDENTITY),
@@ -85,7 +88,7 @@ async def _client(
         InMemoryUserRepository(me, OTHER)
     )
     app.dependency_overrides[get_post_service] = lambda: PostService(
-        posts, FakeEventRepository([EVENT])
+        posts, FakeEventRepository([EVENT]), limiter or FakeRateLimiter()
     )
     tokens = await auth.login("google-id-token")
     async with AsyncClient(
@@ -367,6 +370,39 @@ async def test_post_text_is_returned_verbatim_as_json_text() -> None:
     assert response.status_code == 201
     assert response.headers["content-type"].startswith("application/json")
     assert response.json()["text"] == html
+
+
+async def test_tg645_patch_over_the_limit_is_429() -> None:
+    # TG-645: superar el límit d'edició dona 429 problem+json RATE_LIMITED
+    post = _post(ME, "Abans")
+    repo = FakePostRepository([post])
+    async for client, auth in _client(repo, limiter=FakeRateLimiter(allowed=False)):
+        response = await client.patch(
+            f"/api/posts/{post.id}", json={"text": "Després"}, headers=auth
+        )
+
+    _assert_problem(response, 429, "RATE_LIMITED")
+    assert repo.posts[post.id] == post
+
+
+async def test_tg645_delete_over_the_limit_is_429() -> None:
+    # TG-645: superar el límit d'esborrat dona 429 problem+json RATE_LIMITED
+    post = _post(ME)
+    repo = FakePostRepository([post])
+    async for client, auth in _client(repo, limiter=FakeRateLimiter(allowed=False)):
+        response = await client.delete(f"/api/posts/{post.id}", headers=auth)
+
+    _assert_problem(response, 429, "RATE_LIMITED")
+    assert post.id in repo.posts
+
+
+@pytest.mark.parametrize("method", ["patch", "delete"])
+def test_tg645_the_write_rate_limit_is_documented_under_posts(method: str) -> None:
+    responses = create_app().openapi()["paths"]["/api/posts/{post_id}"][method][
+        "responses"
+    ]
+
+    assert set(responses["429"]["content"]) == {"application/problem+json"}
 
 
 _POST_OPERATIONS = (

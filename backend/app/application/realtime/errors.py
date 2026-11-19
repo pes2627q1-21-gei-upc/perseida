@@ -4,6 +4,9 @@ from app.application.shared.error_codes import (
     DATABASE_UNAVAILABLE,
     INVALID_SESSION,
 )
+
+# Re-exported for the chat and the session; it lives in application.shared.
+from app.application.shared.error_codes import RATE_LIMITED as RATE_LIMITED
 from app.domain.realtime.models import Frame, FrameType
 
 VALIDATION_ERROR = "VALIDATION_ERROR"
@@ -12,14 +15,13 @@ NOT_SUBSCRIBED = "NOT_SUBSCRIBED"
 PUBSUB_UNAVAILABLE = "PUBSUB_UNAVAILABLE"
 INTERNAL_ERROR = "INTERNAL_ERROR"
 FORBIDDEN = "FORBIDDEN"
-RATE_LIMITED = "RATE_LIMITED"
 # Codes of the room handlers (chat, TG-459); they travel unchanged, as in REST.
 CHAT_MESSAGE_EMPTY = "CHAT_MESSAGE_EMPTY"
 CHAT_MESSAGE_TOO_LONG = "CHAT_MESSAGE_TOO_LONG"
 CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
 CHAT_ROOM_NOT_FOUND = "CHAT_ROOM_NOT_FOUND"
 EVENT_NOT_FOUND = "EVENT_NOT_FOUND"
-# DATABASE_UNAVAILABLE, INVALID_SESSION and ACCOUNT_* are shared with REST
+# DATABASE_UNAVAILABLE, INVALID_SESSION, RATE_LIMITED and ACCOUNT_* are shared with REST
 # (application.shared.error_codes) and imported above.
 
 CLOSE_GOING_AWAY = 1001

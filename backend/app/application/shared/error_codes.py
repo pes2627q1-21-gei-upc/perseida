@@ -11,3 +11,6 @@ ACCOUNT_DELETED = "ACCOUNT_DELETED"
 # ExternalServiceError (503): PostgreSQL is unreachable (connection refused, closed
 # or lost). Repositories map connection failures to this code.
 DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
+
+# RateLimitedError (429): a user exceeded a per-user rate limit (chat, posts).
+RATE_LIMITED = "RATE_LIMITED"

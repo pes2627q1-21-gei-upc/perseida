@@ -50,8 +50,15 @@ _EVENT_NOT_FOUND = _problem("L'esdeveniment no existeix (`EVENT_NOT_FOUND`).")
 # Sent by the proxy, not the API: the /api/events/ block of
 # infra/nginx-proxy-manager/rate-limit.conf also covers the posts of an event.
 _RATE_LIMITED = _problem(
-    "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega "
-    "de 20. La capçalera `Retry-After` indica quants segons cal esperar."
+    "Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els "
+    "clients (comptador compartit), amb una ràfega de 100. La capçalera "
+    "`Retry-After` indica quants segons cal esperar."
+)
+# Sent by the API (TG-645): per-user limit on editing and deleting posts.
+_WRITE_RATE_LIMITED = _problem(
+    "Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per "
+    "usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i "
+    "`POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`)."
 )
 _INVALID_TEXT = (
     f"Text buit (`{POST_TEXT_EMPTY}`), de més de {POST_MAX_LENGTH} caràcters "
@@ -207,6 +214,7 @@ async def list_event_posts(
         **_POST_ERRORS,
         400: _UNREADABLE_BODY,
         422: _problem(_INVALID_TEXT),
+        429: _WRITE_RATE_LIMITED,
     },
 )
 async def update_post(
@@ -233,6 +241,7 @@ async def update_post(
     responses={
         **_POST_ERRORS,
         422: _problem("Identificador de publicació invàlid (`VALIDATION_ERROR`)."),
+        429: _WRITE_RATE_LIMITED,
     },
 )
 async def delete_post(
