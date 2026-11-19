@@ -70,7 +70,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 
 **estat/**: les sessions de treball són a `estat/sessions/` (l'estat de les US és a Taiga)
 
-**guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]], [[skills-de-disseny-de-tercers]]
+**guies/**: [[llegir-el-vault-com-a-agent]], [[arrencada]], [[skills-de-disseny-de-tercers]], [[pr-apilades-amb-gh-stack]]
 
 ## Plantilles
 
