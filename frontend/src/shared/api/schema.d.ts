@@ -2385,7 +2385,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;
@@ -2474,7 +2474,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;
@@ -2541,6 +2541,15 @@ export interface operations {
       };
       /** @description Identificador de publicació invàlid (`VALIDATION_ERROR`). */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`). */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -2621,6 +2630,15 @@ export interface operations {
       };
       /** @description Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`). */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`). */
+      429: {
         headers: {
           [name: string]: unknown;
         };

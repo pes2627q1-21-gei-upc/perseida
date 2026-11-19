@@ -1665,7 +1665,7 @@
             }
           },
           "429": {
-            "description": "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "description": "Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1795,7 +1795,7 @@
             }
           },
           "429": {
-            "description": "Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar.",
+            "description": "Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1912,6 +1912,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1985,6 +1995,16 @@
           },
           "422": {
             "description": "Identificador de publicació invàlid (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`).",
             "content": {
               "application/problem+json": {
                 "schema": {

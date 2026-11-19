@@ -18,5 +18,9 @@ class ForbiddenError(ApplicationError):
     """The caller is authenticated but not allowed to perform the action."""
 
 
+class RateLimitedError(ApplicationError):
+    """A caller exceeded the configured rate."""
+
+
 class ExternalServiceError(ApplicationError):
     """An external dependency failed and no cached data could be served."""
