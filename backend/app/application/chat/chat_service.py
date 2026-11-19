@@ -20,6 +20,7 @@ from app.domain.chat.errors import (
     PAGE_MAX_LIMIT,
 )
 from app.domain.chat.models import (
+    ChatAuthor,
     ChatCursor,
     ChatMessage,
     ChatMessagePage,
@@ -134,6 +135,7 @@ class ChatService:
         text: str,
         *,
         client_message_id: uuid.UUID,
+        author_name: str | None,
         origin: str | None = None,
     ) -> ChatMessage:
         """Store, moderate and fan out a message, idempotently.
@@ -144,13 +146,15 @@ class ChatService:
         only if it was not published in the last ``REPUBLISH_COOLDOWN_SECONDS``;
         the same key for another room or text raises ``ConflictError``.
 
+        ``author_name`` is the sender's profile name (``None`` if it has none).
+
         ``origin`` is the id of the sender's connection (it is put in ``from`` of
         the published envelope so that its own session does not echo it back).
         """
         room = await self.get_or_create_room(user_id, event_id)
         message = ChatMessage.create(
             room_id=room.id,
-            author_id=user_id,
+            author=ChatAuthor(id=user_id, name=author_name),
             text=text,
             client_message_id=client_message_id,
         )
