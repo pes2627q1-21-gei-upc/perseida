@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import {
   FakeWebSocket,
@@ -9,7 +10,7 @@ import {
 } from '../../../__mocks__/fakeWebSocket';
 import { AppError } from '../errors';
 import type { SocketAuth } from '.';
-import { _resetSocketForTests, getSocketState } from './socketClient';
+import { _resetSocketForTests, getSocketState, reconnect } from './socketClient';
 import { useSocket } from './useSocket';
 
 const WS_URL = 'ws://api.test/api/ws';
@@ -19,6 +20,9 @@ const AUTH_ACK: Frame = { type: 'auth', payload: {} };
 const authFrame = (token: string): Frame => ({ type: 'auth', token });
 const MESSAGE = { type: 'message' as const, room: ROOM, payload: { text: 'hola' } };
 const TEN_MINUTES = 10 * 60_000;
+// TG-654: 2 x the server heartbeat of 30 s (ADR-0030); per-attempt ack timeout = config.requestTimeoutMs.
+const DEAD_AFTER_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 10_000;
 // Base wait before each reconnection attempt: 1 s, doubling, capped at 30 s.
 const BACKOFF_BASES = [1000, 2000, 4000, 8000, 16_000, 30_000, 30_000, 30_000];
 
@@ -263,14 +267,30 @@ describe('useSocket: subscripcions (TG-461)', () => {
 });
 
 describe('useSocket: send (TG-461)', () => {
-  it('sense connexió oberta (abans de l’ack de l’auth) es rebutja amb NETWORK_ERROR sense enviar res', async () => {
+  // TG-654 (contract change approved by the person, replaces "send without connection ->
+  // NETWORK_ERROR"): the frame waits in memory and goes out once the connection is authenticated.
+  it('abans de l’ack de l’auth, send encua el frame: no es rebutja i no surt res fins que hi ha connexió autenticada', async () => {
     const { result } = await mount();
     await serverOpens();
-    const { sending } = await startSending(result.current.send);
-    const error = await rejectionOf(sending);
 
-    expect(error.code).toBe('NETWORK_ERROR');
+    const { sending } = await startSending(result.current.send);
+
     expect(lastSocket().sent).toEqual([authFrame('access-1')]);
+
+    await serverSends(AUTH_ACK);
+    const sent = lastSent();
+
+    expect(sent).toEqual({ ...MESSAGE, id: expect.any(String) });
+
+    const ack: Frame = {
+      type: 'message',
+      room: ROOM,
+      id: sent?.id,
+      payload: { id: 'm-1', sent_at: '2026-11-18T20:00:00Z' },
+    };
+    await serverSends(ack);
+
+    await expect(sending).resolves.toEqual(ack);
   });
 
   it('envia el frame amb un id i es resol amb l’ack del servidor', async () => {
@@ -291,11 +311,8 @@ describe('useSocket: send (TG-461)', () => {
     await expect(sending).resolves.toEqual(ack);
   });
 
-  it.each([
-    [403, 'FORBIDDEN', false],
-    [429, 'RATE_LIMITED', true],
-    [503, 'PUBSUB_UNAVAILABLE', true],
-  ])(
+  // TG-654: only an error that is not retryable rejects at once; 429/503 are retried (see below).
+  it.each([[403, 'FORBIDDEN', false]])(
     'un frame error %s %s amb l’id del frame el rebutja amb un AppError (retryable %s)',
     async (status, code, retryable) => {
       const { result } = await mountConnected();
@@ -759,8 +776,10 @@ describe('useSocket: SocketAuth injectat (TG-461; shared/realtime no importa fea
   });
 });
 
-describe('useSocket: send després d’una caiguda (TG-461)', () => {
-  it('es rebutja amb NETWORK_ERROR sense enviar res mentre espera per reconnectar', async () => {
+describe('useSocket: send després d’una caiguda (TG-461, TG-654)', () => {
+  // TG-654 (contract change): it used to reject with NETWORK_ERROR; now it waits for the connection.
+  it('s’encua sense enviar res mentre espera per reconnectar i surt en tornar a autenticar-se', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
     const { result } = await mountConnected();
     const dropped = lastSocket();
     await networkDrops();
@@ -773,10 +792,15 @@ describe('useSocket: send després d’una caiguda (TG-461)', () => {
     );
     await flush();
 
-    expect(outcome).toBeInstanceOf(AppError);
-    expect((outcome as AppError).code).toBe('NETWORK_ERROR');
+    expect(outcome).toBe('pending');
     expect(dropped.sent).toEqual([authFrame('access-1')]);
     expect(sockets()).toHaveLength(1);
+
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(lastSocket().sentOfType('message')).toEqual([{ ...MESSAGE, id: expect.any(String) }]);
   });
 });
 
@@ -932,7 +956,7 @@ describe('useSocket: feina asíncrona que acaba després de desmuntar (TG-461)',
   });
 });
 
-describe('useSocket: send pendent quan la connexió s’acaba (TG-461)', () => {
+describe('useSocket: send pendent quan la connexió s’acaba (TG-461, TG-654)', () => {
   /** Settles `sending` into a value the test can inspect without awaiting it forever. */
   async function outcomeOf(sending: Promise<unknown>) {
     let outcome: unknown = 'pending';
@@ -944,22 +968,51 @@ describe('useSocket: send pendent quan la connexió s’acaba (TG-461)', () => {
     return outcome;
   }
 
+  // TG-654 (contract change approved by the person, replaces "rejects with NETWORK_ERROR"): a
+  // connection that drops before the ack is not final, so the same frame is sent again, with the
+  // same id, once the client authenticates again.
   it.each([
     ['la xarxa cau (1006)', (socket: FakeWebSocket) => socket.networkFailure()],
     ['el servidor tanca amb 1013', (socket: FakeWebSocket) => socket.serverClose(1013)],
-  ])('es rebutja amb NETWORK_ERROR quan %s abans de l’ack', async (_label, close) => {
+  ])('no es rebutja quan %s abans de l’ack: es reenvia amb el mateix id', async (_label, close) => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
     const { result } = await mountConnected();
     const { sending } = await startSending(result.current.send);
+    const first = lastSent();
 
     await act(async () => close(lastSocket()));
+    expect(await outcomeOf(sending)).toBe('pending');
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(lastSocket().sentOfType('message')).toEqual([first]);
+
+    await serverSends({
+      type: 'message',
+      room: ROOM,
+      id: first?.id,
+      payload: { id: 'm-1', sent_at: '2026-11-18T20:00:00Z' },
+    });
+    expect(await outcomeOf(sending)).toBe('resolved');
+  });
+
+  // TG-654 F3: the last consumer leaves, the connection ends for good.
+  it('es rebutja amb SEND_UNCERTAIN (network, reintentable) quan es desmunta l’últim consumidor després d’haver-lo enviat', async () => {
+    const { result, unmount } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+
+    await unmount();
     const outcome = await outcomeOf(sending);
 
     expect(outcome).toBeInstanceOf(AppError);
-    expect((outcome as AppError).code).toBe('NETWORK_ERROR');
+    expect((outcome as AppError).code).toBe('SEND_UNCERTAIN');
+    expect((outcome as AppError).kind).toBe('network');
+    expect((outcome as AppError).retryable).toBe(true);
   });
 
-  it('es rebutja amb NETWORK_ERROR quan es desmunta l’últim consumidor abans de l’ack', async () => {
-    const { result, unmount } = await mountConnected();
+  it('es rebutja amb NETWORK_ERROR quan es desmunta l’últim consumidor sense haver-lo pogut enviar mai', async () => {
+    const { result, unmount } = await mount();
     const { sending } = await startSending(result.current.send);
 
     await unmount();
@@ -1029,7 +1082,8 @@ describe('useSocket: reconnect() quan l’estat no és closed (TG-461)', () => {
     const { result } = await mountConnected();
 
     await act(async () => result.current.reconnect());
-    await flush(TEN_MINUTES);
+    // TG-654: 60 s without any frame is a dead connection, so the quiet stretch stops just short.
+    await flush(DEAD_AFTER_MS - 1);
 
     expect(sockets()).toHaveLength(1);
     expect(lastSocket().closedByClientWith).toBeUndefined();
@@ -1046,5 +1100,673 @@ describe('useSocket: reconnect() quan l’estat no és closed (TG-461)', () => {
 
     expect(sockets()).toHaveLength(1);
     expect(result.current.status).toBe('reconnecting');
+  });
+});
+
+// ---- TG-654: connexió morta, cua de send, AppState i casos límit ---------------------------------
+
+/** Awaits `promise` into a value the test can inspect without waiting for it forever. */
+async function outcomeOf(promise: Promise<unknown>) {
+  let outcome: unknown = 'pending';
+  promise.then(
+    () => (outcome = 'resolved'),
+    (error: unknown) => (outcome = error),
+  );
+  await flush();
+  return outcome;
+}
+
+const messagesSent = (socket = lastSocket()) => socket.sentOfType('message');
+
+describe('useSocket: connexió morta (TG-654 F1, ADR-0030: 2 x heartbeat de 30 s)', () => {
+  it('sense cap frame del servidor en 60 000 ms tanca el socket amb 1000 i passa a reconnecting; 59 999 ms no fan res', async () => {
+    const { result } = await mountConnected();
+    const socket = lastSocket();
+
+    await flush(DEAD_AFTER_MS - 1);
+
+    expect(socket.closedByClientWith).toBeUndefined();
+    expect(result.current.status).toBe('open');
+
+    await flush(1);
+
+    expect(socket.closedByClientWith).toBe(1000);
+    expect(result.current.status).toBe('reconnecting');
+  });
+
+  it('després de tancar-lo reconnecta pel backoff existent, es torna a autenticar i resubscriu les sales', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await act(async () => {
+      result.current.subscribe(ROOM, jest.fn());
+    });
+    await flush(DEAD_AFTER_MS);
+
+    expect(sockets()).toHaveLength(1);
+
+    await flush(1000);
+    await serverOpens();
+
+    expect(sockets()).toHaveLength(2);
+    expect(lastSent()).toEqual(authFrame('access-1'));
+
+    await serverSends(AUTH_ACK);
+
+    expect(result.current.status).toBe('open');
+    expect(lastSocket().sentOfType('subscribe')).toEqual([
+      { type: 'subscribe', room: ROOM, id: expect.any(String) },
+    ]);
+  });
+
+  it('el compta des de l’open(): sense ni tan sols l’ack de l’auth també es dona per morta', async () => {
+    const { result } = await mount();
+    await serverOpens();
+    const socket = lastSocket();
+
+    await flush(DEAD_AFTER_MS - 1);
+    expect(socket.closedByClientWith).toBeUndefined();
+    await flush(1);
+
+    expect(socket.closedByClientWith).toBe(1000);
+    expect(result.current.status).toBe('reconnecting');
+  });
+
+  it.each([
+    ['un ping', { type: 'ping', id: 'p-1' }],
+    ['l’ack d’una subscripció', { type: 'subscribe', room: ROOM, id: 'x-1', payload: {} }],
+    ['un missatge d’una sala', { type: 'message', room: ROOM, payload: { id: 'm-9' } }],
+    ['un frame que ningú espera', { type: 'whatever', payload: {} }],
+  ] as [string, Frame][])(
+    'qualsevol frame (%s) rearma el comptador de 60 s',
+    async (_label, frame) => {
+      await mountConnected();
+      const socket = lastSocket();
+      await flush(DEAD_AFTER_MS - 1000);
+
+      await serverSends(frame);
+      await flush(DEAD_AFTER_MS - 1);
+
+      expect(socket.closedByClientWith).toBeUndefined();
+
+      await flush(1);
+
+      expect(socket.closedByClientWith).toBe(1000);
+    },
+  );
+
+  it('el frame d’auth (primer frame) també rearma el comptador', async () => {
+    await mount();
+    await serverOpens();
+    await flush(DEAD_AFTER_MS - 1000);
+    const socket = lastSocket();
+
+    await serverSends(AUTH_ACK);
+    await flush(DEAD_AFTER_MS - 1);
+
+    expect(socket.closedByClientWith).toBeUndefined();
+  });
+
+  it('en desmuntar l’últim consumidor no queda cap timer viu (ni el de connexió morta)', async () => {
+    const baseline = jest.getTimerCount();
+    const { unmount } = await mountConnected();
+
+    await unmount();
+    await flush();
+
+    expect(jest.getTimerCount()).toBe(baseline);
+  });
+
+  it('quan la connexió es tanca per sempre (4429) no queda cap timer viu', async () => {
+    const baseline = jest.getTimerCount();
+    const { result } = await mountConnected();
+
+    await serverCloses(4429);
+
+    expect(result.current.status).toBe('closed');
+    expect(jest.getTimerCount()).toBe(baseline);
+  });
+
+  it('un socket que ja s’ha tancat no el tanca una segona vegada el comptador vell', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    await mountConnected();
+    const first = lastSocket();
+    await networkDrops();
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+    const second = lastSocket();
+
+    await flush(DEAD_AFTER_MS - 1);
+
+    expect(first.closedByClientWith).toBeUndefined();
+    expect(second.closedByClientWith).toBeUndefined();
+  });
+});
+
+describe('useSocket: cua de send en memòria (TG-654 F2)', () => {
+  /** The first message frame the client wrote; its `id` identifies the request. */
+  const firstMessage = () => messagesSent()[0];
+  const ACK_PAYLOAD = { id: 'm-1', sent_at: '2026-11-18T20:00:00Z' };
+
+  it('envia el missatge després dels subscribe de les sales, quan la connexió queda autenticada', async () => {
+    const { result } = await mount();
+    await act(async () => {
+      result.current.subscribe(ROOM, jest.fn());
+    });
+    await startSending(result.current.send);
+    await serverOpens();
+
+    await serverSends(AUTH_ACK);
+
+    expect(lastSocket().sent.map((frame) => frame.type)).toEqual(['auth', 'subscribe', 'message']);
+  });
+
+  it('un intent sense ack en 10 s es reintenta amb el mateix id i el mateix payload; 9 999 ms no fan res', async () => {
+    const { result } = await mountConnected();
+    await startSending(result.current.send);
+    const first = firstMessage();
+
+    await flush(REQUEST_TIMEOUT_MS - 1);
+
+    expect(messagesSent()).toHaveLength(1);
+
+    await flush(1);
+
+    expect(messagesSent()).toEqual([first, first]);
+  });
+
+  it('un ack que arriba després d’un reintent resol la promesa i ja no es reenvia res més', async () => {
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+    await flush(REQUEST_TIMEOUT_MS);
+    const id = firstMessage()?.id;
+
+    await serverSends({ type: 'message', room: ROOM, id, payload: ACK_PAYLOAD });
+
+    expect(await outcomeOf(sending)).toBe('resolved');
+
+    await flush(REQUEST_TIMEOUT_MS * 3);
+
+    expect(messagesSent()).toHaveLength(2);
+  });
+
+  it('esgotats 3 intents sense cap resposta es rebutja amb SEND_UNCERTAIN (network, reintentable)', async () => {
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+
+    await flush(REQUEST_TIMEOUT_MS * 2);
+    expect(messagesSent()).toHaveLength(3);
+    expect(await outcomeOf(sending)).toBe('pending');
+
+    await flush(REQUEST_TIMEOUT_MS);
+    const outcome = await outcomeOf(sending);
+
+    expect(messagesSent()).toHaveLength(3);
+    expect(outcome).toBeInstanceOf(AppError);
+    expect((outcome as AppError).code).toBe('SEND_UNCERTAIN');
+    expect((outcome as AppError).kind).toBe('network');
+    expect((outcome as AppError).retryable).toBe(true);
+  });
+
+  it('un ack posterior al rebuig no fa res ni llença', async () => {
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+    const id = firstMessage()?.id;
+    await flush(REQUEST_TIMEOUT_MS * 3);
+    expect(await outcomeOf(sending)).toBeInstanceOf(AppError);
+
+    await serverSends({ type: 'message', room: ROOM, id, payload: ACK_PAYLOAD });
+
+    expect(getSocketState().status).toBe('open');
+  });
+
+  it.each([
+    [429, 'RATE_LIMITED'],
+    [503, 'PUBSUB_UNAVAILABLE'],
+  ])(
+    'un error %s %s (retryable) es reintenta esperant 1 s i després 2 s (amb jitter entre base/2 i base) amb el mateix id',
+    async (status, code) => {
+      for (const random of [0, 1]) {
+        _resetSocketForTests();
+        jest.spyOn(Math, 'random').mockReturnValue(random);
+        const { result, unmount } = await mountConnected();
+        await startSending(result.current.send);
+        const first = firstMessage();
+        const problem = (): Frame => ({
+          type: 'error',
+          id: first?.id,
+          room: ROOM,
+          payload: wsProblem(status, code),
+        });
+
+        await serverSends(problem());
+        await flush(1000 / 2 + (1000 / 2) * random - 1);
+        expect(messagesSent()).toHaveLength(1);
+        await flush(1);
+        expect(messagesSent()).toEqual([first, first]);
+
+        await serverSends(problem());
+        await flush(2000 / 2 + (2000 / 2) * random - 1);
+        expect(messagesSent()).toHaveLength(2);
+        await flush(1);
+        expect(messagesSent()).toEqual([first, first, first]);
+
+        await unmount();
+      }
+    },
+  );
+
+  it('en esgotar els 3 intents amb una resposta d’error reintentable a l’últim, es rebutja amb aquell error del servidor', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+    const id = firstMessage()?.id;
+    const problem = (): Frame => ({
+      type: 'error',
+      id,
+      room: ROOM,
+      payload: wsProblem(429, 'RATE_LIMITED'),
+    });
+
+    await serverSends(problem());
+    await flush(1000);
+    await serverSends(problem());
+    await flush(2000);
+    await serverSends(problem());
+    const error = await rejectionOf(sending);
+
+    expect(messagesSent()).toHaveLength(3);
+    expect(error.code).toBe('RATE_LIMITED');
+    expect(error.status).toBe(429);
+    expect(error.retryable).toBe(true);
+  });
+
+  it('si l’últim intent no va tenir resposta (tot i haver rebut un error abans) es rebutja amb SEND_UNCERTAIN', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+    const id = firstMessage()?.id;
+
+    await serverSends({
+      type: 'error',
+      id,
+      room: ROOM,
+      payload: wsProblem(503, 'PUBSUB_UNAVAILABLE'),
+    });
+    await flush(1000); // second attempt, it answers nothing
+    await flush(REQUEST_TIMEOUT_MS); // third attempt, it answers nothing either
+    await flush(REQUEST_TIMEOUT_MS);
+    const error = await rejectionOf(sending);
+
+    expect(messagesSent()).toHaveLength(3);
+    expect(error.code).toBe('SEND_UNCERTAIN');
+  });
+
+  it('un error no reintentable (FORBIDDEN) es rebutja de seguida amb aquell AppError i no es reenvia', async () => {
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+
+    await serverSends({
+      type: 'error',
+      id: firstMessage()?.id,
+      room: ROOM,
+      payload: wsProblem(403, 'FORBIDDEN'),
+    });
+    const error = await rejectionOf(sending);
+    await flush(REQUEST_TIMEOUT_MS * 2);
+
+    expect(error.code).toBe('FORBIDDEN');
+    expect(messagesSent()).toHaveLength(1);
+  });
+
+  it('si la connexió es tanca abans de l’ack es reenvia en reautenticar-se amb el mateix id i el mateix payload', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await startSending(result.current.send);
+    const first = firstMessage();
+
+    await networkDrops();
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(messagesSent()).toEqual([first]);
+    expect(sockets()).toHaveLength(2);
+  });
+
+  it('si la connexió es dona per morta abans de l’ack es reenvia en reautenticar-se amb el mateix id', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await flush(DEAD_AFTER_MS - 5000); // a quiet connection, 5 s before it counts as dead
+    await startSending(result.current.send);
+    const first = firstMessage();
+
+    await flush(5000);
+
+    expect(lastSocket().closedByClientWith).toBe(1000);
+
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(messagesSent()).toEqual([first]);
+    expect(sockets()).toHaveLength(2);
+  });
+
+  it('en resoldre amb l’ack no queda cap timer viu del send', async () => {
+    const { result, unmount } = await mountConnected();
+    const baseline = jest.getTimerCount();
+    const { sending } = await startSending(result.current.send);
+
+    await serverSends({
+      type: 'message',
+      room: ROOM,
+      id: firstMessage()?.id,
+      payload: ACK_PAYLOAD,
+    });
+    await sending;
+    await flush();
+
+    expect(jest.getTimerCount()).toBe(baseline);
+    await unmount();
+  });
+
+  it('en desmuntar amb un send pendent no queda cap timer viu', async () => {
+    const baseline = jest.getTimerCount();
+    const { result, unmount } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+
+    await unmount();
+    await outcomeOf(sending);
+
+    expect(jest.getTimerCount()).toBe(baseline);
+  });
+});
+
+describe('useSocket: final definitiu de la connexió amb enviaments pendents (TG-654 F3)', () => {
+  it('4429: un missatge ja enviat es rebutja amb SEND_UNCERTAIN', async () => {
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+
+    await serverCloses(4429);
+    const error = await rejectionOf(sending);
+
+    expect(error.code).toBe('SEND_UNCERTAIN');
+    expect(error.kind).toBe('network');
+  });
+
+  it('4429: un missatge que mai no va sortir (encara sense auth) es rebutja amb NETWORK_ERROR', async () => {
+    const { result } = await mount();
+    await serverOpens();
+    const { sending } = await startSending(result.current.send);
+
+    await serverCloses(4429);
+    const error = await rejectionOf(sending);
+
+    expect(error.code).toBe('NETWORK_ERROR');
+    expect(messagesSent()).toHaveLength(0);
+  });
+
+  it('4401 final (segon 4401 després de renovar): els pendents es rebutgen, ja enviats amb SEND_UNCERTAIN', async () => {
+    const { result } = await mountConnected();
+    await serverCloses(4401);
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+    const { sending } = await startSending(result.current.send);
+
+    await serverCloses(4401);
+    await serverOpens();
+    await serverCloses(4401);
+    const error = await rejectionOf(sending);
+
+    expect(getSocketState().status).toBe('closed');
+    expect(error.code).toBe('SEND_UNCERTAIN');
+  });
+
+  it('després de 8 intents de reconnexió fallits (closed) es rebuja un missatge que mai no va sortir amb NETWORK_ERROR', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    await networkDrops();
+    const { sending } = await startSending(result.current.send);
+
+    for (const base of BACKOFF_BASES) {
+      await flush(base);
+      await networkDrops();
+    }
+    const error = await rejectionOf(sending);
+
+    expect(getSocketState().status).toBe('closed');
+    expect(error.code).toBe('NETWORK_ERROR');
+  });
+
+  it('després de 8 intents fallits, un missatge que sí havia sortit es rebutja amb SEND_UNCERTAIN', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+    await networkDrops();
+
+    for (const base of BACKOFF_BASES) {
+      await flush(base);
+      await networkDrops();
+    }
+    const error = await rejectionOf(sending);
+
+    expect(getSocketState().status).toBe('closed');
+    expect(error.code).toBe('SEND_UNCERTAIN');
+  });
+});
+
+describe('useSocket: AppState (TG-654 F4)', () => {
+  /** Captures the AppState listeners the client registers, like useQuiz.test.tsx does. */
+  function captureAppState() {
+    const listeners: ((state: AppStateStatus) => void)[] = [];
+    const remove = jest.fn();
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener as (state: AppStateStatus) => void);
+      return { remove } as never;
+    });
+    const emit = (state: AppStateStatus) => act(async () => listeners.forEach((l) => l(state)));
+    return { spy, remove, listeners, emit };
+  }
+
+  it('registra un sol listener `change` amb el primer consumidor i el treu amb l’últim', async () => {
+    const app = captureAppState();
+
+    const first = await mount();
+    const second = await mount();
+
+    expect(app.spy).toHaveBeenCalledTimes(1);
+    expect(app.spy).toHaveBeenCalledWith('change', expect.any(Function));
+
+    await first.unmount();
+    expect(app.remove).not.toHaveBeenCalled();
+
+    await second.unmount();
+    expect(app.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['background', 'inactive'] as const)(
+    '%s tanca el socket amb 1000, passa a reconnecting i no programa cap reintent',
+    async (state) => {
+      const app = captureAppState();
+      const { result } = await mountConnected();
+      const socket = lastSocket();
+
+      await app.emit(state);
+      await flush();
+
+      expect(socket.closedByClientWith).toBe(1000);
+      expect(result.current.status).toBe('reconnecting');
+
+      await flush(TEN_MINUTES);
+
+      expect(sockets()).toHaveLength(1);
+      expect(result.current.status).toBe('reconnecting');
+    },
+  );
+
+  it('active reconnecta de seguida (sense esperar el backoff), reautentica i resubscriu les sales', async () => {
+    const app = captureAppState();
+    const { result } = await mountConnected();
+    await act(async () => {
+      result.current.subscribe(ROOM, jest.fn());
+    });
+    await app.emit('background');
+    await flush();
+
+    await app.emit('active');
+    await flush();
+
+    expect(sockets()).toHaveLength(2);
+
+    await serverOpens();
+    expect(lastSent()).toEqual(authFrame('access-1'));
+    await serverSends(AUTH_ACK);
+
+    expect(result.current.status).toBe('open');
+    expect(lastSocket().sentOfType('subscribe')).toEqual([
+      { type: 'subscribe', room: ROOM, id: expect.any(String) },
+    ]);
+  });
+
+  it('active posa els intents a 0 i cancel·la l’espera del backoff pendent', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const app = captureAppState();
+    const { result } = await mountConnected();
+    await networkDrops(); // waits 1 s
+    await flush(1000);
+    await networkDrops(); // waits 2 s
+    await flush(2000);
+    await networkDrops(); // waits 4 s, attempts = 3
+    expect(sockets()).toHaveLength(3);
+
+    await app.emit('active');
+    await flush();
+
+    expect(sockets()).toHaveLength(4);
+
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+    await flush(4000); // the old pending retry must not open another socket
+
+    expect(sockets()).toHaveLength(4);
+
+    await networkDrops();
+    await flush(1000); // first level of the backoff again
+
+    expect(sockets()).toHaveLength(5);
+    expect(result.current.status).toBe('reconnecting');
+  });
+
+  it('active amb la connexió oberta no fa res', async () => {
+    const app = captureAppState();
+    await mountConnected();
+    const socket = lastSocket();
+
+    await app.emit('active');
+    await flush();
+
+    expect(sockets()).toHaveLength(1);
+    expect(socket.closedByClientWith).toBeUndefined();
+  });
+
+  it('un send pendent no es perd en passar a segon pla: es reenvia amb el mateix id en tornar', async () => {
+    const app = captureAppState();
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+    const first = lastSent();
+
+    await app.emit('background');
+    await flush();
+
+    expect(await outcomeOf(sending)).toBe('pending');
+
+    await app.emit('active');
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(messagesSent()).toEqual([first]);
+  });
+
+  it('un send fet amb l’app en segon pla s’encua i surt en tornar a primer pla', async () => {
+    const app = captureAppState();
+    const { result } = await mountConnected();
+    await app.emit('background');
+    await flush();
+
+    const { sending } = await startSending(result.current.send);
+
+    expect(await outcomeOf(sending)).toBe('pending');
+
+    await app.emit('active');
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    expect(messagesSent()).toEqual([{ ...MESSAGE, id: expect.any(String) }]);
+  });
+
+  it('no queda cap timer viu en segon pla (ni el de connexió morta)', async () => {
+    const baseline = jest.getTimerCount();
+    const app = captureAppState();
+    const { unmount } = await mountConnected();
+
+    await app.emit('background');
+    await flush();
+    await unmount();
+    await flush();
+
+    expect(jest.getTimerCount()).toBe(baseline);
+  });
+});
+
+describe('useSocket: casos límit (TG-654 F6)', () => {
+  it('un new WebSocket() que llança es tracta com una caiguda: backoff i reconnecting, no es queda a connecting', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    globalThis.WebSocket = jest.fn(() => {
+      throw new Error('SecurityError');
+    }) as unknown as typeof WebSocket;
+
+    const { result } = await mount();
+
+    expect(result.current.status).toBe('reconnecting');
+
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    await flush(1000);
+
+    expect(sockets()).toHaveLength(1);
+    expect(lastSocket().url).toBe(WS_URL);
+  });
+
+  it.each([
+    ['null', null],
+    ['un número', 3],
+    ['un string', 'x'],
+  ])(
+    'un frame JSON primitiu (%s) s’ignora sense petar, també abans de l’auth',
+    async (_label, primitive) => {
+      const { result } = await mount();
+      await serverOpens();
+      const socket = lastSocket();
+
+      await act(async () => socket.serverSend(primitive as unknown as Frame));
+      expect(result.current.status).toBe('connecting');
+      await serverSends(AUTH_ACK);
+      await act(async () => socket.serverSend(primitive as unknown as Frame));
+      await serverSends({ type: 'ping', id: 'p-1' });
+
+      expect(result.current.status).toBe('open');
+      expect(lastSent()).toEqual({ type: 'pong', id: 'p-1' });
+    },
+  );
+
+  it('reconnect() sense consumidors no obre cap socket', async () => {
+    await act(async () => reconnect());
+    await flush(TEN_MINUTES);
+
+    expect(sockets()).toHaveLength(0);
+    expect(getSocketState().status).toBe('closed');
   });
 });
