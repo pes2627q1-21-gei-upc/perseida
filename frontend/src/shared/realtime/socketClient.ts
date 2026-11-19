@@ -117,7 +117,13 @@ function connect(): void {
 }
 
 function open(token: string): void {
-  const current = new WebSocket(config.wsUrl);
+  let current: WebSocket;
+  try {
+    current = new WebSocket(config.wsUrl);
+  } catch {
+    handleClose(1006); // The platform refused to create it: the same as a connection that dropped.
+    return;
+  }
   socket = current;
   authenticated = false;
   current.onopen = () => current.send(JSON.stringify({ type: 'auth', token }));
@@ -134,9 +140,11 @@ function open(token: string): void {
 function handleFrame(data: unknown): void {
   let frame: ServerFrame;
   try {
-    frame = JSON.parse(String(data)) as ServerFrame;
+    const parsed: unknown = JSON.parse(String(data));
+    if (typeof parsed !== 'object' || parsed === null) return;
+    frame = parsed as ServerFrame;
   } catch {
-    return; // The server only sends JSON text; anything else is ignored.
+    return; // The server only sends JSON objects as text; anything else is ignored.
   }
 
   if (!authenticated) {
@@ -269,7 +277,7 @@ export function releaseSocket(): void {
 
 /** Opens the connection again after it ended up `closed` (e.g. a retry button). */
 export function reconnect(): void {
-  if (state.status !== 'closed') return;
+  if (state.status !== 'closed' || consumers === 0) return;
   attempts = 0;
   sessionRenewed = false;
   setState({ status: 'connecting' });
