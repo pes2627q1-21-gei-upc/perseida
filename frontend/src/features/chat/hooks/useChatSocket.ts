@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import { useCallback, useEffect, useRef } from 'react';
 
 import type { components } from '../../../shared/api/schema';
@@ -18,6 +19,9 @@ export interface ChatSocketHandlers {
   onError?: (error: AppError) => void;
 }
 
+/** How many message ids per room are remembered to discard the ones delivered twice. */
+const SEEN_IDS_LIMIT = 200;
+
 /** Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. */
 export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
   const { status, error, subscribe, send, reconnect } = useSocket(socketAuth);
@@ -29,25 +33,34 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
     handlersRef.current = handlers;
   });
 
-  useEffect(
-    () =>
-      subscribe(room, (frame) => {
-        const current = handlersRef.current;
-        if (frame.id) {
-          // Answers to this client's own requests (the errors of sendMessage reject its promise
-          // instead): only a failed join of the room is reported.
-          if (frame.type === 'error') current.onError?.(errorOfFrame(frame));
-          return;
-        }
-        if (frame.type === 'message') current.onMessage(frame.payload as ChatMessage);
-        else if (frame.type === 'unsubscribe') current.onRevoked();
-      }),
-    [room, subscribe],
-  );
+  useEffect(() => {
+    // The ids already delivered in this room (a retried message may be published again).
+    const seenIds = new Set<string>();
+    return subscribe(room, (frame) => {
+      const current = handlersRef.current;
+      if (frame.id) {
+        // Answers to this client's own requests (the errors of sendMessage reject its promise
+        // instead): only a failed join of the room is reported.
+        if (frame.type === 'error') current.onError?.(errorOfFrame(frame));
+        return;
+      }
+      if (frame.type === 'message') {
+        const message = frame.payload as ChatMessage;
+        if (seenIds.has(message.id)) return;
+        seenIds.add(message.id);
+        if (seenIds.size > SEEN_IDS_LIMIT) seenIds.delete(seenIds.values().next().value!);
+        current.onMessage(message);
+      } else if (frame.type === 'unsubscribe') current.onRevoked();
+    });
+  }, [room, subscribe]);
 
   const sendMessage = useCallback(
-    async (text: string): Promise<SentChatMessage> => {
-      const ack = await send({ type: 'message', room, payload: { text } });
+    async (text: string, clientMessageId = Crypto.randomUUID()): Promise<SentChatMessage> => {
+      const ack = await send({
+        type: 'message',
+        room,
+        payload: { text, client_message_id: clientMessageId },
+      });
       const { id, sent_at } = ack.payload as SentChatMessage;
       return { id, sent_at };
     },
