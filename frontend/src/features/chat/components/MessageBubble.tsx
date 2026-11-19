@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Warning, WarningCircle } from 'phosphor-react-native';
-import { useEffect } from 'react';
+import { type ComponentRef, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -208,6 +208,7 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
   const enter = useFloatIn(entering);
+  const bubble = useRef<ComponentRef<typeof View>>(null);
 
   const mine = item.kind === 'pending' || item.mine;
   const surface = bubbleSurface(theme.colors, mine, reduceTransparency);
@@ -240,6 +241,7 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
     // Stryker disable next-line all: alignment and spacing, visual only.
     <Animated.View style={[styles.column, mine ? styles.mine : styles.others, enter]}>
       <View
+        ref={bubble}
         testID={`chat-message-${item.key}`}
         accessible
         accessibilityLabel={label}
@@ -260,7 +262,12 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
           {onRetry && (
             <QuietButton
               label={t('chat.message.retry')}
-              onPress={() => onRetry(item.clientMessageId)}
+              onPress={() => {
+                onRetry(item.clientMessageId);
+                // The button goes away with the retry: the focus goes to the bubble, not nowhere.
+                if (bubble.current)
+                  AccessibilityInfo.sendAccessibilityEvent(bubble.current, 'focus');
+              }}
             />
           )}
         </>
