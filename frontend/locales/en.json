@@ -127,7 +127,7 @@
     "outings": {
       "kind": "Outing",
       "open": "Open the outing",
-      "unavailable": "The outings could not be loaded."
+      "linkedEvent": "Related event"
     }
   },
   "home": {

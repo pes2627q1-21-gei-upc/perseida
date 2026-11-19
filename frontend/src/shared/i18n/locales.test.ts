@@ -36,7 +36,6 @@ describe('locales', () => {
         'events.filter.outings',
         'events.empty.outings',
         'events.outings.kind',
-        'events.outings.unavailable',
         'events.outings.open',
         'events.outings.linkedEvent',
       ]) {

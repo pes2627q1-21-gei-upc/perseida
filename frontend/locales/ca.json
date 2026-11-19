@@ -127,7 +127,7 @@
     "outings": {
       "kind": "Sortida",
       "open": "Obre la sortida",
-      "unavailable": "No s'han pogut carregar les sortides."
+      "linkedEvent": "Esdeveniment relacionat"
     }
   },
   "home": {

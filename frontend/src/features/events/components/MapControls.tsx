@@ -15,8 +15,8 @@ interface Props {
   onViewChange: (view: EventsView) => void;
   filter: EventFilter;
   onFilterChange: (filter: EventFilter) => void;
-  /** The outings could not be loaded: the panel says so (TG-646). */
-  outingsUnavailable?: boolean;
+  /** Already translated warning that the outings could not be loaded; the panel says it (TG-646). */
+  outingsWarning?: string;
 }
 
 /**
@@ -25,13 +25,7 @@ interface Props {
  * reach of the thumb, and never over the map or the list. It keeps clear of the home
  * indicator and stays at a readable width on wide screens.
  */
-export function MapControls({
-  view,
-  onViewChange,
-  filter,
-  onFilterChange,
-  outingsUnavailable = false,
-}: Props) {
+export function MapControls({ view, onViewChange, filter, onFilterChange, outingsWarning }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -70,14 +64,15 @@ export function MapControls({
       <View testID="map-controls-panel" style={[styles.panel, { maxWidth: readingMaxWidth }]}>
         <GlassPanel>
           <View style={{ gap: theme.spacing.sm }}>
-            {outingsUnavailable && (
+            {outingsWarning ? (
               <Text
+                accessibilityRole="alert"
                 accessibilityLiveRegion="polite"
                 style={[theme.typography.caption, { color: theme.colors.text.primary }]}
               >
-                {t('events.outings.unavailable')}
+                {outingsWarning}
               </Text>
-            )}
+            ) : null}
             <GelSegmented
               options={filters}
               value={filter}

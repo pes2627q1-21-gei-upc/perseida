@@ -22,6 +22,7 @@ import { useIsWide } from '../../features/events/useIsWide';
 import type { Outing } from '../../features/outings/api/outings';
 import { describeOuting } from '../../features/outings/formatOuting';
 import { useOutings } from '../../features/outings/hooks/useOutings';
+import { errorMessage } from '../../shared/errors';
 import { SkyBackground } from '../../shared/ui';
 
 const NO_EVENTS: ClassifiedEvent[] = [];
@@ -67,6 +68,11 @@ export default function MapScreen() {
   );
   // Looked up in every event and outing, so the sheet stays open if the filter changes behind it.
   const selected = data?.all.find((event) => event.id === selectedId) ?? null;
+  // A failure of the outings only warns in the controls while they are on the map.
+  const outingsError = withOutings ? outingsQuery.error : null;
+  const outingsWarning = outingsError
+    ? errorMessage(t, outingsError.code, outingsError.retryable)
+    : undefined;
   const selectedOuting = outings.find((outing) => outing.id === selectedId) ?? null;
   const closeSheet = useCallback(() => setSelectedId(null), []);
 
@@ -133,7 +139,7 @@ export default function MapScreen() {
             onViewChange={setView}
             filter={filter}
             onFilterChange={setFilter}
-            outingsUnavailable={outingsQuery.isError}
+            outingsWarning={outingsWarning}
           />
         </View>
         {wide && (

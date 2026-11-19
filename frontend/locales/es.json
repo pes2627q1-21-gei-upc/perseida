@@ -127,7 +127,7 @@
     "outings": {
       "kind": "Salida",
       "open": "Abre la salida",
-      "unavailable": "No se han podido cargar las salidas."
+      "linkedEvent": "Evento relacionado"
     }
   },
   "home": {

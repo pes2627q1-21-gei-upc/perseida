@@ -237,7 +237,7 @@ function OutingSheetBody({
             {outing.event_id ? (
               <DateRow
                 label={t('outings.detail.event')}
-                value={eventTitle ?? t('outings.form.linkedEvent')}
+                value={eventTitle ?? t('events.outings.linkedEvent')}
               />
             ) : null}
           </View>

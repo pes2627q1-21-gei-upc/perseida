@@ -85,6 +85,17 @@ function mockEventsApi(routes: { active?: Route; upcoming?: Route } = {}): jest.
   });
 }
 
+/** The alerts of the status over the map, not the warning in the controls (TG-646). */
+function queryStatusAlerts() {
+  const inControls = within(screen.getByTestId('map-controls')).queryAllByRole('alert');
+  return screen.queryAllByRole('alert').filter((alert) => !inControls.includes(alert));
+}
+
+async function findStatusAlert() {
+  await waitFor(() => expect(queryStatusAlerts()).toHaveLength(1));
+  return queryStatusAlerts()[0];
+}
+
 async function renderScreen() {
   return render(
     <SafeAreaProvider initialMetrics={SAFE_AREA}>
@@ -305,13 +316,13 @@ describe('Events map screen', () => {
     });
     await renderScreen();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await findStatusAlert()).toHaveTextContent(
       'Alguna cosa ha anat malament. Torna-ho a provar.',
     );
     await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
 
     await waitForMapHtml((page) => page.includes(launchEvent.id));
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(queryStatusAlerts()).toHaveLength(0);
   });
 
   it('says so when there are no events at all (criterion 5)', async () => {
@@ -581,7 +592,6 @@ describe('Events map screen with outings (TG-646)', () => {
     const html = await waitForMapHtml((page) => page.includes(launchEvent.id));
     expect(html).not.toContain(myOuting.id);
     expect(await findWarning()).toHaveTextContent(i18n.t('errors.INTERNAL_ERROR'));
-    expect(screen.queryByText(i18n.t('events.outings.unavailable'))).toBeNull();
   });
 
   it('warns with the message of the session when there is no session (INVALID_SESSION, criterion 5)', async () => {
@@ -635,7 +645,7 @@ describe('Events map screen with outings (TG-646)', () => {
 
     await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await findStatusAlert()).toHaveTextContent(
       'Alguna cosa ha anat malament. Torna-ho a provar.',
     );
   });
