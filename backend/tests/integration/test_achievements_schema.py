@@ -34,6 +34,7 @@ pytestmark = pytest.mark.skipif(
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 SEED = BACKEND_DIR / "alembic" / "seed" / "achievements.json"
 TABLES = ("achievements", "user_achievements")
+ACHIEVEMENTS_REVISION = "e7a3c5b9d201"
 PREFIX = "qa_ach_schema"
 EXPECTED_PER_CATEGORY = {
     "streaks": 6,
@@ -110,15 +111,19 @@ async def engine() -> AsyncIterator[AsyncEngine]:
 
 
 def test_tg572_migration_creates_both_tables_and_can_go_down_and_up() -> None:
-    # The head must be the achievements migration: undo only that revision.
-    # It drops only the two tables of this task, never the other modules' data.
+    # Undo the achievements migration (and what was added on top of it later):
+    # go down to the revision it was built on. It drops only the two tables of
+    # this task, never the other modules' data.
     config = _config()
-    head = ScriptDirectory.from_config(config).get_current_head()
-    assert head is not None
+    script = ScriptDirectory.from_config(config)
+    achievements = script.get_revision(ACHIEVEMENTS_REVISION)
+    assert achievements is not None
+    before = achievements.down_revision
+    assert isinstance(before, str)
     assert _tables_exist() == [True, True]
 
     try:
-        command.downgrade(config, "-1")
+        command.downgrade(config, before)
         assert _tables_exist() == [False, False]
         command.upgrade(config, "head")
         assert _tables_exist() == [True, True]
