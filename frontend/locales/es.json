@@ -42,7 +42,7 @@
       "label": "Escribe un mensaje",
       "send": "Enviar",
       "counter": "{{count}} de {{max}} caracteres",
-      "tooLong": "El mensaje puede tener como máximo 1.000 caracteres."
+      "tooLong": "El mensaje puede tener como máximo {{max}} caracteres."
     },
     "messages": {
       "label": "Mensajes del chat",
