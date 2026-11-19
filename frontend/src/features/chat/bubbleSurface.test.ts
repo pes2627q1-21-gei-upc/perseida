@@ -23,10 +23,6 @@ function over(surface: string, background: string) {
 }
 
 const THEMES: ThemeName[] = ['dia', 'posta', 'nit', 'vermell'];
-const SIDES = [
-  ['mine', true],
-  ['others', false],
-] as const;
 
 /** Every colour of the scene a bubble can sit on: the sky and the whole lake, glitter included. */
 function scene(name: ThemeName) {
@@ -35,47 +31,62 @@ function scene(name: ThemeName) {
   return [sky.top, sky.low, ...Object.values(rest), ...flowers];
 }
 
-// The signature is `bubbleSurface(themeColors, mine, reduceTransparency)`, like `rowSurface`.
+// Signature: bubbleSurface(themeColors, mine, reduceTransparency) returns
+// { background, gradient?, text, secondaryText, border }. Mine is gel (opaque, the gel tokens of
+// the button); others are translucent glass.
 describe('bubbleSurface (TG-469, WCAG 1.4.3)', () => {
   describe.each(THEMES)('%s', (name) => {
-    it.each(SIDES)(
-      'text reads at 4.5:1 on the bubble of %s over any colour of the scene',
-      (_side, mine) => {
-        const { text } = colors[name];
+    const { gel, text } = colors[name];
 
-        scene(name).forEach((background) => {
-          const seen = over(bubbleSurface(colors[name], mine, false), background);
-          expect(contrast(rgb(text.primary), seen)).toBeGreaterThanOrEqual(4.5);
-          expect(contrast(rgb(text.secondary), seen)).toBeGreaterThanOrEqual(4.5);
+    it.each([false, true])(
+      'my bubble is the gel of the button, and its text reads at 4.5:1 on every stop of it (transparency off: %s)',
+      (reduceTransparency) => {
+        const mine = bubbleSurface(colors[name], true, reduceTransparency);
+
+        expect(mine.text).toBe(gel.text);
+        expect(mine.background).toBe(gel.body[0]);
+        expect(mine.gradient).toEqual(gel.body);
+        [...gel.body, gel.bodyPressed].forEach((body) => {
+          expect(contrast(rgb(mine.text), rgb(body))).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(rgb(mine.secondaryText), rgb(body))).toBeGreaterThanOrEqual(4.5);
         });
       },
     );
 
-    it.each(SIDES)('the bubble of %s is opaque with «Reduce transparency»', (_side, mine) => {
-      const { text } = colors[name];
-      const surface = bubbleSurface(colors[name], mine, true);
+    it('the bubble of others reads at 4.5:1 over any colour of the scene', () => {
+      const others = bubbleSurface(colors[name], false, false);
 
-      expect(surface).toMatch(/^#[0-9A-F]{6}$/i);
-      expect(contrast(rgb(text.primary), rgb(surface))).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(rgb(text.secondary), rgb(surface))).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('mine and others look different, with and without transparency', () => {
-      expect(bubbleSurface(colors[name], true, false)).not.toBe(
-        bubbleSurface(colors[name], false, false),
-      );
-      expect(bubbleSurface(colors[name], true, true)).not.toBe(
-        bubbleSurface(colors[name], false, true),
-      );
-    });
-
-    it('is a hex colour, with or without alpha, and the translucent one is not a slab', () => {
-      [true, false].forEach((mine) => {
-        const surface = bubbleSurface(colors[name], mine, false);
-
-        expect(surface).toMatch(/^#[0-9A-F]{6}([0-9A-F]{2})?$/i);
-        if (surface.length === 9) expect(parseInt(surface.slice(7, 9), 16)).toBeLessThan(255);
+      expect(others.text).toBe(text.primary);
+      expect(others.secondaryText).toBe(text.secondary);
+      scene(name).forEach((backgroundColor) => {
+        const seen = over(others.background, backgroundColor);
+        expect(contrast(rgb(others.text), seen)).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(rgb(others.secondaryText), seen)).toBeGreaterThanOrEqual(4.5);
       });
+    });
+
+    it('the bubble of others is still glass, translucent, and has no gradient', () => {
+      const others = bubbleSurface(colors[name], false, false);
+
+      expect(others.background).toMatch(/^#[0-9A-F]{6}[0-9A-F]{2}$/i);
+      expect(parseInt(others.background.slice(7, 9), 16)).toBeLessThan(255);
+      expect(others.gradient).toBeUndefined();
+    });
+
+    it('the bubble of others is opaque with «Reduce transparency»', () => {
+      const others = bubbleSurface(colors[name], false, true);
+
+      expect(others.background).toMatch(/^#[0-9A-F]{6}$/i);
+      expect(contrast(rgb(others.text), rgb(others.background))).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(rgb(others.secondaryText), rgb(others.background))).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    });
+
+    it.each([false, true])('mine and others look different (reduce transparency: %s)', (reduce) => {
+      expect(bubbleSurface(colors[name], true, reduce).background).not.toBe(
+        bubbleSurface(colors[name], false, reduce).background,
+      );
     });
   });
 });
