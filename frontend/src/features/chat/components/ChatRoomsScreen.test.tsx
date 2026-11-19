@@ -183,7 +183,7 @@ describe('ChatRoomsScreen without subscriptions', () => {
 
     expect(
       await screen.findByText(
-        "Encara no estàs subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
+        "Encara no t'has subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
       ),
     ).toBeOnTheScreen();
   });
@@ -308,5 +308,32 @@ describe('ChatRoomsScreen above the floating tab bar', () => {
     await renderScreen({ tabBarHeight: TAB_BAR });
 
     expect(screen.getByTestId('chat-rooms-status')).toHaveStyle({ paddingBottom: TAB_BAR });
+  });
+});
+
+describe('ChatRoomsScreen beside the notch', () => {
+  // A phone in landscape: the cut-out takes room on the sides.
+  const INSETS = { top: 0, left: 20, right: 24, bottom: 0 };
+
+  it('keeps the empty state clear of the side insets, as the list is', async () => {
+    answers[SUBSCRIPTIONS] = () => jsonResponse([]);
+
+    await renderScreen({ insets: INSETS });
+
+    expect(await screen.findByTestId('chat-rooms-empty')).toHaveStyle({
+      paddingLeft: INSETS.left + spacing.md,
+      paddingRight: INSETS.right + spacing.md,
+    });
+  });
+
+  it('keeps the error clear of the side insets (the panel adds its own margin)', async () => {
+    answers[SUBSCRIPTIONS] = () => problemResponse(503, 'SESSION_UNAVAILABLE');
+
+    await renderScreen({ insets: INSETS });
+
+    expect(await screen.findByTestId('chat-rooms-status')).toHaveStyle({
+      paddingLeft: INSETS.left,
+      paddingRight: INSETS.right,
+    });
   });
 });
