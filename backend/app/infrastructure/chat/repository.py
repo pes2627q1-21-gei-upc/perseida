@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import exists, select, true
+from sqlalchemy import Select, exists, select, true
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, InterfaceError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -12,6 +12,7 @@ from app.application.chat.errors import CHAT_ROOM_NOT_FOUND
 from app.application.shared.error_codes import DATABASE_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
 from app.domain.chat.models import (
+    ChatAuthor,
     ChatCursor,
     ChatMessage,
     ChatRepositoryPage,
@@ -25,6 +26,7 @@ from app.infrastructure.events.tables import (
     AstronomicalEventRow,
     EventSubscriptionRow,
 )
+from app.infrastructure.users.tables import UserRow
 
 _ROOM_FOREIGN_KEY = "fk_chat_messages_room_id_event_chat_rooms"
 
@@ -42,14 +44,21 @@ def _room(row: EventChatRoomRow) -> EventChatRoom:
     return EventChatRoom(id=row.id, event_id=row.event_id, created_at=row.created_at)
 
 
-def _message(row: ChatMessageRow) -> ChatMessage:
+def _message(row: ChatMessageRow, author_name: str | None) -> ChatMessage:
     return ChatMessage(
         id=row.id,
         room_id=row.room_id,
-        author_id=row.author_id,
+        author=ChatAuthor(id=row.author_id, name=author_name),
         text=row.text,
         sent_at=row.sent_at,
         client_message_id=row.client_message_id,
+    )
+
+
+def _with_author_name() -> Select[tuple[ChatMessageRow, str | None]]:
+    """Messages joined with the profile name of their author (one query)."""
+    return select(ChatMessageRow, col(UserRow.display_name)).join(
+        UserRow, col(UserRow.id) == col(ChatMessageRow.author_id)
     )
 
 
@@ -110,14 +119,14 @@ class SqlChatRepository:
         self, author_id: uuid.UUID, client_message_id: uuid.UUID
     ) -> ChatMessage | None:
         # Served by the unique (author_id, client_message_id).
-        statement = select(ChatMessageRow).where(
+        statement = _with_author_name().where(
             col(ChatMessageRow.author_id) == author_id,
             col(ChatMessageRow.client_message_id) == client_message_id,
         )
         with _database_errors():
             async with self._session_factory() as session:
-                row = (await session.scalars(statement)).one_or_none()
-        return None if row is None else _message(row)
+                record = (await session.execute(statement)).one_or_none()
+        return None if record is None else _message(*record)
 
     async def add_message(self, message: ChatMessage) -> ChatMessage:
         # The conflict target is explicit: only a repeated idempotency key is
@@ -133,22 +142,19 @@ class SqlChatRepository:
                 client_message_id=message.client_message_id,
             )
             .on_conflict_do_nothing(index_elements=["author_id", "client_message_id"])
-            .returning(ChatMessageRow)
         )
-        find_stored = select(ChatMessageRow).where(
+        find_stored = _with_author_name().where(
             col(ChatMessageRow.author_id) == message.author_id,
             col(ChatMessageRow.client_message_id) == message.client_message_id,
         )
         with _database_errors():
             try:
                 async with self._session_factory() as session:
-                    result = await session.execute(statement)
+                    await session.execute(statement)
                     await session.commit()
-                    created = result.scalar_one_or_none()
-                    if created is not None:
-                        return _message(created)
-                    # A concurrent retry stored it first: that one is the result.
-                    return _message((await session.scalars(find_stored)).one())
+                    # Read back with the author name: also covers a concurrent
+                    # retry that stored it first (that one is the result).
+                    return _message(*(await session.execute(find_stored)).one())
             except IntegrityError as exc:
                 # Only the room foreign key means "room not found"; a repeated id,
                 # the text CHECK or a missing author are other failures.
@@ -164,7 +170,7 @@ class SqlChatRepository:
         if limit < 1:
             raise ValueError("limit must be >= 1")
         # The index (room_id, sent_at DESC, id DESC) serves filter and order.
-        statement = select(ChatMessageRow).where(col(ChatMessageRow.room_id) == room_id)
+        statement = _with_author_name().where(col(ChatMessageRow.room_id) == room_id)
         if before is not None:
             statement = statement.where(
                 tuple_(col(ChatMessageRow.sent_at), col(ChatMessageRow.id))
@@ -175,8 +181,8 @@ class SqlChatRepository:
         ).limit(limit + 1)
         with _database_errors():
             async with self._session_factory() as session:
-                rows = list((await session.scalars(statement)).all())
-        messages = [_message(row) for row in rows[:limit]]
+                rows = [tuple(r) for r in (await session.execute(statement)).all()]
+        messages = [_message(*record) for record in rows[:limit]]
         next_cursor = (
             ChatCursor(sent_at=messages[-1].sent_at, id=messages[-1].id)
             if len(rows) > limit
@@ -201,6 +207,7 @@ class SqlChatRepository:
                 col(EventChatRoomRow.created_at).label("room_created_at"),
                 last.c.id.label("message_id"),
                 last.c.author_id.label("author_id"),
+                col(UserRow.display_name).label("author_name"),
                 last.c.text.label("text"),
                 last.c.sent_at.label("sent_at"),
                 last.c.client_message_id.label("client_message_id"),
@@ -210,6 +217,7 @@ class SqlChatRepository:
                 col(EventSubscriptionRow.event_id) == col(EventChatRoomRow.event_id),
             )
             .outerjoin(last, true())
+            .outerjoin(UserRow, col(UserRow.id) == last.c.author_id)
             .where(col(EventSubscriptionRow.user_id) == user_id)
             .order_by(
                 last.c.sent_at.desc().nulls_last(),
@@ -233,7 +241,7 @@ class SqlChatRepository:
                     else ChatMessage(
                         id=row.message_id,
                         room_id=row.room_id,
-                        author_id=row.author_id,
+                        author=ChatAuthor(id=row.author_id, name=row.author_name),
                         text=row.text,
                         sent_at=row.sent_at,
                         client_message_id=row.client_message_id,
