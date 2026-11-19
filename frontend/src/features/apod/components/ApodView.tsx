@@ -11,11 +11,11 @@ import { ApodMedia } from './ApodMedia';
 interface Props {
   apod: Apod;
   /** Room the floating top bar covers, so the content starts under it. */
-  topInset?: number;
+  topInset: number;
 }
 
 /** Content of the APOD screen (TG-118), with the media from TG-119. */
-export function ApodView({ apod, topInset = 0 }: Props) {
+export function ApodView({ apod, topInset }: Props) {
   const { i18n } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const insets = useSafeAreaInsets();

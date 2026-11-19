@@ -66,10 +66,18 @@ export function ApodMedia({ apod }: Props) {
     );
   }
 
-  const onLoad = ({ nativeEvent }: ImageLoadEvent) => {
-    // react-native-web does not fill `source` in the load event: the frame keeps the placeholder.
-    const { width, height } = nativeEvent.source ?? { width: 0, height: 0 };
+  const applySize = (width: number, height: number) => {
     if (width > 0 && height > 0) setImageAspectRatio(width / height);
+  };
+
+  const onLoad = ({ nativeEvent }: ImageLoadEvent) => {
+    if (nativeEvent.source) {
+      applySize(nativeEvent.source.width, nativeEvent.source.height);
+      return;
+    }
+    // react-native-web does not fill `source` in the load event: ask for the size instead.
+    // If it fails the frame keeps the placeholder; the image itself did load.
+    Image.getSize(mediaUrl, applySize, () => {});
   };
 
   return (
