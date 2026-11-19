@@ -9,7 +9,7 @@ from app.application.chat.errors import RateLimitedError
 from app.application.realtime.errors import RATE_LIMITED
 from app.application.shared.errors import ExternalServiceError, ForbiddenError
 from app.domain.chat.errors import CHAT_INVALID_CURSOR, CHAT_INVALID_LIMIT
-from app.domain.chat.models import ChatMessage
+from app.domain.chat.models import ChatAuthor, ChatMessage
 from app.domain.shared.errors import (
     BusinessRuleViolation,
     ConflictError,
@@ -188,7 +188,7 @@ async def test_tg453_open_room_returns_the_latest_message(
         ChatMessage(
             id=uuid.uuid7(),
             room_id=env.room.id,
-            author_id=env.user,
+            author=ChatAuthor(id=env.user, name=None),
             client_message_id=uuid.uuid4(),
             text=str(i),
             sent_at=now + timedelta(seconds=i),
@@ -221,7 +221,7 @@ async def test_tg439_cursor_order_and_limits(
         ChatMessage(
             id=uuid.uuid7(),
             room_id=room.id,
-            author_id=env.user,
+            author=ChatAuthor(id=env.user, name=None),
             client_message_id=uuid.uuid4(),
             text=str(i),
             sent_at=now + timedelta(seconds=i // 2),
@@ -314,7 +314,7 @@ def _stored(env: ChatFakes, **overrides: object) -> ChatMessage:
     fields: dict[str, object] = {
         "id": uuid.uuid7(),
         "room_id": env.room.id,
-        "author_id": env.user,
+        "author": ChatAuthor(id=env.user, name=None),
         "client_message_id": uuid.uuid4(),
         "text": "hola",
         "sent_at": datetime.now(UTC) - timedelta(minutes=1),
@@ -501,13 +501,17 @@ async def test_tg654_the_same_key_of_another_author_is_not_a_duplicate(
 ) -> None:
     # TG-654: la unicitat es per (autor, clau)
     key = uuid.uuid4()
-    env.messages.append(_stored(env, author_id=uuid.uuid7(), client_message_id=key))
+    env.messages.append(
+        _stored(
+            env, author=ChatAuthor(id=uuid.uuid7(), name=None), client_message_id=key
+        )
+    )
 
     message = await service.send_message(
         env.user, env.event, "hola", client_message_id=key
     )
 
-    assert message.author_id == env.user
+    assert message.author.id == env.user
     assert len(env.messages) == 2
     assert env.calls[-5:] == ["rate", "moderate", "save", "publish", "mark"]
 
@@ -546,7 +550,7 @@ async def test_tg654_the_published_frame_does_not_carry_the_client_message_id(
 
     payload = json.loads(env.published[0])["frame"]["payload"]
     assert "client_message_id" not in payload
-    assert set(payload) == {"id", "room_id", "author_id", "text", "sent_at"}
+    assert set(payload) == {"id", "room_id", "author", "text", "sent_at"}
 
 
 async def test_tg654_when_a_concurrent_retry_wins_its_message_is_published_and_returned(
@@ -700,3 +704,51 @@ async def test_tg654_a_failure_asking_the_guard_is_pubsub_unavailable(
 
     assert error.value.code == "PUBSUB_UNAVAILABLE"
     assert len(env.published) == 1
+
+
+# --- TG-64 / TG-469: l'autor del missatge porta el nom del perfil ----------------
+
+
+async def test_tg469_send_message_builds_the_author_from_the_profile_name(
+    service: ChatService, env: ChatFakes
+) -> None:
+    message = await service.send_message(
+        env.user,
+        env.event,
+        "hola",
+        client_message_id=uuid.uuid4(),
+        author_name="Ada",
+    )
+
+    assert message.author == ChatAuthor(id=env.user, name="Ada")
+    assert env.messages == [message]
+
+
+async def test_tg469_send_message_without_profile_name_has_a_null_name(
+    service: ChatService, env: ChatFakes
+) -> None:
+    message = await service.send_message(
+        env.user,
+        env.event,
+        "hola",
+        client_message_id=uuid.uuid4(),
+        author_name=None,
+    )
+
+    assert message.author == ChatAuthor(id=env.user, name=None)
+
+
+async def test_tg469_the_published_frame_carries_the_author_id_and_name(
+    service: ChatService, env: ChatFakes
+) -> None:
+    await service.send_message(
+        env.user,
+        env.event,
+        "hola",
+        client_message_id=uuid.uuid4(),
+        author_name="Ada",
+    )
+
+    payload = json.loads(env.published[0])["frame"]["payload"]
+    assert payload["author"] == {"id": str(env.user), "name": "Ada"}
+    assert "author_id" not in payload
