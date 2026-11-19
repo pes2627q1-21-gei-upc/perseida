@@ -1673,6 +1673,9 @@ describe('useSocket: AppState (TG-654 F4)', () => {
     await networkDrops(); // waits 4 s, attempts = 3
     expect(sockets()).toHaveLength(3);
 
+    // TG-654: only a real `background` makes `active` reconnect at once
+    await app.emit('background');
+    await flush();
     await app.emit('active');
     await flush();
 
@@ -1896,6 +1899,8 @@ describe('useSocket: 4401 i AppState (TG-654)', () => {
     expect(auth.refresh).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe('reconnecting');
 
+    await emit('background'); // TG-654: `active` only acts after a real `background`
+    await flush();
     await emit('active');
     await flush();
 
@@ -1912,5 +1917,82 @@ describe('useSocket: 4401 i AppState (TG-654)', () => {
     await flush();
 
     expect(result.current.status).not.toBe('closed');
+  });
+});
+
+describe('useSocket: active sense background previ no toca res (TG-654)', () => {
+  // On iOS `inactive -> active` also fires with the control centre or Face ID: it must not
+  // cut a running backoff, reset its counter or start a second session renewal.
+  function captureAppStateEvents() {
+    const listeners: ((state: AppStateStatus) => void)[] = [];
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener as (state: AppStateStatus) => void);
+      return { remove: jest.fn() } as never;
+    });
+    spy.mockClear();
+    return (state: AppStateStatus) => act(async () => listeners.forEach((l) => l(state)));
+  }
+
+  it('amb un backoff en curs, active (inactive -> active) no reconnecta abans d’hora ni reinicia el comptador d’intents', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const emit = captureAppStateEvents();
+    const { result } = await mountConnected();
+    await networkDrops(); // waits 1 s
+
+    await emit('inactive');
+    await emit('active');
+    await flush(999);
+
+    expect(sockets()).toHaveLength(1);
+    expect(result.current.status).toBe('reconnecting');
+
+    await flush(1);
+
+    expect(sockets()).toHaveLength(2); // the backoff ended on time
+
+    await networkDrops(); // attempts continue: now 2 s, not 1 s again
+    await emit('active');
+    await flush(1999);
+
+    expect(sockets()).toHaveLength(2);
+
+    await flush(1);
+
+    expect(sockets()).toHaveLength(3);
+  });
+
+  it('amb una renovació 4401 en vol, active no crida auth.refresh una segona vegada ni obre cap socket fins que acabi la primera', async () => {
+    const emit = captureAppStateEvents();
+    const renewal = deferred<void>();
+    auth.refresh.mockReturnValueOnce(renewal.promise);
+    const { result } = await mountConnected();
+    await serverCloses(4401);
+    expect(auth.refresh).toHaveBeenCalledTimes(1);
+
+    await emit('active');
+    await flush(TEN_MINUTES);
+
+    expect(auth.refresh).toHaveBeenCalledTimes(1);
+    expect(sockets()).toHaveLength(1);
+    expect(result.current.status).toBe('reconnecting');
+
+    await act(async () => renewal.resolve());
+    await flush();
+
+    expect(sockets()).toHaveLength(2); // the one renewal ended: now it connects
+    expect(auth.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('després d’un background real, active continua reconnectant de seguida', async () => {
+    const emit = captureAppStateEvents();
+    await mountConnected();
+
+    await emit('background');
+    await flush();
+    await emit('inactive');
+    await emit('active');
+    await flush();
+
+    expect(sockets()).toHaveLength(2);
   });
 });
