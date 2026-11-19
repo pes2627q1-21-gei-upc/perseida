@@ -105,7 +105,7 @@ describe('MessageBubble, message of the history (TG-469)', () => {
     await render(<MessageBubble item={item} />);
 
     expect(bubble(item.key)).toHaveStyle({
-      backgroundColor: bubbleSurface(colors.dia, mine, false),
+      backgroundColor: bubbleSurface(colors.dia, mine, false).background,
     });
   });
 
@@ -118,7 +118,7 @@ describe('MessageBubble, message of the history (TG-469)', () => {
     });
 
     expect(bubble(item.key)).toHaveStyle({
-      backgroundColor: bubbleSurface(colors.dia, true, true),
+      backgroundColor: bubbleSurface(colors.dia, true, true).background,
     });
   });
 });
@@ -138,7 +138,7 @@ describe('MessageBubble, message being sent (TG-469)', () => {
     await render(<MessageBubble item={pendingItem('sending')} />);
 
     expect(bubble('client-1')).toHaveStyle({
-      backgroundColor: bubbleSurface(colors.dia, true, false),
+      backgroundColor: bubbleSurface(colors.dia, true, false).background,
     });
   });
 });
