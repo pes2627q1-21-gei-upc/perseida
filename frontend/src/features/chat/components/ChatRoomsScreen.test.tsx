@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { BottomTabBarHeightContext } from 'expo-router/tabs';
-import { StyleSheet } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -335,5 +335,152 @@ describe('ChatRoomsScreen beside the notch', () => {
       paddingLeft: INSETS.left,
       paddingRight: INSETS.right,
     });
+  });
+});
+
+describe('ChatRoomsScreen reload without dragging (WCAG 2.5.1)', () => {
+  it('has a button that asks again for the subscriptions and the rooms', async () => {
+    await renderScreen();
+    await screen.findByText('Leonids');
+    answers[SUBSCRIPTIONS] = () => jsonResponse([leonids, geminids]);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Actualitza' }));
+
+    expect(await screen.findByText('Geminids')).toBeOnTheScreen();
+    expect(requestsTo(SUBSCRIPTIONS)).toHaveLength(2);
+    expect(requestsTo(ROOMS)).toHaveLength(2);
+  });
+
+  it('is also there when the list is empty, where there is nothing to drag', async () => {
+    answers[SUBSCRIPTIONS] = () => jsonResponse([]);
+
+    await renderScreen();
+
+    expect(await screen.findByRole('button', { name: 'Actualitza' })).toBeOnTheScreen();
+  });
+
+  it('is not there while loading', async () => {
+    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+
+    await renderScreen();
+
+    expect(screen.queryByRole('button', { name: 'Actualitza' })).toBeNull();
+  });
+
+  it('is not there when the error already has its own retry', async () => {
+    answers[SUBSCRIPTIONS] = () => problemResponse(503, 'SESSION_UNAVAILABLE');
+
+    await renderScreen();
+
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('button', { name: 'Actualitza' })).toBeNull();
+  });
+});
+
+describe('ChatRoomsScreen when a reload fails with the list on screen', () => {
+  const DATABASE_DOWN =
+    "El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.";
+
+  async function reloadThatFails(code = 'DATABASE_UNAVAILABLE', status = 503) {
+    await renderScreen();
+    await screen.findByText('Leonids');
+    answers[ROOMS] = () => problemResponse(status, code);
+    await fireEvent.press(screen.getByRole('button', { name: 'Actualitza' }));
+  }
+
+  it('says so in an alert and keeps the list the person already had', async () => {
+    await reloadThatFails();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(DATABASE_DOWN);
+    expect(screen.getByText('Leonids')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Torna-ho a provar' })).toBeOnTheScreen();
+  });
+
+  it('retries from the alert and takes it away when the reload works', async () => {
+    await reloadThatFails();
+    await screen.findByRole('alert');
+    answers[ROOMS] = () => jsonResponse([roomOf(leonids, 'Ja torna', '2026-11-19T10:00:00Z')]);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+
+    expect(await screen.findByText('Laia: Ja torna')).toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('offers no retry when the error is final', async () => {
+    await reloadThatFails('ACCOUNT_SUSPENDED', 403);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('El teu compte està suspès.');
+    expect(screen.queryByRole('button', { name: 'Torna-ho a provar' })).toBeNull();
+  });
+
+  it('takes the alert away while the person tries again', async () => {
+    await reloadThatFails();
+    await screen.findByRole('alert');
+    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('Leonids')).toBeOnTheScreen();
+  });
+
+  it('is also shown over the empty state', async () => {
+    answers[SUBSCRIPTIONS] = () => jsonResponse([]);
+    await renderScreen();
+    await screen.findByRole('button', { name: 'Explora els esdeveniments' });
+    answers[SUBSCRIPTIONS] = () => problemResponse(403, 'ACCOUNT_SUSPENDED');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Actualitza' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('El teu compte està suspès.');
+    expect(screen.getByRole('button', { name: 'Explora els esdeveniments' })).toBeOnTheScreen();
+  });
+
+  it('is announced on iOS, where the live region is not enough', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    await reloadThatFails();
+
+    await screen.findByRole('alert');
+    expect(announce).toHaveBeenCalledWith(DATABASE_DOWN);
+  });
+
+  it('is left to the live region on Android', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    await reloadThatFails();
+
+    await screen.findByRole('alert');
+    expect(announce).not.toHaveBeenCalled();
+  });
+});
+
+describe('ChatRoomsScreen empty state announcement', () => {
+  const EMPTY =
+    "Encara no t'has subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.";
+
+  beforeEach(() => {
+    answers[SUBSCRIPTIONS] = () => jsonResponse([]);
+  });
+
+  it('is announced on iOS, as the loading errors are', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    await renderScreen();
+
+    await screen.findByText(EMPTY);
+    expect(announce).toHaveBeenCalledWith(EMPTY);
+  });
+
+  it('is left to the live region on Android', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    await renderScreen();
+
+    await screen.findByText(EMPTY);
+    expect(announce).not.toHaveBeenCalled();
   });
 });

@@ -65,6 +65,7 @@ describe('Locales of the chat (TG-469)', () => {
     'loading',
     'retry',
     'retryHint',
+    'refresh',
     'noMessages',
     'unknownAuthor',
     'list.label',
