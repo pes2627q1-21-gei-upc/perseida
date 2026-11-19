@@ -22,9 +22,24 @@ Deixar a punt la PR 1 de 2 de TG-51: `GET /api/events` filtrable per categoria, 
 - **Endpoint:** `GET /api/events`, públic, ordenat per `starts_at` i `id`, amb 422 `VALIDATION_ERROR` per als filtres invàlids. OpenAPI i `schema.d.ts` regenerats.
 - **Proxy:** `location ^~ /api/events` sense barra final, perquè el llistat comparteixi el límit de 600 per minut (abans nginx hi responia 301), i `instance` `/api/events` al `map` d'`http_top.conf`.
 - **Fusió de `develop`:** conflictes a `events/models.py` i `events/ports.py` amb les subscripcions (TG-53), resolts conservant les dues bandes; `_to_entity` s'havia reanomenat `to_entity` a `develop`.
-- **Vault:** [[contracte-esdeveniments]], [[api]] i [[nginx-proxy-manager]].
 
-## Pendent
+## Decisions preses
 
-- PR 2: pantalla d'esdeveniments a l'app amb filtres, «A prop meu» amb `expo-location`, estats, ca/es/en i accessibilitat (tasques #552-#555).
-- En desplegar la propera release, tornar a enganxar `rate-limit.conf` a l'Advanced del *proxy host* de NPM.
+- Els filtres, els valors per defecte i els límits (30 dies, màxim 90, 500 km) són de la US, decidits per la persona responsable el 12/11/2026.
+- La consulta de proximitat és un `UNION ALL` de dues branques disjuntes (amb ubicació dins del radi / sense ubicació) en lloc d'un `OR`, perquè l'`OR` impediria fer servir l'índex GiST. No cal cap ADR: segueix [[0006-postgresql-postgis-font-de-veritat|ADR-0006]] i [[0023-convencions-del-model-de-dades|ADR-0023]].
+- El límit del proxy passa a `location ^~ /api/events`, sense barra final, perquè el llistat el comparteixi; només hi entren de més rutes `/api/events…` que l'API no té.
+
+## Canvis al vault
+
+- [[contracte-esdeveniments]]: `GET /api/events`, filtres, valors per defecte i 422.
+- [[model-de-domini]]: `search`, `EventQuery` i `Proximity`; el pendent de proximitat queda resolt.
+- [[api]] i [[nginx-proxy-manager]]: el llistat i la `location` sense barra.
+
+## Pendent / següents passos
+
+- [ ] PR 2: pantalla d'esdeveniments a l'app amb filtres, «A prop meu» amb `expo-location`, estats, ca/es/en i accessibilitat (tasques #552-#555).
+- [ ] En desplegar la propera release, tornar a enganxar `rate-limit.conf` a l'Advanced del *proxy host* de NPM.
+
+## US de Taiga
+
+- TG-51
