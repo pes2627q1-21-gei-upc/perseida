@@ -117,6 +117,7 @@ export function MessageComposer({ onSend, busy = false, disabledReason, error }:
   const errorText = error ? errorMessage(t, error.code, error.retryable) : '';
   useAnnounceOnIos(tooLongText || undefined);
   useAnnounceOnIos(errorText || undefined);
+  useAnnounceOnIos(disabledReason);
   const look = composerLook(theme, insets, focused, tooLong);
 
   async function send() {
