@@ -1601,25 +1601,42 @@ describe('useSocket: AppState (TG-654 F4)', () => {
     expect(app.remove).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['background', 'inactive'] as const)(
-    '%s tanca el socket amb 1000, passa a reconnecting i no programa cap reintent',
-    async (state) => {
-      const app = captureAppState();
-      const { result } = await mountConnected();
-      const socket = lastSocket();
+  // TG-654 (changed: `inactive` used to close too): on iOS `inactive` also fires with the control
+  // centre or Face ID, which must not cost the connection. Only `background` suspends it.
+  it('background tanca el socket amb 1000, passa a reconnecting i no programa cap reintent', async () => {
+    const app = captureAppState();
+    const { result } = await mountConnected();
+    const socket = lastSocket();
 
-      await app.emit(state);
-      await flush();
+    await app.emit('background');
+    await flush();
 
-      expect(socket.closedByClientWith).toBe(1000);
-      expect(result.current.status).toBe('reconnecting');
+    expect(socket.closedByClientWith).toBe(1000);
+    expect(result.current.status).toBe('reconnecting');
 
-      await flush(TEN_MINUTES);
+    await flush(TEN_MINUTES);
 
-      expect(sockets()).toHaveLength(1);
-      expect(result.current.status).toBe('reconnecting');
-    },
-  );
+    expect(sockets()).toHaveLength(1);
+    expect(result.current.status).toBe('reconnecting');
+  });
+
+  it('inactive no tanca ni reconnecta: la connexió segueix oberta', async () => {
+    const app = captureAppState();
+    const { result } = await mountConnected();
+    const socket = lastSocket();
+    await app.emit('inactive');
+    await flush(DEAD_AFTER_MS - 1);
+
+    expect(socket.closedByClientWith).toBeUndefined();
+    expect(result.current.status).toBe('open');
+    expect(sockets()).toHaveLength(1);
+
+    await app.emit('active'); // coming back from inactive changes nothing either
+    await flush();
+
+    expect(sockets()).toHaveLength(1);
+    expect(socket.closedByClientWith).toBeUndefined();
+  });
 
   it('active reconnecta de seguida (sense esperar el backoff), reautentica i resubscriu les sales', async () => {
     const app = captureAppState();
@@ -1783,5 +1800,117 @@ describe('useSocket: casos límit (TG-654 F6)', () => {
 
     expect(sockets()).toHaveLength(0);
     expect(getSocketState().status).toBe('closed');
+  });
+});
+
+describe('useSocket: cua acotada (TG-654, OUTBOX_MAX = 50)', () => {
+  const OUTBOX_MAX = 50;
+
+  it('un send amb 50 enviaments pendents es rebutja a l’instant amb NETWORK_ERROR sense encuar-se ni enviar-se; els 50 primers no es veuen afectats', async () => {
+    const { result } = await mountConnected();
+    const pending: Promise<unknown>[] = [];
+    for (let n = 0; n < OUTBOX_MAX; n += 1) {
+      pending.push((await startSending(result.current.send)).sending);
+    }
+    expect(messagesSent()).toHaveLength(OUTBOX_MAX);
+
+    const { sending: extra } = await startSending(result.current.send);
+    const error = await outcomeOf(extra); // at once: nothing to advance
+
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe('NETWORK_ERROR');
+    expect(messagesSent()).toHaveLength(OUTBOX_MAX); // it never went out
+    for (const first of pending) expect(await outcomeOf(first)).toBe('pending');
+  });
+
+  it('en resoldre’s un dels 50 queda lloc per a un de nou', async () => {
+    const { result } = await mountConnected();
+    for (let n = 0; n < OUTBOX_MAX; n += 1) await startSending(result.current.send);
+    await serverSends({
+      type: 'message',
+      room: ROOM,
+      id: messagesSent()[0]?.id,
+      payload: { id: 'm-1', sent_at: '2026-11-18T20:00:00Z' },
+    });
+
+    const { sending } = await startSending(result.current.send);
+
+    expect(await outcomeOf(sending)).toBe('pending');
+    expect(messagesSent()).toHaveLength(OUTBOX_MAX + 1);
+  });
+});
+
+describe('useSocket: error tardà durant l’espera del reintent (TG-654)', () => {
+  it('un segon error reintentable amb el mateix id mentre espera el reintent s’ignora: el reenviament surt a l’hora del primer i els intents avancen un sol cop', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const { result } = await mountConnected();
+    const { sending } = await startSending(result.current.send);
+    const id = messagesSent()[0]?.id;
+    const problem = (): Frame => ({
+      type: 'error',
+      id,
+      room: ROOM,
+      payload: wsProblem(503, 'PUBSUB_UNAVAILABLE'),
+    });
+
+    await serverSends(problem()); // the wait of 1 s starts
+    await flush(500);
+    await serverSends(problem()); // late, same id: it must not move the wait
+    await flush(499);
+    expect(messagesSent()).toHaveLength(1);
+    await flush(1);
+
+    expect(messagesSent()).toHaveLength(2); // exactly one resend, on time
+
+    await flush(REQUEST_TIMEOUT_MS); // second attempt: no answer, the third goes out
+    expect(messagesSent()).toHaveLength(3);
+    await flush(REQUEST_TIMEOUT_MS - 1);
+    expect(await outcomeOf(sending)).toBe('pending');
+    await flush(1);
+
+    const error = await rejectionOf(sending);
+    expect(error.code).toBe('SEND_UNCERTAIN');
+    expect(messagesSent()).toHaveLength(3);
+  });
+});
+
+describe('useSocket: 4401 i AppState (TG-654)', () => {
+  /** Same capture as the AppState block above (it is local to that describe). */
+  function captureActive() {
+    const listeners: ((state: AppStateStatus) => void)[] = [];
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener as (state: AppStateStatus) => void);
+      return { remove: jest.fn() } as never;
+    });
+    spy.mockClear();
+    return (state: AppStateStatus) => act(async () => listeners.forEach((l) => l(state)));
+  }
+
+  it('active mentre una renovació de sessió (després d’un 4401) és en vol la cancel·la i sessionRenewed torna a false: un 4401 posterior renova de nou en lloc de tancar amb INVALID_SESSION', async () => {
+    const emit = captureActive();
+    const renewal = deferred<void>();
+    auth.refresh.mockReturnValueOnce(renewal.promise);
+    const { result } = await mountConnected();
+
+    await serverCloses(4401);
+    expect(auth.refresh).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe('reconnecting');
+
+    await emit('active');
+    await flush();
+
+    expect(sockets()).toHaveLength(2); // connected at once, the renewal in flight is dropped
+
+    await serverOpens(); // no auth ack yet: nothing has reset the flag
+    await serverCloses(4401);
+
+    expect(auth.refresh).toHaveBeenCalledTimes(2);
+    expect(result.current.status).toBe('reconnecting');
+    expect(result.current.error).toBeNull();
+
+    await act(async () => renewal.resolve()); // the cancelled renewal ends late: no effect
+    await flush();
+
+    expect(result.current.status).not.toBe('closed');
   });
 });
