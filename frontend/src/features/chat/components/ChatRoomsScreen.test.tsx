@@ -1,9 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { BottomTabBarHeightContext } from 'expo-router/tabs';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { makeMessage, makeRoom, makeSubscribedEvent } from '../../../../__mocks__/chat';
+import { spacing } from '../../../shared/theme';
 import { saveTokens } from '../../auth/tokenStorage';
 import { ChatRoomsScreen } from './ChatRoomsScreen';
 
@@ -59,11 +62,15 @@ function roomOf(event: { id: string }, text: string, sentAt: string, authorName 
   });
 }
 
-async function renderScreen() {
+async function renderScreen(
+  options: { tabBarHeight?: number; insets?: typeof SAFE_AREA.insets } = {},
+) {
   await render(
-    <SafeAreaProvider initialMetrics={SAFE_AREA}>
+    <SafeAreaProvider initialMetrics={{ ...SAFE_AREA, insets: options.insets ?? SAFE_AREA.insets }}>
       <QueryClientProvider client={client}>
-        <ChatRoomsScreen />
+        <BottomTabBarHeightContext.Provider value={options.tabBarHeight}>
+          <ChatRoomsScreen />
+        </BottomTabBarHeightContext.Provider>
       </QueryClientProvider>
     </SafeAreaProvider>,
   );
@@ -107,7 +114,7 @@ describe('ChatRoomsScreen (TG-469)', () => {
     expect(requestsTo(ROOMS)[0]?.headers.get('Authorization')).toBe('Bearer access-1');
   });
 
-  it('says it is loading, in a way a screen reader announces', async () => {
+  it('labels the spinner for screen readers while it is loading', async () => {
     fetchSpy.mockImplementation(() => new Promise(() => undefined));
 
     await renderScreen();
@@ -263,5 +270,43 @@ describe('ChatRoomsScreen pull to refresh', () => {
     expect(await screen.findByText('Laia: Nova')).toBeOnTheScreen();
     expect(requestsTo(SUBSCRIPTIONS)).toHaveLength(2);
     expect(requestsTo(ROOMS)).toHaveLength(2);
+  });
+});
+
+describe('ChatRoomsScreen above the floating tab bar', () => {
+  const TAB_BAR = 80;
+
+  it('leaves the height of the bar free under the list', async () => {
+    await renderScreen({ tabBarHeight: TAB_BAR });
+
+    await screen.findByText('Leonids');
+    const content = StyleSheet.flatten(
+      screen.getByTestId('chat-rooms-list').props.contentContainerStyle,
+    );
+    expect(content.paddingBottom).toBe(TAB_BAR + spacing.md);
+  });
+
+  it('leaves the height of the bar free under the empty state', async () => {
+    answers[SUBSCRIPTIONS] = () => jsonResponse([]);
+
+    await renderScreen({ tabBarHeight: TAB_BAR });
+
+    expect(await screen.findByTestId('chat-rooms-empty')).toHaveStyle({ paddingBottom: TAB_BAR });
+  });
+
+  it('leaves the height of the bar free under the error', async () => {
+    answers[SUBSCRIPTIONS] = () => problemResponse(503, 'SESSION_UNAVAILABLE');
+
+    await renderScreen({ tabBarHeight: TAB_BAR });
+
+    expect(await screen.findByTestId('chat-rooms-status')).toHaveStyle({ paddingBottom: TAB_BAR });
+  });
+
+  it('leaves the height of the bar free under the spinner', async () => {
+    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+
+    await renderScreen({ tabBarHeight: TAB_BAR });
+
+    expect(screen.getByTestId('chat-rooms-status')).toHaveStyle({ paddingBottom: TAB_BAR });
   });
 });
