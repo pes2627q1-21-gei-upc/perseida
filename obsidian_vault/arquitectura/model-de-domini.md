@@ -3,8 +3,8 @@ titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-18"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026)"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -23,6 +23,9 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!info] Implementat: ratxa diària
 > `DailyStreak` ja té entitat, taula i endpoints (TG-56); vegeu [[#Ratxa diària (implementat)]].
+
+> [!info] Implementat: fites
+> `Achievement` i `UserAchievement` ja tenen entitats, taules, catàleg de 34 fites i el motor que les desbloqueja (TG-58); vegeu [[#Fites (implementat)]].
 
 ## Gamificació
 
@@ -402,6 +405,36 @@ classDiagram
     User --> ChatMessage : envia
     User "2" --> "0..*" DirectConversation : participants
 ```
+
+## Fites (implementat)
+
+Entitats `Achievement` i `UserAchievement` a `app/domain/achievements/models.py`; regles pures (`unlockable`, `progress`, `next_achievement`) a `rules.py`; port `AchievementRepository` a `ports.py`; cas d'ús `AchievementService` a `app/application/achievements/achievement_service.py`; taules `achievements` i `user_achievements` a `app/infrastructure/achievements/tables.py`, repositori `SqlAchievementRepository` i migració amb el catàleg inicial. Convencions de les taules: [[0023-convencions-del-model-de-dades]]. El catàleg de partida és a [[catalog-de-fites]].
+
+`Achievement` (una fila del catàleg; s'amplia afegint files, sense tocar el motor):
+
+| Camp | Notes |
+|---|---|
+| `id` | `uuid` UUIDv7 |
+| `code` | text únic i no buit; identifica la fita en les dades |
+| `name`, `description` | text |
+| `kind` | tipus d'activitat que mesura (13 valors: `streak_days`, `quiz_completed`, `event_subscription`, `message_sent`...) |
+| `threshold` | enter `>= 1`: el valor del `kind` que la desbloqueja |
+| `category` | secció del catàleg: ratxes, quiz, esdeveniments, social o minijoc (independent del `kind`) |
+| `position` | enter `>= 1`: ordre dins la categoria |
+
+`UserAchievement` (una fita desbloquejada): `id`, `user_id` (FK a `users.id`, `ON DELETE RESTRICT`), `achievement_id` (FK a `achievements.id`, `ON DELETE RESTRICT`) i `unlocked_at` (`timestamptz`, sempre en UTC). El parell (`user_id`, `achievement_id`) és únic: un usuari no pot tenir dues vegades la mateixa fita.
+
+Flux del motor (`AchievementService`):
+
+- **Desbloquejar** (`record_activity(user_id, activity, value)`): `value` és el total de l'usuari per a aquella activitat (p. ex. 7 dies de ratxa). Desbloqueja les fites d'aquell `kind` amb `threshold <= value` que encara faltin. Una activitat desconeguda no falla ni desbloqueja res. Només retorna les desbloquejades en aquesta crida.
+- **Només un cop:** `unlock` insereix amb `ON CONFLICT DO NOTHING` sobre el parell únic; dues peticions alhora no desbloquegen dues vegades i la que perd no ho informa.
+- **Progrés** (`list_progress(user_id)`): per a cada fita, valor actual i meta. El valor actual mai passa de la meta i una fita desbloquejada surt sempre amb la barra plena. Per a les de ratxa és `StreakService.get_current_streak` (0 si ha caducat); les altres queden a 0 fins que la seva US hi connecti l'activitat.
+
+**Connexió amb la ratxa:** `StreakService.register_activity` avisa un port genèric, `ActivityLog` (`app/domain/shared/ports.py`), amb l'activitat `"streak_days"` i la ratxa actual. `AchievementService` implementa aquest port (`record`). El port viu a `domain/shared` i l'activitat és un text perquè les features no s'importin entre elles ([[backend-hexagonal]]). Si el motor falla, la ratxa ja registrada es manté i només es registra un avís. Quiz (TG-61) i subscripció (TG-53) hi connectaran la seva activitat de la mateixa manera, sense tocar el motor.
+
+> [!todo] Pendent
+> - Registrar l'activitat en consultar l'APOD, l'endpoint `GET /api/users/me/achievements` (amb data de desbloqueig, progrés i meta) i els errors documentats: següent PR de TG-58. El port `AchievementRepository` encara només retorna els ids desbloquejats; caldrà afegir-hi les dates.
+> - Les fites de quiz i subscripció queden a 0 fins que TG-61 i TG-53 hi connectin l'activitat.
 
 ## Enllaços
 

@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import AbstractAsyncContextManager
 from typing import Protocol
@@ -45,4 +46,16 @@ class PubSub(Protocol):
         Raises:
             ExternalServiceError: if the bus is unavailable.
         """
+        ...
+
+
+class ActivityLog(Protocol):
+    """Where a feature reports "the user did ``activity``, now at ``value``".
+
+    ``activity`` is a plain name (e.g. ``"streak_days"``) so that the feature
+    reporting it does not depend on whoever listens (the achievements engine).
+    """
+
+    async def record(self, user_id: uuid.UUID, activity: str, value: int) -> None:
+        """Record the activity. Unknown activities are ignored."""
         ...

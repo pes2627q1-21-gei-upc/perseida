@@ -1,8 +1,12 @@
+import logging
 import uuid
 from datetime import UTC, date, datetime, timedelta, timezone
 
+import pytest
+
 from app.application.streaks.streak_service import StreakService
 from app.domain.streaks.models import DailyStreak
+from tests.fakes.activity_log import FakeActivityLog
 from tests.fakes.streaks import FakeStreakRepository
 
 USER_ID = uuid.uuid4()
@@ -16,8 +20,12 @@ class _Clock:
         return self.instant
 
 
-def _service(repo: FakeStreakRepository, clock: _Clock) -> StreakService:
-    return StreakService(repo, now=clock)
+def _service(
+    repo: FakeStreakRepository,
+    clock: _Clock,
+    activity_log: FakeActivityLog | None = None,
+) -> StreakService:
+    return StreakService(repo, activity_log or FakeActivityLog(), now=clock)
 
 
 # TG-56 criteri 1
@@ -190,3 +198,62 @@ async def test_get_current_streak_uses_utc_day_broken() -> None:
 
     assert count == 0
     assert repo.saved == []
+
+
+# TG-58 criteri 4: després de registrar, el motor de fites rep la ratxa actual
+async def test_register_activity_tells_the_activity_log_the_current_streak() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 9), count=2))
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+    log = FakeActivityLog()
+
+    await _service(repo, clock, log).register_activity(USER_ID)
+
+    assert log.records == [(USER_ID, "streak_days", 3)]
+
+
+async def test_a_second_activity_the_same_day_tells_the_same_streak() -> None:
+    repo = FakeStreakRepository()
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+    log = FakeActivityLog()
+    service = _service(repo, clock, log)
+
+    await service.register_activity(USER_ID)
+    await service.register_activity(USER_ID)
+
+    assert log.records == [(USER_ID, "streak_days", 1)] * 2
+
+
+async def test_a_restarted_streak_tells_one_day() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 1), count=9))
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+    log = FakeActivityLog()
+
+    await _service(repo, clock, log).register_activity(USER_ID)
+
+    assert log.records == [(USER_ID, "streak_days", 1)]
+
+
+# TG-58: si el motor falla, la ratxa ja registrada es manté i només es registra un avís
+async def test_the_streak_is_kept_when_the_activity_log_fails(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    repo = FakeStreakRepository()
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+    log = FakeActivityLog(error=RuntimeError("achievements down"))
+
+    with caplog.at_level(logging.WARNING):
+        streak = await _service(repo, clock, log).register_activity(USER_ID)
+
+    assert streak.current_count == 1
+    assert repo.streaks[USER_ID] == streak
+    assert any(record.levelno == logging.WARNING for record in caplog.records)
+
+
+async def test_get_current_streak_does_not_tell_the_activity_log() -> None:
+    repo = FakeStreakRepository(_seeded(date(2026, 11, 10), count=3))
+    clock = _Clock(datetime(2026, 11, 10, 12, 0, tzinfo=UTC))
+    log = FakeActivityLog()
+
+    await _service(repo, clock, log).get_current_streak(USER_ID)
+
+    assert log.records == []
