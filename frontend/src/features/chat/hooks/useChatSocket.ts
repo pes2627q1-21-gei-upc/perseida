@@ -48,12 +48,20 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
         const message = frame.payload as ChatMessage;
         if (seenIds.has(message.id)) return;
         seenIds.add(message.id);
-        if (seenIds.size > SEEN_IDS_LIMIT) seenIds.delete(seenIds.values().next().value!);
+        if (seenIds.size > SEEN_IDS_LIMIT) {
+          const oldest = seenIds.values().next();
+          if (!oldest.done) seenIds.delete(oldest.value);
+        }
         current.onMessage(message);
       } else if (frame.type === 'unsubscribe') current.onRevoked();
     });
   }, [room, subscribe]);
 
+  /**
+   * Sends a message and resolves with the server's ack. After a SEND_UNCERTAIN the server may have
+   * stored it: the UI's manual retry must pass the SAME `clientMessageId` so the server does not
+   * duplicate the message.
+   */
   const sendMessage = useCallback(
     async (text: string, clientMessageId = Crypto.randomUUID()): Promise<SentChatMessage> => {
       const ack = await send({
