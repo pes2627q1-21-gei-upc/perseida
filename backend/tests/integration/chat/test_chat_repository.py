@@ -339,9 +339,12 @@ async def test_tg448_add_message_with_a_repeated_id_is_not_a_missing_room(
     author = await _user(sessions)
     message = _message(room, author, NOW)
     await repo.add_message(message)
+    # Same object again would be a legitimate idempotent retry (TG-654); a
+    # repeated id with another key is the primary key conflict.
+    same_id = message.model_copy(update={"client_message_id": uuid.uuid4()})
 
     with pytest.raises(IntegrityError, match="pk_chat_messages"):
-        await repo.add_message(message)
+        await repo.add_message(same_id)
 
 
 async def test_tg448_c5_a_page_has_at_most_limit_messages_and_a_next_cursor(

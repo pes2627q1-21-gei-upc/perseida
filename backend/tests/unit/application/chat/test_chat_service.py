@@ -319,7 +319,7 @@ def _stored(env: ChatFakes, **overrides: object) -> ChatMessage:
         "sent_at": datetime.now(UTC) - timedelta(minutes=1),
     }
     fields.update(overrides)
-    return ChatMessage(**fields)  # type: ignore[arg-type]
+    return ChatMessage(**fields)
 
 
 async def test_tg654_a_new_message_keeps_the_client_message_id_and_looks_up_first(
