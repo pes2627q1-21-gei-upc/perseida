@@ -171,7 +171,7 @@ class SqlChatRepository:
         if limit < 1:
             raise ValueError("limit must be >= 1")
         # The index (room_id, sent_at DESC, id DESC) serves filter and order.
-        statement = _with_author_name().where(col(ChatMessageRow.room_id) == room_id)
+        statement = select(ChatMessageRow).where(col(ChatMessageRow.room_id) == room_id)
         if before is not None:
             statement = statement.where(
                 tuple_(col(ChatMessageRow.sent_at), col(ChatMessageRow.id))
@@ -182,8 +182,14 @@ class SqlChatRepository:
         ).limit(limit + 1)
         with _database_errors():
             async with self._session_factory() as session:
-                rows = list((await session.execute(statement)).all())
-        messages = [_message(row, name) for row, name in rows[:limit]]
+                rows = list((await session.scalars(statement)).all())
+                # One more query by primary key for the (at most ``limit``)
+                # distinct authors of the page: never one query per message.
+                names_statement = select(
+                    col(UserRow.id), col(UserRow.display_name)
+                ).where(col(UserRow.id).in_({row.author_id for row in rows[:limit]}))
+                names = dict((await session.execute(names_statement)).tuples().all())
+        messages = [_message(row, names.get(row.author_id)) for row in rows[:limit]]
         next_cursor = (
             ChatCursor(sent_at=messages[-1].sent_at, id=messages[-1].id)
             if len(rows) > limit
