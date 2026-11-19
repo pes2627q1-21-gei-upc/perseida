@@ -1,4 +1,5 @@
 import type { ChatMessage } from './api/chat';
+import { dateTimeFormat } from './dateFormat';
 
 /**
  * A message the person wrote that the server has not confirmed yet: being sent, refused or lost
@@ -46,7 +47,7 @@ interface BuildInput {
 
 /** The calendar day of an instant in a time zone, as `YYYY-MM-DD`: stable, so it can be a key. */
 function dayOf(instant: string, timeZone: string | undefined): string {
-  const parts = new Intl.DateTimeFormat('en', {
+  const parts = dateTimeFormat('en', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
