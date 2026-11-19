@@ -113,7 +113,7 @@ function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
               borderRadius: theme.radii.pill,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: pressed ? colors.surface.glass : 'transparent',
+              backgroundColor: pressed ? colors.surface.onGlass : 'transparent',
             })}
           >
             <X size={theme.iconSizes.md} color={colors.text.primary} />

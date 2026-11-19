@@ -58,7 +58,7 @@ Aplicat al codi nou (**New Code**) de cada PR:
 - **Seguretat (Vulnerabilitats):** Qualificació **A** (0 vulnerabilitats noves).
 - **Mantenibilitat (Code Smells):** Qualificació **A**.
 - **Security Hotspots:** 100 % revisats.
-- **Duplicació de línies:** ≤ 3.0 %.
+- **Duplicació de línies:** ≤ 3.0 % (excloent del càlcul `frontend/src/shared/theme/colors.ts`: els quatre temes de tokens tenen la mateixa forma per disseny i qualsevol token nou hi compta com a duplicat; TG-650).
 - **Cobertura en codi nou:** ≥ 90 % (d'acord amb [[0028-tdd-estricte-i-politica-de-testing-avancada]] i [[testing]]; excloent només components purament visuals: `frontend/src/shared/ui/**`).
 
 ### Com interpretar fallades i analitzar línies no cobertes

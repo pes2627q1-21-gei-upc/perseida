@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, userEvent } from '@testing-library/react-native';
+import * as ReactNative from 'react-native';
 import { AccessibilityInfo, BackHandler, Linking, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -10,6 +11,7 @@ import {
   solarEvent,
 } from '../../../../__mocks__/events';
 import i18n from '../../../shared/i18n';
+import { colors } from '../../../shared/theme/colors';
 import { type ClassifiedEvent, classifyEvents } from '../classifyEvents';
 import { formatEventDateTime } from '../formatEvent';
 import { EventSheet } from './EventSheet';
@@ -138,6 +140,20 @@ describe('EventSheet', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('at night lights up the close button while it is held, with the layer over the glass (TG-650)', async () => {
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+    await renderSheet(launch);
+    const close = screen.getByRole('button', { name: 'Tanca la fitxa' });
+    expect(close).toHaveStyle({ backgroundColor: 'transparent' });
+
+    // While the finger is down (a long press holds it), the button shows the pressed layer.
+    const holding = userEvent.setup().longPress(close, { duration: 400 });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
+
+    expect(close).toHaveStyle({ backgroundColor: colors.nit.surface.onGlass });
+    await holding;
   });
 
   it('closes when the user taps outside it', async () => {
