@@ -7,11 +7,15 @@
 // and joins its rooms again; 4401 renews the session once, and 4429 (too many connections) stops.
 // A connection that stays silent for DEAD_AFTER_MS is dead (the server pings every 30 s): it is
 // closed and treated like a drop.
+// In the background the socket is closed (the OS would freeze it anyway) and nothing is retried;
+// coming back to the foreground connects at once, with the backoff reset.
 // send() queues the request in memory: it goes out once the connection is authenticated, with a
 // fixed `id` and the same payload on every retry (the server deduplicates), is sent again after
 // MAX_SEND_ATTEMPTS-bounded timeouts, drops and retryable errors, and gives up with SEND_UNCERTAIN
 // when the last attempt got no answer, since the server may have processed it.
 // The session comes from outside (SocketAuth), so shared/ does not depend on any feature.
+
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { config } from '../config';
 import { AppError, isAppError, networkError, problemToAppError } from '../errors';
@@ -76,6 +80,7 @@ let attempts = 0;
 let sessionRenewed = false;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let deadTimer: ReturnType<typeof setTimeout> | undefined;
+let appStateSubscription: { remove: () => void } | null = null;
 /** Bumped on every shutdown, so async work started before it does not touch a newer connection. */
 let generation = 0;
 let lastId = 0;
@@ -258,6 +263,30 @@ function renewSession(): void {
   );
 }
 
+/**
+ * Background / inactive: close the socket and wait, keeping the queue and the rooms. Active:
+ * connect at once. The generation bump drops any token or renewal still in flight.
+ */
+function onAppStateChange(next: AppStateStatus): void {
+  if (next === 'active') {
+    if (state.status !== 'reconnecting' || socket) return;
+    clearTimeout(retryTimer);
+    generation += 1;
+    attempts = 0;
+    connect();
+  } else if ((next === 'background' || next === 'inactive') && state.status !== 'closed') {
+    clearTimeout(retryTimer);
+    clearTimeout(deadTimer);
+    generation += 1;
+    const current = socket;
+    socket = null;
+    authenticated = false;
+    suspendOutbox();
+    current?.close(CLOSE_NORMAL);
+    setState({ status: 'reconnecting' });
+  }
+}
+
 function scheduleRetry(): void {
   attempts += 1;
   const base = Math.min(FIRST_DELAY_MS * 2 ** (attempts - 1), MAX_DELAY_MS);
@@ -334,6 +363,8 @@ function suspendOutbox(): void {
 
 function shutdown(): void {
   generation += 1;
+  appStateSubscription?.remove();
+  appStateSubscription = null;
   clearTimeout(retryTimer);
   clearTimeout(deadTimer);
   const current = socket;
@@ -349,6 +380,7 @@ export function retainSocket(session: SocketAuth): void {
   consumers += 1;
   if (consumers > 1) return;
   auth = session;
+  appStateSubscription = AppState.addEventListener('change', onAppStateChange);
   attempts = 0;
   sessionRenewed = false;
   setState({ status: 'connecting', error: null });
