@@ -81,10 +81,10 @@
     "FORBIDDEN": "No tens permís per fer això.",
     "RATE_LIMITED": "Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar.",
     "NOT_SUBSCRIBED": "Primer t'has d'unir a la sala.",
-    "PUBSUB_UNAVAILABLE": "El xat no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "PUBSUB_UNAVAILABLE": "El xat no està disponible ara mateix. Torna-ho a provar.",
     "VALIDATION_ERROR": "Revisa les dades introduïdes.",
-    "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna-ho a provar.",
-    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna-ho a provar."
+    "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
+    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala."
   },
   "events": {
     "category": {

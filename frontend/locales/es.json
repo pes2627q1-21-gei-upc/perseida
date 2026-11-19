@@ -80,11 +80,11 @@
     "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla.",
     "FORBIDDEN": "No tienes permiso para hacer esto.",
     "RATE_LIMITED": "Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo.",
-    "NOT_SUBSCRIBED": "Primero tienes que unirte a la sala.",
-    "PUBSUB_UNAVAILABLE": "El chat no está disponible ahora mismo. Inténtalo de nuevo en un rato.",
+    "NOT_SUBSCRIBED": "Primero debes unirte a la sala.",
+    "PUBSUB_UNAVAILABLE": "El chat no está disponible ahora mismo. Inténtalo de nuevo.",
     "VALIDATION_ERROR": "Revisa los datos introducidos.",
-    "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Inténtalo de nuevo.",
-    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Inténtalo de nuevo."
+    "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
+    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala."
   },
   "events": {
     "category": {
