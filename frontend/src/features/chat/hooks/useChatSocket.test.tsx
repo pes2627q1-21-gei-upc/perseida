@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
+import * as Crypto from 'expo-crypto';
 
 import {
   type Frame,
@@ -17,6 +18,11 @@ import { useChatSocket } from './useChatSocket';
 // feature is allowed); here it is a fake with a fixed token.
 jest.mock('../../auth/socketAuth', () => ({
   socketAuth: { getToken: jest.fn(), refresh: jest.fn() },
+}));
+
+// TG-654: the idempotency key of a message is made up on the client with Crypto.randomUUID().
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(() => 'uuid-1'),
 }));
 
 const EVENT_ID = '7d1f0c2e-3b4a-4c5d-8e9f-0a1b2c3d4e5f';
@@ -102,6 +108,7 @@ beforeEach(() => {
   handlers = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
   jest.mocked(socketAuth.getToken).mockReset().mockResolvedValue('access-1');
   jest.mocked(socketAuth.refresh).mockReset().mockResolvedValue(undefined);
+  jest.mocked(Crypto.randomUUID).mockReset().mockReturnValue('uuid-1');
 });
 
 afterEach(() => {
@@ -159,7 +166,7 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     expect(sent).toEqual({
       type: 'message',
       room: ROOM,
-      payload: { text: 'hola' },
+      payload: { text: 'hola', client_message_id: 'uuid-1' },
       id: expect.any(String),
     });
 
@@ -173,11 +180,8 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     await expect(sending).resolves.toEqual({ id: 'm-1', sent_at: '2026-11-18T20:00:00Z' });
   });
 
-  it.each([
-    [429, 'RATE_LIMITED', true],
-    [422, 'CHAT_MESSAGE_REJECTED', false],
-    [503, 'PUBSUB_UNAVAILABLE', true],
-  ])(
+  // TG-654: 429/503 (retryable) are retried by the shared connection; the others reject at once.
+  it.each([[422, 'CHAT_MESSAGE_REJECTED', false]])(
     'sendMessage es rebutja amb un AppError %s %s quan el servidor respon un frame error',
     async (status, code, retryable) => {
       const { result } = await mountChatConnected();
@@ -331,7 +335,7 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     expect(lastSent()).toEqual({
       type: 'message',
       room: OTHER_ROOM,
-      payload: { text: 'hola' },
+      payload: { text: 'hola', client_message_id: 'uuid-1' },
       id: expect.any(String),
     });
   });
@@ -455,5 +459,133 @@ describe('useChatSocket: errors de la sala a onError (TG-461, TG-64)', () => {
     expect(lastSocket().sentOfType('unsubscribe')).toHaveLength(0);
     expect(second.onError).toHaveBeenCalledTimes(1);
     expect(first.onError).not.toHaveBeenCalled();
+  });
+});
+
+describe('useChatSocket: sendMessage idempotent (TG-654 F5)', () => {
+  const ACK = { id: 'm-1', sent_at: '2026-11-18T20:00:00Z' };
+  const KEY = '0198a1b2-c3d4-4e5f-8a6b-7c8d9e0f1a2b';
+
+  it('sendMessage(text) genera la clau amb Crypto.randomUUID() i la posa al payload', async () => {
+    jest.mocked(Crypto.randomUUID).mockReturnValue('11111111-2222-4333-8444-555555555555');
+    const { result } = await mountChatConnected();
+
+    await startSending(result.current.sendMessage, 'hola');
+
+    expect(Crypto.randomUUID).toHaveBeenCalledTimes(1);
+    expect(lastSent()).toEqual({
+      type: 'message',
+      room: ROOM,
+      payload: { text: 'hola', client_message_id: '11111111-2222-4333-8444-555555555555' },
+      id: expect.any(String),
+    });
+  });
+
+  it('cada missatge nou rep una clau nova', async () => {
+    jest.mocked(Crypto.randomUUID).mockReturnValueOnce('uuid-a').mockReturnValueOnce('uuid-b');
+    const { result } = await mountChatConnected();
+
+    await startSending(result.current.sendMessage, 'un');
+    await startSending(result.current.sendMessage, 'dos');
+
+    const keys = lastSocket()
+      .sentOfType('message')
+      .map((frame) => (frame.payload as { client_message_id: string }).client_message_id);
+    expect(keys).toEqual(['uuid-a', 'uuid-b']);
+  });
+
+  it('si es passa clientMessageId, el reutilitza i no en genera cap', async () => {
+    const { result } = await mountChatConnected();
+    const send = result.current.sendMessage as (text: string, key?: string) => Promise<unknown>;
+
+    await startSending((text) => send(text, KEY), 'hola');
+
+    expect(Crypto.randomUUID).not.toHaveBeenCalled();
+    expect(lastSent()).toEqual({
+      type: 'message',
+      room: ROOM,
+      payload: { text: 'hola', client_message_id: KEY },
+      id: expect.any(String),
+    });
+  });
+
+  it('un reintent manual amb la mateixa clau envia el mateix client_message_id i retorna {id, sent_at}', async () => {
+    const { result } = await mountChatConnected();
+    const send = result.current.sendMessage as (text: string, key?: string) => Promise<unknown>;
+    await startSending((text) => send(text, KEY), 'hola');
+
+    const second = await startSending((text) => send(text, KEY), 'hola');
+    const frames = lastSocket().sentOfType('message');
+    await serverSends({
+      type: 'message',
+      room: ROOM,
+      id: frames[1]?.id,
+      payload: { ...ACK, extra: 'ignored' },
+    });
+
+    expect(frames).toHaveLength(2);
+    expect(frames[0]?.payload).toEqual(frames[1]?.payload);
+    await expect(second.sending).resolves.toEqual(ACK);
+  });
+});
+
+describe('useChatSocket: missatges duplicats (TG-654 F5)', () => {
+  const message = (id: string) => ({ ...OTHERS_MESSAGE, id });
+  const deliver = async (id: string) =>
+    act(async () => lastSocket().serverSend({ type: 'message', room: ROOM, payload: message(id) }));
+
+  it('descarta un missatge amb un id ja entregat a la mateixa sala (p. ex. la republicació d’un reintent)', async () => {
+    await mountChatConnected();
+
+    await deliver('m-1');
+    await deliver('m-1');
+    await deliver('m-2');
+
+    expect(handlers.onMessage.mock.calls.map(([m]) => (m as { id: string }).id)).toEqual([
+      'm-1',
+      'm-2',
+    ]);
+  });
+
+  it('el duplicat s’ignora també després d’una reconnexió', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    await mountChatConnected();
+    await deliver('m-1');
+    await act(async () => lastSocket().networkFailure());
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await deliver('m-1');
+
+    expect(handlers.onMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('el mateix id en una altra sala no es descarta (el Set és per sala)', async () => {
+    const other = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
+    await mountChatConnected();
+    await renderHook(() => useChatSocket(OTHER_EVENT_ID, other));
+    await flush();
+    await deliver('m-1');
+    await act(async () =>
+      lastSocket().serverSend({ type: 'message', room: OTHER_ROOM, payload: message('m-1') }),
+    );
+
+    expect(handlers.onMessage).toHaveBeenCalledTimes(1);
+    expect(other.onMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('recorda només els últims 200 ids per sala: el 201è desplaça el més vell', async () => {
+    await mountChatConnected();
+    for (let n = 0; n <= 200; n += 1) await deliver(`m-${n}`); // m-0 ... m-200: 201 ids
+    expect(handlers.onMessage).toHaveBeenCalledTimes(201);
+
+    await deliver('m-1'); // still among the last 200
+    await deliver('m-200');
+    expect(handlers.onMessage).toHaveBeenCalledTimes(201);
+
+    await deliver('m-0'); // the oldest was displaced: it is delivered again
+    expect(handlers.onMessage).toHaveBeenCalledTimes(202);
+    expect((handlers.onMessage.mock.calls[201]?.[0] as { id: string }).id).toBe('m-0');
   });
 });
