@@ -13,6 +13,7 @@ import {
 import { readingMaxWidth, type Theme, useTheme } from '../../../shared/theme';
 import { useReduceTransparency } from '../../../shared/ui';
 import { arrivedKeys, type ChatListItem } from '../chatItems';
+import { dateTimeFormat } from '../dateFormat';
 import { rowSurface } from '../rowSurface';
 import { MessageBubble } from './MessageBubble';
 
@@ -34,46 +35,17 @@ interface Props {
   listProps?: ListProps;
 }
 
-// Layout and glass of the list: purely visual, left out of mutation testing on purpose
-// (convencions/testing.md, «Mutation testing»).
-// Stryker disable all
-const LOAD_OLDER_THRESHOLD = 0.5;
-const styles = StyleSheet.create({
-  content: { width: '100%', maxWidth: readingMaxWidth, alignSelf: 'center' },
-  center: { alignItems: 'center' },
-  pill: { borderWidth: 1 },
-});
-
-/** Room around the bubbles; the column is capped at a readable width on wide screens. */
-function contentStyle({ spacing }: Theme) {
-  return [styles.content, { gap: spacing.sm, padding: spacing.md }];
-}
-
-/** A small glass pill, centred: legible over any part of the scene (rowSurface). */
-function pillStyle({ colors, radii, spacing }: Theme, reduceTransparency: boolean) {
-  return {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    borderColor: colors.surface.glassBorder,
-    backgroundColor: rowSurface(colors.surface, reduceTransparency),
-  };
-}
+type Styles = ReturnType<typeof createStyles>;
 
 /** The start of a day, as a heading with the long date in the language of the app. */
-function DaySeparator({ date }: { date: string }) {
+function DaySeparator({ date, styles }: { date: string; styles: Styles }) {
   const { i18n } = useTranslation();
-  const theme = useTheme();
-  const reduceTransparency = useReduceTransparency();
-  const day = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(new Date(date));
+  const day = dateTimeFormat(i18n.language, { dateStyle: 'long' }).format(new Date(date));
 
   return (
-    <View style={[styles.center, { paddingVertical: theme.spacing.sm }]}>
-      <View style={[styles.pill, pillStyle(theme, reduceTransparency)]}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.typography.caption, { color: theme.colors.text.primary }]}
-        >
+    <View style={styles.center}>
+      <View style={styles.pill}>
+        <Text accessibilityRole="header" style={styles.day}>
           {day}
         </Text>
       </View>
@@ -82,25 +54,24 @@ function DaySeparator({ date }: { date: string }) {
 }
 
 /** Drawn at the top of the inverted list while an older page loads. */
-function LoadingOlder({ label }: { label: string }) {
-  const theme = useTheme();
-  const reduceTransparency = useReduceTransparency();
-
+function LoadingOlder({ label, styles }: { label: string; styles: Styles }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.center, { paddingVertical: theme.spacing.sm }]}>
-      <View style={[styles.pill, pillStyle(theme, reduceTransparency)]}>
-        <ActivityIndicator accessibilityLabel={label} color={theme.colors.text.primary} />
+    <View style={styles.center}>
+      <View style={styles.pill}>
+        <ActivityIndicator accessibilityLabel={label} color={colors.text.primary} />
       </View>
     </View>
   );
 }
-// Stryker restore all
 
 /**
  * The messages of a room (TG-469), as an inverted list: the newest at the bottom, where the
  * composer is. Reaching the top asks for older messages, once at a time. Only what arrives while
- * the room is open floats in (arrivedKeys); the history and older pages appear at once. Without
- * items it draws nothing: the screen has its own empty state.
+ * the room is open floats in (arrivedKeys); the history and older pages appear at once, and so
+ * does the first message of an empty room. Without items it draws nothing: the screen has its own
+ * empty state. The order a screen reader follows in an inverted list is to be checked on a
+ * device (VoiceOver and TalkBack).
  */
 export function MessageList({
   items,
@@ -112,6 +83,7 @@ export function MessageList({
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const styles = createStyles(theme, useReduceTransparency());
   // The items of the previous render, to tell what has just arrived (React: «storing information
   // from previous renders»).
   const [previous, setPrevious] = useState(items);
@@ -125,7 +97,7 @@ export function MessageList({
 
   const renderItem: ListRenderItem<ChatListItem> = ({ item }) =>
     item.kind === 'day' ? (
-      <DaySeparator date={item.date} />
+      <DaySeparator date={item.date} styles={styles} />
     ) : (
       <MessageBubble item={item} onRetry={onRetry} entering={arrived.has(item.key)} />
     );
@@ -146,9 +118,41 @@ export function MessageList({
       }}
       onEndReachedThreshold={LOAD_OLDER_THRESHOLD}
       ListFooterComponent={
-        isFetchingMore ? <LoadingOlder label={t('chat.messages.loadingOlder')} /> : undefined
+        isFetchingMore ? (
+          <LoadingOlder label={t('chat.messages.loadingOlder')} styles={styles} />
+        ) : undefined
       }
-      contentContainerStyle={[contentStyle(theme), listProps?.contentContainerStyle]}
+      contentContainerStyle={[styles.content, listProps?.contentContainerStyle]}
     />
   );
 }
+
+// Purely visual styles, all from theme tokens, and how early the older page is asked for. They
+// are left out of mutation testing on purpose: a changed padding or colour is not behaviour a
+// unit test should pin down (convencions/testing.md, «Mutation testing»).
+// Stryker disable all
+const LOAD_OLDER_THRESHOLD = 0.5;
+
+/** The column is capped at a readable width on wide screens; the pills are glass of a row. */
+function createStyles({ colors, radii, spacing, typography }: Theme, reduceTransparency: boolean) {
+  return StyleSheet.create({
+    content: {
+      width: '100%',
+      maxWidth: readingMaxWidth,
+      alignSelf: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+    },
+    center: { alignItems: 'center', paddingVertical: spacing.sm },
+    pill: {
+      borderWidth: 1,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: radii.pill,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: rowSurface(colors.surface, reduceTransparency),
+    },
+    day: { ...typography.caption, color: colors.text.primary },
+  });
+}
+// Stryker restore all
