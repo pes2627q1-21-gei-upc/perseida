@@ -10,8 +10,8 @@ from app.application.chat.errors import RateLimitedError
 from app.application.realtime.errors import PUBSUB_UNAVAILABLE, RATE_LIMITED
 from app.application.shared.errors import ExternalServiceError, ForbiddenError
 from app.domain.chat.errors import (
-    CHAT_INVALID_CURSOR,
     CHAT_IDEMPOTENCY_CONFLICT,
+    CHAT_INVALID_CURSOR,
     CHAT_INVALID_LIMIT,
     CHAT_MESSAGE_REJECTED,
     CHAT_MESSAGE_TOO_LONG,
