@@ -16,7 +16,7 @@ from app.application.shared.errors import (
 )
 from app.application.users.user_service import UserService
 from app.domain.shared.account import AccountStatus
-from app.domain.shared.errors import NotFoundError, ValidationError
+from app.domain.shared.errors import ConflictError, NotFoundError, ValidationError
 from app.domain.users.models import User
 from app.infrastructure.chat.ws_handler import CHAT_ROOM_PREFIX, ChatWsHandler
 from tests.fakes.chat import ChatFakes
@@ -56,6 +56,11 @@ def account(
         last_login_at=now,
         deleted_at=now if status == AccountStatus.DELETED else None,
     )
+
+
+def _payload(text: str, key: uuid.UUID | None = None) -> dict[str, Any]:
+    """A valid ``message`` payload: the text and the id the client made up."""
+    return {"text": text, "client_message_id": str(key or uuid.uuid4())}
 
 
 def request(env: ChatFakes, room: str | None = None, conn: str = "c-1") -> RoomRequest:
@@ -138,7 +143,7 @@ async def test_a_malformed_event_id_in_the_room_is_a_validation_error(
         sub=str(env.user), conn_id="c", room=f"{CHAT_ROOM_PREFIX}{suffix}"
     )
     call = (
-        handler.message(bad, {"text": "hola"})
+        handler.message(bad, _payload("hola"))
         if action == "message"
         else getattr(handler, action)(bad)
     )
@@ -158,7 +163,7 @@ async def test_a_session_without_an_account_is_an_invalid_session(
         sub="no-account", conn_id="c", room=f"{CHAT_ROOM_PREFIX}{env.event}"
     )
     call = (
-        handler.message(ghost, {"text": "hola"})
+        handler.message(ghost, _payload("hola"))
         if action == "message"
         else handler.subscribe(ghost)
     )
@@ -188,7 +193,7 @@ async def test_a_suspended_or_deleted_account_cannot_use_the_chat(
     accounts.users[SUB] = account(env.user, SUB, status)
 
     with pytest.raises(ForbiddenError) as exc:
-        await handler.message(request(env), {"text": "hola"})
+        await handler.message(request(env), _payload("hola"))
 
     assert exc.value.code == code
     assert env.calls == []
@@ -210,7 +215,7 @@ async def test_unsubscribing_needs_no_permission_and_touches_nothing(
 async def test_a_message_is_sent_with_the_connection_as_origin(
     handler: ChatWsHandler, env: ChatFakes
 ) -> None:
-    ack = await handler.message(request(env, conn="conn-5"), {"text": " hola "})
+    ack = await handler.message(request(env, conn="conn-5"), _payload(" hola "))
 
     [stored] = env.messages
     assert stored.text == "hola"
@@ -225,7 +230,7 @@ async def test_a_message_is_sent_with_the_connection_as_origin(
 async def test_the_ack_is_the_id_and_the_timestamp_of_the_stored_message(
     handler: ChatWsHandler, env: ChatFakes
 ) -> None:
-    ack = await handler.message(request(env), {"text": "hola"})
+    ack = await handler.message(request(env), _payload("hola"))
 
     dto = json.loads(env.published[0])["frame"]["payload"]
     assert ack == {"id": dto["id"], "sent_at": dto["sent_at"]}
@@ -239,6 +244,7 @@ async def test_the_ack_is_the_id_and_the_timestamp_of_the_stored_message(
 async def test_a_payload_without_a_text_string_is_a_validation_error(
     handler: ChatWsHandler, env: ChatFakes, payload: dict[str, Any]
 ) -> None:
+    payload = {"client_message_id": str(uuid.uuid4()), **payload}
     with pytest.raises(ValidationError) as exc:
         await handler.message(request(env), payload)
 
@@ -258,7 +264,7 @@ async def test_the_errors_of_the_service_go_through_unchanged(
     handler: ChatWsHandler, env: ChatFakes, text: str, code: str
 ) -> None:
     with pytest.raises(ValidationError) as exc:
-        await handler.message(request(env), {"text": text})
+        await handler.message(request(env), _payload(text))
 
     assert exc.value.code == code
     assert env.published == []
@@ -270,7 +276,7 @@ async def test_a_message_of_a_user_not_subscribed_is_forbidden(
     env.subscribed = False
 
     with pytest.raises(ForbiddenError):
-        await handler.message(request(env), {"text": "hola"})
+        await handler.message(request(env), _payload("hola"))
 
     assert env.messages == []
 
@@ -281,7 +287,7 @@ async def test_an_unavailable_database_is_not_hidden(
     env.fail_save = True
 
     with pytest.raises(ExternalServiceError) as exc:
-        await handler.message(request(env), {"text": "hola"})
+        await handler.message(request(env), _payload("hola"))
 
     assert exc.value.code == "DATABASE_UNAVAILABLE"
     assert env.published == []
@@ -293,7 +299,80 @@ async def test_a_pubsub_failure_is_pubsub_unavailable_and_the_message_is_kept(
     env.fail_publish = True
 
     with pytest.raises(ExternalServiceError) as exc:
-        await handler.message(request(env), {"text": "hola"})
+        await handler.message(request(env), _payload("hola"))
 
     assert exc.value.code == "PUBSUB_UNAVAILABLE"
+    assert len(env.messages) == 1
+
+
+# --- TG-654: client_message_id (idempotencia) ----------------------------------
+
+
+async def test_tg654_the_client_message_id_reaches_the_stored_message(
+    handler: ChatWsHandler, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+
+    await handler.message(request(env), _payload("hola", key))
+
+    [stored] = env.messages
+    assert stored.client_message_id == key
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"text": "hola"},
+        {"text": "hola", "client_message_id": None},
+        {"text": "hola", "client_message_id": 5},
+        {"text": "hola", "client_message_id": str(uuid.uuid4()).upper()},
+        {"text": "hola", "client_message_id": uuid.uuid4().hex},
+        {"text": "hola", "client_message_id": "not-a-uuid"},
+        {"text": "hola", "client_message_id": ""},
+        {"text": "hola", "client_message_id": str(uuid.uuid4()) + " "},
+    ],
+    ids=[
+        "absent",
+        "null",
+        "number",
+        "upper-case",
+        "no-hyphens",
+        "text",
+        "empty",
+        "trailing-space",
+    ],
+)
+async def test_tg654_a_missing_or_non_canonical_client_message_id_is_a_validation_error(
+    handler: ChatWsHandler, env: ChatFakes, payload: dict[str, Any]
+) -> None:
+    with pytest.raises(ValidationError) as exc:
+        await handler.message(request(env), payload)
+
+    assert exc.value.code == "VALIDATION_ERROR"
+    assert env.calls == []  # nothing was asked to the service
+    assert env.published == []
+
+
+async def test_tg654_an_identical_retry_gets_the_same_ack_and_is_not_stored_twice(
+    handler: ChatWsHandler, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+    first = await handler.message(request(env), _payload("hola", key))
+
+    second = await handler.message(request(env, conn="c-2"), _payload("hola", key))
+
+    assert second == first
+    assert len(env.messages) == 1
+
+
+async def test_tg654_reusing_the_key_with_another_text_is_the_idempotency_conflict(
+    handler: ChatWsHandler, env: ChatFakes
+) -> None:
+    key = uuid.uuid4()
+    await handler.message(request(env), _payload("hola", key))
+
+    with pytest.raises(ConflictError) as exc:
+        await handler.message(request(env), _payload("un altre", key))
+
+    assert exc.value.code == "CHAT_IDEMPOTENCY_CONFLICT"
     assert len(env.messages) == 1
