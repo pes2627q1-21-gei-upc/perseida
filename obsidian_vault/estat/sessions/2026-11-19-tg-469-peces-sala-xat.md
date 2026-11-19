@@ -18,7 +18,8 @@ Posar en verd els tests de les peces de la sala de xat (PR C de TG-64) sense toc
 
 - `chatCache.ts`, `chatItems.ts` (amb `arrivedKeys`, test nou previ) i `bubbleSurface.ts` a `src/features/chat/`.
 - `MessageBubble`, `MessageComposer` i `MessageList` a `src/features/chat/components/`.
-- `GelIconButton` (nou, amb tests) i l'opció `compact` de `GlassPanel` a `src/shared/ui`.
+- `GelIconButton` (nou, amb tests) a `src/shared/ui`. L'opció `compact` de `GlassPanel` es va afegir i es va treure en la mateixa sessió, quan el compositor va deixar de fer servir `GlassPanel`.
+- Revisió de la PR C: Stryker només exclou estils (`createStyles`); `arrivedKeys` no es deixa enganyar pels pendents; focus a la bombolla després de «Reintenta»; `bottomInset` al compositor; `composerSurface` amb test de contrast; `Intl.DateTimeFormat` en memòria (`dateFormat.ts`); `{{max}}` formatat a `chat.composer.tooLong`; anunci a iOS del motiu pel qual no es pot enviar; `buildChatItems` sense `now`.
 - Textos `chat.*` de la sala en ca/es/en.
 - Detall a [[frontend#Sala de xat: peces de la pantalla (TG-469)]].
 
@@ -35,7 +36,8 @@ Posar en verd els tests de les peces de la sala de xat (PR C de TG-64) sense toc
 ## Pendent / següents passos
 
 - [ ] Muntar la pantalla de la sala (PR D de TG-64) i afegir-hi `expo-haptics`.
-- [ ] Prova en dispositiu: entrada dels missatges, punt que batega, focus del camp després d'enviar, anell de focus (`boxShadow` amb *spread*) a Android, ordre de lectura de la llista invertida amb TalkBack/VoiceOver.
+- [ ] Prova en dispositiu: entrada dels missatges, punt que batega, focus del camp després d'enviar, focus a la bombolla després de «Reintenta», anell de focus (`boxShadow` amb *spread*) a Android.
+- [ ] Comprovar al dispositiu l'ordre en què VoiceOver i TalkBack llegeixen la llista invertida (`FlatList inverted`); de moment es deixa com està.
 
 ## US de Taiga
 
