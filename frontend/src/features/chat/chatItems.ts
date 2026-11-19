@@ -91,3 +91,26 @@ export function buildChatItems({
   });
   return items;
 }
+
+/** Day separators and my confirmed messages (which replace their pending bubble) never float in. */
+function floatsIn(item: ChatListItem): boolean {
+  return item.kind === 'pending' || (item.kind === 'message' && !item.mine);
+}
+
+/**
+ * The keys of what arrived while the room was open (TG-469): the new items at the newest end of
+ * `items` that `before` did not have. The first list is the history and a list that shares
+ * nothing with the previous one is a new history, so neither has arrivals; older pages come at
+ * the other end and are not arrivals either.
+ */
+export function arrivedKeys(items: ChatListItem[], before: ChatListItem[]): Set<string> {
+  const known = new Set(before.map((item) => item.key));
+  const newest = items.findIndex((item) => known.has(item.key));
+  if (newest < 0) return new Set();
+  return new Set(
+    items
+      .slice(0, newest)
+      .filter(floatsIn)
+      .map((item) => item.key),
+  );
+}
