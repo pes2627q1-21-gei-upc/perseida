@@ -49,6 +49,7 @@ def _message(row: ChatMessageRow) -> ChatMessage:
         author_id=row.author_id,
         text=row.text,
         sent_at=row.sent_at,
+        client_message_id=row.client_message_id,
     )
 
 
@@ -105,19 +106,48 @@ class SqlChatRepository:
                     return _room(created)
                 return _room((await session.scalars(find_room)).one())
 
-    async def add_message(self, message: ChatMessage) -> None:
-        statement = insert(ChatMessageRow).values(
-            id=message.id,
-            room_id=message.room_id,
-            author_id=message.author_id,
-            text=message.text,
-            sent_at=message.sent_at,
+    async def find_by_client_id(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> ChatMessage | None:
+        # Served by the unique (author_id, client_message_id).
+        statement = select(ChatMessageRow).where(
+            col(ChatMessageRow.author_id) == author_id,
+            col(ChatMessageRow.client_message_id) == client_message_id,
+        )
+        with _database_errors():
+            async with self._session_factory() as session:
+                row = (await session.scalars(statement)).one_or_none()
+        return None if row is None else _message(row)
+
+    async def add_message(self, message: ChatMessage) -> ChatMessage:
+        # The conflict target is explicit: only a repeated idempotency key is
+        # swallowed; a repeated id still fails on the primary key.
+        statement = (
+            insert(ChatMessageRow)
+            .values(
+                id=message.id,
+                room_id=message.room_id,
+                author_id=message.author_id,
+                text=message.text,
+                sent_at=message.sent_at,
+                client_message_id=message.client_message_id,
+            )
+            .on_conflict_do_nothing(index_elements=["author_id", "client_message_id"])
+            .returning(ChatMessageRow)
+        )
+        find_stored = select(ChatMessageRow).where(
+            col(ChatMessageRow.author_id) == message.author_id,
+            col(ChatMessageRow.client_message_id) == message.client_message_id,
         )
         with _database_errors():
             try:
                 async with self._session_factory() as session:
-                    await session.execute(statement)
+                    created = await session.scalar(statement)
                     await session.commit()
+                    if created is not None:
+                        return _message(created)
+                    # A concurrent retry stored it first: that one is the result.
+                    return _message((await session.scalars(find_stored)).one())
             except IntegrityError as exc:
                 # Only the room foreign key means "room not found"; a repeated id,
                 # the text CHECK or a missing author are other failures.
@@ -172,6 +202,7 @@ class SqlChatRepository:
                 last.c.author_id.label("author_id"),
                 last.c.text.label("text"),
                 last.c.sent_at.label("sent_at"),
+                last.c.client_message_id.label("client_message_id"),
             )
             .join(
                 EventSubscriptionRow,
@@ -204,6 +235,7 @@ class SqlChatRepository:
                         author_id=row.author_id,
                         text=row.text,
                         sent_at=row.sent_at,
+                        client_message_id=row.client_message_id,
                     )
                 ),
             )
