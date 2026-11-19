@@ -222,7 +222,10 @@ async def test_a_message_is_sent_with_the_connection_as_origin(
     assert stored.author_id == env.user
     envelope = json.loads(env.published[0])
     assert envelope["from"] == "conn-5"
-    assert envelope["frame"]["payload"] == stored.model_dump(mode="json")
+    assert envelope["frame"]["payload"] == stored.model_dump(
+        mode="json", exclude={"client_message_id"}
+    )
+    assert "client_message_id" not in envelope["frame"]["payload"]
     assert env.channels == [f"room:{CHAT_ROOM_PREFIX}{env.event}"]
     assert ack  # see the next test for its content
 
