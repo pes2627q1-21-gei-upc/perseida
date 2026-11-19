@@ -379,3 +379,24 @@ async def test_tg654_reusing_the_key_with_another_text_is_the_idempotency_confli
 
     assert exc.value.code == "CHAT_IDEMPOTENCY_CONFLICT"
     assert len(env.messages) == 1
+
+
+# --- TG-469: l'autor del missatge porta el display_name del perfil ---------------
+
+
+@pytest.mark.parametrize("display_name", ["Ada Lovelace", None])
+async def test_tg469_the_message_passes_the_profile_display_name_as_author_name(
+    env: ChatFakes, accounts: InMemoryUserRepository, display_name: str | None
+) -> None:
+    accounts.users[SUB] = account(env.user, SUB).model_copy(
+        update={"display_name": display_name}
+    )
+    service = ChatService(env, env, env, env, env, env)
+    users = UserService(accounts)
+    handler = ChatWsHandler(lambda: service, lambda: users)
+
+    await handler.message(request(env), _payload("hola"))
+
+    [stored] = env.messages
+    assert stored.author.id == env.user
+    assert stored.author.name == display_name
