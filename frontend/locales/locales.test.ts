@@ -185,7 +185,7 @@ describe('Texts of the chat room (TG-469)', () => {
       'composer.label': 'Escriu un missatge',
       'composer.send': 'Envia',
       'composer.counter': '{{count}} de {{max}} caràcters',
-      'composer.tooLong': 'El missatge pot tenir com a màxim 1.000 caràcters.',
+      'composer.tooLong': 'El missatge pot tenir com a màxim {{max}} caràcters.',
       'messages.label': 'Missatges del xat',
       'messages.loadingOlder': 'Carregant missatges anteriors',
     });
