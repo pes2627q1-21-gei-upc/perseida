@@ -86,6 +86,8 @@ let deadTimer: ReturnType<typeof setTimeout> | undefined;
 let appStateSubscription: { remove: () => void } | null = null;
 /** Bumped on every shutdown, so async work started before it does not touch a newer connection. */
 let generation = 0;
+/** Whether the socket was suspended by a `background`; only then does `active` reconnect. */
+let suspendedByBackground = false;
 let lastId = 0;
 
 /** Handlers of each joined room; the room stays joined on the server while it has any. */
@@ -133,6 +135,7 @@ function sendFrame(frame: Record<string, unknown>): void {
  * token cannot be read, it stops with INVALID_SESSION.
  */
 function connect(): void {
+  suspendedByBackground = false;
   const startedIn = generation;
   void auth!
     .getToken()
@@ -221,6 +224,7 @@ export function errorOfFrame(frame: ServerFrame): AppError {
 }
 
 function onAuthenticated(): void {
+  suspendedByBackground = false;
   authenticated = true;
   attempts = 0;
   sessionRenewed = false;
@@ -275,13 +279,14 @@ function renewSession(): void {
  */
 function onAppStateChange(next: AppStateStatus): void {
   if (next === 'active') {
-    if (state.status !== 'reconnecting' || socket) return;
+    if (!suspendedByBackground || state.status !== 'reconnecting' || socket) return;
     clearTimeout(retryTimer);
     generation += 1;
     attempts = 0;
     sessionRenewed = false;
     connect();
   } else if (next === 'background' && state.status !== 'closed') {
+    suspendedByBackground = true;
     clearTimeout(retryTimer);
     clearTimeout(deadTimer);
     generation += 1;
@@ -373,6 +378,7 @@ function suspendOutbox(): void {
 }
 
 function shutdown(): void {
+  suspendedByBackground = false;
   generation += 1;
   appStateSubscription?.remove();
   appStateSubscription = null;
@@ -455,6 +461,7 @@ export function send(frame: OutgoingFrame): Promise<ServerFrame> {
 /** Closes everything and forgets every room and consumer (test isolation only). */
 export function _resetSocketForTests(): void {
   consumers = 0;
+  suspendedByBackground = false;
   shutdown();
   auth = null;
   rooms.clear();
