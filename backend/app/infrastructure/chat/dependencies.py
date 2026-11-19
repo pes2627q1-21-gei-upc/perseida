@@ -10,6 +10,7 @@ from app.infrastructure.chat.config import ChatSettings
 from app.infrastructure.chat.moderator import ApproveAllModerator
 from app.infrastructure.chat.rate_limiter import RedisSendRateLimiter
 from app.infrastructure.chat.repository import SqlChatRepository
+from app.infrastructure.chat.republish_guard import RedisRepublishGuard
 from app.infrastructure.events.subscription_repository import (
     SqlEventSubscriptionRepository,
 )
@@ -36,6 +37,7 @@ def get_chat_service(conn: HTTPConnection, settings: ChatSettingsDep) -> ChatSer
         ),
         ApproveAllModerator(),
         RedisPubSub(state.redis),
+        RedisRepublishGuard(state.redis),
         message_max_length=settings.chat_message_max_length,
     )
 

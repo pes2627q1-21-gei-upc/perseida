@@ -81,8 +81,9 @@ INSERT_ROOM = text(
     " VALUES (:id, :event_id, :created_at)"
 )
 INSERT_MESSAGE = text(
-    "INSERT INTO chat_messages (id, room_id, author_id, text, sent_at)"
-    " VALUES (:id, :room_id, :author_id, :body, :sent_at)"
+    "INSERT INTO chat_messages"
+    " (id, room_id, author_id, client_message_id, text, sent_at)"
+    " VALUES (:id, :room_id, :author_id, :client_message_id, :body, :sent_at)"
 )
 COUNT_ROOMS_OF_EVENT = text(
     "SELECT count(*) FROM event_chat_rooms WHERE event_id = :event_id"
@@ -261,6 +262,7 @@ async def seed_message(
             "id": message_id,
             "room_id": room_id,
             "author_id": author_id,
+            "client_message_id": uuid.uuid4(),
             "body": body,
             "sent_at": sent_at,
         },
@@ -286,6 +288,7 @@ async def seed_history(
             "id": uuid.uuid7(),
             "room_id": room_id,
             "author_id": author_id,
+            "client_message_id": uuid.uuid4(),
             "body": f"m{index}",
             "sent_at": NOW + timedelta(seconds=index // 3),
         }

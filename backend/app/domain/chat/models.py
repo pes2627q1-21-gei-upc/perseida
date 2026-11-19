@@ -37,6 +37,9 @@ class ChatMessage(BaseModel):
     author_id: uuid.UUID
     text: str
     sent_at: AwareDatetime
+    # Idempotency key chosen by the sender: unique per author, so a retry of the
+    # same send never stores a second message (it is not published to the room).
+    client_message_id: uuid.UUID
 
     @field_validator("text")
     @classmethod
@@ -53,7 +56,12 @@ class ChatMessage(BaseModel):
 
     @classmethod
     def create(
-        cls, *, room_id: uuid.UUID, author_id: uuid.UUID, text: str
+        cls,
+        *,
+        room_id: uuid.UUID,
+        author_id: uuid.UUID,
+        text: str,
+        client_message_id: uuid.UUID,
     ) -> ChatMessage:
         """Build a new message; the server sets its id and ``sent_at``."""
         return cls(
@@ -62,6 +70,7 @@ class ChatMessage(BaseModel):
             author_id=author_id,
             text=text,
             sent_at=datetime.now(UTC),
+            client_message_id=client_message_id,
         )
 
 
