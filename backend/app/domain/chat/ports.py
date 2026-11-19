@@ -32,8 +32,21 @@ class ChatRepository(Protocol):
         """
         ...
 
-    async def add_message(self, message: ChatMessage) -> None:
-        """Store ``message``.
+    async def find_by_client_id(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> ChatMessage | None:
+        """Return the message ``author_id`` sent with ``client_message_id``, if any.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def add_message(self, message: ChatMessage) -> ChatMessage:
+        """Store ``message`` and return the stored one.
+
+        If the author already stored a message with the same ``client_message_id``
+        (a concurrent retry), nothing is inserted and that one is returned.
 
         Raises:
             NotFoundError: if the room of the message does not exist.
