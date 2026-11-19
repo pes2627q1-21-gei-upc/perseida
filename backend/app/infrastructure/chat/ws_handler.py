@@ -17,6 +17,7 @@ from app.application.realtime.errors import VALIDATION_ERROR
 from app.application.realtime.room_handler import RoomRequest
 from app.application.users.user_service import UserService
 from app.domain.shared.errors import ValidationError
+from app.domain.users.models import User
 
 CHAT_ROOM_PREFIX = "chat:event:"
 
@@ -70,13 +71,16 @@ class ChatWsHandler:
         self._service = service
         self._users = users
 
-    async def _user_of(self, request: RoomRequest) -> uuid.UUID:
+    async def _profile_of(self, request: RoomRequest) -> User:
         """The user of the session: ``sub`` is the Google subject, not the user id.
 
         Raises ``UnauthorizedError`` (INVALID_SESSION) or ``ForbiddenError``
         (ACCOUNT_SUSPENDED, ACCOUNT_DELETED), the same as the REST endpoints.
         """
-        return (await self._users().get_profile(request.sub)).id
+        return await self._users().get_profile(request.sub)
+
+    async def _user_of(self, request: RoomRequest) -> uuid.UUID:
+        return (await self._profile_of(request)).id
 
     async def subscribe(self, request: RoomRequest) -> None:
         event_id = _event_of(request.room)
@@ -94,12 +98,13 @@ class ChatWsHandler:
         if not isinstance(text, str):
             raise ValidationError(VALIDATION_ERROR, "The message needs a text.")
         client_message_id = _client_message_id_of(payload)
-        user_id = await self._user_of(request)
+        profile = await self._profile_of(request)
         message = await self._service().send_message(
-            user_id,
+            profile.id,
             event_id,
             text,
             client_message_id=client_message_id,
+            author_name=profile.display_name,
             origin=request.conn_id,
         )
         stored = message.model_dump(mode="json")
