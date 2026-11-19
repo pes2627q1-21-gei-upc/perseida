@@ -11,6 +11,7 @@ from app.application.realtime.errors import PUBSUB_UNAVAILABLE, RATE_LIMITED
 from app.application.shared.errors import ExternalServiceError, ForbiddenError
 from app.domain.chat.errors import (
     CHAT_INVALID_CURSOR,
+    CHAT_IDEMPOTENCY_CONFLICT,
     CHAT_INVALID_LIMIT,
     CHAT_MESSAGE_REJECTED,
     CHAT_MESSAGE_TOO_LONG,
@@ -31,7 +32,11 @@ from app.domain.chat.ports import (
     SendRateLimiter,
 )
 from app.domain.realtime.models import Frame, FrameType, room_channel
-from app.domain.shared.errors import BusinessRuleViolation, ValidationError
+from app.domain.shared.errors import (
+    BusinessRuleViolation,
+    ConflictError,
+    ValidationError,
+)
 from app.domain.shared.ports import PubSub
 
 
@@ -118,24 +123,41 @@ class ChatService:
         event_id: uuid.UUID,
         text: str,
         *,
+        client_message_id: uuid.UUID,
         origin: str | None = None,
     ) -> ChatMessage:
-        """Store, moderate and fan out a message.
+        """Store, moderate and fan out a message, idempotently.
+
+        ``client_message_id`` is the sender's idempotency key, unique per author.
+        A retry with the same key, room and cleaned text republishes the stored
+        message and returns it without rate limit, moderation or a new row; the
+        same key for another room or text raises ``ConflictError``.
 
         ``origin`` is the id of the sender's connection (it is put in ``from`` of
         the published envelope so that its own session does not echo it back).
         """
         room = await self.get_or_create_room(user_id, event_id)
-        message = ChatMessage.create(room_id=room.id, author_id=user_id, text=text)
+        message = ChatMessage.create(
+            room_id=room.id,
+            author_id=user_id,
+            text=text,
+            client_message_id=client_message_id,
+        )
         if len(message.text) > self._message_max_length:
             raise ValidationError(CHAT_MESSAGE_TOO_LONG)
+        existing = await self._repository.find_by_client_id(user_id, client_message_id)
+        if existing is not None:
+            if existing.room_id != room.id or existing.text != message.text:
+                raise ConflictError(CHAT_IDEMPOTENCY_CONFLICT)
+            await self._publish(existing, event_id, origin)
+            return existing
         if not await self._limiter.hit(user_id):
             raise RateLimitedError(RATE_LIMITED)
         if not (await self._moderator.moderate(message.text)).approved:
             raise BusinessRuleViolation(CHAT_MESSAGE_REJECTED)
-        await self._repository.add_message(message)
-        await self._publish(message, event_id, origin)
-        return message
+        stored = await self._repository.add_message(message)
+        await self._publish(stored, event_id, origin)
+        return stored
 
     async def _publish(
         self, message: ChatMessage, event_id: uuid.UUID, origin: str | None
@@ -143,7 +165,10 @@ class ChatService:
         """Fan the stored message out; on failure it stays stored (history)."""
         room = f"chat:event:{event_id}"
         frame = Frame(
-            type=FrameType.MESSAGE, room=room, payload=message.model_dump(mode="json")
+            type=FrameType.MESSAGE,
+            room=room,
+            # The key is the sender's secret: the other members do not get it.
+            payload=message.model_dump(mode="json", exclude={"client_message_id"}),
         )
         envelope = {"from": origin, "frame": frame.model_dump(mode="json")}
         try:
