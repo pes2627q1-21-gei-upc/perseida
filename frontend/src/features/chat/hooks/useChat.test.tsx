@@ -3,10 +3,16 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
-import { EVENT_ID, makeMessage, makePage, makeRoom } from '../../../../__mocks__/chat';
+import {
+  EVENT_ID,
+  makeMessage,
+  makePage,
+  makeRoom,
+  makeSubscribedEvent,
+} from '../../../../__mocks__/chat';
 import { AppError } from '../../../shared/errors';
 import { saveTokens } from '../../auth/tokenStorage';
-import { chatKeys, useRoomMessages, useRooms } from './useChat';
+import { chatKeys, useMySubscriptions, useRoomMessages, useRooms } from './useChat';
 
 // SecureStore is native: an in-memory store stands in for the device keychain.
 jest.mock('expo-secure-store', () => {
@@ -60,6 +66,7 @@ describe('chatKeys', () => {
   it('centralises the query keys of the chat feature (TG-466)', () => {
     expect(chatKeys.all).toEqual(['chat']);
     expect(chatKeys.rooms).toEqual(['chat', 'rooms']);
+    expect(chatKeys.subscriptions).toEqual(['chat', 'subscriptions']);
     expect(chatKeys.messages(EVENT_ID)).toEqual(['chat', 'messages', EVENT_ID]);
   });
 });
@@ -201,5 +208,57 @@ describe('useRoomMessages', () => {
 
     expect(result.current.fetchStatus).toBe('idle');
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('useMySubscriptions', () => {
+  it('returns the events the user is subscribed to (TG-469)', async () => {
+    const events = [makeSubscribedEvent(1), makeSubscribedEvent(2)];
+    const calls = mockFetch(() => jsonResponse(events));
+
+    const { result } = await renderHook(() => useMySubscriptions(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual(events);
+    expect(calls[0]?.url.pathname).toBe('/api/me/subscriptions');
+    expect(calls[0]?.auth).toBe('Bearer access-1');
+  });
+
+  it('stores the answer under chatKeys.subscriptions', async () => {
+    const events = [makeSubscribedEvent(1)];
+    mockFetch(() => jsonResponse(events));
+
+    const { result } = await renderHook(() => useMySubscriptions(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(client.getQueryData(chatKeys.subscriptions)).toEqual(events);
+  });
+
+  it('returns the problem+json as an AppError', async () => {
+    mockFetch(() => problemResponse(403, 'ACCOUNT_SUSPENDED'));
+
+    const { result } = await renderHook(() => useMySubscriptions(), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error).toBeInstanceOf(AppError);
+    expect(result.current.error?.code).toBe('ACCOUNT_SUSPENDED');
+  });
+
+  it('retries a transient error (503) once', async () => {
+    const calls = mockFetch(() => problemResponse(503, 'DATABASE_UNAVAILABLE'));
+
+    const { result } = await renderHook(() => useMySubscriptions(), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(calls).toHaveLength(2);
+  });
+
+  it('does not retry a final error (403)', async () => {
+    const calls = mockFetch(() => problemResponse(403, 'ACCOUNT_SUSPENDED'));
+
+    const { result } = await renderHook(() => useMySubscriptions(), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(calls).toHaveLength(1);
   });
 });
