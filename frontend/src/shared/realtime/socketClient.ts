@@ -7,6 +7,10 @@
 // and joins its rooms again; 4401 renews the session once, and 4429 (too many connections) stops.
 // A connection that stays silent for DEAD_AFTER_MS is dead (the server pings every 30 s): it is
 // closed and treated like a drop.
+// send() queues the request in memory: it goes out once the connection is authenticated, with a
+// fixed `id` and the same payload on every retry (the server deduplicates), is sent again after
+// MAX_SEND_ATTEMPTS-bounded timeouts, drops and retryable errors, and gives up with SEND_UNCERTAIN
+// when the last attempt got no answer, since the server may have processed it.
 // The session comes from outside (SocketAuth), so shared/ does not depend on any feature.
 
 import { config } from '../config';
@@ -56,6 +60,7 @@ const FIRST_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30_000;
 /** 2 x WS_HEARTBEAT_SECONDS (30 s on the server, ADR-0030): without any frame, the link is dead. */
 const DEAD_AFTER_MS = 60_000;
+const MAX_SEND_ATTEMPTS = 3;
 
 let state: SocketState = { status: 'closed', error: null };
 const stateListeners = new Set<() => void>();
@@ -77,11 +82,19 @@ let lastId = 0;
 
 /** Handlers of each joined room; the room stays joined on the server while it has any. */
 const rooms = new Map<string, Set<{ handler: FrameHandler }>>();
+/** A send() that has not been answered for good yet. */
+interface Outgoing {
+  id: string;
+  frame: OutgoingFrame;
+  /** Times it went out; 0 while it has never left the client. */
+  attempts: number;
+  /** The ack timeout of the attempt in flight, or the wait before the next one. */
+  timer?: ReturnType<typeof setTimeout>;
+  resolve: (frame: ServerFrame) => void;
+  reject: (error: AppError) => void;
+}
 /** Requests waiting for the server's answer, by `id`. */
-const pending = new Map<
-  string,
-  { resolve: (frame: ServerFrame) => void; reject: (error: AppError) => void }
->();
+const outbox = new Map<string, Outgoing>();
 
 function setState(next: Partial<SocketState>): void {
   state = { ...state, ...next };
@@ -172,13 +185,14 @@ function handleFrame(data: unknown): void {
     return;
   }
 
-  const request = frame.id ? pending.get(frame.id) : undefined;
-  if (frame.id && request) {
-    pending.delete(frame.id);
-    if (frame.type === 'error') {
-      request.reject(errorOfFrame(frame));
+  const request = frame.id ? outbox.get(frame.id) : undefined;
+  if (request) {
+    if (frame.type !== 'error') {
+      settle(request, (entry) => entry.resolve(frame));
+    } else if (errorOfFrame(frame).retryable) {
+      attemptFailed(request, errorOfFrame(frame));
     } else {
-      request.resolve(frame);
+      settle(request, (entry) => entry.reject(errorOfFrame(frame)));
     }
     return;
   }
@@ -202,13 +216,14 @@ function onAuthenticated(): void {
   sessionRenewed = false;
   setState({ status: 'open', error: null });
   rooms.forEach((_, room) => sendFrame({ type: 'subscribe', room, id: nextId() }));
+  outbox.forEach(transmit);
 }
 
 function handleClose(code: number): void {
   clearTimeout(deadTimer);
   socket = null;
   authenticated = false;
-  rejectPending();
+  suspendOutbox();
 
   if (code === CLOSE_UNAUTHORIZED) {
     renewSession();
@@ -247,21 +262,74 @@ function scheduleRetry(): void {
   attempts += 1;
   const base = Math.min(FIRST_DELAY_MS * 2 ** (attempts - 1), MAX_DELAY_MS);
   setState({ status: 'reconnecting' });
-  // Jitter: wait between half the base and the base, so clients do not all come back at once.
-  retryTimer = setTimeout(connect, base / 2 + (base / 2) * Math.random());
+  retryTimer = setTimeout(connect, jitter(base));
+}
+
+/** Between half the base and the base, so clients do not all come back at once. */
+function jitter(base: number): number {
+  return base / 2 + (base / 2) * Math.random();
 }
 
 function stop(error: AppError): void {
   setState({ status: 'closed', error });
+  rejectOutbox();
 }
 
 function invalidSession(): AppError {
   return new AppError({ kind: 'http', code: 'INVALID_SESSION', status: 401, retryable: false });
 }
 
-function rejectPending(): void {
-  pending.forEach(({ reject }) => reject(networkError()));
-  pending.clear();
+/** The server may have processed a request that already left, so its outcome is unknown. */
+function sendUncertain(): AppError {
+  return new AppError({ kind: 'network', code: 'SEND_UNCERTAIN', retryable: true });
+}
+
+function settle(entry: Outgoing, outcome: (entry: Outgoing) => void): void {
+  clearTimeout(entry.timer);
+  outbox.delete(entry.id);
+  outcome(entry);
+}
+
+/** The connection ended for good: nothing queued will go out. */
+function rejectOutbox(): void {
+  outbox.forEach((entry) =>
+    settle(entry, ({ reject, attempts }) =>
+      reject(attempts > 0 ? sendUncertain() : networkError()),
+    ),
+  );
+}
+
+/** Writes the request (the same `id` and payload every time) and waits `requestTimeoutMs` for it. */
+function transmit(entry: Outgoing): void {
+  entry.attempts += 1;
+  sendFrame({ ...entry.frame, id: entry.id });
+  entry.timer = setTimeout(() => attemptFailed(entry, null), config.requestTimeoutMs);
+}
+
+/**
+ * An attempt failed: `error` is the server's retryable answer, null when it never answered. The
+ * next attempt follows at once after a silence, after a 1 s / 2 s wait after an error.
+ */
+function attemptFailed(entry: Outgoing, error: AppError | null): void {
+  clearTimeout(entry.timer);
+  if (entry.attempts >= MAX_SEND_ATTEMPTS) {
+    settle(entry, ({ reject }) => reject(error ?? sendUncertain()));
+  } else if (error) {
+    entry.timer = setTimeout(() => transmit(entry), jitter(FIRST_DELAY_MS * entry.attempts));
+  } else {
+    transmit(entry);
+  }
+}
+
+/** The connection dropped: what is queued waits for the next authentication. */
+function suspendOutbox(): void {
+  outbox.forEach((entry) => {
+    clearTimeout(entry.timer);
+    // Only an attempt in flight can be the last one, so there is nothing left to send again.
+    if (entry.attempts >= MAX_SEND_ATTEMPTS) {
+      settle(entry, ({ reject }) => reject(sendUncertain()));
+    }
+  });
 }
 
 function shutdown(): void {
@@ -272,7 +340,7 @@ function shutdown(): void {
   socket = null;
   authenticated = false;
   current?.close(CLOSE_NORMAL);
-  rejectPending();
+  rejectOutbox();
   setState({ status: 'closed' });
 }
 
@@ -326,15 +394,18 @@ export function subscribe(room: string, onFrame: FrameHandler): () => void {
 }
 
 /**
- * Sends `frame` and resolves with the server's ack, or rejects with the AppError of its `error`
- * frame. Without an authenticated connection it rejects with NETWORK_ERROR and sends nothing.
+ * Sends `frame` and resolves with the server's ack. Until the connection is authenticated the
+ * request waits in memory. It rejects with the AppError of a non-retryable `error` frame, with the
+ * last retryable one after MAX_SEND_ATTEMPTS, with SEND_UNCERTAIN when the last attempt got no
+ * answer, and with NETWORK_ERROR / SEND_UNCERTAIN (never sent / already sent) when the connection
+ * ends for good. A `closed` connection rejects with NETWORK_ERROR at once.
  */
 export function send(frame: OutgoingFrame): Promise<ServerFrame> {
-  if (!authenticated) return Promise.reject(networkError());
-  const id = nextId();
+  if (state.status === 'closed') return Promise.reject(networkError());
   return new Promise((resolve, reject) => {
-    pending.set(id, { resolve, reject });
-    sendFrame({ ...frame, id });
+    const entry: Outgoing = { id: nextId(), frame, attempts: 0, resolve, reject };
+    outbox.set(entry.id, entry);
+    if (authenticated) transmit(entry);
   });
 }
 
