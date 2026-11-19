@@ -4,8 +4,10 @@ event_chat_rooms and chat_messages, their keys, cascades and the history index.
 
 import asyncio
 import os
+from pathlib import Path
 
 import pytest
+from alembic.script import Script, ScriptDirectory
 
 from alembic import command
 from tests.integration.test_alembic import _alembic_config, _fetch, _revision_before
@@ -53,6 +55,8 @@ def test_tg448_c2_messages_cascade_from_the_room_and_the_author() -> None:
     assert asyncio.run(_fetch(MESSAGE_KEYS)) == [
         ("f", ["author_id"], "users", "c"),
         ("f", ["room_id"], "event_chat_rooms", "c"),
+        # TG-654: one idempotency key per author (the contract grew, not shrank)
+        ("u", ["author_id", "client_message_id"], None, None),
     ]
 
 
@@ -93,3 +97,58 @@ def test_tg448_c5_sent_at_has_a_server_default_now() -> None:
             "WHERE table_name = 'chat_messages' AND column_name = 'sent_at'"
         )
     ) == [("now()",)]
+
+
+# --- TG-654: client_message_id (idempotencia) ----------------------------------
+
+CLIENT_ID_COLUMN = """
+    SELECT data_type, is_nullable FROM information_schema.columns
+    WHERE table_name = 'chat_messages' AND column_name = 'client_message_id'"""
+
+
+def test_tg654_c1_messages_have_a_nullable_uuid_client_message_id() -> None:
+    config = _alembic_config()
+    command.upgrade(config, "head")
+
+    assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == [("uuid", "YES")]
+
+
+def test_tg654_c2_the_client_message_id_is_unique_per_author() -> None:
+    config = _alembic_config()
+    command.upgrade(config, "head")
+
+    assert ("u", ["author_id", "client_message_id"], None, None) in asyncio.run(
+        _fetch(MESSAGE_KEYS)
+    )
+
+
+def _revision_of_client_message_id() -> Script:
+    """The migration that adds the idempotency key."""
+    for revision in ScriptDirectory.from_config(_alembic_config()).walk_revisions():
+        source = Path(str(revision.module.__file__)).read_text(encoding="utf-8")
+        if "client_message_id" in source:
+            return revision
+    raise AssertionError("no migration adds client_message_id")
+
+
+def test_tg654_c3_the_migration_undoes_and_redoes_the_idempotency_key() -> None:
+    # upgrade -> downgrade -> upgrade (ADR-0025: the CD rollback needs it).
+    config = _alembic_config()
+    command.upgrade(config, "head")
+    before = str(_revision_of_client_message_id().down_revision)
+    try:
+        command.downgrade(config, before)
+
+        assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == []
+        assert asyncio.run(_fetch(MESSAGE_KEYS)) == [
+            ("f", ["author_id"], "users", "c"),
+            ("f", ["room_id"], "event_chat_rooms", "c"),
+        ]
+    finally:
+        command.upgrade(config, "head")
+
+    assert asyncio.run(_fetch(CLIENT_ID_COLUMN)) == [("uuid", "YES")]
+
+
+def test_tg654_c4_the_migration_builds_on_the_chat_migration() -> None:
+    assert _revision_of_client_message_id().down_revision == "b3e9a6d2c581"

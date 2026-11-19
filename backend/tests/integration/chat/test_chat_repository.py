@@ -168,12 +168,17 @@ async def _subscribe(
 
 
 def _message(
-    room: EventChatRoom, author: User, sent_at: datetime, body: str = "Hola"
+    room: EventChatRoom,
+    author: User,
+    sent_at: datetime,
+    body: str = "Hola",
+    client_message_id: uuid.UUID | None = None,
 ) -> ChatMessage:
     return ChatMessage(
         id=uuid.uuid7(),
         room_id=room.id,
         author_id=author.id,
+        client_message_id=client_message_id or uuid.uuid4(),
         text=body,
         sent_at=sent_at,
     )
@@ -536,3 +541,161 @@ async def test_tg448_the_database_rejects_a_text_of_1001_characters(
         await _insert_raw(engine, room, author, 1001)
 
     assert (await repo.page(room.id, None, 10)).messages == []
+
+
+# --- TG-654: client_message_id (idempotencia) ----------------------------------
+
+INSERT_KEYED_MESSAGE = text(
+    "INSERT INTO chat_messages"
+    " (id, room_id, author_id, client_message_id, text, sent_at)"
+    " VALUES (:id, :room_id, :author_id, :client_message_id, 'x', :sent_at)"
+)
+COUNT_KEYED = text(
+    "SELECT count(*) FROM chat_messages"
+    " WHERE author_id = :author_id AND client_message_id = :client_message_id"
+)
+
+
+async def test_tg654_find_by_client_id_returns_the_stored_message(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    message = _message(room, author, NOW, "Hola", key)
+    await repo.add_message(message)
+
+    assert await repo.find_by_client_id(author.id, key) == message
+
+
+async def test_tg654_find_by_client_id_of_an_unknown_key_is_none(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    await repo.add_message(_message(room, author, NOW))
+
+    assert await repo.find_by_client_id(author.id, uuid.uuid4()) is None
+
+
+async def test_tg654_the_same_key_of_another_author_is_not_found_and_is_stored(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    ada, bob = await _user(sessions), await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    mine = _message(room, ada, NOW, "d'Ada", key)
+    theirs = _message(room, bob, NOW + timedelta(seconds=1), "de Bob", key)
+
+    await repo.add_message(mine)
+    assert await repo.find_by_client_id(bob.id, key) is None
+    await repo.add_message(theirs)
+
+    assert await repo.find_by_client_id(ada.id, key) == mine
+    assert await repo.find_by_client_id(bob.id, key) == theirs
+    assert (await repo.page(room.id, None, 50)).messages == [theirs, mine]
+
+
+async def test_tg654_the_database_rejects_the_same_key_of_the_same_author(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # The unique key (author_id, client_message_id) is the safety net itself.
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    row = {
+        "room_id": room.id,
+        "author_id": author.id,
+        "client_message_id": key,
+        "sent_at": NOW,
+    }
+    async with engine.begin() as connection:
+        await connection.execute(INSERT_KEYED_MESSAGE, {"id": uuid.uuid7(), **row})
+
+    with pytest.raises(IntegrityError):
+        async with engine.begin() as connection:
+            await connection.execute(INSERT_KEYED_MESSAGE, {"id": uuid.uuid7(), **row})
+
+    assert (
+        await _count(engine, COUNT_KEYED, author_id=author.id, client_message_id=key)
+        == 1
+    )
+
+
+async def test_tg654_the_database_accepts_many_messages_without_a_key(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # The column is nullable: NULL keys never collide (rows from before TG-654).
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    async with engine.begin() as connection:
+        for offset in range(2):
+            await connection.execute(
+                INSERT_KEYED_MESSAGE,
+                {
+                    "id": uuid.uuid7(),
+                    "room_id": room.id,
+                    "author_id": author.id,
+                    "client_message_id": None,
+                    "sent_at": NOW + timedelta(seconds=offset),
+                },
+            )
+
+    async with engine.connect() as connection:
+        stored = await connection.scalar(
+            text("SELECT count(*) FROM chat_messages WHERE room_id = :room"),
+            {"room": room.id},
+        )
+    assert stored == 2
+
+
+async def test_tg654_adding_a_second_message_with_the_same_key_keeps_the_first(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # ON CONFLICT DO NOTHING: no error, and the stored one is the original.
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    first = _message(room, author, NOW, "primer", key)
+    second = _message(room, author, NOW + timedelta(seconds=1), "segon", key)
+
+    await repo.add_message(first)
+    await repo.add_message(second)
+
+    assert await repo.find_by_client_id(author.id, key) == first
+    assert (await repo.page(room.id, None, 50)).messages == [first]
+    assert (
+        await _count(engine, COUNT_KEYED, author_id=author.id, client_message_id=key)
+        == 1
+    )
+
+
+async def test_tg654_concurrent_adds_of_the_same_key_store_a_single_message(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # The race of two retries of the same message: nobody fails, one row remains.
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    attempts = [
+        _message(room, author, NOW + timedelta(seconds=n), f"intent {n}", key)
+        for n in range(10)
+    ]
+
+    await asyncio.gather(*(repo.add_message(attempt) for attempt in attempts))
+
+    stored = await repo.find_by_client_id(author.id, key)
+    assert stored in attempts
+    assert (await repo.page(room.id, None, 50)).messages == [stored]
+    assert (
+        await _count(engine, COUNT_KEYED, author_id=author.id, client_message_id=key)
+        == 1
+    )
