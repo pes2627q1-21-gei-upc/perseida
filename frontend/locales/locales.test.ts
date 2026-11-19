@@ -64,6 +64,7 @@ describe('Locales of the chat (TG-469)', () => {
     'title',
     'loading',
     'retry',
+    'retryHint',
     'noMessages',
     'unknownAuthor',
     'list.label',
@@ -94,5 +95,33 @@ describe('Locales of the chat (TG-469)', () => {
       expect(typeof text).toBe('string');
       expect((text as string).length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('Texts of the chat errors that cannot be retried (TG-469)', () => {
+  // A 422 is never retried by the app: the screen shows no «try again» button, so the text must
+  // not promise one. It says what to do instead: open the room again.
+  const finalCodes = ['CHAT_INVALID_CURSOR', 'CHAT_INVALID_LIMIT'];
+  const invitesToRetry = /torna-ho a provar|inténtalo de nuevo|vuelve a intentarlo|try again/i;
+  const reopens = {
+    ca: /torna a obrir la sala/i,
+    es: /vuelve a abrir la sala/i,
+    en: /reopen the room/i,
+  };
+  const languages = { ca, es, en } as unknown as Record<
+    'ca' | 'es' | 'en',
+    { errors: Record<string, string> }
+  >;
+
+  describe.each(['ca', 'es', 'en'] as const)('%s', (language) => {
+    it.each(finalCodes)(
+      'errors.%s does not invite to try again, it says to open the room again',
+      (code) => {
+        const text = languages[language].errors[code] ?? '';
+
+        expect(text).not.toMatch(invitesToRetry);
+        expect(text).toMatch(reopens[language]);
+      },
+    );
   });
 });
