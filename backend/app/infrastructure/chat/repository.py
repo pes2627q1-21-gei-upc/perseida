@@ -55,7 +55,7 @@ def _message(row: ChatMessageRow, author_name: str | None) -> ChatMessage:
     )
 
 
-def _with_author_name() -> Select[tuple[ChatMessageRow, str | None]]:
+def _with_author_name() -> Select[ChatMessageRow, str | None]:
     """Messages joined with the profile name of their author (one query)."""
     return select(ChatMessageRow, col(UserRow.display_name)).join(
         UserRow, col(UserRow.id) == col(ChatMessageRow.author_id)
@@ -126,7 +126,7 @@ class SqlChatRepository:
         with _database_errors():
             async with self._session_factory() as session:
                 record = (await session.execute(statement)).one_or_none()
-        return None if record is None else _message(*record)
+        return None if record is None else _message(record[0], record[1])
 
     async def add_message(self, message: ChatMessage) -> ChatMessage:
         # The conflict target is explicit: only a repeated idempotency key is
@@ -136,7 +136,7 @@ class SqlChatRepository:
             .values(
                 id=message.id,
                 room_id=message.room_id,
-                author_id=message.author_id,
+                author_id=message.author.id,
                 text=message.text,
                 sent_at=message.sent_at,
                 client_message_id=message.client_message_id,
@@ -144,7 +144,7 @@ class SqlChatRepository:
             .on_conflict_do_nothing(index_elements=["author_id", "client_message_id"])
         )
         find_stored = _with_author_name().where(
-            col(ChatMessageRow.author_id) == message.author_id,
+            col(ChatMessageRow.author_id) == message.author.id,
             col(ChatMessageRow.client_message_id) == message.client_message_id,
         )
         with _database_errors():
@@ -154,7 +154,8 @@ class SqlChatRepository:
                     await session.commit()
                     # Read back with the author name: also covers a concurrent
                     # retry that stored it first (that one is the result).
-                    return _message(*(await session.execute(find_stored)).one())
+                    stored = (await session.execute(find_stored)).one()
+                    return _message(stored[0], stored[1])
             except IntegrityError as exc:
                 # Only the room foreign key means "room not found"; a repeated id,
                 # the text CHECK or a missing author are other failures.
@@ -181,8 +182,8 @@ class SqlChatRepository:
         ).limit(limit + 1)
         with _database_errors():
             async with self._session_factory() as session:
-                rows = [tuple(r) for r in (await session.execute(statement)).all()]
-        messages = [_message(*record) for record in rows[:limit]]
+                rows = list((await session.execute(statement)).all())
+        messages = [_message(row, name) for row, name in rows[:limit]]
         next_cursor = (
             ChatCursor(sent_at=messages[-1].sent_at, id=messages[-1].id)
             if len(rows) > limit
