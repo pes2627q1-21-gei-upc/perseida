@@ -73,17 +73,28 @@ export function useRoomLive(eventId: string) {
   // A NOT_SUBSCRIBED send joins again by itself once, until a message goes through.
   const rejoinedBySend = useRef(false);
 
-  const rejoin = useCallback(() => setJoinAttempt((attempt) => attempt + 1), []);
+  // Whether this client was out of the live room (the connection dropped, or the room is joined
+  // again): what was said meanwhile never arrives by the socket.
+  const outOfRoom = useRef(false);
+  const rejoin = useCallback(() => {
+    outOfRoom.current = true;
+    setJoinAttempt((attempt) => attempt + 1);
+  }, []);
 
-  // What was said while this client was not in the live room never arrives by the socket: the
-  // history is asked for again. A refetch keeps the loaded pages (TanStack asks for each one
-  // again from the newest, so the list does not jump) and one already on its way is not restarted
-  // (a connection that flaps does not make a storm). What arrived live is in the history by id.
+  // The gap is filled once the server acknowledges the join, when its subscription is active
+  // (ADR-0030): asked for any earlier, the history could miss a message published in between.
+  // A refetch keeps the loaded pages (TanStack asks for each one again from the newest, so the
+  // list does not jump). One on its way may have read the history before this join, so it is
+  // asked for again; there is one per join, so a connection that flaps makes no storm. What
+  // arrived live is in the history by id.
   const { refetch: refetchHistory } = history;
-  const catchUp = useCallback(
-    () => void refetchHistory({ cancelRefetch: false }),
-    [refetchHistory],
-  );
+  const roomOpen = room.isSuccess;
+  const onJoined = useCallback(() => {
+    if (!outOfRoom.current) return;
+    outOfRoom.current = false;
+    // Before the room is open there is no history yet: its first page comes after this join.
+    if (roomOpen) void refetchHistory();
+  }, [refetchHistory, roomOpen]);
 
   const takeOut = useCallback(() => {
     setRevoked(true);
@@ -103,26 +114,19 @@ export function useRoomLive(eventId: string) {
         if (error.code === FORBIDDEN) takeOut();
         else setSocketError(error);
       },
+      onJoined,
     },
     joinAttempt,
   );
 
-  // The connection coming back after a drop (not its first opening) is a gap in the room.
+  // A drop of the connection after it was open (not before its first opening) is a gap in the
+  // room; the socket joins the room again by itself when it comes back.
   const { status } = socket;
   const wasOpen = useRef(false);
-  const dropped = useRef(false);
-  const roomOpen = room.isSuccess;
   useEffect(() => {
-    if (status === 'open') {
-      wasOpen.current = true;
-      if (dropped.current && roomOpen) {
-        dropped.current = false;
-        catchUp();
-      }
-    } else if (wasOpen.current) {
-      dropped.current = true;
-    }
-  }, [catchUp, roomOpen, status]);
+    if (status === 'open') wasOpen.current = true;
+    else if (wasOpen.current) outOfRoom.current = true;
+  }, [status]);
 
   const roomId = room.data?.id;
   const { sendMessage } = socket;
@@ -155,14 +159,13 @@ export function useRoomLive(eventId: string) {
         if (!rejoinedBySend.current) {
           rejoinedBySend.current = true;
           rejoin();
-          catchUp();
         }
         return;
       }
       mark(clientMessageId, 'failed', { code: error.code, retryable: error.retryable });
       if (error.code === FORBIDDEN) takeOut();
     },
-    [catchUp, mark, rejoin, takeOut],
+    [mark, rejoin, takeOut],
   );
 
   const deliver = useCallback(
