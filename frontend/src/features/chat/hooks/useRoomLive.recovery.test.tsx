@@ -116,6 +116,16 @@ beforeEach(async () => {
   });
 });
 
+/**
+ * An answer the test gives at its end. Every request runs under the timeout of shared/api (a
+ * timer); one that is never answered keeps that timer alive after the test and Jest cannot exit.
+ */
+function answerLater() {
+  let answer!: (response: Response) => void;
+  const response = new Promise<Response>((resolve) => (answer = resolve));
+  return { response, answer };
+}
+
 afterEach(() => {
   client.clear();
   jest.restoreAllMocks();
@@ -169,13 +179,18 @@ describe('useRoomLive: joining the live room fails (TG-469, US TG-64 criteri 15)
 
 describe('useRoomLive: the history and its room (TG-469, US TG-64 criteri 14)', () => {
   it('does not ask for the history before the room is open', async () => {
-    answers[`PUT ${ROOM_PATH}`] = () => new Promise<Response>(() => undefined);
+    const opening = answerLater();
+    answers[`PUT ${ROOM_PATH}`] = () => opening.response;
 
-    const { result } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    const { result, unmount } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
     await settle();
 
     expect(calls.filter((call) => call.method === 'GET')).toEqual([]);
     expect(result.current.isLoading).toBe(true);
+
+    await unmount();
+    opening.answer(jsonResponse(makeRoom()));
+    await settle();
   });
 
   it('keeps the history on screen when an older page fails', async () => {
@@ -282,8 +297,9 @@ describe('useRoomLive: joining the live room again (TG-469, review of PR D)', ()
 describe('useRoomLive: who is signed in (TG-469, review of PR D)', () => {
   it('is loading, and sends nothing, until it knows who is signed in', async () => {
     client.removeQueries({ queryKey: currentUserKeys.me() });
-    answers['GET /api/users/me'] = () => new Promise<Response>(() => undefined);
-    const { result } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    const me = answerLater();
+    answers['GET /api/users/me'] = () => me.response;
+    const { result, unmount } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
     await settle();
 
     await act(async () => {
@@ -293,6 +309,10 @@ describe('useRoomLive: who is signed in (TG-469, review of PR D)', () => {
     expect(result.current.isLoading).toBe(true);
     expect(result.current.items.some((item) => item.kind === 'pending')).toBe(false);
     expect(mockSocket.sendMessage).not.toHaveBeenCalled();
+
+    await unmount();
+    me.answer(jsonResponse(mockUserProfile));
+    await settle();
   });
 
   it('shows why the room cannot open when it cannot know who is signed in, and reload asks again', async () => {
