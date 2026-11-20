@@ -34,8 +34,11 @@ export function useMySubscriptions() {
   });
 }
 
-/** History of an event chat, newest first, one page per cursor. Online only. */
-export function useRoomMessages(eventId: string) {
+/**
+ * History of an event chat, newest first, one page per cursor. Online only. `enabled` waits for
+ * the room to be open: the history of a room that does not exist yet is a CHAT_ROOM_NOT_FOUND.
+ */
+export function useRoomMessages(eventId: string, enabled = true) {
   return useInfiniteQuery<
     ChatHistory,
     AppError,
@@ -47,7 +50,7 @@ export function useRoomMessages(eventId: string) {
     queryFn: ({ pageParam }) => fetchMessages(eventId, pageParam),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.next_cursor ?? undefined,
-    enabled: !!eventId,
+    enabled: !!eventId && enabled,
     retry: retryOnceIfTransient,
   });
 }
