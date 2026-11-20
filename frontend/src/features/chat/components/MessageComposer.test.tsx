@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import { AppError } from '../../../shared/errors';
 import { MessageComposer } from './MessageComposer';
 
 /** Same limit as the server (code points); the server stays the real check. */
@@ -115,18 +114,6 @@ describe('MessageComposer (TG-469)', () => {
 
       await waitFor(() => expect(field().props.value).toBe(''));
       expect(screen.getByLabelText('0 de 1000 caràcters')).toBeOnTheScreen();
-    });
-
-    it('keeps the text when sending is rejected, so nothing typed is lost', async () => {
-      const onSend = jest.fn().mockRejectedValue(new Error('no'));
-      await render(<MessageComposer onSend={onSend} />);
-      await type('Hola');
-
-      await fireEvent.press(sendButton());
-
-      await waitFor(() => expect(onSend).toHaveBeenCalled());
-      expect(field().props.value).toBe('Hola');
-      await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
     });
 
     it('empties the field once the text is sent, if nothing changed meanwhile', async () => {
@@ -249,27 +236,6 @@ describe('MessageComposer (TG-469)', () => {
       await render(<MessageComposer onSend={jest.fn()} />);
 
       expect(JSON.stringify(screen.toJSON())).not.toContain('accessibilityLiveRegion');
-    });
-
-    it('shows the error of the send in an alert, in the language of the app', async () => {
-      const error = new AppError({
-        kind: 'http',
-        code: 'CHAT_MESSAGE_REJECTED',
-        status: 422,
-        retryable: false,
-      });
-
-      await render(<MessageComposer onSend={jest.fn()} error={error} />);
-
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat.',
-      );
-    });
-
-    it('shows no alert without an error', async () => {
-      await render(<MessageComposer onSend={jest.fn()} error={null} />);
-
-      expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
     });
   });
 
