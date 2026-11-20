@@ -223,4 +223,22 @@ describe('buildChatItems: a refused message keeps why (TG-469)', () => {
       error: { code: 'RATE_LIMITED', retryable: true },
     });
   });
+
+});
+
+describe('buildChatItems: day separators of messages out of order (TG-469)', () => {
+  it('gives every day separator its own key even when the messages come out of order', () => {
+    // Out of sent_at order: the 17th, then the 18th, then the 17th again.
+    const items = build([
+      msg(3, '2026-11-17T12:00:00Z'),
+      msg(2, '2026-11-18T10:00:00Z'),
+      msg(1, '2026-11-17T09:00:00Z'),
+    ]);
+
+    const dayKeys = items.filter((item) => item.kind === 'day').map((item) => item.key);
+    expect(dayKeys).toHaveLength(3);
+    expect(new Set(dayKeys).size).toBe(3);
+    // The key of a day that only appears once stays the same as before.
+    expect(dayKeys).toContain('day-2026-11-18');
+  });
 });

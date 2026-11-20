@@ -71,6 +71,76 @@ describe('addMessage (TG-469)', () => {
   it('keeps nothing when there is no history yet', () => {
     expect(addMessage(undefined, m5)).toBeUndefined();
   });
+
+  describe('a message that arrives out of order', () => {
+    const at = (n: number, sentAt: string) => makeMessage(n, { sent_at: sentAt }) as ChatMessage;
+    const newer = at(20, '2026-11-17T10:20:00Z');
+    const older = at(10, '2026-11-17T10:10:00Z');
+
+    function page0(...messages: ChatMessage[]) {
+      return makeHistoryData([messages, [m1]]) as History;
+    }
+    const idsOfPage0 = (data: History | undefined) =>
+      data?.pages[0]?.messages.map((message) => message.id);
+
+    it('goes where its sent_at puts it on the first page, newest first', () => {
+      const between = at(15, '2026-11-17T10:15:00Z');
+
+      const next = addMessage(page0(newer, older), between) as History;
+
+      expect(idsOfPage0(next)).toEqual([newer.id, between.id, older.id]);
+    });
+
+    it('goes at the end of the first page when it is older than all of it', () => {
+      const oldest = at(5, '2026-11-17T10:05:00Z');
+
+      const next = addMessage(page0(newer, older), oldest) as History;
+
+      expect(idsOfPage0(next)).toEqual([newer.id, older.id, oldest.id]);
+      expect(next.pages[1]?.messages).toEqual([m1]);
+    });
+
+    it('with the same sent_at, the bigger id is the newer one', () => {
+      const sameTimeSmallerId = at(19, newer.sent_at);
+      const sameTimeBiggerId = at(21, newer.sent_at);
+
+      expect(idsOfPage0(addMessage(page0(newer, older), sameTimeSmallerId) as History)).toEqual([
+        newer.id,
+        sameTimeSmallerId.id,
+        older.id,
+      ]);
+      expect(idsOfPage0(addMessage(page0(newer, older), sameTimeBiggerId) as History)).toEqual([
+        sameTimeBiggerId.id,
+        newer.id,
+        older.id,
+      ]);
+    });
+
+    it('compares instants, not the text of the timestamp', () => {
+      // 11:12+01:00 is 10:12Z: between 10:20Z and 10:10Z.
+      const withOffset = at(12, '2026-11-17T11:12:00+01:00');
+
+      const next = addMessage(page0(newer, older), withOffset) as History;
+
+      expect(idsOfPage0(next)).toEqual([newer.id, withOffset.id, older.id]);
+    });
+
+    it('is still added once, without changing what it was given', () => {
+      const before = deepFreeze(page0(newer, older));
+      const between = at(15, '2026-11-17T10:15:00Z');
+
+      const next = addMessage(before, between);
+
+      expect(addMessage(next, between)).toBe(next);
+      expect(idsOfPage0(before)).toEqual([newer.id, older.id]);
+    });
+
+    it('fills an empty first page', () => {
+      const next = addMessage(makeHistoryData([[]]) as History, newer) as History;
+
+      expect(idsOfPage0(next)).toEqual([newer.id]);
+    });
+  });
 });
 
 describe('flattenMessages (TG-469)', () => {
