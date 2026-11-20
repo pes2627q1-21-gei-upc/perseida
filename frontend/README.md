@@ -83,6 +83,20 @@ Route `/(app)/quiz` (for now, linked from the temporary home). Code in `src/feat
 - **Screen:** the question with its 4 options (radio buttons) and a send button that stays disabled until an option is chosen and busy while sending. Once answered (or if it already was), the result: right or not, the right option and the chosen one in words and icons, the explanation and a link to the source. Both views have a "Back to home" button, so the system back button is not needed.
 - **Errors:** loading errors show a translated message with retry when transient. If sending fails, the chosen option stays. After `QUIZ_EXPIRED` or `QUIZ_QUESTION_MISMATCH` the new question is loaded with a notice; after `QUIZ_ALREADY_ANSWERED`, the result. If that reload fails, the error is shown with retry even if an older question is cached.
 
+## Event chat (TG-64)
+
+Code in `src/features/chat/`; the REST contract and the WebSocket protocol are the backend's ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md), [ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md)). Design notes in `obsidian_vault/arquitectura/frontend.md`.
+
+- **Shared real-time connection (`src/shared/realtime/`):** a generic WebSocket client with no chat logic (`socketClient.ts`) and its hook `useSocket`. One connection per process, opened by the first consumer and closed by the last; it authenticates with the first frame, reconnects with backoff and sends the frames of the chat with retries. `shared/` never imports from `features/` (an ESLint rule enforces it): the session is injected (`features/auth/socketAuth.ts`).
+- **Chat feature (`src/features/chat/`):**
+  - `api/` and `hooks/useChat.ts`: `useRooms`, `useMySubscriptions` and `useRoomMessages(eventId)` (history with an opaque cursor, 50 per page).
+  - `hooks/useChatSocket.ts`: subscribes to `chat:event:<eventId>` and sends messages with a `client_message_id` that is reused in every retry.
+  - `roomList.ts`: the room list is built on the client from the user's subscriptions plus the rooms returned by the API.
+  - `components/`: `ChatRoomsScreen` and `RoomListItem` (the list) and the building blocks of the room, `MessageBubble`, `MessageComposer` and `MessageList`, with the pure data in `chatCache.ts` and `chatItems.ts`.
+- **What exists today:** the tab route `/(app)/chat` shows the list of chat rooms of the events the user is subscribed to, each with its latest message. The rows have no action yet. The room screen that assembles the building blocks (history, composer and live messages) arrives in the next PR of TG-64.
+
+**Try it.** Start the backend as described in [`../backend/README.md`](../backend/README.md#event-chat), point the app to it (`EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` in `.env`, see `.env.example`), run `pnpm web` or `pnpm expo start`, sign in, subscribe to an event and open the chat tab.
+
 ## Run and test
 
 ```bash

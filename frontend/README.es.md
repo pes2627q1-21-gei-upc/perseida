@@ -83,6 +83,20 @@ Ruta `/(app)/quiz` (de momento, acceso desde el inicio temporal). Código en `sr
 - **Pantalla:** la pregunta con sus 4 opciones (botones de radio) y un botón de enviar desactivado hasta que se elige una opción y ocupado mientras se envía. Una vez respondida (o si ya lo estaba), el resultado: si se ha acertado, la opción correcta y la elegida con palabras e iconos, la explicación y un enlace a la fuente. Las dos vistas tienen un botón «Volver al inicio», así no hace falta el botón atrás del sistema.
 - **Errores:** los de carga muestran un mensaje traducido con reintento si son transitorios. Si falla el envío, la opción elegida se conserva. Tras `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` se carga la pregunta nueva con un aviso; tras `QUIZ_ALREADY_ANSWERED`, el resultado. Si esa recarga falla, se muestra el error con reintento aunque haya una pregunta anterior en caché.
 
+## Chat de evento (TG-64)
+
+Código en `src/features/chat/`; el contrato REST y el protocolo WebSocket son los del backend ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md), [ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md)). Notas de diseño en `obsidian_vault/arquitectura/frontend.md`.
+
+- **Conexión en tiempo real compartida (`src/shared/realtime/`):** un cliente WebSocket genérico sin lógica de chat (`socketClient.ts`) y su hook `useSocket`. Hay una sola conexión por proceso, abierta por el primer consumidor y cerrada por el último; se autentica con el primer frame, reconecta con espera exponencial y envía los frames del chat con reintentos. `shared/` nunca importa de `features/` (lo hace cumplir una regla de ESLint): la sesión se inyecta (`features/auth/socketAuth.ts`).
+- **Funcionalidad de chat (`src/features/chat/`):**
+  - `api/` y `hooks/useChat.ts`: `useRooms`, `useMySubscriptions` y `useRoomMessages(eventId)` (historial con cursor opaco, 50 por página).
+  - `hooks/useChatSocket.ts`: se suscribe a `chat:event:<eventId>` y envía mensajes con un `client_message_id` que se reutiliza en cada reintento.
+  - `roomList.ts`: la lista de salas se construye en el cliente a partir de las suscripciones de la usuaria y de las salas que devuelve la API.
+  - `components/`: `ChatRoomsScreen` y `RoomListItem` (la lista) y las piezas de la sala, `MessageBubble`, `MessageComposer` y `MessageList`, con los datos puros en `chatCache.ts` y `chatItems.ts`.
+- **Qué hay hoy:** la ruta de pestaña `/(app)/chat` muestra la lista de salas de chat de los eventos a los que la usuaria está suscrita, cada una con su último mensaje. Las filas todavía no tienen ninguna acción. La pantalla de la sala que monta las piezas (historial, compositor y mensajes en vivo) llega en la siguiente PR de TG-64.
+
+**Probarlo.** Arranca el backend como se explica en [`../backend/README.es.md`](../backend/README.es.md#chat-de-evento), apunta la app hacia él (`EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` en el `.env`, véase `.env.example`), ejecuta `pnpm web` o `pnpm expo start`, inicia sesión, suscríbete a un evento y abre la pestaña del chat.
+
 ## Ejecutar y testear
 
 ```bash

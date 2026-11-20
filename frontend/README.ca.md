@@ -83,6 +83,20 @@ Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal). Codi a `src/feat
 - **Pantalla:** la pregunta amb les 4 opcions (botons de ràdio) i un botó d'enviar desactivat fins que es tria una opció i ocupat mentre s'envia. Un cop resposta (o si ja ho estava), el resultat: si s'ha encertat, l'opció correcta i la triada amb paraules i icones, l'explicació i un enllaç a la font. Totes dues vistes tenen un botó «Torna a l'inici», així no cal el botó enrere del sistema.
 - **Errors:** els de càrrega mostren un missatge traduït amb reintent si són transitoris. Si falla l'enviament, l'opció triada es conserva. Després de `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` es carrega la pregunta nova amb un avís; després de `QUIZ_ALREADY_ANSWERED`, el resultat. Si aquesta recàrrega falla, es mostra l'error amb reintent encara que hi hagi una pregunta anterior en memòria cau.
 
+## Xat d'esdeveniment (TG-64)
+
+Codi a `src/features/chat/`; el contracte REST i el protocol WebSocket són els del backend ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md), [ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md)). Notes de disseny a `obsidian_vault/arquitectura/frontend.md`.
+
+- **Connexió en temps real compartida (`src/shared/realtime/`):** un client WebSocket genèric sense lògica de xat (`socketClient.ts`) i el seu hook `useSocket`. Hi ha una sola connexió per procés, oberta pel primer consumidor i tancada per l'últim; s'autentica amb el primer frame, reconnecta amb espera exponencial i envia els frames del xat amb reintents. `shared/` mai importa de `features/` (ho fa complir una regla d'ESLint): la sessió s'injecta (`features/auth/socketAuth.ts`).
+- **Funcionalitat de xat (`src/features/chat/`):**
+  - `api/` i `hooks/useChat.ts`: `useRooms`, `useMySubscriptions` i `useRoomMessages(eventId)` (historial amb cursor opac, 50 per pàgina).
+  - `hooks/useChatSocket.ts`: se subscriu a `chat:event:<eventId>` i envia missatges amb un `client_message_id` que es reutilitza en cada reintent.
+  - `roomList.ts`: la llista de sales es construeix al client a partir de les subscripcions de la usuària i de les sales que retorna l'API.
+  - `components/`: `ChatRoomsScreen` i `RoomListItem` (la llista) i les peces de la sala, `MessageBubble`, `MessageComposer` i `MessageList`, amb les dades pures a `chatCache.ts` i `chatItems.ts`.
+- **Què hi ha avui:** la ruta de pestanya `/(app)/chat` mostra la llista de sales de xat dels esdeveniments als quals la usuària està subscrita, cadascuna amb el darrer missatge. Les files encara no tenen cap acció. La pantalla de la sala que munta les peces (historial, compositor i missatges en viu) arriba a la PR següent de TG-64.
+
+**Provar-ho.** Arrenca el backend com s'explica a [`../backend/README.ca.md`](../backend/README.ca.md#xat-desdeveniment), apunta l'app cap a ell (`EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000` al `.env`, vegeu `.env.example`), executa `pnpm web` o `pnpm expo start`, inicia sessió, subscriu-te a un esdeveniment i obre la pestanya del xat.
+
 ## Executar i testejar
 
 ```bash
