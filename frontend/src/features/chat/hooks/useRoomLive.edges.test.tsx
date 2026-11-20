@@ -209,6 +209,9 @@ describe('useRoomLive: two scroll ends in a row (TG-469)', () => {
   });
 });
 
+// Contract change (review of PR D): a message is never built without knowing who is signed in;
+// the room waits for it (see useRoomLive.recovery.test.tsx), so the old test of a message sent
+// with an unknown author is gone.
 describe('useRoomLive: before the room is ready (TG-469)', () => {
   it('a message confirmed before the room opens arrives with the history, once', async () => {
     const room = deferred<Response>();
@@ -226,20 +229,5 @@ describe('useRoomLive: before the room is ready (TG-469)', () => {
 
     expect(messageItems(result.current.items).map((item) => item.message.id)).toEqual([ACK.id]);
     expect(pendingOf(result.current.items)).toEqual([]);
-  });
-
-  it('without knowing who is signed in, only what I just sent is mine', async () => {
-    client.removeQueries({ queryKey: currentUserKeys.me() });
-    answers['GET /api/users/me'] = () => problemResponse(503, 'DATABASE_UNAVAILABLE');
-    const { result } = await mountRoom();
-
-    await act(async () => {
-      await result.current.send('Hola');
-    });
-
-    const [newest, older] = messageItems(result.current.items);
-    expect(newest?.mine).toBe(true);
-    expect(newest?.message.author).toEqual({ id: '', name: null });
-    expect(older?.mine).toBe(false);
   });
 });

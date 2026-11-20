@@ -11,7 +11,7 @@ import { currentUserKeys } from '../../auth/hooks/useCurrentUser';
 import { saveTokens } from '../../auth/tokenStorage';
 import type { ChatListItem } from '../chatItems';
 import { chatKeys } from './useChat';
-import type { ChatSocketHandlers } from './useChatSocket';
+import type { ChatSocketHandlers, SentChatMessage } from './useChatSocket';
 import { useRoomLive } from './useRoomLive';
 
 // SecureStore is native: an in-memory store stands in for the device keychain.
@@ -35,22 +35,29 @@ jest.mock('expo-haptics', () => ({
 
 // The live connection is a fake whose handlers the test calls as the server would, and whose
 // `reconnect` is the same function on every render, so the test can tell it is passed on.
+// It also keeps the join attempt of each render (TG-469, review of PR D): a new one joins again.
 const mockSocket = {
   status: 'open' as SocketStatus,
   reconnect: jest.fn(),
+  sendMessage: jest.fn<Promise<SentChatMessage>, [string, string?]>(),
   handlers: undefined as ChatSocketHandlers | undefined,
+  joinAttempts: [] as (number | undefined)[],
 };
 jest.mock('./useChatSocket', () => ({
-  useChatSocket: (_eventId: string, handlers: ChatSocketHandlers) => {
+  useChatSocket: (_eventId: string, handlers: ChatSocketHandlers, joinAttempt?: number) => {
     mockSocket.handlers = handlers;
+    mockSocket.joinAttempts.push(joinAttempt);
     return {
       status: mockSocket.status,
       error: null,
-      sendMessage: jest.fn(),
+      sendMessage: mockSocket.sendMessage,
       reconnect: mockSocket.reconnect,
     };
   },
 }));
+
+/** The join attempts the room went through, without the repeats of every render. */
+const attempts = () => [...new Set(mockSocket.joinAttempts.map((attempt) => attempt ?? 0))];
 
 const ROOM_PATH = `/api/events/${EVENT_ID}/chat/room`;
 const MESSAGES_PATH = `/api/events/${EVENT_ID}/chat/messages`;
@@ -90,7 +97,11 @@ beforeEach(async () => {
   await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
   mockSocket.status = 'open';
   mockSocket.reconnect.mockReset();
+  mockSocket.sendMessage
+    .mockReset()
+    .mockResolvedValue({ id: 'm-1', sent_at: '2026-11-18T21:05:00Z' });
   mockSocket.handlers = undefined;
+  mockSocket.joinAttempts = [];
   calls = [];
   answers = {
     [`PUT ${ROOM_PATH}`]: () => jsonResponse(makeRoom()),
@@ -192,5 +203,110 @@ describe('useRoomLive: taken out of the room (TG-469, US TG-64 criteri 17)', () 
     await act(async () => mockSocket.handlers?.onRevoked());
 
     expect(client.getQueryState(chatKeys.subscriptions)?.isInvalidated).toBe(true);
+  });
+});
+
+describe('useRoomLive: joining the live room again (TG-469, review of PR D)', () => {
+  const notSubscribed = () =>
+    new AppError({ kind: 'http', code: 'NOT_SUBSCRIBED', status: 403, retryable: false });
+
+  it('reload after a refused join joins the live room again', async () => {
+    const { result } = await mountRoom();
+    await act(async () => mockSocket.handlers?.onError?.(joinError('RATE_LIMITED', 429, true)));
+
+    await act(async () => {
+      result.current.reload();
+    });
+    await settle();
+
+    expect(attempts()).toEqual([0, 1]);
+  });
+
+  it('reload after an error of the history does not leave the live room', async () => {
+    answers[`GET ${MESSAGES_PATH}`] = () => problemResponse(503, 'DATABASE_UNAVAILABLE');
+    const { result } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    await waitFor(() => expect(result.current.error?.code).toBe('DATABASE_UNAVAILABLE'));
+
+    await act(async () => {
+      result.current.reload();
+    });
+    await settle();
+
+    expect(attempts()).toEqual([0]);
+  });
+
+  it('a send refused because the room was not joined (NOT_SUBSCRIBED) joins it again', async () => {
+    mockSocket.sendMessage.mockRejectedValue(notSubscribed());
+    const { result } = await mountRoom();
+
+    await act(async () => {
+      await result.current.send('Hola');
+    });
+    await settle();
+
+    expect(result.current.items[0]).toMatchObject({
+      kind: 'pending',
+      status: 'failed',
+      error: { code: 'NOT_SUBSCRIBED', retryable: true },
+    });
+    expect(attempts()).toEqual([0, 1]);
+  });
+
+  it('joins again by itself only once, until a message goes through', async () => {
+    mockSocket.sendMessage.mockRejectedValue(notSubscribed());
+    const { result } = await mountRoom();
+    await act(async () => {
+      await result.current.send('Hola');
+    });
+    await settle();
+
+    await act(async () => {
+      await result.current.retry(result.current.items[0]?.key ?? '');
+    });
+    await settle();
+    expect(attempts()).toEqual([0, 1]);
+
+    mockSocket.sendMessage.mockResolvedValueOnce({ id: 'm-2', sent_at: '2026-11-18T21:06:00Z' });
+    await act(async () => {
+      await result.current.send('Ara sí');
+    });
+    await settle();
+    await act(async () => {
+      await result.current.send('I ara no');
+    });
+    await settle();
+    expect(attempts()).toEqual([0, 1, 2]);
+  });
+});
+
+describe('useRoomLive: who is signed in (TG-469, review of PR D)', () => {
+  it('is loading, and sends nothing, until it knows who is signed in', async () => {
+    client.removeQueries({ queryKey: currentUserKeys.me() });
+    answers['GET /api/users/me'] = () => new Promise<Response>(() => undefined);
+    const { result } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    await settle();
+
+    await act(async () => {
+      await result.current.send('Hola');
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.items.some((item) => item.kind === 'pending')).toBe(false);
+    expect(mockSocket.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('shows why the room cannot open when it cannot know who is signed in, and reload asks again', async () => {
+    client.removeQueries({ queryKey: currentUserKeys.me() });
+    answers['GET /api/users/me'] = () => problemResponse(503, 'DATABASE_UNAVAILABLE');
+    const { result } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    await waitFor(() => expect(result.current.error?.code).toBe('DATABASE_UNAVAILABLE'));
+    answers['GET /api/users/me'] = () => jsonResponse(mockUserProfile);
+
+    await act(async () => {
+      result.current.reload();
+    });
+
+    await waitFor(() => expect(result.current.error).toBeNull());
+    expect(result.current.isLoading).toBe(false);
   });
 });
