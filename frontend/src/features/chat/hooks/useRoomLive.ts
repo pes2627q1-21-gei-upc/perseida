@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { type AppError, NETWORK_ERROR_CODE } from '../../../shared/errors';
 import type { CurrentUser } from '../../auth/api/getCurrentUser';
@@ -75,6 +75,16 @@ export function useRoomLive(eventId: string) {
 
   const rejoin = useCallback(() => setJoinAttempt((attempt) => attempt + 1), []);
 
+  // What was said while this client was not in the live room never arrives by the socket: the
+  // history is asked for again. A refetch keeps the loaded pages (TanStack asks for each one
+  // again from the newest, so the list does not jump) and one already on its way is not restarted
+  // (a connection that flaps does not make a storm). What arrived live is in the history by id.
+  const { refetch: refetchHistory } = history;
+  const catchUp = useCallback(
+    () => void refetchHistory({ cancelRefetch: false }),
+    [refetchHistory],
+  );
+
   const takeOut = useCallback(() => {
     setRevoked(true);
     void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
@@ -96,6 +106,23 @@ export function useRoomLive(eventId: string) {
     },
     joinAttempt,
   );
+
+  // The connection coming back after a drop (not its first opening) is a gap in the room.
+  const { status } = socket;
+  const wasOpen = useRef(false);
+  const dropped = useRef(false);
+  const roomOpen = room.isSuccess;
+  useEffect(() => {
+    if (status === 'open') {
+      wasOpen.current = true;
+      if (dropped.current && roomOpen) {
+        dropped.current = false;
+        catchUp();
+      }
+    } else if (wasOpen.current) {
+      dropped.current = true;
+    }
+  }, [catchUp, roomOpen, status]);
 
   const roomId = room.data?.id;
   const { sendMessage } = socket;
@@ -128,13 +155,14 @@ export function useRoomLive(eventId: string) {
         if (!rejoinedBySend.current) {
           rejoinedBySend.current = true;
           rejoin();
+          catchUp();
         }
         return;
       }
       mark(clientMessageId, 'failed', { code: error.code, retryable: error.retryable });
       if (error.code === FORBIDDEN) takeOut();
     },
-    [mark, rejoin, takeOut],
+    [catchUp, mark, rejoin, takeOut],
   );
 
   const deliver = useCallback(
