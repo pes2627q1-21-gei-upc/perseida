@@ -354,33 +354,106 @@ describe('useRoomLive: sending (TG-469, US TG-64 criteris 14 i 16)', () => {
       clientMessageId: 'uuid-1',
       status: 'uncertain',
     });
-    expect(result.current.sendError).toBeNull();
+    expect(result.current.items[0]).not.toHaveProperty('error');
   });
 
+  // Contract change (review of PR D): a refused send no longer rejects nor leaves a `sendError`
+  // for the composer; the reason stays in the bubble, which is where the person retries it.
   it.each([
     ['RATE_LIMITED', 429, true],
     ['CHAT_MESSAGE_REJECTED', 422, false],
-    ['FORBIDDEN', 403, false],
-    ['PUBSUB_UNAVAILABLE', 503, true],
+    ['CHAT_MESSAGE_TOO_LONG', 422, false],
     ['VALIDATION_ERROR', 422, false],
+    ['CHAT_IDEMPOTENCY_CONFLICT', 409, false],
   ])(
-    'a refused send (%s) marks the message failed, exposes the error and rejects',
+    'a refused send (%s) leaves the message failed with its reason, and does not reject',
     async (code, status, retryable) => {
-      const refusal = new AppError({ kind: 'http', code, status, retryable });
-      mockSocket.sendMessage.mockRejectedValue(refusal);
+      mockSocket.sendMessage.mockRejectedValue(
+        new AppError({ kind: 'http', code, status, retryable }),
+      );
       const { result } = await mountRoom();
 
       const { sending } = await startSending(result.current.send, 'Hola');
 
-      await expect(sending).rejects.toBe(refusal);
+      await expect(sending).resolves.toBeUndefined();
       expect(result.current.items[0]).toMatchObject({
         kind: 'pending',
         clientMessageId: 'uuid-1',
         status: 'failed',
+        error: { code, retryable },
       });
-      expect(result.current.sendError?.code).toBe(code);
+      expect(result.current).not.toHaveProperty('sendError');
     },
   );
+
+  it('a message that never left (NETWORK_ERROR) failed, and can be retried', async () => {
+    mockSocket.sendMessage.mockRejectedValue(
+      new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable: true }),
+    );
+    const { result } = await mountRoom();
+
+    await startSending(result.current.send, 'Hola');
+
+    expect(result.current.items[0]).toMatchObject({
+      status: 'failed',
+      error: { code: 'NETWORK_ERROR', retryable: true },
+    });
+  });
+
+  it.each([
+    ['PUBSUB_UNAVAILABLE', 503],
+    ['DATABASE_UNAVAILABLE', 503],
+    ['INTERNAL_ERROR', 500],
+  ])(
+    'a server error (%s) may come after the message was stored: it is uncertain, not failed',
+    async (code, status) => {
+      mockSocket.sendMessage.mockRejectedValue(
+        new AppError({ kind: 'http', code, status, retryable: true }),
+      );
+      const { result } = await mountRoom();
+
+      await startSending(result.current.send, 'Hola');
+
+      expect(result.current.items[0]).toMatchObject({ kind: 'pending', status: 'uncertain' });
+      expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+    },
+  );
+
+  it('a FORBIDDEN send takes the person out of the room', async () => {
+    client.setQueryData(chatKeys.rooms, [makeRoom()]);
+    mockSocket.sendMessage.mockRejectedValue(
+      new AppError({ kind: 'http', code: 'FORBIDDEN', status: 403, retryable: false }),
+    );
+    const { result } = await mountRoom();
+
+    await startSending(result.current.send, 'Hola');
+
+    expect(result.current.revoked).toBe(true);
+    expect(client.getQueryState(chatKeys.rooms)?.isInvalidated).toBe(true);
+  });
+
+  it('send resolves as soon as the bubble takes the message, before the server answers', async () => {
+    mockSocket.sendMessage.mockReturnValue(deferred<SentChatMessage>().promise);
+    const { result } = await mountRoom();
+
+    const { sending } = await startSending(result.current.send, 'Hola');
+
+    await expect(sending).resolves.toBeUndefined();
+    expect(result.current.items[0]).toMatchObject({ kind: 'pending', status: 'sending' });
+  });
+
+  it('discard drops a refused message from the room', async () => {
+    mockSocket.sendMessage.mockRejectedValue(rateLimited());
+    const { result } = await mountRoom();
+    await startSending(result.current.send, 'Hola');
+
+    await act(async () => {
+      result.current.discard('uuid-1');
+    });
+
+    expect(result.current.items.some((item) => item.kind === 'pending')).toBe(false);
+    expect(mockSocket.sendMessage).toHaveBeenCalledTimes(1);
+  });
 
   it('retry sends the same text again with the same client id, and the ack confirms it', async () => {
     mockSocket.sendMessage.mockRejectedValueOnce(sendUncertain()).mockResolvedValueOnce(ACK);
@@ -401,18 +474,19 @@ describe('useRoomLive: sending (TG-469, US TG-64 criteris 14 i 16)', () => {
     });
   });
 
-  it('a retry that goes through clears the error of the failed send', async () => {
+  // Contract change (review of PR D): the reason lives in the bubble, not in a `sendError`.
+  it('a retry that goes through takes the failed bubble away, with its reason', async () => {
     mockSocket.sendMessage.mockRejectedValueOnce(rateLimited()).mockResolvedValueOnce(ACK);
     const { result } = await mountRoom();
     await startSending(result.current.send, 'Hola');
-    expect(result.current.sendError?.code).toBe('RATE_LIMITED');
+    expect(result.current.items[0]).toMatchObject({ error: { code: 'RATE_LIMITED' } });
 
     await act(async () => {
       void result.current.retry('uuid-1');
     });
     await settle();
 
-    expect(result.current.sendError).toBeNull();
+    expect(result.current.items.some((item) => item.kind === 'pending')).toBe(false);
   });
 });
 
