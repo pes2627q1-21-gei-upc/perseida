@@ -40,7 +40,6 @@ from app.infrastructure.auth.google_verifier import (
 )
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
-from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.account_gateway import UserAccountGateway
@@ -48,7 +47,6 @@ from app.infrastructure.users.dependencies import build_user_service
 from app.main import create_app
 from tests.factories.google import CLIENT_ID, KEY, jwk, token
 from tests.integration.isolation import row_counts
-from tests.integration.workers import worker_redis_db
 
 pytestmark = pytest.mark.skipif(
     not (os.getenv("POSTGRES_HOST") and os.getenv("REDIS_HOST")),
@@ -119,24 +117,6 @@ def factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
         expire_on_commit=False,
         join_transaction_mode="create_savepoint",
     )
-
-
-@pytest.fixture
-async def redis(worker_id: str) -> AsyncIterator[Redis]:
-    """The Redis database of this worker (never 0), emptied before and after."""
-    client = Redis.from_url(RedisSettings().redis_url, decode_responses=True)
-    # The URL carries the worker index (REDIS_DB); never flush database 0.
-    assert (
-        client.connection_pool.connection_kwargs["db"]
-        == worker_redis_db(worker_id)
-        != 0
-    )
-    try:
-        await client.flushdb()
-        yield client
-    finally:
-        await client.flushdb()
-        await client.aclose()
 
 
 @pytest.fixture

@@ -1,4 +1,7 @@
-"""Create and migrate the database of this pytest-xdist worker (TG-362).
+"""Per-worker resources of the integration tests (TG-362).
+
+The database of this pytest-xdist worker is created and migrated once, and the
+``redis`` fixture gives each test the worker's own Redis database.
 
 Only the integration tests need a database: the unit tests (and mutmut, which
 runs them from ``mutants/`` without ``alembic.ini``) never connect nor migrate.
@@ -9,16 +12,18 @@ runs them from ``mutants/`` without ``alembic.ini``) never connect nor migrate.
 
 import asyncio
 import re
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 from alembic.config import Config
+from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import command
-from tests.integration.workers import BASE_DATABASE
+from tests.integration.workers import BASE_DATABASE, worker_redis_db
 
 if TYPE_CHECKING:
     from app.infrastructure.persistence.config import DatabaseSettings
@@ -73,3 +78,23 @@ def _worker_database(request: pytest.FixtureRequest) -> None:
             )
         )
     _migrate()
+
+
+@pytest.fixture
+async def redis(worker_id: str) -> AsyncIterator[Redis]:
+    """The Redis database of this worker (never 0), emptied before and after."""
+    from app.infrastructure.cache.config import RedisSettings
+
+    client = Redis.from_url(RedisSettings().redis_url, decode_responses=True)
+    # The URL carries the worker index (REDIS_DB); never flush database 0.
+    assert (
+        client.connection_pool.connection_kwargs["db"]
+        == worker_redis_db(worker_id)
+        != 0
+    )
+    try:
+        await client.flushdb()
+        yield client
+    finally:
+        await client.flushdb()
+        await client.aclose()
