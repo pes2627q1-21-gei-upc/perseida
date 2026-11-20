@@ -180,7 +180,8 @@ describe('useRoomLive: older pages (TG-469, US TG-64 criteri 14)', () => {
       result.current.loadOlder();
     });
 
-    expect(result.current.isFetchingMore).toBe(true);
+    // TanStack tells the hook on a timer of its own: wait for it, also on a busy machine.
+    await waitFor(() => expect(result.current.isFetchingMore).toBe(true));
     expect(olderRequests()).toBe(1);
     older.resolve(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
     await settle();
