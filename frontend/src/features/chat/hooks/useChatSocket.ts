@@ -22,8 +22,12 @@ export interface ChatSocketHandlers {
 /** How many message ids per room are remembered to discard the ones delivered twice. */
 const SEEN_IDS_LIMIT = 200;
 
-/** Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. */
-export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
+/**
+ * Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. A new
+ * `joinAttempt` leaves the room and joins it again (e.g. after the server refused to join it: the
+ * connection does not retry a refused join by itself).
+ */
+export function useChatSocket(eventId: string, handlers: ChatSocketHandlers, joinAttempt = 0) {
   const { status, error, subscribe, send, reconnect } = useSocket(socketAuth);
   const room = `chat:event:${eventId}`;
 
@@ -55,7 +59,9 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
         current.onMessage(message);
       } else if (frame.type === 'unsubscribe') current.onRevoked();
     });
-  }, [room, subscribe]);
+    // `joinAttempt` is not read: changing it is what joins the room again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room, subscribe, joinAttempt]);
 
   /**
    * Sends a message and resolves with the server's ack. After a SEND_UNCERTAIN the server may have
