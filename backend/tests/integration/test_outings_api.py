@@ -227,6 +227,8 @@ ANY_ID = str(uuid.uuid7())
         ("PATCH", f"{OUTINGS}/{ANY_ID}"),
         ("DELETE", f"{OUTINGS}/{ANY_ID}"),
     ],
+    # ANY_ID changes on every import: the ids must not depend on it (xdist).
+    ids=["create", "list", "get", "patch", "delete"],
 )
 async def test_every_endpoint_requires_a_session(
     client: AsyncClient, method: str, path: str
