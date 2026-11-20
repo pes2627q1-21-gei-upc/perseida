@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { AccessibilityInfo, DeviceEventEmitter, Platform } from 'react-native';
+import { AccessibilityInfo, DeviceEventEmitter, Platform, TextInput } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse } from '../../../../__mocks__/apod';
@@ -370,6 +370,34 @@ describe('ChatRoomScreen: sending (TG-469, US TG-64 criteris 14 i 16)', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Descarta' }));
 
     expect(discard).toHaveBeenCalledWith('client-1');
+  });
+
+  // «Descarta» takes the bubble away with it: the focus would fall to nowhere, so it goes to the
+  // field where the person writes next (WCAG 2.4.3).
+  it('after discarding a refused message the focus goes to the message field', async () => {
+    const focus = jest
+      .spyOn((TextInput as unknown as { prototype: { focus: () => void } }).prototype, 'focus')
+      .mockImplementation(() => undefined);
+    const discard = jest.fn();
+    await renderScreen({
+      discard,
+      items: items(
+        [],
+        [
+          {
+            clientMessageId: 'client-1',
+            text: 'Hola',
+            status: 'failed',
+            error: { code: 'CHAT_MESSAGE_REJECTED', retryable: false },
+          },
+        ],
+      ),
+    });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Descarta' }));
+
+    expect(discard).toHaveBeenCalledWith('client-1');
+    expect(focus).toHaveBeenCalledTimes(1);
   });
 
   it('retries a failed message from its bubble', async () => {
