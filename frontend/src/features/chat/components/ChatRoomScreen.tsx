@@ -211,24 +211,14 @@ function RoomCard({
 }
 
 /**
- * The room of an event (TG-469, US TG-64). Retrying after an error mounts the room again, so
- * the live room is left and joined again: a refused join is not retried by the connection, and
- * asking only for the room and the history would leave a room that receives nothing.
- */
-export function ChatRoomScreen({ eventId }: { eventId: string }) {
-  const [attempt, setAttempt] = useState(0);
-  return (
-    <ChatRoom key={attempt} eventId={eventId} onRejoin={() => setAttempt((count) => count + 1)} />
-  );
-}
-
-/**
- * One attempt at the room of an event: the sky, a floating glass bar with the title of the
+ * The room of an event (TG-469, US TG-64): the sky, a floating glass bar with the title of the
  * event and the way back, the messages over the sky and the composer as a glass capsule at the
- * bottom, kept above the keyboard. The page only orchestrates: the room lives in useRoomLive.
+ * bottom, kept above the keyboard. The page only orchestrates: the room lives in useRoomLive,
+ * whose reload also joins the live room again after a refused join. A message that did not go
+ * through stays in its bubble, with its reason, to retry or discard it there.
  * Taken out of the room (or refused), it explains why and offers the way back, with no composer.
  */
-function ChatRoom({ eventId, onRejoin }: { eventId: string; onRejoin: () => void }) {
+export function ChatRoomScreen({ eventId }: { eventId: string }) {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
@@ -285,14 +275,7 @@ function ChatRoom({ eventId, onRejoin }: { eventId: string; onRejoin: () => void
         <StatusPanel
           state="error"
           code={error.code}
-          onRetry={
-            error.retryable
-              ? () => {
-                  live.reload();
-                  onRejoin();
-                }
-              : undefined
-          }
+          onRetry={error.retryable ? live.reload : undefined}
           texts={statusTexts}
         />
       </View>
@@ -321,6 +304,7 @@ function ChatRoom({ eventId, onRejoin }: { eventId: string; onRejoin: () => void
         isFetchingMore={live.isFetchingMore}
         onLoadOlder={live.loadOlder}
         onRetry={(clientMessageId) => void live.retry(clientMessageId)}
+        onDiscard={live.discard}
         listProps={{
           keyboardShouldPersistTaps: 'handled',
           keyboardDismissMode: 'interactive',
@@ -357,7 +341,6 @@ function ChatRoom({ eventId, onRejoin }: { eventId: string; onRejoin: () => void
             onSend={live.send}
             busy={live.isLoading}
             disabledReason={disabledReasons[live.status]}
-            error={live.sendError}
             bottomInset={keyboardShown ? 0 : insets.bottom}
           />
         )}
