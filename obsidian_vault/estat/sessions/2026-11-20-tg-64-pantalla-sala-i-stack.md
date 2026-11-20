@@ -4,7 +4,7 @@ tipus: sessio
 estat: vigent
 data: "2026-11-20"
 us: ["TG-64", "TG-469", "TG-470"]
-font: "Branca feature/TG-64-pantalla-sala (PR D de TG-64, apilada sobre feature/TG-64-peces-sala); git log de la pila (21d739b..406cf57) i documentació TG-470"
+font: "Branca feature/TG-64-pantalla-sala (PR D de TG-64, apilada sobre feature/TG-64-peces-sala); git log de la pila (origin/feature/TG-64-peces-sala..HEAD, de 57f1466 a 834f373) i documentació TG-470"
 etiquetes: [sessio, frontend, xat, accessibilitat, pr-apilades]
 ---
 
@@ -25,6 +25,15 @@ La US es va partir en quatre PR apilades amb `gh stack` ([[pr-apilades-amb-gh-st
 - Canvis de `useChatSocket` (`joinAttempt`) i de `socketClient` (descarta les respostes tardanes d'un `send` ja resolt).
 - **TG-470, documentació:** README del frontend en els tres idiomes, la secció de la pantalla i de `useRoomLive` a [[frontend#Sala de xat: pantalla i hook de la sala (TG-469)]], i aquesta nota. Abans, a la mateixa branca, ADR-0033 i la nota del component, el README del backend, les notes de domini, api, redis, moderation, postgres i l'índex, la guia del stack i les skills de revisió.
 
+## Després de la primera ronda
+
+- **Prova al navegador** amb la sessió de la persona contra un backend **local**: va trobar tres defectes (icona d'enviament invisible a la web, error en tocar «Reintenta» a la web i contrast baix dels botons d'acció) i el solapament de la pastilla de connexió amb la llista. Es van corregir amb prova en vermell prèvia (`GelIconButton` amb la icona en una capa posicionada, `moveFocusTo`, `ActionSurface`, farciment de la llista sota l'avís de connexió).
+- **Dues revisions d'arquitectura** i les rondes de correcció: l'ack de cada `subscribe` posa l'historial al dia (`onJoined`; `cancelQueries` i `refetch`), `socketClient` oblida els `subscribe` sense resposta en sortir d'una sala, `addMessage` desa per `sent_at` i els separadors de dia tenen clau única, la regió viva d'Android es torna a muntar a cada arribada, el focus va al camp després de «Descarta», el compositor perd la prop `error` morta i `send` no rebutja mai, el backend no consulta els autors d'una pàgina buida i `add_message` fa `INSERT … RETURNING`.
+- **Barra de pestanyes:** etiquetes curtes visibles (`nav.short.*`) per a Esdeveniments i Gamificació; el nom accessible continua sent el llarg.
+- **Proves:** `jest.setup.js` amb temporitzadors de TanStack `unref` i `__mocks__/pendingResponses.ts`, perquè la suite ja no imprimeixi «worker failed to exit gracefully»; proves de comportament que maten mutants supervivents de Stryker.
+- **Mutation del backend**, mesurat amb Docker sobre una còpia amb `mutmut` apuntant a `app/application/chat` (l'script de CI només muta `app/domain`): domini del xat 100 % i `chat_service.py` 79,57 %.
+- **Lliçó de seguretat:** `frontend/.env` apunta a producció; les proves locals han d'anul·lar-ho amb `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`. Les dades de demostració només s'han inserit a la base de dades local.
+
 ## Decisions preses
 
 - Disseny: bombolla pròpia de gel i la dels altres de vidre (Frutiger Cosmo, [[0020-frontend-expo-router-i-estetica-frutiger-cosmo]]).
@@ -34,18 +43,19 @@ La US es va partir en quatre PR apilades amb `gh stack` ([[pr-apilades-amb-gh-st
 
 ## Canvis al vault
 
-- [[frontend]]: secció «Sala de xat: pantalla i hook de la sala (TG-469)», límit conegut de les respostes tardanes resolt, `useChatSocket` amb `joinAttempt`.
+- [[frontend]]: etiquetes curtes de la barra, `addMessage` ordenat, `moveFocusTo`, `ActionSurface`, ack de `subscribe` i límits coneguts; secció «Sala de xat: pantalla i hook de la sala (TG-469)», límit conegut de les respostes tardanes resolt, `useChatSocket` amb `joinAttempt`.
+- [[0030-protocol-websocket-i-revocacio-per-pub-sub]], [[0033-xat-per-esdeveniment-sala-missatge-i-flux]], [[chat]] i [[model-de-domini]]: repositori (`page` sense autors si és buida, `add_message` amb `RETURNING`) i mutation.
 - Aquesta sessió.
 
 ## Pendent / següents passos
 
-- [ ] Prova en dispositiu: teclat a iOS i Android, ordre de lectura de la llista invertida amb VoiceOver i TalkBack, hàptica, anunci dels missatges nous.
-- [ ] SonarCloud de les PR i puntuacions de mutation a la CI: no s'han vist en aquesta sessió.
+- [ ] Prova en dispositiu: teclat a iOS i Android, ordre de lectura de la llista invertida amb VoiceOver i TalkBack, nou anunci de la regió viva a TalkBack, cost de les ombres en llistes llargues a Android, etiquetes curtes de la barra amb la mida de lletra per sobre d'1,4, hàptica, anunci dels missatges nous.
+- [ ] CI, SonarCloud de les PR i puntuació real de mutation de les capes del frontend a la CI: no s'han vist en aquesta sessió.
 - [ ] Tancar TG-469 i TG-470 a Taiga (ho fa la persona, que també obre i fusiona les PR de la pila).
 
 ## Verificat / no verificat
 
-- Verificat en aquesta nota: l'existència dels fitxers, de la ruta i de les peces, i el comportament de `useRoomLive` llegint-ne el codi.
+- Verificat: l'existència dels fitxers, de la ruta i de les peces, el comportament de `useRoomLive` llegint-ne el codi, la prova al navegador contra el backend local i la mutation del backend (Docker) indicada a dalt.
 - No verificat aquí: l'estat de la CI, SonarCloud, mutation i qualsevol prova en un dispositiu.
 
 ## US de Taiga
