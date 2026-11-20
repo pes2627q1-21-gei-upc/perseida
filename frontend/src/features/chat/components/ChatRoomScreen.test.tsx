@@ -1,6 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { AccessibilityInfo, DeviceEventEmitter, Platform, StyleSheet, TextInput } from 'react-native';
+import {
+  AccessibilityInfo,
+  DeviceEventEmitter,
+  Platform,
+  StyleSheet,
+  TextInput,
+} from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse } from '../../../../__mocks__/apod';
