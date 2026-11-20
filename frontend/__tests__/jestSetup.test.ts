@@ -6,7 +6,9 @@ import { timeoutManager } from '@tanstack/react-query';
 // timer of TanStack Query one that does not keep the process alive.
 describe('jest.setup: the timers of TanStack Query', () => {
   it('do not keep the process alive', () => {
-    const timer = timeoutManager.setTimeout(() => undefined, 300_000) as unknown as NodeJS.Timeout;
+    const timer = timeoutManager.setTimeout(() => undefined, 300_000) as unknown as {
+      hasRef(): boolean;
+    };
 
     try {
       expect(timer.hasRef()).toBe(false);
