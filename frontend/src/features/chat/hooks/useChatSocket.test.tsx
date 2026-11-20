@@ -589,3 +589,44 @@ describe('useChatSocket: missatges duplicats (TG-654 F5)', () => {
     expect((handlers.onMessage.mock.calls[201]?.[0] as { id: string }).id).toBe('m-0');
   });
 });
+
+describe('useChatSocket: joining the room again (TG-469)', () => {
+  it('a new join attempt leaves the room and joins it again, with the same handlers', async () => {
+    const { rerender } = await renderHook(
+      ({ attempt }: { attempt: number }) => useChatSocket(EVENT_ID, handlers, attempt),
+      { initialProps: { attempt: 0 } },
+    );
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await rerender({ attempt: 1 });
+    await flush();
+
+    expect(lastSocket().sentOfType('unsubscribe')).toEqual([
+      { type: 'unsubscribe', room: ROOM, id: expect.any(String) },
+    ]);
+    expect(lastSocket().sentOfType('subscribe')).toEqual([
+      { type: 'subscribe', room: ROOM, id: expect.any(String) },
+      { type: 'subscribe', room: ROOM, id: expect.any(String) },
+    ]);
+    await serverSends({ type: 'message', room: ROOM, payload: OTHERS_MESSAGE });
+    expect(handlers.onMessage).toHaveBeenCalledWith(OTHERS_MESSAGE);
+  });
+
+  it('the same attempt does not join the room again', async () => {
+    const { rerender } = await renderHook(
+      ({ attempt }: { attempt: number }) => useChatSocket(EVENT_ID, handlers, attempt),
+      { initialProps: { attempt: 2 } },
+    );
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await rerender({ attempt: 2 });
+    await flush();
+
+    expect(lastSocket().sentOfType('subscribe')).toHaveLength(1);
+    expect(lastSocket().sentOfType('unsubscribe')).toEqual([]);
+  });
+});
