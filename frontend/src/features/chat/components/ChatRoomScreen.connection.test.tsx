@@ -1,11 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse } from '../../../../__mocks__/apod';
-import { EVENT_ID, makeSubscribedEvent } from '../../../../__mocks__/chat';
+import { EVENT_ID, makeMessage, makeSubscribedEvent, PAU } from '../../../../__mocks__/chat';
+import { spacing } from '../../../shared/theme';
 import { saveTokens } from '../../auth/tokenStorage';
+import type { ChatMessage } from '../api/chat';
+import { buildChatItems } from '../chatItems';
 import { useRoomLive } from '../hooks/useRoomLive';
 import { ChatRoomScreen } from './ChatRoomScreen';
 
@@ -175,5 +178,67 @@ describe('ChatRoomScreen: taken out, for screen readers (TG-469, WCAG 4.1.3)', (
     expect(
       screen.getByText('Encara no hi ha missatges. Sigues la primera persona a escriure!'),
     ).toHaveProp('accessibilityLiveRegion', 'none');
+  });
+});
+
+// The notice floats under the bar, so it covers whatever is under it: the list starts below it
+// while it is there (a real browser showed it over the first day separator).
+describe('ChatRoomScreen: the list starts under the connection notice (TG-469)', () => {
+  const BAR_BOTTOM = 91;
+  const NOTICE_HEIGHT = 32;
+  const history = () =>
+    buildChatItems({
+      messages: [makeMessage(1, { author: PAU, text: 'Hola a tothom' })] as ChatMessage[],
+      myUserId: 'me',
+      pending: [],
+    });
+
+  /** Jest has no layout: the bar and the notice report theirs as a device would. */
+  async function lay(target: ReturnType<typeof screen.getByTestId>, y: number, height: number) {
+    await act(async () => {
+      await fireEvent(target, 'layout', {
+        nativeEvent: { layout: { x: 0, y, width: 390, height } },
+      });
+    });
+  }
+  /** The top of the list is the bottom padding of the inverted one. */
+  function listTop() {
+    const style = screen.getByTestId('chat-messages-list').props.contentContainerStyle;
+    return StyleSheet.flatten(style).paddingBottom;
+  }
+
+  it('is the bar plus a gap when there is no notice', async () => {
+    await renderScreen({ items: history() });
+    await lay(screen.getByTestId('chat-room-top-bar'), 47, BAR_BOTTOM - 47);
+
+    expect(listTop()).toBe(BAR_BOTTOM + spacing.sm);
+  });
+
+  it.each(['reconnecting', 'closed'] as const)(
+    'grows by the height of the notice and a gap while %s, and goes back once connected',
+    async (status) => {
+      await renderScreen({ items: history(), status: 'open' });
+      await lay(screen.getByTestId('chat-room-top-bar'), 47, BAR_BOTTOM - 47);
+
+      await setLive({ status });
+      const notice =
+        status === 'reconnecting'
+          ? screen.getByText('Reconnectant…')
+          : screen.getByRole('button', { name: 'Reconnecta' });
+      await lay(notice, BAR_BOTTOM + spacing.sm, NOTICE_HEIGHT);
+
+      expect(listTop()).toBe(BAR_BOTTOM + spacing.sm + NOTICE_HEIGHT + spacing.sm);
+
+      await setLive({ status: 'open' });
+
+      expect(listTop()).toBe(BAR_BOTTOM + spacing.sm);
+    },
+  );
+
+  it('does not grow while merely connecting, when there is no notice', async () => {
+    await renderScreen({ items: history(), status: 'connecting' });
+    await lay(screen.getByTestId('chat-room-top-bar'), 47, BAR_BOTTOM - 47);
+
+    expect(listTop()).toBe(BAR_BOTTOM + spacing.sm);
   });
 });
