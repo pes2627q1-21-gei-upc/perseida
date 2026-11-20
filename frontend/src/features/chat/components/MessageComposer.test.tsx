@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import { AppError } from '../../../shared/errors';
@@ -23,6 +23,7 @@ describe('MessageComposer (TG-469)', () => {
     await render(<MessageComposer onSend={jest.fn()} />);
 
     expect(field().props.multiline).toBe(true);
+    expect(screen.getByPlaceholderText(LABEL)).toBe(field());
     expect(screen.getByLabelText('0 de 1000 caràcters')).toHaveTextContent('0/1000');
   });
 
@@ -182,6 +183,43 @@ describe('MessageComposer (TG-469)', () => {
       await waitFor(() => expect(field().props.value).toBe(''));
     });
 
+    it('does not send twice when two taps land before the screen updates', async () => {
+      const onSend = jest.fn(() => new Promise<void>(() => undefined));
+      await render(<MessageComposer onSend={onSend} />);
+      await type('Hola');
+      const button = sendButton();
+
+      // Both activations reach the button in the same frame: it is not disabled yet.
+      await act(async () => {
+        button.props.onClick({});
+        button.props.onClick({});
+      });
+
+      expect(onSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('is busy and cannot send again while its message is on its way', async () => {
+      await render(<MessageComposer onSend={() => new Promise<void>(() => undefined)} />);
+      await type('Hola');
+
+      await fireEvent.press(sendButton());
+
+      expect(sendButton().props.accessibilityState).toMatchObject({ busy: true, disabled: true });
+    });
+
+    it('can send the next message once the first one went through', async () => {
+      const onSend = jest.fn().mockResolvedValue(undefined);
+      await render(<MessageComposer onSend={onSend} />);
+      await type('Primer');
+      await fireEvent.press(sendButton());
+      await waitFor(() => expect(field().props.value).toBe(''));
+
+      await type('Segon');
+      await fireEvent.press(sendButton());
+
+      expect(onSend).toHaveBeenNthCalledWith(2, 'Segon');
+    });
+
     it('is busy while the parent says so, and cannot send', async () => {
       const onSend = jest.fn();
       await render(<MessageComposer onSend={onSend} busy />);
@@ -205,6 +243,12 @@ describe('MessageComposer (TG-469)', () => {
       expect(sendButton().props.accessibilityState.disabled).toBe(true);
       await fireEvent.press(sendButton());
       expect(onSend).not.toHaveBeenCalled();
+    });
+
+    it('says nothing and has no live region while it can send', async () => {
+      await render(<MessageComposer onSend={jest.fn()} />);
+
+      expect(JSON.stringify(screen.toJSON())).not.toContain('accessibilityLiveRegion');
     });
 
     it('shows the error of the send in an alert, in the language of the app', async () => {
