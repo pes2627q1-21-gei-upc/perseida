@@ -142,6 +142,7 @@ class SqlChatRepository:
                 client_message_id=message.client_message_id,
             )
             .on_conflict_do_nothing(index_elements=["author_id", "client_message_id"])
+            .returning(ChatMessageRow)
         )
         find_stored = _with_author_name().where(
             col(ChatMessageRow.author_id) == message.author.id,
@@ -150,10 +151,13 @@ class SqlChatRepository:
         with _database_errors():
             try:
                 async with self._session_factory() as session:
-                    await session.execute(statement)
+                    inserted = await session.scalar(statement)
                     await session.commit()
-                    # Read back with the author name: also covers a concurrent
-                    # retry that stored it first (that one is the result).
+                    if inserted is not None:
+                        # This call stored it: the caller already has the name.
+                        return _message(inserted, message.author.name)
+                    # Conflict: a concurrent retry or an idempotent resend stored
+                    # it first; that row is the result, with its profile name.
                     stored = (await session.execute(find_stored)).one()
                     return _message(stored[0], stored[1])
             except IntegrityError as exc:
@@ -183,12 +187,18 @@ class SqlChatRepository:
         with _database_errors():
             async with self._session_factory() as session:
                 rows = list((await session.scalars(statement)).all())
-                # One more query by primary key for the (at most ``limit``)
-                # distinct authors of the page: never one query per message.
-                names_statement = select(
-                    col(UserRow.id), col(UserRow.display_name)
-                ).where(col(UserRow.id).in_({row.author_id for row in rows[:limit]}))
-                names = dict((await session.execute(names_statement)).tuples().all())
+                names: dict[uuid.UUID, str | None] = {}
+                if rows:
+                    # One more query by primary key for the (at most ``limit``)
+                    # distinct authors of the page: never one query per message.
+                    names_statement = select(
+                        col(UserRow.id), col(UserRow.display_name)
+                    ).where(
+                        col(UserRow.id).in_({row.author_id for row in rows[:limit]})
+                    )
+                    names = dict(
+                        (await session.execute(names_statement)).tuples().all()
+                    )
         messages = [_message(row, names.get(row.author_id)) for row in rows[:limit]]
         next_cursor = (
             ChatCursor(sent_at=messages[-1].sent_at, id=messages[-1].id)
