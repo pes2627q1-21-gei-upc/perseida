@@ -187,6 +187,27 @@ describe('useRoomLive: older pages (TG-469, US TG-64 criteri 14)', () => {
   });
 });
 
+describe('useRoomLive: two scroll ends in a row (TG-469)', () => {
+  it('keeps the older page on its way instead of cancelling it and asking again', async () => {
+    const older = deferred<Response>();
+    answers[`GET ${MESSAGES_PATH}`] = (url) =>
+      url.searchParams.get('before') === 'c1'
+        ? older.promise
+        : jsonResponse(makePage([makeMessage(2, { author: PAU })], 'c1'));
+    const { result } = await mountRoom();
+
+    // Both before the screen re-renders, as two quick onEndReached would.
+    await act(async () => {
+      result.current.loadOlder();
+      result.current.loadOlder();
+    });
+
+    expect(calls.filter((call) => call.url.searchParams.has('before'))).toHaveLength(1);
+    older.resolve(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+  });
+});
+
 describe('useRoomLive: before the room is ready (TG-469)', () => {
   it('a message confirmed before the room opens arrives with the history, once', async () => {
     const room = deferred<Response>();
