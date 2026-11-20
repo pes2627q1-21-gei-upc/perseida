@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { apodImage, apodVideo, jsonResponse, problemResponse } from '../../../../__mocks__/apod';
+import { deferredResponse } from '../../../../__mocks__/pendingResponses';
 import { AppError } from '../../../shared/errors';
 import { apodKeys, useApodToday } from './useApodToday';
 
@@ -24,11 +25,14 @@ afterEach(() => {
 
 describe('useApodToday', () => {
   it('starts loading and then returns the APOD (criteria 1 and 4)', async () => {
-    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    // The answer waits for the test, so "loading" does not depend on how fast the machine is.
+    const answer = deferredResponse();
+    jest.spyOn(globalThis, 'fetch').mockImplementation(() => answer.response);
 
     const { result } = await renderHook(() => useApodToday(), { wrapper });
 
     expect(result.current.isLoading).toBe(true);
+    answer.answer(jsonResponse(apodImage));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(apodImage);
   });
