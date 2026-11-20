@@ -48,6 +48,22 @@
     "messages": {
       "label": "Chat messages",
       "loadingOlder": "Loading earlier messages"
+    },
+    "room": {
+      "title": "Event chat",
+      "loading": "Loading messages",
+      "retryHint": "Opens the chat room again",
+      "empty": "No messages yet. Be the first to write!",
+      "revoked": "You are no longer part of this chat. Subscribe to the event to write here again.",
+      "backToRooms": "Back to the rooms",
+      "reconnecting": "Reconnecting…",
+      "reconnect": "Reconnect",
+      "newMessage": "New message from {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Connecting to the chat…",
+        "reconnecting": "The connection was lost. You can send once it is back.",
+        "closed": "There is no connection to the chat."
+      }
     }
   },
   "common": {
