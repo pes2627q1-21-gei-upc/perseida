@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ArrowsClockwise, ChatCircleSlash, ChatsCircle } from 'phosphor-react-native';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AccessibilityInfo,
@@ -9,6 +9,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import Animated, {
@@ -242,6 +243,7 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
   const live = useRoomLive(eventId);
   const subscriptions = useMySubscriptions();
   const keyboardShown = useKeyboardShown();
+  const composerField = useRef<ComponentRef<typeof TextInput>>(null);
   const arrival = useArrivalNotice(live.items);
   const [barBottom, setBarBottom] = useState(0);
   const [noticeHeight, setNoticeHeight] = useState(0);
@@ -324,7 +326,11 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
         isFetchingMore={live.isFetchingMore}
         onLoadOlder={live.loadOlder}
         onRetry={(clientMessageId) => void live.retry(clientMessageId)}
-        onDiscard={live.discard}
+        onDiscard={(clientMessageId) => {
+          live.discard(clientMessageId);
+          // The bubble goes away with it: the focus goes to the field, not nowhere.
+          composerField.current?.focus();
+        }}
         listProps={{
           keyboardShouldPersistTaps: 'handled',
           keyboardDismissMode: 'interactive',
@@ -363,6 +369,7 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
             busy={live.isLoading}
             disabledReason={disabledReasons[live.status]}
             bottomInset={keyboardShown ? 0 : insets.bottom}
+            fieldRef={composerField}
           />
         )}
       </KeyboardAvoidingView>

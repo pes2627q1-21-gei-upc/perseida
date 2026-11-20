@@ -1,5 +1,5 @@
 import { PaperPlaneRight } from 'phosphor-react-native';
-import { type ComponentRef, useContext, useRef, useState } from 'react';
+import { type ComponentRef, type RefObject, useContext, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
@@ -35,6 +35,8 @@ interface Props {
    * with the keyboard up. The sides always follow the safe area.
    */
   bottomInset?: number;
+  /** The field of the screen that owns it, so the screen can give it the focus (e.g. after discarding). */
+  fieldRef?: RefObject<ComponentRef<typeof TextInput> | null>;
 }
 
 /**
@@ -50,6 +52,7 @@ export function MessageComposer({
   disabledReason,
   error,
   bottomInset = 0,
+  fieldRef,
 }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -57,7 +60,8 @@ export function MessageComposer({
   const reduceTransparency = useReduceTransparency();
   const styles = createStyles(theme, composerSurface(colors, reduceTransparency));
   const insets = useContext(SafeAreaInsetsContext);
-  const field = useRef<ComponentRef<typeof TextInput>>(null);
+  const ownField = useRef<ComponentRef<typeof TextInput>>(null);
+  const field = fieldRef ?? ownField;
   const inFlight = useRef(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
