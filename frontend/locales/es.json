@@ -219,7 +219,11 @@
     "events": "Eventos",
     "gamification": "Gamificación",
     "home": "Inicio",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "short": {
+      "events": "Eventos",
+      "gamification": "Logros"
+    }
   },
   "profile": {
     "achievements": {

@@ -7,6 +7,11 @@ export type HiddenRouteName = 'map' | 'apod' | 'quiz';
 export interface TabItem {
   name: TabRouteName;
   titleKey: string;
+  /**
+   * A shorter visible label for the bar, for a title that does not fit under the icon at 360 px.
+   * The title stays the accessible name and the heading of the screen.
+   */
+  shortTitleKey?: string;
   icon: Icon;
   testID?: string;
 }
@@ -21,6 +26,7 @@ export const TAB_CONFIG: readonly TabItem[] = [
   {
     name: 'events',
     titleKey: 'nav.events',
+    shortTitleKey: 'nav.short.events',
     icon: Planet,
     testID: 'tab-events',
   },
@@ -33,6 +39,7 @@ export const TAB_CONFIG: readonly TabItem[] = [
   {
     name: 'gamification',
     titleKey: 'nav.gamification',
+    shortTitleKey: 'nav.short.gamification',
     icon: Trophy,
     testID: 'tab-gamification',
   },

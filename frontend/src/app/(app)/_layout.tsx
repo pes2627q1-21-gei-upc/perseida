@@ -145,6 +145,9 @@ export default function AppLayout() {
             name={item.name}
             options={{
               title: t(item.titleKey),
+              // The bar shows the short label where the title does not fit; the screen reader
+              // reads the full name.
+              tabBarLabel: t(item.shortTitleKey ?? item.titleKey),
               tabBarAccessibilityLabel: t(item.titleKey),
               tabBarButtonTestID: item.testID,
               tabBarIcon: ({ color, focused, size }) => (
