@@ -48,14 +48,17 @@ export function useRoomLive(eventId: string) {
     queryFn: () => ensureRoom(eventId),
     retry: retryOnceIfTransient,
   });
-  const history = useRoomMessages(eventId);
+  const history = useRoomMessages(eventId, room.isSuccess);
   const [pending, setPending] = useState<OutgoingMessage[]>([]);
   const [sendError, setSendError] = useState<AppError | null>(null);
+  // Joining the live room was refused: without it nothing arrives, so the room shows the error.
+  const [socketError, setSocketError] = useState<AppError | null>(null);
   const [revoked, setRevoked] = useState(false);
 
   const takeOut = useCallback(() => {
     setRevoked(true);
     void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    void queryClient.invalidateQueries({ queryKey: chatKeys.subscriptions });
   }, [queryClient]);
 
   const socket = useChatSocket(eventId, {
@@ -66,6 +69,7 @@ export function useRoomLive(eventId: string) {
     onRevoked: takeOut,
     onError: (error) => {
       if (error.code === FORBIDDEN) takeOut();
+      else setSocketError(error);
     },
   });
 
@@ -140,6 +144,7 @@ export function useRoomLive(eventId: string) {
   );
 
   const reload = useCallback(() => {
+    setSocketError(null);
     void room.refetch().then(() => history.refetch());
   }, [room, history]);
 
@@ -154,7 +159,10 @@ export function useRoomLive(eventId: string) {
     [history.data, myUserId, pending],
   );
 
-  const error = room.error ?? history.error;
+  // A failed older page or a failed refetch keeps the history on screen: only what stops the
+  // room from opening is an error of the room.
+  const error =
+    (room.data ? null : room.error) ?? (history.data ? null : history.error) ?? socketError;
 
   return {
     items,
@@ -162,6 +170,7 @@ export function useRoomLive(eventId: string) {
     error,
     revoked,
     status: socket.status,
+    reconnect: socket.reconnect,
     send,
     sendError,
     retry,
