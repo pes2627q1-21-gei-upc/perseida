@@ -15,7 +15,7 @@ import { mockUserProfile } from '../../../../__mocks__/profile';
 import { AppError } from '../../../shared/errors';
 import { currentUserKeys } from '../../auth/hooks/useCurrentUser';
 import { saveTokens } from '../../auth/tokenStorage';
-import type { ChatSocketHandlers } from '../hooks/useChatSocket';
+import type { ChatSocketHandlers, SentChatMessage } from '../hooks/useChatSocket';
 import { ChatRoomScreen } from './ChatRoomScreen';
 
 jest.mock('expo-router', () => ({
@@ -38,16 +38,20 @@ jest.mock('expo-secure-store', () => {
 });
 
 // The real live room (useRoomLive) over a fake connection that, like useChatSocket, joins
-// `chat:event:<eventId>` when it mounts and leaves it when it unmounts. The test counts the joins.
+// `chat:event:<eventId>` when it mounts or gets a new join attempt, and leaves it before joining
+// again or when it unmounts. The test counts the joins. (Review of PR D: the room joins again
+// through the join attempt of useChatSocket, no longer by mounting the whole screen again, so
+// the fake follows the attempt too.)
 const mockSocket = {
   joins: [] as string[],
   leaves: [] as string[],
   handlers: undefined as ChatSocketHandlers | undefined,
+  sendMessage: jest.fn<Promise<SentChatMessage>, [string, string?]>(),
 };
 jest.mock('../hooks/useChatSocket', () => {
   const { useEffect } = jest.requireActual<typeof import('react')>('react');
   return {
-    useChatSocket: (eventId: string, handlers: ChatSocketHandlers) => {
+    useChatSocket: (eventId: string, handlers: ChatSocketHandlers, joinAttempt = 0) => {
       mockSocket.handlers = handlers;
       useEffect(() => {
         const room = `chat:event:${eventId}`;
@@ -55,8 +59,13 @@ jest.mock('../hooks/useChatSocket', () => {
         return () => {
           mockSocket.leaves.push(room);
         };
-      }, [eventId]);
-      return { status: 'open', error: null, sendMessage: jest.fn(), reconnect: jest.fn() };
+      }, [eventId, joinAttempt]);
+      return {
+        status: 'open',
+        error: null,
+        sendMessage: mockSocket.sendMessage,
+        reconnect: jest.fn(),
+      };
     },
   };
 });
@@ -84,6 +93,7 @@ beforeEach(async () => {
   mockSocket.joins = [];
   mockSocket.leaves = [];
   mockSocket.handlers = undefined;
+  mockSocket.sendMessage.mockReset();
   jest.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = input instanceof Request ? input : new Request(input, init);
     const key = `${request.method} ${new URL(request.url).pathname}`;
@@ -103,15 +113,19 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+async function renderScreen() {
+  await render(
+    <SafeAreaProvider initialMetrics={SAFE_AREA}>
+      <QueryClientProvider client={client}>
+        <ChatRoomScreen eventId={EVENT_ID} />
+      </QueryClientProvider>
+    </SafeAreaProvider>,
+  );
+}
+
 describe('ChatRoomScreen: joining the live room again (TG-469, US TG-64 criteri 15)', () => {
   it('retrying after a refused join joins the live room of the event again', async () => {
-    await render(
-      <SafeAreaProvider initialMetrics={SAFE_AREA}>
-        <QueryClientProvider client={client}>
-          <ChatRoomScreen eventId={EVENT_ID} />
-        </QueryClientProvider>
-      </SafeAreaProvider>,
-    );
+    await renderScreen();
     expect(await screen.findByText('Bona nit')).toBeOnTheScreen();
     expect(mockSocket.joins).toEqual([ROOM]);
 
@@ -126,5 +140,48 @@ describe('ChatRoomScreen: joining the live room again (TG-469, US TG-64 criteri 
     expect(mockSocket.leaves).toEqual([ROOM]);
     expect(mockSocket.joins).toEqual([ROOM, ROOM]);
     expect(await screen.findByText('Bona nit')).toBeOnTheScreen();
+  });
+
+  it('keeps the messages that did not go through after the retry', async () => {
+    mockSocket.sendMessage.mockRejectedValue(
+      new AppError({ kind: 'http', code: 'RATE_LIMITED', status: 429, retryable: true }),
+    );
+    await renderScreen();
+    expect(await screen.findByText('Bona nit')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Escriu un missatge'), 'No ha anat');
+    await fireEvent.press(screen.getByRole('button', { name: 'Envia' }));
+    await settle();
+    expect(screen.getByText('No ha anat')).toBeOnTheScreen();
+
+    await act(async () =>
+      mockSocket.handlers?.onError?.(
+        new AppError({ kind: 'http', code: 'PUBSUB_UNAVAILABLE', status: 503, retryable: true }),
+      ),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+    await settle();
+
+    expect(await screen.findByText('No ha anat')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Reintenta' })).toBeOnTheScreen();
+  });
+
+  it('asks for the room again on the retry, as well as joining it', async () => {
+    await renderScreen();
+    expect(await screen.findByText('Bona nit')).toBeOnTheScreen();
+    const puts = () =>
+      jest
+        .mocked(globalThis.fetch)
+        .mock.calls.filter(([input]) => (input as Request).method === 'PUT').length;
+    const before = puts();
+
+    await act(async () =>
+      mockSocket.handlers?.onError?.(
+        new AppError({ kind: 'http', code: 'PUBSUB_UNAVAILABLE', status: 503, retryable: true }),
+      ),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+    await settle();
+
+    expect(puts()).toBe(before + 1);
   });
 });

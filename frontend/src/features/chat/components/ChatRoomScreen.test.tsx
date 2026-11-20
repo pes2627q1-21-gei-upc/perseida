@@ -322,21 +322,54 @@ describe('ChatRoomScreen: sending (TG-469, US TG-64 criteris 14 i 16)', () => {
       'CHAT_MESSAGE_REJECTED',
       'Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat.',
     ],
-    ['FORBIDDEN', 'No tens permís per fer això.'],
-  ])('a refused send (%s) says why and keeps the text in the field', async (code, message) => {
-    const refusal = error(code, code === 'RATE_LIMITED', 429);
-    const send = jest.fn(async () => {
-      mockStore.live = { ...mockStore.live, sendError: refusal };
-      mockStore.listeners.forEach((listener) => listener());
-      throw refusal;
+    ['CHAT_MESSAGE_TOO_LONG', 'El missatge és massa llarg (màxim 1000 caràcters).'],
+  ])(
+    // Contract change (review of PR D): the field no longer keeps the text of a refused send and
+    // the composer no longer shows its error; the bubble takes the text and says why.
+    'a refused send (%s): the field clears and the bubble says why',
+    async (code, message) => {
+      const retryable = code === 'RATE_LIMITED';
+      const send = jest.fn(async (text: string) => {
+        mockStore.live = {
+          ...mockStore.live,
+          items: items(
+            [],
+            [{ clientMessageId: 'client-1', text, status: 'failed', error: { code, retryable } }],
+          ),
+        };
+        mockStore.listeners.forEach((listener) => listener());
+      });
+      await renderScreen({ send });
+
+      await write('Hola');
+      await fireEvent.press(screen.getByRole('button', { name: 'Envia' }));
+
+      expect(await screen.findByText(message)).toBeOnTheScreen();
+      expect(screen.getAllByText(message)).toHaveLength(1);
+      expect(screen.getByLabelText('Escriu un missatge')).toHaveDisplayValue('');
+    },
+  );
+
+  it('discards a refused message from its bubble', async () => {
+    const discard = jest.fn();
+    await renderScreen({
+      discard,
+      items: items(
+        [],
+        [
+          {
+            clientMessageId: 'client-1',
+            text: 'Hola',
+            status: 'failed',
+            error: { code: 'CHAT_MESSAGE_REJECTED', retryable: false },
+          },
+        ],
+      ),
     });
-    await renderScreen({ send });
 
-    await write('Hola');
-    await fireEvent.press(screen.getByRole('button', { name: 'Envia' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Descarta' }));
 
-    expect(await screen.findByText(message)).toBeOnTheScreen();
-    expect(screen.getByLabelText('Escriu un missatge')).toHaveDisplayValue('Hola');
+    expect(discard).toHaveBeenCalledWith('client-1');
   });
 
   it('retries a failed message from its bubble', async () => {
