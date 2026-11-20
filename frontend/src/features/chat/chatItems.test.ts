@@ -201,3 +201,26 @@ describe('buildChatItems (TG-469)', () => {
     expect(JSON.stringify({ messages, pending })).toBe(snapshot);
   });
 });
+
+describe('buildChatItems: a refused message keeps why (TG-469)', () => {
+  it('passes the error of a pending message on to its item', () => {
+    const [item] = buildChatItems({
+      messages: [],
+      myUserId: 'me',
+      pending: [
+        {
+          clientMessageId: 'client-1',
+          text: 'Hola',
+          status: 'failed',
+          error: { code: 'RATE_LIMITED', retryable: true },
+        },
+      ],
+    });
+
+    expect(item).toMatchObject({
+      kind: 'pending',
+      status: 'failed',
+      error: { code: 'RATE_LIMITED', retryable: true },
+    });
+  });
+});
