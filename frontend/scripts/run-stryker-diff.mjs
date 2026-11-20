@@ -98,14 +98,18 @@ export function changedRanges(diffText) {
 }
 
 /**
- * Objectius de `--mutate` de Stryker: un `fitxer:inici-final` per rang dels fitxers a mutar.
- * Stryker llegeix el fitxer com un glob: els claudàtors d'una ruta dinàmica (`[id]`) s'escapen.
+ * Ruta com a glob literal per a Stryker, que la llegeix amb minimatch després d'un `path.resolve` (a Windows
+ * converteix `\` en `/`, i l'escapament amb barra invertida es perd): cada metacaràcter (`[id]`, `(app)`)
+ * es posa en una classe d'un sol caràcter (`[[]`, `[]]`, `[(]`), que va igual a Windows i a Linux.
  */
+export function globLiteral(file) {
+  return file.replace(/[[\]{}()*?!+@]/g, (char) => `[${char}]`);
+}
+
+/** Objectius de `--mutate` de Stryker: un `fitxer:inici-final` per rang dels fitxers a mutar. */
 export function mutateTargets(files, ranges) {
   return files.flatMap((file) =>
-    (ranges[file] ?? []).map(
-      ([start, end]) => `${file.replace(/[[\]]/g, (bracket) => `\\${bracket}`)}:${start}-${end}`,
-    ),
+    (ranges[file] ?? []).map(([start, end]) => `${globLiteral(file)}:${start}-${end}`),
   );
 }
 
