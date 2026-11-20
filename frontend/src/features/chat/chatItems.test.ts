@@ -223,7 +223,6 @@ describe('buildChatItems: a refused message keeps why (TG-469)', () => {
       error: { code: 'RATE_LIMITED', retryable: true },
     });
   });
-
 });
 
 describe('buildChatItems: day separators of messages out of order (TG-469)', () => {
@@ -240,5 +239,16 @@ describe('buildChatItems: day separators of messages out of order (TG-469)', () 
     expect(new Set(dayKeys).size).toBe(3);
     // The key of a day that only appears once stays the same as before.
     expect(dayKeys).toContain('day-2026-11-18');
+  });
+});
+
+describe('buildChatItems: what makes a calendar day (TG-469)', () => {
+  it.each([
+    ['the same day and month of another year', '2025-11-17T10:00:00Z'],
+    ['the same day of another month', '2026-10-17T10:00:00Z'],
+  ])('%s is another day, with its own separator', (_case, olderSentAt) => {
+    const items = build([msg(2, '2026-11-17T10:00:00Z'), msg(1, olderSentAt)]);
+
+    expect(shape(items)).toEqual(['m:2', 'D', 'm:1', 'D']);
   });
 });
