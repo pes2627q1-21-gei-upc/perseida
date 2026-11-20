@@ -94,11 +94,12 @@ let lastId = 0;
 /** Handlers of each joined room; the room stays joined on the server while it has any. */
 const rooms = new Map<string, Set<{ handler: FrameHandler }>>();
 /**
- * Ids of the subscribe requests not answered yet. A frame with an id that is neither one of these
- * nor a pending request is the late answer of a request that already settled (e.g. an earlier
- * attempt of a send): it is dropped, so it never reaches a room as if joining it had failed.
+ * The subscribe requests not answered yet, id -> room. A frame with an id that is neither one of
+ * these nor a pending request is the late answer of a request that already settled (e.g. an earlier
+ * attempt of a send, or the join of a room that was left before its answer): it is dropped, so it
+ * never reaches a room as if joining it had failed.
  */
-const joins = new Set<string>();
+const joins = new Map<string, string>();
 /** A send() that has not been answered for good yet. */
 interface Outgoing {
   id: string;
@@ -234,7 +235,7 @@ export function errorOfFrame(frame: ServerFrame): AppError {
 /** Asks the server to join `room`, remembering the id of the request to know its answer. */
 function join(room: string): void {
   const id = nextId();
-  joins.add(id);
+  joins.set(id, room);
   sendFrame({ type: 'subscribe', room, id });
 }
 
@@ -455,6 +456,10 @@ export function subscribe(room: string, onFrame: FrameHandler): () => void {
     const current = rooms.get(room);
     if (!current?.delete(entry) || current.size > 0) return;
     rooms.delete(room);
+    // An answer to a join of this room still on its way belongs to the room that was left.
+    joins.forEach((joined, id) => {
+      if (joined === room) joins.delete(id);
+    });
     if (authenticated) sendFrame({ type: 'unsubscribe', room, id: nextId() });
   };
 }
