@@ -128,6 +128,10 @@ jobs:
         run: uv run mypy .
       - name: Arquitectura (import-linter)
         run: uv run --locked --no-build lint-imports
+      # Amb -n auto, l'error d'un marcador quarantine sense reason="TG-NNN ..." salta dins dels workers
+      # i xdist acaba amb un INTERNALERROR que l'amaga; sense xdist surt amb exit 4 i el missatge (TG-382).
+      - name: Validar marcadors de quarantena (recollida sense xdist)
+        run: uv run pytest --collect-only -q -p no:randomly --no-cov
       # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
       # En paral·lel (pytest-xdist, -n auto) i en ordre aleatori (pytest-randomly; la llavor surt a la sortida) (TG-362).
       # Cada worker té la seva BD (<POSTGRES_DB>_gwN, la crea tests/conftest.py) i el seu índex de Redis;
