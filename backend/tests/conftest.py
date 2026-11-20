@@ -23,6 +23,7 @@ from tests.integration.workers import (
     worker_database_name,
     worker_redis_db,
 )
+from tests.quarantine import pytest_collection_modifyitems  # noqa: F401
 
 
 def _redis_db(worker_id: str) -> int:
