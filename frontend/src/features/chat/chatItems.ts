@@ -87,6 +87,8 @@ export function buildChatItems({
   }));
 
   const days = messages.map((message) => dayOf(message.sent_at, timeZone));
+  // How many separators each day already has: messages out of order can start a day twice.
+  const separators = new Map<string, number>();
   messages.forEach((message, index) => {
     const older = messages[index + 1];
     const day = days[index];
@@ -95,7 +97,12 @@ export function buildChatItems({
     const startsRun = lastOfDay || older?.author.id !== message.author.id;
 
     items.push({ kind: 'message', key: message.id, message, mine, showAuthor: !mine && startsRun });
-    if (lastOfDay) items.push({ kind: 'day', key: `day-${day}`, date: message.sent_at });
+    if (lastOfDay) {
+      const repeated = separators.get(day) ?? 0;
+      separators.set(day, repeated + 1);
+      const key = repeated === 0 ? `day-${day}` : `day-${day}-${repeated}`;
+      items.push({ kind: 'day', key, date: message.sent_at });
+    }
   });
   return items;
 }
