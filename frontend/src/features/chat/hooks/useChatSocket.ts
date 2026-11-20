@@ -17,6 +17,11 @@ export interface ChatSocketHandlers {
   onRevoked: () => void;
   /** Joining the room failed (e.g. FORBIDDEN, CHAT_ROOM_NOT_FOUND, RATE_LIMITED). */
   onError?: (error: AppError) => void;
+  /**
+   * The server acknowledged joining the room (also after a reconnection or a new attempt): its
+   * subscription is active, so from now on nothing published in the room is missed.
+   */
+  onJoined?: () => void;
 }
 
 /** How many message ids per room are remembered to discard the ones delivered twice. */
@@ -43,9 +48,10 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers, joi
     return subscribe(room, (frame) => {
       const current = handlersRef.current;
       if (frame.id) {
-        // Answers to this client's own requests (the errors of sendMessage reject its promise
-        // instead): only a failed join of the room is reported.
+        // Answers to the joins of this room (the answers of sendMessage settle its promise
+        // instead): a failed join or a join that is active.
         if (frame.type === 'error') current.onError?.(errorOfFrame(frame));
+        else if (frame.type === 'subscribe') current.onJoined?.();
         return;
       }
       if (frame.type === 'message') {
