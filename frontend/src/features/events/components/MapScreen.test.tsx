@@ -614,6 +614,36 @@ describe('Events map screen with outings (TG-646)', () => {
     expect(await findWarning()).toHaveTextContent(i18n.t('errors.INTERNAL_ERROR'));
   });
 
+  describe('state with the All filter while the outings are still loading (TG-52)', () => {
+    /** Events as given, outings that never answer. */
+    function mockPendingOutings(routes: Parameters<typeof mockEventsApi>[0]) {
+      jest.restoreAllMocks();
+      const spy = mockEventsApi(routes);
+      const base = spy.getMockImplementation()!;
+      spy.mockImplementation(async (input, init) =>
+        urlOf(input).pathname === '/api/outings'
+          ? new Promise<Response>(() => undefined)
+          : base(input, init),
+      );
+    }
+
+    it('keeps loading, not "no results", when the events end empty first', async () => {
+      mockPendingOutings({ active: () => jsonResponse([]), upcoming: () => jsonResponse([]) });
+      await renderScreen();
+
+      expect(await screen.findByLabelText(i18n.t('events.loading'))).toBeTruthy();
+      expect(screen.queryByText(i18n.t('events.empty.all'))).toBeNull();
+    });
+
+    it('keeps loading, not "no location", when no event has a place on the map', async () => {
+      mockPendingOutings({ upcoming: () => jsonResponse([lunarEvent]) });
+      await renderScreen();
+
+      expect(await screen.findByLabelText(i18n.t('events.loading'))).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Veure la llista' })).toBeNull();
+    });
+  });
+
   describe('state of the list view with the Outings filter (TG-52)', () => {
     async function openOutingsList() {
       await fireEvent.press(screen.getByRole('radio', { name: 'Sortides' }));
