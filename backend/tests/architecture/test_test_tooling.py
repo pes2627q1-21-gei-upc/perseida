@@ -71,7 +71,11 @@ def test_tg362_random_order_is_not_disabled_by_addopts() -> None:
 
 def test_tg362_ci_runs_the_backend_tests_in_parallel() -> None:
     job = _backend_job(CI_WORKFLOW.read_text(encoding="utf-8"))
-    pytest_runs = re.findall(r"run:\s*(uv run pytest\b.*)", job)
+    pytest_runs = [
+        command
+        for command in re.findall(r"run:\s*(uv run pytest\b.*)", job)
+        if not re.search(r"\s--collect-only\b", command)
+    ]
 
     assert pytest_runs, "the backend job has no 'uv run pytest' step"
     for command in pytest_runs:
@@ -187,7 +191,9 @@ def test_tg362_quarantine_plugin_is_active_in_the_suite(
     assert active, f"{QUARANTINE_PLUGIN} is not active in the backend suite"
 
 
-def _run_quarantine(tmp_path: Path, mark: str) -> subprocess.CompletedProcess[str]:
+def _run_quarantine(
+    tmp_path: Path, mark: str, *args: str
+) -> subprocess.CompletedProcess[str]:
     """Run one test with ``mark`` and only the real quarantine plugin."""
     (tmp_path / "test_flaky.py").write_text(
         f"import pytest\n\n\n{mark}\ndef test_flaky():\n    pass\n",
@@ -205,6 +211,7 @@ def _run_quarantine(tmp_path: Path, mark: str) -> subprocess.CompletedProcess[st
             "no:randomly",
             "-p",
             QUARANTINE_PLUGIN,
+            *args,
             "test_flaky.py",
         ],
         cwd=tmp_path,
@@ -244,3 +251,37 @@ def test_tg362_quarantine_with_a_task_runs(tmp_path: Path) -> None:
 
     assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
     assert "1 passed" in result.stdout, result.stdout
+
+
+def test_tg362_ci_validates_quarantine_markers_before_the_parallel_run() -> None:
+    """With ``-n`` the UsageError is raised inside the workers and xdist ends
+    with an INTERNALERROR that hides the message, so CI first collects the suite
+    without xdist, as a blocking step, before the parallel run (TG-382)."""
+    runs = [_pytest_run(step) for step in _backend_steps()]
+    collect = [
+        index
+        for index, run in enumerate(runs)
+        if run and re.search(r"\s--collect-only\b", run)
+    ]
+    blocking = [
+        index for index, run in enumerate(runs) if run and "--cov-fail-under" in run
+    ]
+
+    assert len(collect) == 1, "the backend job has no 'uv run pytest --collect-only'"
+    assert len(blocking) == 1, blocking
+    step, command = _backend_steps()[collect[0]], runs[collect[0]]
+    assert command is not None
+    assert not re.search(r"\s(-n|--numprocesses)\b", command), command
+    assert "continue-on-error" not in step, step
+    assert collect[0] < blocking[0], "the collection must run before the tests"
+
+
+def test_tg362_collection_without_xdist_reports_an_invalid_quarantine(
+    tmp_path: Path,
+) -> None:
+    result = _run_quarantine(tmp_path, "@pytest.mark.quarantine", "--collect-only")
+    output = result.stdout + result.stderr
+
+    assert result.returncode == pytest.ExitCode.USAGE_ERROR, output
+    assert "TG-" in output, output
+    assert "INTERNALERROR" not in output, output
