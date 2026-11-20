@@ -58,6 +58,7 @@ function SendingDot({ styles }: { styles: Styles }) {
       true,
     );
   }, [reduceMotion, opacity, duration.slow]);
+  // Stryker disable next-line ArrowFunction,ObjectLiteral: opacity of the pulse, visual only.
   const pulse = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
@@ -65,6 +66,7 @@ function SendingDot({ styles }: { styles: Styles }) {
       testID="chat-sending-dot"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      // Stryker disable next-line ArrayDeclaration: look of the dot, visual only.
       style={[styles.dot, pulse]}
     />
   );
