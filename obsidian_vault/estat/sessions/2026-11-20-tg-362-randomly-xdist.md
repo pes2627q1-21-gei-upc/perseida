@@ -33,6 +33,11 @@ Primera tasca de TG-362 (TG-381). L'objectiu és que els tests del backend s'exe
   - CI: el pas bloquejant exclou `-m "not quarantine"`; un pas nou, «Tests en quarantena (no bloquejant)», els executa amb `continue-on-error` i `--no-cov`, i tolera l'exit 5 (cap test en quarantena).
   - Guardes a `tests/architecture/test_test_tooling.py`: marcador registrat, cap `pytest-rerunfailures`/`flaky`/`--reruns`, passos de la CI i comportament del plugin.
   - Verificat: 2099 tests en verd amb `-m "not quarantine"`, cobertura 99,71 %.
+- **Revisió (`reviewer-arquitectura`) i correccions:**
+  - ALTA: amb `-n auto`, l'error d'un marcador invàlid sortia com a `INTERNALERROR` de xdist sense missatge. Ara la CI té un pas bloquejant «Validar marcadors de quarantena (recollida sense xdist)» (`pytest --collect-only -q -p no:randomly --no-cov`) abans dels tests, amb el seu test a `test_test_tooling.py`.
+  - MITJANA: la fixture `redis(worker_id)` (índex del worker, mai el 0, `flushdb` abans i després) estava copiada en cinc mòduls; ara és una sola a `tests/integration/conftest.py`. Les fixtures `redis()` locals que no són equivalents (sense neteja per worker) no s'han tocat.
+  - BAIXES: [[testing]] documenta el límit de workers després d'un crash, que no es poden llançar dues sessions locals alhora i l'ordre real del job `backend`.
+  - Verificat: integració amb `-n 8` i dues llavors (444 tests en verd cada vegada), tests d'arquitectura (34), ruff i mypy nets.
 
 ## Decisions preses
 
@@ -56,6 +61,7 @@ Totes les ha aprovat la persona responsable en aquesta sessió.
 
 - [ ] PR cap a `develop`, revisada per una persona que no sigui l'autora, i CI verda.
 - [ ] TG-383 i TG-384, a la segona PR (TG-384 depèn de TG-338).
+- [ ] Deute: treure els fixtures `_migrated` de cada mòdul (ara els fa sobrers `_worker_database`) i decidir si s'unifiquen les fixtures `redis()` locals.
 - [ ] Quan s'acabi la US, actualitzar l'abast de [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]].
 
 ## US de Taiga
