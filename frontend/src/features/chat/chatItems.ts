@@ -1,6 +1,12 @@
 import type { ChatMessage } from './api/chat';
 import { dateTimeFormat } from './dateFormat';
 
+/** Why the server refused a message, as the bubble needs it: its code and whether a retry can work. */
+export interface SendFailure {
+  code: string;
+  retryable: boolean;
+}
+
 /**
  * A message the person wrote that the server has not confirmed yet: being sent, refused or lost
  * on the way (`uncertain`: it may have arrived). `clientMessageId` makes a retry idempotent.
@@ -9,6 +15,8 @@ export interface OutgoingMessage {
   clientMessageId: string;
   text: string;
   status: 'sending' | 'failed' | 'uncertain';
+  /** Why it was refused (`failed`). */
+  error?: SendFailure;
 }
 
 /** A message of the history. `showAuthor` is true on the first message of a run of a person. */
@@ -75,6 +83,7 @@ export function buildChatItems({
     clientMessageId: outgoing.clientMessageId,
     text: outgoing.text,
     status: outgoing.status,
+    ...(outgoing.error && { error: outgoing.error }),
   }));
 
   const days = messages.map((message) => dayOf(message.sent_at, timeZone));

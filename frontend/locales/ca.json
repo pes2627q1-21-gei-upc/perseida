@@ -37,7 +37,8 @@
       "sending": "Enviant",
       "failed": "No s'ha pogut enviar el missatge.",
       "uncertain": "És possible que el missatge ja s'hagi enviat. Si el reintentes, no es duplicarà.",
-      "retry": "Reintenta"
+      "retry": "Reintenta",
+      "discard": "Descarta"
     },
     "composer": {
       "label": "Escriu un missatge",
