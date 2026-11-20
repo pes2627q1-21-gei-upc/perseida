@@ -4,7 +4,7 @@ tipus: convencio
 estat: vigent
 data: "2026-11-20"
 us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362"]
-font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist, 20/11/2026)"
+font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist; tasca TG-382: quarantena sense reintents, 20/11/2026)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
 
@@ -15,7 +15,7 @@ etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-testing-avancada]]): el test en vermell s'escriu **abans** del codi. Les proves segueixen la piràmide 60/30/10. Cap US arriba a Done sense les seves proves.
 
 > [!info] Estat de la implantació
-> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) i TG-359 (US #359) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter), les migracions reversibles, els llindars de cobertura bloquejants (backend i frontend) i el mutation testing sobre el diff (mutmut i Stryker). Des de TG-362 (tasca TG-381), els tests del backend s'executen en ordre aleatori (pytest-randomly) i, a la CI, en paral·lel (pytest-xdist). L'automatització de la resta d'eines marcades com a «previst» (E2E, quarantena, bandit/pip-audit/`pnpm audit`) és pendent i va a les US #361 i #362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
+> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) i TG-359 (US #359) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter), les migracions reversibles, els llindars de cobertura bloquejants (backend i frontend) i el mutation testing sobre el diff (mutmut i Stryker). Des de TG-362 (tasca TG-381), els tests del backend s'executen en ordre aleatori (pytest-randomly) i, a la CI, en paral·lel (pytest-xdist); des de la tasca TG-382, els tests inestables van en quarantena en un pas no bloquejant. L'automatització de la resta d'eines marcades com a «previst» (E2E, bandit/pip-audit/`pnpm audit`) és pendent i va a les US #361 i #362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
 
 ## TDD
 
@@ -51,7 +51,7 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 | Arquitectura | Capes del backend; import-linter bloquejant | `backend/tests/architecture`; import-linter (`[tool.importlinter]` a `pyproject.toml`) | Instal·lat |
 | E2E | Fluxos crítics | Maestro, Playwright | Previst |
 | Accessibilitat | Queries per rol/etiqueta als tests; lint d'a11y | RNTL; `eslint-plugin-jsx-a11y` | RNTL instal·lat; lint previst |
-| Robustesa | Ordre aleatori i execució en paral·lel; quarantena sense reintents | pytest-randomly, pytest-xdist | Ordre aleatori i paral·lel instal·lats (TG-362); quarantena prevista |
+| Robustesa | Ordre aleatori i execució en paral·lel; quarantena sense reintents | pytest-randomly, pytest-xdist, marcador `quarantine` | Instal·lat (TG-362) |
 | Seguretat | Anàlisi estàtica i dependències | bandit, pip-audit, `pnpm audit` | Previst |
 | Migracions | Cada revisió fa upgrade -> downgrade -> upgrade i l'esquema torna a ser el mateix (coherent amb el rollback d'[[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]) | Alembic + pytest | Instal·lat |
 
@@ -72,7 +72,22 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 
 ### Tests inestables
 
-Un test inestable es posa en quarantena (marcat i exclòs del bloc obligatori, amb una incidència a Taiga) i es corregeix; **no es fan reintents automàtics** per tapar-lo.
+Un test inestable es posa en quarantena (marcat i exclòs del bloc obligatori, amb una tasca a Taiga) i es corregeix; **no es fan reintents automàtics** per tapar-lo. `pytest-rerunfailures`, `flaky` i `--reruns` estan prohibits (ho vigila `tests/architecture/test_test_tooling.py`), perquè amaguen condicions de carrera reals.
+
+Com es posa un test en quarantena (TG-362, tasca TG-382):
+
+1. Reprodueix la fallada amb la llavor de la sortida (secció anterior) per confirmar que és intermitent i no un error real del codi.
+2. Obre una tasca a Taiga per arreglar-lo.
+3. Marca el test amb el codi de la tasca:
+   ```python
+   @pytest.mark.quarantine(reason="TG-NNN falla de manera intermitent en paral·lel")
+   def test_...():
+   ```
+   El `reason` és obligatori i ha de contenir `TG-<número>`. Sense ell, la recollida de pytest s'atura amb un error (plugin `tests/quarantine.py`).
+4. A la CI, el pas bloquejant executa `pytest -n auto -m "not quarantine"`, i el pas «Tests en quarantena (no bloquejant)», `pytest -n auto -m quarantine --no-cov` amb `continue-on-error`. Aquest segon pas no compta per a la cobertura i, si no hi ha cap test en quarantena, acaba en verd.
+5. Quan la tasca s'arregla, es treu el marcador a la mateixa PR del `fix:`.
+
+En local: `uv run pytest -m quarantine` executa només els tests en quarantena.
 
 ## Proves d'acceptació
 
