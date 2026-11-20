@@ -88,6 +88,22 @@ const messageIds = (items: ChatListItem[]) =>
 
 const historyCalls = () => calls.filter((call) => call.url.pathname === MESSAGES_PATH).length;
 
+/**
+ * The server acknowledges joining the live room: from now on whatever is published reaches this
+ * client (ADR-0030: the ack comes once the subscription is active).
+ */
+async function joined() {
+  await act(async () => mockSocket.handlers?.onJoined?.());
+  await settle();
+}
+
+/** The connection drops and comes back, and the room is joined again. */
+async function reconnects(hook: Awaited<ReturnType<typeof mountRoom>>) {
+  await changeStatus(hook, 'reconnecting');
+  await changeStatus(hook, 'open');
+  await joined();
+}
+
 /** The connection goes to `status`; the room renders again, as it does when the socket says so. */
 async function changeStatus(hook: Awaited<ReturnType<typeof mountRoom>>, status: SocketStatus) {
   mockSocket.status = status;
@@ -140,7 +156,29 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     await settle();
 
     expect(attempts()).toEqual([0, 1]);
+    // The new join is not active yet: what the history says now could miss a message.
+    expect(historyCalls()).toBe(1);
+
+    await joined();
+
     expect(historyCalls()).toBe(2);
+  });
+
+  it('asks for the history again once the room is joined after a reload of a refused join', async () => {
+    const hook = await mountRoom();
+    await act(async () =>
+      mockSocket.handlers?.onError?.(
+        new AppError({ kind: 'http', code: 'RATE_LIMITED', status: 429, retryable: true }),
+      ),
+    );
+    await act(async () => hook.result.current.reload());
+    await settle();
+    const beforeJoining = historyCalls();
+
+    await joined();
+
+    expect(attempts()).toEqual([0, 1]);
+    expect(historyCalls()).toBe(beforeJoining + 1);
   });
 
   it('asks for the history again when the connection comes back after a drop', async () => {
@@ -149,6 +187,10 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     await changeStatus(hook, 'reconnecting');
     expect(historyCalls()).toBe(1);
     await changeStatus(hook, 'open');
+    // Open, but the room is not joined again yet.
+    expect(historyCalls()).toBe(1);
+
+    await joined();
 
     expect(historyCalls()).toBe(2);
   });
@@ -158,6 +200,7 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
 
     await changeStatus(hook, 'closed');
     await changeStatus(hook, 'open');
+    await joined();
 
     expect(historyCalls()).toBe(2);
   });
@@ -168,6 +211,7 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     expect(historyCalls()).toBe(1);
 
     await changeStatus(hook, 'open');
+    await joined();
 
     expect(historyCalls()).toBe(1);
   });
@@ -182,7 +226,7 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     expect(historyCalls()).toBe(1);
   });
 
-  it('does not restart a request on its way when the connection flaps', async () => {
+  it('asks once per join, and a join while a request is on its way asks again', async () => {
     const hook = await mountRoom();
     let release: () => void = () => undefined;
     answers[`GET ${MESSAGES_PATH}`] = () =>
@@ -190,17 +234,24 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
         release = () => resolve(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
       });
 
+    // The connection flaps without joining the room: nothing is asked for yet.
     await changeStatus(hook, 'reconnecting');
     await changeStatus(hook, 'open');
     await changeStatus(hook, 'reconnecting');
     await changeStatus(hook, 'open');
-    await changeStatus(hook, 'reconnecting');
-    await changeStatus(hook, 'open');
+    expect(historyCalls()).toBe(1);
+
+    await joined();
     expect(historyCalls()).toBe(2);
+
+    // Joined again while that request is still on its way: it may have read the history before
+    // this join, so it is asked for again, once.
+    await reconnects(hook);
+    expect(historyCalls()).toBe(3);
 
     await act(async () => release());
     await settle();
-    expect(historyCalls()).toBe(2);
+    expect(historyCalls()).toBe(3);
   });
 
   it('shows a message that arrived live and is also in the refetched page only once', async () => {
@@ -215,8 +266,7 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
         ]),
       );
 
-    await changeStatus(hook, 'reconnecting');
-    await changeStatus(hook, 'open');
+    await reconnects(hook);
 
     const ids = messageIds(hook.result.current.items);
     expect(ids).toHaveLength(3);
@@ -229,8 +279,7 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     answers[`GET ${MESSAGES_PATH}`] = () =>
       jsonResponse(makePage([makeMessage(2, { author: PAU }), makeMessage(1, { author: PAU })]));
 
-    await changeStatus(hook, 'reconnecting');
-    await changeStatus(hook, 'open');
+    await reconnects(hook);
 
     expect(messageIds(hook.result.current.items)).toContain(makeMessage(2).id);
   });
@@ -247,8 +296,7 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     const pendingBefore = hook.result.current.items.filter((item) => item.kind === 'pending');
     expect(pendingBefore).toHaveLength(1);
 
-    await changeStatus(hook, 'reconnecting');
-    await changeStatus(hook, 'open');
+    await reconnects(hook);
 
     const pendingAfter = hook.result.current.items.filter((item) => item.kind === 'pending');
     expect(pendingAfter).toEqual(pendingBefore);

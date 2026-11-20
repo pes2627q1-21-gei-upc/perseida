@@ -630,3 +630,69 @@ describe('useChatSocket: joining the room again (TG-469)', () => {
     expect(lastSocket().sentOfType('unsubscribe')).toEqual([]);
   });
 });
+
+describe('useChatSocket: the room is joined (TG-469)', () => {
+  /** The `id` of the last subscribe to ROOM, the one the server answers. */
+  const subscribeId = () => lastSocket().sentOfType('subscribe').at(-1)?.id;
+
+  it('calls onJoined when the server acknowledges the subscribe, and only then', async () => {
+    const onJoined = jest.fn();
+    await renderHook(() => useChatSocket(EVENT_ID, { ...handlers, onJoined }));
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+    expect(onJoined).not.toHaveBeenCalled();
+
+    await serverSends({ type: 'subscribe', id: subscribeId(), room: ROOM });
+
+    expect(onJoined).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onJoined for a refused join, a message or a revocation', async () => {
+    const onJoined = jest.fn();
+    await renderHook(() => useChatSocket(EVENT_ID, { ...handlers, onJoined }));
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+
+    await serverSends({
+      type: 'error',
+      id: subscribeId(),
+      room: ROOM,
+      payload: wsProblem(429, 'RATE_LIMITED'),
+    });
+    await serverSends({ type: 'message', room: ROOM, payload: OTHERS_MESSAGE });
+    await serverSends({ type: 'unsubscribe', room: ROOM });
+
+    expect(onJoined).not.toHaveBeenCalled();
+    expect(handlers.onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onJoined again when the room is joined again after a reconnection', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(1);
+    const onJoined = jest.fn();
+    await renderHook(() => useChatSocket(EVENT_ID, { ...handlers, onJoined }));
+    await flush();
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+    await serverSends({ type: 'subscribe', id: subscribeId(), room: ROOM });
+
+    await serverCloses(1006);
+    await flush(1000);
+    await serverOpens();
+    await serverSends(AUTH_ACK);
+    expect(onJoined).toHaveBeenCalledTimes(1);
+
+    await serverSends({ type: 'subscribe', id: subscribeId(), room: ROOM });
+
+    expect(onJoined).toHaveBeenCalledTimes(2);
+  });
+
+  it('onJoined is optional', async () => {
+    await mountChatConnected();
+
+    await expect(
+      serverSends({ type: 'subscribe', id: subscribeId(), room: ROOM }),
+    ).resolves.toBeUndefined();
+  });
+});
