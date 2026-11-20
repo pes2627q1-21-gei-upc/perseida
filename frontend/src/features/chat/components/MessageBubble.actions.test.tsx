@@ -88,6 +88,7 @@ describe('MessageBubble, the actions of a message that did not go (TG-469, WCAG 
   });
 
   it('the surface is opaque with «Reduce transparency»', async () => {
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('light');
     jest.spyOn(AccessibilityInfo, 'isReduceTransparencyEnabled').mockResolvedValue(true);
     await render(<MessageBubble item={failed} onRetry={jest.fn()} onDiscard={jest.fn()} />);
 

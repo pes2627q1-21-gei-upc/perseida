@@ -20,6 +20,7 @@ import type { MessageItem, PendingItem } from '../chatItems';
 import { dateTimeFormat } from '../dateFormat';
 import { rowSurface } from '../rowSurface';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { ActionSurface } from './ActionSurface';
 
 interface Props {
   item: MessageItem | PendingItem;
@@ -222,20 +223,24 @@ export function MessageBubble({ item, onRetry, onDiscard, entering = false }: Pr
         <>
           <ProblemNote failed={failed} text={problem} styles={styles} />
           {onRetry && canRetry && (
-            <QuietButton
-              label={t('chat.message.retry')}
-              onPress={() => {
-                onRetry(item.clientMessageId);
-                // The button goes away with the retry: the focus goes to the bubble, not nowhere.
-                if (bubble.current) moveFocusTo(bubble.current);
-              }}
-            />
+            <ActionSurface>
+              <QuietButton
+                label={t('chat.message.retry')}
+                onPress={() => {
+                  onRetry(item.clientMessageId);
+                  // The button goes away with the retry: the focus goes to the bubble, not nowhere.
+                  if (bubble.current) moveFocusTo(bubble.current);
+                }}
+              />
+            </ActionSurface>
           )}
           {onDiscard && failed && (
-            <QuietButton
-              label={t('chat.message.discard')}
-              onPress={() => onDiscard(item.clientMessageId)}
-            />
+            <ActionSurface>
+              <QuietButton
+                label={t('chat.message.discard')}
+                onPress={() => onDiscard(item.clientMessageId)}
+              />
+            </ActionSurface>
           )}
         </>
       )}
