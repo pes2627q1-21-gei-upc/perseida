@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { AccessibilityInfo, DeviceEventEmitter, Platform, TextInput } from 'react-native';
+import { AccessibilityInfo, DeviceEventEmitter, Platform, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse } from '../../../../__mocks__/apod';
@@ -491,6 +491,37 @@ describe('ChatRoomScreen: messages that arrive, for screen readers (TG-469, WCAG
       'polite',
     );
     expect(announce).not.toHaveBeenCalled();
+  });
+
+  it('on Android it reads again a message with the same text as the one before', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    const said = 'Missatge nou de Pau: Es veu Júpiter!';
+    await renderScreen({ items: history() });
+    await setLive({
+      items: items([arriving, makeMessage(1, { author: PAU, text: 'Hola a tothom' })]),
+    });
+    const first = screen.getByText(said);
+
+    // Another message with the very same text: a live region only speaks when it changes, so it
+    // has to be a new one.
+    await setLive({
+      items: items([
+        makeMessage(3, { author: PAU, text: 'Es veu Júpiter!' }),
+        arriving,
+        makeMessage(1, { author: PAU, text: 'Hola a tothom' }),
+      ]),
+    });
+
+    const second = screen.getByText(said);
+    expect(second).not.toBe(first);
+    expect(screen.getAllByText(said)).toHaveLength(1);
+    expect(second).toHaveProp('accessibilityLiveRegion', 'polite');
+    // Still never seen: one pixel, clipped.
+    expect(StyleSheet.flatten(second.props.style)).toMatchObject({
+      width: 1,
+      height: 1,
+      overflow: 'hidden',
+    });
   });
 
   it('does not move the focus of the screen reader to the message that arrives', async () => {
