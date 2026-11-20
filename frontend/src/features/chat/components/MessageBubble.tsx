@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { errorMessage } from '../../../shared/errors';
 import { type Theme, useTheme } from '../../../shared/theme';
 import { QuietButton, useReduceTransparency } from '../../../shared/ui';
 import { type BubbleSurface, bubbleSurface } from '../bubbleSurface';
@@ -24,6 +25,8 @@ interface Props {
   item: MessageItem | PendingItem;
   /** Sends a failed or uncertain message again, with the same `clientMessageId`. */
   onRetry?: (clientMessageId: string) => void;
+  /** Drops a refused message from the room. */
+  onDiscard?: (clientMessageId: string) => void;
   /** It arrived while the room is open: it floats in, unless the person asked for reduced motion. */
   entering?: boolean;
 }
@@ -140,7 +143,7 @@ function useFloatIn(entering: boolean) {
  * gel and the others' glass; a message on its way is busy and pulses, and one that did not go
  * says so in text, with an icon (never only colour), and offers to retry it next to the bubble.
  */
-export function MessageBubble({ item, onRetry, entering = false }: Props) {
+export function MessageBubble({ item, onRetry, onDiscard, entering = false }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
@@ -152,8 +155,13 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
   const styles = createStyles(theme, surface, reduceTransparency);
   const you = t('chat.you');
   const sending = item.kind === 'pending' && item.status === 'sending';
-  const problem =
-    item.kind === 'pending' && item.status !== 'sending' ? t(`chat.message.${item.status}`) : '';
+  const failure = item.kind === 'pending' ? item.error : undefined;
+  const failed = item.kind === 'pending' && item.status === 'failed';
+  let problem = '';
+  if (failed && failure) problem = errorMessage(t, failure.code, failure.retryable);
+  else if (item.kind === 'pending' && !sending) problem = t(`chat.message.${item.status}`);
+  // A refusal without its reason is taken as one that may go through later.
+  const canRetry = !failed || (failure?.retryable ?? true);
   useAnnounceOnIos(problem || undefined);
 
   let label: string;
@@ -199,8 +207,8 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
       </View>
       {item.kind === 'pending' && problem !== '' && (
         <>
-          <ProblemNote failed={item.status === 'failed'} text={problem} styles={styles} />
-          {onRetry && (
+          <ProblemNote failed={failed} text={problem} styles={styles} />
+          {onRetry && canRetry && (
             <QuietButton
               label={t('chat.message.retry')}
               onPress={() => {
@@ -209,6 +217,12 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
                 if (bubble.current)
                   AccessibilityInfo.sendAccessibilityEvent(bubble.current, 'focus');
               }}
+            />
+          )}
+          {onDiscard && failed && (
+            <QuietButton
+              label={t('chat.message.discard')}
+              onPress={() => onDiscard(item.clientMessageId)}
             />
           )}
         </>

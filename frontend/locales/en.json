@@ -36,7 +36,8 @@
       "sending": "Sending",
       "failed": "The message could not be sent.",
       "uncertain": "The message may have been sent already. If you retry, it won't be duplicated.",
-      "retry": "Retry"
+      "retry": "Retry",
+      "discard": "Discard"
     },
     "composer": {
       "label": "Write a message",

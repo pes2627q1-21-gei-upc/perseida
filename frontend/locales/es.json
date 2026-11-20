@@ -36,7 +36,8 @@
       "sending": "Enviando",
       "failed": "No se ha podido enviar el mensaje.",
       "uncertain": "Es posible que el mensaje ya se haya enviado. Si lo reintentas, no se duplicará.",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "discard": "Descartar"
     },
     "composer": {
       "label": "Escribe un mensaje",
