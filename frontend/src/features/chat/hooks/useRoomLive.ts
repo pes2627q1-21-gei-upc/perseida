@@ -150,7 +150,9 @@ export function useRoomLive(eventId: string) {
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = history;
   const loadOlder = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+    // Also without a re-render in between (two scroll ends in a row), a page on its way is kept,
+    // not cancelled and asked for again.
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage({ cancelRefetch: false });
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const myUserId = me?.id ?? '';
