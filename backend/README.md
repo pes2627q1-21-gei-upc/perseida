@@ -30,7 +30,7 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 | Moderation | Kev-4B microservice (local model, synchronous call) |
 | Dependencies | `uv` (`uv.lock` committed) |
 | Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud |
-| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
+| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Architecture: hexagonal
 
@@ -206,6 +206,7 @@ uv run ruff format --check .   # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run lint-imports           # architecture contracts (import-linter)
 uv run pytest                 # tests (with coverage)
+uv run pytest -n auto         # same, in parallel (one database and Redis index per worker)
 uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api/docs)
 ```
 
@@ -262,7 +263,8 @@ The engine uses lazy connections: creating it does not immediately establish a c
 
 Redis is only a TTL cache and the pub/sub bus for the WebSocket chat; nothing that must survive lives here (PostgreSQL is the source of truth). The asynchronous client is created in FastAPI's lifespan and closed on shutdown. Configuration (see `.env.example`):
 
-- `REDIS_HOST`, `REDIS_PORT`: server address (`redis://host:port`).
+- `REDIS_HOST`, `REDIS_PORT`: server address (`redis://host:port/db`).
+- `REDIS_DB` (optional, 0..15, default 0): logical database. The tests use 15 and, under pytest-xdist, one per worker (15, 14...).
 - `CACHE_DEFAULT_TTL_SECONDS`: default TTL in seconds (3600 if unset).
 - `REDIS_SOCKET_TIMEOUT_SECONDS`: connect and socket timeout in seconds (2 if unset), so a hung Redis behaves as a cache miss.
 
