@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse } from '../../../../__mocks__/apod';
 import { EVENT_ID, makeMessage, makeSubscribedEvent, PAU } from '../../../../__mocks__/chat';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import { mockUserProfile } from '../../../../__mocks__/profile';
 import { AppError } from '../../../shared/errors';
 import { spacing } from '../../../shared/theme';
@@ -126,6 +127,8 @@ async function keyboard(shown: boolean) {
 const error = (code: string, retryable: boolean, status = 400) =>
   new AppError({ kind: 'http', code, status, retryable });
 
+const pending = pendingResponses();
+
 beforeEach(async () => {
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
@@ -133,13 +136,12 @@ beforeEach(async () => {
   mockRouter.canGoBack.mockReturnValue(true);
   jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const { pathname } = new URL((input as Request).url);
-    return pathname === '/api/me/subscriptions'
-      ? jsonResponse([leonids])
-      : new Promise<Response>(() => undefined);
+    return pathname === '/api/me/subscriptions' ? jsonResponse([leonids]) : pending.neverAnswered();
   });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();

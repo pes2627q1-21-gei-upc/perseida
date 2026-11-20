@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { myOuting } from '../../../../__mocks__/outings';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import { AppError } from '../../../shared/errors';
 import { saveTokens } from '../../auth/tokenStorage';
 import { type OutingFormValues, outingToValues } from '../outingForm';
@@ -69,6 +70,7 @@ const SAFE_AREA = {
 
 let client: QueryClient;
 let fetchSpy: jest.SpyInstance;
+const pending = pendingResponses();
 let answer: (request: Request) => Response | Promise<Response>;
 
 function requests(method: string) {
@@ -106,7 +108,8 @@ beforeEach(async () => {
     .mockImplementation(async (input) => answer(input as Request));
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -175,7 +178,7 @@ describe('NewOutingScreen', () => {
 
 describe('EditOutingScreen', () => {
   it('says it is loading', async () => {
-    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await wrap(<EditOutingScreen id={myOuting.id} />);
 
