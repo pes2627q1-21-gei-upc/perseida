@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { EVENT_ID, makeMessage, makePage, makeRoom, PAU } from '../../../../__mocks__/chat';
+import { deferredResponse } from '../../../../__mocks__/pendingResponses';
 import { mockUserProfile } from '../../../../__mocks__/profile';
 import { AppError } from '../../../shared/errors';
 import type { SocketStatus } from '../../../shared/realtime';
@@ -205,15 +206,91 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     expect(historyCalls()).toBe(2);
   });
 
-  it('does not ask again the first time the connection opens', async () => {
+  it('asks once more when the room is joined for the first time, if the history had already arrived', async () => {
     mockSocket.status = 'connecting';
     const hook = await mountRoom();
     expect(historyCalls()).toBe(1);
 
     await changeStatus(hook, 'open');
+    // Open, but the room is not joined yet: the history is not asked for again.
+    expect(historyCalls()).toBe(1);
+
     await joined();
 
+    // Every join acknowledgement catches up, the first one included: a message published between
+    // the answer of the history and the active subscription would be missed otherwise.
+    expect(historyCalls()).toBe(2);
+  });
+
+  it('shows what was published between the history and the first join', async () => {
+    const hook = await mountRoom();
+    answers[`GET ${MESSAGES_PATH}`] = () =>
+      jsonResponse(makePage([makeMessage(2, { author: PAU }), makeMessage(1, { author: PAU })]));
+
+    await joined();
+
+    expect(messageIds(hook.result.current.items)).toContain(makeMessage(2).id);
+  });
+
+  it('asks for nothing at the first join while the room is not open yet, and once it opens', async () => {
+    const opening = deferredResponse();
+    answers[`PUT ${ROOM_PATH}`] = () => opening.response;
+    const hook = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    await settle();
+
+    await joined();
+    // There is no history to catch up on: its first page is asked for once the room opens, which
+    // is after this join.
+    expect(historyCalls()).toBe(0);
+
+    opening.answer(jsonResponse(makeRoom()));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+    await settle();
+
     expect(historyCalls()).toBe(1);
+  });
+
+  it('asks again at the first join while the first request of the history is on its way, and keeps the answer of the new one', async () => {
+    const requests = [deferredResponse(), deferredResponse()];
+    answers[`GET ${MESSAGES_PATH}`] = () => (requests.shift() ?? deferredResponse()).response;
+    const [abandoned, restarted] = [...requests];
+    const hook = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    await waitFor(() => expect(historyCalls()).toBe(1));
+    expect(hook.result.current.isLoading).toBe(true);
+
+    await joined();
+
+    // The first request may have read the history before the join: it is asked for again.
+    expect(historyCalls()).toBe(2);
+    restarted.answer(jsonResponse(makePage([makeMessage(2, { author: PAU })])));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+
+    // The answer of the abandoned request, when it comes, does not take the new one's place.
+    abandoned.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+    expect(messageIds(hook.result.current.items)).toEqual([makeMessage(2).id]);
+    expect(historyCalls()).toBe(2);
+  });
+
+  it('leaves no request on its way when the room is left right after the first join', async () => {
+    const onItsWay: ReturnType<typeof deferredResponse>[] = [];
+    answers[`GET ${MESSAGES_PATH}`] = () => {
+      const request = deferredResponse();
+      onItsWay.push(request);
+      return request.response;
+    };
+    const hook = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
+    await waitFor(() => expect(historyCalls()).toBe(1));
+    await joined();
+    expect(historyCalls()).toBe(2);
+
+    await hook.unmount();
+    onItsWay.forEach((request) => request.answer(jsonResponse(makePage([]))));
+    await settle();
+
+    // Nothing is asked for after leaving, and nothing is left fetching.
+    expect(historyCalls()).toBe(2);
+    expect(client.isFetching()).toBe(0);
   });
 
   it('does not ask again while the connection stays open, however often it renders', async () => {
@@ -228,11 +305,12 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
 
   it('asks once per join, and a join while a request is on its way asks again', async () => {
     const hook = await mountRoom();
-    let release: () => void = () => undefined;
-    answers[`GET ${MESSAGES_PATH}`] = () =>
-      new Promise<Response>((resolve) => {
-        release = () => resolve(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
-      });
+    const onItsWay: ReturnType<typeof deferredResponse>[] = [];
+    answers[`GET ${MESSAGES_PATH}`] = () => {
+      const request = deferredResponse();
+      onItsWay.push(request);
+      return request.response;
+    };
 
     // The connection flaps without joining the room: nothing is asked for yet.
     await changeStatus(hook, 'reconnecting');
@@ -249,7 +327,11 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     await reconnects(hook);
     expect(historyCalls()).toBe(3);
 
-    await act(async () => release());
+    await act(async () =>
+      onItsWay.forEach((request) =>
+        request.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })]))),
+      ),
+    );
     await settle();
     expect(historyCalls()).toBe(3);
   });
