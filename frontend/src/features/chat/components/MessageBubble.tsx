@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Warning, WarningCircle } from 'phosphor-react-native';
 import { type ComponentRef, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -32,6 +32,16 @@ interface Props {
 }
 
 type Styles = ReturnType<typeof createStyles>;
+
+/**
+ * Moves the screen reader focus to an element. react-native-web has no `sendAccessibilityEvent`
+ * (calling it throws), so there the element takes the focus itself. It never throws.
+ */
+function moveFocusTo(element: ComponentRef<typeof View>) {
+  if (typeof AccessibilityInfo.sendAccessibilityEvent === 'function')
+    AccessibilityInfo.sendAccessibilityEvent(element, 'focus');
+  else element.focus?.();
+}
 
 /** Soft pulse of a message on its way; still with reduced motion. */
 function SendingDot({ styles }: { styles: Styles }) {
@@ -143,6 +153,8 @@ export function MessageBubble({ item, onRetry, onDiscard, entering = false }: Pr
   const reduceTransparency = useReduceTransparency();
   const enter = useFloatIn(entering);
   const bubble = useRef<ComponentRef<typeof View>>(null);
+  // A <div> only takes the focus from code with a tab index; -1 keeps it out of the tab order.
+  const webFocusable = Platform.OS === 'web' ? ({ tabIndex: -1 } as const) : {};
 
   const mine = item.kind === 'pending' || item.mine;
   const surface = bubbleSurface(theme.colors, mine, reduceTransparency);
@@ -184,6 +196,7 @@ export function MessageBubble({ item, onRetry, onDiscard, entering = false }: Pr
         accessible
         accessibilityLabel={label}
         accessibilityState={{ busy: sending }}
+        {...webFocusable}
         style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOthers]}
       >
         <BubbleSkin surface={surface} sending={sending} styles={styles} />
@@ -208,8 +221,7 @@ export function MessageBubble({ item, onRetry, onDiscard, entering = false }: Pr
               onPress={() => {
                 onRetry(item.clientMessageId);
                 // The button goes away with the retry: the focus goes to the bubble, not nowhere.
-                if (bubble.current)
-                  AccessibilityInfo.sendAccessibilityEvent(bubble.current, 'focus');
+                if (bubble.current) moveFocusTo(bubble.current);
               }}
             />
           )}
