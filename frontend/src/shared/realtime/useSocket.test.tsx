@@ -1996,3 +1996,34 @@ describe('useSocket: active sense background previ no toca res (TG-654)', () => 
     expect(sockets()).toHaveLength(2);
   });
 });
+
+describe('useSocket: late answers of a send that is already settled (TG-469)', () => {
+  it('do not reach the room: only the answer to its subscribe does', async () => {
+    const { result } = await mountConnected();
+    const onFrame = jest.fn();
+    await act(async () => {
+      result.current.subscribe(ROOM, onFrame);
+    });
+    const { sending } = await startSending(result.current.send);
+    const sentId = lastSent()?.id;
+    const ack: Frame = {
+      type: 'message',
+      room: ROOM,
+      id: sentId,
+      payload: { id: 'm-1', sent_at: '2026-11-18T20:00:00Z' },
+    };
+    await serverSends(ack);
+    await expect(sending).resolves.toEqual(ack);
+
+    // An earlier attempt answered after all, once the send had settled.
+    await serverSends({
+      type: 'error',
+      id: sentId,
+      room: ROOM,
+      payload: wsProblem(503, 'PUBSUB_UNAVAILABLE'),
+    });
+    await serverSends(ack);
+
+    expect(onFrame).not.toHaveBeenCalled();
+  });
+});
