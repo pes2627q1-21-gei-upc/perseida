@@ -1,6 +1,6 @@
 import os
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -17,6 +17,7 @@ from app.infrastructure.events.repository import SqlEventRepository
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.posts.repository import SqlPostRepository
 from app.infrastructure.users.repository import SqlUserRepository
+from tests.integration.isolation import row_counts
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("POSTGRES_HOST"),
@@ -33,6 +34,13 @@ def _migrated() -> None:
     config.set_main_option("script_location", str(backend_dir / "alembic"))
     config.attributes["configure_logger"] = False
     command.upgrade(config, "head")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _preexisting_data_is_kept(_migrated: None) -> Iterator[None]:
+    before = row_counts()
+    yield
+    assert row_counts() == before
 
 
 @pytest.fixture
