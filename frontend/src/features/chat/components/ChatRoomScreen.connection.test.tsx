@@ -242,3 +242,72 @@ describe('ChatRoomScreen: the list starts under the connection notice (TG-469)',
     expect(listTop()).toBe(BAR_BOTTOM + spacing.sm);
   });
 });
+
+describe('ChatRoomScreen: the loading and empty states start under the connection notice (TG-469)', () => {
+  const BAR_BOTTOM = 91;
+  const NOTICE_HEIGHT = 32;
+  const EMPTY = 'Encara no hi ha missatges. Sigues la primera persona a escriure!';
+
+  async function lay(target: ReturnType<typeof screen.getByTestId>, y: number, height: number) {
+    await act(async () => {
+      await fireEvent(target, 'layout', {
+        nativeEvent: { layout: { x: 0, y, width: 390, height } },
+      });
+    });
+  }
+  /** Where the state starts: the top padding of the nearest box around it that has one. */
+  function topOf(element: ReturnType<typeof screen.getByTestId>) {
+    let node: typeof element | null = element;
+    while (node) {
+      const paddingTop = StyleSheet.flatten(node.props.style)?.paddingTop;
+      if (paddingTop !== undefined) return paddingTop;
+      node = node.parent;
+    }
+    return undefined;
+  }
+  const states = {
+    loading: {
+      live: { isLoading: true },
+      find: () => screen.getByLabelText('Carregant missatges'),
+    },
+    empty: { live: { items: [] }, find: () => screen.getByText(EMPTY) },
+  } as const;
+
+  it.each(['loading', 'empty'] as const)(
+    'the %s state starts under the bar when there is no notice',
+    async (state) => {
+      await renderScreen({ ...states[state].live, status: 'open' });
+      await lay(screen.getByTestId('chat-room-top-bar'), 47, BAR_BOTTOM - 47);
+
+      expect(topOf(states[state].find())).toBe(BAR_BOTTOM);
+    },
+  );
+
+  it.each([
+    ['loading', 'reconnecting'],
+    ['loading', 'closed'],
+    ['empty', 'reconnecting'],
+    ['empty', 'closed'],
+  ] as const)(
+    'the %s state moves below the notice while %s, and back once connected',
+    async (state, status) => {
+      await renderScreen({ ...states[state].live, status: 'open' });
+      await lay(screen.getByTestId('chat-room-top-bar'), 47, BAR_BOTTOM - 47);
+
+      await setLive({ status });
+      const notice =
+        status === 'reconnecting'
+          ? screen.getByText('Reconnectant…')
+          : screen.getByRole('button', { name: 'Reconnecta' });
+      await lay(notice, BAR_BOTTOM + spacing.sm, NOTICE_HEIGHT);
+
+      expect(topOf(states[state].find())).toBe(
+        BAR_BOTTOM + spacing.sm + NOTICE_HEIGHT + spacing.sm,
+      );
+
+      await setLive({ status: 'open' });
+
+      expect(topOf(states[state].find())).toBe(BAR_BOTTOM);
+    },
+  );
+});
