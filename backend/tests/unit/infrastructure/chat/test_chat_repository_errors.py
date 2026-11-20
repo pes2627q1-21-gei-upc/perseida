@@ -16,6 +16,7 @@ from app.domain.chat.models import ChatAuthor, ChatMessage
 from app.domain.events.errors import EVENT_NOT_FOUND
 from app.domain.shared.errors import NotFoundError
 from app.infrastructure.chat.repository import SqlChatRepository
+from app.infrastructure.chat.tables import ChatMessageRow
 
 DB_FAILURES = [
     pytest.param(OperationalError("SELECT 1", {}, Exception("down")), id="operational"),
@@ -215,3 +216,62 @@ async def test_tg448_list_rooms_of_maps_a_database_failure(
         await repository.list_rooms_of(uuid.uuid7())
 
     assert error.value.code == DATABASE_UNAVAILABLE
+
+
+class _Rows:
+    def __init__(self, rows: list[Any]) -> None:
+        self._rows = rows
+
+    def all(self) -> list[Any]:
+        return self._rows
+
+
+class _RecordingSession(FakeSession):
+    """A session whose reads answer from memory, to count the statements."""
+
+    def __init__(self, page_rows: list[Any], inserted: Any = None) -> None:
+        super().__init__()
+        self.page_rows = page_rows
+        self.inserted = inserted
+
+    async def scalars(self, *_: object) -> Any:
+        self._go("scalars")
+        return _Rows(self.page_rows)
+
+    async def scalar(self, *_: object) -> Any:
+        self._go("scalar")
+        return self.inserted
+
+
+async def test_tg469_page_of_an_empty_room_does_not_query_the_authors() -> None:
+    session = _RecordingSession([])
+
+    page = await _repository(session).page(uuid.uuid7(), None, 10)
+
+    assert page.messages == []
+    assert session.calls == ["scalars"]
+
+
+async def test_tg469_a_winning_insert_returns_the_row_without_reading_it_back() -> None:
+    message = ChatMessage(
+        id=uuid.uuid7(),
+        room_id=uuid.uuid7(),
+        author=ChatAuthor(id=uuid.uuid7(), name="Ada"),
+        client_message_id=uuid.uuid4(),
+        text="Hola",
+        sent_at=datetime(2026, 11, 17, 21, 0, tzinfo=UTC),
+    )
+    row = ChatMessageRow(
+        id=message.id,
+        room_id=message.room_id,
+        author_id=message.author.id,
+        text=message.text,
+        sent_at=message.sent_at,
+        client_message_id=message.client_message_id,
+    )
+    session = _RecordingSession([], inserted=row)
+
+    stored = await _repository(session).add_message(message)
+
+    assert stored == message
+    assert session.calls == ["scalar", "commit"]
