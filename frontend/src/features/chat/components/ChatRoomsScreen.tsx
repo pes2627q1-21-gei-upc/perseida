@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
 /**
  * The chat tab (TG-469): the events the person is subscribed to, each with the last message of
  * its room, newest first. The subscriptions say what is listed and the rooms what was said
- * last. The page only orchestrates; the rows have no action yet (the room of an event arrives in a later PR of TG-64).
+ * last. The page only orchestrates; tapping a row opens the room of its event.
  */
 export function ChatRoomsScreen() {
   const { t } = useTranslation();
@@ -81,7 +81,14 @@ export function ChatRoomsScreen() {
         accessibilityLabel={t('chat.list.label')}
         data={entries}
         keyExtractor={(entry) => entry.eventId}
-        renderItem={({ item, index }) => <RoomListItem entry={item} now={now} index={index} />}
+        renderItem={({ item, index }) => (
+          <RoomListItem
+            entry={item}
+            now={now}
+            index={index}
+            onPress={() => router.push(`/chat/${item.eventId}`)}
+          />
+        )}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
