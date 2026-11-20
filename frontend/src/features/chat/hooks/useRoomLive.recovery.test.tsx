@@ -150,6 +150,9 @@ describe('useRoomLive: joining the live room fails (TG-469, US TG-64 criteri 15)
     await act(async () => {
       result.current.reload();
     });
+    await waitFor(() =>
+      expect(calls.filter((call) => call.method === 'PUT').length).toBe(puts + 1),
+    );
     await settle();
 
     expect(result.current.error).toBeNull();
@@ -317,7 +320,10 @@ describe('useRoomLive: who is signed in (TG-469, review of PR D)', () => {
       result.current.reload();
     });
 
-    await waitFor(() => expect(result.current.error).toBeNull());
-    expect(result.current.isLoading).toBe(false);
+    // Asking again clears the error at once, while the answer is still on its way (a query that
+    // never had data goes back to pending): the room is loaded only when the profile arrives.
+    // Waiting for the error to go would pass before that, and be fast or slow by the machine.
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBeNull();
   });
 });
