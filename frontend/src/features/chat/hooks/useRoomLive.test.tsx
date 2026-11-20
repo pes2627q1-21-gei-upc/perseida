@@ -13,6 +13,7 @@ import {
   makeRoom,
   PAU,
 } from '../../../../__mocks__/chat';
+import { deferredResponse } from '../../../../__mocks__/pendingResponses';
 import { mockUserProfile } from '../../../../__mocks__/profile';
 import { AppError } from '../../../shared/errors';
 import type { SocketStatus } from '../../../shared/realtime';
@@ -167,16 +168,6 @@ beforeEach(async () => {
   });
 });
 
-/**
- * An answer the test gives at its end. Every request runs under the timeout of shared/api (a
- * timer); one that is never answered keeps that timer alive after the test and Jest cannot exit.
- */
-function answerLater() {
-  let answer!: (response: Response) => void;
-  const response = new Promise<Response>((resolve) => (answer = resolve));
-  return { response, answer };
-}
-
 afterEach(() => {
   client.clear();
   jest.restoreAllMocks();
@@ -184,7 +175,7 @@ afterEach(() => {
 
 describe('useRoomLive: history and room (TG-469, US TG-64 criteris 14 i 15)', () => {
   it('is loading until the first page of the history arrives', async () => {
-    const history = answerLater();
+    const history = deferredResponse();
     answers[`GET ${MESSAGES_PATH}`] = () => history.response;
 
     const { result, unmount } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });

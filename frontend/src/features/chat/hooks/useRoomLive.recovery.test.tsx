@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { EVENT_ID, makeMessage, makePage, makeRoom, PAU } from '../../../../__mocks__/chat';
+import { deferredResponse } from '../../../../__mocks__/pendingResponses';
 import { mockUserProfile } from '../../../../__mocks__/profile';
 import { AppError } from '../../../shared/errors';
 import type { SocketStatus } from '../../../shared/realtime';
@@ -116,16 +117,6 @@ beforeEach(async () => {
   });
 });
 
-/**
- * An answer the test gives at its end. Every request runs under the timeout of shared/api (a
- * timer); one that is never answered keeps that timer alive after the test and Jest cannot exit.
- */
-function answerLater() {
-  let answer!: (response: Response) => void;
-  const response = new Promise<Response>((resolve) => (answer = resolve));
-  return { response, answer };
-}
-
 afterEach(() => {
   client.clear();
   jest.restoreAllMocks();
@@ -179,7 +170,7 @@ describe('useRoomLive: joining the live room fails (TG-469, US TG-64 criteri 15)
 
 describe('useRoomLive: the history and its room (TG-469, US TG-64 criteri 14)', () => {
   it('does not ask for the history before the room is open', async () => {
-    const opening = answerLater();
+    const opening = deferredResponse();
     answers[`PUT ${ROOM_PATH}`] = () => opening.response;
 
     const { result, unmount } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
@@ -297,7 +288,7 @@ describe('useRoomLive: joining the live room again (TG-469, review of PR D)', ()
 describe('useRoomLive: who is signed in (TG-469, review of PR D)', () => {
   it('is loading, and sends nothing, until it knows who is signed in', async () => {
     client.removeQueries({ queryKey: currentUserKeys.me() });
-    const me = answerLater();
+    const me = deferredResponse();
     answers['GET /api/users/me'] = () => me.response;
     const { result, unmount } = await renderHook(() => useRoomLive(EVENT_ID), { wrapper });
     await settle();

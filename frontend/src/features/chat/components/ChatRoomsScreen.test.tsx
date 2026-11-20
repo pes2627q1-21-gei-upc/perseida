@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { makeMessage, makeRoom, makeSubscribedEvent } from '../../../../__mocks__/chat';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import { colors, spacing } from '../../../shared/theme';
 import { saveTokens } from '../../auth/tokenStorage';
 import { rowSurface } from '../rowSurface';
@@ -94,21 +95,11 @@ beforeEach(async () => {
   });
 });
 
-/**
- * Requests a test leaves unanswered (to see the screen while it loads). Every request runs under
- * the timeout of shared/api, a timer: one never answered would outlive the test and keep Jest
- * from exiting, so they are answered once the screen is gone.
- */
-let unanswered: ((response: Response) => void)[] = [];
-function neverAnswered() {
-  return new Promise<Response>((resolve) => unanswered.push(resolve));
-}
+// Requests a test leaves on their way (to see the screen while it loads), answered once it is gone.
+const pending = pendingResponses();
 
 afterEach(async () => {
-  await cleanup();
-  unanswered.forEach((answer) => answer(problemResponse(503, 'SERVICE_UNAVAILABLE')));
-  unanswered = [];
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -130,7 +121,7 @@ describe('ChatRoomsScreen (TG-469)', () => {
   });
 
   it('labels the spinner for screen readers while it is loading', async () => {
-    fetchSpy.mockImplementation(neverAnswered);
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen();
 
@@ -326,7 +317,7 @@ describe('ChatRoomsScreen above the floating tab bar', () => {
   });
 
   it('leaves the height of the bar free under the spinner', async () => {
-    fetchSpy.mockImplementation(neverAnswered);
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen({ tabBarHeight: TAB_BAR });
 
@@ -399,7 +390,7 @@ describe('ChatRoomsScreen reload without dragging (WCAG 2.5.1)', () => {
   });
 
   it('is not there while loading', async () => {
-    fetchSpy.mockImplementation(neverAnswered);
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen();
 
@@ -456,7 +447,7 @@ describe('ChatRoomsScreen when a reload fails with the list on screen', () => {
   it('takes the alert away while the person tries again', async () => {
     await reloadThatFails();
     await screen.findByRole('alert');
-    fetchSpy.mockImplementation(neverAnswered);
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
 

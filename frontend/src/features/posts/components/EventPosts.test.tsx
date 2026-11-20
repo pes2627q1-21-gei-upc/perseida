@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import { EVENT_ID, makePost } from '../../../../__mocks__/posts';
 import { saveTokens } from '../../auth/tokenStorage';
 import { EventPosts } from './EventPosts';
@@ -29,6 +30,7 @@ const OTHER = { id: '01a1bd9a-0000-7000-8000-0000000000bb', name: 'Bru' };
 const POSTS_PATH = `/api/events/${EVENT_ID}/posts`;
 
 let client: QueryClient;
+const pending = pendingResponses();
 
 interface Call {
   method: string;
@@ -67,7 +69,8 @@ beforeEach(async () => {
   await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.restoreAllMocks();
 });
@@ -83,7 +86,7 @@ describe('EventPosts', () => {
   });
 
   it('shows a loading state while the posts arrive', async () => {
-    mockApi(() => new Promise<Response>(() => undefined));
+    mockApi(() => pending.neverAnswered());
     await renderPosts();
 
     expect(screen.getByLabelText('Carregant les publicacions')).toBeTruthy();

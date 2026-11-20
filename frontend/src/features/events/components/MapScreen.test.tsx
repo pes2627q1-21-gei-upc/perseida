@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import MapScreen from '../../../app/(app)/map';
 
 const mockRouter = {
@@ -41,6 +42,7 @@ const SAFE_AREA = {
 const MAP_LABEL = 'Mapa dels esdeveniments amb ubicació';
 
 let client: QueryClient;
+const pending = pendingResponses();
 
 function urlOf(input: RequestInfo | URL): URL {
   if (typeof input === 'string') return new URL(input);
@@ -89,7 +91,8 @@ beforeEach(() => {
   mockEventsApi();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -258,7 +261,7 @@ describe('Events map screen', () => {
 
   it('shows that the events are loading (criterion 5)', async () => {
     jest.restoreAllMocks();
-    mockEventsApi({ active: () => new Promise<Response>(() => undefined) });
+    mockEventsApi({ active: () => pending.neverAnswered() });
 
     await renderScreen();
 
