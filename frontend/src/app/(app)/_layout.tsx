@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native';
@@ -38,6 +38,9 @@ export default function AppLayout() {
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
   const insets = useSafeAreaInsets();
+  // In the room of an event the composer takes the bottom of the screen: no tab bar there.
+  const segments: string[] = useSegments();
+  const inChatRoom = segments[1] === 'chat' && segments[2] === '[eventId]';
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -119,6 +122,7 @@ export default function AppLayout() {
             ? theme.colors.surface.glassSolid
             : theme.colors.surface.glass,
           borderTopColor: theme.colors.surface.glassBorder,
+          ...(inChatRoom && { display: 'none' }),
         },
         tabBarBackground: () =>
           !reduceTransparency ? (
