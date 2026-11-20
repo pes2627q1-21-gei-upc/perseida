@@ -10,6 +10,7 @@ import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useMySubscriptions, useRooms } from '../hooks/useChat';
 import { buildRoomList } from '../roomList';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { ActionSurface } from './ActionSurface';
 import { ReloadFailedAlert } from './ReloadFailedAlert';
 import { RoomListItem } from './RoomListItem';
 
@@ -158,11 +159,13 @@ export function ChatRoomsScreen() {
               {t('chat.title')}
             </Text>
             {entries && (
-              <QuietButton
-                label={t('chat.refresh')}
-                onPress={() => void reload()}
-                busy={fetching}
-              />
+              <ActionSurface>
+                <QuietButton
+                  label={t('chat.refresh')}
+                  onPress={() => void reload()}
+                  busy={fetching}
+                />
+              </ActionSurface>
             )}
           </View>
           {reloadError && (
