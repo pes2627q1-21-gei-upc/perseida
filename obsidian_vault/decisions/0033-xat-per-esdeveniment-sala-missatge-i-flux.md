@@ -40,7 +40,7 @@ La US #64 demana un xat per a cada esdeveniment astronòmic, en temps real, nom�
 
 **Moderador provisional.** Mentre #81 no existeix, el port `MessageModerator` té un únic adaptador, `ApproveAllModerator`, que aprova tot. #81 el substitueix per un adaptador de Kev-4B ([[moderation]]) sense tocar el servei ni els endpoints: només canvia el cablejat a `infrastructure/chat/dependencies.py`.
 
-**Autor als DTO (TG-469).** Cada missatge porta `author {id, name}`. `name` surt de `users.display_name` (el nom del perfil) i pot ser `null`; mai és el correu. El repositori l'obté amb un `JOIN` a `users` (una sola consulta per pàgina, mai una per missatge).
+**Autor als DTO (TG-469).** Cada missatge porta `author {id, name}`. `name` surt de `users.display_name` (el nom del perfil) i pot ser `null`; mai és el correu. El repositori l'obté amb un `JOIN` a `users` (una sola consulta addicional per pàgina, i cap si la pàgina és buida; mai una per missatge). `add_message` fa `INSERT … RETURNING` i només rellegeix amb el `JOIN` en cas de conflicte d'idempotència. Mutation, mesurat amb Docker (no amb l'script de CI, que només muta `app/domain`): domini del xat 100 % i `chat_service.py` 79,57 % (còpia amb la configuració de `mutmut` apuntant a `app/application/chat`).
 
 **Llista de sales.** `GET /api/chat/rooms` retorna les sales dels esdeveniments subscrits amb el darrer missatge. L'esdeveniment sense sala encara no hi surt: el client construeix la llista creuant les seves subscripcions (`GET /api/me/subscriptions`) amb aquestes sales, de manera que la subscripció decideix què es mostra i la sala es crea en obrir-la (`PUT /api/events/{id}/chat/room`, idempotent).
 
