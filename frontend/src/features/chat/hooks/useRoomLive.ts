@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { type AppError, NETWORK_ERROR_CODE } from '../../../shared/errors';
 import type { CurrentUser } from '../../auth/api/getCurrentUser';
@@ -73,28 +73,27 @@ export function useRoomLive(eventId: string) {
   // A NOT_SUBSCRIBED send joins again by itself once, until a message goes through.
   const rejoinedBySend = useRef(false);
 
-  // Whether this client was out of the live room (the connection dropped, or the room is joined
-  // again): what was said meanwhile never arrives by the socket.
-  const outOfRoom = useRef(false);
-  const rejoin = useCallback(() => {
-    outOfRoom.current = true;
-    setJoinAttempt((attempt) => attempt + 1);
-  }, []);
+  const rejoin = useCallback(() => setJoinAttempt((attempt) => attempt + 1), []);
 
-  // The gap is filled once the server acknowledges the join, when its subscription is active
-  // (ADR-0030): asked for any earlier, the history could miss a message published in between.
-  // A refetch keeps the loaded pages (TanStack asks for each one again from the newest, so the
-  // list does not jump). One on its way may have read the history before this join, so it is
-  // asked for again; there is one per join, so a connection that flaps makes no storm. What
-  // arrived live is in the history by id.
+  // The history is caught up on every time the server acknowledges the join, the first one too:
+  // that is when its subscription is active (ADR-0030), and what was published before it (while
+  // the history was on its way, or while this client was out of the room) never arrives by the
+  // socket. Asked for any earlier, the history could miss a message published in between. A
+  // request on its way may have read the history before this join, so it is cancelled and starts
+  // again (nothing is lost: it was not answered yet; a plain refetch would keep the first load
+  // that is still on its way); one already answered is asked for once more. There is one per
+  // join, so a connection that flaps makes no storm. A refetch keeps the loaded pages (TanStack
+  // asks for each one again from the newest, so the list does not jump). What arrived live is in
+  // the history by id.
   const { refetch: refetchHistory } = history;
   const roomOpen = room.isSuccess;
   const onJoined = useCallback(() => {
-    if (!outOfRoom.current) return;
-    outOfRoom.current = false;
     // Before the room is open there is no history yet: its first page comes after this join.
-    if (roomOpen) void refetchHistory();
-  }, [refetchHistory, roomOpen]);
+    if (!roomOpen) return;
+    void queryClient
+      .cancelQueries({ queryKey: chatKeys.messages(eventId) })
+      .then(() => refetchHistory());
+  }, [eventId, queryClient, refetchHistory, roomOpen]);
 
   const takeOut = useCallback(() => {
     setRevoked(true);
@@ -118,15 +117,6 @@ export function useRoomLive(eventId: string) {
     },
     joinAttempt,
   );
-
-  // A drop of the connection after it was open (not before its first opening) is a gap in the
-  // room; the socket joins the room again by itself when it comes back.
-  const { status } = socket;
-  const wasOpen = useRef(false);
-  useEffect(() => {
-    if (status === 'open') wasOpen.current = true;
-    else if (wasOpen.current) outOfRoom.current = true;
-  }, [status]);
 
   const roomId = room.data?.id;
   const { sendMessage } = socket;
