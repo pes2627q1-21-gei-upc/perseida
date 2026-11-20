@@ -93,6 +93,10 @@ export default function MapScreen() {
       ) : (
         <MapStatus state="loading" />
       );
+  } else if (withOutings && !onlyOutings && !outingsQuery.data && !outingsError) {
+    // With All, empty or "no location" only once the outings have answered too; a failure of
+    // the outings does not hold the events back (it only warns in the controls).
+    status = <MapStatus state="loading" />;
   } else if (shown === 0) {
     status = <MapStatus state="empty" message={t(`events.empty.${filter}`)} />;
   } else if (view === 'map' && markers.length === 0) {
