@@ -6,8 +6,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { makeMessage, makeRoom, makeSubscribedEvent } from '../../../../__mocks__/chat';
-import { spacing } from '../../../shared/theme';
+import { colors, spacing } from '../../../shared/theme';
 import { saveTokens } from '../../auth/tokenStorage';
+import { rowSurface } from '../rowSurface';
 import { ChatRoomsScreen } from './ChatRoomsScreen';
 
 const mockRouter = {
@@ -357,6 +358,22 @@ describe('ChatRoomsScreen reload without dragging (WCAG 2.5.1)', () => {
     expect(await screen.findByText('Geminids')).toBeOnTheScreen();
     expect(requestsTo(SUBSCRIPTIONS)).toHaveLength(2);
     expect(requestsTo(ROOMS)).toHaveLength(2);
+  });
+
+  // The title sits on the scene and so does the button: over the pale lake and the moon glow a
+  // quiet button with only a rim is not legible (WCAG 1.4.3). It sits on the glass of the rows,
+  // measured at 4.5:1 over the whole scene in rowSurface.test.
+  it('sits on the glass of the rows, never bare on the scene', async () => {
+    await renderScreen();
+
+    let node = (await screen.findByRole('button', { name: 'Actualitza' })).parent;
+    let surface: unknown;
+    while (node && surface === undefined) {
+      surface = StyleSheet.flatten(node.props.style)?.backgroundColor;
+      node = node.parent;
+    }
+
+    expect(surface).toBe(rowSurface(colors.dia.surface, false));
   });
 
   it('is also there when the list is empty, where there is nothing to drag', async () => {
