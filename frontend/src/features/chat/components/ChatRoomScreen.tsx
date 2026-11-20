@@ -253,11 +253,10 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
   const revoked = live.revoked || live.error?.code === FORBIDDEN;
   const error = revoked ? null : live.error;
   const canWrite = !revoked && !error;
-  // The notice floats under the bar: while it is there the list starts below it, not under it.
-  const listTop =
-    barBottom +
-    spacing.sm +
-    (canWrite && hasConnectionNotice(live.status) ? noticeHeight + spacing.sm : 0);
+  // The notice floats under the bar: while it is there the list and the states of the room
+  // (loading, empty) start below it, not under it.
+  const noticeShown = canWrite && hasConnectionNotice(live.status);
+  const listTop = barBottom + spacing.sm + (noticeShown ? noticeHeight + spacing.sm : 0);
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: open the list of rooms instead.
@@ -276,6 +275,7 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
     retryHint: t('chat.room.retryHint'),
   };
   const underBar = { paddingTop: barBottom };
+  const underNotice = noticeShown ? { paddingTop: listTop } : underBar;
 
   let body;
   if (revoked) {
@@ -304,13 +304,13 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
     );
   } else if (live.isLoading) {
     body = (
-      <View style={[styles.fill, underBar]}>
+      <View style={[styles.fill, underNotice]}>
         <StatusPanel state="loading" texts={statusTexts} />
       </View>
     );
   } else if (live.items.length === 0) {
     body = (
-      <View style={[styles.center, underBar]}>
+      <View style={[styles.center, underNotice]}>
         <RoomCard
           text={t('chat.room.empty')}
           icon={<ChatsCircle size={iconSizes.lg} color={colors.text.primary} weight="duotone" />}
