@@ -73,7 +73,7 @@ sequenceDiagram
     else nou
         S->>L: hit(user) ratelimit:chat:user
         S->>M: moderate(text)
-        S->>R: add_message (ON CONFLICT DO NOTHING)
+        S->>R: add_message (INSERT ... ON CONFLICT DO NOTHING RETURNING)
         S->>P: publish room:chat:event:id
         P-->>O: frame message (sense client_message_id)
         S-->>H: missatge desat
@@ -110,6 +110,12 @@ Claus i canals de Redis a [[redis]]; taules a [[postgres]] i [[model-de-domini#P
 - TG-654 (idempotència i reintents)
 - TG-469 (pantalles del xat i autor als missatges)
 - TG-470 (documentació)
+
+## Repositori i mutation testing (TG-469)
+
+- `page` no consulta els autors (`users`) si la pàgina és buida; si no, fa una sola consulta addicional pels autors distints.
+- `add_message` fa `INSERT … ON CONFLICT DO NOTHING RETURNING`: si l'`INSERT` guanya, retorna la fila amb el nom d'autor que ja té el missatge, sense rellegir-la; només en cas de conflicte (reenviament idempotent o reintent concurrent) rellegeix la fila desada amb el `JOIN` a `users`.
+- **Mutation (mesurat amb Docker, no amb l'script de CI):** domini del xat 100 % i `chat_service.py` 79,57 %. S'ha executat `mutmut` sobre una còpia amb la configuració apuntant a `app/application/chat`; l'script de CI (`scripts/run_mutmut_diff.py`) només muta `app/domain`, de manera que la capa d'aplicació no la cobreix la CI.
 
 ## Estat d'implementació
 
