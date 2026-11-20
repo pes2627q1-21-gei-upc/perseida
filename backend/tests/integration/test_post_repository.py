@@ -25,6 +25,15 @@ pytestmark = pytest.mark.skipif(
 )
 
 NOW = datetime(2026, 11, 17, 10, 0, 0, tzinfo=UTC)
+# The users and events of these tests; their posts go with them (ON DELETE CASCADE).
+DELETE_OWN_ROWS = (
+    text(
+        "DELETE FROM user_identities WHERE user_id IN"
+        " (SELECT id FROM users WHERE email LIKE 'post-%@test.cat')"
+    ),
+    text("DELETE FROM users WHERE email LIKE 'post-%@test.cat'"),
+    text("DELETE FROM astronomical_events WHERE external_id LIKE 'test-event-%'"),
+)
 
 
 @pytest.fixture(scope="module")
@@ -55,6 +64,11 @@ async def session_factory(
             await session.commit()
         yield factory
     finally:
+        # Leave no users behind: other modules count every row of ``users``.
+        async with factory() as session:
+            for statement in DELETE_OWN_ROWS:
+                await session.execute(statement)
+            await session.commit()
         await engine.dispose()
 
 
