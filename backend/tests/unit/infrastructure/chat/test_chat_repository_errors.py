@@ -131,7 +131,7 @@ async def test_tg448_get_or_create_room_of_an_event_deleted_meanwhile() -> None:
 
 
 @pytest.mark.parametrize("failure", DB_FAILURES)
-@pytest.mark.parametrize("method", ["execute", "commit"])
+@pytest.mark.parametrize("method", ["scalar", "commit"])
 async def test_tg448_add_message_maps_a_database_failure(
     failure: Exception, method: str
 ) -> None:
@@ -151,7 +151,7 @@ ROOM_FK = (
 
 async def test_tg448_add_message_with_a_missing_room_is_not_found() -> None:
     repository = _repository(
-        FakeSession({"execute": IntegrityError("INSERT", {}, Exception(ROOM_FK))})
+        FakeSession({"scalar": IntegrityError("INSERT", {}, Exception(ROOM_FK))})
     )
 
     with pytest.raises(NotFoundError) as error:
@@ -180,7 +180,7 @@ async def test_tg448_add_message_lets_other_integrity_errors_through(
     detail: str,
 ) -> None:
     failure = IntegrityError("INSERT", {}, Exception(detail))
-    repository = _repository(FakeSession({"execute": failure}))
+    repository = _repository(FakeSession({"scalar": failure}))
 
     with pytest.raises(IntegrityError):
         await repository.add_message(_message())
