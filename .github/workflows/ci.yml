@@ -129,8 +129,11 @@ jobs:
       - name: Arquitectura (import-linter)
         run: uv run --locked --no-build lint-imports
       # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
-      - name: Tests (pytest amb cobertura >= 80%)
-        run: uv run pytest --cov-report=xml:coverage.xml --cov-fail-under=80
+      # En paral·lel (pytest-xdist, -n auto) i en ordre aleatori (pytest-randomly; la llavor surt a la sortida) (TG-362).
+      # Cada worker té la seva BD (<POSTGRES_DB>_gwN, la crea tests/conftest.py) i el seu índex de Redis;
+      # pytest-cov combina la cobertura de tots els workers a coverage.xml.
+      - name: Tests (pytest en paral·lel i ordre aleatori, cobertura >= 80%)
+        run: uv run pytest -n auto --cov-report=xml:coverage.xml --cov-fail-under=80
       - name: Comprovar cobertura del codi nou a la PR (diff-cover >= 90%)
         if: github.event_name == 'pull_request'
         run: uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90
