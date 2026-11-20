@@ -255,8 +255,9 @@ describe('ChatRoomScreen: the loading and empty states start under the connectio
       });
     });
   }
+  type Element = ReturnType<typeof screen.getByTestId>;
   /** Where the state starts: the top padding of the nearest box around it that has one. */
-  function topOf(element: ReturnType<typeof screen.getByTestId>) {
+  function topOf(element: Element) {
     let node: typeof element | null = element;
     while (node) {
       const paddingTop = StyleSheet.flatten(node.props.style)?.paddingTop;
@@ -265,13 +266,13 @@ describe('ChatRoomScreen: the loading and empty states start under the connectio
     }
     return undefined;
   }
-  const states = {
+  const states: Record<'loading' | 'empty', { live: Partial<RoomLive>; find: () => Element }> = {
     loading: {
       live: { isLoading: true },
       find: () => screen.getByLabelText('Carregant missatges'),
     },
     empty: { live: { items: [] }, find: () => screen.getByText(EMPTY) },
-  } as const;
+  };
 
   it.each(['loading', 'empty'] as const)(
     'the %s state starts under the bar when there is no notice',
