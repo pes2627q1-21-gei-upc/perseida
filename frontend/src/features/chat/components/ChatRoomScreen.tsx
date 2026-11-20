@@ -374,7 +374,9 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
         )}
       </KeyboardAvoidingView>
       {arrival && Platform.OS !== 'ios' && (
-        <Text accessibilityLiveRegion="polite" style={styles.offscreen}>
+        // A live region only speaks when its text changes: each arrival gets a new one (its key),
+        // so a message with the same text as the one before is read too.
+        <Text key={arrival.key} accessibilityLiveRegion="polite" style={styles.offscreen}>
           {arrival.text}
         </Text>
       )}
