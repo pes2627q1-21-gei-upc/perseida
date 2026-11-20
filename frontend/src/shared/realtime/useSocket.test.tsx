@@ -2027,3 +2027,59 @@ describe('useSocket: late answers of a send that is already settled (TG-469)', (
     expect(onFrame).not.toHaveBeenCalled();
   });
 });
+
+describe('useSocket: a join that is left before its answer (TG-469)', () => {
+  it('its late answer does not reach the handlers of a later join of the same room', async () => {
+    const { result } = await mountConnected();
+    const first = jest.fn();
+    let leave = () => {};
+    await act(async () => {
+      leave = result.current.subscribe(ROOM, first);
+    });
+    const staleId = lastSent()?.id;
+    await act(async () => leave());
+
+    const second = jest.fn();
+    await act(async () => {
+      result.current.subscribe(ROOM, second);
+    });
+    const freshId = lastSent()?.id;
+    expect(freshId).not.toBe(staleId);
+
+    // The server answers the first subscribe only now: it was refused.
+    await serverSends({
+      type: 'error',
+      id: staleId,
+      room: ROOM,
+      payload: wsProblem(403, 'FORBIDDEN'),
+    });
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).not.toHaveBeenCalled();
+
+    // The answer to the join that is still wanted does arrive.
+    const ack: Frame = { type: 'subscribe', id: freshId, room: ROOM };
+    await serverSends(ack);
+
+    expect(second).toHaveBeenCalledWith(ack);
+  });
+
+  it('leaving one room keeps the pending join of another room', async () => {
+    const { result } = await mountConnected();
+    const onOther = jest.fn();
+    let leave = () => {};
+    await act(async () => {
+      result.current.subscribe(OTHER_ROOM, onOther);
+    });
+    const otherId = lastSent()?.id;
+    await act(async () => {
+      leave = result.current.subscribe(ROOM, jest.fn());
+    });
+    await act(async () => leave());
+
+    const ack: Frame = { type: 'subscribe', id: otherId, room: OTHER_ROOM };
+    await serverSends(ack);
+
+    expect(onOther).toHaveBeenCalledWith(ack);
+  });
+});
