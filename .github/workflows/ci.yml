@@ -132,8 +132,14 @@ jobs:
       # En paral·lel (pytest-xdist, -n auto) i en ordre aleatori (pytest-randomly; la llavor surt a la sortida) (TG-362).
       # Cada worker té la seva BD (<POSTGRES_DB>_gwN, la crea tests/conftest.py) i el seu índex de Redis;
       # pytest-cov combina la cobertura de tots els workers a coverage.xml.
-      - name: Tests (pytest en paral·lel i ordre aleatori, cobertura >= 80%)
-        run: uv run pytest -n auto --cov-report=xml:coverage.xml --cov-fail-under=80
+      # Exclou els tests en quarantena (-m "not quarantine"); van al pas següent (TG-362).
+      - name: Tests (pytest en paral·lel i ordre aleatori, sense quarantena, cobertura >= 80%)
+        run: uv run pytest -n auto -m "not quarantine" --cov-report=xml:coverage.xml --cov-fail-under=80
+      # Política TG-362: sense reintents; cada test en quarantena té la seva tasca TG-NNN (reason).
+      # Exit 5 = cap test en quarantena (cas normal), no compta com a fallada.
+      - name: Tests en quarantena (no bloquejant)
+        continue-on-error: true
+        run: uv run pytest -n auto -m quarantine --no-cov || [ $? -eq 5 ]
       - name: Comprovar cobertura del codi nou a la PR (diff-cover >= 90%)
         if: github.event_name == 'pull_request'
         run: uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90
