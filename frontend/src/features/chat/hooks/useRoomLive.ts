@@ -37,11 +37,11 @@ function retryOnceIfTransient(failureCount: number, error: AppError): boolean {
  * Haptics are a bonus: missing on the web and on some devices, where they reject or throw. They
  * never get in the way of the message.
  */
-function haptic(play: () => Promise<void>) {
+async function haptic(play: () => Promise<void>) {
   try {
-    void play().catch(() => undefined);
+    await play();
   } catch {
-    // No haptics on this platform.
+    // No haptics on this platform (sync throw or rejection): never break a send.
   }
 }
 
@@ -142,7 +142,7 @@ export function useRoomLive(eventId: string) {
         mark(clientMessageId, 'uncertain');
         return;
       }
-      haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));
+      void haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));
       if (error.code === NOT_SUBSCRIBED) {
         // Retrying works once the room is joined again: join it now, once.
         mark(clientMessageId, 'failed', { code: error.code, retryable: true });
@@ -182,7 +182,7 @@ export function useRoomLive(eventId: string) {
       setPending((current) =>
         current.filter((outgoing) => outgoing.clientMessageId !== clientMessageId),
       );
-      haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+      void haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     },
     [eventId, queryClient, refused, roomId, sendMessage],
   );
