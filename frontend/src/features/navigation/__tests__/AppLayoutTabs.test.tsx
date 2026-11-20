@@ -35,6 +35,9 @@ jest.mock('expo-router', () => {
 
   return {
     useRouter: () => ({ replace: jest.fn() }),
+    // The layout may read where the person is (e.g. to hide the bar in a chat room, TG-469):
+    // here, the home tab.
+    useSegments: () => ['(app)'],
     Tabs: MockTabs,
     Stack: () => null,
   };
