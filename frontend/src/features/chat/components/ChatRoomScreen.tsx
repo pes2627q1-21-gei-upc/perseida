@@ -138,16 +138,26 @@ function ReconnectingPill({ styles }: { styles: Styles }) {
   );
 }
 
-/** The state of the live connection, floating under the bar: never moves the messages. */
+/** The connection states that show a notice (a pill, or the button to reconnect). */
+function hasConnectionNotice(status: SocketStatus) {
+  return status === 'reconnecting' || status === 'closed';
+}
+
+/**
+ * The state of the live connection, floating under the bar. It does not move the messages, but
+ * it reports its height so the list can start below it while it is there.
+ */
 function ConnectionNotice({
   status,
   onReconnect,
   top,
+  onHeight,
   styles,
 }: {
   status: SocketStatus;
   onReconnect: () => void;
   top: number;
+  onHeight: (height: number) => void;
   styles: Styles;
 }) {
   const { t } = useTranslation();
@@ -172,7 +182,11 @@ function ConnectionNotice({
   else return null;
 
   return (
-    <View pointerEvents="box-none" style={[styles.notice, { top }]}>
+    <View
+      pointerEvents="box-none"
+      onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
+      style={[styles.notice, { top }]}
+    >
       {notice}
     </View>
   );
@@ -230,12 +244,18 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
   const keyboardShown = useKeyboardShown();
   const arrival = useArrivalNotice(live.items);
   const [barBottom, setBarBottom] = useState(0);
+  const [noticeHeight, setNoticeHeight] = useState(0);
 
   const title =
     subscriptions.data?.find((event) => event.id === eventId)?.title ?? t('chat.room.title');
   const revoked = live.revoked || live.error?.code === FORBIDDEN;
   const error = revoked ? null : live.error;
   const canWrite = !revoked && !error;
+  // The notice floats under the bar: while it is there the list starts below it, not under it.
+  const listTop =
+    barBottom +
+    spacing.sm +
+    (canWrite && hasConnectionNotice(live.status) ? noticeHeight + spacing.sm : 0);
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: open the list of rooms instead.
@@ -310,7 +330,7 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
           keyboardDismissMode: 'interactive',
           // The list is inverted: its bottom padding is drawn at the top, under the bar.
           contentContainerStyle: {
-            paddingBottom: barBottom + spacing.sm,
+            paddingBottom: listTop,
             paddingLeft: insets.left + spacing.md,
             paddingRight: insets.right + spacing.md,
           },
@@ -327,6 +347,7 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
           status={live.status}
           onReconnect={live.reconnect}
           top={barBottom + spacing.sm}
+          onHeight={setNoticeHeight}
           styles={styles}
         />
       )}
