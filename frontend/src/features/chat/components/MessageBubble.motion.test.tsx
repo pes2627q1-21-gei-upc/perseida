@@ -53,6 +53,12 @@ describe('MessageBubble, motion (TG-469)', () => {
     expect(withTiming).toHaveBeenCalledTimes(1);
   });
 
+  it('the entrance lasts the fast duration of the theme, a reply that must not make anyone wait', async () => {
+    await render(<MessageBubble item={item} entering />);
+
+    expect(withTiming).toHaveBeenCalledWith(1, expect.objectContaining({ duration: 120 }));
+  });
+
   it('a message of the history is there at once, with no animation', async () => {
     await render(<MessageBubble item={item} />);
 
