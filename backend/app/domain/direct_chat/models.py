@@ -12,11 +12,15 @@ from pydantic import (
 
 from app.domain.direct_chat.errors import (
     CANNOT_MESSAGE_SELF,
+    CONVERSATION_NOT_FOUND,
     MESSAGE_MAX_LENGTH,
-    NOT_A_PARTICIPANT,
     VALIDATION_ERROR,
 )
-from app.domain.shared.errors import BusinessRuleViolation, ValidationError
+from app.domain.shared.errors import (
+    BusinessRuleViolation,
+    NotFoundError,
+    ValidationError,
+)
 from app.domain.shared.text import clean_user_text, has_visible_text
 
 
@@ -71,7 +75,7 @@ class DirectConversation(BaseModel):
         """Return the participant that is not ``user_id``.
 
         Raises:
-            BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger.
+            NotFoundError: CONVERSATION_NOT_FOUND if ``user_id`` is a stranger.
         """
         self._require_participant(user_id)
         return self.user_b_id if user_id == self.user_a_id else self.user_a_id
@@ -82,7 +86,7 @@ class DirectConversation(BaseModel):
         The mark never goes backwards: an earlier ``at`` keeps the current one.
 
         Raises:
-            BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger.
+            NotFoundError: CONVERSATION_NOT_FOUND if ``user_id`` is a stranger.
             ValidationError: VALIDATION_ERROR if ``at`` has no time zone.
         """
         self._require_participant(user_id)
@@ -101,8 +105,9 @@ class DirectConversation(BaseModel):
         """Whether ``message`` is unread for ``user_id``.
 
         Raises:
-            BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger;
-                VALIDATION_ERROR if ``message`` belongs to another conversation.
+            NotFoundError: CONVERSATION_NOT_FOUND if ``user_id`` is a stranger.
+            BusinessRuleViolation: VALIDATION_ERROR if ``message`` belongs to
+                another conversation.
         """
         self._require_participant(user_id)
         if message.conversation_id != self.id:
@@ -116,8 +121,8 @@ class DirectConversation(BaseModel):
 
     def _require_participant(self, user_id: uuid.UUID) -> None:
         if not self.has_participant(user_id):
-            raise BusinessRuleViolation(
-                NOT_A_PARTICIPANT, "The user is not in the conversation"
+            raise NotFoundError(
+                CONVERSATION_NOT_FOUND, "The conversation does not exist"
             )
 
 

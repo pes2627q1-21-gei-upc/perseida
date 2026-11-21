@@ -7,5 +7,6 @@ MESSAGE_MAX_LENGTH = 1000
 CANNOT_MESSAGE_SELF = "CANNOT_MESSAGE_SELF"
 # An empty or too long message text.
 VALIDATION_ERROR = "VALIDATION_ERROR"
-# A user who is not one of the two participants tried to act on a conversation.
-NOT_A_PARTICIPANT = "NOT_A_PARTICIPANT"
+# The conversation does not exist, or the user is not one of its participants:
+# both look the same (404) so a stranger cannot learn that it exists.
+CONVERSATION_NOT_FOUND = "CONVERSATION_NOT_FOUND"

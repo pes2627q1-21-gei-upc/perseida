@@ -42,8 +42,8 @@ class DirectConversationRepository(Protocol):
         ``at`` must be timezone-aware.
 
         Raises:
-            NotFoundError: if the conversation does not exist.
-            BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger.
+            NotFoundError: CONVERSATION_NOT_FOUND if the conversation does not
+                exist or ``user_id`` is a stranger.
             ExternalServiceError: if the database is unavailable.
         """
         ...
