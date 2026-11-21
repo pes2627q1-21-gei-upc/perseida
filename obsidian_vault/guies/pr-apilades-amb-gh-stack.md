@@ -58,11 +58,14 @@ Quan una US es divideix en diverses PR que depenen les unes de les altres (per l
 > [!warning] Els agents no pugen ni fusionen per iniciativa pròpia
 > Segons `AGENTS.md`, un agent no fa `push`, `gh stack submit` ni `gh stack merge` si la persona no ho demana explícitament. Tampoc no pot saltar-se les proteccions de les branques.
 
+## Stryker i les PR apilades
+
+El job de mutation testing del frontend de la CI (`.github/workflows/ci.yml`) corre amb `--base-branch origin/${{ github.base_ref }}`: la base és la de la PR, és a dir, la branca de la PR de sota de la pila (o `develop` per a la primera). Per tant, a cada capa només es muten les línies que aquella PR afegeix, i el límit orientatiu de uns 400 mutants es compta per capa (TG-652). Si algú executa Stryker en local amb `--base-branch origin/develop`, es mutaran també les línies de les capes de sota.
+
 ## Per verificar al primer ús
 
 - Si `gh stack submit` fa servir la plantilla `.github/pull_request_template.md` o si el cos de la PR s'ha d'escriure amb `gh pr edit` després; la documentació no ho diu.
 - Si l'assignació i els revisors s'han de posar a part (`gh pr edit --add-assignee --add-reviewer`); la documentació tampoc no ho diu.
-- Quina base fa servir el job de Stryker de la CI per a cada PR de l'stack (la branca de la PR de sota o `develop`) i, per tant, si el límit orientatiu de uns 400 mutants es compta per capa (TG-652).
 - Com queda l'historial de commits `test:` abans de `feat:` en fusionar amb squash (vegeu [[gitflow]], «Ordre dels commits»).
 - La regla de «branca al dia amb la de destinació» de [[gitflow]] respecte del rebase automàtic de l'stack.
 

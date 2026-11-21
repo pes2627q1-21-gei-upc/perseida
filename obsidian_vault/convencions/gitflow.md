@@ -20,7 +20,7 @@ Tot el projecte viu en un únic monorepo a GitHub i segueix GitFlow. Cap canvi a
 |---|---|---|---|
 | `main` | permanent | | Codi en producció; cada canvi que hi arriba dispara el desplegament continu (CD). |
 | `develop` | permanent | | Integració; les PR cap aquí disparen la CI i no es completen fins que és verda. |
-| `feature/*` | `develop` | `develop` | Com a màxim una US completa. |
+| `feature/*` | `develop`; en una pila de PR apilades ([[pr-apilades-amb-gh-stack]]), la `feature/*` anterior de la pila | `develop`, o la branca anterior de la pila (la primera PR apunta a `develop`) | Com a màxim una US completa. |
 | `release/*` | `develop` | `main` i després `develop` | Una per sprint, abans de la sprint review; només bugfixes, documentació i canvis de versió. La talla el Scrum Master de l'sprint. |
 | `hotfix/*` | `main` | `main`, `develop` i la `release/*` oberta (si n'hi ha) | Errors urgents en producció. |
 
