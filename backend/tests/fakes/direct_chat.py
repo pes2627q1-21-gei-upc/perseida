@@ -8,6 +8,7 @@ from app.domain.direct_chat.models import (
     DirectCursor,
     DirectMessage,
     DirectMessagePage,
+    UserBlock,
 )
 
 
@@ -106,8 +107,8 @@ class InMemoryUserBlockRepository:
     def __init__(self) -> None:
         self.blocks: set[tuple[uuid.UUID, uuid.UUID]] = set()
 
-    async def block(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> None:
-        self.blocks.add((blocker_id, blocked_id))
+    async def block(self, user_block: UserBlock) -> None:
+        self.blocks.add((user_block.blocker_id, user_block.blocked_id))
 
     async def unblock(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> None:
         self.blocks.discard((blocker_id, blocked_id))

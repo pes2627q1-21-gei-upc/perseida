@@ -7,6 +7,7 @@ from app.domain.direct_chat.models import (
     DirectCursor,
     DirectMessage,
     DirectMessagePage,
+    UserBlock,
 )
 
 
@@ -108,8 +109,10 @@ class DirectMessageRepository(Protocol):
 class UserBlockRepository(Protocol):
     """Durable storage of the blocks between users (PostgreSQL)."""
 
-    async def block(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> None:
-        """Record that ``blocker_id`` blocks ``blocked_id``. Idempotent.
+    async def block(self, user_block: UserBlock) -> None:
+        """Record that ``user_block.blocker_id`` blocks ``user_block.blocked_id``.
+
+        Idempotent: a second block of the same pair changes nothing.
 
         Raises:
             ExternalServiceError: if the database is unavailable.
