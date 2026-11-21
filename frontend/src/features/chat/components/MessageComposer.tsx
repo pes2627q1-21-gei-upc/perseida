@@ -80,9 +80,12 @@ export function MessageComposer({
     if (!canSend || inFlight.current) return;
     inFlight.current = true;
     setSending(true);
+    const sent = text;
     try {
-      await onSend(text.trim());
-      setText('');
+      await onSend(sent.trim());
+      // Empties the field only if it still holds what was sent; the field stays editable while
+      // the send is on its way, and what was typed meanwhile must not be thrown away.
+      setText((current) => (current === sent ? '' : current));
       // Keeps the keyboard up for the next message (checked on a device, not in a unit test).
       field.current?.focus();
     } catch {
