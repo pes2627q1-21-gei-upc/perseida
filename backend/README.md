@@ -207,6 +207,8 @@ uv run mypy .                 # strict type checking
 uv run lint-imports           # architecture contracts (import-linter)
 uv run pytest                 # tests (with coverage)
 uv run pytest -n auto         # same, in parallel (one database and Redis index per worker)
+uv run pytest -p randomly --randomly-seed=<seed>  # reproduce an order-dependent failure (seed on the first output line)
+uv run pytest -m quarantine   # only the quarantined tests (@pytest.mark.quarantine(reason="TG-NNN ..."))
 uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api/docs)
 ```
 

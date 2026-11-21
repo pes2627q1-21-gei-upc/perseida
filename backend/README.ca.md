@@ -186,6 +186,8 @@ uv run mypy .                 # tipatge estricte
 uv run lint-imports           # contractes d'arquitectura (import-linter)
 uv run pytest                 # tests (amb cobertura)
 uv run pytest -n auto         # igual, en paral·lel (una base de dades i un índex de Redis per worker)
+uv run pytest -p randomly --randomly-seed=<llavor>  # reprodueix una fallada d'ordre (llavor a la primera línia de la sortida)
+uv run pytest -m quarantine   # només els tests en quarantena (@pytest.mark.quarantine(reason="TG-NNN ..."))
 uv run uvicorn app.main:app --reload  # arrenca l'API (http://127.0.0.1:8000/api/docs)
 ```
 

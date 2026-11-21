@@ -186,6 +186,8 @@ uv run mypy .                 # tipado estricto
 uv run lint-imports           # contratos de arquitectura (import-linter)
 uv run pytest                 # tests (con cobertura)
 uv run pytest -n auto         # igual, en paralelo (una base de datos e índice de Redis por worker)
+uv run pytest -p randomly --randomly-seed=<semilla>  # reproduce un fallo de orden (semilla en la primera línea de la salida)
+uv run pytest -m quarantine   # solo los tests en cuarentena (@pytest.mark.quarantine(reason="TG-NNN ..."))
 uv run uvicorn app.main:app --reload  # arranca la API (http://127.0.0.1:8000/api/docs)
 ```
 
