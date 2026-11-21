@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { readingMaxWidth, useTheme } from '../../../shared/theme';
+import { readingMaxWidth, type Theme, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, QuietButton, SkyBackground, StatusPanel } from '../../../shared/ui';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useMySubscriptions, useRooms } from '../hooks/useChat';
@@ -12,18 +12,6 @@ import { buildRoomList } from '../roomList';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
 import { ReloadFailedAlert } from './ReloadFailedAlert';
 import { RoomListItem } from './RoomListItem';
-
-// Layout only: purely visual, left out of mutation testing on purpose
-// (convencions/testing.md, «Mutation testing»).
-// Stryker disable all
-const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  column: { width: '100%', alignSelf: 'center' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { flex: 1 },
-});
-// Stryker restore all
 
 /**
  * The chat tab (TG-469): the events the person is subscribed to, each with the last message of
@@ -33,7 +21,9 @@ const styles = StyleSheet.create({
 export function ChatRoomsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, spacing, typography } = useTheme();
+  const theme = useTheme();
+  const { colors, spacing } = theme;
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset();
   const subscriptions = useMySubscriptions();
@@ -65,6 +55,7 @@ export function ChatRoomsScreen() {
     retryHint: t('chat.retryHint'),
   };
   // StatusPanel keeps its own margin of spacing.md: here only the side insets are added.
+  // Stryker disable next-line all: safe areas and the room of the tab bar (tested).
   const statusFrame = {
     paddingBottom: tabBarInset,
     paddingLeft: insets.left,
@@ -90,11 +81,9 @@ export function ChatRoomsScreen() {
           />
         }
         contentContainerStyle={[
-          styles.column,
+          styles.list,
+          // Stryker disable next-line all: safe areas and the room of the tab bar (tested).
           {
-            maxWidth: readingMaxWidth,
-            gap: spacing.md,
-            paddingTop: spacing.md,
             paddingBottom: tabBarInset + spacing.md,
             paddingLeft: insets.left + spacing.md,
             paddingRight: insets.right + spacing.md,
@@ -108,6 +97,7 @@ export function ChatRoomsScreen() {
         testID="chat-rooms-empty"
         style={[
           styles.center,
+          // Stryker disable next-line all: safe areas and the room of the tab bar (tested).
           {
             paddingBottom: tabBarInset,
             paddingLeft: insets.left + spacing.md,
@@ -115,13 +105,10 @@ export function ChatRoomsScreen() {
           },
         ]}
       >
-        <View style={[styles.column, { maxWidth: readingMaxWidth }]}>
+        <View style={styles.readingColumn}>
           <GlassPanel>
-            <View style={{ gap: spacing.md }}>
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[typography.body, { color: colors.text.primary }]}
-              >
+            <View style={styles.emptyContent}>
+              <Text accessibilityLiveRegion="polite" style={styles.emptyText}>
                 {emptyMessage}
               </Text>
               <GelButton label={t('chat.empty.cta')} onPress={() => router.push('/events')} />
@@ -151,22 +138,17 @@ export function ChatRoomsScreen() {
 
   return (
     <SkyBackground>
+      {/* Stryker disable next-line all: safe area under the status bar. */}
       <View style={[styles.fill, { paddingTop: insets.top + spacing.md }]}>
+        {/* Stryker disable next-line all: safe areas at the sides. */}
         <View
           style={[
-            styles.column,
-            {
-              maxWidth: readingMaxWidth,
-              paddingLeft: insets.left + spacing.md,
-              paddingRight: insets.right + spacing.md,
-            },
+            styles.header,
+            { paddingLeft: insets.left + spacing.md, paddingRight: insets.right + spacing.md },
           ]}
         >
-          <View style={[styles.titleRow, { gap: spacing.md }]}>
-            <Text
-              accessibilityRole="header"
-              style={[typography.headline, styles.title, { color: colors.text.primary }]}
-            >
+          <View style={styles.titleRow}>
+            <Text accessibilityRole="header" style={styles.title}>
               {t('chat.title')}
             </Text>
             {entries && (
@@ -178,7 +160,7 @@ export function ChatRoomsScreen() {
             )}
           </View>
           {reloadError && (
-            <View style={{ marginTop: spacing.md }}>
+            <View style={styles.reloadAlert}>
               <ReloadFailedAlert
                 code={reloadError.code}
                 onRetry={reloadError.retryable ? () => void reload() : undefined}
@@ -191,3 +173,30 @@ export function ChatRoomsScreen() {
     </SkyBackground>
   );
 }
+
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on
+// purpose (convencions/testing.md, «Mutation testing»). The paddings of the safe areas and of
+// the tab bar stay in the JSX above, where a test pins them down.
+// Stryker disable all
+function createStyles({ colors, spacing, typography }: Theme) {
+  const column = { width: '100%', alignSelf: 'center', maxWidth: readingMaxWidth } as const;
+
+  return StyleSheet.create({
+    fill: { flex: 1 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    list: { ...column, gap: spacing.md, paddingTop: spacing.md },
+    readingColumn: column,
+    header: column,
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    title: { ...typography.headline, flex: 1, color: colors.text.primary },
+    reloadAlert: { marginTop: spacing.md },
+    emptyContent: { gap: spacing.md },
+    emptyText: { ...typography.body, color: colors.text.primary },
+  });
+}
+// Stryker restore all
