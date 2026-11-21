@@ -8,6 +8,8 @@ import { EventOrb } from './EventOrb';
 
 interface Props {
   event: ClassifiedEvent;
+  /** Distance from the device, when «Near me» is on (TG-51). */
+  distanceKm?: number;
   /** Makes the row a button that opens the summary of the event. */
   onPress?: () => void;
 }
@@ -16,14 +18,22 @@ interface Props {
  * One event: its orb, title, dates, where it can be seen and whether it is happening now.
  * Read as a single item that says all of it. It has no material of its own: it goes on glass.
  */
-export function EventRow({ event, onPress }: Props) {
+export function EventRow({ event, distanceKm, onPress }: Props) {
   const { t, i18n } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const when = formatEventWhen(event, i18n.language);
   const where = formatEventWhere(event.location, t, i18n.language);
   const active = event.status === 'active';
+  const distance =
+    distanceKm === undefined
+      ? undefined
+      : t('events.search.distance', {
+          distance: new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 }).format(
+            distanceKm,
+          ),
+        });
 
-  const label = `${describeEvent(event, t)}, ${when}, ${where}`;
+  const label = [describeEvent(event, t), when, where, distance].filter(Boolean).join(', ');
   const content = (
     <>
       <EventOrb category={event.category} active={active} />
@@ -31,6 +41,9 @@ export function EventRow({ event, onPress }: Props) {
         <Text style={[typography.bodyStrong, { color: colors.text.primary }]}>{event.title}</Text>
         <Text style={[typography.caption, { color: colors.text.secondary }]}>{when}</Text>
         <Text style={[typography.caption, { color: colors.text.secondary }]}>{where}</Text>
+        {distance && (
+          <Text style={[typography.caption, { color: colors.text.secondary }]}>{distance}</Text>
+        )}
         {active && (
           <Text style={[typography.caption, { color: colors.text.primary }]}>
             {t('events.status.active')}
