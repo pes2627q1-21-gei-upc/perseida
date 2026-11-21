@@ -33,7 +33,7 @@ Deixar a punt la PR 1 de 2 de TG-51: `GET /api/events` filtrable per categoria, 
 
 - [[contracte-esdeveniments]]: `GET /api/events`, filtres, valors per defecte i 422.
 - [[model-de-domini]]: `search`, `EventQuery` i `Proximity`; el pendent de proximitat queda resolt.
-- [[api]] i [[nginx-proxy-manager]]: el llistat i la `location` sense barra.
+- [[api]] i [[nginx-proxy-manager]]: el llistat i la `location` sense barra. Després de la review de la PR #129 (Alex, 20/11/2026), [[nginx-proxy-manager]] també diu que el límit cobreix `/api/events` sense barra i quins endpoints documenten el 429.
 
 ## Pendent / següents passos
 
