@@ -25,35 +25,11 @@ interface Props {
   onPress?: () => void;
 }
 
-// Entrance and glass details: purely visual, left out of mutation testing on purpose
+// Entrance details: purely visual, left out of mutation testing on purpose
 // (convencions/testing.md, «Mutation testing»).
 // Stryker disable all
 const ENTER_OFFSET = 12;
 const HIGHLIGHT_INSET = 18;
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', overflow: 'hidden', borderWidth: 1 },
-  text: { flex: 1 },
-  head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  title: { flex: 1 },
-  highlight: { position: 'absolute', top: 0, height: 1 },
-});
-
-/** The card of the row: glass without blur, with a soft glow; a pressed row gets the glow rim. */
-function rowStyle(
-  { colors, spacing, radii, touch }: Theme,
-  reduceTransparency: boolean,
-  pressed: boolean,
-) {
-  return {
-    minHeight: touch.min,
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radii.lg,
-    borderColor: pressed ? colors.accentGlow : colors.surface.glassBorder,
-    backgroundColor: rowSurface(colors.surface, reduceTransparency),
-    boxShadow: `0 8px 24px ${colors.accentGlow}33`,
-  };
-}
 // Stryker restore all
 
 /**
@@ -65,8 +41,9 @@ function rowStyle(
 export function RoomListItem({ entry, now, onPress }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const { colors, spacing, typography } = theme;
+  const { colors } = theme;
   const reduceTransparency = useReduceTransparency();
+  const styles = createStyles(theme, reduceTransparency);
   const reduceMotion = useReducedMotion();
 
   const shown = useSharedValue(reduceMotion ? 1 : 0);
@@ -97,19 +74,15 @@ export function RoomListItem({ entry, now, onPress }: Props) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         pointerEvents="none"
-        style={[styles.highlight, { left: HIGHLIGHT_INSET, right: HIGHLIGHT_INSET }]}
+        style={styles.highlight}
       />
       <EventOrb category={entry.category} active={false} />
-      <View style={[styles.text, { gap: spacing.xs }]}>
-        <View style={[styles.head, { gap: spacing.sm }]}>
-          <Text style={[typography.bodyStrong, styles.title, { color: colors.text.primary }]}>
-            {entry.title}
-          </Text>
-          {time !== undefined && (
-            <Text style={[typography.caption, { color: colors.text.secondary }]}>{time}</Text>
-          )}
+      <View style={styles.text}>
+        <View style={styles.head}>
+          <Text style={styles.title}>{entry.title}</Text>
+          {time !== undefined && <Text style={styles.time}>{time}</Text>}
         </View>
-        <Text numberOfLines={2} style={[typography.body, { color: colors.text.secondary }]}>
+        <Text numberOfLines={2} style={styles.preview}>
           {preview}
         </Text>
       </View>
@@ -124,7 +97,7 @@ export function RoomListItem({ entry, now, onPress }: Props) {
           accessibilityRole="button"
           accessibilityLabel={label}
           onPress={onPress}
-          style={({ pressed }) => [styles.row, rowStyle(theme, reduceTransparency, pressed)]}
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         >
           {content}
         </Pressable>
@@ -133,7 +106,7 @@ export function RoomListItem({ entry, now, onPress }: Props) {
           testID={`chat-room-${entry.eventId}`}
           accessible
           accessibilityLabel={label}
-          style={[styles.row, rowStyle(theme, reduceTransparency, false)]}
+          style={styles.row}
         >
           {content}
         </View>
@@ -141,3 +114,47 @@ export function RoomListItem({ entry, now, onPress }: Props) {
     </Animated.View>
   );
 }
+
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on
+// purpose (convencions/testing.md, «Mutation testing»).
+// Stryker disable all
+/** The card of the row: glass without blur, with a soft glow; a pressed row gets the glow rim. */
+function createStyles(
+  { colors, spacing, radii, touch, typography }: Theme,
+  reduceTransparency: boolean,
+) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      overflow: 'hidden',
+      borderWidth: 1,
+      minHeight: touch.min,
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: radii.lg,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: rowSurface(colors.surface, reduceTransparency),
+      boxShadow: `0 8px 24px ${colors.accentGlow}33`,
+    },
+    rowPressed: { borderColor: colors.accentGlow },
+    text: { flex: 1, gap: spacing.xs },
+    head: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    title: { ...typography.bodyStrong, flex: 1, color: colors.text.primary },
+    time: { ...typography.caption, color: colors.text.secondary },
+    preview: { ...typography.body, color: colors.text.secondary },
+    highlight: {
+      position: 'absolute',
+      top: 0,
+      height: 1,
+      left: HIGHLIGHT_INSET,
+      right: HIGHLIGHT_INSET,
+    },
+  });
+}
+// Stryker restore all
