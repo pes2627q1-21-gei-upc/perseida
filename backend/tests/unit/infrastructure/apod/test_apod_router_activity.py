@@ -4,6 +4,7 @@ Router only, with fakes. The session is optional: the endpoint stays public, and
 a missing or invalid token behaves as no session (never 401).
 """
 
+import logging
 import uuid
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
@@ -15,11 +16,13 @@ from httpx import ASGITransport, AsyncClient
 
 from app.application.apod.apod_service import ApodService
 from app.application.auth.auth_service import AuthService, SessionDurations
+from app.application.auth.errors import SESSION_UNAVAILABLE
+from app.application.shared.errors import ExternalServiceError
 from app.application.streaks.streak_service import StreakService
 from app.application.users.user_service import UserService
-from app.domain.auth.models import GoogleIdentity
+from app.domain.auth.models import GoogleIdentity, SessionClaims
 from app.domain.streaks.models import DailyStreak
-from app.domain.users.models import User
+from app.domain.users.models import AccountStatus, User
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.apod.dependencies import get_apod_service
 from app.infrastructure.apod.router import router
@@ -70,6 +73,17 @@ class SpyStreakRepository(FakeStreakRepository):
         return await super().register_activity(user_id, today)
 
 
+class UnavailableStoreAuth(AuthService):
+    """Authenticates like AuthService until ``down`` is set, then the store is gone."""
+
+    down = False
+
+    async def authenticate(self, token: str) -> SessionClaims:
+        if self.down:
+            raise ExternalServiceError(SESSION_UNAVAILABLE)
+        return await super().authenticate(token)
+
+
 @dataclass
 class Env:
     client: AsyncClient
@@ -79,14 +93,17 @@ class Env:
     clock: Clock
     auth_headers: dict[str, str]
     codec: FakeTokenCodec
+    auth: UnavailableStoreAuth
 
 
-async def _build(failure: Exception | None = None) -> AsyncIterator[Env]:
+async def _build(
+    failure: Exception | None = None, user: User = ME
+) -> AsyncIterator[Env]:
     repo = SpyStreakRepository(failure)
     provider = FakeApodProvider([make_apod(APOD_DAY)], today=APOD_DAY)
     clock = Clock(NOW)
     codec = FakeTokenCodec()
-    auth = AuthService(
+    auth = UnavailableStoreAuth(
         FakeGoogleTokenVerifier(IDENTITY),
         codec,
         InMemorySessionStore(),
@@ -98,7 +115,7 @@ async def _build(failure: Exception | None = None) -> AsyncIterator[Env]:
     register_error_handlers(app)
     app.dependency_overrides[get_auth_service] = lambda: auth
     app.dependency_overrides[get_user_service] = lambda: UserService(
-        InMemoryUserRepository(ME)
+        InMemoryUserRepository(user)
     )
     app.dependency_overrides[get_streak_service] = lambda: StreakService(
         repo, FakeActivityLog(), now=clock
@@ -118,6 +135,7 @@ async def _build(failure: Exception | None = None) -> AsyncIterator[Env]:
             clock,
             {"Authorization": f"Bearer {tokens.access_token}"},
             codec,
+            auth,
         )
 
 
@@ -234,7 +252,46 @@ async def test_tg598_c4_the_failure_is_only_logged(
         await failing_env.client.get("/api/apod", headers=failing_env.auth_headers)
 
     assert failing_env.repo.calls == 1
-    assert any(record.levelname in {"WARNING", "ERROR"} for record in caplog.records)
+    records = [r for r in caplog.records if r.name == "app.infrastructure.apod.router"]
+    assert [r.levelno for r in records] == [logging.WARNING]
+
+
+async def test_tg598_c4_an_unavailable_session_store_is_still_a_200_and_a_warning(
+    env: Env, caplog: pytest.LogCaptureFixture
+) -> None:
+    env.auth.down = True
+
+    with caplog.at_level("WARNING"):
+        response = await env.client.get("/api/apod", headers=env.auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["date"] == "2026-10-14"
+    assert env.repo.calls == 0
+    assert env.repo.streaks == {}
+    records = [
+        r for r in caplog.records if r.name == "app.infrastructure.auth.dependencies"
+    ]
+    assert [r.levelno for r in records] == [logging.WARNING]
+
+
+@pytest.mark.parametrize(
+    "blocked",
+    [
+        pytest.param({"status": AccountStatus.SUSPENDED}, id="suspended"),
+        pytest.param({"status": AccountStatus.BANNED}, id="banned"),
+        pytest.param({"deleted_at": NOW}, id="deleted"),
+    ],
+)
+async def test_tg598_c4_a_blocked_account_gets_the_apod_and_registers_nothing(
+    blocked: dict[str, object],
+) -> None:
+    async for env in _build(user=ME.model_copy(update=blocked)):
+        response = await env.client.get("/api/apod", headers=env.auth_headers)
+
+        assert response.status_code == 200
+        assert response.json()["date"] == "2026-10-14"
+        assert env.repo.calls == 0
+        assert env.repo.streaks == {}
 
 
 async def test_tg598_c5_registering_does_not_change_the_response_or_the_apod_calls(
