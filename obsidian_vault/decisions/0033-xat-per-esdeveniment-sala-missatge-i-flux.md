@@ -1,8 +1,8 @@
 ---
 titol: "ADR-0033: Xat per esdeveniment, model sala-missatge i flux d'enviament"
 tipus: adr
-estat: proposada
-data: "2026-11-20"
+estat: acceptada
+data: "2026-11-21"
 us: ["TG-64", "TG-654", "TG-469", "TG-470"]
 font: "US TG-64 de Taiga i tasca TG-470; codi a backend/app/{domain,application,infrastructure}/chat; ADR-0030 (actualitzacions TG-64 i TG-654); TG-469 (autor al DTO)"
 etiquetes: [adr, backend, xat, websocket, redis, postgres, moderacio]
@@ -26,7 +26,7 @@ La US #64 demana un xat per a cada esdeveniment astronòmic, en temps real, nom�
 2. Idempotència: si l'autor ja ha desat un missatge amb el mateix `client_message_id`, no es limita, no es modera i no es desa de nou (vegeu sota).
 3. Límit de freqüència per usuari (`RATE_LIMITED`, 429).
 4. Moderar amb el port `MessageModerator`; si no s'aprova, `CHAT_MESSAGE_REJECTED` (422) i no es desa res.
-5. Desar a PostgreSQL (`INSERT ... ON CONFLICT (author_id, client_message_id) DO NOTHING` i relectura).
+5. Desar a PostgreSQL (`INSERT ... ON CONFLICT (author_id, client_message_id) DO NOTHING RETURNING`; la relectura, amb el *join* de l'autor, només si hi ha conflicte, és a dir, si ja existia).
 6. Publicar a Redis (canal `room:chat:event:<event_id>`, sobre `{from, frame}` amb l'id de la connexió emissora perquè no es faci eco a si mateixa).
 7. Acusar l'emissor amb `{id, sent_at}` del missatge desat.
 
