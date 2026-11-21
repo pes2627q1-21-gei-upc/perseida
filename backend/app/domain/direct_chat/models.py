@@ -101,9 +101,14 @@ class DirectConversation(BaseModel):
         """Whether ``message`` is unread for ``user_id``.
 
         Raises:
-            BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger.
+            BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger;
+                VALIDATION_ERROR if ``message`` belongs to another conversation.
         """
         self._require_participant(user_id)
+        if message.conversation_id != self.id:
+            raise BusinessRuleViolation(
+                VALIDATION_ERROR, "The message is not of this conversation"
+            )
         if message.sender_id == user_id:
             return False
         mark = self.user_a_read_at if user_id == self.user_a_id else self.user_b_read_at
