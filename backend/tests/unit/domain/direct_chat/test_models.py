@@ -110,6 +110,34 @@ def test_cannot_open_a_conversation_with_oneself() -> None:
     assert exc_info.value.code == CANNOT_MESSAGE_SELF
 
 
+def test_a_pair_built_out_of_order_is_rejected() -> None:
+    # TG-65 criteri 3: la parella és sempre ordenada, una sola clau per parella
+    low, high = sorted((USER_1, USER_2))
+
+    with pytest.raises(BusinessRuleViolation) as exc_info:
+        DirectConversation(
+            id=uuid.uuid7(),
+            user_a_id=high,
+            user_b_id=low,
+            created_at=datetime.now(UTC),
+        )
+
+    assert exc_info.value.code == VALIDATION_ERROR
+
+
+def test_conversation_built_with_the_same_user_twice_is_rejected() -> None:
+    # TG-65 criteri 4: la regla també vigila el constructor, no només create
+    with pytest.raises(BusinessRuleViolation) as exc_info:
+        DirectConversation(
+            id=uuid.uuid7(),
+            user_a_id=USER_1,
+            user_b_id=USER_1,
+            created_at=datetime.now(UTC),
+        )
+
+    assert exc_info.value.code == CANNOT_MESSAGE_SELF
+
+
 def test_conversation_is_frozen() -> None:
     conversation = _conversation()
 
