@@ -39,6 +39,8 @@ class DirectConversationRepository(Protocol):
     ) -> DirectConversation:
         """Move the read mark of ``user_id`` to ``at`` (never backwards).
 
+        ``at`` must be timezone-aware.
+
         Raises:
             NotFoundError: if the conversation does not exist.
             BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger.
@@ -94,7 +96,8 @@ class DirectMessageRepository(Protocol):
     ) -> int:
         """Count the messages of the other participant sent after ``since``.
 
-        Without ``since`` every message of the other participant counts.
+        Without ``since`` every message of the other participant counts. ``since``
+        must be timezone-aware.
 
         Raises:
             ExternalServiceError: if the database is unavailable.
