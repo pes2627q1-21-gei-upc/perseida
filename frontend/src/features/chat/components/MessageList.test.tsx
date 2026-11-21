@@ -104,6 +104,12 @@ describe('MessageList (TG-469)', () => {
       expect(onLoadOlder).toHaveBeenCalledTimes(1);
     });
 
+    it('are asked for before the very top, at half a screen from it', async () => {
+      await renderList({ hasMore: true, onLoadOlder: jest.fn() });
+
+      expect(list().props.onEndReachedThreshold).toBe(0.5);
+    });
+
     it('are not asked for when there are no more', async () => {
       const onLoadOlder = jest.fn();
       await renderList({ hasMore: false, onLoadOlder });

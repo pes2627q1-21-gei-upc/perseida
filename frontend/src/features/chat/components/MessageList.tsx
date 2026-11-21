@@ -127,11 +127,13 @@ export function MessageList({
   );
 }
 
-// Purely visual styles, all from theme tokens, and how early the older page is asked for. They
-// are left out of mutation testing on purpose: a changed padding or colour is not behaviour a
-// unit test should pin down (convencions/testing.md, «Mutation testing»).
-// Stryker disable all
+/** How early the older page is asked for, in screens from the top; it is behaviour, so it mutates. */
 const LOAD_OLDER_THRESHOLD = 0.5;
+
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on purpose:
+// a changed padding or colour is not behaviour a unit test should pin down
+// (convencions/testing.md, «Mutation testing»).
+// Stryker disable all
 
 /** The column is capped at a readable width on wide screens; the pills are glass of a row. */
 function createStyles({ colors, radii, spacing, typography }: Theme, reduceTransparency: boolean) {
