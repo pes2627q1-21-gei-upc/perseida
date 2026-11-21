@@ -54,6 +54,8 @@ class ChatMessageRow(SQLModel, table=True):
         # Safety net on top of the domain; the maximum is enforced by the column
         # type (String(1000)).
         CheckConstraint("length(text) >= 1", name="text_length"),
+        # Idempotency (TG-654): one key per author; it also serves the lookup.
+        UniqueConstraint("author_id", "client_message_id"),
         # History by keyset: newest first inside a room (also serves the room FK).
         Index(
             "ix_chat_messages_room_id_sent_at_id",
@@ -90,3 +92,5 @@ class ChatMessageRow(SQLModel, table=True):
             DateTime(timezone=True), nullable=False, server_default=sa_text("now()")
         )
     )
+    # Idempotency key chosen by the sender (TG-654).
+    client_message_id: uuid.UUID = Field(sa_column=Column(Uuid(), nullable=False))
