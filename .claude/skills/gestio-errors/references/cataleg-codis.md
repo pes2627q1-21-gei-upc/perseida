@@ -4,7 +4,7 @@ Convenció: `SCREAMING_SNAKE`, forma `<ENTITAT>_<MOTIU>` (p. ex. `EVENT_NOT_FOUN
 
 ## Codis transversals (TG-304)
 
-Els genera el handler base, no un `DomainError`. Textos aprovats per la persona responsable (TG-304).
+Els genera el handler base, no un `DomainError`. Textos aprovats per la persona responsable (TG-304). El text de `RATE_LIMITED` el va revisar Oriol Orbea (22/11/2026, TG-469): és únic per a tots els seus orígens (també el del xat).
 
 | Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
@@ -56,7 +56,7 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 
 ## Codis de les sortides d'observació (TG-629)
 
-Textos aprovats per Raquel (17/11/2026).
+Textos aprovats per Raquel (17/11/2026). Textos de `RATE_LIMITED`, `CHAT_INVALID_CURSOR` i `CHAT_INVALID_LIMIT` revisats per Oriol Orbea (22/11/2026), TG-469; `NOT_SUBSCRIBED` passa a no recuperable (un 409 no es reintenta al client) amb l'aprovació d'Oriol Orbea (22/11/2026), TG-469.
 
 | Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
