@@ -180,7 +180,8 @@ export function EventsScreen() {
                 accessibilityState={{ disabled: denied }}
                 onValueChange={toggleNear}
                 trackColor={{ false: colors.text.secondary, true: colors.gel.body[0] }}
-                thumbColor={colors.gel.text}
+                // Off, the solid glass reads on the text.secondary track (≥ 3:1 in every theme).
+                thumbColor={nearShown ? colors.gel.text : colors.surface.glassSolid}
               />
             </View>
             {locationMessage && (
