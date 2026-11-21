@@ -7,7 +7,6 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -24,16 +23,12 @@ interface Props {
   now: Date;
   /** Opens the room. Without it the row is only read, not a button. */
   onPress?: () => void;
-  /** Place in the list: the first rows enter one after the other. */
-  index?: number;
 }
 
 // Entrance and glass details: purely visual, left out of mutation testing on purpose
 // (convencions/testing.md, «Mutation testing»).
 // Stryker disable all
 const ENTER_OFFSET = 12;
-const ENTER_STAGGER = 60;
-const ENTER_STAGGERED_ROWS = 6;
 const HIGHLIGHT_INSET = 18;
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', overflow: 'hidden', borderWidth: 1 },
@@ -65,9 +60,9 @@ function rowStyle(
  * One chat room of the list (TG-469): the orb of the category of the event, its title, the
  * last message as «author: text» and when it was sent. Read as a single item. It is glass
  * without blur (a blur per row would be too heavy for a list), and it enters with a short
- * float unless the person asked for reduced motion.
+ * quick float (120 ms, all rows at once) unless the person asked for reduced motion.
  */
-export function RoomListItem({ entry, now, onPress, index = 0 }: Props) {
+export function RoomListItem({ entry, now, onPress }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { colors, spacing, typography } = theme;
@@ -77,11 +72,12 @@ export function RoomListItem({ entry, now, onPress, index = 0 }: Props) {
   const shown = useSharedValue(reduceMotion ? 1 : 0);
   useEffect(() => {
     if (reduceMotion) return;
-    shown.value = withDelay(
-      Math.min(index, ENTER_STAGGERED_ROWS) * ENTER_STAGGER,
-      withTiming(1, { duration: theme.duration.slow, easing: Easing.out(Easing.cubic) }),
-    );
-  }, [reduceMotion, index, shown, theme.duration.slow]);
+    // Under 150 ms and with no stagger: a list is read often (so-i-moviment.md, «Porta per a moviment nou»).
+    shown.value = withTiming(1, {
+      duration: theme.duration.fast,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [reduceMotion, shown, theme.duration.fast]);
   const enter = useAnimatedStyle(() => ({
     opacity: shown.value,
     transform: [{ translateY: (1 - shown.value) * ENTER_OFFSET }],

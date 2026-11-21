@@ -81,7 +81,7 @@ export function ChatRoomsScreen() {
         accessibilityLabel={t('chat.list.label')}
         data={entries}
         keyExtractor={(entry) => entry.eventId}
-        renderItem={({ item, index }) => <RoomListItem entry={item} now={now} index={index} />}
+        renderItem={({ item }) => <RoomListItem entry={item} now={now} />}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
