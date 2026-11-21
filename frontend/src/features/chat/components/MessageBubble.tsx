@@ -126,8 +126,8 @@ function useFloatIn(entering: boolean) {
   useEffect(() => {
     if (shown.value === 1) return;
     // Stryker disable next-line ObjectLiteral: curve of the entrance, visual only.
-    shown.value = withTiming(1, { duration: duration.base, easing: Easing.out(Easing.cubic) });
-  }, [shown, duration.base]);
+    shown.value = withTiming(1, { duration: duration.fast, easing: Easing.out(Easing.cubic) });
+  }, [shown, duration.fast]);
   return useAnimatedStyle(() => ({
     opacity: shown.value,
     // Stryker disable next-line ArithmeticOperator: distance of the float, visual only.
