@@ -384,3 +384,66 @@ describe('useRoomLive: what was said while out of the room (TG-469, re-review)',
     expect(pendingAfter).toEqual(pendingBefore);
   });
 });
+
+describe('useRoomLive: what arrives while the history is on its way (TG-469, review)', () => {
+  it('keeps a live message and the ack of an own one that arrive while the history is asked for again', async () => {
+    const hook = await mountRoom();
+    const refetch = deferredResponse();
+    answers[`GET ${MESSAGES_PATH}`] = () => refetch.response;
+    mockSocket.sendMessage.mockResolvedValue({
+      id: makeMessage(3).id,
+      sent_at: '2026-11-17T10:00:00Z',
+    });
+
+    await joined();
+    expect(historyCalls()).toBe(2);
+    await act(async () => mockSocket.handlers?.onMessage?.(makeMessage(2, { author: PAU })));
+    await act(async () => {
+      await hook.result.current.send('Hola');
+    });
+    await settle();
+    expect(messageIds(hook.result.current.items)).toEqual([
+      makeMessage(3).id,
+      makeMessage(2).id,
+      makeMessage(1).id,
+    ]);
+
+    // The answer was read before both: it does not have them.
+    refetch.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+
+    expect(messageIds(hook.result.current.items)).toEqual([
+      makeMessage(3).id,
+      makeMessage(2).id,
+      makeMessage(1).id,
+    ]);
+  });
+
+  it('keeps a live message that arrives while an older page is on its way', async () => {
+    answers[`GET ${MESSAGES_PATH}`] = (url) =>
+      jsonResponse(
+        makePage(
+          [makeMessage(5, { author: PAU })],
+          url.searchParams.has('before') ? null : 'cursor-0',
+        ),
+      );
+    const hook = await mountRoom();
+    const older = deferredResponse();
+    answers[`GET ${MESSAGES_PATH}`] = () => older.response;
+
+    await act(async () => hook.result.current.loadOlder());
+    await settle();
+    await act(async () => mockSocket.handlers?.onMessage?.(makeMessage(9, { author: PAU })));
+    await settle();
+    expect(messageIds(hook.result.current.items)).toContain(makeMessage(9).id);
+
+    older.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+
+    expect(messageIds(hook.result.current.items)).toEqual([
+      makeMessage(9).id,
+      makeMessage(5).id,
+      makeMessage(1).id,
+    ]);
+  });
+});
