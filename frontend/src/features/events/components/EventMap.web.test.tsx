@@ -11,6 +11,18 @@ import {
 } from '../../../shared/map/mapTiles';
 
 const mockFitBounds = jest.fn();
+const mockInvalidateSize = jest.fn();
+
+// ResizeObserver does not exist in Jest: a fake one that lets the test notify a size change.
+let mockObservers: MockResizeObserver[] = [];
+class MockResizeObserver {
+  observe = jest.fn();
+  unobserve = jest.fn();
+  disconnect = jest.fn();
+  constructor(public callback: () => void) {
+    mockObservers.push(this);
+  }
+}
 
 // Leaflet needs a real DOM, which Jest's React Native environment does not have: each
 // react-leaflet component becomes a View that keeps its props for the assertions.
@@ -22,7 +34,11 @@ jest.mock('react-leaflet', () => {
     Marker: (props: object) => <MockView testID="marker" {...props} />,
     ZoomControl: (props: object) => <MockView testID="zoom" {...props} />,
     AttributionControl: (props: object) => <MockView testID="attribution" {...props} />,
-    useMap: () => ({ fitBounds: mockFitBounds }),
+    useMap: () => ({
+      fitBounds: mockFitBounds,
+      invalidateSize: mockInvalidateSize,
+      getContainer: () => ({ id: 'leaflet-container' }),
+    }),
   };
 });
 // divIcon only builds the options object, so the mock hands them back as they are.
@@ -35,6 +51,7 @@ const MARKERS: MapMarker[] = [
     latitude: 28.5618,
     longitude: -80.577,
     label: 'Falcon 9 launch',
+    kind: 'event',
     category: 'launch',
     active: true,
   },
@@ -43,6 +60,7 @@ const MARKERS: MapMarker[] = [
     latitude: 41.39,
     longitude: 2.17,
     label: 'Barcelona event',
+    kind: 'event',
     category: 'lunar',
     active: false,
   },
@@ -67,7 +85,14 @@ afterAll(() => {
   else Reflect.deleteProperty(globalThis, 'document');
 });
 
+beforeEach(() => {
+  mockObservers = [];
+  (globalThis as { ResizeObserver?: unknown }).ResizeObserver = MockResizeObserver;
+});
+
 afterEach(() => {
+  Reflect.deleteProperty(globalThis, 'ResizeObserver');
+  mockInvalidateSize.mockClear();
   mockFitBounds.mockClear();
   mockHead.appendChild.mockClear();
 });
@@ -184,6 +209,27 @@ describe('EventMap (web)', () => {
     // Jest runs the app in Catalan (jest.setup.js).
     expect(screen.getByTestId('zoom').props.zoomInTitle).toBe('Apropa');
     expect(screen.getByTestId('zoom').props.zoomOutTitle).toBe('Allunya');
+  });
+
+  it('recalculates the map size when its container is resized (TG-647)', async () => {
+    await render(<EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />);
+
+    expect(mockObservers.length).toBeGreaterThan(0);
+    expect(mockInvalidateSize).not.toHaveBeenCalled();
+
+    mockObservers.forEach((observer) => observer.callback());
+
+    expect(mockInvalidateSize).toHaveBeenCalled();
+  });
+
+  it('stops observing the container when the map goes away (TG-647)', async () => {
+    const { unmount } = await render(
+      <EventMap markers={MARKERS} label={LABEL} onSelect={jest.fn()} />,
+    );
+
+    await unmount();
+
+    for (const observer of mockObservers) expect(observer.disconnect).toHaveBeenCalled();
   });
 
   it('reports the marker the user clicks or activates with the keyboard', async () => {

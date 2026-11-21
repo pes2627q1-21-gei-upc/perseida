@@ -1,7 +1,8 @@
 import type { AstronomicalEvent } from './api/getEvents';
 
 export type EventStatus = 'active' | 'upcoming';
-export type EventFilter = EventStatus | 'all';
+/** `outings` has no events: the map joins the outings, which come from their own hook. */
+export type EventFilter = EventStatus | 'all' | 'outings';
 
 export type ClassifiedEvent = AstronomicalEvent & { status: EventStatus };
 
@@ -38,7 +39,9 @@ export function classifyEvents(
   };
 }
 
+const NO_EVENTS: ClassifiedEvent[] = [];
+
 /** The list the map shows for a filter. */
 export function filterEvents(events: ClassifiedEvents, filter: EventFilter): ClassifiedEvent[] {
-  return events[filter];
+  return filter === 'outings' ? NO_EVENTS : events[filter];
 }

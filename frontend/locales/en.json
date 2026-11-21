@@ -80,13 +80,15 @@
       "all": "There are no events now or in the next 30 days.",
       "noLocation": "None of these events has a place on the map.",
       "showList": "See the list",
-      "upcoming": "There are no events in the next 30 days."
+      "upcoming": "There are no events in the next 30 days.",
+      "outings": "There are no upcoming outings."
     },
     "filter": {
       "active": "Active",
       "all": "All",
       "label": "Show",
-      "upcoming": "Upcoming"
+      "upcoming": "Upcoming",
+      "outings": "Outings"
     },
     "list": {
       "label": "Events list"
@@ -123,6 +125,11 @@
       "label": "View",
       "list": "List",
       "map": "Map"
+    },
+    "outings": {
+      "kind": "Outing",
+      "open": "Open the outing",
+      "linkedEvent": "Related event"
     }
   },
   "home": {

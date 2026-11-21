@@ -80,13 +80,15 @@
       "all": "No hi ha esdeveniments actius ni en els pròxims 30 dies.",
       "noLocation": "Cap d'aquests esdeveniments té una ubicació al mapa.",
       "showList": "Veure la llista",
-      "upcoming": "No hi ha esdeveniments en els pròxims 30 dies."
+      "upcoming": "No hi ha esdeveniments en els pròxims 30 dies.",
+      "outings": "No hi ha sortides properes."
     },
     "filter": {
       "active": "Actius",
       "all": "Tots",
       "label": "Mostra",
-      "upcoming": "Futurs"
+      "upcoming": "Futurs",
+      "outings": "Sortides"
     },
     "list": {
       "label": "Llista d'esdeveniments"
@@ -123,6 +125,11 @@
       "label": "Vista",
       "list": "Llista",
       "map": "Mapa"
+    },
+    "outings": {
+      "kind": "Sortida",
+      "open": "Obre la sortida",
+      "linkedEvent": "Esdeveniment relacionat"
     }
   },
   "home": {

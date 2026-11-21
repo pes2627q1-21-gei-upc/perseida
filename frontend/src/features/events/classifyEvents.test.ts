@@ -58,4 +58,10 @@ describe('filterEvents', () => {
     expect(filterEvents(classified, 'upcoming')).toBe(classified.upcoming);
     expect(filterEvents(classified, 'all')).toBe(classified.all);
   });
+
+  // TG-646 (TG-52 criterion 2): the Outings filter has no events of its own; the outings come
+  // from another hook and the map joins them.
+  it('has no events with the Outings filter, which is only for outings (TG-646)', () => {
+    expect(filterEvents(classified, 'outings')).toEqual([]);
+  });
 });

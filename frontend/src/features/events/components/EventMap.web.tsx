@@ -46,6 +46,21 @@ function FitToMarkers({ markers }: { markers: MapMarker[] }) {
 }
 
 /**
+ * Leaflet only measures its container on load and on window resize: when the container changes
+ * size by itself (the side panel opens beside the map) it has to be told to measure it again.
+ */
+function InvalidateOnResize() {
+  const map = useMap();
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
+/**
  * Puts the CSS of the orbs in the page while the map is shown. It goes in as `textContent`,
  * which can never become markup; it is built from our constants and theme tokens only.
  */
@@ -115,6 +130,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
           zoomOutTitle={t('events.map.zoomOut')}
         />
         <FitToMarkers markers={markers} />
+        <InvalidateOnResize />
       </MapContainer>
     </div>
   );

@@ -24,4 +24,23 @@ describe('locales', () => {
       expect(missing).toEqual([]);
     },
   );
+
+  // TG-646 criterion 6: the texts of the outings on the map. The parity test above only
+  // compares the languages with each other, so each new key is named here.
+  it.each(Object.entries(locales))(
+    '%s has the texts of the outings on the map',
+    (_language, locale) => {
+      const keys = keysOf(locale);
+
+      for (const key of [
+        'events.filter.outings',
+        'events.empty.outings',
+        'events.outings.kind',
+        'events.outings.open',
+        'events.outings.linkedEvent',
+      ]) {
+        expect(keys).toContain(key);
+      }
+    },
+  );
 });

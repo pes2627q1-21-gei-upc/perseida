@@ -1,7 +1,14 @@
 import type { ReactElement } from 'react';
 
 import { colors, duration } from '../../../shared/theme';
-import { CATEGORY_ICON, MARKER_SIZE, markerCss, markerIconHtml, markerPalette } from './markerIcon';
+import {
+  CATEGORY_ICON,
+  MARKER_SIZE,
+  markerCss,
+  markerIconHtml,
+  markerPalette,
+  OUTING_ICON,
+} from './markerIcon';
 
 type Weights = Map<string, ReactElement<{ children: ReactElement<{ d: string }> }>>;
 
@@ -26,6 +33,12 @@ describe('CATEGORY_ICON', () => {
     expect(CATEGORY_ICON[category].name).toBe(name);
     expect(CATEGORY_ICON[category].path).toBe(phosphorRegularPath(name));
   });
+
+  // TG-646 criterion 1: the outings have their own icon, next to the categories.
+  it('draws the outings with the regular Phosphor Binoculars', () => {
+    expect(OUTING_ICON.name).toBe('Binoculars');
+    expect(OUTING_ICON.path).toBe(phosphorRegularPath('Binoculars'));
+  });
 });
 
 describe('markerPalette', () => {
@@ -37,13 +50,14 @@ describe('markerPalette', () => {
       glow: colors.dia.accentGlow,
       background: colors.dia.map.background,
       gloss: colors.dia.map.gloss,
+      brand: colors.dia.brand,
     });
   });
 });
 
 describe('markerIconHtml', () => {
   it('draws the category icon inside a glass orb, hidden from screen readers', () => {
-    const html = markerIconHtml({ category: 'launch', active: false });
+    const html = markerIconHtml({ kind: 'event', category: 'launch', active: false });
 
     expect(html).toContain('class="pm-orb"');
     expect(html).toContain(`d="${CATEGORY_ICON.launch.path}"`);
@@ -52,7 +66,24 @@ describe('markerIconHtml', () => {
   });
 
   it('adds the halo only to active events', () => {
-    expect(markerIconHtml({ category: 'lunar', active: true })).toContain('class="pm-halo"');
+    expect(markerIconHtml({ kind: 'event', category: 'lunar', active: true })).toContain(
+      'class="pm-halo"',
+    );
+  });
+
+  it('draws the outings with the binoculars and the pm-outing class, not with a category icon (TG-646)', () => {
+    const html = markerIconHtml({ kind: 'outing', category: 'lunar', active: false });
+
+    expect(html).toContain(`d="${OUTING_ICON.path}"`);
+    expect(html).not.toContain(CATEGORY_ICON.lunar.path);
+    expect(html).toMatch(/class="pm-orb pm-outing"|class="pm-outing pm-orb"/);
+    expect(html).toContain('aria-hidden="true"');
+  });
+
+  it('does not give the events the pm-outing class (TG-646)', () => {
+    expect(markerIconHtml({ kind: 'event', category: 'lunar', active: false })).not.toContain(
+      'pm-outing',
+    );
   });
 });
 
@@ -88,10 +119,43 @@ describe('markerCss', () => {
     );
   });
 
+  it('gives the outings a rim and a glow of the brand colour (TG-646 criterion 1)', () => {
+    const css = markerCss(PALETTE, { reduceMotion: false });
+    const rule = css.match(/\.pm-outing\s*\{([^}]*)\}/);
+
+    expect(rule).not.toBeNull();
+    expect(rule![1]).toContain(`border-color: ${PALETTE.brand}`);
+    expect(rule![1]).toContain(`box-shadow: 0 0 14px ${PALETTE.brand}`);
+  });
+
   it('freezes the halo when the app asks for reduced motion', () => {
     const css = markerCss(PALETTE, { reduceMotion: true });
 
     expect(css).not.toContain('pm-pulse');
     expect(css).toContain('.pm-halo');
   });
+});
+
+// TG-646 criterion 1: the rim of an outing against the map, 3:1 for non-text (WCAG 1.4.11).
+// Same relative-luminance formula as contrast.py of the estetica skill (and lakeColors.test).
+function luminance(hex: string) {
+  const [r, g, b] = [1, 3, 5]
+    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a: string, b: string) {
+  const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (high + 0.05) / (low + 0.05);
+}
+
+describe('outing marker rim contrast', () => {
+  it.each(['dia', 'posta', 'nit', 'vermell'] as const)(
+    '%s: the brand rim stands out from the map by 3:1 or more',
+    (name) => {
+      const palette = markerPalette(colors[name]);
+
+      expect(contrast(palette.brand, palette.background)).toBeGreaterThanOrEqual(3);
+    },
+  );
 });
