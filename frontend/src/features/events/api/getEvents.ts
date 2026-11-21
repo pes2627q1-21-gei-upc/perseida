@@ -1,6 +1,7 @@
 import { api } from '../../../shared/api/client';
 import type { components } from '../../../shared/api/schema';
 import { AppError } from '../../../shared/errors';
+import { utcDay } from '../classifyEvents';
 
 export type AstronomicalEvent = components['schemas']['EventResponse'];
 export type EventCategory = components['schemas']['EventCategory'];
@@ -34,10 +35,6 @@ export interface EventSearchFilters {
   categories: EventCategory[];
   range: SearchRange;
   near: { latitude: number; longitude: number } | null;
-}
-
-function utcDay(date: Date) {
-  return date.toISOString().slice(0, 10);
 }
 
 /** From today to `range` days later, as UTC days (YYYY-MM-DD), like the API counts them. */

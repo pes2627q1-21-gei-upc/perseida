@@ -15,13 +15,8 @@ import {
   StatusPanel,
 } from '../../../shared/ui';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
-import type {
-  AstronomicalEvent,
-  EventCategory,
-  EventSearchFilters,
-  SearchRange,
-} from '../api/getEvents';
-import type { ClassifiedEvent } from '../classifyEvents';
+import type { EventCategory, EventSearchFilters, SearchRange } from '../api/getEvents';
+import { statusOn } from '../classifyEvents';
 import { distanceKm } from '../distance';
 import { useDeviceLocation } from '../hooks/useDeviceLocation';
 import { useEventSearch } from '../hooks/useEventSearch';
@@ -31,17 +26,6 @@ import { EventRow } from './EventRow';
 const CATEGORIES: readonly EventCategory[] = ['lunar', 'solar', 'meteor_shower', 'launch'];
 const RANGES: readonly SearchRange[] = [7, 30, 90];
 const DEFAULT_RANGE: SearchRange = 30;
-
-function utcDay(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-/** Active when it is under way at some moment of today (UTC), like GET /api/events/active. */
-function classify(event: AstronomicalEvent, today: string): ClassifiedEvent {
-  const active =
-    utcDay(new Date(event.starts_at)) <= today && today <= utcDay(new Date(event.ends_at));
-  return { ...event, status: active ? 'active' : 'upcoming' };
-}
 
 /**
  * Events tab (TG-51): the events of the chosen categories and date range, and near the device
@@ -64,8 +48,10 @@ export function EventsScreen() {
   const filters: EventSearchFilters = { categories, range, near };
   const { data, isLoading, isError, error, refetch } = useEventSearch(filters);
 
-  const today = utcDay(new Date());
-  const events = isError ? [] : (data ?? []).map((event) => classify(event, today));
+  const now = new Date();
+  const events = isError
+    ? []
+    : (data ?? []).map((event) => ({ ...event, status: statusOn(event, now) }));
 
   function toggleCategory(category: EventCategory) {
     setCategories((chosen) =>
