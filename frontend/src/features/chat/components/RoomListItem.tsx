@@ -106,10 +106,7 @@ export function RoomListItem({ entry, now, onPress, index = 0 }: Props) {
       <EventOrb category={entry.category} active={false} />
       <View style={[styles.text, { gap: spacing.xs }]}>
         <View style={[styles.head, { gap: spacing.sm }]}>
-          <Text
-            numberOfLines={2}
-            style={[typography.bodyStrong, styles.title, { color: colors.text.primary }]}
-          >
+          <Text style={[typography.bodyStrong, styles.title, { color: colors.text.primary }]}>
             {entry.title}
           </Text>
           {time !== undefined && (
