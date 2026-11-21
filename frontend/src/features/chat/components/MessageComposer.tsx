@@ -83,9 +83,12 @@ export function MessageComposer({
     const sent = text;
     try {
       await onSend(sent.trim());
-      // Empties the field only if it still holds what was sent; the field stays editable while
-      // the send is on its way, and what was typed meanwhile must not be thrown away.
-      setText((current) => (current === sent ? '' : current));
+      // The field stays editable while the send is on its way. Takes out the text that was sent
+      // from the start of the field and keeps what was added after it, so it is neither lost nor
+      // sent twice. If the sent text was edited, the field is kept whole: nothing is thrown away.
+      setText((current) =>
+        current.startsWith(sent) ? current.slice(sent.length).trimStart() : current,
+      );
       // Keeps the keyboard up for the next message (checked on a device, not in a unit test).
       field.current?.focus();
     } catch {
