@@ -202,7 +202,7 @@ describe('EventSheet', () => {
     expect(style.maxHeight).toBeUndefined();
   });
 
-  it('on wide screens has no top inset: only the spacing of the panel (TG-647)', async () => {
+  it('on wide screens keeps the top and bottom safe areas plus the spacing of the panel (TG-647)', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const legacy = { topInset: 80 };
     await render(
@@ -214,7 +214,8 @@ describe('EventSheet', () => {
     );
 
     const panel = StyleSheet.flatten(screen.getByTestId('event-sheet-side').props.style);
-    expect(panel.paddingTop).toBe(16);
+    expect(panel.paddingTop).toBe(47 + 16);
+    expect(panel.paddingBottom).toBe(34 + 16);
   });
 
   it('on wide screens shows nothing while no event is selected', async () => {
