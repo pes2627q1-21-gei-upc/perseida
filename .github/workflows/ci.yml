@@ -132,6 +132,14 @@ jobs:
         run: uv run mypy .
       - name: Arquitectura (import-linter)
         run: uv run --locked --no-build lint-imports
+      # Troballes de gravetat mitjana o alta fallen la PR; les justificacions, a [tool.bandit] (TG-362).
+      - name: Seguretat del codi (bandit, gravetat >= mitjana)
+        run: uv run bandit -c pyproject.toml -r app -ll
+      # Només les dependències de producció del lockfile, amb hashes i sense pip, contra OSV (TG-362).
+      - name: Vulnerabilitats de les dependències de producció (pip-audit, OSV)
+        run: |
+          uv export --frozen --no-dev --no-emit-project -o "$RUNNER_TEMP/requirements.txt"
+          uv run pip-audit -r "$RUNNER_TEMP/requirements.txt" -s osv --require-hashes --disable-pip
       # Amb -n auto, l'error d'un marcador quarantine sense reason="TG-NNN ..." salta dins dels workers
       # i xdist acaba amb un INTERNALERROR que l'amaga; sense xdist surt amb exit 4 i el missatge (TG-382).
       - name: Validar marcadors de quarantena (recollida sense xdist)
