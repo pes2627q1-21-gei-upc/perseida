@@ -30,7 +30,7 @@ Des de TG-34, `.github/workflows/ci.yml` executa el job `backend` a cada PR i a 
 
 Des de TG-359 (US #359), la CI afegeix comprovacions bloquejants de cobertura i mutation testing:
 - **Cobertura global:** a la CI, el pas de `pytest` executa `uv run pytest --cov-fail-under=80` (falla si la cobertura global és inferior al 80 %; en local es pot verificar amb la mateixa ordre).
-- **Cobertura del codi nou:** a les PRs, `diff-cover` compara el diff (`uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90`) i falla si el codi nou no assoleix el 90 %.
+- **Cobertura del codi nou:** a les PRs, `diff-cover` compara el diff (`uv run diff-cover coverage.xml --compare-branch=<base real de la PR> --fail-under=90`) i falla si el codi nou no assoleix el 90 %. La base és la real de la PR, que `backend/scripts/pr_base.py` demana a l'API REST: en una PR apilada és la branca pare i no el tronc que dona `github.base_ref` (vegeu [[pr-apilades-amb-gh-stack]]); si l'API falla, s'usa `origin/${{ github.base_ref }}`.
 - **Mutation testing al domini:** `uv run python scripts/run_mutmut_diff.py` executa `mutmut` exclusivament sobre els fitxers modificats a `app/domain` respecte a la branca base i exigeix un mutation score ≥ 70 %. Si no s'ha tocat el domini, passa ràpidament.
 
 ## CI del frontend (implementada)
