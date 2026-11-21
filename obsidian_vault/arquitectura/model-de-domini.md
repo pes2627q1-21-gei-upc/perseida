@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-19"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19)"
+data: "2026-11-21"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-399", "TG-400"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-399 i TG-400 (domini del xat directe, 2026-11-21)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -124,6 +124,24 @@ Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_cha
 - `page` demana `limit + 1` files, ordenades per `(sent_at, id)` descendent i estrictament anteriors al cursor; el `next_cursor` és el de l'últim missatge retornat només si hi ha més files. Rebutja `limit < 1` (el servei ja valida 1..50).
 - `list_rooms_of` és una sola consulta: sales existents dels esdeveniments subscrits (join amb `event_subscriptions`) amb l'últim missatge (`LEFT JOIN LATERAL`), per data de l'últim missatge descendent; les sales sense missatges van al final, per `created_at` descendent.
 - Errors: `OperationalError`, `InterfaceError` i `OSError` de la base de dades es tradueixen a `ExternalServiceError` amb el codi `DATABASE_UNAVAILABLE` (a `app/application/shared/error_codes.py`, patró 503 per als repositoris; vegeu [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]). `add_message` només tradueix a `NotFoundError(CHAT_ROOM_NOT_FOUND)` (`app/application/chat/errors.py`) la violació de la FK `fk_chat_messages_room_id_event_chat_rooms`; qualsevol altra `IntegrityError` (id repetit, `CHECK` del text, autor inexistent) no es tradueix. Els dos codis són al catàleg de `gestio-errors` amb els textos pendents fins que el router (TG-455) els exposi.
+
+## Xat directe (domini implementat)
+
+Entitats a `app/domain/direct_chat/models.py`, ports a `ports.py` i codis a `errors.py` (US #65, tasques #399 i #400). Només el domini: serveis, persistència i API vindran amb les tasques #401 a #408. El mòdul no importa cap altra feature ([[backend-hexagonal]]; contracte d'import-linter «The direct chat does not import other features»), per això no reutilitza `ChatMessage` ni els ports de `app/domain/chat`.
+
+| Entitat | Camps | Notes |
+|---|---|---|
+| `DirectConversation` | `id` (UUIDv7), `user_a_id`, `user_b_id`, `created_at`, `user_a_read_at`, `user_b_read_at` | exactament 2 participants; immutable |
+| `DirectMessage` | `id` (UUIDv7), `conversation_id`, `sender_id`, `text`, `sent_at`, `client_message_id` | immutable; el servidor assigna `id` i `sent_at` (UTC); `client_message_id` és la clau d'idempotència, com al xat d'esdeveniment ([[0030-protocol-websocket-i-revocacio-per-pub-sub]]) |
+| `UserBlock` | `blocker_id`, `blocked_id`, `created_at` | direccional: que A bloquegi B no implica que B bloquegi A |
+
+- **Una conversa per parella:** la parella es desa ordenada (`user_a_id < user_b_id`), de manera que (A, B) i (B, A) són la mateixa clau. `DirectConversation.create(a, b)` ordena els ids; el constructor rebutja una parella desordenada. És una regla del domini; la restricció única de la base de dades la reforçarà a #406.
+- **No llegits:** cada participant té una marca de llegit (`*_read_at`, buida al principi). `mark_read(user_id, at)` retorna una conversa nova i la marca no retrocedeix. Un missatge és no llegit per a un usuari si és de l'altre participant i posterior a la seva marca. El recompte és un `COUNT` agregat al repositori, sense comptadors desnormalitzats.
+- **Text:** mateixes regles de neteja que el xat d'esdeveniment (`clean_user_text` i `has_visible_text` de `app/domain/shared/text.py`, vegeu [[#Xat d'esdeveniment (domini implementat)]]). Buit o de més de 1000 caràcters (`MESSAGE_MAX_LENGTH`) dona `VALIDATION_ERROR` (criteri 7 de #65); mai es trunca.
+- **Errors del domini:** `CANNOT_MESSAGE_SELF` (parella amb un mateix usuari, també en bloquejar), `VALIDATION_ERROR` i `NOT_A_PARTICIPANT` ([[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]). `USER_NOT_FOUND`, `CONVERSATION_NOT_FOUND` i `USER_BLOCKED` són dels serveis i s'afegiran amb ells.
+- **Ports:** `DirectConversationRepository` (`get_or_create` per parella, `get`, `mark_read`, `list_of`), `DirectMessageRepository` (`find_by_client_id`, `add` idempotent, `page` amb cursor exclusiu `(sent_at, id)`, `count_unread`), `UserBlockRepository` (`block` i `unblock` idempotents, `is_blocked`) i `PushNotifier` (`notify(recipient_id, message)`).
+- **Push:** `NoopPushNotifier` (`app/infrastructure/direct_chat/push_notifier.py`) no fa res i porta `TODO(TG-73)`: les notificacions reals (FCM) són de la US #73 i no afegeixen dependències aquí.
+- **Per a #402:** `MessageModerator`, `SendRateLimiter` i `PubSub` són a `app/domain/chat` i `app/domain/shared`; quan el servei del xat directe els necessiti, els ports del xat es mouran a `app/domain/shared` en aquella PR.
 
 ## Esdeveniment astronòmic (implementat)
 
