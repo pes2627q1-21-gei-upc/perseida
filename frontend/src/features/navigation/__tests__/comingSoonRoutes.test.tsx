@@ -4,7 +4,6 @@ import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import ChatScreen from '../../../app/(app)/chat';
-import EventsScreen from '../../../app/(app)/events';
 import GamificationScreen from '../../../app/(app)/gamification';
 import HomeScreen from '../../../app/(app)/index';
 import ProfileRoute from '../../../app/(app)/profile';
@@ -34,7 +33,6 @@ afterEach(() => mockPush.mockClear());
 describe('Tab routes (TG-385 #388)', () => {
   it.each([
     ['chat', ChatScreen, 'Comunitat i xat', /^Un espai en temps real/],
-    ['events', EventsScreen, 'Esdeveniments astronòmics', /^Molt aviat podràs consultar/],
     ['gamification', GamificationScreen, 'Gamificació i reptes', /^Completa qüestionaris diaris/],
   ])('%s shows its translated «coming soon» screen', async (_name, Route, title, description) => {
     await renderRoute(Route);
@@ -42,14 +40,6 @@ describe('Tab routes (TG-385 #388)', () => {
     expect(screen.getByRole('header', { name: title })).toBeOnTheScreen();
     expect(screen.getByText(description)).toBeOnTheScreen();
     expect(screen.getByText('Pròximament')).toBeOnTheScreen();
-  });
-
-  it('events opens the events map from its «coming soon» screen', async () => {
-    await renderRoute(EventsScreen);
-
-    await fireEvent.press(screen.getByRole('button', { name: "Obre el mapa d'esdeveniments" }));
-
-    expect(mockPush).toHaveBeenCalledWith('/map');
   });
 
   it.each([
