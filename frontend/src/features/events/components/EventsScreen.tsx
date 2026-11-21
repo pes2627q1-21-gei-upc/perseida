@@ -44,7 +44,16 @@ export function EventsScreen() {
   const [nearOn, setNearOn] = useState(false);
 
   const denied = location.status === 'denied';
-  const near = nearOn && !denied ? location.position : null;
+  // Off again when the location fails, but it can be turned on to try again unless denied.
+  const nearShown = nearOn && (location.status === 'locating' || location.status === 'granted');
+  const near = nearShown ? location.position : null;
+  const locationMessage = {
+    idle: undefined,
+    granted: undefined,
+    locating: nearOn ? t('events.search.near.locating') : undefined,
+    denied: t('events.search.near.denied'),
+    unavailable: t('events.search.near.unavailable'),
+  }[location.status];
   const filters: EventSearchFilters = { categories, range, near };
   const { data, isLoading, isError, error, refetch } = useEventSearch(filters);
 
@@ -134,7 +143,7 @@ export function EventsScreen() {
               </Text>
               <Switch
                 accessibilityLabel={t('events.search.near.label')}
-                value={nearOn && !denied}
+                value={nearShown}
                 disabled={denied}
                 // iOS only sets the native prop: screen readers and tests read the state.
                 accessibilityState={{ disabled: denied }}
@@ -143,14 +152,9 @@ export function EventsScreen() {
                 thumbColor={colors.gel.text}
               />
             </View>
-            {nearOn && location.status === 'locating' && (
+            {locationMessage && (
               <Text accessibilityLiveRegion="polite" aria-live="polite" style={secondary}>
-                {t('events.search.near.locating')}
-              </Text>
-            )}
-            {denied && (
-              <Text accessibilityLiveRegion="polite" aria-live="polite" style={secondary}>
-                {t('events.search.near.denied')}
+                {locationMessage}
               </Text>
             )}
           </View>
