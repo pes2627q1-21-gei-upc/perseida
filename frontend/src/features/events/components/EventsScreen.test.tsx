@@ -8,7 +8,7 @@ import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent } from '../../../../__mocks__/events';
 import EventsRoute from '../../../app/(app)/events';
 import i18n from '../../../shared/i18n';
-import { buildTheme } from '../../../shared/theme';
+import { buildTheme, touch } from '../../../shared/theme';
 import { formatEventWhen } from '../formatEvent';
 import { EventsScreen } from './EventsScreen';
 
@@ -355,6 +355,15 @@ describe('Events tab: filterable list of events (TG-51)', () => {
 
       expect(NEAR()).not.toBe('events.search.near.label');
       expect(screen.getByRole('switch', { name: NEAR() })).toBeTruthy();
+    });
+
+    it('gives the «Near me» switch a touch target of at least touch.min in both directions', async () => {
+      await renderScreen();
+
+      // The native iOS switch is 51×31 pt: the hitSlop has to make up the rest up to touch.min.
+      const { hitSlop } = screen.getByRole('switch', { name: NEAR() }).props;
+      expect(51 + (hitSlop?.left ?? 0) + (hitSlop?.right ?? 0)).toBeGreaterThanOrEqual(touch.min);
+      expect(31 + (hitSlop?.top ?? 0) + (hitSlop?.bottom ?? 0)).toBeGreaterThanOrEqual(touch.min);
     });
   });
 });
