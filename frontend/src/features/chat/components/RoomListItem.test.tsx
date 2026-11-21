@@ -50,6 +50,14 @@ describe('RoomListItem (TG-469)', () => {
     expect(screen.getByText(timeOf(SENT_TODAY))).toBeOnTheScreen();
   });
 
+  it('never cuts the event title (scalable text), but cuts the message preview', async () => {
+    await renderItem({ entry: entry({ title: 'Pluja de meteors de les Leònides 2026' }) });
+
+    const title = screen.getByText('Pluja de meteors de les Leònides 2026');
+    expect(title.props.numberOfLines).toBeUndefined();
+    expect(screen.getByText('Laia: Hola a tothom!').props.numberOfLines).toBe(2);
+  });
+
   it('shows the date instead of the time when the message is from another day', async () => {
     await renderItem({
       entry: entry({ lastMessage: { authorName: 'Laia', text: 'Fa dies', sentAt: SENT_BEFORE } }),
