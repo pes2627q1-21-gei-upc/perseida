@@ -54,6 +54,7 @@ describe('locales', () => {
     'events.search.near.label',
     'events.search.near.locating',
     'events.search.near.denied',
+    'events.search.near.unavailable',
     'events.search.distance',
     'events.search.results_one',
     'events.search.results_other',
