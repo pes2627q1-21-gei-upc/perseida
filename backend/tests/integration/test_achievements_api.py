@@ -52,6 +52,7 @@ pytestmark = pytest.mark.skipif(
 
 PROBLEM_JSON = "application/problem+json"
 PATH = "/api/users/me/achievements"
+ACTIVITY = "/api/streaks/me/activity"
 # Redis database only for these tests (the app uses 0), emptied before and after.
 TEST_REDIS_DB = 15
 
@@ -287,6 +288,27 @@ async def test_a_user_does_not_see_the_unlocks_of_another(
 
     assert bob_items["primera_llum"]["unlocked"] is False
     assert bob_items["primera_llum"]["unlocked_at"] is None
+
+
+async def test_tg575_the_streak_activity_unlocks_the_achievement_once_end_to_end(
+    client: AsyncClient,
+) -> None:
+    # TG-575 / US TG-58 criteris 2 i 3: ratxa real -> desbloqueig -> endpoint
+    ana = await login_headers(client)
+    bob = await login_headers(client)
+
+    assert (await client.post(ACTIVITY, headers=ana)).status_code == 200
+    first = _by_code((await client.get(PATH, headers=ana)).json())["primera_llum"]
+    assert (await client.post(ACTIVITY, headers=ana)).status_code == 200
+    again = _by_code((await client.get(PATH, headers=ana)).json())["primera_llum"]
+    bob_item = _by_code((await client.get(PATH, headers=bob)).json())["primera_llum"]
+
+    assert first["unlocked"] is True
+    assert datetime.fromisoformat(first["unlocked_at"]).utcoffset() == timedelta(0)
+    # The second activity of the day neither unlocks again nor moves the date.
+    assert again["unlocked_at"] == first["unlocked_at"]
+    # Criteri 7: the unlock of Ana is not visible to Bob.
+    assert (bob_item["unlocked"], bob_item["unlocked_at"]) == (False, None)
 
 
 def test_the_openapi_documents_the_endpoint() -> None:
