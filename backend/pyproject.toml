@@ -42,9 +42,10 @@ dev = [
 ]
 
 [tool.bandit]
-# CI: ``bandit -c pyproject.toml -r app -ll`` (TG-383). Only app code is audited; a
-# finding is justified here (``skips``), never with an inline ``# nosec``.
-exclude_dirs = ["tests"]
+# CI: ``bandit -c pyproject.toml -r app -ll --ignore-nosec`` (TG-383). Only app code
+# is audited (``-r app``); no ``exclude_dirs``, since bandit excludes by substring.
+# A finding is justified only here, adding its test id to ``skips`` with the reason
+# in a comment; inline ``# nosec`` comments are ignored (``--ignore-nosec``).
 
 [tool.ruff]
 target-version = "py314"
