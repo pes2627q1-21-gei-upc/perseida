@@ -544,6 +544,20 @@ export interface components {
        */
       copyright?: string | null;
     };
+    /** ChatAuthorResponse */
+    ChatAuthorResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de l'autora.
+       */
+      id: string;
+      /**
+       * Name
+       * @description Nom del perfil de l'autora; `null` si no en té. Mai és el correu: l'app hi posa un nom genèric.
+       */
+      name: string | null;
+    };
     /** ChatHistoryResponse */
     ChatHistoryResponse: {
       /**
@@ -571,12 +585,7 @@ export interface components {
        * @description Sala a la qual pertany.
        */
       room_id: string;
-      /**
-       * Author Id
-       * Format: uuid
-       * @description Identificador de l'autora.
-       */
-      author_id: string;
+      author: components['schemas']['ChatAuthorResponse'];
       /**
        * Text
        * @description Text del missatge, ja netejat pel servidor.
