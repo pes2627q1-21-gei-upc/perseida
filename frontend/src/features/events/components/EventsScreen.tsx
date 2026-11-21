@@ -148,7 +148,7 @@ export function EventsScreen() {
                 // iOS only sets the native prop: screen readers and tests read the state.
                 accessibilityState={{ disabled: denied }}
                 onValueChange={toggleNear}
-                trackColor={{ false: colors.surface.glassBorder, true: colors.gel.body[0] }}
+                trackColor={{ false: colors.text.secondary, true: colors.gel.body[0] }}
                 thumbColor={colors.gel.text}
               />
             </View>
