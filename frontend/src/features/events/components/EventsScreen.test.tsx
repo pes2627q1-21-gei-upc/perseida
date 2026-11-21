@@ -1,12 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
+import { AccessibilityInfo, AppState, type AppStateStatus, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent } from '../../../../__mocks__/events';
 import EventsRoute from '../../../app/(app)/events';
 import i18n from '../../../shared/i18n';
+import { buildTheme } from '../../../shared/theme';
 import { formatEventWhen } from '../formatEvent';
 import { EventsScreen } from './EventsScreen';
 
@@ -16,10 +18,21 @@ jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
+  getForegroundPermissionsAsync: jest.fn(),
 }));
+
+// Each BlurView is a View with a test id, so the test can count them (RNTL 14 has no UNSAFE_*).
+jest.mock('expo-blur', () => {
+  const { createElement } = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    BlurView: (props: object) => createElement(View, { ...props, testID: 'blur-view' }),
+  };
+});
 
 const permission = jest.mocked(Location.requestForegroundPermissionsAsync);
 const position = jest.mocked(Location.getCurrentPositionAsync);
+const currentPermission = jest.mocked(Location.getForegroundPermissionsAsync);
 
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -342,6 +355,240 @@ describe('Events tab: filterable list of events (TG-51)', () => {
 
       expect(NEAR()).not.toBe('events.search.near.label');
       expect(screen.getByRole('switch', { name: NEAR() })).toBeTruthy();
+    });
+  });
+});
+
+/** A response the test sends when it wants, to see the state in between. */
+function deferred() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+function denyLocation() {
+  permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
+}
+
+/** Permission granted, but the position cannot be read (location services off). */
+function locationUnavailable() {
+  permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+  position.mockRejectedValue(new Error('Location services are disabled'));
+}
+
+async function turnNearOn() {
+  await fireEvent(screen.getByRole('switch', { name: NEAR() }), 'valueChange', true);
+}
+
+const results = (count: number) => t('events.search.results', { count });
+
+/** Whether the list (an element that holds the rows of the events) is announced as busy. */
+function listIsBusy(): boolean {
+  const holdsRows = (node: { props: Record<string, unknown> }) =>
+    typeof node.props.accessibilityLabel === 'string' &&
+    node.props.accessibilityLabel.startsWith(`${lunarEvent.title}, `);
+  return (
+    (screen.root?.queryAll(
+      (node) =>
+        (node.props.accessibilityState?.busy === true || node.props['aria-busy'] === true) &&
+        node.queryAll(holdsRows).length > 0,
+    ).length ?? 0) > 0
+  );
+}
+const DISTANCE_TO_LAUNCH = () => t('events.search.distance', { distance: '7.391' });
+
+describe('Events tab: review of TG-51', () => {
+  describe('iOS announces the changes explicitly (accessibilitat.md, criterion 9)', () => {
+    // jest-expo runs as iOS.
+    it('announces the count of results, and the new one after filtering', async () => {
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      mockSearchApi((url) =>
+        jsonResponse(url.searchParams.has('category') ? [lunarEvent] : [launchEvent, lunarEvent]),
+      );
+      await renderScreen();
+
+      await waitFor(() => expect(announce).toHaveBeenCalledWith(results(2)));
+      await fireEvent.press(screen.getByRole('checkbox', { name: 'Lluna' }));
+
+      await waitFor(() => expect(announce).toHaveBeenCalledWith(results(1)));
+    });
+
+    it('announces that no event matches the filters', async () => {
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      mockSearchApi(() => jsonResponse([]));
+
+      await renderScreen();
+
+      await waitFor(() => expect(announce).toHaveBeenCalledWith(t('events.search.empty')));
+    });
+
+    it('announces that it is locating', async () => {
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+      position.mockReturnValue(new Promise(() => undefined));
+      await renderScreen();
+
+      await turnNearOn();
+
+      await waitFor(() => expect(announce).toHaveBeenCalledWith(t('events.search.near.locating')));
+    });
+
+    it('announces that the permission is denied', async () => {
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      denyLocation();
+      await renderScreen();
+
+      await turnNearOn();
+
+      await waitFor(() => expect(announce).toHaveBeenCalledWith(t('events.search.near.denied')));
+    });
+
+    it('announces that the location is unavailable', async () => {
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      locationUnavailable();
+      await renderScreen();
+
+      await turnNearOn();
+
+      await waitFor(() =>
+        expect(announce).toHaveBeenCalledWith(t('events.search.near.unavailable')),
+      );
+    });
+
+    it.each(['android', 'web'] as const)(
+      'does not announce explicitly on %s: the polite live region reads it',
+      async (os) => {
+        jest.replaceProperty(Platform, 'OS', os);
+        const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+        await renderScreen();
+
+        expect(await screen.findByText(results(2))).toHaveProp('accessibilityLiveRegion', 'polite');
+        expect(announce).not.toHaveBeenCalledWith(results(2));
+      },
+    );
+  });
+
+  describe('contrast of the «Near me» switch (WCAG 1.4.11)', () => {
+    it('draws the track of the switch when off with text.secondary of the theme', async () => {
+      const { colors } = buildTheme('dia');
+
+      await renderScreen();
+
+      // On iOS (jest-expo) the native switch gets trackColor.false as tintColor.
+      expect(screen.getByRole('switch', { name: NEAR() }).props.tintColor).toBe(
+        colors.text.secondary,
+      );
+    });
+  });
+
+  describe('performance: no BlurView inside the rows', () => {
+    it('mounts at most 3 BlurView with 10 events in the list', async () => {
+      const many = Array.from({ length: 10 }, (_, index) => ({
+        ...lunarEvent,
+        id: `01a19288-a3f6-7576-a37b-8927650${String(index).padStart(5, '0')}`,
+        title: `Event ${index + 1}`,
+      }));
+      mockSearchApi(() => jsonResponse(many));
+
+      await renderScreen();
+
+      await waitFor(() => expect(screen.getAllByLabelText(/^Event \d+, /)).toHaveLength(10));
+      expect(
+        screen.queryAllByTestId('blur-view', { includeHiddenElements: true }).length,
+      ).toBeLessThanOrEqual(3);
+    });
+  });
+
+  describe('results of the previous filters while the new ones come (placeholder data)', () => {
+    it('marks the list busy and keeps the count until the new results arrive', async () => {
+      const pending = deferred();
+      mockSearchApi((url) =>
+        url.searchParams.has('category')
+          ? pending.promise
+          : jsonResponse([launchEvent, lunarEvent]),
+      );
+      await renderScreen();
+      await screen.findByText(results(2));
+      expect(listIsBusy()).toBe(false);
+
+      await fireEvent.press(screen.getByRole('checkbox', { name: 'Lluna' }));
+
+      await waitFor(() => expect(listIsBusy()).toBe(true));
+      expect(screen.getByText(results(2))).toBeTruthy();
+
+      await act(async () => pending.resolve(jsonResponse([lunarEvent])));
+
+      expect(await screen.findByText(results(1))).toBeTruthy();
+      expect(listIsBusy()).toBe(false);
+    });
+
+    it('shows no distance until the results near the device arrive', async () => {
+      grantLocation();
+      const pending = deferred();
+      mockSearchApi((url) =>
+        url.searchParams.has('lat') ? pending.promise : jsonResponse([launchEvent, lunarEvent]),
+      );
+      await renderScreen();
+      await screen.findByText(launchEvent.title);
+
+      await turnNearOn();
+
+      await waitFor(() => expect(lastQuery().get('lat')).toBe('41.3874'));
+      // The rows on screen are the results without location: no distance for them yet.
+      expect(screen.queryByText(DISTANCE_TO_LAUNCH())).toBeNull();
+
+      await act(async () => pending.resolve(jsonResponse([launchEvent, lunarEvent])));
+
+      expect(await screen.findByText(DISTANCE_TO_LAUNCH())).toBeTruthy();
+    });
+  });
+
+  describe('location unavailable or permission changed (criterion 7)', () => {
+    it('turns off, but stays enabled, when the location is unavailable, and turning it on tries again', async () => {
+      permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+      position
+        .mockRejectedValueOnce(new Error('Location services are disabled'))
+        .mockResolvedValueOnce({ coords: BARCELONA, timestamp: 0 } as Location.LocationObject);
+      await renderScreen();
+      await screen.findByText(lunarEvent.title);
+
+      await turnNearOn();
+
+      expect(await screen.findByText(t('events.search.near.unavailable'))).toBeTruthy();
+      expect(screen.queryByText(t('events.search.near.denied'))).toBeNull();
+      const near = screen.getByRole('switch', { name: NEAR() });
+      expect(near.props.value).toBe(false);
+      expect(near).not.toBeDisabled();
+
+      await turnNearOn();
+
+      await waitFor(() => expect(lastQuery().get('lat')).toBe('41.3874'));
+      expect(position).toHaveBeenCalledTimes(2);
+    });
+
+    it('enables the switch again when the app comes back with the permission granted', async () => {
+      const listeners: ((state: AppStateStatus) => void)[] = [];
+      jest.spyOn(AppState, 'addEventListener').mockImplementation((type, listener) => {
+        if (type === 'change') listeners.push(listener as (state: AppStateStatus) => void);
+        return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+      });
+      denyLocation();
+      await renderScreen();
+      await turnNearOn();
+      expect(await screen.findByText(t('events.search.near.denied'))).toBeTruthy();
+      expect(screen.getByRole('switch', { name: NEAR() })).toBeDisabled();
+      currentPermission.mockResolvedValue({
+        status: 'granted',
+      } as Location.LocationPermissionResponse);
+
+      await act(async () => {
+        for (const listener of listeners) listener('active');
+      });
+
+      await waitFor(() => expect(screen.getByRole('switch', { name: NEAR() })).not.toBeDisabled());
+      expect(screen.queryByText(t('events.search.near.denied'))).toBeNull();
     });
   });
 });
