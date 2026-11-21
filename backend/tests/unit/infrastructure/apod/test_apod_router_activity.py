@@ -252,7 +252,11 @@ async def test_tg598_c4_the_failure_is_only_logged(
         await failing_env.client.get("/api/apod", headers=failing_env.auth_headers)
 
     assert failing_env.repo.calls == 1
-    records = [r for r in caplog.records if r.name == "app.infrastructure.apod.router"]
+    records = [
+        r
+        for r in caplog.records
+        if r.name == "app.application.apod.apod_activity_service"
+    ]
     assert [r.levelno for r in records] == [logging.WARNING]
 
 
