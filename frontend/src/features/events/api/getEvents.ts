@@ -25,3 +25,45 @@ export async function getUpcomingEvents(days: number): Promise<AstronomicalEvent
   if (!data) throw invalidResponse(response.status);
   return data;
 }
+
+/** Predefined date ranges of the events list, in days from today (TG-51). */
+export type SearchRange = 7 | 30 | 90;
+
+/** Filters of the events list. No category means all of them; `near` is the device position. */
+export interface EventSearchFilters {
+  categories: EventCategory[];
+  range: SearchRange;
+  near: { latitude: number; longitude: number } | null;
+}
+
+function utcDay(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/** From today to `range` days later, as UTC days (YYYY-MM-DD), like the API counts them. */
+export function searchRange(range: SearchRange, now: Date = new Date()) {
+  const to = new Date(now.getTime());
+  to.setUTCDate(to.getUTCDate() + range);
+  return { from: utcDay(now), to: utcDay(to) };
+}
+
+/** Events of the filters. Without `radius_km`: the backend sets the radius of «Near me». */
+export async function searchEvents(
+  filters: EventSearchFilters,
+  now: Date = new Date(),
+): Promise<AstronomicalEvent[]> {
+  const { from, to } = searchRange(filters.range, now);
+  const { data, response } = await api.GET('/api/events', {
+    params: {
+      query: {
+        from,
+        to,
+        category: filters.categories.length > 0 ? filters.categories : undefined,
+        lat: filters.near?.latitude,
+        lon: filters.near?.longitude,
+      },
+    },
+  });
+  if (!data) throw invalidResponse(response.status);
+  return data;
+}
