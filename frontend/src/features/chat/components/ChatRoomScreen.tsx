@@ -257,6 +257,13 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
   // (loading, empty) start below it, not under it.
   const noticeShown = canWrite && hasConnectionNotice(live.status);
   const listTop = barBottom + spacing.sm + (noticeShown ? noticeHeight + spacing.sm : 0);
+  // The list is inverted: its bottom padding is drawn at the top, under the bar.
+  // Stryker disable next-line all: safe areas at the sides (tested).
+  const listContent = {
+    paddingBottom: listTop,
+    paddingLeft: insets.left + spacing.md,
+    paddingRight: insets.right + spacing.md,
+  };
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: open the list of rooms instead.
@@ -334,12 +341,7 @@ export function ChatRoomScreen({ eventId }: { eventId: string }) {
         listProps={{
           keyboardShouldPersistTaps: 'handled',
           keyboardDismissMode: 'interactive',
-          // The list is inverted: its bottom padding is drawn at the top, under the bar.
-          contentContainerStyle: {
-            paddingBottom: listTop,
-            paddingLeft: insets.left + spacing.md,
-            paddingRight: insets.right + spacing.md,
-          },
+          contentContainerStyle: listContent,
         }}
       />
     );

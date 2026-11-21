@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { useTheme } from '../../../shared/theme';
+import { type Theme, useTheme } from '../../../shared/theme';
 import { useReduceTransparency } from '../../../shared/ui';
 import { rowSurface } from '../rowSurface';
 
@@ -11,17 +11,21 @@ import { rowSurface } from '../rowSurface';
  * pill gives it the glass of the rows, measured at 4.5:1 over the whole scene.
  */
 export function ActionSurface({ children }: { children: ReactNode }) {
-  const { colors, radii } = useTheme();
+  const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
+  const styles = createStyles(theme, reduceTransparency);
 
-  return (
-    <View
-      style={{
-        borderRadius: radii.pill,
-        backgroundColor: rowSurface(colors.surface, reduceTransparency),
-      }}
-    >
-      {children}
-    </View>
-  );
+  return <View style={styles.surface}>{children}</View>;
 }
+
+// Visual styles: tested through the rendered contrast, not mutated.
+// Stryker disable all
+function createStyles({ colors, radii }: Theme, reduceTransparency: boolean) {
+  return StyleSheet.create({
+    surface: {
+      borderRadius: radii.pill,
+      backgroundColor: rowSurface(colors.surface, reduceTransparency),
+    },
+  });
+}
+// Stryker enable all
