@@ -592,3 +592,29 @@ describe('Events tab: review of TG-51', () => {
     });
   });
 });
+
+describe('Events tab: thumb of the «Near me» switch (WCAG 1.4.11)', () => {
+  const { colors } = buildTheme('dia');
+
+  it('draws the thumb with surface.glassSolid when off, which reads on the track', async () => {
+    await renderScreen();
+
+    // On iOS (jest-expo) the native switch gets thumbColor as thumbTintColor.
+    expect(screen.getByRole('switch', { name: NEAR() }).props.thumbTintColor).toBe(
+      colors.surface.glassSolid,
+    );
+  });
+
+  it('draws the thumb with gel.text when on', async () => {
+    grantLocation();
+    await renderScreen();
+    await screen.findByText(lunarEvent.title);
+
+    await fireEvent(screen.getByRole('switch', { name: NEAR() }), 'valueChange', true);
+
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: NEAR() }).props.value).toBe(true),
+    );
+    expect(screen.getByRole('switch', { name: NEAR() }).props.thumbTintColor).toBe(colors.gel.text);
+  });
+});
