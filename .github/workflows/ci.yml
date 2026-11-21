@@ -136,7 +136,8 @@ jobs:
       # --ignore-nosec fa que un # nosec en línia no silenciï cap troballa (TG-362).
       - name: Seguretat del codi (bandit, gravetat >= mitjana)
         run: uv run bandit -c pyproject.toml -r app -ll --ignore-nosec
-      # Només les dependències de producció del lockfile, amb hashes i sense pip, contra OSV (TG-362).
+      # Només les dependències de producció del lockfile, sense pip, contra OSV (TG-362). --require-hashes
+      # no afecta la consulta a OSV: fa fallar el pas si l'export surt sense hashes o sense ==.
       - name: Vulnerabilitats de les dependències de producció (pip-audit, OSV)
         run: |
           uv export --frozen --no-dev --no-emit-project -o "$RUNNER_TEMP/requirements.txt"

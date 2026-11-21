@@ -184,8 +184,8 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # comprueba el formato sin modificar archivos
 uv run mypy .                 # tipado estricto
 uv run lint-imports           # contratos de arquitectura (import-linter)
-uv run bandit -c pyproject.toml -r app -ll  # seguridad del código (falla con gravedad media o alta)
-uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # dependencias de producción con hashes
+uv run bandit -c pyproject.toml -r app -ll --ignore-nosec  # seguridad del código (falla con gravedad media o alta)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # dependencias de producción (con hashes y ==, que --require-hashes comprueba)
 uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # vulnerabilidades conocidas (OSV)
 uv run pytest                 # tests (con cobertura)
 uv run pytest -n auto         # igual, en paralelo (una base de datos e índice de Redis por worker)

@@ -205,8 +205,8 @@ uv run ruff check .           # lint
 uv run ruff format --check .   # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run lint-imports           # architecture contracts (import-linter)
-uv run bandit -c pyproject.toml -r app -ll  # code security (fails on medium or high severity)
-uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # production dependencies with hashes
+uv run bandit -c pyproject.toml -r app -ll --ignore-nosec  # code security (fails on medium or high severity)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # production dependencies (with hashes and ==, which --require-hashes checks)
 uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # known vulnerabilities (OSV)
 uv run pytest                 # tests (with coverage)
 uv run pytest -n auto         # same, in parallel (one database and Redis index per worker)
