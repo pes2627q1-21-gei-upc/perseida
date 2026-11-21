@@ -46,7 +46,7 @@ Totes a petició de la persona responsable:
 
 - [ ] #401 i #402: servei; mou els ports del xat a `domain/shared` en aquella PR.
 - [ ] #402/#404: la llista de converses mostra l'últim missatge i el recompte de no llegits; amb els ports actuals seria N+1. Decidir un port de lectura en bloc (per exemple `last_messages` i `count_unread_many`, o un resum retornat per `list_of`).
-- [ ] Revisar que `mark_read` i `count_unread` rebin datetimes amb zona horària (les entitats ho garanteixen, els paràmetres dels mètodes no).
+- [x] `mark_read` de l'entitat refusa una data sense zona horària (`VALIDATION_ERROR`; review de la PR #132). Pendent als adaptadors de #406: `mark_read` i `count_unread` dels repositoris també han de rebutjar-la.
 - [ ] Afegir `*.toml text eol=lf` a `.gitattributes`, si l'equip ho vol (a Windows, l'editor ha convertit un fitxer a CRLF).
 - [ ] Catàleg d'errors i locales del frontend per a `CANNOT_MESSAGE_SELF` i `NOT_A_PARTICIPANT` quan arribi l'API (#408).
 

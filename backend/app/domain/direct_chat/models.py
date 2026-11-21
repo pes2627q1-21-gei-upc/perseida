@@ -83,8 +83,14 @@ class DirectConversation(BaseModel):
 
         Raises:
             BusinessRuleViolation: NOT_A_PARTICIPANT if ``user_id`` is a stranger.
+            ValidationError: VALIDATION_ERROR if ``at`` has no time zone.
         """
         self._require_participant(user_id)
+        # model_copy does not validate, so a naive ``at`` would get in unchecked.
+        if at.tzinfo is None or at.utcoffset() is None:
+            raise ValidationError(
+                VALIDATION_ERROR, "The read time must have a time zone"
+            )
         field = "user_a_read_at" if user_id == self.user_a_id else "user_b_read_at"
         current: datetime | None = getattr(self, field)
         if current is not None and current >= at:
