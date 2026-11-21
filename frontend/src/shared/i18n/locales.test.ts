@@ -74,7 +74,8 @@ describe('locales', () => {
   it.each(Object.entries(locales))(
     '%s interpolates the distance and the count of results (TG-51)',
     (_language, locale) => {
-      const search = (locale as { events: { search?: Record<string, string> } }).events.search;
+      const search = (locale as unknown as { events: { search?: Record<string, string> } }).events
+        .search;
 
       expect(search?.distance).toContain('{{distance}}');
       expect(search?.results_other).toContain('{{count}}');
