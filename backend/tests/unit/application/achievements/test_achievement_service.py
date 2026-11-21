@@ -220,8 +220,10 @@ async def test_an_unlocked_achievement_carries_its_utc_unlock_moment() -> None:
     items = await service.list_progress(USER_ID)
 
     by_id = {item.achievement.id: item for item in items}
-    assert by_id[STREAK_3.id].unlocked_at == moment
-    assert by_id[STREAK_3.id].unlocked_at.utcoffset() == timedelta(0)
+    unlocked_at = by_id[STREAK_3.id].unlocked_at
+    assert unlocked_at is not None
+    assert unlocked_at == moment
+    assert unlocked_at.utcoffset() == timedelta(0)
     assert by_id[STREAK_7.id].unlocked_at is None
 
 
