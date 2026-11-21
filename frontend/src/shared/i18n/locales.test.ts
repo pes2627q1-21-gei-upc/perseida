@@ -82,4 +82,46 @@ describe('locales', () => {
       expect(search?.results_other).toContain('{{count}}');
     },
   );
+
+  // TG-53: texts of the subscriptions (tabs All | Mine, the star and the error of the catalogue).
+  const subscriptionKeys = [
+    'events.tabs.label',
+    'events.tabs.all',
+    'events.tabs.mine',
+    'events.subscription.follow',
+    'events.mine.empty',
+    'errors.EVENT_ALREADY_ENDED',
+  ];
+
+  it.each(Object.entries(locales))(
+    '%s has the texts of the subscriptions (TG-53)',
+    (_language, locale) => {
+      const keys = keysOf(locale);
+      const missing = subscriptionKeys.filter((key) => !keys.includes(key));
+
+      expect(missing).toEqual([]);
+    },
+  );
+
+  it.each(Object.entries(locales))(
+    '%s names the event in the star of the subscription (TG-53)',
+    (_language, locale) => {
+      const subscription = (
+        locale as unknown as { events: { subscription?: Record<string, string> } }
+      ).events.subscription;
+
+      expect(subscription?.follow).toContain('{{title}}');
+    },
+  );
+
+  it.each([
+    ['ca', ca, 'Aquest esdeveniment ja ha acabat.'],
+    ['es', es, 'Este evento ya ha terminado.'],
+    ['en', en, 'This event has already ended.'],
+  ])(
+    '%s has the text of the catalogue for EVENT_ALREADY_ENDED (TG-53)',
+    (_language, locale, text) => {
+      expect((locale.errors as Record<string, string>).EVENT_ALREADY_ENDED).toBe(text);
+    },
+  );
 });
