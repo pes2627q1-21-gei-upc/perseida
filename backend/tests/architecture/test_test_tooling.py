@@ -27,11 +27,11 @@ Criteri 5 (TG-383): a blocking step exports the production requirements from the
 lockfile (``uv export --frozen --no-dev ...``) and audits them with
 ``uv run pip-audit -r <file> -s osv``.
 Criteri 6 (TG-384): the ``frontend`` job runs
-``pnpm audit --prod --audit-level=high`` right after ``pnpm install``, as a
-warning (``continue-on-error: true``) until TG-338, which accepts the documented
-risks (today GHSA-mrhx-c7xc-m3w5, ``zod`` via ``@expo/cli``) and makes it
-blocking with the team's agreement; the step (its name or the comment above it)
-names TG-338 so the warning is not forgotten.
+``pnpm audit --prod --audit-level=high`` in ``frontend/`` right after
+``pnpm install``, as a warning (``continue-on-error: true``) until TG-338, which
+accepts the documented risks (today GHSA-mrhx-c7xc-m3w5, ``zod`` via
+``@expo/cli``) and makes it blocking with the team's agreement; the step (its
+name or the comment above it) names TG-338 so the warning is not forgotten.
 
 Paths are resolved from this file, never from the working directory.
 """
@@ -405,10 +405,24 @@ def _steps_with_comments(job: str) -> list[str]:
     return ["".join(step) for step in steps]
 
 
-def test_tg362_ci_audits_the_frontend_production_dependencies() -> None:
-    steps = _steps_with_comments(
-        _job(CI_WORKFLOW.read_text(encoding="utf-8"), "frontend")
+def _runs_in_frontend(job: str, step: str) -> bool:
+    """True when ``step`` runs inside ``frontend/``: the job sets
+    ``defaults.run.working-directory: frontend`` or the step sets its own
+    ``working-directory: frontend``."""
+    job_default = re.search(
+        r"^    defaults:\n      run:\n        working-directory:\s*frontend/?\s*$",
+        job,
+        re.MULTILINE,
     )
+    step_own = re.search(
+        r"^        working-directory:\s*frontend/?\s*$", step, re.MULTILINE
+    )
+    return bool(job_default or step_own)
+
+
+def _assert_frontend_audit(workflow: str) -> None:
+    job = _job(workflow, "frontend")
+    steps = _steps_with_comments(job)
     installs = [
         index
         for index, step in enumerate(steps)
@@ -431,3 +445,19 @@ def test_tg362_ci_audits_the_frontend_production_dependencies() -> None:
     # A warning until TG-338 accepts the documented risks and makes it blocking.
     assert re.search(r"^\s*continue-on-error:\s*true\s*$", audit, re.MULTILINE), audit
     assert re.search(r"\bTG-338\b", audit), audit
+    assert _runs_in_frontend(job, audit), "the audit must run in frontend/"
+
+
+def test_tg362_ci_audits_the_frontend_production_dependencies() -> None:
+    _assert_frontend_audit(CI_WORKFLOW.read_text(encoding="utf-8"))
+
+
+def test_tg384_frontend_audit_check_rejects_a_step_outside_frontend() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    defaults = "    defaults:\n      run:\n        working-directory: frontend\n"
+    frontend = _job(workflow, "frontend")
+    assert defaults in frontend, "ci.yml changed: update this test"
+    without = workflow.replace(frontend, frontend.replace(defaults, ""))
+
+    with pytest.raises(AssertionError, match="must run in frontend/"):
+        _assert_frontend_audit(without)
