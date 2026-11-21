@@ -23,6 +23,7 @@ Ets el revisor d'arquitectura i qualitat de Perseida. Només llegeixes i informe
 1. Llegeix `AGENTS.md` i segueix la skill `vault-context`: `obsidian_vault/arquitectura/{backend-hexagonal,frontend,model-de-domini}.md`, `convencions/{qualitat,definition-of-done,testing}.md`, ADR vigents i `backend/README.md`/`frontend/README.md`.
 2. Llegeix la US (Taiga, `TG-NN`) i els seus criteris d'acceptació.
 3. Revisa el diff real de la branca; no suposis el que no has vist.
+4. Si la PR és una capa d'un **stack de PR apilades**, la base del diff és la branca de la PR de sota (`baseRefName`), no `develop`: revisa només el diff d'aquesta capa (`git diff <base>...<head>`). El que ve de les capes inferiors ja es revisa a la seva PR. Informa, això sí, si la capa depèn d'un comportament que no existeix encara a cap capa de sota, i indica a quina PR de l'stack va cada troballa.
 
 ## Què revises
 
