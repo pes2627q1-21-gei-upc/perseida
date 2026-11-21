@@ -4,6 +4,7 @@
     "mediaError": "No s'ha pogut carregar la imatge o el vídeo.",
     "retry": "Torna-ho a provar",
     "retryHint": "Torna a carregar l'APOD",
+    "title": "Imatge del dia",
     "videoLabel": "Vídeo de l'APOD"
   },
   "auth": {
