@@ -128,18 +128,44 @@ describe('MessageComposer (TG-469)', () => {
       await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
     });
 
-    it('keeps what is typed while the send is on its way, only the sent text is emptied', async () => {
+    it('empties the field once the text is sent, if nothing changed meanwhile', async () => {
       let finish: () => void = () => undefined;
       const onSend = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
       await render(<MessageComposer onSend={onSend} />);
       await type('Hola');
       await fireEvent.press(sendButton());
 
-      await type('Hola, i una cosa més');
+      finish();
+
+      await waitFor(() => expect(field().props.value).toBe(''));
+    });
+
+    it('after the send, keeps only what was added meanwhile, not the text already sent', async () => {
+      let finish: () => void = () => undefined;
+      const onSend = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+      await render(<MessageComposer onSend={onSend} />);
+      await type('Hola');
+      await fireEvent.press(sendButton());
+
+      await type('Hola i una cosa més');
       finish();
 
       await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
-      expect(field().props.value).toBe('Hola, i una cosa més');
+      expect(field().props.value).toBe('i una cosa més');
+    });
+
+    it('keeps the whole text when it was edited inside what was sent', async () => {
+      let finish: () => void = () => undefined;
+      const onSend = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+      await render(<MessageComposer onSend={onSend} />);
+      await type('Hola');
+      await fireEvent.press(sendButton());
+
+      await type('Hela, i una cosa més');
+      finish();
+
+      await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
+      expect(field().props.value).toBe('Hela, i una cosa més');
     });
 
     it('does not send twice while the first one is still on its way', async () => {
