@@ -4,7 +4,7 @@ tipus: sessio
 estat: vigent
 data: "2026-11-20"
 us: ["TG-64", "TG-469", "TG-470"]
-font: "Branca feature/TG-64-pantalla-sala (PR D de TG-64, apilada sobre feature/TG-64-peces-sala); git log de la pila (origin/feature/TG-64-peces-sala..HEAD, de 57f1466 a 834f373) i documentació TG-470"
+font: "Branca feature/TG-64-pantalla-sala (PR D de TG-64, apilada sobre feature/TG-64-peces-sala); git log de la pila (origin/feature/TG-64-peces-sala..HEAD, de eb1dcd3 a 96d47ee) i documentació TG-470"
 etiquetes: [sessio, frontend, xat, accessibilitat, pr-apilades]
 ---
 
