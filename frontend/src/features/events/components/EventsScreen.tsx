@@ -1,8 +1,16 @@
 import { useRouter } from 'expo-router';
 import { MapTrifold } from 'phosphor-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  FlatList,
+  Platform,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
@@ -58,6 +66,27 @@ export function EventsScreen() {
   }[location.status];
   const filters: EventSearchFilters = { categories, range, near };
   const { data, isLoading, isError, error, refetch, isPlaceholderData } = useEventSearch(filters);
+
+  // What the live regions say; only once the results of the current filters are here.
+  let resultsMessage: string | undefined;
+  if (data && !isError && !isPlaceholderData) {
+    resultsMessage =
+      data.length > 0
+        ? t('events.search.results', { count: data.length })
+        : t('events.search.empty');
+  }
+
+  // Android and the web read the polite live regions by themselves; iOS needs an announcement.
+  useEffect(() => {
+    if (resultsMessage && Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(resultsMessage);
+    }
+  }, [resultsMessage]);
+  useEffect(() => {
+    if (locationMessage && Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(locationMessage);
+    }
+  }, [locationMessage]);
 
   const now = new Date();
   const events = isError
