@@ -6,8 +6,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { makeMessage, makeRoom, makeSubscribedEvent } from '../../../../__mocks__/chat';
-import { spacing } from '../../../shared/theme';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
+import { colors, spacing } from '../../../shared/theme';
 import { saveTokens } from '../../auth/tokenStorage';
+import { rowSurface } from '../rowSurface';
 import { ChatRoomsScreen } from './ChatRoomsScreen';
 
 const mockRouter = {
@@ -93,7 +95,11 @@ beforeEach(async () => {
   });
 });
 
-afterEach(() => {
+// Requests a test leaves on their way (to see the screen while it loads), answered once it is gone.
+const pending = pendingResponses();
+
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -115,7 +121,7 @@ describe('ChatRoomsScreen (TG-469)', () => {
   });
 
   it('labels the spinner for screen readers while it is loading', async () => {
-    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen();
 
@@ -170,6 +176,14 @@ describe('ChatRoomsScreen (TG-469)', () => {
 
     await screen.findByText('Leonids');
     expect(screen.getByLabelText('Sales de xat')).toBeOnTheScreen();
+  });
+
+  it('opens the room of an event when its row is tapped (US TG-64 criteri 14)', async () => {
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^Leonids/ }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith(`/chat/${leonids.id}`);
   });
 });
 
@@ -303,7 +317,7 @@ describe('ChatRoomsScreen above the floating tab bar', () => {
   });
 
   it('leaves the height of the bar free under the spinner', async () => {
-    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen({ tabBarHeight: TAB_BAR });
 
@@ -351,6 +365,22 @@ describe('ChatRoomsScreen reload without dragging (WCAG 2.5.1)', () => {
     expect(requestsTo(ROOMS)).toHaveLength(2);
   });
 
+  // The title sits on the scene and so does the button: over the pale lake and the moon glow a
+  // quiet button with only a rim is not legible (WCAG 1.4.3). It sits on the glass of the rows,
+  // measured at 4.5:1 over the whole scene in rowSurface.test.
+  it('sits on the glass of the rows, never bare on the scene', async () => {
+    await renderScreen();
+
+    let node = (await screen.findByRole('button', { name: 'Actualitza' })).parent;
+    let surface: unknown;
+    while (node && surface === undefined) {
+      surface = StyleSheet.flatten(node.props.style)?.backgroundColor;
+      node = node.parent;
+    }
+
+    expect(surface).toBe(rowSurface(colors.dia.surface, false));
+  });
+
   it('is also there when the list is empty, where there is nothing to drag', async () => {
     answers[SUBSCRIPTIONS] = () => jsonResponse([]);
 
@@ -360,7 +390,7 @@ describe('ChatRoomsScreen reload without dragging (WCAG 2.5.1)', () => {
   });
 
   it('is not there while loading', async () => {
-    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen();
 
@@ -417,7 +447,7 @@ describe('ChatRoomsScreen when a reload fails with the list on screen', () => {
   it('takes the alert away while the person tries again', async () => {
     await reloadThatFails();
     await screen.findByRole('alert');
-    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
 

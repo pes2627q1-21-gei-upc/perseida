@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AccessibilityInfo, Platform } from 'react-native';
 
 import { MessageComposer } from './MessageComposer';
@@ -25,5 +25,17 @@ describe('MessageComposer, why it cannot send (TG-469)', () => {
     await render(<MessageComposer onSend={jest.fn()} />);
 
     expect(announce).not.toHaveBeenCalled();
+  });
+});
+
+describe('MessageComposer, a text over the limit (TG-469)', () => {
+  it('is announced on iOS when the alert appears', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    await render(<MessageComposer onSend={jest.fn()} />);
+
+    await fireEvent.changeText(screen.getByLabelText('Escriu un missatge'), 'a'.repeat(1001));
+
+    expect(announce).toHaveBeenCalledWith(screen.getByRole('alert').props.children);
+    expect(announce).toHaveBeenCalledTimes(1);
   });
 });

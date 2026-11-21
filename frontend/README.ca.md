@@ -83,6 +83,20 @@ Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal). Codi a `src/feat
 - **Pantalla:** la pregunta amb les 4 opcions (botons de ràdio) i un botó d'enviar desactivat fins que es tria una opció i ocupat mentre s'envia. Un cop resposta (o si ja ho estava), el resultat: si s'ha encertat, l'opció correcta i la triada amb paraules i icones, l'explicació i un enllaç a la font. Totes dues vistes tenen un botó «Torna a l'inici», així no cal el botó enrere del sistema.
 - **Errors:** els de càrrega mostren un missatge traduït amb reintent si són transitoris. Si falla l'enviament, l'opció triada es conserva. Després de `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` es carrega la pregunta nova amb un avís; després de `QUIZ_ALREADY_ANSWERED`, el resultat. Si aquesta recàrrega falla, es mostra l'error amb reintent encara que hi hagi una pregunta anterior en memòria cau.
 
+## Xat d'esdeveniment (TG-64)
+
+Codi a `src/features/chat/`; el contracte REST i el protocol WebSocket són els del backend ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md), [ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md)). Notes de disseny a `obsidian_vault/arquitectura/frontend.md`.
+
+- **Connexió en temps real compartida (`src/shared/realtime/`):** un client WebSocket genèric sense lògica de xat (`socketClient.ts`) i el seu hook `useSocket`. Hi ha una sola connexió per procés, oberta pel primer consumidor i tancada per l'últim; s'autentica amb el primer frame, reconnecta amb espera exponencial i envia els frames del xat amb reintents. `shared/` mai importa de `features/` (ho fa complir una regla d'ESLint): la sessió s'injecta (`features/auth/socketAuth.ts`).
+- **Funcionalitat de xat (`src/features/chat/`):**
+  - `api/` i `hooks/useChat.ts`: `useRooms`, `useMySubscriptions` i `useRoomMessages(eventId)` (historial amb cursor opac, 50 per pàgina).
+  - `hooks/useChatSocket.ts`: se subscriu a `chat:event:<eventId>` i envia missatges amb un `client_message_id` que es reutilitza en cada reintent.
+  - `roomList.ts`: la llista de sales es construeix al client a partir de les subscripcions de la usuària i de les sales que retorna l'API.
+  - `components/`: `ChatRoomsScreen` i `RoomListItem` (la llista) i les peces de la sala, `MessageBubble`, `MessageComposer` i `MessageList`, la pantalla `ChatRoomScreen` que les munta, i les dades pures a `chatCache.ts` i `chatItems.ts`.
+- **Què hi ha avui:** la ruta de pestanya `/(app)/chat` mostra la llista de sales de xat dels esdeveniments als quals la usuària està subscrita, cadascuna amb el darrer missatge, i cada fila obre la sala (`router.push('/chat/<eventId>')`). La sala és `ChatRoomScreen`, a la ruta `src/app/(app)/chat/[eventId].tsx`: el cel, una barra de vidre amb el títol de l'esdeveniment, els missatges al damunt i el compositor sobre el teclat. La mou el hook `useRoomLive(eventId)` (obre la sala, carrega l'historial, afegeix el que arriba en viu i envia: un missatge és pendent fins que el servidor el confirma, i un de refusat es queda a la seva bombolla amb el motiu per reintentar-lo o descartar-lo). La barra de pestanyes s'amaga dins la sala (`useSegments()` a `(app)/_layout.tsx`). Un missatge confirmat dona un impacte hàptic lleuger i un enviament refusat una hàptica d'error, amb `expo-haptics` (fixada a 58.0.7); la hàptica mai llança, així que és un extra on la plataforma no en té (p. ex. el web).
+
+**Provar-ho.** Arrenca la base de dades i la memòria cau amb `docker compose up -d db cache` a `infra/` i, a `backend/`, `uv run alembic upgrade head` i `uv run uvicorn app.main:app --reload` (detall a [`../backend/README.ca.md`](../backend/README.ca.md#xat-desdeveniment)). Arrenca l'app amb `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 pnpm web`. El teu `.env` pot apuntar a producció: aquesta variable el sobreescriu, de manera que les proves en local mai toquen producció. Inicia sessió, subscriu-te a un esdeveniment, obre la pestanya del xat i toca la seva sala.
+
 ## Executar i testejar
 
 ```bash

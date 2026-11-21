@@ -1,10 +1,9 @@
 import { PaperPlaneRight } from 'phosphor-react-native';
-import { type ComponentRef, useContext, useRef, useState } from 'react';
+import { type ComponentRef, type RefObject, useContext, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
-import { type AppError, errorMessage } from '../../../shared/errors';
 import { readingMaxWidth, type Theme, useTheme } from '../../../shared/theme';
 import { GelIconButton, useReduceTransparency } from '../../../shared/ui';
 import { type ComposerSurface, composerSurface } from '../composerSurface';
@@ -22,34 +21,36 @@ function characterCount(text: string) {
 }
 
 interface Props {
-  /** Sends the trimmed text. A rejection keeps the text in the field, so nothing is lost. */
+  /**
+   * Sends the trimmed text; the field is emptied once it resolves. It does not reject: the bubble
+   * of the message is where the outcome of the send lives.
+   */
   onSend: (text: string) => Promise<unknown> | void;
   /** The parent is busy (e.g. joining the room): nothing can be sent. */
   busy?: boolean;
   /** Why nothing can be sent now (e.g. offline). The person can keep writing. */
   disabledReason?: string;
-  /** The error of the last send, shown in the language of the app (gestio-errors). */
-  error?: AppError | null;
   /**
    * Room to leave below it. The screen decides: the bottom safe area with the keyboard down, none
    * with the keyboard up. The sides always follow the safe area.
    */
   bottomInset?: number;
+  /** The field of the screen that owns it, so the screen can give it the focus (e.g. after discarding). */
+  fieldRef?: RefObject<ComponentRef<typeof TextInput> | null>;
 }
 
 /**
  * Where a message is written (TG-469): a floating glass capsule with a field that grows up to
  * five lines and a round gel send button. Enter adds a line; only the button sends. The counter
  * counts as the server does and, over the limit, an alert says so and blocks sending without
- * cutting the text. A rejected send keeps the text; the parent shows its error here, with no
- * retry of its own (the bubble of the message offers it).
+ * cutting the text. The outcome of a send (and its retry) lives in the bubble of the message.
  */
 export function MessageComposer({
   onSend,
   busy = false,
   disabledReason,
-  error,
   bottomInset = 0,
+  fieldRef,
 }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -57,7 +58,8 @@ export function MessageComposer({
   const reduceTransparency = useReduceTransparency();
   const styles = createStyles(theme, composerSurface(colors, reduceTransparency));
   const insets = useContext(SafeAreaInsetsContext);
-  const field = useRef<ComponentRef<typeof TextInput>>(null);
+  const ownField = useRef<ComponentRef<typeof TextInput>>(null);
+  const field = fieldRef ?? ownField;
   const inFlight = useRef(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -71,9 +73,7 @@ export function MessageComposer({
         max: new Intl.NumberFormat(i18n.language).format(MESSAGE_MAX_LENGTH),
       })
     : '';
-  const errorText = error ? errorMessage(t, error.code, error.retryable) : '';
   useAnnounceOnIos(tooLongText || undefined);
-  useAnnounceOnIos(errorText || undefined);
   useAnnounceOnIos(disabledReason);
 
   async function send() {
@@ -85,19 +85,11 @@ export function MessageComposer({
       setText('');
       // Keeps the keyboard up for the next message (checked on a device, not in a unit test).
       field.current?.focus();
-    } catch {
-      // The parent shows why through `error`; the text stays, so nothing typed is lost.
     } finally {
       inFlight.current = false;
       setSending(false);
     }
   }
-
-  const alert = (message: string) => (
-    <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.alert}>
-      {message}
-    </Text>
-  );
 
   return (
     <View
@@ -118,8 +110,11 @@ export function MessageComposer({
             {disabledReason}
           </Text>
         )}
-        {tooLongText !== '' && alert(tooLongText)}
-        {errorText !== '' && alert(errorText)}
+        {tooLongText !== '' && (
+          <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.alert}>
+            {tooLongText}
+          </Text>
+        )}
         <View style={styles.row}>
           <TextInput
             ref={field}

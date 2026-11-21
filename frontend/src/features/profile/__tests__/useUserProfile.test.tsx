@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { AppError } from '../../../shared/errors';
 import * as tokenStorage from '../../auth/tokenStorage';
+import { deferredResponse } from '../../../../__mocks__/pendingResponses';
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
 import { profileKeys, useUserProfile } from '../hooks/useUserProfile';
 
@@ -36,11 +37,14 @@ afterEach(() => {
 
 describe('useUserProfile (TG-385 #518)', () => {
   it('starts loading and resolves with the user profile on success', async () => {
-    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+    // The answer waits for the test, so "loading" does not depend on how fast the machine is.
+    const answer = deferredResponse();
+    jest.spyOn(globalThis, 'fetch').mockImplementation(() => answer.response);
 
     const { result } = await renderHook(() => useUserProfile(), { wrapper });
 
     expect(result.current.isLoading).toBe(true);
+    answer.answer(jsonResponse(mockUserProfile));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(mockUserProfile);
   });

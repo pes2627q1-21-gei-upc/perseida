@@ -30,6 +30,16 @@ describe('navigationConfig (TG-385 #388)', () => {
     ]);
   });
 
+  it('gives a short visible label only to the tabs whose title does not fit under the icon (TG-469)', () => {
+    expect(TAB_CONFIG.map((t) => [t.name, t.shortTitleKey])).toEqual([
+      ['index', undefined],
+      ['events', 'nav.short.events'],
+      ['chat', undefined],
+      ['gamification', 'nav.short.gamification'],
+      ['profile', undefined],
+    ]);
+  });
+
   it('defines hidden sub-routes that must not appear in tab bar', () => {
     expect(HIDDEN_ROUTES).toContain('map');
     expect(HIDDEN_ROUTES).toContain('apod');

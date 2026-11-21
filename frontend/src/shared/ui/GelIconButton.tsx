@@ -76,7 +76,11 @@ export function GelIconButton({
               { borderRadius: radii.pill, borderColor: gel.rim },
             ]}
           />
-          {busy ? <ActivityIndicator color={gel.text} /> : icon}
+          {/* A positioned layer above the gel ones: on the web a bare icon (an svg, not positioned)
+              is painted behind the absolute layers and disappears. */}
+          <View testID="gel-icon-button-icon" pointerEvents="none" style={styles.icon}>
+            {busy ? <ActivityIndicator color={gel.text} /> : icon}
+          </View>
         </>
       )}
     </Pressable>
@@ -87,4 +91,5 @@ const styles = StyleSheet.create({
   button: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   gloss: { position: 'absolute', top: 0, left: 0, right: 0 },
   rim: { borderWidth: 1, opacity: 0.5 },
+  icon: { position: 'relative', zIndex: 1, alignItems: 'center', justifyContent: 'center' },
 });

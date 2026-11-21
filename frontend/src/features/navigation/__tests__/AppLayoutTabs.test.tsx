@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppLayout from '../../../app/(app)/_layout';
 import * as refreshTokenModule from '../../auth/api/refreshToken';
 import * as tokenStorage from '../../auth/tokenStorage';
+import i18n from '../../../shared/i18n';
 import { colors, touch, typography } from '../../../shared/theme';
 
 const dia = colors.dia;
@@ -35,6 +36,9 @@ jest.mock('expo-router', () => {
 
   return {
     useRouter: () => ({ replace: jest.fn() }),
+    // The layout may read where the person is (e.g. to hide the bar in a chat room, TG-469):
+    // here, the home tab.
+    useSegments: () => ['(app)'],
     Tabs: MockTabs,
     Stack: () => null,
   };
@@ -178,6 +182,47 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
         .map((s) => s.options.tabBarAccessibilityLabel);
       expect(labels).toEqual(['Inici', 'Esdeveniments', 'Xat', 'Gamificació', 'Perfil']);
     });
+  });
+
+  describe('visible label and accessible name of each tab, in each language (TG-469)', () => {
+    // At 360 px the long titles do not fit under the icon: «Esdeveniments» and «Gamificació»
+    // have a short visible label, while the screen reader and the screen keep the long name.
+    const mainTabs = () => mockTabsScreens.filter((s) => !s.options.tabBarButton);
+
+    afterEach(async () => {
+      await act(() => i18n.changeLanguage('ca'));
+    });
+
+    it.each([
+      [
+        'ca',
+        ['Inici', 'Agenda', 'Xat', 'Fites', 'Perfil'],
+        ['Inici', 'Esdeveniments', 'Xat', 'Gamificació', 'Perfil'],
+      ],
+      [
+        'es',
+        ['Inicio', 'Eventos', 'Chat', 'Logros', 'Perfil'],
+        ['Inicio', 'Eventos', 'Chat', 'Gamificación', 'Perfil'],
+      ],
+      [
+        'en',
+        ['Home', 'Events', 'Chat', 'Awards', 'Profile'],
+        ['Home', 'Events', 'Chat', 'Gamification', 'Profile'],
+      ],
+    ])(
+      'in %s shows the short labels and keeps the long names for screen readers and titles',
+      async (language, visible, accessible) => {
+        await act(() => i18n.changeLanguage(language));
+        await act(async () => {
+          renderLayout();
+        });
+
+        await waitFor(() => expect(mainTabs()).toHaveLength(5));
+        expect(mainTabs().map((s) => s.options.tabBarLabel)).toEqual(visible);
+        expect(mainTabs().map((s) => s.options.tabBarAccessibilityLabel)).toEqual(accessible);
+        expect(mainTabs().map((s) => s.options.title)).toEqual(accessible);
+      },
+    );
   });
 
   it('draws the tab bar as blurred glass, light by day (TG-385 criteri 5)', async () => {

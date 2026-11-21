@@ -36,7 +36,8 @@
       "sending": "Enviando",
       "failed": "No se ha podido enviar el mensaje.",
       "uncertain": "Es posible que el mensaje ya se haya enviado. Si lo reintentas, no se duplicará.",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "discard": "Descartar"
     },
     "composer": {
       "label": "Escribe un mensaje",
@@ -47,6 +48,22 @@
     "messages": {
       "label": "Mensajes del chat",
       "loadingOlder": "Cargando mensajes anteriores"
+    },
+    "room": {
+      "title": "Chat del evento",
+      "loading": "Cargando mensajes",
+      "retryHint": "Vuelve a abrir la sala de chat",
+      "empty": "Aún no hay mensajes. ¡Sé la primera persona en escribir!",
+      "revoked": "Ya no formas parte de este chat. Suscríbete al evento para volver a escribir.",
+      "backToRooms": "Volver a las salas",
+      "reconnecting": "Reconectando…",
+      "reconnect": "Reconectar",
+      "newMessage": "Mensaje nuevo de {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Conectando con el chat…",
+        "reconnecting": "Se ha perdido la conexión. Podrás enviar cuando se recupere.",
+        "closed": "No hay conexión con el chat."
+      }
     }
   },
   "common": {
@@ -177,7 +194,11 @@
     "events": "Eventos",
     "gamification": "Gamificación",
     "home": "Inicio",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "short": {
+      "events": "Eventos",
+      "gamification": "Logros"
+    }
   },
   "profile": {
     "achievements": {

@@ -83,6 +83,20 @@ Route `/(app)/quiz` (for now, linked from the temporary home). Code in `src/feat
 - **Screen:** the question with its 4 options (radio buttons) and a send button that stays disabled until an option is chosen and busy while sending. Once answered (or if it already was), the result: right or not, the right option and the chosen one in words and icons, the explanation and a link to the source. Both views have a "Back to home" button, so the system back button is not needed.
 - **Errors:** loading errors show a translated message with retry when transient. If sending fails, the chosen option stays. After `QUIZ_EXPIRED` or `QUIZ_QUESTION_MISMATCH` the new question is loaded with a notice; after `QUIZ_ALREADY_ANSWERED`, the result. If that reload fails, the error is shown with retry even if an older question is cached.
 
+## Event chat (TG-64)
+
+Code in `src/features/chat/`; the REST contract and the WebSocket protocol are the backend's ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md), [ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md)). Design notes in `obsidian_vault/arquitectura/frontend.md`.
+
+- **Shared real-time connection (`src/shared/realtime/`):** a generic WebSocket client with no chat logic (`socketClient.ts`) and its hook `useSocket`. One connection per process, opened by the first consumer and closed by the last; it authenticates with the first frame, reconnects with backoff and sends the frames of the chat with retries. `shared/` never imports from `features/` (an ESLint rule enforces it): the session is injected (`features/auth/socketAuth.ts`).
+- **Chat feature (`src/features/chat/`):**
+  - `api/` and `hooks/useChat.ts`: `useRooms`, `useMySubscriptions` and `useRoomMessages(eventId)` (history with an opaque cursor, 50 per page).
+  - `hooks/useChatSocket.ts`: subscribes to `chat:event:<eventId>` and sends messages with a `client_message_id` that is reused in every retry.
+  - `roomList.ts`: the room list is built on the client from the user's subscriptions plus the rooms returned by the API.
+  - `components/`: `ChatRoomsScreen` and `RoomListItem` (the list) and the building blocks of the room, `MessageBubble`, `MessageComposer` and `MessageList`, the screen `ChatRoomScreen` that assembles them, and the pure data in `chatCache.ts` and `chatItems.ts`.
+- **What exists today:** the tab route `/(app)/chat` shows the list of chat rooms of the events the user is subscribed to, each with its latest message, and each row opens the room (`router.push('/chat/<eventId>')`). The room is `ChatRoomScreen`, on the route `src/app/(app)/chat/[eventId].tsx`: the sky, a glass bar with the title of the event, the messages over it and the composer above the keyboard. It is driven by the hook `useRoomLive(eventId)` (opens the room, loads the history, adds what arrives live and sends: a message is pending until the server confirms it, and a refused one stays in its bubble with its reason to retry or discard). The tab bar is hidden inside the room (`useSegments()` in `(app)/_layout.tsx`). A confirmed message gives a light haptic impact and a refused send an error haptic, with `expo-haptics` (pinned 58.0.7); haptics never throw, so they are a bonus where the platform has none (e.g. the web).
+
+**Try it.** Start the database and the cache with `docker compose up -d db cache` in `infra/`, then, in `backend/`, `uv run alembic upgrade head` and `uv run uvicorn app.main:app --reload` (details in [`../backend/README.md`](../backend/README.md#event-chat)). Start the app with `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 pnpm web`. Your `.env` may point to production: that variable overrides it, so local tests never hit production. Sign in, subscribe to an event, open the chat tab and tap its room.
+
 ## Run and test
 
 ```bash

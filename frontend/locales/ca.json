@@ -36,7 +36,8 @@
       "sending": "Enviant",
       "failed": "No s'ha pogut enviar el missatge.",
       "uncertain": "És possible que el missatge ja s'hagi enviat. Si el reintentes, no es duplicarà.",
-      "retry": "Reintenta"
+      "retry": "Reintenta",
+      "discard": "Descarta"
     },
     "composer": {
       "label": "Escriu un missatge",
@@ -47,6 +48,22 @@
     "messages": {
       "label": "Missatges del xat",
       "loadingOlder": "Carregant missatges anteriors"
+    },
+    "room": {
+      "title": "Xat de l'esdeveniment",
+      "loading": "Carregant missatges",
+      "retryHint": "Torna a obrir la sala de xat",
+      "empty": "Encara no hi ha missatges. Sigues la primera persona a escriure!",
+      "revoked": "Ja no formes part d'aquest xat. Subscriu-te a l'esdeveniment per tornar-hi a escriure.",
+      "backToRooms": "Torna a les sales",
+      "reconnecting": "Reconnectant…",
+      "reconnect": "Reconnecta",
+      "newMessage": "Missatge nou de {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Connectant amb el xat…",
+        "reconnecting": "S'ha perdut la connexió. Podràs enviar quan es recuperi.",
+        "closed": "No hi ha connexió amb el xat."
+      }
     }
   },
   "common": {
@@ -177,7 +194,11 @@
     "events": "Esdeveniments",
     "gamification": "Gamificació",
     "home": "Inici",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "short": {
+      "events": "Agenda",
+      "gamification": "Fites"
+    }
   },
   "profile": {
     "achievements": {
