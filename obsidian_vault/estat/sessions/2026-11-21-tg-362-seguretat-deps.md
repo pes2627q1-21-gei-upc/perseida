@@ -32,6 +32,14 @@ Tercera tasca de TG-362 (TG-383), a la segona PR de la US. L'objectiu és que la
 - Verificat en local, a `frontend/`: `pnpm audit --prod --audit-level=high` surt amb codi 1 i informa de GHSA-mrhx-c7xc-m3w5 (`zod` < 4.6.6, alta, via `expo` → `@expo/cli`; 4 vulnerabilitats: 1 alta i 3 moderades). Com que el pas porta `continue-on-error`, a la CI es veurà en vermell però no farà fallar el job. `uv run pytest tests/architecture/test_test_tooling.py --no-cov` passa sencer (29 tests).
 - Documentació: [[testing]], [[seguretat]], [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i els README del frontend (ca, es, en).
 
+### Canvi posterior: `pnpm audit` passa a bloquejant
+
+L'equip ha decidit al xat de l'equip (21/11/2026) que el pas `pnpm audit --prod --audit-level=high` del job `frontend` sigui bloquejant. TG-338 (expo 58.0.26) elimina `zod` 3 (GHSA-mrhx-c7xc-m3w5) i, amb aquest canvi, l'audit surt amb 0 (verificat el 21/11/2026). TG-338 va per una altra branca: en aquesta branca l'audit encara surt amb 1 fins que s'integri TG-338.
+
+- Test en vermell (`360961c`): `test_tg362_ci_audits_the_frontend_production_dependencies` exigeix que el pas no porti `continue-on-error`.
+- CI (`5b0ff0a`): s'ha tret `continue-on-error: true`, el pas es diu «Auditoria de dependències de producció (pnpm audit)» i el comentari diu que un risc acceptat va a `auditConfig.ignoreGhsas` de `frontend/pnpm-workspace.yaml`, amb fila a [[seguretat]].
+- Documentació: [[testing]], [[seguretat]], [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i els README del frontend (ca, es, en) ja diuen que és bloquejant.
+
 ## Decisions preses
 
 Aprovades per la persona responsable en aquesta sessió:
@@ -41,6 +49,7 @@ Aprovades per la persona responsable en aquesta sessió:
 - **pip-audit contra OSV** (`-s osv`), sobre el lockfile exportat amb hashes i sense instal·lar res (`--disable-pip`).
 - **`pnpm audit` com a avís fins a TG-338.** A TG-384 entra a la CI sense bloquejar. **TG-338 l'ha de passar a bloquejant**: no pot quedar oblidat.
 - **GHSA-mrhx-c7xc-m3w5 (`zod`) no s'accepta a TG-384.** No va a la taula de riscos acceptats de [[seguretat]]: hi consta com a pendent de TG-338.
+- **`pnpm audit` bloquejant** (decisió de l'equip al xat de l'equip, 21/11/2026). Substitueix la decisió de deixar-lo com a avís fins a TG-338.
 
 Decisions menors:
 
@@ -58,10 +67,11 @@ Decisions menors:
 ## Pendent / següents passos
 
 - [x] TG-384: `pnpm audit` a la CI com a avís (no bloquejant).
-- [ ] TG-338: passar `pnpm audit` a bloquejant (treure `continue-on-error`) i decidir sobre GHSA-mrhx-c7xc-m3w5 (`zod` via `expo` → `@expo/cli`, sense correcció dins la 3.x).
+- [x] TG-338: passar `pnpm audit` a bloquejant (treure `continue-on-error`) i decidir sobre GHSA-mrhx-c7xc-m3w5 (`zod` via `expo` → `@expo/cli`, sense correcció dins la 3.x). Fet a TG-362 per decisió de l'equip (21/11/2026); `zod` 3 desapareix amb TG-338 (expo 58.0.26).
+- [ ] Integrar TG-338 abans que aquesta branca: sense TG-338, el pas `pnpm audit` bloquejant falla (surt amb 1).
 - [ ] PR cap a `develop` (després de la PR 1), revisada per una persona que no sigui l'autora, i CI verda.
 
 ## US de Taiga
 
 - TG-362 (tasques TG-383 i TG-384)
-- TG-338 (pendent: `pnpm audit` bloquejant i decisió sobre `zod`)
+- TG-338 (elimina `zod` 3 amb expo 58.0.26; `pnpm audit` ja és bloquejant per decisió de l'equip)
