@@ -333,3 +333,20 @@ def test_tg598_c6_openapi_does_not_make_the_session_mandatory() -> None:
     # Optional session: either no security requirement, or one that allows {}.
     security = operation.get("security")
     assert security is None or {} in security
+
+
+async def test_tg598_c4_the_session_warning_carries_the_code_and_no_traceback(
+    env: Env, caplog: pytest.LogCaptureFixture
+) -> None:
+    # The store already logged its own detail; this one must not repeat the cause
+    # chain (the Redis message may carry host and port).
+    env.auth.down = True
+
+    with caplog.at_level("WARNING"):
+        await env.client.get("/api/apod", headers=env.auth_headers)
+
+    (record,) = [
+        r for r in caplog.records if r.name == "app.infrastructure.auth.dependencies"
+    ]
+    assert record.exc_info is None
+    assert SESSION_UNAVAILABLE in record.getMessage()
