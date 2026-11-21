@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { makeMessage } from '../../../../__mocks__/chat';
 import { colors } from '../../../shared/theme';
@@ -44,24 +45,32 @@ function icons(name: string) {
 
 // What the kind and the state of a bubble change besides its texts (TG-469).
 describe('MessageBubble, material (TG-469)', () => {
-  const { gel } = colors.dia;
+  const { gel, accentGlow } = colors.dia;
+  const veil = () => screen.queryAllByTestId('chat-bubble-veil', { includeHiddenElements: true });
 
-  it('mine is a drop of gel with its gloss', async () => {
+  it('mine is tinted glass with the highlight line of the glass, and no gel', async () => {
     await render(<MessageBubble item={messageItem(true)} />);
 
-    expect(gradients()).toEqual([gel.body, gel.highlight]);
+    expect(gradients()).toEqual([gel.highlight]);
+    expect(veil()).toHaveLength(1);
+    expect(StyleSheet.flatten(veil()[0]?.props.style).backgroundColor).toMatch(
+      new RegExp(`^${accentGlow}`, 'i'),
+    );
   });
 
-  it('mine on its way is matte gel: no gloss yet', async () => {
+  it('mine on its way is plain glass: no veil yet, still the busy dot', async () => {
     await render(<MessageBubble item={pendingItem('sending')} />);
 
-    expect(gradients()).toEqual([gel.body]);
+    expect(gradients()).toEqual([gel.highlight]);
+    expect(veil()).toHaveLength(0);
+    expect(screen.getByTestId('chat-sending-dot', { includeHiddenElements: true })).toBeTruthy();
   });
 
-  it('the others’ is glass with only a highlight line', async () => {
+  it('the others’ is glass with only a highlight line and no veil', async () => {
     await render(<MessageBubble item={messageItem(false)} />);
 
     expect(gradients()).toEqual([gel.highlight]);
+    expect(veil()).toHaveLength(0);
   });
 });
 

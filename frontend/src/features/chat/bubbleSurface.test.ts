@@ -32,26 +32,45 @@ function scene(name: ThemeName) {
 }
 
 // Signature: bubbleSurface(themeColors, mine, reduceTransparency) returns
-// { background, gradient?, text, secondaryText, border }. Mine is gel (opaque, the gel tokens of
-// the button); others are translucent glass.
+// { background, tint?, text, secondaryText, border }. Mine is glass tinted with the accent (the
+// glass of the others plus a veil of the accent colour); the gel is only for actions.
 describe('bubbleSurface (TG-469, WCAG 1.4.3)', () => {
   describe.each(THEMES)('%s', (name) => {
-    const { gel, text } = colors[name];
+    const { accentGlow, text } = colors[name];
+
+    it('my bubble is tinted glass: the glass of the others plus a veil of the accent, no gel', () => {
+      const mine = bubbleSurface(colors[name], true, false);
+      const others = bubbleSurface(colors[name], false, false);
+
+      expect(mine.background).toBe(others.background);
+      expect(mine.tint).toMatch(new RegExp(`^${accentGlow}[0-9A-F]{2}$`, 'i'));
+      expect(parseInt((mine.tint ?? '').slice(7, 9), 16)).toBeLessThan(255);
+      expect(mine.border).toBe(accentGlow);
+      expect(mine).not.toHaveProperty('gradient');
+      expect(mine.text).toBe(text.primary);
+      expect(mine.secondaryText).toBe(text.secondary);
+    });
 
     it.each([false, true])(
-      'my bubble is the gel of the button, and its text reads at 4.5:1 on every stop of it (transparency off: %s)',
+      'my text reads at 4.5:1 over the whole scene, the veil included (transparency off: %s)',
       (reduceTransparency) => {
         const mine = bubbleSurface(colors[name], true, reduceTransparency);
 
-        expect(mine.text).toBe(gel.text);
-        expect(mine.background).toBe(gel.body[0]);
-        expect(mine.gradient).toEqual(gel.body);
-        [...gel.body, gel.bodyPressed].forEach((body) => {
-          expect(contrast(rgb(mine.text), rgb(body))).toBeGreaterThanOrEqual(4.5);
-          expect(contrast(rgb(mine.secondaryText), rgb(body))).toBeGreaterThanOrEqual(4.5);
+        scene(name).forEach((backgroundColor) => {
+          const glass = over(mine.background, backgroundColor);
+          const seen = over(
+            mine.tint ?? '',
+            `#${glass.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`,
+          );
+          expect(contrast(rgb(mine.text), seen)).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(rgb(mine.secondaryText), seen)).toBeGreaterThanOrEqual(4.5);
         });
       },
     );
+
+    it('my bubble is opaque with «Reduce transparency»', () => {
+      expect(bubbleSurface(colors[name], true, true).background).toMatch(/^#[0-9A-F]{6}$/i);
+    });
 
     it('the bubble of others reads at 4.5:1 over any colour of the scene', () => {
       const others = bubbleSurface(colors[name], false, false);
@@ -65,12 +84,12 @@ describe('bubbleSurface (TG-469, WCAG 1.4.3)', () => {
       });
     });
 
-    it('the bubble of others is still glass, translucent, and has no gradient', () => {
+    it('the bubble of others is still glass, translucent, with no veil', () => {
       const others = bubbleSurface(colors[name], false, false);
 
       expect(others.background).toMatch(/^#[0-9A-F]{6}[0-9A-F]{2}$/i);
       expect(parseInt(others.background.slice(7, 9), 16)).toBeLessThan(255);
-      expect(others.gradient).toBeUndefined();
+      expect(others.tint).toBeUndefined();
     });
 
     it('the bubble of others is opaque with «Reduce transparency»', () => {
@@ -84,9 +103,11 @@ describe('bubbleSurface (TG-469, WCAG 1.4.3)', () => {
     });
 
     it.each([false, true])('mine and others look different (reduce transparency: %s)', (reduce) => {
-      expect(bubbleSurface(colors[name], true, reduce).background).not.toBe(
-        bubbleSurface(colors[name], false, reduce).background,
-      );
+      const mine = bubbleSurface(colors[name], true, reduce);
+      const others = bubbleSurface(colors[name], false, reduce);
+
+      expect(mine.tint).toBeDefined();
+      expect(mine.border).not.toBe(others.border);
     });
   });
 });
