@@ -7,6 +7,8 @@
  *   i dins de cada fitxer només sobre les línies afegides o canviades (rangs `fitxer:inici-final` de Stryker):
  *   tocar dues línies d'un fitxer existent no fa mutar-ne tot el codi anterior.
  * - Exclou components visuals purs (`src/shared/ui/**`), arxius de test i fitxers `.d.ts`.
+ * - Amb `--pr-number`, la base és la de la PR segons l'API REST (en una PR apilada, la seva branca pare i no el
+ *   tronc que `github.base_ref` dona), i només les línies d'aquesta capa es muten; sense l'API, `--base-branch`.
  * - Llindar bloquejant: mutation score >= 70% (gestionat via thresholds.break = 70 a stryker.config.json).
  */
 
@@ -15,16 +17,83 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-function getArgs() {
-  const args = process.argv.slice(2);
+/**
+ * Arguments de la línia d'ordres: `--base-branch <ref>` (per defecte `origin/develop`) i, opcionalment,
+ * `--pr-number <n>`, que fa consultar a l'API de GitHub la base real de la PR (vegeu `resolveBaseBranch`).
+ */
+export function parseArgs(args) {
   let baseBranch = 'origin/develop';
+  let prNumber = null;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--base-branch' && args[i + 1]) {
       baseBranch = args[i + 1];
       i++;
+    } else if (args[i] === '--pr-number' && args[i + 1] !== undefined) {
+      prNumber = /^[1-9]\d*$/.test(args[i + 1]) ? Number(args[i + 1]) : null;
+      i++;
     }
   }
-  return { baseBranch };
+  return { baseBranch, prNumber };
+}
+
+/**
+ * Branca base real d'una PR segons l'API REST (`base.ref`), o `null` si no es pot saber.
+ *
+ * En una PR apilada (stacked PRs de GitHub) `github.base_ref` del workflow val el tronc de la pila (`develop`)
+ * i no la branca pare, de manera que mutaria tota la pila a cada capa. L'API REST de la PR sí que diu la base
+ * real. Qualsevol error (xarxa, límit, resposta estranya) dona `null` perquè el qui crida mantingui la base d'abans.
+ */
+export async function fetchPrBaseRef({
+  repository,
+  prNumber,
+  token,
+  apiUrl = 'https://api.github.com',
+  fetchImpl = fetch,
+  timeoutMs = 15_000,
+}) {
+  if (!repository || !prNumber) return null;
+  try {
+    const headers = { Accept: 'application/vnd.github+json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetchImpl(`${apiUrl}/repos/${repository}/pulls/${prNumber}`, {
+      headers,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) return null;
+    const ref = (await response.json())?.base?.ref;
+    return typeof ref === 'string' && ref ? ref : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Tria la base del diff: la base real de la PR (`origin/<prBaseRef>`) si l'API l'ha donada, és un nom de branca
+ * acceptable i la branca existeix en local; si no, la base donada amb `--base-branch` (`fallback`).
+ * `refExists` s'injecta perquè la funció sigui pura.
+ */
+export function resolveBaseBranch({ fallback, prBaseRef, refExists }) {
+  if (
+    typeof prBaseRef === 'string' &&
+    prBaseRef &&
+    !prBaseRef.startsWith('-') &&
+    !/\s/.test(prBaseRef)
+  ) {
+    const candidate = `origin/${prBaseRef}`;
+    if (refExists(candidate)) return { baseBranch: candidate, source: 'api' };
+  }
+  return { baseBranch: fallback, source: 'fallback' };
+}
+
+function refExistsLocally(ref) {
+  try {
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], {
+      stdio: 'ignore',
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function getChangedFrontendFiles(baseBranch) {
@@ -122,8 +191,30 @@ function getChangedRanges(baseBranch) {
   return changedRanges(diff);
 }
 
-function main() {
-  const { baseBranch } = getArgs();
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  let baseBranch = args.baseBranch;
+  if (args.prNumber) {
+    const prBaseRef = await fetchPrBaseRef({
+      repository: process.env.GITHUB_REPOSITORY,
+      prNumber: args.prNumber,
+      token: process.env.GITHUB_TOKEN,
+      apiUrl: process.env.GITHUB_API_URL || undefined,
+    });
+    const resolved = resolveBaseBranch({
+      fallback: args.baseBranch,
+      prBaseRef,
+      refExists: refExistsLocally,
+    });
+    baseBranch = resolved.baseBranch;
+    console.log(
+      `ℹ️ Base del diff: ${baseBranch} (${
+        resolved.source === 'api'
+          ? `base real de la PR #${args.prNumber} segons l'API; ${args.baseBranch} és el que dona github.base_ref`
+          : `no s'ha pogut obtenir la base real de la PR #${args.prNumber}; s'usa ${args.baseBranch}`
+      }).`,
+    );
+  }
   const changedFiles = getChangedFrontendFiles(baseBranch);
 
   if (changedFiles === null) {
@@ -176,5 +267,5 @@ function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  await main();
 }
