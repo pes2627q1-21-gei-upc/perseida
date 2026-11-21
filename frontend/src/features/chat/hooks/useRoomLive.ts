@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { type AppError, NETWORK_ERROR_CODE } from '../../../shared/errors';
 import type { CurrentUser } from '../../auth/api/getCurrentUser';
@@ -95,6 +95,32 @@ export function useRoomLive(eventId: string) {
       .then(() => refetchHistory());
   }, [eventId, queryClient, refetchHistory, roomOpen]);
 
+  // What arrives live (a message or the ack of an own one) while a request of the history is on
+  // its way: that request may have read the history before it, and its answer replaces the cache,
+  // so it would be lost. It is kept here and put back when the request ends (addMessage does not
+  // duplicate).
+  const arrivedWhileFetching = useRef<ChatMessage[]>([]);
+  const addLive = useCallback(
+    (message: ChatMessage) => {
+      const key = chatKeys.messages(eventId);
+      queryClient.setQueryData<ChatHistoryData>(key, (cached) => addMessage(cached, message));
+      if (queryClient.isFetching({ queryKey: key }) > 0) arrivedWhileFetching.current.push(message);
+    },
+    [eventId, queryClient],
+  );
+  const isFetchingHistory = history.isFetching;
+  useEffect(() => {
+    if (isFetchingHistory || arrivedWhileFetching.current.length === 0) return;
+    const arrived = arrivedWhileFetching.current;
+    arrivedWhileFetching.current = [];
+    queryClient.setQueryData<ChatHistoryData>(chatKeys.messages(eventId), (cached) =>
+      arrived.reduce<ChatHistoryData | undefined>(
+        (data, message) => addMessage(data, message),
+        cached,
+      ),
+    );
+  }, [eventId, isFetchingHistory, queryClient]);
+
   const takeOut = useCallback(() => {
     setRevoked(true);
     void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
@@ -104,10 +130,7 @@ export function useRoomLive(eventId: string) {
   const socket = useChatSocket(
     eventId,
     {
-      onMessage: (message) =>
-        queryClient.setQueryData<ChatHistoryData>(chatKeys.messages(eventId), (cached) =>
-          addMessage(cached, message),
-        ),
+      onMessage: addLive,
       onRevoked: takeOut,
       onError: (error) => {
         if (error.code === FORBIDDEN) takeOut();
@@ -176,15 +199,13 @@ export function useRoomLive(eventId: string) {
         text,
         sent_at: ack.sent_at,
       };
-      queryClient.setQueryData<ChatHistoryData>(chatKeys.messages(eventId), (cached) =>
-        addMessage(cached, message),
-      );
+      addLive(message);
       setPending((current) =>
         current.filter((outgoing) => outgoing.clientMessageId !== clientMessageId),
       );
       void haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     },
-    [eventId, queryClient, refused, roomId, sendMessage],
+    [addLive, refused, roomId, sendMessage],
   );
 
   /**
