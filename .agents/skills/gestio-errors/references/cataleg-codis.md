@@ -46,6 +46,8 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `USER_EMAIL_INVALID` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users (correu massa llarg o amb espais o caràcters de control) |
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
+| `CANNOT_MESSAGE_SELF` | 422 | `BusinessRuleViolation` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa o bloqueig amb un mateix usuari; TG-400) |
+| `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; TG-400) |
 
 ## Codis dels esdeveniments (TG-351)
 
