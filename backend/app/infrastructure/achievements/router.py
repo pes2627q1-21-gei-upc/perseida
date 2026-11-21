@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
 from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
@@ -13,25 +13,16 @@ from app.application.shared.error_codes import (
 )
 from app.domain.achievements.models import AchievementCategory
 from app.infrastructure.achievements.dependencies import AchievementServiceDep
-from app.infrastructure.api.schemas import ProblemDetails
+from app.infrastructure.api.schemas import PROBLEM_CONTENT
 from app.infrastructure.auth.dependencies import CurrentSessionDep
 from app.infrastructure.users.dependencies import UserServiceDep
 
 router = APIRouter(prefix="/users", tags=["achievements"])
 
-_PROBLEM_CONTENT: dict[str, Any] = {
-    "application/problem+json": {
-        "schema": {"$ref": "#/components/schemas/ProblemDetails"}
-    }
-}
-
 
 def _problem(description: str) -> dict[str, Any]:
-    return {
-        "model": ProblemDetails,
-        "description": description,
-        "content": _PROBLEM_CONTENT,
-    }
+    # No ``model``: FastAPI would add ``application/json`` next to problem+json.
+    return {"description": description, "content": PROBLEM_CONTENT}
 
 
 _COMMON_RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -57,7 +48,7 @@ class AchievementResponse(BaseModel):
     )
 
     @classmethod
-    def from_progress(cls, item: AchievementProgress) -> "AchievementResponse":
+    def from_progress(cls, item: AchievementProgress) -> Self:
         achievement = item.achievement
         return cls(
             code=achievement.code,
