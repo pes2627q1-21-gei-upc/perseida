@@ -60,7 +60,7 @@ Quan una US es divideix en diverses PR que depenen les unes de les altres (per l
 
 ## Stryker i les PR apilades
 
-El job de mutation testing del frontend de la CI (`.github/workflows/ci.yml`) corre amb `--base-branch origin/${{ github.base_ref }}`: la base és la de la PR, és a dir, la branca de la PR de sota de la pila (o `develop` per a la primera). Per tant, a cada capa només es muten les línies que aquella PR afegeix, i el límit orientatiu de uns 400 mutants es compta per capa (TG-652). Si algú executa Stryker en local amb `--base-branch origin/develop`, es mutaran també les línies de les capes de sota.
+En una PR d'un stack, el context del workflow `github.base_ref` val el tronc de l'stack (`develop`) i no la branca pare. El job de mutation testing del frontend de la CI (`.github/workflows/ci.yml`) corre amb `--base-branch origin/${{ github.base_ref }}`, és a dir, `origin/develop`: muta també les línies de les capes de sota, i el límit orientatiu de uns 400 mutants no es compta per capa sinó per a tota la pila fins a aquella PR (TG-652).
 
 ## Per verificar al primer ús
 
