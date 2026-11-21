@@ -209,6 +209,15 @@ def test_mark_read_never_goes_backwards() -> None:
     assert _read_mark(updated, USER_1) == T0
 
 
+def test_mark_read_refuses_a_naive_datetime() -> None:
+    # model_copy no valida: sense aquesta guarda una marca sense zona entraria
+    # a l'entitat i la comparació següent llançaria TypeError.
+    with pytest.raises(ValidationError) as exc_info:
+        _conversation().mark_read(USER_1, datetime(2026, 1, 1, 12, 0))  # noqa: DTZ001
+
+    assert exc_info.value.code == VALIDATION_ERROR
+
+
 def test_mark_read_moves_forward() -> None:
     # TG-65 criteri 11
     conversation = _conversation().mark_read(USER_1, T0)
