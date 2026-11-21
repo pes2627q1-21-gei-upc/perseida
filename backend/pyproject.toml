@@ -218,3 +218,37 @@ forbidden_modules = [
     "app.application.streaks",
     "app.application.users",
 ]
+
+[[tool.importlinter.contracts]]
+# TG-400: the direct chat only knows user ids; nothing is imported from the chat
+# of the events or from users.
+name = "The direct chat does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.direct_chat", "app.application.direct_chat"]
+forbidden_modules = [
+    "app.domain.achievements",
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.chat",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.outings",
+    "app.domain.posts",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.achievements",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.chat",
+    "app.application.events",
+    "app.application.health",
+    "app.application.outings",
+    "app.application.posts",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
+    "app.application.users",
+]
