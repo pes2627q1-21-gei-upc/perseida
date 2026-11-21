@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.domain.direct_chat.errors import CANNOT_MESSAGE_SELF
-from app.domain.direct_chat.models import DirectMessage
+from app.domain.direct_chat.models import DirectMessage, UserBlock
 from app.domain.direct_chat.ports import (
     DirectConversationRepository,
     DirectMessageRepository,
@@ -214,7 +214,7 @@ async def test_block_is_directional() -> None:
     # TG-65 criteri 12: A bloqueja B no implica que B bloquegi A
     repository: UserBlockRepository = InMemoryUserBlockRepository()
 
-    await repository.block(USER_1, USER_2)
+    await repository.block(UserBlock.create(USER_1, USER_2))
 
     assert await repository.is_blocked(USER_1, USER_2) is True
     assert await repository.is_blocked(USER_2, USER_1) is False
@@ -224,8 +224,8 @@ async def test_block_is_idempotent() -> None:
     # TG-65 criteri 12
     repository: UserBlockRepository = InMemoryUserBlockRepository()
 
-    await repository.block(USER_1, USER_2)
-    await repository.block(USER_1, USER_2)
+    await repository.block(UserBlock.create(USER_1, USER_2))
+    await repository.block(UserBlock.create(USER_1, USER_2))
 
     assert await repository.is_blocked(USER_1, USER_2) is True
 
@@ -233,7 +233,7 @@ async def test_block_is_idempotent() -> None:
 async def test_unblock_removes_the_block_and_is_idempotent() -> None:
     # TG-65 criteri 12
     repository: UserBlockRepository = InMemoryUserBlockRepository()
-    await repository.block(USER_1, USER_2)
+    await repository.block(UserBlock.create(USER_1, USER_2))
 
     await repository.unblock(USER_1, USER_2)
     await repository.unblock(USER_1, USER_2)
