@@ -23,11 +23,13 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "bandit[toml]==1.9.4",
     "diff-cover==11.0.1",
     "hypothesis==6.170.15",
     "import-linter==2.15",
     "mutmut==3.8.1",
     "mypy==2.4.0",
+    "pip-audit==2.10.1",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
@@ -38,6 +40,11 @@ dev = [
     "schemathesis==4.32.7",
     "types-defusedxml==0.7.0.20260504",
 ]
+
+[tool.bandit]
+# CI: ``bandit -c pyproject.toml -r app -ll`` (TG-383). Only app code is audited; a
+# finding is justified here (``skips``), never with an inline ``# nosec``.
+exclude_dirs = ["tests"]
 
 [tool.ruff]
 target-version = "py314"
