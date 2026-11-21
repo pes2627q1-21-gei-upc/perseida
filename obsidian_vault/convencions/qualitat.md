@@ -39,7 +39,7 @@ Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada pu
 
 Des de TG-359 (US #359), s'activen comprovacions de cobertura i mutation testing:
 - **Cobertura global:** `pnpm test --coverage --ci` fa complir el `coverageThreshold` del 80 % (línies, sentències, funcions i branques) definit a `jest.config.js`.
-- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament.
+- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament. En una PR apilada, la base del diff és la branca pare de la PR (l'script la consulta a l'API REST), no el tronc que dona `github.base_ref` (vegeu [[pr-apilades-amb-gh-stack]]).
 
 ## SonarQube Cloud (implementat a TG-194)
 

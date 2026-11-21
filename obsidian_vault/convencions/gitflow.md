@@ -33,7 +33,7 @@ Com que el projecte fa TDD estricte ([[0028-tdd-estricte-i-politica-de-testing-a
 ## Pull requests i revisions
 
 - Idealment, cada tasca té la seva branca i PR; es poden agrupar tasques de la mateixa US (totes passen alhora a READY FOR TEST).
-- Al frontend, una PR no hauria de passar d'uns 400 mutants de Stryker (uns 12 min a la CI): una US gran es divideix en diverses PR, per tasques o per dependències. El criteri és a la skill `implementar-us` (TG-652).
+- Al frontend, una PR no hauria de passar d'uns 400 mutants de Stryker (uns 12 min a la CI; en un stack de PR apilades es compta per capa, perquè Stryker diffeja contra la branca pare, vegeu [[pr-apilades-amb-gh-stack]]): una US gran es divideix en diverses PR, per tasques o per dependències. El criteri és a la skill `implementar-us` (TG-652).
 - PR cap a `develop`: CI verda i almenys una aprovació d'una persona aliena al desenvolupament.
 - PR cap a `main`: CI verda; l'aprovació és opcional (els hotfixes poden ser crítics).
 - La plantilla de PR (`.github/pull_request_template.md`) l'elabora qui s'encarrega d'aquesta tasca.
