@@ -5,10 +5,11 @@ import { AccessibilityInfo, AppState, type AppStateStatus, Platform } from 'reac
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
-import { launchEvent, lunarEvent } from '../../../../__mocks__/events';
+import { launchEvent, lunarEvent, solarEvent } from '../../../../__mocks__/events';
 import EventsRoute from '../../../app/(app)/events';
 import i18n from '../../../shared/i18n';
 import { buildTheme, touch } from '../../../shared/theme';
+import { saveTokens } from '../../auth/tokenStorage';
 import { formatEventWhen } from '../formatEvent';
 import { EventsScreen } from './EventsScreen';
 
@@ -27,6 +28,17 @@ jest.mock('expo-blur', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     BlurView: (props: object) => createElement(View, { ...props, testID: 'blur-view' }),
+  };
+});
+
+// SecureStore is native: an in-memory store stands in for the device keychain (TG-53: the
+// subscriptions need the session).
+jest.mock('expo-secure-store', () => {
+  const store = new Map<string, string>();
+  return {
+    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
   };
 });
 
@@ -56,20 +68,44 @@ function urlOf(input: RequestInfo | URL): URL {
 
 type Route = (url: URL) => Response | Promise<Response>;
 
+/**
+ * Subscription endpoints (TG-53): by default no subscription, and PUT and DELETE that succeed.
+ * Each test can replace them before rendering.
+ */
+let subscriptionsApi: { mine: Route; subscribe: Route; unsubscribe: Route };
+
+function methodOf(input: RequestInfo | URL, init?: RequestInit): string {
+  if (typeof input === 'object' && 'method' in input) return input.method;
+  return init?.method ?? 'GET';
+}
+
 /** Answers GET /api/events; by default with a launch (with a location) and the full moon. */
 function mockSearchApi(route: Route = () => jsonResponse([launchEvent, lunarEvent])) {
-  fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+  fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = urlOf(input);
+    const method = methodOf(input, init);
     if (url.pathname === '/api/events') return route(url);
-    throw new Error(`unexpected request to ${url.pathname}`);
+    if (url.pathname === '/api/me/subscriptions') return subscriptionsApi.mine(url);
+    if (/^\/api\/events\/[^/]+\/subscription$/.test(url.pathname)) {
+      if (method === 'PUT') return subscriptionsApi.subscribe(url);
+      if (method === 'DELETE') return subscriptionsApi.unsubscribe(url);
+    }
+    throw new Error(`unexpected request ${method} ${url.pathname}`);
   });
 }
 
 /** Query of the last request to /api/events. */
 function lastQuery(): URLSearchParams {
-  const calls = fetchSpy.mock.calls;
+  const calls = fetchSpy.mock.calls.filter(([input]) => urlOf(input).pathname === '/api/events');
   expect(calls.length).toBeGreaterThan(0);
   return urlOf(calls[calls.length - 1][0]).searchParams;
+}
+
+/** Paths of the requests sent with `method` to the subscription of an event. */
+function subscriptionRequests(method: 'PUT' | 'DELETE'): string[] {
+  return fetchSpy.mock.calls
+    .filter(([input, init]) => methodOf(input, init) === method)
+    .map(([input]) => urlOf(input).pathname);
 }
 
 /** Today in UTC plus `days`, as YYYY-MM-DD. */
@@ -95,8 +131,14 @@ async function renderScreen(Screen: () => React.JSX.Element = EventsScreen) {
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+  subscriptionsApi = {
+    mine: () => jsonResponse([]),
+    subscribe: () => new Response(null, { status: 201 }),
+    unsubscribe: () => new Response(null, { status: 204 }),
+  };
   mockSearchApi();
 });
 
@@ -625,5 +667,190 @@ describe('Events tab: thumb of the «Near me» switch (WCAG 1.4.11)', () => {
       expect(screen.getByRole('switch', { name: NEAR() }).props.value).toBe(true),
     );
     expect(screen.getByRole('switch', { name: NEAR() }).props.thumbTintColor).toBe(colors.gel.text);
+  });
+});
+
+/** Name of the star of an event: «Segueix <title>» in Catalan. */
+const follow = (title: string) => t('events.subscription.follow', { title });
+const ALREADY_ENDED = 'Aquest esdeveniment ja ha acabat.';
+
+async function openMine() {
+  await fireEvent.press(screen.getByRole('tab', { name: t('events.tabs.mine') }));
+}
+
+describe('Events tab: subscriptions (TG-53)', () => {
+  describe('tabs All | Mine (criterion 7)', () => {
+    it('opens on All, inside a named tab list', async () => {
+      await renderScreen();
+
+      expect(screen.getByLabelText(t('events.tabs.label')).props.accessibilityRole).toBe('tablist');
+      expect(screen.getByRole('tab', { name: t('events.tabs.all'), selected: true })).toBeTruthy();
+      expect(
+        screen.getByRole('tab', { name: t('events.tabs.mine'), selected: false }),
+      ).toBeTruthy();
+      expect(screen.getByLabelText(CATEGORIES())).toBeTruthy();
+    });
+
+    it('shows on Mine the subscriptions and no filters', async () => {
+      subscriptionsApi.mine = () => jsonResponse([lunarEvent, solarEvent]);
+      await renderScreen();
+      await screen.findByText(launchEvent.title);
+
+      await openMine();
+
+      expect(screen.getByRole('tab', { name: t('events.tabs.mine'), selected: true })).toBeTruthy();
+      expect(await screen.findByText(solarEvent.title)).toBeTruthy();
+      expect(screen.getByText(lunarEvent.title)).toBeTruthy();
+      expect(screen.queryByText(launchEvent.title)).toBeNull();
+      expect(screen.queryByLabelText(CATEGORIES())).toBeNull();
+      expect(screen.queryByLabelText(t('events.search.range.label'))).toBeNull();
+      expect(screen.queryByRole('switch', { name: NEAR() })).toBeNull();
+    });
+  });
+
+  describe('the star on All (criteria 7 and 8)', () => {
+    it('marks the events the user follows', async () => {
+      subscriptionsApi.mine = () => jsonResponse([lunarEvent]);
+      await renderScreen();
+
+      expect(
+        await screen.findByRole('button', { name: follow(lunarEvent.title), selected: true }),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: follow(launchEvent.title), selected: false }),
+      ).toBeTruthy();
+    });
+
+    it('keeps the rows themselves not pressable', async () => {
+      await renderScreen();
+      await screen.findByRole('button', { name: follow(lunarEvent.title) });
+
+      expect(screen.queryByRole('button', { name: /^Full Moon, / })).toBeNull();
+    });
+
+    it('marks the star at once and sends the PUT of the subscription', async () => {
+      const pending = deferred();
+      subscriptionsApi.subscribe = () => pending.promise;
+      await renderScreen();
+
+      await fireEvent.press(await screen.findByRole('button', { name: follow(launchEvent.title) }));
+
+      // Before the API answers.
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: follow(launchEvent.title), selected: true }),
+        ).toBeTruthy(),
+      );
+      expect(subscriptionRequests('PUT')).toEqual([`/api/events/${launchEvent.id}/subscription`]);
+      await act(async () => pending.resolve(new Response(null, { status: 201 })));
+    });
+
+    it('unmarks the star and says why in the row when the event has already ended (409)', async () => {
+      subscriptionsApi.subscribe = () => problemResponse(409, 'EVENT_ALREADY_ENDED');
+      await renderScreen();
+
+      await fireEvent.press(await screen.findByRole('button', { name: follow(launchEvent.title) }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(ALREADY_ENDED);
+      expect(
+        screen.getByRole('button', { name: follow(launchEvent.title), selected: false }),
+      ).toBeTruthy();
+    });
+
+    it('clears the error when the star is pressed again', async () => {
+      let calls = 0;
+      subscriptionsApi.subscribe = () => {
+        calls += 1;
+        return calls === 1
+          ? problemResponse(409, 'EVENT_ALREADY_ENDED')
+          : new Promise<Response>(() => undefined);
+      };
+      await renderScreen();
+      await fireEvent.press(await screen.findByRole('button', { name: follow(launchEvent.title) }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(ALREADY_ENDED);
+
+      await fireEvent.press(screen.getByRole('button', { name: follow(launchEvent.title) }));
+
+      await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+      expect(calls).toBe(2);
+    });
+  });
+
+  describe('Mine: states (criterion 7)', () => {
+    it('shows that the subscriptions are loading', async () => {
+      subscriptionsApi.mine = () => new Promise<Response>(() => undefined);
+      await renderScreen();
+
+      await openMine();
+
+      expect(screen.getByLabelText('Carregant esdeveniments')).toBeTruthy();
+    });
+
+    it('says so when the user follows no event', async () => {
+      await renderScreen();
+
+      await openMine();
+
+      expect(await screen.findByText(t('events.mine.empty'))).toBeTruthy();
+      expect(t('events.mine.empty')).not.toBe('events.mine.empty');
+    });
+
+    it('shows an error with a retry button that asks again', async () => {
+      let failing = true;
+      subscriptionsApi.mine = () =>
+        failing ? problemResponse(500, 'INTERNAL_ERROR') : jsonResponse([lunarEvent]);
+      await renderScreen();
+      await openMine();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Alguna cosa ha anat malament. Torna-ho a provar.',
+      );
+      failing = false;
+      await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+
+      expect(await screen.findByText(lunarEvent.title)).toBeTruthy();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
+  describe('Mine: unsubscribing (criterion 7)', () => {
+    it('takes the row away at once and sends the DELETE of the subscription', async () => {
+      const pending = deferred();
+      subscriptionsApi.mine = () => jsonResponse([lunarEvent, solarEvent]);
+      subscriptionsApi.unsubscribe = () => pending.promise;
+      await renderScreen();
+      await openMine();
+
+      await fireEvent.press(
+        await screen.findByRole('button', { name: follow(lunarEvent.title), selected: true }),
+      );
+
+      // Before the API answers.
+      await waitFor(() => expect(screen.queryByText(lunarEvent.title)).toBeNull());
+      expect(screen.getByText(solarEvent.title)).toBeTruthy();
+      expect(subscriptionRequests('DELETE')).toEqual([`/api/events/${lunarEvent.id}/subscription`]);
+      subscriptionsApi.mine = () => jsonResponse([solarEvent]);
+      await act(async () => pending.resolve(new Response(null, { status: 204 })));
+      expect(screen.queryByText(lunarEvent.title)).toBeNull();
+    });
+
+    it('brings the row back with the error when unsubscribing fails', async () => {
+      subscriptionsApi.mine = () => jsonResponse([lunarEvent, solarEvent]);
+      subscriptionsApi.unsubscribe = () => problemResponse(500, 'INTERNAL_ERROR');
+      await renderScreen();
+      await openMine();
+
+      await fireEvent.press(
+        await screen.findByRole('button', { name: follow(lunarEvent.title), selected: true }),
+      );
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Alguna cosa ha anat malament. Torna-ho a provar.',
+      );
+      expect(
+        screen.getByRole('button', { name: follow(lunarEvent.title), selected: true }),
+      ).toBeTruthy();
+      expect(screen.getByText(lunarEvent.title)).toBeTruthy();
+    });
   });
 });
