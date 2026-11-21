@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 from typing import Annotated, Self
 
 from fastapi import APIRouter, Query, status
@@ -9,8 +10,12 @@ from app.domain.apod.models import Apod, MediaType
 from app.infrastructure.api.params import IsoDate
 from app.infrastructure.api.schemas import PROBLEM_CONTENT, ProblemDetails
 from app.infrastructure.apod.dependencies import ApodServiceDep
+from app.infrastructure.auth.dependencies import OptionalSessionDep
+from app.infrastructure.streaks.dependencies import StreakServiceDep
+from app.infrastructure.users.dependencies import UserServiceDep
 
 router = APIRouter(tags=["apod"])
+logger = logging.getLogger(__name__)
 
 
 class ApodResponse(BaseModel):
@@ -43,7 +48,10 @@ class ApodResponse(BaseModel):
     summary="Imatge astronòmica del dia (APOD)",
     description=(
         "Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui "
-        "(data UTC). La data ha d'estar entre el 16/06/1995 i avui."
+        "(data UTC). La data ha d'estar entre el 16/06/1995 i avui. "
+        "L'endpoint és públic: la sessió (capçalera `Authorization: Bearer`) és "
+        "opcional i, si n'hi ha una de vàlida, registra l'activitat del dia de la "
+        "ratxa. Una sessió absent o invàlida no és un error i no canvia la resposta."
     ),
     response_description="L'APOD de la data demanada.",
     responses={
@@ -68,6 +76,9 @@ class ApodResponse(BaseModel):
 )
 async def get_apod(
     service: ApodServiceDep,
+    session: OptionalSessionDep,
+    users: UserServiceDep,
+    streaks: StreakServiceDep,
     day: Annotated[
         IsoDate | None,
         Query(
@@ -78,4 +89,18 @@ async def get_apod(
     ] = None,
 ) -> ApodResponse:
     """Retorna l'APOD d'avui o d'una data concreta."""
-    return ApodResponse.from_apod(await service.get_apod(day))
+    apod = await service.get_apod(day)
+    if session is not None:
+        await _register_activity(session.sub, users, streaks)
+    return ApodResponse.from_apod(apod)
+
+
+async def _register_activity(
+    subject: str, users: UserServiceDep, streaks: StreakServiceDep
+) -> None:
+    """Best effort: a failure here must never break the public APOD response."""
+    try:
+        user = await users.get_profile(subject)
+        await streaks.register_activity(user.id)
+    except Exception:
+        logger.warning("Could not register the daily activity", exc_info=True)

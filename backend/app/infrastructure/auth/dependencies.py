@@ -4,11 +4,11 @@ import httpx
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
-from starlette.requests import HTTPConnection
+from starlette.requests import HTTPConnection, Request
 
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.auth.errors import INVALID_SESSION
-from app.application.shared.errors import UnauthorizedError
+from app.application.shared.errors import ApplicationError, UnauthorizedError
 from app.domain.auth.models import SessionClaims
 from app.domain.auth.ports import AccountGateway, SessionStore
 from app.infrastructure.auth.config import AuthSettings
@@ -69,3 +69,25 @@ async def get_current_session(
 
 
 CurrentSessionDep = Annotated[SessionClaims, Depends(get_current_session)]
+
+
+async def get_optional_session(
+    request: Request, service: AuthServiceDep
+) -> SessionClaims | None:
+    """Return the session claims, or None when there is no valid session.
+
+    For public endpoints that do more with a session. A missing, malformed,
+    expired or revoked token (or an unavailable session store) is "no session",
+    never an error. BEARER is called directly, not through ``Depends``, so the
+    OpenAPI operation does not gain a security requirement.
+    """
+    credentials = await BEARER(request)
+    if credentials is None:
+        return None
+    try:
+        return await service.authenticate(credentials.credentials)
+    except ApplicationError:
+        return None
+
+
+OptionalSessionDep = Annotated[SessionClaims | None, Depends(get_optional_session)]

@@ -33,7 +33,7 @@ export interface paths {
     };
     /**
      * Imatge astronòmica del dia (APOD)
-     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui.
+     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui. L'endpoint és públic: la sessió (capçalera `Authorization: Bearer`) és opcional i, si n'hi ha una de vàlida, registra l'activitat del dia de la ratxa. Una sessió absent o invàlida no és un error i no canvia la resposta.
      */
     get: operations['get_apod'];
     put?: never;
