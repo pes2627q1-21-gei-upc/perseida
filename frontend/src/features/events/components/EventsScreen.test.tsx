@@ -41,14 +41,14 @@ function urlOf(input: RequestInfo | URL): URL {
   return input instanceof URL ? input : new URL(input.url);
 }
 
-type Route = () => Response | Promise<Response>;
+type Route = (url: URL) => Response | Promise<Response>;
 
 /** Answers GET /api/events; by default with a launch (with a location) and the full moon. */
 function mockSearchApi(route: Route = () => jsonResponse([launchEvent, lunarEvent])) {
   fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-    const { pathname } = urlOf(input);
-    if (pathname === '/api/events') return route();
-    throw new Error(`unexpected request to ${pathname}`);
+    const url = urlOf(input);
+    if (url.pathname === '/api/events') return route(url);
+    throw new Error(`unexpected request to ${url.pathname}`);
   });
 }
 
@@ -163,21 +163,29 @@ describe('Events tab: filterable list of events (TG-51)', () => {
       }
     });
 
-    it('asks only for the chosen categories, and for all of them again when none is left', async () => {
+    it('asks only for the chosen categories, and shows all of them again when none is left', async () => {
+      // With categories the API answers only the full moon; without them, both events.
+      mockSearchApi((url) =>
+        jsonResponse(url.searchParams.has('category') ? [lunarEvent] : [launchEvent, lunarEvent]),
+      );
       await renderScreen();
-      await screen.findByText(lunarEvent.title);
+      await screen.findByText(launchEvent.title);
 
       await fireEvent.press(screen.getByRole('checkbox', { name: 'Lluna' }));
       await fireEvent.press(screen.getByRole('checkbox', { name: 'Sol' }));
 
       await waitFor(() => expect(lastQuery().getAll('category')).toEqual(['lunar', 'solar']));
       expect(screen.getByRole('checkbox', { name: 'Lluna', checked: true })).toBeTruthy();
+      await waitFor(() => expect(screen.queryByText(launchEvent.title)).toBeNull());
 
       await fireEvent.press(screen.getByRole('checkbox', { name: 'Lluna' }));
       await fireEvent.press(screen.getByRole('checkbox', { name: 'Sol' }));
 
-      await waitFor(() => expect(lastQuery().has('category')).toBe(false));
+      // No category is the first query again: its fresh results come back from the cache.
+      expect(await screen.findByText(launchEvent.title)).toBeTruthy();
+      expect(screen.getByText(lunarEvent.title)).toBeTruthy();
       expect(screen.getByRole('checkbox', { name: 'Lluna', checked: false })).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'Sol', checked: false })).toBeTruthy();
     });
   });
 
