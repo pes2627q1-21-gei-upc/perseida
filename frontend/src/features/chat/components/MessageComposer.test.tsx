@@ -128,6 +128,20 @@ describe('MessageComposer (TG-469)', () => {
       await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
     });
 
+    it('keeps what is typed while the send is on its way, only the sent text is emptied', async () => {
+      let finish: () => void = () => undefined;
+      const onSend = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+      await render(<MessageComposer onSend={onSend} />);
+      await type('Hola');
+      await fireEvent.press(sendButton());
+
+      await type('Hola, i una cosa més');
+      finish();
+
+      await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
+      expect(field().props.value).toBe('Hola, i una cosa més');
+    });
+
     it('does not send twice while the first one is still on its way', async () => {
       let finish: () => void = () => undefined;
       const onSend = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
