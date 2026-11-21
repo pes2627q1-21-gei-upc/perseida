@@ -21,9 +21,6 @@
     "badge": "Coming soon",
     "chatDesc": "A real-time space to share observations, photos, and stargazing meetups.",
     "chatTitle": "Community & chat",
-    "eventsDesc": "Soon you will be able to check meteor showers, eclipses, and celestial events directly from here.",
-    "eventsMapButton": "Open events map",
-    "eventsTitle": "Astronomical events",
     "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
     "gamificationTitle": "Gamification & challenges"
   },
@@ -131,6 +128,26 @@
       "kind": "Outing",
       "open": "Open the outing",
       "linkedEvent": "Related event"
+    },
+    "search": {
+      "categories": "Categories",
+      "range": {
+        "label": "Period",
+        "days7": "7 days",
+        "days30": "30 days",
+        "days90": "90 days"
+      },
+      "near": {
+        "label": "Near me",
+        "locating": "Finding your location…",
+        "denied": "Without location permission, events can't be filtered by distance. You can turn it on in your device settings.",
+        "unavailable": "Your location could not be found. Check that location services are on and try again."
+      },
+      "distance": "{{distance}} km away",
+      "results_one": "{{count}} event",
+      "results_other": "{{count}} events",
+      "empty": "No events match these filters.",
+      "openMap": "Open the map"
     }
   },
   "home": {

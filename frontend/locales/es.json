@@ -21,9 +21,6 @@
     "badge": "Próximamente",
     "chatDesc": "Un espacio en tiempo real para compartir observaciones, fotos y encuentros astronómicos.",
     "chatTitle": "Comunidad y chat",
-    "eventsDesc": "Muy pronto podrás consultar lluvias de estrellas, eclipses y fenómenos celestes directamente desde aquí.",
-    "eventsMapButton": "Abrir el mapa de eventos",
-    "eventsTitle": "Eventos astronómicos",
     "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
     "gamificationTitle": "Gamificación y retos"
   },
@@ -131,6 +128,26 @@
       "kind": "Salida",
       "open": "Abre la salida",
       "linkedEvent": "Evento relacionado"
+    },
+    "search": {
+      "categories": "Categorías",
+      "range": {
+        "label": "Período",
+        "days7": "7 días",
+        "days30": "30 días",
+        "days90": "90 días"
+      },
+      "near": {
+        "label": "Cerca de mí",
+        "locating": "Buscando tu ubicación…",
+        "denied": "Sin permiso de ubicación no se puede filtrar por proximidad. Puedes activarlo en los ajustes del dispositivo.",
+        "unavailable": "No se ha podido obtener tu ubicación. Comprueba que la localización está activada y vuelve a intentarlo."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} evento",
+      "results_other": "{{count}} eventos",
+      "empty": "No hay eventos con estos filtros.",
+      "openMap": "Abrir el mapa"
     }
   },
   "home": {

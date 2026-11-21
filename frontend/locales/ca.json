@@ -21,9 +21,6 @@
     "badge": "Pròximament",
     "chatDesc": "Un espai en temps real per compartir observacions, fotos i trobades astronòmiques.",
     "chatTitle": "Comunitat i xat",
-    "eventsDesc": "Molt aviat podràs consultar pluges d'estels, eclipsis i fenòmens celestes directament des d'aquí.",
-    "eventsMapButton": "Obre el mapa d'esdeveniments",
-    "eventsTitle": "Esdeveniments astronòmics",
     "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
     "gamificationTitle": "Gamificació i reptes"
   },
@@ -131,6 +128,26 @@
       "kind": "Sortida",
       "open": "Obre la sortida",
       "linkedEvent": "Esdeveniment relacionat"
+    },
+    "search": {
+      "categories": "Categories",
+      "range": {
+        "label": "Període",
+        "days7": "7 dies",
+        "days30": "30 dies",
+        "days90": "90 dies"
+      },
+      "near": {
+        "label": "A prop meu",
+        "locating": "Buscant la teva ubicació…",
+        "denied": "Sense permís d'ubicació no es pot filtrar per proximitat. El pots activar a la configuració del dispositiu.",
+        "unavailable": "No s'ha pogut obtenir la teva ubicació. Comprova que la localització està activada i torna-ho a provar."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} esdeveniment",
+      "results_other": "{{count}} esdeveniments",
+      "empty": "No hi ha esdeveniments amb aquests filtres.",
+      "openMap": "Obre el mapa"
     }
   },
   "home": {
