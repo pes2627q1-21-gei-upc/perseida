@@ -1,3 +1,4 @@
+import { Star } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -12,15 +13,28 @@ interface Props {
   distanceKm?: number;
   /** Makes the row a button that opens the summary of the event. */
   onPress?: () => void;
+  /** Whether the user follows the event (TG-53). */
+  subscribed?: boolean;
+  /** Shows the star that follows or stops following the event; without it, no star. */
+  onToggleSubscription?: () => void;
+  /** Already translated message of a failed subscription, shown in the row. */
+  subscriptionError?: string;
 }
 
 /**
  * One event: its orb, title, dates, where it can be seen and whether it is happening now.
  * Read as a single item that says all of it. It has no material of its own: it goes on glass.
  */
-export function EventRow({ event, distanceKm, onPress }: Props) {
+export function EventRow({
+  event,
+  distanceKm,
+  onPress,
+  subscribed = false,
+  onToggleSubscription,
+  subscriptionError,
+}: Props) {
   const { t, i18n } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, iconSizes, radii, spacing, touch, typography } = useTheme();
   const when = formatEventWhen(event, i18n.language);
   const where = formatEventWhere(event.location, t, i18n.language);
   const active = event.status === 'active';
@@ -53,6 +67,51 @@ export function EventRow({ event, distanceKm, onPress }: Props) {
     </>
   );
 
+  if (onToggleSubscription) {
+    // Only the star is a button: the details stay one item for screen readers, beside it.
+    return (
+      <View style={{ gap: spacing.xs }}>
+        <View style={[styles.row, { gap: spacing.sm }]}>
+          <View
+            accessible
+            accessibilityLabel={label}
+            style={[styles.row, styles.text, { gap: spacing.md }]}
+          >
+            {content}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('events.subscription.follow', { title: event.title })}
+            accessibilityState={{ selected: subscribed }}
+            onPress={onToggleSubscription}
+            style={({ pressed }) => ({
+              minWidth: touch.min,
+              minHeight: touch.min,
+              borderRadius: radii.pill,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: pressed ? colors.surface.onGlass : 'transparent',
+            })}
+          >
+            {/* Outlined or filled: the shape tells the state, not only the colour. */}
+            <Star
+              size={iconSizes.md}
+              color={colors.brand}
+              weight={subscribed ? 'fill' : 'regular'}
+            />
+          </Pressable>
+        </View>
+        {subscriptionError ? (
+          <Text
+            accessibilityRole="alert"
+            style={[typography.caption, { color: colors.state.danger }]}
+          >
+            {subscriptionError}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
   if (!onPress) {
     return (
       <View accessible accessibilityLabel={label} style={[styles.row, { gap: spacing.md }]}>
