@@ -13,6 +13,7 @@ import {
   QuietButton,
   SkyBackground,
   StatusPanel,
+  useReduceTransparency,
 } from '../../../shared/ui';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
 import type { EventCategory, EventSearchFilters, SearchRange } from '../api/getEvents';
@@ -33,7 +34,8 @@ const DEFAULT_RANGE: SearchRange = 30;
  */
 export function EventsScreen() {
   const { t } = useTranslation();
-  const { colors, iconSizes, spacing, touch, typography } = useTheme();
+  const { colors, iconSizes, radii, spacing, touch, typography } = useTheme();
+  const reduceTransparency = useReduceTransparency();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarInset();
@@ -206,12 +208,25 @@ export function EventsScreen() {
         ListHeaderComponent={header}
         ListEmptyComponent={renderEmpty()}
         renderItem={({ item }) => (
-          <GlassPanel>
+          // Glass without blur: a BlurView per row is too heavy for a long list.
+          <View
+            style={[
+              styles.row,
+              {
+                backgroundColor: reduceTransparency
+                  ? colors.surface.glassSolid
+                  : colors.surface.glass,
+                borderColor: colors.surface.glassBorder,
+                borderRadius: radii.lg,
+                padding: spacing.md,
+              },
+            ]}
+          >
             <EventRow
               event={item}
               distanceKm={near && item.location ? distanceKm(near, item.location) : undefined}
             />
-          </GlassPanel>
+          </View>
         )}
         contentContainerStyle={[
           styles.content,
@@ -232,6 +247,7 @@ export function EventsScreen() {
 
 const styles = StyleSheet.create({
   content: { width: '100%', alignSelf: 'center' },
+  row: { borderWidth: 1 },
   titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   title: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap' },
