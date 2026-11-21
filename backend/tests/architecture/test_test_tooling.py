@@ -1,4 +1,5 @@
-"""The backend suite runs in random order and in parallel (TG-362, US #362).
+"""The backend suite runs in random order and in parallel, and CI audits its
+security (TG-362, US #362).
 
 Criteri 1: pytest-randomly runs in every session and prints the seed.
 Criteri 2: ``pytest -n auto`` (pytest-xdist) runs in CI.
@@ -15,6 +16,15 @@ hook ``pytest_collection_modifyitems(config, items)`` and raises
 ``pytest.UsageError`` naming the test and ``TG-`` when a ``quarantine`` mark is
 invalid. ``tests/conftest.py`` activates it for the real suite (re-exporting the
 hook or registering the module as a plugin).
+
+Criteri 4 (TG-383): ``uv run bandit -c pyproject.toml -r app -ll`` is a blocking
+step of the ``backend`` job (medium and high findings fail the PR); its
+configuration is ``[tool.bandit]`` in ``backend/pyproject.toml``, the only place
+where a finding may be justified. B314 (``xml.etree`` on the NASA feed) is fixed
+with ``defusedxml``, a pinned production dependency, not skipped.
+Criteri 5 (TG-383): a blocking step exports the production requirements from the
+lockfile (``uv export --frozen --no-dev ...``) and audits them with
+``uv run pip-audit -r <file> -s osv``.
 
 Paths are resolved from this file, never from the working directory.
 """
@@ -36,7 +46,10 @@ CI_WORKFLOW = BACKEND_DIR.parent / ".github" / "workflows" / "ci.yml"
 PINNED_TOOLS = {
     "pytest-randomly": "5.1.0",
     "pytest-xdist": "3.8.0",
+    "bandit[toml]": "1.9.4",
+    "pip-audit": "2.10.1",
 }
+DEFUSEDXML = "defusedxml==0.7.1"
 
 
 def _dev_dependencies() -> list[str]:
@@ -285,3 +298,74 @@ def test_tg362_collection_without_xdist_reports_an_invalid_quarantine(
     assert result.returncode == pytest.ExitCode.USAGE_ERROR, output
     assert "TG-" in output, output
     assert "INTERNALERROR" not in output, output
+
+
+def _steps_running(pattern: str) -> list[str]:
+    return [step for step in _backend_steps() if re.search(pattern, step)]
+
+
+def _assert_blocking(step: str) -> None:
+    assert "continue-on-error" not in step, step
+    assert not re.search(r"\|\|\s*(true|:|exit 0)\b", step), step
+
+
+def test_tg362_ci_runs_bandit_as_a_blocking_step() -> None:
+    steps = _steps_running(r"\buv run\b[^\n]*\bbandit\b")
+
+    assert len(steps) == 1, "the backend job has no 'uv run bandit' step"
+    step = steps[0]
+    assert re.search(r"\s-c pyproject\.toml\b", step), step
+    assert re.search(r"\s-r app\b", step), step
+    # Medium and high findings: -ll (not -lll, which only reports high).
+    assert re.search(r"\s(-ll(?!l)|--severity-level[ =]medium)\b", step), step
+    _assert_blocking(step)
+
+
+def test_tg362_bandit_is_configured_in_pyproject() -> None:
+    data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    bandit = data["tool"].get("bandit")
+
+    assert isinstance(bandit, dict), "pyproject.toml has no [tool.bandit] section"
+    # The XML of the NASA feed is parsed with defusedxml, not skipped (TG-383).
+    skips = bandit.get("skips", [])
+    assert "B314" not in skips, skips
+    assert "B405" not in skips, skips
+
+
+def test_tg362_ci_audits_the_production_lockfile_with_osv() -> None:
+    steps = _backend_steps()
+    audits = [
+        index
+        for index, step in enumerate(steps)
+        if re.search(r"\buv run\b[^\n]*\bpip-audit\b", step)
+    ]
+
+    assert len(audits) == 1, "the backend job has no 'uv run pip-audit' step"
+    audit = steps[audits[0]]
+    assert re.search(r"\s(-s|--vulnerability-service)[ =]osv\b", audit), audit
+    _assert_blocking(audit)
+
+    requirements = re.search(
+        r"\bpip-audit\b[^\n]*\s(?:-r|--requirement)[ =](\S+)", audit
+    )
+    assert requirements, audit
+    exports = [
+        match
+        for step in steps[: audits[0] + 1]
+        for match in re.finditer(r"\buv export\b[^\n]*", step)
+    ]
+    assert exports, "the requirements audited are not a 'uv export'"
+    production = [
+        export[0]
+        for export in exports
+        if re.search(r"\s--no-dev\b", export[0])
+        and re.search(r"\s--(frozen|locked)\b", export[0])
+        and requirements[1] in export[0]
+    ]
+    assert production, (exports, requirements[1])
+
+
+def test_tg362_defusedxml_is_a_pinned_production_dependency() -> None:
+    data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+
+    assert DEFUSEDXML in data["project"]["dependencies"]
