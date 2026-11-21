@@ -3,11 +3,12 @@
 import logging
 
 import pytest
+
 from app.application.apod.apod_activity_service import ApodActivityService
 
 
 class SpyRegistrar:
-    def __init__(self, failure: Exception | None = None) -> None:
+    def __init__(self, failure: BaseException | None = None) -> None:
         self.subjects: list[str] = []
         self._failure = failure
 
