@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../shared/errors';
-import { useTheme } from '../../../shared/theme';
+import { type Theme, useTheme } from '../../../shared/theme';
 import { GlassPanel, QuietButton } from '../../../shared/ui';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
 
@@ -14,37 +14,26 @@ interface Props {
   onRetry?: () => void;
 }
 
-// Layout only: purely visual, left out of mutation testing on purpose
-// (convencions/testing.md, «Mutation testing»).
-// Stryker disable all
-const styles = StyleSheet.create({
-  message: { flexDirection: 'row', alignItems: 'flex-start' },
-  text: { flex: 1 },
-});
-// Stryker restore all
-
 /**
  * A reload that fails while the list is on screen (TG-469): the person keeps what she had and
  * is told, with an icon besides the text (never only colour), that it could not be updated.
  */
 export function ReloadFailedAlert({ code, onRetry }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography, iconSizes } = useTheme();
+  const theme = useTheme();
+  const { colors, iconSizes } = theme;
+  const styles = createStyles(theme);
   const message = errorMessage(t, code, onRetry !== undefined);
   useAnnounceOnIos(message);
 
   return (
     <GlassPanel>
-      <View style={{ gap: spacing.md }}>
-        <View style={[styles.message, { gap: spacing.sm }]}>
+      <View style={styles.content}>
+        <View style={styles.message}>
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <WarningCircle size={iconSizes.md} color={colors.text.primary} weight="fill" />
           </View>
-          <Text
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-            style={[typography.body, styles.text, { color: colors.text.primary }]}
-          >
+          <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.text}>
             {message}
           </Text>
         </View>
@@ -53,3 +42,15 @@ export function ReloadFailedAlert({ code, onRetry }: Props) {
     </GlassPanel>
   );
 }
+
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on
+// purpose (convencions/testing.md, «Mutation testing»).
+// Stryker disable all
+function createStyles({ colors, spacing, typography }: Theme) {
+  return StyleSheet.create({
+    content: { gap: spacing.md },
+    message: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+    text: { ...typography.body, flex: 1, color: colors.text.primary },
+  });
+}
+// Stryker restore all
