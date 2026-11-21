@@ -4,7 +4,7 @@ tipus: sessio
 estat: vigent
 data: "2026-11-19"
 us: ["TG-64", "TG-469"]
-font: "Branca feature/TG-64-peces-sala (PR C de TG-64, apilada sobre feature/TG-64-llista-sales); tests en vermell b7c98bc..34938a5"
+font: "Branca feature/TG-64-peces-sala (PR C de TG-64, apilada sobre feature/TG-64-llista-sales); tests en vermell 3aae5ea..e839d79"
 etiquetes: [sessio, frontend, xat, accessibilitat, frutiger-cosmo]
 ---
 
