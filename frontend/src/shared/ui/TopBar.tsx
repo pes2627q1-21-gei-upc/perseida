@@ -60,7 +60,7 @@ export function TopBar({ title, testID, onBack, onLayout }: Props) {
                 borderRadius: theme.radii.pill,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: pressed ? surface.glass : 'transparent',
+                backgroundColor: pressed ? surface.onGlass : 'transparent',
               })}
             >
               <CaretLeft size={theme.iconSizes.md} color={text.primary} />

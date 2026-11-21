@@ -10,10 +10,12 @@ import { ApodMedia } from './ApodMedia';
 
 interface Props {
   apod: Apod;
+  /** Room the floating top bar covers, so the content starts under it. */
+  topInset: number;
 }
 
 /** Content of the APOD screen (TG-118), with the media from TG-119. */
-export function ApodView({ apod }: Props) {
+export function ApodView({ apod, topInset }: Props) {
   const { i18n } = useTranslation();
   const { colors, spacing, typography } = useTheme();
   const insets = useSafeAreaInsets();
@@ -21,7 +23,7 @@ export function ApodView({ apod }: Props) {
   return (
     <ScrollView
       contentContainerStyle={{
-        paddingTop: insets.top + spacing.md,
+        paddingTop: Math.max(insets.top + spacing.md, topInset + spacing.md),
         paddingBottom: insets.bottom + spacing.xxl,
         paddingLeft: insets.left + spacing.md,
         paddingRight: insets.right + spacing.md,

@@ -39,6 +39,27 @@ def _event_of(room: str) -> uuid.UUID:
     return event_id
 
 
+def _client_message_id_of(payload: dict[str, Any]) -> uuid.UUID:
+    """The idempotency key of a message; only the canonical form of a UUID.
+
+    Raises:
+        ValidationError: VALIDATION_ERROR if it is missing or not canonical.
+    """
+    value = payload.get("client_message_id")
+    error = ValidationError(
+        VALIDATION_ERROR, "The message needs a canonical client_message_id."
+    )
+    if not isinstance(value, str):
+        raise error
+    try:
+        key = uuid.UUID(value)
+    except ValueError:
+        raise error from None
+    if str(key) != value:
+        raise error
+    return key
+
+
 class ChatWsHandler:
     def __init__(
         self, service: Callable[[], ChatService], users: Callable[[], UserService]
@@ -72,9 +93,14 @@ class ChatWsHandler:
         text = payload.get("text")
         if not isinstance(text, str):
             raise ValidationError(VALIDATION_ERROR, "The message needs a text.")
+        client_message_id = _client_message_id_of(payload)
         user_id = await self._user_of(request)
         message = await self._service().send_message(
-            user_id, event_id, text, origin=request.conn_id
+            user_id,
+            event_id,
+            text,
+            client_message_id=client_message_id,
+            origin=request.conn_id,
         )
         stored = message.model_dump(mode="json")
         return {"id": stored["id"], "sent_at": stored["sent_at"]}

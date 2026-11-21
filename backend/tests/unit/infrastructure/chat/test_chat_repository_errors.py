@@ -74,6 +74,7 @@ def _message() -> ChatMessage:
         id=uuid.uuid7(),
         room_id=uuid.uuid7(),
         author_id=uuid.uuid7(),
+        client_message_id=uuid.uuid4(),
         text="Hola",
         sent_at=datetime(2026, 11, 17, 21, 0, tzinfo=UTC),
     )

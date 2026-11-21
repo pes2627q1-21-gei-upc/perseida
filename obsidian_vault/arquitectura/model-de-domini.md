@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-18"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026)"
+data: "2026-11-19"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -117,7 +117,7 @@ Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_cha
 | Taula | Camps | Restriccions i índexs |
 |---|---|---|
 | `event_chat_rooms` | `id` (UUIDv7), `event_id`, `created_at` | `event_id` FK a `astronomical_events` `ON DELETE CASCADE` i `UNIQUE` (una sala com a màxim per esdeveniment) |
-| `chat_messages` | `id` (UUIDv7), `room_id`, `author_id`, `text` (`varchar(1000)`), `sent_at` (`timestamptz`) | FK a la sala i a `users`, totes dues `ON DELETE CASCADE`; `CHECK length(text) >= 1` (xarxa de seguretat sobre el domini; el màxim el dona el tipus); índex `(room_id, sent_at DESC, id DESC)` per a l'històric i índex per `author_id` per a la cascada en esborrar un usuari |
+| `chat_messages` | `id` (UUIDv7), `room_id`, `author_id`, `text` (`varchar(1000)`), `sent_at` (`timestamptz`), `client_message_id` (`uuid`, `NOT NULL`, el genera el client; TG-654) | FK a la sala i a `users`, totes dues `ON DELETE CASCADE`; `UNIQUE(author_id, client_message_id)` (idempotència dels reenviaments, [[0030-protocol-websocket-i-revocacio-per-pub-sub]]); `CHECK length(text) >= 1` (xarxa de seguretat sobre el domini; el màxim el dona el tipus); índex `(room_id, sent_at DESC, id DESC)` per a l'històric i índex per `author_id` per a la cascada en esborrar un usuari |
 
 - `sent_at` té `server_default now()` (ADR-0023), però el domini sempre envia el valor: l'ordre del cursor en depèn.
 - `get_or_create_room` fa `INSERT ... ON CONFLICT (event_id) DO NOTHING RETURNING` i, si no retorna res, rellegeix la sala: dues peticions alhora deixen una sola fila. Si l'esdeveniment no existeix (o s'esborra a mig camí), `NotFoundError(EVENT_NOT_FOUND)`.
@@ -144,6 +144,12 @@ Consultes del port, ordenades per `starts_at`:
 
 - `list_between(start, end)`: els esdeveniments que se solapen amb `[start, end)`, és a dir, `starts_at < end` i `ends_at >= start`. Un esdeveniment instantani a `start` hi surt.
 - `list_starting_between(start, end)`: els que compleixen `start <= starts_at < end`.
+- `search(query)` (TG-51): els que se solapen amb `[query.start, query.end)`, de les `query.categories` (totes si és buit) i, amb `query.near`, només els que tenen ubicació dins del radi més tots els que no en tenen; ordenats per `starts_at` i `id`. És una sola sentència `UNION ALL` de dues branques disjuntes: la dels que tenen ubicació filtra amb `ST_DWithin` sobre l'expressió de l'índex GiST (`LOCATION_GEOGRAPHY`, compartida amb `tables.py`) i el seu predicat `latitude IS NOT NULL`, i l'altra agafa `latitude IS NULL`. Un `OR` hauria impedit fer servir l'índex.
+
+Value objects del llistat (TG-51), immutables:
+
+- `Proximity`: `location` i `radius_km` (1–20.000).
+- `EventQuery`: `start`, `end`, `categories` i `near`. `EventQuery.from_filters` el construeix a partir dels filtres de `GET /api/events`: dies UTC amb `to` inclòs (`end` és les 00:00Z del dia següent), `from` per defecte avui i `to` 30 dies després de `from`, i 500 km de radi per defecte. Llança `ValidationError(VALIDATION_ERROR)` si `from` és posterior a `to`, si `to - from` passa de 90 dies o si la proximitat és incompleta (`lat` sense `lon` o al revés, o `radius_km` sense coordenades).
 
 Escriptura i consulta per id (TG-50):
 
@@ -153,8 +159,8 @@ Escriptura i consulta per id (TG-50):
 
 Les fonts implementen el port `EventSource` (nom, TTL i `fetch()`); `EventService` les refresca sota demanda abans de cada consulta ([[0031-fonts-d-esdeveniments-sota-demanda]]).
 
-> [!todo] Pendent per a TG-51 (proximitat)
-> - L'índex GiST és parcial (`WHERE latitude IS NOT NULL`). La consulta de proximitat ha de fer servir la mateixa expressió, `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`, i el mateix predicat.
+> [!success] Proximitat resolta a TG-51
+> L'índex GiST és parcial (`WHERE latitude IS NOT NULL`) i `search` fa servir la mateixa expressió, `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`, i el mateix predicat. Un test d'integració ho comprova amb `EXPLAIN` (`Index Cond`).
 
 ## Quiz diari (implementat)
 

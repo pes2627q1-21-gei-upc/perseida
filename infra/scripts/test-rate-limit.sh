@@ -12,7 +12,8 @@
 #   1. Les 101 primeres peticions a /api/events/... passen (10 r/s amb ràfega de 100, sense espera).
 #   2. En superar el límit, la resposta és 429 en problem+json (RFC 9457) amb `code`
 #      RATE_LIMITED, `instance`, `Retry-After` i `X-Correlation-ID`.
-#   3. La resta de l'API (/api/health) no queda limitada.
+#   3. El llistat filtrable /api/events (TG-51, sense barra final) també queda limitat.
+#   4. La resta de l'API (/api/health) no queda limitada.
 #
 # Ús: bash infra/scripts/test-rate-limit.sh   (cal Docker; la CI l'executa al job `proxy`)
 
@@ -123,9 +124,11 @@ done
 # a 10 r/s, unes peticions seguides i lentes (Docker Desktop) no passarien mai del límit.
 FLOOD=300
 flood_until_429() {
-  local path="$1" name="$2" first
+  local path="$1" name="$2" first sep='?'
+  # Un camí que ja porta paràmetres hi afegeix `n` amb `&`.
+  case "$path" in *\?*) sep='&' ;; esac
   rm -f "$WORK_DIR/$name"-r*
-  curl -s -Z --parallel-max 50 -i -o "$WORK_DIR/$name-r#1" "$BASE$path?n=[1-$FLOOD]" || true
+  curl -s -Z --parallel-max 50 -i -o "$WORK_DIR/$name-r#1" "$BASE$path${sep}n=[1-$FLOOD]" || true
   first="$(grep -l '^HTTP/1.1 429' "$WORK_DIR/$name"-r* 2>/dev/null | head -n 1 || true)"
   [ -n "$first" ] || return 1
   awk 'NR == 1, /^\r?$/' "$first" > "$WORK_DIR/$name-headers"
@@ -183,8 +186,25 @@ spoof_codes="$(curl -s -Z --parallel-max 50 -K "$spoof_config" || true)"
 printf '%s\n' "$spoof_codes" | grep -qx 429 \
   || fail "amb una X-Real-IP falsa a cada petició el límit no s'aplica"
 
-# 3. La resta de l'API no comparteix el límit.
+# 3. El llistat filtrable (TG-51) és `/api/events`, sense barra final i amb paràmetres:
+#    també comparteix el límit, i el 429 és el mateix problem+json.
+flood_until_429 "/api/events?category=lunar&category=launch&from=2026-11-17&to=2026-11-30" list \
+  || fail "/api/events (sense barra) no queda limitat: cap petició ha retornat 429"
+grep -qi '^content-type: application/problem+json' "$WORK_DIR/list-headers" \
+  || fail "el 429 de /api/events no és application/problem+json"
+grep -qi '^retry-after: 1' "$WORK_DIR/list-headers" \
+  || fail "el 429 de /api/events no porta Retry-After: 1"
+python3 - "$WORK_DIR/list-body" <<'EOF' || fail "el cos del 429 de /api/events no és el problem+json esperat"
+import json, sys
+body = json.load(open(sys.argv[1], encoding="utf-8"))
+assert body["status"] == 429, body
+assert body["code"] == "RATE_LIMITED", body
+assert len(body["correlation_id"]) == 32, body
+assert body["instance"] == "/api/events", body
+EOF
+
+# 4. La resta de l'API no comparteix el límit.
 code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/health")"
 [ "$code" = "200" ] || fail "/api/health ha quedat limitat ($code)"
 
-printf 'OK: límit de peticions per IP a /api/events/ (ràfega %s, després 429 problem+json)\n' "$BURST"
+printf 'OK: límit de peticions per IP a /api/events i /api/events/ (ràfega %s, després 429 problem+json)\n' "$BURST"

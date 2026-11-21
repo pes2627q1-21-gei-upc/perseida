@@ -1,5 +1,6 @@
 import uuid
 
+from app.application.shared.errors import ExternalServiceError
 from app.domain.posts.models import Post, PostCursor, PostRepositoryPage
 
 
@@ -45,3 +46,18 @@ class FakePostRepository:
             last = slice_posts[-1]
             next_cursor = PostCursor(created_at=last.created_at, id=last.id)
         return PostRepositoryPage(posts=slice_posts, next_cursor=next_cursor)
+
+
+class FakeRateLimiter:
+    """PostWriteRateLimiter fake: allows, denies or fails, and records every hit."""
+
+    def __init__(self, *, allowed: bool = True, fails: bool = False) -> None:
+        self.allowed = allowed
+        self.fails = fails
+        self.hits: list[uuid.UUID] = []
+
+    async def hit(self, user_id: uuid.UUID) -> bool:
+        self.hits.append(user_id)
+        if self.fails:
+            raise ExternalServiceError("PUBSUB_UNAVAILABLE")
+        return self.allowed

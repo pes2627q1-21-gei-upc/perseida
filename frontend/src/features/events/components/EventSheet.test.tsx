@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, BackHandler, Linking, Platform } from 'react-native';
+import { act, fireEvent, render, screen, userEvent } from '@testing-library/react-native';
+import * as ReactNative from 'react-native';
+import { AccessibilityInfo, BackHandler, Linking, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
@@ -9,12 +10,18 @@ import {
   meteorShowerEvent,
   solarEvent,
 } from '../../../../__mocks__/events';
+import { myOuting, otherOuting } from '../../../../__mocks__/outings';
 import i18n from '../../../shared/i18n';
+import { colors } from '../../../shared/theme/colors';
 import { type ClassifiedEvent, classifyEvents } from '../classifyEvents';
 import { formatEventDateTime } from '../formatEvent';
 import { EventSheet } from './EventSheet';
 
 // SecureStore is native: an empty in-memory store, so the posts of the sheet have no session.
+// The title of the event of an outing comes from the events of the map: here it is a given.
+let mockEventTitle: string | undefined;
+jest.mock('../../outings/hooks/useEventTitle', () => ({ useEventTitle: () => mockEventTitle }));
+
 jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(async () => undefined),
   getItemAsync: jest.fn(async () => null),
@@ -140,6 +147,20 @@ describe('EventSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('at night lights up the close button while it is held, with the layer over the glass (TG-650)', async () => {
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+    await renderSheet(launch);
+    const close = screen.getByRole('button', { name: 'Tanca la fitxa' });
+    expect(close).toHaveStyle({ backgroundColor: 'transparent' });
+
+    // While the finger is down (a long press holds it), the button shows the pressed layer.
+    const holding = userEvent.setup().longPress(close, { duration: 400 });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
+
+    expect(close).toHaveStyle({ backgroundColor: colors.nit.surface.onGlass });
+    await holding;
+  });
+
   it('closes when the user taps outside it', async () => {
     const onClose = jest.fn();
     await renderSheet(launch, onClose);
@@ -170,6 +191,31 @@ describe('EventSheet', () => {
     expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('on wide screens the content fills the panel and scrolls, without a fixed maxHeight (TG-647)', async () => {
+    await renderSheet(launch, jest.fn(), true);
+
+    const [scroll] = screen.root!.queryAll((node) => node.type === 'RCTScrollView');
+    const style = StyleSheet.flatten(scroll.props.style);
+    expect(style.flex).toBe(1);
+    expect(style.maxHeight).toBeUndefined();
+  });
+
+  it('on wide screens keeps the top and bottom safe areas plus the spacing of the panel (TG-647)', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const legacy = { topInset: 80 };
+    await render(
+      <QueryClientProvider client={client}>
+        <SafeAreaProvider initialMetrics={SAFE_AREA}>
+          <EventSheet event={launch} onClose={jest.fn()} side {...legacy} />
+        </SafeAreaProvider>
+      </QueryClientProvider>,
+    );
+
+    const panel = StyleSheet.flatten(screen.getByTestId('event-sheet-side').props.style);
+    expect(panel.paddingTop).toBe(47 + 16);
+    expect(panel.paddingBottom).toBe(34 + 16);
   });
 
   it('on wide screens shows nothing while no event is selected', async () => {
@@ -257,5 +303,121 @@ describe('EventSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     await unmount();
     expect(remove).toHaveBeenCalled();
+  });
+});
+
+// TG-646 criterion 3: the shell of the sheet (bottom sheet or side panel, Escape, focus, close
+// button) shows an outing instead of an event.
+describe('EventSheet with an outing (TG-646)', () => {
+  async function renderOuting(
+    outing: typeof myOuting | typeof otherOuting | null,
+    { onClose = jest.fn(), side = false, onOpenOuting = jest.fn() } = {},
+  ) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={client}>
+        <SafeAreaProvider initialMetrics={SAFE_AREA}>
+          <EventSheet
+            event={null}
+            outing={outing}
+            onClose={onClose}
+            side={side}
+            onOpenOuting={onOpenOuting}
+          />
+        </SafeAreaProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    mockEventTitle = undefined;
+  });
+
+  it('shows nothing without event nor outing', async () => {
+    await renderOuting(null);
+
+    expect(screen.queryByRole('header')).toBeNull();
+  });
+
+  it('shows the title, the start and the end of the outing', async () => {
+    await renderOuting(myOuting);
+
+    expect(screen.getByRole('header', { name: myOuting.title })).toBeTruthy();
+    expect(screen.getByText('Inici')).toBeTruthy();
+    expect(screen.getByText(formatEventDateTime(myOuting.starts_at, i18n.language))).toBeTruthy();
+    expect(screen.getByText('Fi')).toBeTruthy();
+    expect(screen.getByText(formatEventDateTime(myOuting.ends_at, i18n.language))).toBeTruthy();
+  });
+
+  it('shows who organises it, or says it is an anonymous user', async () => {
+    const view = await renderOuting(myOuting);
+    expect(screen.getByText(myOuting.author.display_name)).toBeTruthy();
+    await view.unmount();
+
+    await renderOuting(otherOuting);
+    expect(screen.getByText('Una usuària de Perseida')).toBeTruthy();
+  });
+
+  it('shows the title of the event it is linked to', async () => {
+    mockEventTitle = meteorShowerEvent.title;
+
+    await renderOuting(myOuting);
+
+    expect(screen.getByText(meteorShowerEvent.title)).toBeTruthy();
+  });
+
+  it('names the linked event with its own text when its title is not known (TG-646)', async () => {
+    mockEventTitle = undefined;
+
+    await renderOuting(myOuting);
+
+    const own = i18n.t('events.outings.linkedEvent');
+    expect(own).not.toBe('events.outings.linkedEvent');
+    expect(screen.getByText(own)).toBeTruthy();
+    expect(i18n.t('outings.form.linkedEvent')).not.toBe(own);
+    expect(screen.queryByText(i18n.t('outings.form.linkedEvent'))).toBeNull();
+  });
+
+  it('has a button to the page of the outing that gives its id', async () => {
+    const onOpenOuting = jest.fn();
+    await renderOuting(myOuting, { onOpenOuting });
+
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
+
+    expect(i18n.t('events.outings.open')).not.toBe('events.outings.open');
+    expect(onOpenOuting).toHaveBeenCalledWith(myOuting.id);
+  });
+
+  it('has no event buttons nor community posts', async () => {
+    await renderOuting(myOuting);
+
+    expect(screen.queryByRole('button', { name: "Sortides d'aquest esdeveniment" })).toBeNull();
+    expect(screen.queryByRole('header', { name: 'Publicacions' })).toBeNull();
+  });
+
+  it('closes with its button and with the back gesture of the modal', async () => {
+    const onClose = jest.fn();
+    await renderOuting(myOuting, { onClose });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tanca la fitxa' }));
+    screen.getByTestId('event-sheet').props.onRequestClose();
+
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('on wide screens is a side panel that closes with the back button', async () => {
+    const onClose = jest.fn();
+    let onBack: () => unknown = () => false;
+    jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_name, handler) => {
+      onBack = handler as () => unknown;
+      return { remove: jest.fn() };
+    });
+
+    await renderOuting(myOuting, { onClose, side: true });
+
+    expect(screen.getByTestId('event-sheet-side')).toBeTruthy();
+    expect(screen.getByRole('header', { name: myOuting.title })).toBeTruthy();
+    expect(onBack()).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

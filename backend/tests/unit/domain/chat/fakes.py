@@ -25,8 +25,26 @@ class InMemoryChatRepository:
             self.rooms[event_id] = EventChatRoom.create(event_id=event_id)
         return self.rooms[event_id]
 
-    async def add_message(self, message: ChatMessage) -> None:
+    async def find_by_client_id(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> ChatMessage | None:
+        return next(
+            (
+                m
+                for m in self.messages
+                if m.author_id == author_id and m.client_message_id == client_message_id
+            ),
+            None,
+        )
+
+    async def add_message(self, message: ChatMessage) -> ChatMessage:
+        existing = await self.find_by_client_id(
+            message.author_id, message.client_message_id
+        )
+        if existing is not None:
+            return existing
         self.messages.append(message)
+        return message
 
     async def page(
         self, room_id: uuid.UUID, before: ChatCursor | None, limit: int

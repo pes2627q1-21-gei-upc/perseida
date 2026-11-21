@@ -1,9 +1,30 @@
 import type { AstronomicalEvent } from './api/getEvents';
 
 export type EventStatus = 'active' | 'upcoming';
-export type EventFilter = EventStatus | 'all';
+/** `outings` has no events: the map joins the outings, which come from their own hook. */
+export type EventFilter = EventStatus | 'all' | 'outings';
 
 export type ClassifiedEvent = AstronomicalEvent & { status: EventStatus };
+
+/** Day of a date in UTC, as YYYY-MM-DD: the days of the API are UTC days. */
+export function utcDay(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether an event is active on the UTC day of `now`, like GET /api/events/active: under way
+ * at some moment from 00:00Z to 24:00Z, an event that ends just at 00:00Z included.
+ */
+export function statusOn(
+  { starts_at, ends_at }: Pick<AstronomicalEvent, 'starts_at' | 'ends_at'>,
+  now: Date,
+): EventStatus {
+  const dayStart = Date.parse(`${utcDay(now)}T00:00:00Z`);
+  const active = Date.parse(starts_at) < dayStart + DAY_MS && Date.parse(ends_at) >= dayStart;
+  return active ? 'active' : 'upcoming';
+}
 
 export interface ClassifiedEvents {
   active: ClassifiedEvent[];
@@ -38,7 +59,9 @@ export function classifyEvents(
   };
 }
 
+const NO_EVENTS: ClassifiedEvent[] = [];
+
 /** The list the map shows for a filter. */
 export function filterEvents(events: ClassifiedEvents, filter: EventFilter): ClassifiedEvent[] {
-  return events[filter];
+  return filter === 'outings' ? NO_EVENTS : events[filter];
 }

@@ -124,6 +124,56 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Llistat d'esdeveniments filtrable
+     * @description Retorna els esdeveniments que estan en curs en algun moment entre els dies `from` i `to` (dies UTC, `to` inclòs fins a les 24:00Z). Per defecte `from` és avui i `to` és 30 dies després de `from`; el rang no pot passar de 90 dies. `category` es pot repetir per demanar-ne diverses; sense cap, totes. Amb `lat` i `lon` només hi surten els esdeveniments a menys de `radius_km` quilòmetres (per defecte 500) i els que no tenen ubicació, que es veuen des de qualsevol lloc. `from` posterior a `to`, un rang de més de 90 dies, `lat` sense `lon` (o al revés) o `radius_km` sense coordenades donen 422. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
+    get: operations['list_events'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/events/active': {
     parameters: {
       query?: never;
@@ -1514,6 +1564,66 @@ export interface operations {
       };
     };
   };
+  list_events: {
+    parameters: {
+      query?: {
+        /** @description Categoria; es pot repetir. Per defecte, totes. */
+        category?: components['schemas']['EventCategory'][];
+        /** @description Primer dia UTC (YYYY-MM-DD). Per defecte, avui. */
+        from?: string | null;
+        /** @description Darrer dia UTC, inclòs (YYYY-MM-DD). Per defecte, 30 dies després de `from`. */
+        to?: string | null;
+        /** @description Latitud en graus (WGS 84); cal amb `lon`. */
+        lat?: number | null;
+        /** @description Longitud en graus (WGS 84); cal amb `lat`. */
+        lon?: number | null;
+        /** @description Radi en km (1-20000) al voltant de `lat` i `lon`. Per defecte, 500. */
+        radius_km?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els esdeveniments que compleixen els filtres. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
   get_active_events: {
     parameters: {
       query?: {
@@ -2503,7 +2613,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;
@@ -2592,7 +2702,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (`RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;
@@ -2659,6 +2769,15 @@ export interface operations {
       };
       /** @description Identificador de publicació invàlid (`VALIDATION_ERROR`). */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`). */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -2739,6 +2858,15 @@ export interface operations {
       };
       /** @description Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`). */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`). */
+      429: {
         headers: {
           [name: string]: unknown;
         };

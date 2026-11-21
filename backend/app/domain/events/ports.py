@@ -6,13 +6,14 @@ from typing import Protocol
 from app.domain.events.models import (
     AstronomicalEvent,
     EventDraft,
+    EventQuery,
     EventSourceName,
     EventSubscription,
 )
 
 
 class EventRepository(Protocol):
-    """Stored astronomical events. Both list methods sort by ``starts_at``.
+    """Stored astronomical events. The list methods sort by ``starts_at``.
 
     ``start`` and ``end`` must be timezone-aware datetimes.
     """
@@ -31,6 +32,17 @@ class EventRepository(Protocol):
         self, start: datetime, end: datetime
     ) -> list[AstronomicalEvent]:
         """Return the events with ``start <= starts_at < end``."""
+        ...
+
+    async def search(self, query: EventQuery) -> list[AstronomicalEvent]:
+        """Return the events that match ``query``, sorted by ``starts_at``
+        and then by ``id``.
+
+        An event matches when it overlaps ``[query.start, query.end)`` (as in
+        ``list_between``), its category is in ``query.categories`` (any if
+        empty) and, with ``query.near``, it has no location or lies within
+        the radius.
+        """
         ...
 
     async def upsert_many(self, drafts: Sequence[EventDraft]) -> None:

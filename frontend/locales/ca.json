@@ -4,6 +4,7 @@
     "mediaError": "No s'ha pogut carregar la imatge o el vídeo.",
     "retry": "Torna-ho a provar",
     "retryHint": "Torna a carregar l'APOD",
+    "title": "Imatge del dia",
     "videoLabel": "Vídeo de l'APOD"
   },
   "auth": {
@@ -20,9 +21,6 @@
     "badge": "Pròximament",
     "chatDesc": "Un espai en temps real per compartir observacions, fotos i trobades astronòmiques.",
     "chatTitle": "Comunitat i xat",
-    "eventsDesc": "Molt aviat podràs consultar pluges d'estels, eclipsis i fenòmens celestes directament des d'aquí.",
-    "eventsMapButton": "Obre el mapa d'esdeveniments",
-    "eventsTitle": "Esdeveniments astronòmics",
     "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
     "gamificationTitle": "Gamificació i reptes"
   },
@@ -34,6 +32,7 @@
     "CHAT_MESSAGE_EMPTY": "El missatge no pot estar buit.",
     "CHAT_MESSAGE_TOO_LONG": "El missatge és massa llarg (màxim 1000 caràcters).",
     "CHAT_MESSAGE_REJECTED": "Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "Aquest missatge ja existeix amb un altre contingut.",
     "DATABASE_UNAVAILABLE": "El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
     "EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
@@ -56,6 +55,8 @@
     "QUIZ_EXPIRED": "Aquesta pregunta ja no es pot respondre: ha canviat el dia.",
     "QUIZ_QUESTION_MISMATCH": "Aquesta ja no és la pregunta d'avui.",
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "TOO_MANY_CONNECTIONS": "Tens massa connexions obertes alhora (en altres dispositius o pestanyes). Tanca'n alguna i torna-ho a provar.",
+    "SEND_UNCERTAIN": "No s'ha pogut confirmar l'enviament. Torna-ho a provar.",
     "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
     "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripció pot tenir com a màxim 2.000 caràcters.",
@@ -77,13 +78,15 @@
       "all": "No hi ha esdeveniments actius ni en els pròxims 30 dies.",
       "noLocation": "Cap d'aquests esdeveniments té una ubicació al mapa.",
       "showList": "Veure la llista",
-      "upcoming": "No hi ha esdeveniments en els pròxims 30 dies."
+      "upcoming": "No hi ha esdeveniments en els pròxims 30 dies.",
+      "outings": "No hi ha sortides properes."
     },
     "filter": {
       "active": "Actius",
       "all": "Tots",
       "label": "Mostra",
-      "upcoming": "Futurs"
+      "upcoming": "Futurs",
+      "outings": "Sortides"
     },
     "list": {
       "label": "Llista d'esdeveniments"
@@ -120,6 +123,31 @@
       "label": "Vista",
       "list": "Llista",
       "map": "Mapa"
+    },
+    "outings": {
+      "kind": "Sortida",
+      "open": "Obre la sortida",
+      "linkedEvent": "Esdeveniment relacionat"
+    },
+    "search": {
+      "categories": "Categories",
+      "range": {
+        "label": "Període",
+        "days7": "7 dies",
+        "days30": "30 dies",
+        "days90": "90 dies"
+      },
+      "near": {
+        "label": "A prop meu",
+        "locating": "Buscant la teva ubicació…",
+        "denied": "Sense permís d'ubicació no es pot filtrar per proximitat. El pots activar a la configuració del dispositiu.",
+        "unavailable": "No s'ha pogut obtenir la teva ubicació. Comprova que la localització està activada i torna-ho a provar."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} esdeveniment",
+      "results_other": "{{count}} esdeveniments",
+      "empty": "No hi ha esdeveniments amb aquests filtres.",
+      "openMap": "Obre el mapa"
     }
   },
   "home": {

@@ -4,6 +4,7 @@
     "mediaError": "The image or video couldn't be loaded.",
     "retry": "Try again",
     "retryHint": "Reload the APOD",
+    "title": "Picture of the day",
     "videoLabel": "APOD video"
   },
   "auth": {
@@ -20,9 +21,6 @@
     "badge": "Coming soon",
     "chatDesc": "A real-time space to share observations, photos, and stargazing meetups.",
     "chatTitle": "Community & chat",
-    "eventsDesc": "Soon you will be able to check meteor showers, eclipses, and celestial events directly from here.",
-    "eventsMapButton": "Open events map",
-    "eventsTitle": "Astronomical events",
     "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
     "gamificationTitle": "Gamification & challenges"
   },
@@ -34,6 +32,7 @@
     "CHAT_MESSAGE_EMPTY": "The message can't be empty.",
     "CHAT_MESSAGE_TOO_LONG": "The message is too long (1000 characters max).",
     "CHAT_MESSAGE_REJECTED": "This message can't be posted because it doesn't follow the community guidelines.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "This message already exists with different content.",
     "DATABASE_UNAVAILABLE": "The service isn't available right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
     "EVENT_NOT_FOUND": "This event no longer exists.",
@@ -56,6 +55,8 @@
     "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
     "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
+    "TOO_MANY_CONNECTIONS": "You have too many connections open at once (on other devices or tabs). Close one and try again.",
+    "SEND_UNCERTAIN": "We couldn't confirm the message was sent. Please try again.",
     "OUTING_TITLE_EMPTY": "Give the outing a title.",
     "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
     "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
@@ -77,13 +78,15 @@
       "all": "There are no events now or in the next 30 days.",
       "noLocation": "None of these events has a place on the map.",
       "showList": "See the list",
-      "upcoming": "There are no events in the next 30 days."
+      "upcoming": "There are no events in the next 30 days.",
+      "outings": "There are no upcoming outings."
     },
     "filter": {
       "active": "Active",
       "all": "All",
       "label": "Show",
-      "upcoming": "Upcoming"
+      "upcoming": "Upcoming",
+      "outings": "Outings"
     },
     "list": {
       "label": "Events list"
@@ -120,6 +123,31 @@
       "label": "View",
       "list": "List",
       "map": "Map"
+    },
+    "outings": {
+      "kind": "Outing",
+      "open": "Open the outing",
+      "linkedEvent": "Related event"
+    },
+    "search": {
+      "categories": "Categories",
+      "range": {
+        "label": "Period",
+        "days7": "7 days",
+        "days30": "30 days",
+        "days90": "90 days"
+      },
+      "near": {
+        "label": "Near me",
+        "locating": "Finding your location…",
+        "denied": "Without location permission, events can't be filtered by distance. You can turn it on in your device settings.",
+        "unavailable": "Your location could not be found. Check that location services are on and try again."
+      },
+      "distance": "{{distance}} km away",
+      "results_one": "{{count}} event",
+      "results_other": "{{count}} events",
+      "empty": "No events match these filters.",
+      "openMap": "Open the map"
     }
   },
   "home": {

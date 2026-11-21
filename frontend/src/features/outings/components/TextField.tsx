@@ -53,7 +53,7 @@ export function TextField({
             padding: spacing.md,
             borderRadius: radii.md,
             color: colors.text.primary,
-            backgroundColor: colors.surface.glass,
+            backgroundColor: colors.surface.onGlass,
             borderColor: highlighted ? colors.focusRing : colors.surface.glassBorder,
             borderWidth: highlighted ? 2 : 1,
           },

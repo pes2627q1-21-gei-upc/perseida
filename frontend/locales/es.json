@@ -4,6 +4,7 @@
     "mediaError": "No se ha podido cargar la imagen o el vídeo.",
     "retry": "Vuelve a intentarlo",
     "retryHint": "Vuelve a cargar el APOD",
+    "title": "Imagen del día",
     "videoLabel": "Vídeo del APOD"
   },
   "auth": {
@@ -20,9 +21,6 @@
     "badge": "Próximamente",
     "chatDesc": "Un espacio en tiempo real para compartir observaciones, fotos y encuentros astronómicos.",
     "chatTitle": "Comunidad y chat",
-    "eventsDesc": "Muy pronto podrás consultar lluvias de estrellas, eclipses y fenómenos celestes directamente desde aquí.",
-    "eventsMapButton": "Abrir el mapa de eventos",
-    "eventsTitle": "Eventos astronómicos",
     "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
     "gamificationTitle": "Gamificación y retos"
   },
@@ -34,6 +32,7 @@
     "CHAT_MESSAGE_EMPTY": "El mensaje no puede estar vacío.",
     "CHAT_MESSAGE_TOO_LONG": "El mensaje es demasiado largo (máximo 1000 caracteres).",
     "CHAT_MESSAGE_REJECTED": "Este mensaje no se puede publicar porque no cumple las normas de la comunidad.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "Este mensaje ya existe con otro contenido.",
     "DATABASE_UNAVAILABLE": "El servicio no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
     "EMAIL_ALREADY_REGISTERED": "Este correo ya está asociado a otra cuenta.",
     "EVENT_NOT_FOUND": "Este evento ya no existe.",
@@ -56,6 +55,8 @@
     "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
     "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
+    "TOO_MANY_CONNECTIONS": "Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo.",
+    "SEND_UNCERTAIN": "No se ha podido confirmar el envío. Vuelve a intentarlo.",
     "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
     "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
@@ -77,13 +78,15 @@
       "all": "No hay eventos activos ni en los próximos 30 días.",
       "noLocation": "Ninguno de estos eventos tiene una ubicación en el mapa.",
       "showList": "Ver la lista",
-      "upcoming": "No hay eventos en los próximos 30 días."
+      "upcoming": "No hay eventos en los próximos 30 días.",
+      "outings": "No hay salidas próximas."
     },
     "filter": {
       "active": "Activos",
       "all": "Todos",
       "label": "Mostrar",
-      "upcoming": "Futuros"
+      "upcoming": "Futuros",
+      "outings": "Salidas"
     },
     "list": {
       "label": "Lista de eventos"
@@ -120,6 +123,31 @@
       "label": "Vista",
       "list": "Lista",
       "map": "Mapa"
+    },
+    "outings": {
+      "kind": "Salida",
+      "open": "Abre la salida",
+      "linkedEvent": "Evento relacionado"
+    },
+    "search": {
+      "categories": "Categorías",
+      "range": {
+        "label": "Período",
+        "days7": "7 días",
+        "days30": "30 días",
+        "days90": "90 días"
+      },
+      "near": {
+        "label": "Cerca de mí",
+        "locating": "Buscando tu ubicación…",
+        "denied": "Sin permiso de ubicación no se puede filtrar por proximidad. Puedes activarlo en los ajustes del dispositivo.",
+        "unavailable": "No se ha podido obtener tu ubicación. Comprueba que la localización está activada y vuelve a intentarlo."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} evento",
+      "results_other": "{{count}} eventos",
+      "empty": "No hay eventos con estos filtros.",
+      "openMap": "Abrir el mapa"
     }
   },
   "home": {

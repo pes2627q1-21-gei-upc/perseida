@@ -1,4 +1,6 @@
-import { formatCoordinate, formatDateTime } from './formatOuting';
+import { myOuting } from '../../../__mocks__/outings';
+import i18n from '../../shared/i18n';
+import { describeOuting, formatCoordinate, formatDateTime } from './formatOuting';
 
 describe('formatDateTime', () => {
   it('shows a date and a time in the language and time zone it is given', () => {
@@ -29,5 +31,21 @@ describe('formatCoordinate', () => {
 
   it('rounds to four decimals', () => {
     expect(formatCoordinate(1.234567, 'en')).toBe('1.2346');
+  });
+});
+
+// TG-646 criterion 4: the accessible name of the marker of an outing, like describeEvent.
+describe('describeOuting', () => {
+  const t = i18n.getFixedT('ca');
+
+  it('names the outing with its title, "Sortida" and its date', () => {
+    expect(describeOuting(myOuting, t, 'ca', 'UTC')).toBe(
+      `${myOuting.title}, Sortida, ${formatDateTime(myOuting.starts_at, 'ca', 'UTC')}`,
+    );
+  });
+
+  it('says it in the language of the app', () => {
+    expect(describeOuting(myOuting, i18n.getFixedT('es'), 'es', 'UTC')).toContain(', Salida, ');
+    expect(describeOuting(myOuting, i18n.getFixedT('en'), 'en', 'UTC')).toContain(', Outing, ');
   });
 });

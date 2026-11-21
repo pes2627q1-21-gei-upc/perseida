@@ -168,12 +168,17 @@ async def _subscribe(
 
 
 def _message(
-    room: EventChatRoom, author: User, sent_at: datetime, body: str = "Hola"
+    room: EventChatRoom,
+    author: User,
+    sent_at: datetime,
+    body: str = "Hola",
+    client_message_id: uuid.UUID | None = None,
 ) -> ChatMessage:
     return ChatMessage(
         id=uuid.uuid7(),
         room_id=room.id,
         author_id=author.id,
+        client_message_id=client_message_id or uuid.uuid4(),
         text=body,
         sent_at=sent_at,
     )
@@ -334,9 +339,12 @@ async def test_tg448_add_message_with_a_repeated_id_is_not_a_missing_room(
     author = await _user(sessions)
     message = _message(room, author, NOW)
     await repo.add_message(message)
+    # Same object again would be a legitimate idempotent retry (TG-654); a
+    # repeated id with another key is the primary key conflict.
+    same_id = message.model_copy(update={"client_message_id": uuid.uuid4()})
 
     with pytest.raises(IntegrityError, match="pk_chat_messages"):
-        await repo.add_message(message)
+        await repo.add_message(same_id)
 
 
 async def test_tg448_c5_a_page_has_at_most_limit_messages_and_a_next_cursor(
@@ -471,8 +479,9 @@ async def test_tg448_c8_messages_survive_a_new_session_and_engine(
 
 
 INSERT_RAW_MESSAGE = text(
-    "INSERT INTO chat_messages (id, room_id, author_id, text, sent_at)"
-    " VALUES (:id, :room, :author, :body, :sent_at)"
+    "INSERT INTO chat_messages"
+    " (id, room_id, author_id, client_message_id, text, sent_at)"
+    " VALUES (:id, :room, :author, :client_message_id, :body, :sent_at)"
 )
 
 
@@ -487,6 +496,7 @@ async def _insert_raw(
                 "id": uuid.uuid7(),
                 "room": room.id,
                 "author": author.id,
+                "client_message_id": uuid.uuid4(),
                 "body": "a" * length,
                 "sent_at": NOW,
             },
@@ -536,3 +546,149 @@ async def test_tg448_the_database_rejects_a_text_of_1001_characters(
         await _insert_raw(engine, room, author, 1001)
 
     assert (await repo.page(room.id, None, 10)).messages == []
+
+
+# --- TG-654: client_message_id (idempotencia) ----------------------------------
+
+INSERT_KEYED_MESSAGE = text(
+    "INSERT INTO chat_messages"
+    " (id, room_id, author_id, client_message_id, text, sent_at)"
+    " VALUES (:id, :room_id, :author_id, :client_message_id, 'x', :sent_at)"
+)
+COUNT_KEYED = text(
+    "SELECT count(*) FROM chat_messages"
+    " WHERE author_id = :author_id AND client_message_id = :client_message_id"
+)
+
+
+async def test_tg654_find_by_client_id_returns_the_stored_message(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    message = _message(room, author, NOW, "Hola", key)
+    assert await repo.add_message(message) == message
+
+    assert await repo.find_by_client_id(author.id, key) == message
+
+
+async def test_tg654_find_by_client_id_of_an_unknown_key_is_none(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    await repo.add_message(_message(room, author, NOW))
+
+    assert await repo.find_by_client_id(author.id, uuid.uuid4()) is None
+
+
+async def test_tg654_the_same_key_of_another_author_is_not_found_and_is_stored(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    ada, bob = await _user(sessions), await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    mine = _message(room, ada, NOW, "d'Ada", key)
+    theirs = _message(room, bob, NOW + timedelta(seconds=1), "de Bob", key)
+
+    await repo.add_message(mine)
+    assert await repo.find_by_client_id(bob.id, key) is None
+    await repo.add_message(theirs)
+
+    assert await repo.find_by_client_id(ada.id, key) == mine
+    assert await repo.find_by_client_id(bob.id, key) == theirs
+    assert (await repo.page(room.id, None, 50)).messages == [theirs, mine]
+
+
+async def test_tg654_the_database_rejects_the_same_key_of_the_same_author(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # The unique key (author_id, client_message_id) is the safety net itself.
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    row = {
+        "room_id": room.id,
+        "author_id": author.id,
+        "client_message_id": key,
+        "sent_at": NOW,
+    }
+    async with engine.begin() as connection:
+        await connection.execute(INSERT_KEYED_MESSAGE, {"id": uuid.uuid7(), **row})
+
+    with pytest.raises(IntegrityError):
+        async with engine.begin() as connection:
+            await connection.execute(INSERT_KEYED_MESSAGE, {"id": uuid.uuid7(), **row})
+
+    assert (
+        await _count(engine, COUNT_KEYED, author_id=author.id, client_message_id=key)
+        == 1
+    )
+
+
+async def test_tg654_adding_a_second_message_with_the_same_key_keeps_the_first(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # ON CONFLICT DO NOTHING: no error, and the stored one is the original.
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    first = _message(room, author, NOW, "primer", key)
+    second = _message(room, author, NOW + timedelta(seconds=1), "segon", key)
+
+    assert await repo.add_message(first) == first
+    # the loser gets the stored one back, not its own message
+    assert await repo.add_message(second) == first
+
+    assert await repo.find_by_client_id(author.id, key) == first
+    assert (await repo.page(room.id, None, 50)).messages == [first]
+    assert (
+        await _count(engine, COUNT_KEYED, author_id=author.id, client_message_id=key)
+        == 1
+    )
+
+
+async def test_tg654_concurrent_adds_of_the_same_key_store_a_single_message(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # The race of two retries of the same message: nobody fails, one row remains.
+    author = await _user(sessions)
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    attempts = [
+        _message(room, author, NOW + timedelta(seconds=n), f"intent {n}", key)
+        for n in range(10)
+    ]
+
+    results = await asyncio.gather(*(repo.add_message(a) for a in attempts))
+
+    stored = await repo.find_by_client_id(author.id, key)
+    assert stored in attempts
+    assert results == [stored] * len(attempts)  # everyone gets the winner
+    assert (await repo.page(room.id, None, 50)).messages == [stored]
+    assert (
+        await _count(engine, COUNT_KEYED, author_id=author.id, client_message_id=key)
+        == 1
+    )
+
+
+async def test_tg654_a_repeated_message_id_is_still_a_primary_key_error(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    # The conflict target is (author_id, client_message_id) only: a repeated id
+    # with another key must not be swallowed by ON CONFLICT DO NOTHING.
+    room = await _room_with(repo, sessions)
+    author = await _user(sessions)
+    message = _message(room, author, NOW)
+    await repo.add_message(message)
+    other_key = message.model_copy(update={"client_message_id": uuid.uuid4()})
+
+    with pytest.raises(IntegrityError, match="pk_chat_messages"):
+        await repo.add_message(other_key)

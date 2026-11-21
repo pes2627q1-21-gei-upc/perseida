@@ -6,7 +6,8 @@ import { refreshSession } from './refreshToken';
 /** Extra headers of a private request; also a plain record, as openapi-fetch expects. */
 export type AuthHeaders = { Authorization: string } & Record<string, string>;
 
-function sessionUnavailable(): AppError {
+/** The session could not be renewed for a temporary reason (network, 5xx) but is still stored. */
+export function sessionUnavailable(): AppError {
   return new AppError({ kind: 'http', code: 'SESSION_UNAVAILABLE', status: 503, retryable: true });
 }
 
