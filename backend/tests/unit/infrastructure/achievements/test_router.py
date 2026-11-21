@@ -4,7 +4,6 @@ import uuid
 from collections.abc import AsyncIterator
 
 import pytest
-from app.infrastructure.achievements.router import router
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient, Response
 
@@ -20,6 +19,7 @@ from app.domain.achievements.models import (
 from app.domain.auth.models import GoogleIdentity
 from app.domain.users.models import User
 from app.infrastructure.achievements.dependencies import get_achievement_service
+from app.infrastructure.achievements.router import router
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.auth.dependencies import get_auth_service
 from app.infrastructure.users.dependencies import get_user_service
