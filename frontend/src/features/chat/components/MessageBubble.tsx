@@ -57,8 +57,8 @@ function SendingDot({ styles }: { styles: Styles }) {
 }
 
 /**
- * The material under the text: the gel body with its gloss pill (a message on its way is matte,
- * not yet set), or the 1 px highlight of the glass.
+ * The material under the text: the 1 px highlight of the glass and, on mine, the veil of the
+ * accent (a message on its way has no veil yet: it is plain glass, not yet set).
  */
 function BubbleSkin({
   surface,
@@ -70,8 +70,11 @@ function BubbleSkin({
   styles: Styles;
 }) {
   const { colors } = useTheme();
-  if (!surface.gradient) {
-    return (
+  return (
+    <>
+      {surface.tint !== undefined && !sending && (
+        <View testID="chat-bubble-veil" pointerEvents="none" style={styles.veil} />
+      )}
       <LinearGradient
         colors={colors.gel.highlight}
         // Stryker disable next-line ObjectLiteral: direction of the highlight, visual only.
@@ -81,15 +84,6 @@ function BubbleSkin({
         pointerEvents="none"
         style={styles.line}
       />
-    );
-  }
-  return (
-    <>
-      <LinearGradient colors={surface.gradient} style={StyleSheet.absoluteFill} />
-      {!sending && (
-        // The gloss stays in the top padding, above the text (tokens.md).
-        <LinearGradient colors={colors.gel.highlight} pointerEvents="none" style={styles.gloss} />
-      )}
     </>
   );
 }
@@ -137,7 +131,7 @@ function useFloatIn(entering: boolean) {
 
 /**
  * One message of the room (TG-469), read as a single element: «author, time: text». Mine is
- * gel and the others' glass; a message on its way is busy and pulses, and one that did not go
+ * glass tinted with the accent and the others' plain glass; a message on its way is busy and pulses, and one that did not go
  * says so in text, with an icon (never only colour), and offers to retry it next to the bubble.
  */
 export function MessageBubble({ item, onRetry, entering = false }: Props) {
@@ -224,11 +218,9 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
 const ENTER_OFFSET = 8;
 const PULSE_LOW = 0.35;
 const HIGHLIGHT_INSET = 18;
-/** The gloss of my bubbles fits in the top padding (spacing.sm), above the text. */
-const GLOSS_HEIGHT = 6;
 
 /**
- * A drop of gel for mine and glass for the others'. The corner on the side of the author is
+ * Tinted glass for mine and plain glass for the others'. The corner on the side of the author is
  * smaller, like the tail of a speech bubble. Max 80 % of the column, which is capped on wide
  * screens by the list.
  */
@@ -255,20 +247,13 @@ function createStyles(
     },
     bubbleMine: {
       borderBottomRightRadius: radii.sm,
-      boxShadow: `0 6px 16px ${colors.gel.rim}59`,
+      boxShadow: `0 6px 16px ${colors.accentGlow}59`,
     },
     bubbleOthers: {
       borderBottomLeftRadius: radii.sm,
       boxShadow: `0 6px 16px ${colors.accentGlow}33`,
     },
-    gloss: {
-      position: 'absolute',
-      top: 1,
-      left: radii.md,
-      right: radii.md,
-      height: GLOSS_HEIGHT,
-      borderRadius: radii.pill,
-    },
+    veil: { ...StyleSheet.absoluteFill, backgroundColor: surface.tint },
     line: {
       position: 'absolute',
       top: 0,

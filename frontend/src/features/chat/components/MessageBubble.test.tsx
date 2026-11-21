@@ -109,6 +109,11 @@ describe('MessageBubble, message of the history (TG-469)', () => {
     });
   });
 
+  // The system setting is faked only for the test that asks for it; it would leak otherwise.
+  afterEach(() =>
+    jest.spyOn(AccessibilityInfo, 'isReduceTransparencyEnabled').mockResolvedValue(false),
+  );
+
   it('goes on solid colour with «Reduce transparency»', async () => {
     jest.spyOn(AccessibilityInfo, 'isReduceTransparencyEnabled').mockResolvedValue(true);
     const item = messageItem({ mine: true });
