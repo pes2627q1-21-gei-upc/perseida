@@ -80,8 +80,11 @@ start_npm() {
   MSYS_NO_PATHCONV=1 docker run -d --name "$NAME" -v /data -v /etc/letsencrypt -v "$mount" "$IMAGE" >/dev/null
   local waited=0
   while [ "$waited" -lt "$STARTUP_TIMEOUT" ]; do
-    # NPM genera `resolvers.conf` en acabar d'arrencar; abans, `nginx -t` falla.
-    if MSYS_NO_PATHCONV=1 docker exec "$NAME" test -f /etc/nginx/conf.d/include/resolvers.conf 2>/dev/null \
+    # Arrencat del tot = l'API d'NPM respon (`check-health`, el healthcheck de la imatge). No n'hi
+    # ha prou amb `resolvers.conf` + `nginx -t`: el pas `50-ipv6.sh` de `prepare`, que va després,
+    # reescriu cada `.conf` de /data/nginx (`echo "$(sed ... "$FILE")" > $FILE`), i una còpia del CD
+    # feta mentrestant es perd (fallada intermitent del pas 2a a la CI).
+    if MSYS_NO_PATHCONV=1 docker exec "$NAME" /usr/bin/check-health >/dev/null 2>&1 \
       && docker exec "$NAME" nginx -t >/dev/null 2>&1; then
       return 0
     fi

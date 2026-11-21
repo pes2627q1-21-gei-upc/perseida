@@ -2,9 +2,9 @@
 titol: "Component: redis"
 tipus: component
 estat: vigent
-data: "2026-11-15"
-us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87", "TG-143", "TG-63", "TG-49"]
-font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16); Taiga TG-46 (2026-10-22); Taiga TG-143 (2026-10-22)"
+data: "2026-11-21"
+us: ["TG-85", "TG-37", "TG-44", "TG-46", "TG-87", "TG-143", "TG-63", "TG-49", "TG-362"]
+font: "infra/README.md, backend/README.md, memòria §3.4.2, .env.example; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-87 (2026-10-16); Taiga TG-46 (2026-10-22); Taiga TG-143 (2026-10-22); TG-362 (tasca TG-381, review de la PR #131, 2026-11-21)"
 etiquetes: [component, redis, cache, pubsub]
 ---
 
@@ -25,7 +25,9 @@ Redis 8 (versió fixada).
 
 ## Configuració
 
-Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix `redis://host:port`). Opcionals, amb valor per defecte al codi i fora del `.env.example` de l'arrel (no cal donar-les d'alta a GitHub Actions): `CACHE_DEFAULT_TTL_SECONDS` (TTL per defecte, 3600 s) i `REDIS_SOCKET_TIMEOUT_SECONDS` (timeout de connexió i de socket, 2 s; si Redis es penja, la cache respon com un miss en lloc de bloquejar la petició). Veure `backend/.env.example`.
+Variables de `.env.example`: `REDIS_HOST` i `REDIS_PORT` (el backend construeix `redis://host:port/db`). Opcionals, amb valor per defecte al codi i fora del `.env.example` de l'arrel (no cal donar-les d'alta a GitHub Actions): `REDIS_DB` (base de dades lògica, 0..15, per defecte 0; l'app fa servir la 0), `CACHE_DEFAULT_TTL_SECONDS` (TTL per defecte, 3600 s) i `REDIS_SOCKET_TIMEOUT_SECONDS` (timeout de connexió i de socket, 2 s; si Redis es penja, la cache respon com un miss en lloc de bloquejar la petició). Veure `backend/.env.example`.
+
+Tests (TG-362): fan servir els índexs 1..15, un per worker de pytest-xdist (`15 - N`; la 15 sense xdist), i **l'índex 0 no es buida mai**. Detall a [[testing]].
 
 ## Ports i adaptadors
 

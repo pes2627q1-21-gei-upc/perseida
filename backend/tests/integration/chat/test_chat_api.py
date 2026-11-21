@@ -44,7 +44,6 @@ from app.infrastructure.auth.google_verifier import (
 )
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
-from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.account_gateway import UserAccountGateway
@@ -60,8 +59,6 @@ pytestmark = pytest.mark.skipif(
 
 PROBLEM_JSON = "application/problem+json"
 ROOMS = "/api/chat/rooms"
-# Redis database only for these tests (the app uses 0), emptied before and after.
-TEST_REDIS_DB = 15
 # Fixed history timestamps; three messages share each second to exercise the id
 # tie-break of the cursor.
 NOW = datetime(2026, 11, 17, 21, 0, tzinfo=UTC)
@@ -144,20 +141,6 @@ def factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
         expire_on_commit=False,
         join_transaction_mode="create_savepoint",
     )
-
-
-@pytest.fixture
-async def redis() -> AsyncIterator[Redis]:
-    """A Redis database only for these tests, emptied before and after."""
-    client = Redis.from_url(
-        RedisSettings().redis_url, db=TEST_REDIS_DB, decode_responses=True
-    )
-    try:
-        await client.flushdb()
-        yield client
-    finally:
-        await client.flushdb()
-        await client.aclose()
 
 
 @pytest.fixture

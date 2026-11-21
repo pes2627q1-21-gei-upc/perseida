@@ -30,7 +30,7 @@ Un únic procés FastAPI integra tres responsabilitats:
 | Moderació | Microservei Kev-4B (model local, crida síncrona) |
 | Dependències | `uv` (versions exactes, `uv.lock` versionat) |
 | Qualitat | `ruff` (lint + format, complexitat màx. 10), `mypy` estricte, SonarQube Cloud |
-| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
+| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Arquitectura: hexagonal
 
@@ -185,6 +185,9 @@ uv run ruff format --check .  # comprova el format sense modificar fitxers
 uv run mypy .                 # tipatge estricte
 uv run lint-imports           # contractes d'arquitectura (import-linter)
 uv run pytest                 # tests (amb cobertura)
+uv run pytest -n auto         # igual, en paral·lel (una base de dades i un índex de Redis per worker)
+uv run pytest -p randomly --randomly-seed=<llavor>  # reprodueix una fallada d'ordre (llavor a la primera línia de la sortida)
+uv run pytest -m quarantine   # només els tests en quarantena (@pytest.mark.quarantine(reason="TG-NNN ..."))
 uv run uvicorn app.main:app --reload  # arrenca l'API (http://127.0.0.1:8000/api/docs)
 ```
 
@@ -216,7 +219,8 @@ uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 
 Redis només és una cache amb TTL i el bus pub/sub del xat WebSocket; no hi viu res que hagi de sobreviure (la font de veritat és PostgreSQL). El client asíncron es crea al `lifespan` de FastAPI i es tanca en aturar l'aplicació. Configuració (vegeu `.env.example`):
 
-- `REDIS_HOST`, `REDIS_PORT`: adreça del servidor (`redis://host:port`).
+- `REDIS_HOST`, `REDIS_PORT`: adreça del servidor (`redis://host:port/db`).
+- `REDIS_DB` (opcional, 0..15, per defecte 0): base de dades lògica. Els tests fan servir la 15 i, amb pytest-xdist, una per worker (15, 14...).
 - `CACHE_DEFAULT_TTL_SECONDS`: TTL per defecte en segons (3600 si no es defineix).
 - `REDIS_SOCKET_TIMEOUT_SECONDS`: timeout de connexió i de socket en segons (2 si no es defineix); un Redis penjat es comporta com un miss.
 
