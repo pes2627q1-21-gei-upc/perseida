@@ -45,7 +45,7 @@ XML extern (feed de la NASA): es parseja amb `defusedxml` (`fromstring(..., forb
 
 - Passar `uvx pip-audit` (backend, sobre `uv export`) i `pnpm audit` (frontend) a cada canvi de dependències.
 - Des de TG-383, el job `backend` de la CI audita les dependències de producció del backend (pip-audit contra OSV) i analitza el codi amb bandit; tots dos passos bloquegen la PR. Ordres i detall a [[testing#Seguretat estàtica i dependències (TG-362)]].
-- Si cal acceptar un risc: `# nosec BXXX  # <motiu>` en línia (bandit) o `--ignore-vuln <ID>` al pas de la CI (pip-audit), i en tots dos casos una fila a la taula d'estat de sota amb el motiu, qui l'accepta i la data de revisió.
+- Si cal acceptar un risc: a bandit, la regla a `skips` de `[tool.bandit]` (`backend/pyproject.toml`) amb un comentari del motiu, mai `# nosec` en línia (criteri 4 de TG-362; `skips` desactiva la regla a tot `app/`, de manera que primer s'intenta corregir el codi), o `--ignore-vuln <ID>` al pas de la CI (pip-audit), i en tots dos casos una fila a la taula d'estat de sota amb el motiu, qui l'accepta i la data de revisió.
 - Es corregeix tot el que té versió arreglada i compatible, fixant-la amb `uv`/`pnpm`.
 - El que no té arreglament es **tria**: si és de producció (arriba al paquet de l'app o al servidor) o només d'eines de compilació, i si és explotable amb les nostres entrades.
 

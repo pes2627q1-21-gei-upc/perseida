@@ -104,7 +104,7 @@ uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt
 uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip
 ```
 
-Si cal acceptar un risc: a bandit, `# nosec BXXX  # <motiu>` a la mateixa línia; a pip-audit, `--ignore-vuln <ID>` al pas de la CI. En tots dos casos s'afegeix una fila a la taula de riscos acceptats de [[seguretat]], amb el motiu, qui l'accepta i la data de revisió.
+Si cal acceptar un risc: a bandit, la regla a `skips` de `[tool.bandit]` (`backend/pyproject.toml`) amb un comentari del motiu, mai `# nosec` en línia (el criteri 4 de TG-362 demana la justificació al fitxer de configuració; com que `skips` desactiva la regla a tot `app/`, primer s'intenta corregir el codi); a pip-audit, `--ignore-vuln <ID>` al pas de la CI. En tots dos casos s'afegeix una fila a la taula de riscos acceptats de [[seguretat]], amb el motiu, qui l'accepta i la data de revisió.
 
 ## Proves d'acceptació
 
