@@ -35,13 +35,14 @@ export default function ApodScreen() {
 
   return (
     <SkyBackground>
-      {content}
+      {/* First in the tree so the reading and Tab order match the visual one (WCAG 1.3.2, 2.4.3). */}
       <TopBar
         title={t('apod.title')}
         testID="apod-top-bar"
         onBack={goBack}
         onLayout={setBarBottom}
       />
+      {content}
     </SkyBackground>
   );
 }
