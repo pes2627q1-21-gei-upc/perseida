@@ -29,7 +29,7 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 | Auth | Google OAuth2 + PKCE · Google token validation via JWKS · own backend session (JWT) |
 | Moderation | Kev-4B microservice (local model, synchronous call) |
 | Dependencies | `uv` (`uv.lock` committed) |
-| Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud |
+| Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud, `bandit` (code security), `pip-audit` (dependency vulnerabilities, OSV) |
 | Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Architecture: hexagonal
@@ -205,6 +205,9 @@ uv run ruff check .           # lint
 uv run ruff format --check .   # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run lint-imports           # architecture contracts (import-linter)
+uv run bandit -c pyproject.toml -r app -ll  # code security (fails on medium or high severity)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # production dependencies with hashes
+uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # known vulnerabilities (OSV)
 uv run pytest                 # tests (with coverage)
 uv run pytest -n auto         # same, in parallel (one database and Redis index per worker)
 uv run pytest -p randomly --randomly-seed=<seed>  # reproduce an order-dependent failure (seed on the first output line)
