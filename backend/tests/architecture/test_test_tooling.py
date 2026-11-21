@@ -441,13 +441,14 @@ def _assert_frontend_audit(workflow: str) -> None:
     assert re.search(r"\s--prod\b", command[1]), command[1]
     assert re.search(r"\s--audit-level[ =]high\b", command[1]), command[1]
     assert audits[0] == installs[0] + 1, "the audit must run right after the install"
-    # A warning until TG-338 accepts the documented risks and makes it blocking.
-    assert re.search(r"^\s*continue-on-error:\s*true\s*$", audit, re.MULTILINE), audit
-    assert re.search(r"\bTG-338\b", audit), audit
+    _assert_blocking(audit)
     assert _runs_in_frontend(job, audit), "the audit must run in frontend/"
 
 
 def test_tg362_ci_audits_the_frontend_production_dependencies() -> None:
+    """The frontend job audits its production dependencies right after the
+    install, inside ``frontend/``, as a blocking step (team decision,
+    21/11/2026): an accepted risk goes in ``auditConfig.ignoreGhsas``."""
     _assert_frontend_audit(CI_WORKFLOW.read_text(encoding="utf-8"))
 
 
