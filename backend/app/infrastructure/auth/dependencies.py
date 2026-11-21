@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 import httpx
@@ -16,6 +17,8 @@ from app.infrastructure.auth.google_verifier import GoogleJwksVerifier
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
+
+logger = logging.getLogger(__name__)
 
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_DAY = 24 * 60 * 60
@@ -86,7 +89,11 @@ async def get_optional_session(
         return None
     try:
         return await service.authenticate(credentials.credentials)
+    except UnauthorizedError:
+        return None
     except ApplicationError:
+        # The session store is down: the endpoint stays public, but say so.
+        logger.warning("Could not check the optional session", exc_info=True)
         return None
 
 
