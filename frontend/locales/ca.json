@@ -131,6 +131,25 @@
       "kind": "Sortida",
       "open": "Obre la sortida",
       "linkedEvent": "Esdeveniment relacionat"
+    },
+    "search": {
+      "categories": "Categories",
+      "range": {
+        "label": "Període",
+        "days7": "7 dies",
+        "days30": "30 dies",
+        "days90": "90 dies"
+      },
+      "near": {
+        "label": "A prop meu",
+        "locating": "Buscant la teva ubicació…",
+        "denied": "Sense permís d'ubicació no es pot filtrar per proximitat. El pots activar a la configuració del dispositiu."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} esdeveniment",
+      "results_other": "{{count}} esdeveniments",
+      "empty": "No hi ha esdeveniments amb aquests filtres.",
+      "openMap": "Obre el mapa"
     }
   },
   "home": {

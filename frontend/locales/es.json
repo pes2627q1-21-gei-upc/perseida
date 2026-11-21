@@ -131,6 +131,25 @@
       "kind": "Salida",
       "open": "Abre la salida",
       "linkedEvent": "Evento relacionado"
+    },
+    "search": {
+      "categories": "Categorías",
+      "range": {
+        "label": "Período",
+        "days7": "7 días",
+        "days30": "30 días",
+        "days90": "90 días"
+      },
+      "near": {
+        "label": "Cerca de mí",
+        "locating": "Buscando tu ubicación…",
+        "denied": "Sin permiso de ubicación no se puede filtrar por proximidad. Puedes activarlo en los ajustes del dispositivo."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} evento",
+      "results_other": "{{count}} eventos",
+      "empty": "No hay eventos con estos filtros.",
+      "openMap": "Abrir el mapa"
     }
   },
   "home": {
