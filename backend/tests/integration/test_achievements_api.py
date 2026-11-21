@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import (
 from alembic import command
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.auth.errors import INVALID_SESSION
+from app.domain.achievements.models import AchievementCategory
 from app.infrastructure.auth.google_verifier import (
     GOOGLE_CERTS_URL,
     GoogleJwksVerifier,
@@ -213,9 +214,8 @@ async def test_lists_the_whole_catalog_ordered_by_category_and_position(
     assert all(item["unlocked"] is False for item in body)
     assert all(item["unlocked_at"] is None for item in body)
     categories = [item["category"] for item in body]
-    assert len(
-        [c for i, c in enumerate(categories) if i == 0 or c != categories[i - 1]]
-    ) == len(set(categories))
+    blocks = [c for i, c in enumerate(categories) if i == 0 or c != categories[i - 1]]
+    assert blocks == [c for c in AchievementCategory if c in set(categories)]
     for category in set(categories):
         positions = [i["position"] for i in body if i["category"] == category]
         assert positions == sorted(positions)

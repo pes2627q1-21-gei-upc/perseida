@@ -238,6 +238,44 @@ async def test_each_item_has_category_and_position_ordered_by_them() -> None:
     ]
 
 
+async def test_categories_follow_the_enum_order_and_positions_ascend_inside() -> None:
+    # TG-574 / US TG-58 criteri 7: ordre fix entre categories (el de l'enum
+    # AchievementCategory) i per position dins de cada una, amb catàleg barrejat.
+    shuffled = [
+        _achievement(AchievementKind.MINIGAME_WON, 2, AchievementCategory.MINIGAME, 2),
+        _achievement(AchievementKind.FOLLOWERS, 5, AchievementCategory.SOCIAL, 3),
+        _achievement(AchievementKind.QUIZ_COMPLETED, 9, AchievementCategory.QUIZ, 2),
+        _achievement(AchievementKind.EVENT_EXPORTED, 1, AchievementCategory.EVENTS, 2),
+        _achievement(AchievementKind.STREAK_DAYS, 30, AchievementCategory.STREAKS, 3),
+        _achievement(
+            AchievementKind.MINIGAME_PLAYED, 1, AchievementCategory.MINIGAME, 1
+        ),
+        _achievement(AchievementKind.FOLLOWING, 1, AchievementCategory.SOCIAL, 1),
+        _achievement(AchievementKind.QUIZ_PERFECT, 1, AchievementCategory.QUIZ, 1),
+        _achievement(
+            AchievementKind.EVENT_SUBSCRIPTION, 1, AchievementCategory.EVENTS, 1
+        ),
+        _achievement(AchievementKind.STREAK_DAYS, 3, AchievementCategory.STREAKS, 1),
+        _achievement(AchievementKind.MESSAGE_SENT, 1, AchievementCategory.SOCIAL, 2),
+        _achievement(AchievementKind.STREAK_DAYS, 7, AchievementCategory.STREAKS, 2),
+    ]
+
+    body = (await _get(FakeAchievementRepository(*shuffled))).json()
+
+    assert [(i["category"], i["position"]) for i in body] == [
+        (category, position)
+        for category in ("streaks", "quiz", "events", "social", "minigame")
+        for position in range(1, 4 if category in ("streaks", "social") else 3)
+    ]
+    assert [c.value for c in AchievementCategory] == [
+        "streaks",
+        "quiz",
+        "events",
+        "social",
+        "minigame",
+    ]
+
+
 def test_the_operation_is_documented_in_openapi() -> None:
     # TG-574 / US TG-58 criteri 7: OpenAPI (summary, description, operation_id)
     app = FastAPI()
