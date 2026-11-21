@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Protocol
 
 from app.domain.achievements.models import Achievement, UserAchievement
@@ -11,6 +12,10 @@ class AchievementRepository(Protocol):
 
     async def list_unlocked_ids(self, user_id: uuid.UUID) -> set[uuid.UUID]:
         """Return the ids of the achievements the user has unlocked."""
+        ...
+
+    async def list_unlocked_at(self, user_id: uuid.UUID) -> dict[uuid.UUID, datetime]:
+        """Return achievement id -> UTC unlock time for what the user unlocked."""
         ...
 
     async def unlock(
