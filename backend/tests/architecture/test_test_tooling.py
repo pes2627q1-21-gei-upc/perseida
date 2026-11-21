@@ -26,6 +26,12 @@ production dependency, not skipped.
 Criteri 5 (TG-383): a blocking step exports the production requirements from the
 lockfile (``uv export --frozen --no-dev ...``) and audits them with
 ``uv run pip-audit -r <file> -s osv``.
+Criteri 6 (TG-384): the ``frontend`` job runs
+``pnpm audit --prod --audit-level=high`` right after ``pnpm install``, as a
+warning (``continue-on-error: true``) until TG-338, which accepts the documented
+risks (today GHSA-mrhx-c7xc-m3w5, ``zod`` via ``@expo/cli``) and makes it
+blocking with the team's agreement; the step (its name or the comment above it)
+names TG-338 so the warning is not forgotten.
 
 Paths are resolved from this file, never from the working directory.
 """
@@ -59,13 +65,20 @@ def _dev_dependencies() -> list[str]:
     return dev
 
 
+def _job(workflow: str, name: str) -> str:
+    """Text of the job ``name``: from its key to the next top-level job."""
+    match = re.search(
+        rf"^  {re.escape(name)}:\n(?P<body>(?:^(?:    .*|\s*)\n)+)",
+        workflow,
+        re.MULTILINE,
+    )
+    assert match, f"ci.yml has no '{name}' job"
+    return match["body"]
+
+
 def _backend_job(workflow: str) -> str:
     """Text of the ``backend`` job: from its key to the next top-level job."""
-    match = re.search(
-        r"^  backend:\n(?P<body>(?:^(?:    .*|\s*)\n)+)", workflow, re.MULTILINE
-    )
-    assert match, "ci.yml has no 'backend' job"
-    return match["body"]
+    return _job(workflow, "backend")
 
 
 @pytest.mark.parametrize(("package", "version"), PINNED_TOOLS.items())
@@ -373,3 +386,48 @@ def test_tg362_defusedxml_is_a_pinned_production_dependency() -> None:
     data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
 
     assert DEFUSEDXML in data["project"]["dependencies"]
+
+
+def _steps_with_comments(job: str) -> list[str]:
+    """Each step of ``job``, as text, including the comment lines just above its
+    ``- `` line (a comment there documents the step that follows it)."""
+    steps: list[list[str]] = []
+    comments: list[str] = []
+    for line in job.splitlines(keepends=True):
+        if re.match(r"      #", line):
+            comments.append(line)
+        elif line.startswith("      - "):
+            steps.append([*comments, line])
+            comments = []
+        elif steps:
+            steps[-1].extend([*comments, line])
+            comments = []
+    return ["".join(step) for step in steps]
+
+
+def test_tg362_ci_audits_the_frontend_production_dependencies() -> None:
+    steps = _steps_with_comments(
+        _job(CI_WORKFLOW.read_text(encoding="utf-8"), "frontend")
+    )
+    installs = [
+        index
+        for index, step in enumerate(steps)
+        if re.search(r"run:\s*pnpm install\b", step)
+    ]
+    audits = [
+        index
+        for index, step in enumerate(steps)
+        if re.search(r"run:\s*pnpm audit\b", step)
+    ]
+
+    assert len(installs) == 1, "the frontend job has no 'pnpm install' step"
+    assert len(audits) == 1, "the frontend job has no 'pnpm audit' step"
+    audit = steps[audits[0]]
+    command = re.search(r"run:\s*(pnpm audit\b[^\n]*)", audit)
+    assert command, audit
+    assert re.search(r"\s--prod\b", command[1]), command[1]
+    assert re.search(r"\s--audit-level[ =]high\b", command[1]), command[1]
+    assert audits[0] == installs[0] + 1, "the audit must run right after the install"
+    # A warning until TG-338 accepts the documented risks and makes it blocking.
+    assert re.search(r"^\s*continue-on-error:\s*true\s*$", audit, re.MULTILINE), audit
+    assert re.search(r"\bTG-338\b", audit), audit
