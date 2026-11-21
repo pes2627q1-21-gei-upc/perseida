@@ -140,7 +140,8 @@
       "near": {
         "label": "A prop meu",
         "locating": "Buscant la teva ubicació…",
-        "denied": "Sense permís d'ubicació no es pot filtrar per proximitat. El pots activar a la configuració del dispositiu."
+        "denied": "Sense permís d'ubicació no es pot filtrar per proximitat. El pots activar a la configuració del dispositiu.",
+        "unavailable": "No s'ha pogut obtenir la teva ubicació. Comprova que la localització està activada i torna-ho a provar."
       },
       "distance": "a {{distance}} km",
       "results_one": "{{count}} esdeveniment",

@@ -140,7 +140,8 @@
       "near": {
         "label": "Near me",
         "locating": "Finding your location…",
-        "denied": "Without location permission, events can't be filtered by distance. You can turn it on in your device settings."
+        "denied": "Without location permission, events can't be filtered by distance. You can turn it on in your device settings.",
+        "unavailable": "Your location could not be found. Check that location services are on and try again."
       },
       "distance": "{{distance}} km away",
       "results_one": "{{count}} event",

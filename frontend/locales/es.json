@@ -140,7 +140,8 @@
       "near": {
         "label": "Cerca de mí",
         "locating": "Buscando tu ubicación…",
-        "denied": "Sin permiso de ubicación no se puede filtrar por proximidad. Puedes activarlo en los ajustes del dispositivo."
+        "denied": "Sin permiso de ubicación no se puede filtrar por proximidad. Puedes activarlo en los ajustes del dispositivo.",
+        "unavailable": "No se ha podido obtener tu ubicación. Comprueba que la localización está activada y vuelve a intentarlo."
       },
       "distance": "a {{distance}} km",
       "results_one": "{{count}} evento",
