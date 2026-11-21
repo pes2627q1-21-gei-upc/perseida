@@ -178,3 +178,62 @@ async def test_get_profile_rejects_suspended_banned_and_deleted_accounts(
         await _service(repo).get_profile("sub-1")
 
     assert exc_info.value.code == code
+
+
+async def test_update_language_saves_and_returns_the_updated_account() -> None:
+    # TG-92 / US #92 criteri 1
+    existing = _existing(preferred_language=Language.CA)
+    repo = InMemoryUserRepository(existing)
+
+    updated = await _service(repo).update_language("sub-1", Language.EN)
+
+    assert updated == existing.model_copy(update={"preferred_language": Language.EN})
+    assert repo.users["sub-1"] == updated
+    assert repo.saved_languages == [updated]
+
+
+async def test_update_language_of_a_session_without_account_is_an_invalid_session() -> (
+    None
+):
+    # TG-92 / US #92 criteri 2
+    repo = InMemoryUserRepository()
+
+    with pytest.raises(UnauthorizedError) as exc_info:
+        await _service(repo).update_language("sub-1", Language.EN)
+
+    assert exc_info.value.code == INVALID_SESSION
+    assert repo.saved_languages == []
+
+
+@pytest.mark.parametrize(
+    ("overrides", "code"),
+    [
+        ({"status": UserStatus.SUSPENDED}, ACCOUNT_SUSPENDED),
+        ({"status": UserStatus.BANNED}, ACCOUNT_SUSPENDED),
+        ({"deleted_at": NOW}, ACCOUNT_DELETED),
+    ],
+)
+async def test_update_language_rejects_suspended_banned_and_deleted_accounts(
+    overrides: dict[str, object], code: str
+) -> None:
+    # TG-92 / US #92 criteri 2: res es desa si el compte no és actiu
+    repo = InMemoryUserRepository(_existing(**overrides))
+
+    with pytest.raises(ForbiddenError) as exc_info:
+        await _service(repo).update_language("sub-1", Language.EN)
+
+    assert exc_info.value.code == code
+    assert repo.saved_languages == []
+    assert repo.users["sub-1"].preferred_language is Language.CA
+
+
+async def test_update_language_only_touches_the_session_account() -> None:
+    # TG-92 / US #92 criteri 3: només el seu compte
+    mine = _existing()
+    other = User.create(google_sub="sub-2", email="bob@example.test")
+    repo = InMemoryUserRepository(mine, other)
+
+    await _service(repo).update_language("sub-1", Language.ES)
+
+    assert repo.users["sub-2"] == other
+    assert [u.google_sub for u in repo.saved_languages] == ["sub-1"]
