@@ -2,9 +2,9 @@
 titol: "GitFlow i política de pull requests"
 tipus: convencio
 estat: vigent
-data: "2026-11-18"
-us: ["TG-85", "TG-33", "TG-353", "TG-652"]
-font: "memòria §2.2; TG-652 (CI cancel·lada per temps a TG-646)"
+data: "2026-11-22"
+us: ["TG-85", "TG-33", "TG-353", "TG-652", "TG-64", "TG-469"]
+font: "memòria §2.2; TG-652 (CI cancel·lada per temps a TG-646); PR apilades amb gh stack: convenció aprovada per Oriol Orbea (22/11/2026, TG-64/TG-469, vegeu la guia pr-apilades-amb-gh-stack)"
 etiquetes: [convencio, git, gitflow, pull-requests]
 ---
 

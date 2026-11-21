@@ -2,9 +2,9 @@
 titol: PR apilades amb l'extensió gh stack
 tipus: guia
 estat: vigent
-data: 2026-11-19
-us: ["TG-64"]
-font: "gh stack v0.3.0 (--help de cada ordre, 19/11/2026); documentació oficial de GitHub sobre stacked PR (gh.io/stacks); TG-652"
+data: 2026-11-22
+us: ["TG-64", "TG-469"]
+font: "gh stack v0.3.0 (--help de cada ordre, 19/11/2026); documentació oficial de GitHub sobre stacked PR (gh.io/stacks); TG-652; que una feature/* surti de l'anterior en una pila és una convenció aprovada per Oriol Orbea (22/11/2026, TG-64/TG-469)"
 etiquetes: [guia, git, pull-requests, gh-stack]
 ---
 
