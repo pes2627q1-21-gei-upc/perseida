@@ -1,5 +1,4 @@
 import datetime as dt
-import logging
 from typing import Annotated, Self
 
 from fastapi import APIRouter, Query, status
@@ -9,13 +8,13 @@ from app.application.apod.errors import APOD_UNAVAILABLE
 from app.domain.apod.models import Apod, MediaType
 from app.infrastructure.api.params import IsoDate
 from app.infrastructure.api.schemas import PROBLEM_CONTENT, ProblemDetails
-from app.infrastructure.apod.dependencies import ApodServiceDep
+from app.infrastructure.apod.dependencies import (
+    ApodActivityServiceDep,
+    ApodServiceDep,
+)
 from app.infrastructure.auth.dependencies import OptionalSessionDep
-from app.infrastructure.streaks.dependencies import StreakServiceDep
-from app.infrastructure.users.dependencies import UserServiceDep
 
 router = APIRouter(tags=["apod"])
-logger = logging.getLogger(__name__)
 
 
 class ApodResponse(BaseModel):
@@ -77,8 +76,7 @@ class ApodResponse(BaseModel):
 async def get_apod(
     service: ApodServiceDep,
     session: OptionalSessionDep,
-    users: UserServiceDep,
-    streaks: StreakServiceDep,
+    activity: ApodActivityServiceDep,
     day: Annotated[
         IsoDate | None,
         Query(
@@ -91,16 +89,5 @@ async def get_apod(
     """Retorna l'APOD d'avui o d'una data concreta."""
     apod = await service.get_apod(day)
     if session is not None:
-        await _register_activity(session.sub, users, streaks)
+        await activity.register_visit(session.sub)
     return ApodResponse.from_apod(apod)
-
-
-async def _register_activity(
-    subject: str, users: UserServiceDep, streaks: StreakServiceDep
-) -> None:
-    """Best effort: a failure here must never break the public APOD response."""
-    try:
-        user = await users.get_profile(subject)
-        await streaks.register_activity(user.id)
-    except Exception:
-        logger.warning("Could not register the daily activity", exc_info=True)
