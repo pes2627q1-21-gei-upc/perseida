@@ -3,8 +3,8 @@ titol: "Seguretat: injecció SQL, XSS i dependències"
 tipus: convencio
 estat: vigent
 data: "2026-11-21"
-us: ["TG-45", "TG-89", "TG-338"]
-font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89); revisió de TG-628 (17/11/2026); auditoria de les dependències del frontend amb `pnpm audit` sobre el lockfile de develop (TG-338, 21/11/2026)"
+us: ["TG-45", "TG-89", "TG-338", "TG-383"]
+font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89); revisió de TG-628 (17/11/2026); auditoria de les dependències del frontend amb `pnpm audit` sobre el lockfile de develop (TG-338, 21/11/2026); .github/workflows/ci.yml i backend/app/infrastructure/apod/nasa_feed_client.py (TG-383, 21/11/2026)"
 etiquetes: [convencio, seguretat, sql-injection, xss, csp, dependencies]
 ---
 
@@ -24,6 +24,8 @@ Cap valor que vingui de fora (usuari, Google, NASA, un fitxer pujat) arriba a la
 | Entrades acotades: longituds de columna al domini, `max_length` als cossos | `app/domain/shared/text.py`, `app/domain/users/models.py`, `app/infrastructure/auth/router.py` |
 | Prova amb càrregues d'atac contra PostgreSQL real | `backend/tests/integration/test_users_api.py` (`test_sql_injection_payloads…`) |
 
+XML extern (feed de la NASA): es parseja amb `defusedxml` (`fromstring(..., forbid_dtd=True)`), que rebutja qualsevol DTD i, amb ella, l'expansió d'entitats i les entitats externes; el feed es dona per invàlid (`NasaApodError`). Ho prova `test_tg383_entities_of_a_dtd_are_never_expanded` (TG-383).
+
 ## XSS
 
 | Capa | Regla | On |
@@ -42,6 +44,8 @@ Cap valor que vingui de fora (usuari, Google, NASA, un fitxer pujat) arriba a la
 ## Dependències
 
 - Passar `uvx pip-audit` (backend, sobre `uv export`) i `pnpm audit` (frontend) a cada canvi de dependències.
+- Des de TG-383, el job `backend` de la CI audita les dependències de producció del backend (pip-audit contra OSV) i analitza el codi amb bandit; tots dos passos bloquegen la PR. Ordres i detall a [[testing#Seguretat estàtica i dependències (TG-362)]].
+- Si cal acceptar un risc: `# nosec BXXX  # <motiu>` en línia (bandit) o `--ignore-vuln <ID>` al pas de la CI (pip-audit), i en tots dos casos una fila a la taula d'estat de sota amb el motiu, qui l'accepta i la data de revisió.
 - Es corregeix tot el que té versió arreglada i compatible, fixant-la amb `uv`/`pnpm`.
 - El que no té arreglament es **tria**: si és de producció (arriba al paquet de l'app o al servidor) o només d'eines de compilació, i si és explotable amb les nostres entrades.
 

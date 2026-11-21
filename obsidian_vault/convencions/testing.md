@@ -2,9 +2,9 @@
 titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
-data: "2026-11-20"
-us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362"]
-font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist; tasca TG-382: quarantena sense reintents, 20/11/2026)"
+data: "2026-11-21"
+us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362", "TG-383"]
+font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist; tasca TG-382: quarantena sense reintents, 20/11/2026; tasca TG-383: bandit i pip-audit, 21/11/2026)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
 
@@ -15,7 +15,7 @@ etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-testing-avancada]]): el test en vermell s'escriu **abans** del codi. Les proves segueixen la piràmide 60/30/10. Cap US arriba a Done sense les seves proves.
 
 > [!info] Estat de la implantació
-> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) i TG-359 (US #359) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter), les migracions reversibles, els llindars de cobertura bloquejants (backend i frontend) i el mutation testing sobre el diff (mutmut i Stryker). Des de TG-362 (tasca TG-381), els tests del backend s'executen en ordre aleatori (pytest-randomly) i, a la CI, en paral·lel (pytest-xdist); des de la tasca TG-382, els tests inestables van en quarantena en un pas no bloquejant. L'automatització de la resta d'eines marcades com a «previst» (E2E, bandit/pip-audit/`pnpm audit`) és pendent i va a les US #361 i #362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
+> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) i TG-359 (US #359) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter), les migracions reversibles, els llindars de cobertura bloquejants (backend i frontend) i el mutation testing sobre el diff (mutmut i Stryker). Des de TG-362 (tasca TG-381), els tests del backend s'executen en ordre aleatori (pytest-randomly) i, a la CI, en paral·lel (pytest-xdist); des de la tasca TG-382, els tests inestables van en quarantena en un pas no bloquejant, i des de la tasca TG-383, bandit i pip-audit bloquegen el job `backend`. L'automatització de la resta d'eines marcades com a «previst» (E2E i `pnpm audit`) és pendent i va a les US #361 i #362 del backlog (`pnpm audit`, a la tasca TG-384). Fins llavors, les comprova la persona en local i el revisor a la PR.
 
 ## TDD
 
@@ -52,7 +52,7 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 | E2E | Fluxos crítics | Maestro, Playwright | Previst |
 | Accessibilitat | Queries per rol/etiqueta als tests; lint d'a11y | RNTL; `eslint-plugin-jsx-a11y` | RNTL instal·lat; lint previst |
 | Robustesa | Ordre aleatori i execució en paral·lel; quarantena sense reintents | pytest-randomly, pytest-xdist, marcador `quarantine` | Instal·lat (TG-362) |
-| Seguretat | Anàlisi estàtica i dependències | bandit, pip-audit, `pnpm audit` | Previst |
+| Seguretat | Anàlisi estàtica i dependències | bandit, pip-audit, `pnpm audit` | bandit i pip-audit instal·lats (TG-362); `pnpm audit` previst (TG-384) |
 | Migracions | Cada revisió fa upgrade -> downgrade -> upgrade i l'esquema torna a ser el mateix (coherent amb el rollback d'[[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]) | Alembic + pytest | Instal·lat |
 
 ### Contracte, arquitectura i migracions (TG-360)
@@ -88,6 +88,23 @@ Com es posa un test en quarantena (TG-362, tasca TG-382):
 5. Quan la tasca s'arregla, es treu el marcador a la mateixa PR del `fix:`.
 
 En local: `uv run pytest -m quarantine` executa només els tests en quarantena.
+
+### Seguretat estàtica i dependències (TG-362)
+
+Tots dos passos són al job `backend` de la CI i el fan fallar (tasca TG-383):
+
+- **bandit** (`bandit[toml]`): analitza el codi de `app/` i falla amb qualsevol troballa de gravetat mitjana o alta (`-ll`). La configuració és a `[tool.bandit]` de `backend/pyproject.toml` (`exclude_dirs = ["tests"]`), sense cap `skips`. Les troballes de gravetat baixa (com B105 a `errors.py` o B405) es mostren però no bloquegen.
+- **pip-audit**: exporta del `uv.lock` només les dependències de producció, amb hashes (`uv export --frozen --no-dev --no-emit-project`), i les compara amb la base de dades d'[OSV](https://osv.dev) sense instal·lar res (`-s osv --require-hashes --disable-pip`).
+
+En local, des de `backend/`:
+
+```bash
+uv run bandit -c pyproject.toml -r app -ll
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt
+uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip
+```
+
+Si cal acceptar un risc: a bandit, `# nosec BXXX  # <motiu>` a la mateixa línia; a pip-audit, `--ignore-vuln <ID>` al pas de la CI. En tots dos casos s'afegeix una fila a la taula de riscos acceptats de [[seguretat]], amb el motiu, qui l'accepta i la data de revisió.
 
 ## Proves d'acceptació
 
@@ -167,7 +184,7 @@ A la CI, GitHub Actions executa els tests a cada PR cap a `develop` o `main` i a
 
 | Job | Ordre de tests | Informe de cobertura (artefacte) |
 |---|---|---|
-| `backend` | `uv run pytest -n auto -m "not quarantine" --cov-report=xml:coverage.xml` (en paral·lel i en ordre aleatori; abans, recollida sense xdist que valida els marcadors de quarantena; després, els tests en quarantena en un pas no bloquejant), amb PostgreSQL (PostGIS) i Redis com a *service containers* | `backend-coverage` (`coverage.xml`) |
+| `backend` | `uv run pytest -n auto -m "not quarantine" --cov-report=xml:coverage.xml` (en paral·lel i en ordre aleatori; abans, bandit, pip-audit i una recollida sense xdist que valida els marcadors de quarantena; després, els tests en quarantena en un pas no bloquejant), amb PostgreSQL (PostGIS) i Redis com a *service containers* | `backend-coverage` (`coverage.xml`) |
 | `frontend` | `pnpm test --coverage --ci` (Jest amb el preset `jest-expo`) | `frontend-coverage` (`lcov.info`) |
 
 Cada job té un test de fum perquè el comandament de tests no falli sense cap test (`backend/tests/test_smoke.py` i `frontend/__tests__/smoke.test.ts`). Vegeu [[qualitat]] per a l'anàlisi estàtica de la CI.
