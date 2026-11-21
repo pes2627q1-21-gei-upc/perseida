@@ -43,4 +43,43 @@ describe('locales', () => {
       }
     },
   );
+
+  // TG-51: texts of the filterable list of the Events tab.
+  const searchKeys = [
+    'events.search.categories',
+    'events.search.range.label',
+    'events.search.range.days7',
+    'events.search.range.days30',
+    'events.search.range.days90',
+    'events.search.near.label',
+    'events.search.near.locating',
+    'events.search.near.denied',
+    'events.search.near.unavailable',
+    'events.search.distance',
+    'events.search.results_one',
+    'events.search.results_other',
+    'events.search.empty',
+    'events.search.openMap',
+  ];
+
+  it.each(Object.entries(locales))(
+    '%s has the texts of the events search (TG-51)',
+    (_language, locale) => {
+      const keys = keysOf(locale);
+      const missing = searchKeys.filter((key) => !keys.includes(key));
+
+      expect(missing).toEqual([]);
+    },
+  );
+
+  it.each(Object.entries(locales))(
+    '%s interpolates the distance and the count of results (TG-51)',
+    (_language, locale) => {
+      const search = (locale as unknown as { events: { search?: Record<string, string> } }).events
+        .search;
+
+      expect(search?.distance).toContain('{{distance}}');
+      expect(search?.results_other).toContain('{{count}}');
+    },
+  );
 });

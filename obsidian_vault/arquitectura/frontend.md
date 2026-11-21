@@ -2,9 +2,9 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-19"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026); Taiga: TG-629, tasques #640-#642, i decisions de Raquel (18/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521); Taiga: issue TG-654 (connexió morta, AppState i cua de reintents del client WebSocket, 2026-11-19)"
+data: "2026-11-21"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654", "TG-51"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026); Taiga: TG-629, tasques #640-#642, i decisions de Raquel (18/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521); Taiga: issue TG-654 (connexió morta, AppState i cua de reintents del client WebSocket, 2026-11-19); Taiga: TG-51, tasques #552-#555, i decisions de Manel (21/11/2026)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -67,7 +67,7 @@ El grup `(app)` és una barra de pestanyes (`Tabs` d'Expo Router) a `src/app/(ap
 | Ruta | Pestanya | Pantalla actual |
 |---|---|---|
 | `index` | Inici | Inici temporal de TG-118 (enllaços a `/apod` i `/map`) |
-| `events` | Esdeveniments | «Pròximament», amb botó cap a `/map` |
+| `events` | Esdeveniments | `EventsScreen` (`src/features/events`, TG-51): llistat filtrable, amb botó cap a `/map` |
 | `chat` | Xat | «Pròximament» |
 | `gamification` | Gamificació | «Pròximament» |
 | `profile` | Perfil | `ProfileScreen` (`src/features/profile`) |
@@ -98,6 +98,20 @@ Ruta `/(app)/map` (accés des de l'inici temporal i des de la pestanya Esdevenim
 - **Disposició en pantalla ampla (TG-647):** una fila amb dues parts. A l'esquerra, una columna amb la capçalera, el mapa (o la llista) i els controls; a la dreta, el panell de la fitxa, germà de la columna i no a sobre. Sense fitxa, la columna ocupa tot l'ample. El panell va de dalt a baix amb 16 px de marge, capçalera fixa i scroll intern (`GlassPanel` amb `fill`). En pantalla estreta, la fitxa és un `Modal` de full inferior que tapa tot. Els controls van a l'esquerra, compactes, a 16 px de la vora. Al web, un `ResizeObserver` sobre el contenidor crida `invalidateSize()` perquè Leaflet es torni a mesurar; al mòbil, Leaflet ja escolta el `resize` del WebView (comportament per defecte, no provat en dispositiu).
 - **Estats:** càrrega, buit (segons el filtre), error amb reintent (si és transitori) i «cap té ubicació al mapa» amb un botó cap a la llista, en un panell de vidre damunt del mapa o de la llista.
 - **Components compartits nous:** `GelSegmented` (`src/shared/ui`), píndola de gel amb segments, anunciada com a pestanyes o com a opcions (`kind`).
+
+## Llistat filtrable d'esdeveniments (TG-51)
+
+Pestanya Esdeveniments (`src/app/(app)/events.tsx` → `EventsScreen`, `src/features/events/components`). Dades de `GET /api/events` segons [[contracte-esdeveniments]]. Decisions de Manel del 21/11/2026.
+
+- **Dades:** `searchEvents` i `useEventSearch` (TanStack Query, clau `eventKeys.search(filtres)`, mateix `staleTime` de 5 minuts i reintent transitori que el mapa). En canviar els filtres es manté la llista anterior fins que arriba la nova (`keepPreviousData`), i tornar a uns filtres recents surt de la cache.
+- **Filtres:**
+  - **Categories:** xips de selecció múltiple (`GelChip`); cap de seleccionat vol dir totes (no s'envia `category`).
+  - **Període:** `GelSegmented` «7 | 30 | 90 dies» des d'avui en dies UTC (`searchRange`), 30 per defecte. Rangs predefinits en lloc de selectors de data lliures.
+  - **«A prop meu»:** interruptor que demana el permís d'`expo-location` en activar-lo (`useDeviceLocation`) i envia `lat`/`lon` amb el radi per defecte de l'API (500 km, fix). Si es denega el permís, l'interruptor queda desactivat amb una explicació i la resta de filtres continuen funcionant; quan l'app torna a primer pla es torna a comprovar el permís (`getForegroundPermissionsAsync`) i, si ara hi és, l'interruptor es reactiva. Si el permís hi és però no es pot llegir la posició (localització apagada, temps esgotat), l'interruptor queda apagat però actiu, amb un altre text, per tornar-ho a provar. Colors (WCAG 1.4.11): pista apagada `text.secondary`, polze `surface.glassSolid` apagat i `gel.text` encès. Als quatre temes arriben a 3:1 el polze contra la pista (en tots dos estats), la pista apagada contra el vidre i el polze contra el vidre. L'interruptor natiu d'iOS fa 51×31 pt: un `hitSlop` vertical en completa l'objectiu tàctil fins a `touch.min`. La pista encesa (`gel.body[0]`) no hi arriba contra el vidre de posta i nit: l'estat es llegeix per la posició del polze, que sí que contrasta (decisió de Manel, 21/11/2026).
+- **Distància:** l'API no la retorna; es calcula al client amb haversine (`distanceKm`, R = 6371 km) i només es mostra amb «A prop meu» actiu i per als esdeveniments amb ubicació (`EventRow`, prop `distanceKm`).
+- **Llista:** `EventRow` sobre vidre sense blur (`surface.glass`; el `BlurView` només és al panell dels filtres i als d'estat, com a molt 2 per pantalla), sense acció en tocar-la (la fitxa és de TG-55). «Actiu ara» surt de `statusOn` (`classifyEvents.ts`), la mateixa regla que `GET /api/events/active`. El recompte de resultats és una regió viva `polite` i, a iOS, `announceForAccessibility`. Mentre arriben els resultats de filtres nous (`isPlaceholderData`), la llista s'anuncia ocupada (`busy`), no mostra distàncies i el recompte no canvia.
+- **Estats:** càrrega, buit i error amb reintent (`StatusPanel`).
+- **Components compartits nous:** `GelChip` (`src/shared/ui`), xip de gel anunciat com a `checkbox`; seleccionat porta una icona `Check`, perquè el color no sigui l'única pista (WCAG 1.4.1).
 
 ## Publicacions d'esdeveniment (TG-628)
 
