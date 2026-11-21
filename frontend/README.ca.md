@@ -222,7 +222,7 @@ pnpm test --coverage --ci         # Jest + informe de cobertura
 
 ## Convencions
 
-- GitFlow amb branques `feature/*` des de `develop`; PR aprovada per una persona diferent de l'autora i amb CI en verd.
+- GitFlow amb branques `feature/*` des de `develop` (en una pila de PR apilades, des de la `feature/*` anterior); PR aprovada per una persona diferent de l'autora i amb CI en verd.
 - Mateixes regles de TypeScript estricte i lint per a tot l'equip (fitxers de configuració versionats).
 - El codi generat amb assistents d'IA passa exactament per la mateixa revisió i portes de qualitat.
 

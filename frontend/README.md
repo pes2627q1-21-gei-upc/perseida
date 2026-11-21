@@ -222,7 +222,7 @@ pnpm test --coverage --ci         # Jest + coverage report
 
 ## Conventions
 
-- GitFlow with `feature/*` branches from `develop`; PR approved by someone other than the author, with passing CI.
+- GitFlow with `feature/*` branches from `develop` (in a stack of PRs, from the previous `feature/*`); PR approved by someone other than the author, with passing CI.
 - Same strict TypeScript and lint rules for the whole team (versioned config files).
 - Code generated with AI assistants goes through exactly the same review and quality gates.
 
