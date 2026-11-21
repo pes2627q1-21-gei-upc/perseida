@@ -4,7 +4,7 @@ from collections.abc import Callable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
 
 from app.application.shared.errors import ExternalServiceError
-from app.domain.events.models import AstronomicalEvent
+from app.domain.events.models import AstronomicalEvent, EventCategory, EventQuery
 from app.domain.events.ports import EventRepository, EventSource
 from app.domain.shared.ports import Cache
 
@@ -53,6 +53,36 @@ class EventService:
         return await self._repository.list_starting_between(
             now, now + timedelta(days=days)
         )
+
+    async def search(
+        self,
+        *,
+        from_day: date | None,
+        to_day: date | None,
+        categories: Sequence[EventCategory],
+        lat: float | None,
+        lon: float | None,
+        radius_km: float | None,
+    ) -> list[AstronomicalEvent]:
+        """Return the events that match the filters of GET /api/events (TG-51).
+
+        The filters are validated before any source is refreshed.
+
+        Raises:
+            ValidationError: invalid filters (``VALIDATION_ERROR``); see
+                ``EventQuery.from_filters``.
+        """
+        query = EventQuery.from_filters(
+            today=self._now().astimezone(UTC).date(),
+            from_day=from_day,
+            to_day=to_day,
+            categories=categories,
+            lat=lat,
+            lon=lon,
+            radius_km=radius_km,
+        )
+        await self._refresh()
+        return await self._repository.search(query)
 
     async def _refresh(self) -> None:
         # In parallel: the slowest source sets the wait, not their sum.

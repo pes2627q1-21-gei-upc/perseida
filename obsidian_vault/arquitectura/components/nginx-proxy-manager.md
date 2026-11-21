@@ -2,9 +2,9 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-11-17"
-us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351", "TG-643"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477); review de la PR #83 (16/11/2026); review de la PR #100 (17/11/2026)"
+data: "2026-11-19"
+us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351", "TG-643", "TG-51"]
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477); review de la PR #83 (16/11/2026); review de la PR #100 (17/11/2026); TG-51 (19/11/2026); review de la PR #129 (20/11/2026)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
 ---
 
@@ -27,12 +27,13 @@ Nginx Proxy Manager amb la imatge oficial `jc21/nginx-proxy-manager:2.12.3` fixa
 > [!info] Producció a Virtech
 > A Virtech no hi ha els ports 80 i 443 públics: es publiquen el `8080` i el `8081` (`40430` i `40431` des de fora) i el certificat s'obté amb el repte DNS-01 de DuckDNS ([[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01]]).
 
-Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api/ws` (WebSocket del xat), `/api/events/` (API amb límit de peticions), `/media/` i `/admin/` (els serveix el mateix NPM). La configuració avançada es versiona a `infra/nginx-proxy-manager/` (`static.conf`, `websocket.conf`, `security-headers.conf`, `rate-limit.conf`) i els passos per recrear-lo són a la secció «nginx-proxy-manager» del README d'`infra/`, perquè NPM desa els *proxy hosts* a la seva base de dades.
+Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api/ws` (WebSocket del xat), `/api/events` i `/api/events/...` (API amb límit de peticions), `/media/` i `/admin/` (els serveix el mateix NPM). La configuració avançada es versiona a `infra/nginx-proxy-manager/` (`static.conf`, `websocket.conf`, `security-headers.conf`, `rate-limit.conf`) i els passos per recrear-lo són a la secció «nginx-proxy-manager» del README d'`infra/`, perquè NPM desa els *proxy hosts* a la seva base de dades.
 
 ## Límit de peticions (TG-351)
 
-- `/api/events/` admet 600 peticions per minut (10 per segon) entre tots els clients, amb una ràfega de 100 servida de cop (decisió de Raquel, tasca #477; pujat des de 60 per minut i ràfega de 20 a TG-643). Per sobre, el proxy respon `429` en problem+json amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1` ([[0018-errors-rfc-9457-amb-codis-estables]]), sense arribar a l'[[api]]. L'OpenAPI dels dos endpoints documenta aquest 429.
-- `instance` surt d'un `map` d'`http_top.conf`: el camí exacte per a `/api/events/active` i `/api/events/upcoming`, i `/api/events/` per a qualsevol altre. nginx no escapa JSON, així que `$uri` mai entra al cos (review de la PR #83).
+- `/api/events` i tot el que penja de `/api/events/` admeten 600 peticions per minut (10 per segon) entre tots els clients, amb una ràfega de 100 servida de cop (decisió de Raquel, tasca #477; pujat des de 60 per minut i ràfega de 20 a TG-643). Per sobre, el proxy respon `429` en problem+json amb `code: RATE_LIMITED`, `instance` i `Retry-After: 1` ([[0018-errors-rfc-9457-amb-codis-estables]]), sense arribar a l'[[api]]. L'OpenAPI dels tres endpoints de lectura (`GET /api/events`, `/api/events/active` i `/api/events/upcoming`) i el de la subscripció (`PUT` i `DELETE /api/events/{event_id}/subscription`, TG-53) documenta aquest 429.
+- El bloc és `location ^~ /api/events`, sense barra final (TG-51): així el llistat filtrable `GET /api/events` comparteix el límit; amb `/api/events/` nginx hi responia un 301 cap a `/api/events/`. En desplegar-ho cal tornar a enganxar `rate-limit.conf` a l'Advanced del *proxy host* (README d'`infra/`).
+- `instance` surt d'un `map` d'`http_top.conf`: el camí exacte per a `/api/events`, `/api/events/active` i `/api/events/upcoming`, i `/api/events/` per a qualsevol altre. nginx no escapa JSON, així que `$uri` mai entra al cos (review de la PR #83).
 - La zona `limit_req_zone` ha d'anar al bloc `http`, on la pestanya «Advanced» no arriba: és a `http_top.conf`, que el Compose munta a `/data/nginx/custom/http_top.conf` (NPM l'inclou; sense `:ro`, perquè en arrencar NPM fa `chown` de tot `/data` i amb un fitxer de només lectura no arrenca, hotfix 0.2.1) i el CD copia al servidor amb `install-http-top.sh`, que l'escriu amb un contenidor d'un sol ús de la imatge d'NPM (estigui el proxy en marxa o no) si el `chown` d'arrencada l'ha fet de root (hotfix 0.2.2). La ubicació és a `rate-limit.conf`.
 - Ho comprova `infra/scripts/test-rate-limit.sh`, al job `proxy` de la CI. `infra/scripts/test-npm-startup.sh` arrenca la imatge real d'NPM amb el muntatge del Compose (regressió del hotfix 0.2.1: amb `:ro`, NPM no arrencava); el job també s'executa quan canvia `infra/docker-compose.yml`.
 
