@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import io
 import json
+import subprocess
 import urllib.error
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -256,3 +258,26 @@ def test_main_amb_un_pr_number_invalid_el_tracta_com_si_no_n_hi_hagues(
 
     assert code == 0
     assert capsys.readouterr().out == "origin/develop\n"
+
+
+# --- ref_exists_locally --------------------------------------------------------
+
+
+def test_una_ref_existeix_en_local_si_git_la_resol_a_un_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def git(*args: str) -> None:
+        subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+
+    git("init", "-q")
+    git("commit", "-q", "--allow-empty", "-m", "inici")
+    git("update-ref", "refs/remotes/origin/feature/x", "HEAD")
+    monkeypatch.chdir(tmp_path)
+
+    assert pr_base.ref_exists_locally("origin/feature/x") is True
+    assert pr_base.ref_exists_locally("origin/no-hi-es") is False
