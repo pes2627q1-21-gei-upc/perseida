@@ -4,8 +4,8 @@ tipus: sessio
 estat: vigent
 data: "2026-11-21"
 us: ["TG-362", "TG-383", "TG-384", "TG-338"]
-font: "US TG-362 i tasca TG-383 a Taiga; decisions aprovades per la persona responsable el 21/11/2026"
-etiquetes: [sessio, seguretat, ci, bandit, pip-audit, defusedxml, backend]
+font: "US TG-362 i tasques TG-383 i TG-384 a Taiga; decisions aprovades per la persona responsable el 21/11/2026"
+etiquetes: [sessio, seguretat, ci, bandit, pip-audit, pnpm-audit, defusedxml, backend, frontend]
 ---
 
 # Sessió 2026-11-21 · Seguretat del codi i de les dependències del backend (TG-362, tasca TG-383)
@@ -25,6 +25,13 @@ Tercera tasca de TG-362 (TG-383), a la segona PR de la US. L'objectiu és que la
 - Verificat en local: bandit sense troballes de gravetat mitjana o alta, i pip-audit sense vulnerabilitats conegudes.
 - Documentació: [[testing]], [[seguretat]], [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i els README del backend (ca, es, en). Cap nota del vault descrivia la comprovació amb regex. Les skills `testing-*` i `gestio-errors` no esmentaven bandit ni pip-audit, i per això no s'han tocat.
 
+### Tasca TG-384 (criteri 6): `pnpm audit` com a avís
+
+- Test en vermell (`22d869c`, qa-tester): `test_tg362_ci_audits_the_frontend_production_dependencies` a `tests/architecture/test_test_tooling.py` exigeix al job `frontend` un únic pas `pnpm audit --prod --audit-level=high`, just després de `pnpm install`, amb `continue-on-error: true` i una referència a TG-338.
+- CI (`5b51a46`): pas «Auditoria de dependències de producció (pnpm audit, avís fins a TG-338)» al job `frontend`, just després de `pnpm install --frozen-lockfile`, amb `continue-on-error: true` i un comentari que diu que TG-338 l'ha de fer bloquejant i decidir sobre GHSA-mrhx-c7xc-m3w5.
+- Verificat en local, a `frontend/`: `pnpm audit --prod --audit-level=high` surt amb codi 1 i informa de GHSA-mrhx-c7xc-m3w5 (`zod` < 4.6.6, alta, via `expo` → `@expo/cli`; 4 vulnerabilitats: 1 alta i 3 moderades). Com que el pas porta `continue-on-error`, a la CI es veurà en vermell però no farà fallar el job. `uv run pytest tests/architecture/test_test_tooling.py --no-cov` passa sencer (29 tests).
+- Documentació: [[testing]], [[seguretat]], [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i els README del frontend (ca, es, en).
+
 ## Decisions preses
 
 Aprovades per la persona responsable en aquesta sessió:
@@ -33,6 +40,7 @@ Aprovades per la persona responsable en aquesta sessió:
 - **`defusedxml` en lloc de `# nosec`.** La troballa de bandit sobre `xml.etree` (B314) es corregeix i no s'accepta: la regex era vulnerable de debò.
 - **pip-audit contra OSV** (`-s osv`), sobre el lockfile exportat amb hashes i sense instal·lar res (`--disable-pip`).
 - **`pnpm audit` com a avís fins a TG-338.** A TG-384 entra a la CI sense bloquejar. **TG-338 l'ha de passar a bloquejant**: no pot quedar oblidat.
+- **GHSA-mrhx-c7xc-m3w5 (`zod`) no s'accepta a TG-384.** No va a la taula de riscos acceptats de [[seguretat]]: hi consta com a pendent de TG-338.
 
 Decisions menors:
 
@@ -45,13 +53,15 @@ Decisions menors:
 - [[testing]]: fila «Seguretat» (bandit i pip-audit instal·lats; `pnpm audit` previst a TG-384), avís d'estat de la implantació, ordre del job `backend` i secció nova «Seguretat estàtica i dependències (TG-362)», amb què fa cada pas, les ordres en local i com s'accepta un risc.
 - [[seguretat]]: auditoria del backend a la CI, procediment per acceptar un risc i línia sobre l'XML extern amb `defusedxml`. No s'hi ha afegit cap fila de risc acceptat, perquè avui no n'hi ha cap.
 - [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]]: abast amb bandit i pip-audit fets (TG-383); `pnpm audit` continua pendent.
+- TG-384: [[testing]] (fila «Seguretat», avís d'estat, ordre del job `frontend` i part del frontend a «Seguretat estàtica i dependències (TG-362)»), [[seguretat]] (auditoria del frontend com a avís i `zod` pendent de TG-338) i [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] (`pnpm audit` a la CI com a avís; bloquejant pendent a TG-338).
 
 ## Pendent / següents passos
 
-- [ ] TG-384: `pnpm audit` a la CI com a avís (no bloquejant).
-- [ ] TG-338: passar `pnpm audit` a bloquejant.
+- [x] TG-384: `pnpm audit` a la CI com a avís (no bloquejant).
+- [ ] TG-338: passar `pnpm audit` a bloquejant (treure `continue-on-error`) i decidir sobre GHSA-mrhx-c7xc-m3w5 (`zod` via `expo` → `@expo/cli`, sense correcció dins la 3.x).
 - [ ] PR cap a `develop` (després de la PR 1), revisada per una persona que no sigui l'autora, i CI verda.
 
 ## US de Taiga
 
-- TG-362 (tasca TG-383; TG-384 pendent)
+- TG-362 (tasques TG-383 i TG-384)
+- TG-338 (pendent: `pnpm audit` bloquejant i decisió sobre `zod`)

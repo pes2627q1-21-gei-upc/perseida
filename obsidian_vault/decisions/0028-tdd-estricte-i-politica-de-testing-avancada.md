@@ -3,7 +3,7 @@ titol: "TDD estricte i política de testing avançada"
 tipus: adr
 estat: acceptada
 data: "2026-10-28"
-us: ["TG-353", "TG-628", "TG-362", "TG-383"]
+us: ["TG-353", "TG-628", "TG-362", "TG-383", "TG-384"]
 font: "decisió de l'equip al tancament de l'Sprint 1 (2026-10-28); Taiga TG-353 (tasques #354-#358); memòria §2.5"
 etiquetes: [adr, testing, tdd, cobertura, mutation, ia]
 ---
@@ -41,7 +41,7 @@ Es fa TDD estricte a totes les capes del backend i del frontend: el test en verm
 > - **Backend:** no canvia. `mutmut` continua mutant els fitxers de domini canviats sencers.
 > - **Font:** decisió de la persona responsable a TG-628 (17/11/2026), arran de la revisió de la PR #102. Detall a [[testing#Mutation testing sobre el diff (TG-359)]].
 
-**Abast d'aquesta ADR:** la política, la documentació i les eines d'IA (skills `testing-*`, subagents, plantilla de PR). L'automatització a la CI s'implanta progressivament: schemathesis, import-linter i migracions a TG-360; llindars de cobertura bloquejants i mutation testing sobre el diff (mutmut/Stryker) a TG-359; ordre aleatori (pytest-randomly), paral·lelisme (pytest-xdist) i quarantena sense reintents a TG-362 (tasques TG-381 i TG-382); bandit i pip-audit, bloquejants al job `backend`, a TG-362 (tasca TG-383). La resta d'eines (E2E i `pnpm audit`) són pendents a les US #361 i #362 del backlog: `pnpm audit`, a la tasca TG-384 (com a avís) i a TG-338 (bloquejant). L'ordre `test:` abans de `feat:` és una regla d'equip documentada a skills, subagents i plantilla de PR: no hi ha cap script de CI que la verifiqui; la comprova el revisor.
+**Abast d'aquesta ADR:** la política, la documentació i les eines d'IA (skills `testing-*`, subagents, plantilla de PR). L'automatització a la CI s'implanta progressivament: schemathesis, import-linter i migracions a TG-360; llindars de cobertura bloquejants i mutation testing sobre el diff (mutmut/Stryker) a TG-359; ordre aleatori (pytest-randomly), paral·lelisme (pytest-xdist) i quarantena sense reintents a TG-362 (tasques TG-381 i TG-382); bandit i pip-audit, bloquejants al job `backend`, a TG-362 (tasca TG-383). `pnpm audit` és a la CI com a avís (TG-384); bloquejant pendent a TG-338. Els E2E són pendents a la US #361 del backlog. L'ordre `test:` abans de `feat:` és una regla d'equip documentada a skills, subagents i plantilla de PR: no hi ha cap script de CI que la verifiqui; la comprova el revisor.
 
 **Quality Gate de SonarQube Cloud:** aquesta ADR n'eleva el llindar de cobertura del codi nou del 70 % ([[0012-sonarqube-cloud-i-quality-gate]]) al 90 %, alineat amb la política. La condició es configura a SonarQube Cloud quan arribi la integració a la CI (US [#194](https://tree.taiga.io/project/alexga03-astronomia-pes/t/194)).
 
