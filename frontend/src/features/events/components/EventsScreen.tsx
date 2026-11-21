@@ -57,7 +57,7 @@ export function EventsScreen() {
     unavailable: t('events.search.near.unavailable'),
   }[location.status];
   const filters: EventSearchFilters = { categories, range, near };
-  const { data, isLoading, isError, error, refetch } = useEventSearch(filters);
+  const { data, isLoading, isError, error, refetch, isPlaceholderData } = useEventSearch(filters);
 
   const now = new Date();
   const events = isError
@@ -224,7 +224,12 @@ export function EventsScreen() {
           >
             <EventRow
               event={item}
-              distanceKm={near && item.location ? distanceKm(near, item.location) : undefined}
+              distanceKm={
+                // The results of the previous filters may not be the ones near the device.
+                near && item.location && !isPlaceholderData
+                  ? distanceKm(near, item.location)
+                  : undefined
+              }
             />
           </View>
         )}
@@ -239,6 +244,9 @@ export function EventsScreen() {
             paddingRight: insets.right + spacing.md,
           },
         ]}
+        // While the results of the previous filters are shown, the new ones are on their way.
+        accessibilityState={{ busy: isPlaceholderData }}
+        aria-busy={isPlaceholderData}
         showsVerticalScrollIndicator={false}
       />
     </SkyBackground>
