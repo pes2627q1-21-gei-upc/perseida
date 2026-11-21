@@ -6,8 +6,8 @@ from pydantic import ValidationError as PydanticValidationError
 
 from app.domain.direct_chat.errors import (
     CANNOT_MESSAGE_SELF,
+    CONVERSATION_NOT_FOUND,
     MESSAGE_MAX_LENGTH,
-    NOT_A_PARTICIPANT,
     VALIDATION_ERROR,
 )
 from app.domain.direct_chat.models import (
@@ -15,7 +15,11 @@ from app.domain.direct_chat.models import (
     DirectMessage,
     UserBlock,
 )
-from app.domain.shared.errors import BusinessRuleViolation, ValidationError
+from app.domain.shared.errors import (
+    BusinessRuleViolation,
+    NotFoundError,
+    ValidationError,
+)
 
 USER_1 = uuid.uuid7()
 USER_2 = uuid.uuid7()
@@ -56,7 +60,7 @@ def test_limits_and_codes_are_fixed() -> None:
     assert MESSAGE_MAX_LENGTH == 1000
     assert CANNOT_MESSAGE_SELF == "CANNOT_MESSAGE_SELF"
     assert VALIDATION_ERROR == "VALIDATION_ERROR"
-    assert NOT_A_PARTICIPANT == "NOT_A_PARTICIPANT"
+    assert CONVERSATION_NOT_FOUND == "CONVERSATION_NOT_FOUND"
 
 
 # --- DirectConversation -----------------------------------------------------
@@ -164,10 +168,11 @@ def test_other_participant_returns_the_counterpart() -> None:
 
 def test_other_participant_of_a_stranger_is_refused() -> None:
     # TG-65 criteri 3
-    with pytest.raises(BusinessRuleViolation) as exc_info:
+    # A stranger gets a 404, so the conversation's existence is not revealed.
+    with pytest.raises(NotFoundError) as exc_info:
         _conversation().other_participant(STRANGER)
 
-    assert exc_info.value.code == NOT_A_PARTICIPANT
+    assert exc_info.value.code == CONVERSATION_NOT_FOUND
 
 
 def test_mark_read_returns_a_new_conversation_with_only_that_mark() -> None:
@@ -194,10 +199,10 @@ def test_mark_read_of_the_second_participant_only_touches_its_mark() -> None:
 
 def test_mark_read_by_a_stranger_is_refused() -> None:
     # TG-65 criteri 3
-    with pytest.raises(BusinessRuleViolation) as exc_info:
+    with pytest.raises(NotFoundError) as exc_info:
         _conversation().mark_read(STRANGER, T0)
 
-    assert exc_info.value.code == NOT_A_PARTICIPANT
+    assert exc_info.value.code == CONVERSATION_NOT_FOUND
 
 
 def test_mark_read_never_goes_backwards() -> None:
@@ -226,6 +231,17 @@ def test_mark_read_moves_forward() -> None:
     updated = conversation.mark_read(USER_1, later)
 
     assert _read_mark(updated, USER_1) == later
+
+
+def test_is_unread_for_a_stranger_is_refused() -> None:
+    # TG-65 criteri 3
+    conversation = _conversation()
+    message = _message(conversation_id=conversation.id)
+
+    with pytest.raises(NotFoundError) as exc_info:
+        conversation.is_unread_for(STRANGER, message)
+
+    assert exc_info.value.code == CONVERSATION_NOT_FOUND
 
 
 def test_is_unread_for_refuses_a_message_of_another_conversation() -> None:
