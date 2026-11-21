@@ -17,11 +17,12 @@ hook ``pytest_collection_modifyitems(config, items)`` and raises
 invalid. ``tests/conftest.py`` activates it for the real suite (re-exporting the
 hook or registering the module as a plugin).
 
-Criteri 4 (TG-383): ``uv run bandit -c pyproject.toml -r app -ll`` is a blocking
-step of the ``backend`` job (medium and high findings fail the PR); its
-configuration is ``[tool.bandit]`` in ``backend/pyproject.toml``, the only place
-where a finding may be justified. B314 (``xml.etree`` on the NASA feed) is fixed
-with ``defusedxml``, a pinned production dependency, not skipped.
+Criteri 4 (TG-383): ``uv run bandit -c pyproject.toml -r app -ll --ignore-nosec``
+is a blocking step of the ``backend`` job (medium and high findings fail the PR);
+its configuration is ``[tool.bandit]`` in ``backend/pyproject.toml``, the only
+place where a finding may be justified (inline ``# nosec`` comments are ignored).
+B314 (``xml.etree`` on the NASA feed) is fixed with ``defusedxml``, a pinned
+production dependency, not skipped.
 Criteri 5 (TG-383): a blocking step exports the production requirements from the
 lockfile (``uv export --frozen --no-dev ...``) and audits them with
 ``uv run pip-audit -r <file> -s osv``.
@@ -318,6 +319,9 @@ def test_tg362_ci_runs_bandit_as_a_blocking_step() -> None:
     assert re.search(r"\s-r app\b", step), step
     # Medium and high findings: -ll (not -lll, which only reports high).
     assert re.search(r"\s(-ll(?!l)|--severity-level[ =]medium)\b", step), step
+    # Justifications live only in [tool.bandit]: an inline ``# nosec`` must not
+    # silence a finding (criteri 4).
+    assert re.search(r"\s--ignore-nosec\b", step), step
     _assert_blocking(step)
 
 
