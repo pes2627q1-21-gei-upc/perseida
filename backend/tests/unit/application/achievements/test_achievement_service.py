@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 
 from app.application.achievements.achievement_service import AchievementService
 from app.domain.achievements.models import (
@@ -199,3 +200,46 @@ async def test_a_live_streak_does_not_count_for_other_kinds() -> None:
     by_id = {item.achievement.id: item for item in items}
     assert by_id[STREAK_7.id].current == 5
     assert by_id[QUIZ_10.id].current == 0
+
+
+# TG-574 (US TG-58 criteri 7): la data de desbloqueig viatja amb el progrés
+async def test_a_locked_achievement_has_no_unlock_moment() -> None:
+    repo = FakeAchievementRepository(STREAK_3, STREAK_7)
+
+    items = await _service(repo, _Streak(days=2)).list_progress(USER_ID)
+
+    assert [item.unlocked_at for item in items] == [None, None]
+
+
+async def test_an_unlocked_achievement_carries_its_utc_unlock_moment() -> None:
+    repo = FakeAchievementRepository(STREAK_3, STREAK_7)
+    service = _service(repo, _Streak(days=5))
+    await service.record_activity(USER_ID, "streak_days", 3)
+    moment = repo.unlocked[USER_ID][STREAK_3.id].unlocked_at
+
+    items = await service.list_progress(USER_ID)
+
+    by_id = {item.achievement.id: item for item in items}
+    assert by_id[STREAK_3.id].unlocked_at == moment
+    assert by_id[STREAK_3.id].unlocked_at.utcoffset() == timedelta(0)
+    assert by_id[STREAK_7.id].unlocked_at is None
+
+
+async def test_the_unlock_moment_survives_a_lapsed_streak() -> None:
+    repo = FakeAchievementRepository(STREAK_7)
+    await _service(repo).record_activity(USER_ID, "streak_days", 7)
+    moment = repo.unlocked[USER_ID][STREAK_7.id].unlocked_at
+
+    items = await _service(repo, _Streak(days=0)).list_progress(USER_ID)
+
+    assert (items[0].current, items[0].goal) == (7, 7)
+    assert items[0].unlocked_at == moment
+
+
+async def test_the_unlock_moment_is_never_taken_from_another_user() -> None:
+    repo = FakeAchievementRepository(STREAK_3)
+    await _service(repo).record_activity(OTHER_USER_ID, "streak_days", 3)
+
+    items = await _service(repo).list_progress(USER_ID)
+
+    assert items[0].unlocked_at is None

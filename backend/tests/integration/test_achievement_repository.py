@@ -254,3 +254,33 @@ async def test_tg572_concurrent_unlocks_leave_one_row_and_report_it_once(
 
     assert sorted(len(result) for result in results) == [0, 1]
     assert await _count_rows(engine, user_id, first.id) == 1
+
+
+# TG-574 (US TG-58 criteri 7): les desbloquejades amb la seva data
+async def test_tg574_list_unlocked_at_returns_each_unlock_moment_in_utc(
+    repo: SqlAchievementRepository, user_id: uuid.UUID
+) -> None:
+    catalog = await repo.list_catalog()
+    first = _by_code(catalog, "primera_llum")
+    second = _by_code(catalog, "orbita_setmanal")
+    unlocked = await repo.unlock(user_id, {first.id, second.id})
+
+    moments = await repo.list_unlocked_at(user_id)
+
+    assert moments == {item.achievement_id: item.unlocked_at for item in unlocked}
+    assert all(moment.utcoffset() == timedelta(0) for moment in moments.values())
+
+
+async def test_tg574_list_unlocked_at_only_returns_the_users_own(
+    repo: SqlAchievementRepository, engine: AsyncEngine, user_id: uuid.UUID
+) -> None:
+    catalog = await repo.list_catalog()
+    first = _by_code(catalog, "primera_llum")
+    second = _by_code(catalog, "orbita_setmanal")
+    other = await _new_user(engine)
+    await repo.unlock(user_id, {first.id})
+    await repo.unlock(other, {second.id})
+
+    assert set(await repo.list_unlocked_at(user_id)) == {first.id}
+    assert set(await repo.list_unlocked_at(other)) == {second.id}
+    assert await repo.list_unlocked_at(uuid.uuid4()) == {}
