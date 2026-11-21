@@ -174,6 +174,17 @@ describe('APOD screen', () => {
     expect(mockRouter.back).not.toHaveBeenCalled();
   });
 
+  it('TG-651 puts the top bar before the content in the reading order (WCAG 1.3.2, 2.4.3)', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(apodImage));
+    await renderScreen();
+
+    const title = await screen.findByRole('header', { name: apodImage.title });
+    const nodes = screen.root!.queryAll(() => true);
+    const bar = nodes.indexOf(screen.getByTestId('apod-top-bar'));
+    expect(bar).toBeGreaterThanOrEqual(0);
+    expect(bar).toBeLessThan(nodes.indexOf(title));
+  });
+
   it('TG-651 keeps the back button while loading', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(() => {}));
     await renderScreen();
