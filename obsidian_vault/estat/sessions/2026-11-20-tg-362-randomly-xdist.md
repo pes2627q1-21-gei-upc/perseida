@@ -38,6 +38,9 @@ Primera tasca de TG-362 (TG-381). L'objectiu és que els tests del backend s'exe
   - MITJANA: la fixture `redis(worker_id)` (índex del worker, mai el 0, `flushdb` abans i després) estava copiada en cinc mòduls; ara és una sola a `tests/integration/conftest.py`. Les fixtures `redis()` locals que no són equivalents (sense neteja per worker) no s'han tocat.
   - BAIXES: [[testing]] documenta el límit de workers després d'un crash, que no es poden llançar dues sessions locals alhora i l'ordre real del job `backend`.
   - Verificat: integració amb `-n 8` i dues llavors (444 tests en verd cada vegada), tests d'arquitectura (34), ruff i mypy nets.
+- **Review de la PR #131 (2026-11-21):**
+  - [[redis]] ja recull `REDIS_DB` i la URL `redis://host:port/db`. També s'han actualitzat l'abast d'[[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]], les skills `testing-tdd` i `testing-integracio` i els README del backend.
+  - El job `proxy` va fallar de manera intermitent a `infra/scripts/test-npm-startup.sh` (pas 2a). Causa: el script donava NPM per arrencat quan existia `resolvers.conf`, però després el pas `50-ipv6.sh` de NPM reescriu cada `.conf` de `/data/nginx`, i la còpia del test feta entremig es perdia. Ara espera `/usr/bin/check-health`. Amb el canvi, 3 de 3 execucions en local passen. No afecta el CD: amb NPM en marxa, aquest pas ja s'ha executat.
 
 ## Decisions preses
 
