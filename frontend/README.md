@@ -203,7 +203,7 @@ Exact commands (from `frontend/`, the same ones as the workflow, each one a sepa
 ```bash
 cd frontend                       # from the repository root
 pnpm install --frozen-lockfile    # fails if pnpm-lock.yaml is out of date
-pnpm audit --prod --audit-level=high  # production dependencies; in CI it only warns until TG-338
+pnpm audit --prod --audit-level=high  # production dependencies (blocking in CI)
 pnpm lint                         # ESLint + Prettier
 pnpm typecheck                    # strict type check
 pnpm test --coverage --ci         # Jest + coverage report
@@ -212,7 +212,7 @@ pnpm test --coverage --ci         # Jest + coverage report
 - **Versions:** the CI uses Node 24.22.1 (pinned in the workflow) and pnpm 12.15.0 (pinned in `packageManager` in `package.json`, which the workflow reads); use the same locally to reproduce a failure. To update pnpm run `pnpm self-update` (`pnpm add -g pnpm` is rejected since pnpm 11.10).
 - **Coverage:** the report is published as the `frontend-coverage` artifact (`lcov.info`). To download it: GitHub → **Actions** tab → the run → **Artifacts** section at the bottom of the summary page.
 - **Requirements:** the job needs no secrets and no services.
-- **`pnpm audit`:** exits with an error if a production dependency has a high or critical vulnerability, but in CI the step has `continue-on-error` and does not block the PR until TG-338. Today it reports GHSA-mrhx-c7xc-m3w5 (`zod`, via `expo` → `@expo/cli`).
+- **`pnpm audit`:** exits with an error if a production dependency has a high or critical vulnerability, and in CI it blocks the PR (team decision, 21/11/2026). An accepted risk goes in `auditConfig.ignoreGhsas` in `pnpm-workspace.yaml`, with a row in the risk table of `obsidian_vault/convencions/seguretat.md`.
 
 ## Testing and quality
 
