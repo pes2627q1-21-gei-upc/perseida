@@ -228,6 +228,16 @@ def test_mark_read_moves_forward() -> None:
     assert _read_mark(updated, USER_1) == later
 
 
+def test_is_unread_for_refuses_a_message_of_another_conversation() -> None:
+    conversation = _conversation()
+    message = _message(sender_id=USER_2, sent_at=T0)  # conversa aleatòria
+
+    with pytest.raises(BusinessRuleViolation) as exc_info:
+        conversation.is_unread_for(USER_1, message)
+
+    assert exc_info.value.code == VALIDATION_ERROR
+
+
 def test_message_of_the_other_is_unread_without_a_mark() -> None:
     # TG-65 criteri 11
     conversation = _conversation()
