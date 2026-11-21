@@ -43,12 +43,15 @@ XML extern (feed de la NASA): es parseja amb `defusedxml` (`fromstring(..., forb
 
 ## Dependències
 
-- Al backend, la CI ja passa `uv run pip-audit` (OSV, sobre `uv export`) i `bandit` a cada PR. Al frontend, des de TG-384 el job `frontend` passa `pnpm audit --prod --audit-level=high` a cada PR, però **com a avís** (`continue-on-error: true`): no bloqueja la PR. TG-338 l'ha de fer bloquejant.
-- Des de TG-383, el job `backend` de la CI audita les dependències de producció del backend (pip-audit contra OSV) i analitza el codi amb bandit; tots dos passos bloquegen la PR. Ordres i detall a [[testing#Seguretat estàtica i dependències (TG-362)]].
+- Al backend, des de TG-383 el job `backend` de la CI audita a cada PR les dependències de producció (`uv run pip-audit` contra OSV, sobre `uv export`) i analitza el codi amb `bandit`; tots dos passos bloquegen la PR. Ordres i detall a [[testing#Seguretat estàtica i dependències (TG-362)]].
+- Al frontend, des de TG-384 el job `frontend` passa `pnpm audit --prod --audit-level=high` a cada PR, però **com a avís** (`continue-on-error: true`): no bloqueja la PR. TG-338 l'ha de fer bloquejant.
 - Si cal acceptar un risc: a bandit, la regla a `skips` de `[tool.bandit]` (`backend/pyproject.toml`) amb un comentari del motiu, mai `# nosec` en línia (criteri 4 de TG-362; `skips` desactiva la regla a tot `app/`, de manera que primer s'intenta corregir el codi), o `--ignore-vuln <ID>` al pas de la CI (pip-audit), i en tots dos casos una fila a la taula d'estat de sota amb el motiu, qui l'accepta i la data de revisió.
 - **Pendent de TG-338 (no acceptat):** `pnpm audit --prod --audit-level=high` informa de GHSA-mrhx-c7xc-m3w5 (`zod` < 4.6.6, gravetat alta, esgotament de memòria en validar col·leccions grans), que arriba via `expo` → `@expo/cli` i no té correcció dins la 3.x. No és a la taula de riscos acceptats perquè ningú no l'ha acceptat: TG-338 ha de decidir què se'n fa (corregir-lo, acceptar-lo amb motiu, responsable i data de revisió, o una altra opció) i fer el pas bloquejant. Detall a [[testing#Seguretat estàtica i dependències (TG-362)]].
 - Es corregeix tot el que té versió arreglada i compatible, fixant-la amb `uv`/`pnpm`.
 - El que no té arreglament es **tria**: si és de producció (arriba al paquet de l'app o al servidor) o només d'eines de compilació, i si és explotable amb les nostres entrades.
+
+> [!note] Context per a TG-338
+> La taula de sota accepta els riscos d'`@expo/cli` (i de la resta d'eines) com a «només eines de compilació». `zod` (GHSA-mrhx-c7xc-m3w5) també arriba via `expo` → `@expo/cli`, però surt a `pnpm audit --prod` perquè `expo` és una dependència de producció. TG-338 ha de decidir si aquest criteri («només eines de compilació») s'hi aplica.
 
 ### Estat a 2026-11-21
 
