@@ -373,8 +373,8 @@ function SidePanel({ event, outing, onClose, onShowOutings, onOpenOuting }: Body
       testID="event-sheet-side"
       style={{
         width: SIDE_WIDTH,
-        paddingTop: spacing.md,
-        paddingBottom: spacing.md,
+        paddingTop: insets.top + spacing.md,
+        paddingBottom: insets.bottom + spacing.md,
         paddingRight: insets.right + spacing.md,
       }}
     >
