@@ -45,13 +45,23 @@ Cap valor que vingui de fora (usuari, Google, NASA, un fitxer pujat) arriba a la
 - Es corregeix tot el que té versió arreglada i compatible, fixant-la amb `uv`/`pnpm`.
 - El que no té arreglament es **tria**: si és de producció (arriba al paquet de l'app o al servidor) o només d'eines de compilació, i si és explotable amb les nostres entrades.
 
-### Estat a 2026-10-21
+### Estat a 2026-11-21
+
+Auditoria de TG-338 del 21/11/2026 sobre el lockfile de `develop`.
 
 | Dependència | Gravetat | On arriba | Decisió |
 |---|---|---|---|
 | `certifi` 2026.7.22 (backend) | Coneguda | Producció (HTTPS de `httpx`) | **Corregida**: 2026.10.19 |
-| `node-forge`, `braces`, `uuid`, `sprintf-js`, `postcss-selector-parser` | Alta i moderada | Només eines de compilació i proves (`@expo/cli`, Metro, Jest, Tailwind, ngrok); no van al paquet de l'app | Acceptada; sense versió arreglada o amb un salt de versió major. Es revisa en actualitzar Expo |
-| `decode-uri-component` 0.2.2 (via `expo-router`) | Moderada (DoS) | L'app, en llegir un enllaç profund | Acceptada: l'arreglat (0.5) és només ESM i trencaria `query-string` 7. Es revisa en actualitzar Expo Router |
+| `zod` 3.25.76 (GHSA-mrhx-c7xc-m3w5) | Alta | Via `@expo/cli` 58.1.15 | **Corregida**: `expo` 58.0.26 (`@expo/cli` 58.1.21 ja no en depèn) |
+| `postcss-selector-parser` 6.1.4 (GHSA-rj75-hqrm-r3gf) | Moderada | Via `tailwindcss`/`nativewind` | **Corregida**: 6.1.6 al lockfile, dins del rang |
+| `qs` 6.15.1 (4 advisories) | Moderada | Via Stryker → `typed-rest-client` 2.3.1; només dev | **Corregida**: override `typed-rest-client>qs: 6.17.1` a `frontend/pnpm-workspace.yaml` (mateixa versió major) |
+| `uuid` 3.4.0 (GHSA-w5hq-g745-h8pq) | Moderada | Via `@expo/ngrok`; només dev | **Eliminada**: fora `@expo/ngrok` (només servia per a `expo start --tunnel`; `npx expo start --tunnel` l'instal·la sota demanda) |
+| `node-forge`, `braces`, `sprintf-js` | — | — | Ja corregits abans de TG-338 (`node-forge` 1.4.3); no surten a l'audit |
+| `minimatch` 10.2.6 (GHSA-g3hv-75wg-m249) | Moderada | Via `expo` → `@expo/fingerprint` 0.21.10; surt a `--prod`, però és una eina de build i no va al paquet de l'app | **Acceptada**: la correcció (≥ 11.0.1) és un salt de versió major dins d'Expo. Accepta: la persona responsable de TG-338, 21/11/2026. Es revisa en actualitzar Expo, i com a molt tard el 2026-12-21 |
+| `glob` 10.5.0 / 13.0.6 i `minimatch` 9.0.9 (GHSA-3g3m-2fjr-6pw4 i GHSA-g3hv-75wg-m249) | Moderada | Via Jest, `test-exclude`, Stryker i typescript-eslint; només dev | **Acceptada**: només eines de proves; correcció amb salt de versió major. Accepta: la persona responsable de TG-338, 21/11/2026. Es revisa en actualitzar Expo, i com a molt tard el 2026-12-21 |
+| `decode-uri-component` | — | — | Ja no hi és: no surt al lockfile ni a l'audit (21/11/2026) |
+
+Estat després de TG-338: `pnpm audit`, 2 moderades; `pnpm audit --prod`, 1 moderada; `pnpm audit --prod --audit-level=high`, sense troballes (exit 0).
 
 ## Què cal fer en una funcionalitat nova
 
