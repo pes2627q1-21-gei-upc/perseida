@@ -39,7 +39,9 @@ describe('GelChip (TG-51, criterion 9)', () => {
   });
 
   it('can be found by its test id', async () => {
-    await render(<GelChip label="Lluna" selected={false} onPress={jest.fn()} testID="chip-lunar" />);
+    await render(
+      <GelChip label="Lluna" selected={false} onPress={jest.fn()} testID="chip-lunar" />,
+    );
 
     expect(screen.getByTestId('chip-lunar')).toBeTruthy();
   });
