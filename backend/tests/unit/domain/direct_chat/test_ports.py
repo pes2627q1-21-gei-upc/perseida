@@ -12,7 +12,7 @@ from app.domain.direct_chat.ports import (
     UserBlockRepository,
 )
 from app.domain.shared.errors import BusinessRuleViolation
-from tests.unit.domain.direct_chat.fakes import (
+from tests.fakes.direct_chat import (
     InMemoryDirectConversationRepository,
     InMemoryDirectMessageRepository,
     InMemoryUserBlockRepository,
