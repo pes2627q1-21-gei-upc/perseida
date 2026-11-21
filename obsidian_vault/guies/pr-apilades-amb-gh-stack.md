@@ -58,9 +58,9 @@ Quan una US es divideix en diverses PR que depenen les unes de les altres (per l
 > [!warning] Els agents no pugen ni fusionen per iniciativa pròpia
 > Segons `AGENTS.md`, un agent no fa `push`, `gh stack submit` ni `gh stack merge` si la persona no ho demana explícitament. Tampoc no pot saltar-se les proteccions de les branques.
 
-## Stryker i les PR apilades
+## Stryker a la CI en una PR apilada
 
-En una PR d'un stack, el context del workflow `github.base_ref` val el tronc de l'stack (`develop`) i no la branca pare. El job de mutation testing del frontend de la CI (`.github/workflows/ci.yml`) corre amb `--base-branch origin/${{ github.base_ref }}`, és a dir, `origin/develop`: muta també les línies de les capes de sota, i el límit orientatiu de uns 400 mutants no es compta per capa sinó per a tota la pila fins a aquella PR (TG-652).
+En una PR d'un stack, el context del workflow `github.base_ref` val el **tronc de l'stack** (`develop`) i no la branca pare, encara que l'API REST de la PR (`base.ref`) digui la branca pare. Es va mesurar a la PR #130 (TG-64): el pas de Stryker va executar `--base-branch origin/develop`, va mutar tota la pila (27 fitxers, 1224 mutants) i va tardar 56 min 32 s dels 60 del job. El workflow `ci.yml` passa ara `--pr-number` a `pnpm test:mutation`: l'script `frontend/scripts/run-stryker-diff.mjs` demana a l'API REST la base real de la PR i hi calcula el diff, de manera que cada capa només muta les seves línies (a la #130, 554 mutants en lloc de 1224). Si l'API falla o la branca no hi és, usa la base d'abans (`github.base_ref`). Una PR ordinària (base `develop` o `main`) no canvia. Si la branca pare ja s'ha fusionat, GitHub reajusta la base de la PR a `develop` i el càlcul segueix sent correcte. Per tant, el límit orientatiu de uns 400 mutants es compta **per capa**. El pas `diff-cover` i el de `mutmut` del job `backend` encara fan servir `github.base_ref` i tenen la mateixa limitació en un stack.
 
 ## Per verificar al primer ús
 
