@@ -147,10 +147,26 @@ def _ini_options() -> dict[str, object]:
     return options
 
 
+def _steps_with_comments(job: str) -> list[str]:
+    """Each step of ``job``, as text, including the comment lines just above its
+    ``- `` line (a comment there documents the step that follows it)."""
+    steps: list[list[str]] = []
+    comments: list[str] = []
+    for line in job.splitlines(keepends=True):
+        if re.match(r"      #", line):
+            comments.append(line)
+        elif line.startswith("      - "):
+            steps.append([*comments, line])
+            comments = []
+        elif steps:
+            steps[-1].extend([*comments, line])
+            comments = []
+    return ["".join(step) for step in steps]
+
+
 def _backend_steps() -> list[str]:
-    """Each step of the ``backend`` job, as text, from its ``- `` line."""
-    job = _backend_job(CI_WORKFLOW.read_text(encoding="utf-8"))
-    return re.split(r"^      - ", job, flags=re.MULTILINE)[1:]
+    """Each step of the ``backend`` job, as text, with the comments above it."""
+    return _steps_with_comments(_backend_job(CI_WORKFLOW.read_text(encoding="utf-8")))
 
 
 def _pytest_run(step: str) -> str | None:
@@ -386,23 +402,6 @@ def test_tg362_defusedxml_is_a_pinned_production_dependency() -> None:
     data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
 
     assert DEFUSEDXML in data["project"]["dependencies"]
-
-
-def _steps_with_comments(job: str) -> list[str]:
-    """Each step of ``job``, as text, including the comment lines just above its
-    ``- `` line (a comment there documents the step that follows it)."""
-    steps: list[list[str]] = []
-    comments: list[str] = []
-    for line in job.splitlines(keepends=True):
-        if re.match(r"      #", line):
-            comments.append(line)
-        elif line.startswith("      - "):
-            steps.append([*comments, line])
-            comments = []
-        elif steps:
-            steps[-1].extend([*comments, line])
-            comments = []
-    return ["".join(step) for step in steps]
 
 
 def _runs_in_frontend(job: str, step: str) -> bool:
