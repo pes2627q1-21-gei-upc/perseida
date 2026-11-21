@@ -257,8 +257,12 @@ def _feed_with_dtd(entities: str) -> str:
 async def test_tg383_entities_of_a_dtd_are_never_expanded(
     client: NasaApodFeedClient, feed: str
 ) -> None:
-    """Regression (bandit B314): the feed is parsed with defusedxml, so a DTD is
-    refused wherever it hides, with the error of an invalid feed."""
+    """Bandit B314: the feed is parsed with defusedxml, so a DTD is refused
+    wherever it hides, with the error of an invalid feed.
+
+    ``billion-laughs`` is the real regression (``xml.etree`` expanded it). ``xxe``
+    already raised ``NasaApodError`` before (``xml.etree`` does not resolve
+    external entities); it is a guard that it still does with defusedxml."""
     respx.get(FEED_URL).respond(text=feed)
 
     with pytest.raises(NasaApodError):
