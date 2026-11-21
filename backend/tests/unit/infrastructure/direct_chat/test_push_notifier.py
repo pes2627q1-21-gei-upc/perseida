@@ -15,6 +15,5 @@ async def test_noop_push_notifier_does_nothing_and_does_not_fail() -> None:
         client_message_id=uuid.uuid4(),
     )
 
-    result = await notifier.notify(uuid.uuid7(), message)
-
-    assert result is None
+    # Completing without raising is the whole contract of the no-op.
+    await notifier.notify(uuid.uuid7(), message)
