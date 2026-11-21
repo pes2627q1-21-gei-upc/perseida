@@ -35,6 +35,8 @@ import { EventRow } from './EventRow';
 const CATEGORIES: readonly EventCategory[] = ['lunar', 'solar', 'meteor_shower', 'launch'];
 const RANGES: readonly SearchRange[] = [7, 30, 90];
 const DEFAULT_RANGE: SearchRange = 30;
+/** Height of the native iOS switch (51×31 pt); its hitSlop makes up the rest up to touch.min. */
+const SWITCH_HEIGHT = 31;
 
 /**
  * Events tab (TG-51): the events of the chosen categories and date range, and near the device
@@ -179,6 +181,10 @@ export function EventsScreen() {
                 // iOS only sets the native prop: screen readers and tests read the state.
                 accessibilityState={{ disabled: denied }}
                 onValueChange={toggleNear}
+                hitSlop={{
+                  top: Math.ceil((touch.min - SWITCH_HEIGHT) / 2),
+                  bottom: Math.ceil((touch.min - SWITCH_HEIGHT) / 2),
+                }}
                 trackColor={{ false: colors.text.secondary, true: colors.gel.body[0] }}
                 // Off, the solid glass reads on the text.secondary track (≥ 3:1 in every theme).
                 thumbColor={nearShown ? colors.gel.text : colors.surface.glassSolid}
