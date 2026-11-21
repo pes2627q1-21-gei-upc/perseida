@@ -91,9 +91,11 @@ async def get_optional_session(
         return await service.authenticate(credentials.credentials)
     except UnauthorizedError:
         return None
-    except ApplicationError:
-        # The session store is down: the endpoint stays public, but say so.
-        logger.warning("Could not check the optional session", exc_info=True)
+    except ApplicationError as exc:
+        # The session store is down: the endpoint stays public, but say so. The
+        # store already logged the detail; no traceback here, its cause chain may
+        # carry the Redis host and port.
+        logger.warning("Could not check the optional session (%s)", exc.code)
         return None
 
 
