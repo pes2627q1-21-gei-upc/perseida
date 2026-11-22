@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { type AppError, NETWORK_ERROR_CODE } from '../../../shared/errors';
 import type { CurrentUser } from '../../auth/api/getCurrentUser';
@@ -95,31 +95,48 @@ export function useRoomLive(eventId: string) {
       .then(() => refetchHistory());
   }, [eventId, queryClient, refetchHistory, roomOpen]);
 
-  // What arrives live (a message or the ack of an own one) while a request of the history is on
-  // its way: that request may have read the history before it, and its answer replaces the cache,
-  // so it would be lost. It is kept here and put back when the request ends (addMessage does not
-  // duplicate).
-  const arrivedWhileFetching = useRef<ChatMessage[]>([]);
+  // What arrives live (a message or the ack of an own one) is kept here too: a request of the
+  // history may have read it before that message, and its answer replaces the cache, so it would
+  // be lost. The room shows the history merged with what is kept (addMessage does not duplicate
+  // by id and keeps the order), so no render lacks a message that already arrived and its key
+  // does not change: it is not shown as new a second time.
+  const [arrived, setArrived] = useState<ChatMessage[]>([]);
   const addLive = useCallback(
     (message: ChatMessage) => {
-      const key = chatKeys.messages(eventId);
-      queryClient.setQueryData<ChatHistoryData>(key, (cached) => addMessage(cached, message));
-      if (queryClient.isFetching({ queryKey: key }) > 0) arrivedWhileFetching.current.push(message);
+      queryClient.setQueryData<ChatHistoryData>(chatKeys.messages(eventId), (cached) =>
+        addMessage(cached, message),
+      );
+      setArrived((current) =>
+        current.some((kept) => kept.id === message.id) ? current : [...current, message],
+      );
     },
     [eventId, queryClient],
   );
-  const isFetchingHistory = history.isFetching;
-  useEffect(() => {
-    if (isFetchingHistory || arrivedWhileFetching.current.length === 0) return;
-    const arrived = arrivedWhileFetching.current;
-    arrivedWhileFetching.current = [];
-    queryClient.setQueryData<ChatHistoryData>(chatKeys.messages(eventId), (cached) =>
+  const merged = useMemo(
+    () =>
       arrived.reduce<ChatHistoryData | undefined>(
         (data, message) => addMessage(data, message),
-        cached,
+        history.data,
       ),
-    );
-  }, [eventId, isFetchingHistory, queryClient]);
+    [arrived, history.data],
+  );
+  // What the history already has leaves what is kept, with nothing to see. Not while a request is
+  // on its way: it may be one that read the history before the message. It is done while
+  // rendering (React: «storing information from previous renders»), not in an effect, so there is
+  // no render in between.
+  const isFetchingHistory = history.isFetching;
+  const [prunedAt, setPrunedAt] = useState<{ data: unknown; fetching: boolean }>();
+  if (
+    history.data &&
+    (prunedAt?.data !== history.data || prunedAt.fetching !== isFetchingHistory)
+  ) {
+    setPrunedAt({ data: history.data, fetching: isFetchingHistory });
+    if (!isFetchingHistory) {
+      const stored = new Set(flattenMessages(history.data).map((message) => message.id));
+      const remaining = arrived.filter((message) => !stored.has(message.id));
+      if (remaining.length !== arrived.length) setArrived(remaining);
+    }
+  }
 
   const takeOut = useCallback(() => {
     setRevoked(true);
@@ -257,8 +274,8 @@ export function useRoomLive(eventId: string) {
 
   const myUserId = me?.id ?? '';
   const items = useMemo(
-    () => buildChatItems({ messages: flattenMessages(history.data), myUserId, pending }),
-    [history.data, myUserId, pending],
+    () => buildChatItems({ messages: flattenMessages(merged), myUserId, pending }),
+    [merged, myUserId, pending],
   );
 
   // A failed older page or a failed refetch keeps the history on screen: only what stops the
