@@ -28,13 +28,13 @@ export interface ChatSocketHandlers {
 const SEEN_IDS_LIMIT = 200;
 
 /**
- * Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. A new
- * `joinAttempt` leaves the room and joins it again (e.g. after the server refused to join it: the
- * connection does not retry a refused join by itself).
+ * Live chat over the shared WebSocket, in any `room` (`chat:event:<eventId>` for an event,
+ * `dm:user:<userId>` for the direct messages). A new `joinAttempt` leaves the room and joins it
+ * again (e.g. after the server refused to join it: the connection does not retry a refused join
+ * by itself).
  */
-export function useChatSocket(eventId: string, handlers: ChatSocketHandlers, joinAttempt = 0) {
+export function useChatSocket(room: string, handlers: ChatSocketHandlers, joinAttempt = 0) {
   const { status, error, subscribe, send, reconnect } = useSocket(socketAuth);
-  const room = `chat:event:${eventId}`;
 
   // The latest handlers, without leaving and joining the room again on every render.
   const handlersRef = useRef(handlers);
@@ -72,14 +72,19 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers, joi
   /**
    * Sends a message and resolves with the server's ack. After a SEND_UNCERTAIN the server may have
    * stored it: the UI's manual retry must pass the SAME `clientMessageId` so the server does not
-   * duplicate the message.
+   * duplicate the message. `extra` is merged into the payload (e.g. the conversation of a
+   * direct message).
    */
   const sendMessage = useCallback(
-    async (text: string, clientMessageId = Crypto.randomUUID()): Promise<SentChatMessage> => {
+    async (
+      text: string,
+      clientMessageId = Crypto.randomUUID(),
+      extra?: Record<string, unknown>,
+    ): Promise<SentChatMessage> => {
       const ack = await send({
         type: 'message',
         room,
-        payload: { text, client_message_id: clientMessageId },
+        payload: { text, client_message_id: clientMessageId, ...extra },
       });
       const { id, sent_at } = ack.payload as SentChatMessage;
       return { id, sent_at };

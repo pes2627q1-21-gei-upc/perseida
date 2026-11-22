@@ -55,7 +55,7 @@ const HISTORY_KEY = ['dm', 'messages', 'c-1'] as const;
 const ACK: SentChatMessage = { id: 'ack-1', sent_at: '2026-11-18T21:05:00Z' };
 
 let client: QueryClient;
-let fetchHistory: jest.Mock<Promise<ChatHistory>, [string | undefined]>;
+let fetchHistory: jest.Mock<Promise<ChatHistory>, []>;
 
 function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -67,11 +67,17 @@ function useConsumer(extra: Partial<LiveConversationSource> = {}) {
     queryKey: ['dm', 'conversation', 'c-1'],
     queryFn: async () => makeRoom({ id: 'conv-1' }) as ChatRoom,
   });
-  const history = useInfiniteQuery({
+  const history = useInfiniteQuery<
+    ChatHistory,
+    AppError,
+    ChatHistoryData,
+    typeof HISTORY_KEY,
+    string | undefined
+  >({
     queryKey: HISTORY_KEY,
-    queryFn: ({ pageParam }) => fetchHistory(pageParam),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (last: ChatHistory) => last.next_cursor ?? undefined,
+    queryFn: () => fetchHistory(),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
     enabled: room.isSuccess,
   });
   return useLiveConversation({
