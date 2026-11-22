@@ -307,6 +307,7 @@ A single proxy host serves everything from the same origin:
 | `/api/events` and `/api/events/` | `api:8000` with a shared request limit (public endpoints for Spotwise, TG-351, TG-643) |
 | `/media/` | NPM itself, from the `media_data` volume (user media) |
 | `/admin/` | NPM itself, from the `admin_dist` volume (admin panel SPA) |
+| `/`, `/privacy`, `/terms` | NPM itself, from `nginx-proxy-manager/public` (public pages for Google Auth Platform, TG-343) |
 
 ### Ports and panel
 
@@ -370,6 +371,28 @@ The public events endpoints (`/api/events` and `/api/events/`, TG-351 and TG-51)
 - `docker compose up` does not recreate the proxy when only the content of `http_top.conf` changes, so the CD validates and reloads nginx after each deploy (`nginx -t && nginx -s reload`). Locally: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (needs Docker; the CI `proxy` job runs it). `bash infra/scripts/test-npm-startup.sh` starts the real NPM image with the Compose mount of `http_top.conf` and checks that it boots and loads the zone, and that a read-only mount makes it fail (regression of hotfix 0.2.1).
 - The limit counts the address of the TCP connection (`$realip_remote_addr`), not `$remote_addr`: NPM trusts the `X-Real-IP` header when the request comes from a private network, and in production every request does (UPC NAT), so a client could pick its own key. The test checks it with a forged `X-Real-IP` on every request (TG-643).
+
+### Public pages (Google Auth Platform)
+
+Google requires a home page, a privacy policy and terms of service, all public, to publish the sign-in screen as *In production* (TG-343). They are static HTML in `nginx-proxy-manager/public/` (Catalan, Spanish and English on each page, no scripts), which the Compose mounts read-only at `/public` and the CD copies to `/opt/perseida/nginx-proxy-manager/public/`. `static.conf` serves them at `/`, `/privacy` and `/terms` (exact matches: every other path still goes to the API) with a CSP without scripts.
+
+- **After the first deploy that brings them**, paste the new `static.conf` into *Advanced* again (it is not mounted) and check:
+
+  ```bash
+  curl -sI https://perseida.duckdns.org:40431/ | head -1          # HTTP/2 200
+  curl -sI https://perseida.duckdns.org:40431/privacy | head -1   # HTTP/2 200
+  curl -sI https://perseida.duckdns.org:40431/terms | head -1     # HTTP/2 200
+  ```
+
+- Changing the text only needs a deploy: nginx reads the files on each request.
+- Test: `bash infra/scripts/test-public-pages.sh` (needs Docker; the CI `proxy` job runs it).
+
+**Google Cloud console** (someone with access to the project; the CD does not do it):
+
+1. *Search Console*: the property `https://perseida.duckdns.org:40431/` (URL prefix) is verified with the *HTML tag* method; the tag is already in `index.html`. Press *Verify* once the pages are deployed.
+2. *Google Auth Platform → Branding*: app name `Perseida`, user support email and developer contact (the team email), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms`, authorised domain `perseida.duckdns.org` (already there). **No logo**: it triggers brand verification.
+3. *Audience → Publish app*: the status changes to *In production*. With the `openid`, `email` and `profile` scopes Google does not ask for verification.
+4. Sign in to the app with a Google account that is not a test user.
 
 ### Volumes
 
