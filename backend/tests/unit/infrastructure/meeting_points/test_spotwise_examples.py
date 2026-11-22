@@ -1,6 +1,7 @@
 """Spotwise mock, settings and adapter choice (TG-352 criteris 2 i 3)."""
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -96,3 +97,26 @@ async def test_tg352_c2_with_token_the_spotwise_client_is_used() -> None:
         search = build_space_search(settings(spotwise_api_token="t"), http)
 
     assert isinstance(search, SpotwiseSpaceClient)
+
+
+async def test_tg352_c3_choosing_the_mock_is_warned(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    async with httpx.AsyncClient() as http:
+        build_space_search(settings(), http)
+
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "SPOTWISE_API_TOKEN" in warnings[0].getMessage()
+
+
+async def test_tg352_c2_choosing_the_spotwise_client_is_not_warned(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    async with httpx.AsyncClient() as http:
+        build_space_search(settings(spotwise_api_token="secret-t"), http)
+
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert "secret-t" not in caplog.text
