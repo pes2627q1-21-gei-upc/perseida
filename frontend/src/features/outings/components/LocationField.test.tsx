@@ -458,7 +458,8 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    // The same text as «Use my location»: the place can still be chosen on the map.
+    expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t('outings.picker.denied'));
     expect(position).not.toHaveBeenCalled();
     expect(pointRequests()).toEqual([]);
     expect(onChange).not.toHaveBeenCalled();
