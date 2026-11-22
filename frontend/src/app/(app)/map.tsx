@@ -108,6 +108,8 @@ export default function MapScreen() {
 
   const openOuting = (outingId: string) => router.push(`/outings/${outingId}`);
 
+  const showMeetingPoints = (eventId: string) => router.push(`/meeting-points/${eventId}`);
+
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
     if (router.canGoBack()) router.back();
@@ -154,6 +156,7 @@ export default function MapScreen() {
             outing={selectedOuting}
             onClose={closeSheet}
             onShowOutings={showOutings}
+            onShowMeetingPoints={showMeetingPoints}
             onOpenOuting={openOuting}
           />
         )}
@@ -164,6 +167,7 @@ export default function MapScreen() {
           outing={selectedOuting}
           onClose={closeSheet}
           onShowOutings={showOutings}
+          onShowMeetingPoints={showMeetingPoints}
           onOpenOuting={openOuting}
         />
       )}
