@@ -52,3 +52,9 @@ export const TAB_CONFIG: readonly TabItem[] = [
 ] as const;
 
 export const HIDDEN_ROUTES: readonly HiddenRouteName[] = ['map', 'apod', 'quiz'] as const;
+
+/**
+ * Hidden routes inside a folder of the (app) group with no layout of its own (TG-352): declared
+ * apart from HIDDEN_ROUTES, which are the files and the folders with a layout.
+ */
+export const HIDDEN_NESTED_ROUTES: readonly string[] = ['meeting-points/[eventId]'] as const;
