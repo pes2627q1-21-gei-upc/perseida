@@ -4,7 +4,11 @@ Contract: vault ``arquitectura/contracte-spotwise.md``. The token travels in the
 ``Authorization`` header and never appears in logs or error messages.
 """
 
+import asyncio
 import logging
+import time
+from collections import deque
+from collections.abc import Callable
 from typing import Any, Literal
 
 import httpx
@@ -25,6 +29,10 @@ from app.domain.shared.location import Location
 logger = logging.getLogger(__name__)
 
 SPACES_PATH = "/api/espais/"
+# Spotwise asks not to exceed 60 requests per minute (contracte-spotwise.md).
+# One client per process, and Perseida runs one process (ADR-0003).
+MAX_CALLS_PER_WINDOW = 60
+WINDOW_SECONDS = 60.0
 
 _TYPES = {
     "biblioteca": SpaceType.LIBRARY,
@@ -113,11 +121,15 @@ class SpotwiseSpaceClient:
         base_url: str,
         token: SecretStr,
         timeout_seconds: float,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._http = http
         self._url = base_url.rstrip("/") + SPACES_PATH
         self._token = token
         self._timeout_seconds = timeout_seconds
+        self._clock = clock
+        self._lock = asyncio.Lock()
+        self._calls: deque[float] = deque()
 
     async def search(self, near: Location, profile: SessionProfile) -> list[Space]:
         """Return the Spotwise spaces near ``near``, in its order; invalid ones
@@ -125,10 +137,25 @@ class SpotwiseSpaceClient:
 
         Raises:
             ExternalServiceError: MEETING_POINTS_UNAVAILABLE on a timeout, a
-                connection error, a 4xx/5xx or a body that is not a JSON list.
+                connection error, a 4xx/5xx, a body that is not a JSON list, or
+                when 60 calls were already made in the last minute (then
+                Spotwise is not called).
         """
+        await self._take_slot()
         records = await self._get(_params(near, profile))
         return to_spaces(records)
+
+    async def _take_slot(self) -> None:
+        """Count a call in the sliding minute, or fail if it is full."""
+        async with self._lock:
+            now = self._clock()
+            while self._calls and self._calls[0] <= now - WINDOW_SECONDS:
+                self._calls.popleft()
+            if len(self._calls) >= MAX_CALLS_PER_WINDOW:
+                raise ExternalServiceError(
+                    MEETING_POINTS_UNAVAILABLE, "Spotwise call limit reached"
+                )
+            self._calls.append(now)
 
     async def _get(self, params: httpx.QueryParams) -> list[Any]:
         try:
