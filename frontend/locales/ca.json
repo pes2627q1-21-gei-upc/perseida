@@ -96,6 +96,7 @@
     "INVALID_GOOGLE_TOKEN": "No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.",
     "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar el contingut.",
     "INVALID_SESSION": "La teva sessió ha caducat. Torna a iniciar sessió.",
+    "MEETING_POINTS_UNAVAILABLE": "Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
     "NOT_FOUND": "No s'ha trobat el que busques.",
     "POST_FORBIDDEN": "Només qui ha escrit aquesta publicació la pot editar o esborrar.",
@@ -213,6 +214,42 @@
     "mapLink": "Mapa d'esdeveniments",
     "quizLink": "Pregunta del dia",
     "outingsLink": "Les meves sortides"
+  },
+  "meetingPoints": {
+    "title": "Punts de trobada",
+    "loading": "Carregant punts de trobada",
+    "empty": "No hi ha locals recomanats a prop.",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a demanar els punts de trobada",
+    "choose": "Tria {{name}}",
+    "list": {
+      "label": "Punts de trobada recomanats"
+    },
+    "profile": {
+      "label": "Per a què us trobeu",
+      "watch_party": "Observació",
+      "study": "Estudi"
+    },
+    "type": {
+      "library": "Biblioteca",
+      "cafe": "Cafeteria",
+      "other": "Altre espai"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silenciós",
+        "murmur": "Murmuri",
+        "noisy": "Sorollós"
+      },
+      "plugs": {
+        "many": "Molts endolls",
+        "few": "Pocs endolls",
+        "none": "Sense endolls"
+      },
+      "groupFriendly": "Bo per a grups",
+      "notGroupFriendly": "Millor sense grups"
+    }
   },
   "nav": {
     "chat": "Xat",
