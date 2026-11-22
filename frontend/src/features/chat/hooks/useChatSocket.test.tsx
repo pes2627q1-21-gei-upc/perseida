@@ -721,7 +721,9 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
       await serverSends(AUTH_ACK);
 
       await act(async () => {
-        void result.current.sendMessage('Hola', 'cid-1', { conversation_id: 'c-1' });
+        result.current
+          .sendMessage('Hola', 'cid-1', { conversation_id: 'c-1' })
+          .catch(() => undefined);
       });
       await flush();
 
@@ -740,7 +742,7 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
       await serverSends(AUTH_ACK);
 
       await act(async () => {
-        void result.current.sendMessage('Hola', 'cid-1');
+        result.current.sendMessage('Hola', 'cid-1').catch(() => undefined);
       });
       await flush();
 
