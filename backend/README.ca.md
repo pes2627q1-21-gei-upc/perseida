@@ -29,7 +29,7 @@ Un únic procés FastAPI integra tres responsabilitats:
 | Autenticació | Google OAuth2 + PKCE · validació de tokens de Google via JWKS · sessió pròpia del backend (JWT) |
 | Moderació | Microservei Kev-4B (model local, crida síncrona) |
 | Dependències | `uv` (versions exactes, `uv.lock` versionat) |
-| Qualitat | `ruff` (lint + format, complexitat màx. 10), `mypy` estricte, SonarQube Cloud |
+| Qualitat | `ruff` (lint + format, complexitat màx. 10), `mypy` estricte, SonarQube Cloud, `bandit` (seguretat del codi), `pip-audit` (vulnerabilitats de les dependències, OSV) |
 | Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Arquitectura: hexagonal
@@ -184,6 +184,9 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # comprova el format sense modificar fitxers
 uv run mypy .                 # tipatge estricte
 uv run lint-imports           # contractes d'arquitectura (import-linter)
+uv run bandit -c pyproject.toml -r app -ll --ignore-nosec  # seguretat del codi (falla amb gravetat mitjana o alta)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # dependències de producció (amb hashes i ==, que --require-hashes comprova)
+uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # vulnerabilitats conegudes (OSV)
 uv run pytest                 # tests (amb cobertura)
 uv run pytest -n auto         # igual, en paral·lel (una base de dades i un índex de Redis per worker)
 uv run pytest -p randomly --randomly-seed=<llavor>  # reprodueix una fallada d'ordre (llavor a la primera línia de la sortida)

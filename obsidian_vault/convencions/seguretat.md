@@ -3,8 +3,8 @@ titol: "Seguretat: injecció SQL, XSS i dependències"
 tipus: convencio
 estat: vigent
 data: "2026-11-21"
-us: ["TG-45", "TG-89", "TG-338"]
-font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89); revisió de TG-628 (17/11/2026); auditoria de les dependències del frontend amb `pnpm audit` sobre el lockfile de develop (TG-338, 21/11/2026)"
+us: ["TG-45", "TG-89", "TG-338", "TG-383", "TG-384"]
+font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89); revisió de TG-628 (17/11/2026); auditoria de les dependències del frontend amb `pnpm audit` sobre el lockfile de develop (TG-338, 21/11/2026); .github/workflows/ci.yml i backend/app/infrastructure/apod/nasa_feed_client.py (TG-383, 21/11/2026); job `frontend` de .github/workflows/ci.yml i `pnpm audit --prod --audit-level=high` en local (TG-384, 21/11/2026); decisió de l'equip de fer `pnpm audit` bloquejant (xat de l'equip, 21/11/2026)"
 etiquetes: [convencio, seguretat, sql-injection, xss, csp, dependencies]
 ---
 
@@ -24,6 +24,8 @@ Cap valor que vingui de fora (usuari, Google, NASA, un fitxer pujat) arriba a la
 | Entrades acotades: longituds de columna al domini, `max_length` als cossos | `app/domain/shared/text.py`, `app/domain/users/models.py`, `app/infrastructure/auth/router.py` |
 | Prova amb càrregues d'atac contra PostgreSQL real | `backend/tests/integration/test_users_api.py` (`test_sql_injection_payloads…`) |
 
+XML extern (feed de la NASA): es parseja amb `defusedxml` (`fromstring(..., forbid_dtd=True)`), que rebutja qualsevol DTD i, amb ella, l'expansió d'entitats i les entitats externes; el feed es dona per invàlid (`NasaApodError`). Ho prova `test_tg383_entities_of_a_dtd_are_never_expanded` (TG-383).
+
 ## XSS
 
 | Capa | Regla | On |
@@ -41,7 +43,9 @@ Cap valor que vingui de fora (usuari, Google, NASA, un fitxer pujat) arriba a la
 
 ## Dependències
 
-- Passar `uvx pip-audit` (backend, sobre `uv export`) i `pnpm audit` (frontend) a cada canvi de dependències.
+- Al backend, des de TG-383 el job `backend` de la CI audita a cada PR les dependències de producció (`uv run pip-audit` contra OSV, sobre `uv export`) i analitza el codi amb `bandit`; tots dos passos bloquegen la PR. Ordres i detall a [[testing#Seguretat estàtica i dependències (TG-362)]].
+- Al frontend, des de TG-384 el job `frontend` passa `pnpm audit --prod --audit-level=high` a cada PR i el pas és bloquejant, decisió de l'equip, 21/11/2026 (xat de l'equip): una vulnerabilitat alta o crítica a les dependències de producció bloqueja la PR.
+- Si cal acceptar un risc: a bandit, la regla a `skips` de `[tool.bandit]` (`backend/pyproject.toml`) amb un comentari del motiu, mai `# nosec` en línia (criteri 4 de TG-362; `skips` desactiva la regla a tot `app/`, de manera que primer s'intenta corregir el codi), `--ignore-vuln <ID>` al pas de la CI (pip-audit) o el GHSA a `auditConfig.ignoreGhsas` de `frontend/pnpm-workspace.yaml` (`pnpm audit`), i en tots els casos una fila a la taula d'estat de sota amb el motiu, qui l'accepta i la data de revisió.
 - Es corregeix tot el que té versió arreglada i compatible, fixant-la amb `uv`/`pnpm`.
 - El que no té arreglament es **tria**: si és de producció (arriba al paquet de l'app o al servidor) o només d'eines de compilació, i si és explotable amb les nostres entrades.
 
