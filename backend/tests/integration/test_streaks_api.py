@@ -36,7 +36,6 @@ from app.infrastructure.auth.google_verifier import (
 )
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
-from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.account_gateway import UserAccountGateway
@@ -53,8 +52,6 @@ pytestmark = pytest.mark.skipif(
 PROBLEM_JSON = "application/problem+json"
 ACTIVITY = "/api/streaks/me/activity"
 STREAK = "/api/streaks/me"
-# Redis database only for these tests (the app uses 0), emptied before and after.
-TEST_REDIS_DB = 15
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -103,20 +100,6 @@ def factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
         expire_on_commit=False,
         join_transaction_mode="create_savepoint",
     )
-
-
-@pytest.fixture
-async def redis() -> AsyncIterator[Redis]:
-    """A Redis database only for these tests, emptied before and after."""
-    client = Redis.from_url(
-        RedisSettings().redis_url, db=TEST_REDIS_DB, decode_responses=True
-    )
-    try:
-        await client.flushdb()
-        yield client
-    finally:
-        await client.flushdb()
-        await client.aclose()
 
 
 @pytest.fixture

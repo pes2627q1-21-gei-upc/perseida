@@ -61,4 +61,4 @@ Les queries per rol/etiqueta són també la comprovació d'accessibilitat (WCAG 
 - Test que importa el codi sota prova i en copia la lògica per calcular l'esperat.
 - `assert True`, `expect(x).toBeDefined()` com a únic assert.
 - Snapshot gran d'un component per «cobrir» línies.
-- Tests que depenen de l'ordre d'execució: amb `pytest-randomly` (previst) fallarien.
+- Tests que depenen de l'ordre d'execució: amb `pytest-randomly` (actiu des de TG-362) fallen.

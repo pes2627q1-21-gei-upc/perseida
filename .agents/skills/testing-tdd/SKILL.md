@@ -10,7 +10,7 @@ Des del final de l'Sprint 1 el projecte fa **TDD estricte a tot el backend i el 
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció de referència: `obsidian_vault/convencions/testing.md`.
 
 > [!note] Estat de les eines
-> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx, mutmut (backend); Jest, jest-expo, React Native Testing Library, Stryker (frontend); llindars de cobertura a la CI (80 % global, 90 % codi nou) i mutation testing sobre el diff (TG-359). Des de TG-360 són **instal·lats** i a la CI schemathesis, import-linter (`uv run lint-imports`), el test de la còpia d'OpenAPI i el de migracions. La resta d'eines que anomenen les skills `testing-*` (hypothesis, fast-check, pytest-randomly, pytest-xdist) són **previstes (US #361 i #362)**: no les facis servir ni les afegeixis sense preguntar a la persona.
+> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx, mutmut (backend); Jest, jest-expo, React Native Testing Library, Stryker (frontend); llindars de cobertura a la CI (80 % global, 90 % codi nou) i mutation testing sobre el diff (TG-359). Des de TG-360 són **instal·lats** i a la CI schemathesis, import-linter (`uv run lint-imports`), el test de la còpia d'OpenAPI i el de migracions. Des de TG-362 són **instal·lats** pytest-randomly (ordre aleatori, llavor a la sortida), pytest-xdist (`-n auto` a la CI) i el marcador `@pytest.mark.quarantine(reason="TG-NNN ...")`. La resta d'eines que anomenen les skills `testing-*` (hypothesis, fast-check) són **previstes**: no les facis servir ni les afegeixis sense preguntar a la persona.
 
 ## Quan usar-la / quan NO
 
