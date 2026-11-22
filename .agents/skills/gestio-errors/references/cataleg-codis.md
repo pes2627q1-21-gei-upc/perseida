@@ -50,6 +50,7 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta conversa no existeix. | Esta conversación no existe. | This conversation doesn't exist. | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; TG-400). Text aprovat per Oriol Orbea (22/11/2026, TG-65) |
 | `USER_NOT_FOUND` | 404 | `NotFoundError` | No | No hem trobat aquest usuari. | No hemos encontrado a este usuario. | We couldn't find this user. | application/direct_chat (obrir una conversa amb un usuari inexistent o esborrat; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
 | `USER_BLOCKED` | 403 | `ForbiddenError` | No | Ara no pots enviar missatges en aquesta conversa. | Ahora no puedes enviar mensajes en esta conversación. | You can't send messages in this conversation right now. | application/direct_chat (algun dels dos usuaris bloqueja l'altre; el text no revela qui bloqueja; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
+| `DIRECT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/direct_chat (`send_message` amb un `client_message_id` ja usat amb una altra conversa o un altre text; TG-65) |
 
 ## Codis dels esdeveniments (TG-351)
 
