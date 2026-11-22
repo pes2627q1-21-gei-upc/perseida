@@ -60,14 +60,16 @@ export function MeetingPointList({
     );
   }
 
-  // Visual only: safe areas and layout of the list, not seen by the tests nor mutated.
-  // Stryker disable all
+  // Keeps the points clear of the safe areas and of the bar at the top (tested).
   const padding = {
     paddingTop: topInset + spacing.md,
     paddingBottom: insets.bottom + spacing.md,
     paddingLeft: insets.left + spacing.md,
     paddingRight: insets.right + spacing.md,
   };
+
+  // Visual only: layout and colours of the list, not seen by the tests nor mutated.
+  // Stryker disable all
   const look = {
     empty: [styles.column, { maxWidth: readingMaxWidth }, padding],
     emptyText: [typography.body, styles.center, { color: colors.text.primary }],
