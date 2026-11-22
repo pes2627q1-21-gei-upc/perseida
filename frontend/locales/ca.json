@@ -75,6 +75,15 @@
     "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
     "gamificationTitle": "Gamificació i reptes"
   },
+  "directChat": {
+    "blocked": "Bloquejat",
+    "conversationWith": "Conversa amb {{name}}",
+    "lastMessage": "últim missatge: {{text}}",
+    "noMessages": "Encara no hi ha missatges",
+    "unread_one": "{{count}} missatge sense llegir",
+    "unread_other": "{{count}} missatges sense llegir",
+    "you": "Tu: {{text}}"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",

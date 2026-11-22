@@ -75,6 +75,15 @@
     "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
     "gamificationTitle": "Gamificación y retos"
   },
+  "directChat": {
+    "blocked": "Bloqueado",
+    "conversationWith": "Conversación con {{name}}",
+    "lastMessage": "último mensaje: {{text}}",
+    "noMessages": "Aún no hay mensajes",
+    "unread_one": "{{count}} mensaje sin leer",
+    "unread_other": "{{count}} mensajes sin leer",
+    "you": "Tú: {{text}}"
+  },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
