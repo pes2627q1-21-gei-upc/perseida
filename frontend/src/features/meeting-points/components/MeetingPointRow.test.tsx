@@ -51,6 +51,24 @@ function says(text: string): boolean {
   );
 }
 
+/**
+ * The texts the row shows on screen that are not its name, type, distance or address: the
+ * chips, in the order they are shown. The separator between type and distance is left out.
+ */
+function visibleChips(point: MeetingPoint): string[] {
+  const fixed = new Set([
+    point.name,
+    t(`meetingPoints.type.${point.type}`),
+    formatDistance(point.distance_m, 'ca'),
+    point.address,
+    '·',
+  ]);
+  return screen
+    .queryAllByText(/[\s\S]*/)
+    .map((text) => [text.props.children].flat().join(''))
+    .filter((text) => !fixed.has(text));
+}
+
 function icon(name: string) {
   return screen.queryByTestId(`icon-${name}`, { includeHiddenElements: true });
 }
@@ -116,6 +134,61 @@ describe('MeetingPointRow (TG-352)', () => {
     expect(says(chips.noisy())).toBe(false);
     expect(says(chips.fewPlugs())).toBe(false);
     expect(says(chips.noPlugs())).toBe(false);
+  });
+
+  it('shows on screen exactly the chips of what is known, and nothing else', async () => {
+    await render(<MeetingPointRow point={library} />);
+
+    expect(visibleChips(library).sort()).toEqual(
+      [chips.wifi(), chips.murmur(), chips.manyPlugs(), chips.groups()].sort(),
+    );
+  });
+
+  it('shows on screen no chip at all when nothing is known', async () => {
+    await render(<MeetingPointRow point={cafe} />);
+
+    expect(visibleChips(cafe)).toEqual([]);
+  });
+
+  it('shows on screen exactly the chips of the other values', async () => {
+    await render(<MeetingPointRow point={other} />);
+
+    expect(visibleChips(other).sort()).toEqual(
+      [chips.silent(), chips.noPlugs(), chips.notGroups()].sort(),
+    );
+  });
+
+  it('reads each part of the point as its own phrase, separated by commas', async () => {
+    await render(<MeetingPointRow point={library} />);
+
+    const label = String(
+      screen.getByLabelText(new RegExp(`^${escape(library.name)}`)).props.accessibilityLabel,
+    );
+    // The address has commas of its own: it is looked for as a whole, between separators.
+    expect(label).toContain(`, ${library.address}`);
+    const parts = label.split(', ');
+    for (const part of [
+      library.name,
+      t('meetingPoints.type.library'),
+      formatDistance(290, 'ca'),
+      chips.wifi(),
+      chips.murmur(),
+      chips.manyPlugs(),
+      chips.groups(),
+    ]) {
+      expect(parts).toContain(part);
+    }
+  });
+
+  it('leaves no empty part in the name read by screen readers when the address is empty', async () => {
+    await render(<MeetingPointRow point={cafe} />);
+
+    const label = String(
+      screen.getByLabelText(new RegExp(`^${escape(cafe.name)}`)).props.accessibilityLabel,
+    );
+    expect(label).not.toMatch(/,\s*,/);
+    expect(label).not.toMatch(/,\s*$/);
+    expect(label.split(', ').every((part) => part.trim().length > 0)).toBe(true);
   });
 
   it('shows no chip for what is unknown or missing', async () => {
