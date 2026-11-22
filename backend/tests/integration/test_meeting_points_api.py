@@ -36,7 +36,6 @@ from app.infrastructure.auth.google_verifier import (
 )
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
-from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.meeting_points.examples import ExampleSpaceSearch
 from app.infrastructure.meeting_points.spotwise_client import SpotwiseSpaceClient
@@ -59,7 +58,6 @@ PATH = "/api/meeting-points"
 SPOTWISE_URL = "http://spotwise.test:40420"
 SPACES_URL = f"{SPOTWISE_URL}/api/espais/"
 SPOTWISE_TOKEN = "it-spotwise-token-tg352"
-TEST_REDIS_DB = 15
 WATCH_PARTY = {"profile": "watch_party", "lat": "41.40449", "lon": "2.17123"}
 CACHE_KEY = "cache:meeting_points:watch_party:41.404:2.171"
 
@@ -121,19 +119,6 @@ async def connection() -> AsyncIterator[AsyncConnection]:
                 await transaction.rollback()
     finally:
         await engine.dispose()
-
-
-@pytest.fixture
-async def redis() -> AsyncIterator[Redis]:
-    client = Redis.from_url(
-        RedisSettings().redis_url, db=TEST_REDIS_DB, decode_responses=True
-    )
-    try:
-        await client.flushdb()
-        yield client
-    finally:
-        await client.flushdb()
-        await client.aclose()
 
 
 async def _client(
