@@ -116,6 +116,8 @@ export default function AppLayout() {
 
   return (
     <Tabs
+      // Back returns to the screen a sub-route was opened from, not to the first tab (TG-352).
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.brand,
