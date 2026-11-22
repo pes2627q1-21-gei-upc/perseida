@@ -282,6 +282,31 @@ describe('Events map screen', () => {
     });
   });
 
+  it('opens the meeting points of the event from its summary (TG-352, criterion 4)', async () => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+
+    await fireEvent.press(
+      screen.getByRole('button', { name: i18n.t('events.sheet.meetingPoints') }),
+    );
+
+    // The route is /meeting-points/<eventId>, given as a path or as a pathname with params.
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+    const [target] = mockRouter.push.mock.calls[0] as [
+      string | { pathname: string; params: { eventId: string } },
+    ];
+    const path =
+      typeof target === 'string'
+        ? target
+        : target.pathname.replace('[eventId]', target.params.eventId);
+    expect(path).toBe(`/meeting-points/${launchEvent.id}`);
+  });
+
   it('opens the summary from the list too, and closes it', async () => {
     await renderScreen();
     await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
