@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
 import { type ReactElement, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -36,10 +37,12 @@ jest.mock('./LocationMap', () => ({
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
+  getForegroundPermissionsAsync: jest.fn(),
 }));
 
 const permission = jest.mocked(Location.requestForegroundPermissionsAsync);
 const position = jest.mocked(Location.getCurrentPositionAsync);
+const currentPermission = jest.mocked(Location.getForegroundPermissionsAsync);
 
 afterEach(() => jest.clearAllMocks());
 
@@ -377,7 +380,8 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
 
   afterEach(() => {
     client.clear();
-    fetchSpy.mockRestore();
+    // The fetch of the API and, where a test listens to it, AppState.
+    jest.restoreAllMocks();
   });
 
   it('has a button for it, with its own text, that asks nothing until it is pressed', async () => {
@@ -491,5 +495,99 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
       ),
     );
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('says it is locating while the position comes', async () => {
+    permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+    position.mockReturnValue(new Promise(() => undefined));
+    await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    expect(await screen.findByLabelText(i18n.t('meetingPoints.location.locating'))).toBeTruthy();
+    expect(screen.queryByLabelText(i18n.t('meetingPoints.loading'))).toBeNull();
+  });
+
+  it('says the places are loading once the position is here and the API answers', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    meetingPoints = () => new Promise(() => undefined);
+    await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    expect(await screen.findByLabelText(i18n.t('meetingPoints.loading'))).toBeTruthy();
+    expect(screen.queryByLabelText(i18n.t('meetingPoints.location.locating'))).toBeNull();
+  });
+
+  it('says there are no places nearby when the API finds none', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    meetingPoints = () => jsonResponse([]);
+    await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    expect(await screen.findByText(i18n.t('meetingPoints.empty'))).toBeTruthy();
+    expect(screen.queryByLabelText(i18n.t('meetingPoints.list.label'))).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('gives the places as a named list', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    // A list is a container, not an accessibility element, so it is found by its label.
+    const list = await screen.findByLabelText(i18n.t('meetingPoints.list.label'));
+    expect(list.props.accessibilityRole).toBe('list');
+    expect(screen.queryByText(i18n.t('meetingPoints.empty'))).toBeNull();
+  });
+
+  it('hides the places once one is chosen', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    await renderField();
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: chooseName(unvotedCafe) }));
+
+    expect(screen.queryByLabelText(i18n.t('meetingPoints.list.label'))).toBeNull();
+    expect(screen.queryByRole('button', { name: chooseName(spotwiseLibrary) })).toBeNull();
+  });
+
+  it('asks for the location again each time the button is pressed', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    await renderField();
+    const button = screen.getByRole('button', { name: recommend() });
+    await fireEvent.press(button);
+    await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
+
+    await fireEvent.press(button);
+
+    await waitFor(() => expect(permission).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole('button', { name: chooseName(spotwiseLibrary) })).toBeTruthy();
+  });
+
+  it('asks for the location again by itself when the permission is given in the settings', async () => {
+    const appStateListeners: ((state: AppStateStatus) => void)[] = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((type, listener) => {
+      if (type === 'change') appStateListeners.push(listener as (state: AppStateStatus) => void);
+      return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+    });
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    permission.mockResolvedValueOnce({ status: 'denied' } as Location.LocationPermissionResponse);
+    await renderField();
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+    await screen.findByRole('alert');
+
+    // The person gives the permission in the settings and comes back to the app.
+    currentPermission.mockResolvedValue({
+      status: 'granted',
+    } as Location.LocationPermissionResponse);
+    await act(async () => {
+      for (const listener of appStateListeners) listener('active');
+    });
+
+    expect(await screen.findByRole('button', { name: chooseName(spotwiseLibrary) })).toBeTruthy();
+    expect(permission).toHaveBeenCalledTimes(2);
   });
 });
