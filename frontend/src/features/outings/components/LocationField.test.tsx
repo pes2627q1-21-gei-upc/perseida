@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
 import { type ReactElement, useState } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AccessibilityInfo, AppState, type AppStateStatus, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -529,6 +529,70 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     expect(await screen.findByText(i18n.t('meetingPoints.empty'))).toBeTruthy();
     expect(screen.queryByLabelText(i18n.t('meetingPoints.list.label'))).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  describe('announcement of no places nearby (WCAG 4.1.3)', () => {
+    /**
+     * The announce of AccessibilityInfo is already a jest.fn() of the setup: spyOn gives back that
+     * same mock and restoreAllMocks does not empty its calls, so they are cleared here.
+     */
+    function announceSpy() {
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      announce.mockClear();
+      return announce;
+    }
+
+    beforeEach(() => {
+      grantAt(DEVICE.latitude, DEVICE.longitude);
+      meetingPoints = () => jsonResponse([]);
+    });
+
+    it('reads it in a polite live region', async () => {
+      await renderField();
+
+      await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+      expect(await screen.findByText(i18n.t('meetingPoints.empty'))).toHaveProp(
+        'accessibilityLiveRegion',
+        'polite',
+      );
+    });
+
+    it('announces it on iOS', async () => {
+      // jest-expo runs as iOS, where a status is announced explicitly.
+      const announce = announceSpy();
+      await renderField();
+
+      await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+      await screen.findByText(i18n.t('meetingPoints.empty'));
+
+      expect(announce).toHaveBeenCalledWith(i18n.t('meetingPoints.empty'));
+    });
+
+    it.each(['android', 'web'] as const)(
+      'does not announce it explicitly on %s: the live region reads it',
+      async (os) => {
+        jest.replaceProperty(Platform, 'OS', os);
+        const announce = announceSpy();
+        await renderField();
+
+        await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+        await screen.findByText(i18n.t('meetingPoints.empty'));
+
+        expect(announce).not.toHaveBeenCalledWith(i18n.t('meetingPoints.empty'));
+      },
+    );
+
+    it('does not announce it while there are places', async () => {
+      meetingPoints = () => jsonResponse([spotwiseLibrary]);
+      const announce = announceSpy();
+      await renderField();
+
+      await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+      await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
+
+      expect(announce).not.toHaveBeenCalledWith(i18n.t('meetingPoints.empty'));
+    });
   });
 
   it('gives the places as a named list', async () => {
