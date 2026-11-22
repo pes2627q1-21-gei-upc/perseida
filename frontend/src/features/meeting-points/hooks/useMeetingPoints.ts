@@ -1,6 +1,7 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 
 import type { AppError } from '../../../shared/errors';
+import { FIVE_MINUTES_MS } from '../../events/hooks/useEvents';
 import {
   fetchMeetingPoints,
   type MeetingPoint,
@@ -28,6 +29,8 @@ export function useMeetingPoints(profile: MeetingPointProfile, position: Positio
   return useQuery<MeetingPoint[], AppError>({
     queryKey: meetingPointKeys.list(profile, position),
     queryFn: position ? () => fetchMeetingPoints({ profile, ...position }) : skipToken,
+    // Like the 5 minutes of the cache of the backend: opening the screen again asks nothing.
+    staleTime: FIVE_MINUTES_MS,
     retry: false,
   });
 }
