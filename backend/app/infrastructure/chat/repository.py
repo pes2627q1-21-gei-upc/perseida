@@ -1,16 +1,11 @@
 import uuid
-from collections.abc import Iterator
-from contextlib import contextmanager
-
 from sqlalchemy import Select, exists, select, true
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError, InterfaceError, OperationalError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col, tuple_
 
 from app.application.chat.errors import CHAT_ROOM_NOT_FOUND
-from app.application.shared.error_codes import DATABASE_UNAVAILABLE
-from app.application.shared.errors import ExternalServiceError
 from app.domain.chat.models import (
     ChatAuthor,
     ChatCursor,
@@ -26,18 +21,10 @@ from app.infrastructure.events.tables import (
     AstronomicalEventRow,
     EventSubscriptionRow,
 )
+from app.infrastructure.persistence.errors import database_errors
 from app.infrastructure.users.tables import UserRow
 
 _ROOM_FOREIGN_KEY = "fk_chat_messages_room_id_event_chat_rooms"
-
-
-@contextmanager
-def _database_errors() -> Iterator[None]:
-    """Map a connection failure to ``ExternalServiceError`` (no details leak)."""
-    try:
-        yield
-    except (OperationalError, InterfaceError, OSError) as exc:
-        raise ExternalServiceError(DATABASE_UNAVAILABLE) from exc
 
 
 def _room(row: EventChatRoomRow) -> EventChatRoom:
@@ -78,7 +65,7 @@ class SqlChatRepository:
         return bool(await session.scalar(statement))
 
     async def require_event(self, event_id: uuid.UUID) -> None:
-        with _database_errors():
+        with database_errors():
             async with self._session_factory() as session:
                 if not await self._event_exists(session, event_id):
                     raise _event_not_found(event_id)
@@ -100,7 +87,7 @@ class SqlChatRepository:
         find_room = select(EventChatRoomRow).where(
             col(EventChatRoomRow.event_id) == event_id
         )
-        with _database_errors():
+        with database_errors():
             async with self._session_factory() as session:
                 if not await self._event_exists(session, event_id):
                     raise _event_not_found(event_id)
@@ -123,7 +110,7 @@ class SqlChatRepository:
             col(ChatMessageRow.author_id) == author_id,
             col(ChatMessageRow.client_message_id) == client_message_id,
         )
-        with _database_errors():
+        with database_errors():
             async with self._session_factory() as session:
                 record = (await session.execute(statement)).one_or_none()
         return None if record is None else _message(record[0], record[1])
@@ -148,7 +135,7 @@ class SqlChatRepository:
             col(ChatMessageRow.author_id) == message.author.id,
             col(ChatMessageRow.client_message_id) == message.client_message_id,
         )
-        with _database_errors():
+        with database_errors():
             try:
                 async with self._session_factory() as session:
                     inserted = await session.scalar(statement)
@@ -184,7 +171,7 @@ class SqlChatRepository:
         statement = statement.order_by(
             col(ChatMessageRow.sent_at).desc(), col(ChatMessageRow.id).desc()
         ).limit(limit + 1)
-        with _database_errors():
+        with database_errors():
             async with self._session_factory() as session:
                 rows = list((await session.scalars(statement)).all())
                 names: dict[uuid.UUID, str | None] = {}
@@ -242,7 +229,7 @@ class SqlChatRepository:
                 col(EventChatRoomRow.id).desc(),
             )
         )
-        with _database_errors():
+        with database_errors():
             async with self._session_factory() as session:
                 rows = (await session.execute(statement)).all()
         return [
