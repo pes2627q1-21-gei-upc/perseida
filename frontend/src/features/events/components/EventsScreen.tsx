@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { MapTrifold } from 'phosphor-react-native';
-import { useEffect, useState } from 'react';
+import { type ReactElement, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AccessibilityInfo,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppError, errorMessage } from '../../../shared/errors';
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
 import {
   GelChip,
@@ -25,11 +26,13 @@ import {
 } from '../../../shared/ui';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
 import type { EventCategory, EventSearchFilters, SearchRange } from '../api/getEvents';
-import { statusOn } from '../classifyEvents';
+import { type ClassifiedEvent, statusOn } from '../classifyEvents';
 import { distanceKm } from '../distance';
 import { useDeviceLocation } from '../hooks/useDeviceLocation';
 import { useEventSearch } from '../hooks/useEventSearch';
+import { useMySubscriptions, useToggleSubscription } from '../hooks/useSubscriptions';
 import { EventRow } from './EventRow';
+import { MyEvents } from './MyEvents';
 
 /** Order of the category chips; the chosen ones are sent in this order. */
 const CATEGORIES: readonly EventCategory[] = ['lunar', 'solar', 'meteor_shower', 'launch'];
@@ -41,6 +44,7 @@ const SWITCH_HEIGHT = 31;
 /**
  * Events tab (TG-51): the events of the chosen categories and date range, and near the device
  * when «Near me» is on, with the distance to the ones that have a place. Rows open nothing yet.
+ * The star of each row follows the event, and «Mine» lists the ones followed (TG-53).
  */
 export function EventsScreen() {
   const { t } = useTranslation();
@@ -54,6 +58,12 @@ export function EventsScreen() {
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [range, setRange] = useState<SearchRange>(DEFAULT_RANGE);
   const [nearOn, setNearOn] = useState(false);
+  const [tab, setTab] = useState<'all' | 'mine'>('all');
+  // Message of the last failed subscription of each event, by its id.
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const subscriptions = useMySubscriptions();
+  const toggleSubscription = useToggleSubscription();
+  const followed = new Set(subscriptions.data?.map((event) => event.id));
 
   const denied = location.status === 'denied';
   // Off again when the location fails, but it can be turned on to try again unless denied.
@@ -103,6 +113,24 @@ export function EventsScreen() {
     );
   }
 
+  function toggleFollow(event: ClassifiedEvent) {
+    // A new try clears the error of the last one.
+    setRowErrors((errors) => {
+      const others = { ...errors };
+      delete others[event.id];
+      return others;
+    });
+    toggleSubscription
+      .mutateAsync({ event, subscribed: !followed.has(event.id) })
+      .catch((failure: unknown) => {
+        const message =
+          failure instanceof AppError
+            ? errorMessage(t, failure.code, failure.retryable)
+            : t('errors.INTERNAL_ERROR');
+        setRowErrors((others) => ({ ...others, [event.id]: message }));
+      });
+  }
+
   function toggleNear(on: boolean) {
     setNearOn(on);
     if (on) void location.request();
@@ -115,7 +143,7 @@ export function EventsScreen() {
     retryHint: t('events.retryHint'),
   };
 
-  const header = (
+  const top = (
     <View style={{ gap: spacing.md }}>
       <View style={[styles.titleRow, { gap: spacing.sm }]}>
         <Text
@@ -130,7 +158,22 @@ export function EventsScreen() {
           onPress={() => router.push('/map')}
         />
       </View>
+      <GelSegmented
+        kind="tabs"
+        accessibilityLabel={t('events.tabs.label')}
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'all', label: t('events.tabs.all') },
+          { value: 'mine', label: t('events.tabs.mine') },
+        ]}
+      />
+    </View>
+  );
 
+  const header = (
+    <View style={{ gap: spacing.md }}>
+      {top}
       <GlassPanel>
         <View style={{ gap: spacing.md }}>
           <View style={{ gap: spacing.sm }}>
@@ -236,6 +279,51 @@ export function EventsScreen() {
     );
   }
 
+  function renderRow(item: ClassifiedEvent, distance?: number): ReactElement {
+    return (
+      // Glass without blur: a BlurView per row is too heavy for a long list.
+      <View
+        style={[
+          styles.row,
+          {
+            backgroundColor: reduceTransparency ? colors.surface.glassSolid : colors.surface.glass,
+            borderColor: colors.surface.glassBorder,
+            borderRadius: radii.lg,
+            padding: spacing.md,
+          },
+        ]}
+      >
+        <EventRow
+          event={item}
+          distanceKm={distance}
+          subscribed={followed.has(item.id)}
+          onToggleSubscription={() => toggleFollow(item)}
+          subscriptionError={rowErrors[item.id]}
+        />
+      </View>
+    );
+  }
+
+  const contentStyle = [
+    styles.content,
+    {
+      maxWidth: readingMaxWidth,
+      gap: spacing.md,
+      paddingTop: insets.top + spacing.lg,
+      paddingBottom: tabBarInset + spacing.lg,
+      paddingLeft: insets.left + spacing.md,
+      paddingRight: insets.right + spacing.md,
+    },
+  ];
+
+  if (tab === 'mine') {
+    return (
+      <SkyBackground>
+        <MyEvents header={top} contentContainerStyle={contentStyle} renderRow={renderRow} />
+      </SkyBackground>
+    );
+  }
+
   return (
     <SkyBackground>
       <FlatList
@@ -243,43 +331,16 @@ export function EventsScreen() {
         keyExtractor={(event) => event.id}
         ListHeaderComponent={header}
         ListEmptyComponent={renderEmpty()}
-        renderItem={({ item }) => (
-          // Glass without blur: a BlurView per row is too heavy for a long list.
-          <View
-            style={[
-              styles.row,
-              {
-                backgroundColor: reduceTransparency
-                  ? colors.surface.glassSolid
-                  : colors.surface.glass,
-                borderColor: colors.surface.glassBorder,
-                borderRadius: radii.lg,
-                padding: spacing.md,
-              },
-            ]}
-          >
-            <EventRow
-              event={item}
-              distanceKm={
-                // The results of the previous filters may not be the ones near the device.
-                near && item.location && !isPlaceholderData
-                  ? distanceKm(near, item.location)
-                  : undefined
-              }
-            />
-          </View>
-        )}
-        contentContainerStyle={[
-          styles.content,
-          {
-            maxWidth: readingMaxWidth,
-            gap: spacing.md,
-            paddingTop: insets.top + spacing.lg,
-            paddingBottom: tabBarInset + spacing.lg,
-            paddingLeft: insets.left + spacing.md,
-            paddingRight: insets.right + spacing.md,
-          },
-        ]}
+        renderItem={({ item }) =>
+          renderRow(
+            item,
+            // The results of the previous filters may not be the ones near the device.
+            near && item.location && !isPlaceholderData
+              ? distanceKm(near, item.location)
+              : undefined,
+          )
+        }
+        contentContainerStyle={contentStyle}
         // While the results of the previous filters are shown, the new ones are on their way.
         accessibilityState={{ busy: isPlaceholderData }}
         aria-busy={isPlaceholderData}
