@@ -10,7 +10,7 @@ import { AppError } from '../../../shared/errors';
 import type { SocketStatus } from '../../../shared/realtime';
 import { currentUserKeys } from '../../auth/hooks/useCurrentUser';
 import { saveTokens } from '../../auth/tokenStorage';
-import type { ChatListItem } from '../chatItems';
+import { arrivedKeys, type ChatListItem } from '../chatItems';
 import type { ChatSocketHandlers, SentChatMessage } from './useChatSocket';
 import { useRoomLive } from './useRoomLive';
 
@@ -445,5 +445,113 @@ describe('useRoomLive: what arrives while the history is on its way (TG-469, rev
       makeMessage(5).id,
       makeMessage(1).id,
     ]);
+  });
+});
+
+describe('useRoomLive: no render loses what arrived live (TG-469, review of #130)', () => {
+  /** Every list of items the room rendered, in order, whatever the test does. */
+  async function mountRecording() {
+    const renders: ChatListItem[][] = [];
+    const hook = await renderHook(
+      () => {
+        const live = useRoomLive(EVENT_ID);
+        renders.push(live.items);
+        return live;
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+    await settle();
+    renders.length = 0;
+    return { hook, renders };
+  }
+
+  /** How many times a render brings the message in as new compared with the one before it. */
+  const timesNew = (renders: ChatListItem[][], id: string) =>
+    renders.reduce((count, items, index) => {
+      if (index === 0) return count;
+      const key = items.find((item) => item.kind === 'message' && item.message.id === id)?.key;
+      return key !== undefined && arrivedKeys(items, renders[index - 1]).has(key)
+        ? count + 1
+        : count;
+    }, 0);
+
+  const withoutMessage = (renders: ChatListItem[][], id: string) =>
+    renders.filter((items) => !messageIds(items).includes(id));
+
+  it('keeps a message that arrives while the history is asked for again, in every render', async () => {
+    const { hook, renders } = await mountRecording();
+    const refetch = deferredResponse();
+    answers[`GET ${MESSAGES_PATH}`] = () => refetch.response;
+    await joined();
+    await act(async () => mockSocket.handlers?.onMessage?.(makeMessage(2, { author: PAU })));
+    await settle();
+    renders.length = 0;
+
+    refetch.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+
+    expect(renders.length).toBeGreaterThan(0);
+    expect(withoutMessage(renders, makeMessage(2).id)).toEqual([]);
+    expect(messageIds(hook.result.current.items)).toEqual([makeMessage(2).id, makeMessage(1).id]);
+  });
+
+  it('keeps the ack of an own message that arrives while the history is asked for again, in every render', async () => {
+    const { hook, renders } = await mountRecording();
+    const refetch = deferredResponse();
+    answers[`GET ${MESSAGES_PATH}`] = () => refetch.response;
+    mockSocket.sendMessage.mockResolvedValue({
+      id: makeMessage(3).id,
+      sent_at: '2026-11-17T10:00:00Z',
+    });
+    await joined();
+    await act(async () => {
+      await hook.result.current.send('Hola');
+    });
+    await settle();
+    renders.length = 0;
+
+    refetch.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+
+    expect(renders.length).toBeGreaterThan(0);
+    expect(withoutMessage(renders, makeMessage(3).id)).toEqual([]);
+  });
+
+  it('keeps a message that arrives while an older page is on its way, in every render', async () => {
+    answers[`GET ${MESSAGES_PATH}`] = (url) =>
+      jsonResponse(
+        makePage(
+          [makeMessage(5, { author: PAU })],
+          url.searchParams.has('before') ? null : 'cursor-0',
+        ),
+      );
+    const { hook, renders } = await mountRecording();
+    const older = deferredResponse();
+    answers[`GET ${MESSAGES_PATH}`] = () => older.response;
+    await act(async () => hook.result.current.loadOlder());
+    await settle();
+    await act(async () => mockSocket.handlers?.onMessage?.(makeMessage(9, { author: PAU })));
+    await settle();
+    renders.length = 0;
+
+    older.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+
+    expect(renders.length).toBeGreaterThan(0);
+    expect(withoutMessage(renders, makeMessage(9).id)).toEqual([]);
+  });
+
+  it('brings a message that arrived while the history was on its way in as new only once', async () => {
+    const { renders } = await mountRecording();
+    const refetch = deferredResponse();
+    answers[`GET ${MESSAGES_PATH}`] = () => refetch.response;
+    await joined();
+    await act(async () => mockSocket.handlers?.onMessage?.(makeMessage(2, { author: PAU })));
+    await settle();
+    refetch.answer(jsonResponse(makePage([makeMessage(1, { author: PAU })])));
+    await settle();
+
+    expect(timesNew(renders, makeMessage(2).id)).toBe(1);
   });
 });
