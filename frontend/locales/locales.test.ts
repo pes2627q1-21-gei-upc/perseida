@@ -269,6 +269,32 @@ describe('Locales of the meeting points (TG-352)', () => {
     });
   });
 
+  // The screens of the meeting points (TG-352, criterion 6): the location of the person, the
+  // button of the summary of an event and the one of the outing form.
+  describe.each(['ca', 'es', 'en'] as const)('screens in %s', (language) => {
+    const screenKeys = [
+      'meetingPoints.location.denied',
+      'meetingPoints.location.unavailable',
+      'meetingPoints.location.retry',
+      'events.sheet.meetingPoints',
+      'outings.picker.recommend',
+    ];
+
+    it.each(screenKeys)('has a text for %s', (key) => {
+      const text = textAt(languages[language], key);
+
+      expect(typeof text).toBe('string');
+      expect((text as string).length).toBeGreaterThan(0);
+    });
+
+    it('tells a denied location apart from one the device cannot find', () => {
+      const location = (key: string) =>
+        textAt(languages[language], `meetingPoints.location.${key}`);
+
+      expect(location('denied')).not.toEqual(location('unavailable'));
+    });
+  });
+
   it('has the same meeting points keys in ca, es and en', () => {
     const keys = (language: 'ca' | 'es' | 'en') =>
       leaves(languages[language].meetingPoints ?? {})
