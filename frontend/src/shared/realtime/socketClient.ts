@@ -49,12 +49,10 @@ export interface ServerFrame {
   payload?: Record<string, unknown>;
 }
 
-/** A request to a room that the server acknowledges (the client adds the `id`). */
-export interface OutgoingFrame {
-  type: 'message';
-  room: string;
-  payload: Record<string, unknown>;
-}
+/** A request that the server acknowledges (the client adds the `id`). */
+export type OutgoingFrame =
+  | { type: 'message'; room: string; payload: Record<string, unknown> }
+  | { type: 'dm.send'; payload: Record<string, unknown> };
 
 export type FrameHandler = (frame: ServerFrame) => void;
 
@@ -93,6 +91,8 @@ let lastId = 0;
 
 /** Handlers of each joined room; the room stays joined on the server while it has any. */
 const rooms = new Map<string, Set<{ handler: FrameHandler }>>();
+/** Private events arrive on the authenticated connection without a room subscription. */
+const privateListeners = new Set<{ handler: FrameHandler }>();
 /**
  * The subscribe requests not answered yet, id -> room. A frame with an id that is neither one of
  * these nor a pending request is the late answer of a request that already settled (e.g. an earlier
@@ -218,6 +218,10 @@ function handleFrame(data: unknown): void {
     return;
   }
 
+  if (!frame.id && !frame.room && (frame.type === 'dm.message' || frame.type === 'dm.typing')) {
+    privateListeners.forEach(({ handler }) => handler(frame));
+    return;
+  }
   if (frame.id && !joins.delete(frame.id)) return;
   if (!frame.room) return;
   const handlers = rooms.get(frame.room);
@@ -464,6 +468,15 @@ export function subscribe(room: string, onFrame: FrameHandler): () => void {
   };
 }
 
+/** Listen locally: the server derives the private channel from the authenticated session. */
+export function subscribePrivate(onFrame: FrameHandler): () => void {
+  const entry = { handler: onFrame };
+  privateListeners.add(entry);
+  return () => {
+    privateListeners.delete(entry);
+  };
+}
+
 /**
  * Sends `frame` and resolves with the server's ack. Until the connection is authenticated the
  * request waits in memory. It rejects with the AppError of a non-retryable `error` frame, with the
@@ -487,6 +500,7 @@ export function _resetSocketForTests(): void {
   shutdown();
   auth = null;
   rooms.clear();
+  privateListeners.clear();
   joins.clear();
   state = { status: 'closed', error: null };
 }
