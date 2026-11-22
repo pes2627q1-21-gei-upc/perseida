@@ -7,6 +7,7 @@ from typing import Any
 
 from app.application.shared.errors import ExternalServiceError
 from app.domain.direct_chat.models import (
+    ConversationSummary,
     DirectConversation,
     DirectCursor,
     DirectMessage,
@@ -51,9 +52,6 @@ class InMemoryDirectConversationRepository:
         return [c for c in self.conversations.values() if c.has_participant(user_id)]
 
     async def summaries_of(self, user_id: uuid.UUID) -> list[Any]:
-        # Imported here so the fakes stay importable before the model exists.
-        from app.domain.direct_chat.models import ConversationSummary
-
         self.summaries_calls += 1
         assert self.message_source is not None
         summaries = []
