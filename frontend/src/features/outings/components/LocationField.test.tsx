@@ -456,6 +456,44 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     );
   });
 
+  it('replaces the place the outing already has when editing it', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    const existing = { latitude: 42.05, longitude: 0.73 };
+    const onChange = jest.fn();
+    function Controlled() {
+      const [value, setValue] = useState<{ latitude: number; longitude: number } | null>(existing);
+      return (
+        <LocationField
+          value={value}
+          onChange={(place) => {
+            onChange(place);
+            setValue(place);
+          }}
+        />
+      );
+    }
+    await render(withProviders(<Controlled />));
+    expect(screen.getByLabelText('Latitud').props.value).toBe(
+      formatCoordinate(existing.latitude, 'ca'),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: chooseName(unvotedCafe) }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({
+      latitude: unvotedCafe.location.latitude,
+      longitude: unvotedCafe.location.longitude,
+    });
+    expect(screen.getByLabelText('Latitud').props.value).toBe(
+      formatCoordinate(unvotedCafe.location.latitude, 'ca'),
+    );
+    expect(screen.getByLabelText('Longitud').props.value).toBe(
+      formatCoordinate(unvotedCafe.location.longitude, 'ca'),
+    );
+    expect(mockMapProps.start).toMatchObject(unvotedCafe.location);
+  });
+
   it('explains it and asks the API nothing when the person denies the location', async () => {
     permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
     const onChange = await renderField();
