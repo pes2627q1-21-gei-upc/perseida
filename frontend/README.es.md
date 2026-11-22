@@ -203,6 +203,7 @@ Comandos exactos (desde `frontend/`, los mismos que el workflow, cada uno en un 
 ```bash
 cd frontend                       # desde la raíz del repositorio
 pnpm install --frozen-lockfile    # falla si pnpm-lock.yaml no está al día
+pnpm audit --prod --audit-level=high  # dependencias de producción (bloqueante en la CI)
 pnpm lint                         # ESLint + Prettier
 pnpm typecheck                    # comprobación de tipos estricta
 pnpm test --coverage --ci         # Jest + informe de cobertura
@@ -211,6 +212,7 @@ pnpm test --coverage --ci         # Jest + informe de cobertura
 - **Versiones:** la CI usa Node 24.22.1 (fijado en el workflow) y pnpm 12.15.0 (fijado en `packageManager` de `package.json`, que el workflow lee); usa las mismas en local para reproducir un error. Para actualizar pnpm: `pnpm self-update` (`pnpm add -g pnpm` se rechaza desde pnpm 11.10).
 - **Cobertura:** el informe se publica como artefacto `frontend-coverage` (`lcov.info`). Para descargarlo: GitHub → pestaña **Actions** → la ejecución → sección **Artifacts** al final de la página de resumen.
 - **Requisitos:** el job no necesita secretos ni servicios.
+- **`pnpm audit`:** sale con error si hay alguna vulnerabilidad alta o crítica en las dependencias de producción, y en la CI bloquea la PR (decisión del equipo, 21/11/2026). Un riesgo aceptado va a `auditConfig.ignoreGhsas` de `pnpm-workspace.yaml`, con fila en la tabla de riesgos de `obsidian_vault/convencions/seguretat.md`.
 
 ## Testing y calidad
 

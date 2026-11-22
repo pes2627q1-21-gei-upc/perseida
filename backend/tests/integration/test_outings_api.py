@@ -45,7 +45,6 @@ from app.infrastructure.auth.google_verifier import (
 )
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
-from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.account_gateway import UserAccountGateway
@@ -61,7 +60,6 @@ pytestmark = pytest.mark.skipif(
 
 PROBLEM_JSON = "application/problem+json"
 OUTINGS = "/api/outings"
-TEST_REDIS_DB = 15
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -108,19 +106,6 @@ def factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
         expire_on_commit=False,
         join_transaction_mode="create_savepoint",
     )
-
-
-@pytest.fixture
-async def redis() -> AsyncIterator[Redis]:
-    client = Redis.from_url(
-        RedisSettings().redis_url, db=TEST_REDIS_DB, decode_responses=True
-    )
-    try:
-        await client.flushdb()
-        yield client
-    finally:
-        await client.flushdb()
-        await client.aclose()
 
 
 @pytest.fixture
@@ -223,6 +208,8 @@ ANY_ID = str(uuid.uuid7())
         ("PATCH", f"{OUTINGS}/{ANY_ID}"),
         ("DELETE", f"{OUTINGS}/{ANY_ID}"),
     ],
+    # ANY_ID changes on every import: the ids must not depend on it (xdist).
+    ids=["create", "list", "get", "patch", "delete"],
 )
 async def test_every_endpoint_requires_a_session(
     client: AsyncClient, method: str, path: str
