@@ -68,9 +68,9 @@ async function serverCloses(code: number) {
 
 const lastSent = () => lastSocket().sent[lastSocket().sent.length - 1];
 
-/** Mounts useChatSocket for EVENT_ID and completes the handshake: open + auth ack. */
+/** Mounts useChatSocket for ROOM and completes the handshake: open + auth ack. */
 async function mountChatConnected() {
-  const hook = await renderHook(() => useChatSocket(EVENT_ID, handlers));
+  const hook = await renderHook(() => useChatSocket(ROOM, handlers));
   await flush();
   await serverOpens();
   await serverSends(AUTH_ACK);
@@ -214,7 +214,7 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
   });
 
   it('exposa status: connecting fins a l’ack de l’auth i open després', async () => {
-    const { result } = await renderHook(() => useChatSocket(EVENT_ID, handlers));
+    const { result } = await renderHook(() => useChatSocket(ROOM, handlers));
     await flush();
 
     expect(result.current.status).toBe('connecting');
@@ -227,7 +227,7 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
   });
 
   it('exposa reconnect, que torna a obrir la connexió quan ha quedat closed', async () => {
-    const { result } = await renderHook(() => useChatSocket(EVENT_ID, handlers));
+    const { result } = await renderHook(() => useChatSocket(ROOM, handlers));
     await flush();
     await serverOpens();
     await serverCloses(4429);
@@ -274,16 +274,16 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     expect(handlers.onMessage).not.toHaveBeenCalled();
   });
 
-  it('si canvia eventId, es dessubscriu de la sala vella i se subscriu a la nova', async () => {
+  it('si canvia la sala, es dessubscriu de la sala vella i se subscriu a la nova', async () => {
     const { rerender } = await renderHook(
-      ({ eventId }: { eventId: string }) => useChatSocket(eventId, handlers),
-      { initialProps: { eventId: EVENT_ID } },
+      ({ room }: { room: string }) => useChatSocket(room, handlers),
+      { initialProps: { room: ROOM } },
     );
     await flush();
     await serverOpens();
     await serverSends(AUTH_ACK);
 
-    await rerender({ eventId: OTHER_EVENT_ID });
+    await rerender({ room: OTHER_ROOM });
     await flush();
 
     expect(lastSocket().sentOfType('unsubscribe')).toEqual([
@@ -299,7 +299,7 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     const first = { onMessage: jest.fn(), onRevoked: jest.fn() };
     const second = { onMessage: jest.fn(), onRevoked: jest.fn() };
     const { rerender } = await renderHook(
-      ({ current }: { current: typeof first }) => useChatSocket(EVENT_ID, current),
+      ({ current }: { current: typeof first }) => useChatSocket(ROOM, current),
       { initialProps: { current: first } },
     );
     await flush();
@@ -319,15 +319,15 @@ describe('useChatSocket (TG-461, US TG-64)', () => {
     expect(first.onRevoked).not.toHaveBeenCalled();
   });
 
-  it('sendMessage després de canviar eventId envia a la sala nova', async () => {
+  it('sendMessage després de canviar la sala envia a la sala nova', async () => {
     const { result, rerender } = await renderHook(
-      ({ eventId }: { eventId: string }) => useChatSocket(eventId, handlers),
-      { initialProps: { eventId: EVENT_ID } },
+      ({ room }: { room: string }) => useChatSocket(room, handlers),
+      { initialProps: { room: ROOM } },
     );
     await flush();
     await serverOpens();
     await serverSends(AUTH_ACK);
-    await rerender({ eventId: OTHER_EVENT_ID });
+    await rerender({ room: OTHER_ROOM });
     await flush();
 
     await startSending(result.current.sendMessage, 'hola');
@@ -418,7 +418,7 @@ describe('useChatSocket: errors de la sala a onError (TG-461, TG-64)', () => {
 
   it('onError és opcional: sense handler, un error de la sala no fa petar res', async () => {
     const withoutOnError = { onMessage: jest.fn(), onRevoked: jest.fn() };
-    const { result } = await renderHook(() => useChatSocket(EVENT_ID, withoutOnError));
+    const { result } = await renderHook(() => useChatSocket(ROOM, withoutOnError));
     await flush();
     await serverOpens();
     await serverSends(AUTH_ACK);
@@ -439,7 +439,7 @@ describe('useChatSocket: errors de la sala a onError (TG-461, TG-64)', () => {
     const first = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
     const second = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
     const { rerender } = await renderHook(
-      ({ current }: { current: typeof first }) => useChatSocket(EVENT_ID, current),
+      ({ current }: { current: typeof first }) => useChatSocket(ROOM, current),
       { initialProps: { current: first } },
     );
     await flush();
@@ -564,7 +564,7 @@ describe('useChatSocket: missatges duplicats (TG-654 F5)', () => {
   it('el mateix id en una altra sala no es descarta (el Set és per sala)', async () => {
     const other = { onMessage: jest.fn(), onRevoked: jest.fn(), onError: jest.fn() };
     await mountChatConnected();
-    await renderHook(() => useChatSocket(OTHER_EVENT_ID, other));
+    await renderHook(() => useChatSocket(OTHER_ROOM, other));
     await flush();
     await deliver('m-1');
     await act(async () =>
@@ -593,7 +593,7 @@ describe('useChatSocket: missatges duplicats (TG-654 F5)', () => {
 describe('useChatSocket: joining the room again (TG-469)', () => {
   it('a new join attempt leaves the room and joins it again, with the same handlers', async () => {
     const { rerender } = await renderHook(
-      ({ attempt }: { attempt: number }) => useChatSocket(EVENT_ID, handlers, attempt),
+      ({ attempt }: { attempt: number }) => useChatSocket(ROOM, handlers, attempt),
       { initialProps: { attempt: 0 } },
     );
     await flush();
@@ -616,7 +616,7 @@ describe('useChatSocket: joining the room again (TG-469)', () => {
 
   it('the same attempt does not join the room again', async () => {
     const { rerender } = await renderHook(
-      ({ attempt }: { attempt: number }) => useChatSocket(EVENT_ID, handlers, attempt),
+      ({ attempt }: { attempt: number }) => useChatSocket(ROOM, handlers, attempt),
       { initialProps: { attempt: 2 } },
     );
     await flush();
@@ -637,7 +637,7 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
 
   it('calls onJoined when the server acknowledges the subscribe, and only then', async () => {
     const onJoined = jest.fn();
-    await renderHook(() => useChatSocket(EVENT_ID, { ...handlers, onJoined }));
+    await renderHook(() => useChatSocket(ROOM, { ...handlers, onJoined }));
     await flush();
     await serverOpens();
     await serverSends(AUTH_ACK);
@@ -650,7 +650,7 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
 
   it('does not call onJoined for a refused join, a message or a revocation', async () => {
     const onJoined = jest.fn();
-    await renderHook(() => useChatSocket(EVENT_ID, { ...handlers, onJoined }));
+    await renderHook(() => useChatSocket(ROOM, { ...handlers, onJoined }));
     await flush();
     await serverOpens();
     await serverSends(AUTH_ACK);
@@ -671,7 +671,7 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
   it('calls onJoined again when the room is joined again after a reconnection', async () => {
     jest.spyOn(Math, 'random').mockReturnValue(1);
     const onJoined = jest.fn();
-    await renderHook(() => useChatSocket(EVENT_ID, { ...handlers, onJoined }));
+    await renderHook(() => useChatSocket(ROOM, { ...handlers, onJoined }));
     await flush();
     await serverOpens();
     await serverSends(AUTH_ACK);
@@ -694,5 +694,62 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
     await expect(
       serverSends({ type: 'subscribe', id: subscribeId(), room: ROOM }),
     ).resolves.toBeUndefined();
+  });
+
+  describe('sala agnòstica (TG-65): la sala és un paràmetre, no un eventId', () => {
+    const DM_ROOM = 'dm:user:u-1';
+
+    it('se subscriu a la sala que rep, sigui quina sigui, i en lliura els missatges', async () => {
+      await renderHook(() => useChatSocket(DM_ROOM, handlers));
+      await flush();
+      await serverOpens();
+      await serverSends(AUTH_ACK);
+
+      expect(lastSocket().sentOfType('subscribe')).toEqual([
+        { type: 'subscribe', room: DM_ROOM, id: expect.any(String) },
+      ]);
+
+      await serverSends({ type: 'message', room: DM_ROOM, payload: OTHERS_MESSAGE });
+
+      expect(handlers.onMessage).toHaveBeenCalledWith(OTHERS_MESSAGE);
+    });
+
+    it('sendMessage envia a la sala rebuda, amb el payload extra fusionat', async () => {
+      const { result } = await renderHook(() => useChatSocket(DM_ROOM, handlers));
+      await flush();
+      await serverOpens();
+      await serverSends(AUTH_ACK);
+
+      await act(async () => {
+        void result.current.sendMessage('Hola', 'cid-1', { conversation_id: 'c-1' });
+      });
+      await flush();
+
+      expect(lastSent()).toEqual({
+        type: 'message',
+        room: DM_ROOM,
+        id: expect.any(String),
+        payload: { text: 'Hola', client_message_id: 'cid-1', conversation_id: 'c-1' },
+      });
+    });
+
+    it('sense payload extra, el payload és només el text i la clau d’idempotència', async () => {
+      const { result } = await renderHook(() => useChatSocket(DM_ROOM, handlers));
+      await flush();
+      await serverOpens();
+      await serverSends(AUTH_ACK);
+
+      await act(async () => {
+        void result.current.sendMessage('Hola', 'cid-1');
+      });
+      await flush();
+
+      expect(lastSent()).toEqual({
+        type: 'message',
+        room: DM_ROOM,
+        id: expect.any(String),
+        payload: { text: 'Hola', client_message_id: 'cid-1' },
+      });
+    });
   });
 });

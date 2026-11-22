@@ -50,12 +50,12 @@ jest.mock('expo-haptics', () => ({
 const mockSocket = {
   status: 'open' as SocketStatus,
   sendMessage: jest.fn<Promise<SentChatMessage>, [string, string?]>(),
-  eventIds: [] as string[],
+  rooms: [] as string[],
   handlers: undefined as ChatSocketHandlers | undefined,
 };
 jest.mock('./useChatSocket', () => ({
-  useChatSocket: (eventId: string, handlers: ChatSocketHandlers) => {
-    mockSocket.eventIds.push(eventId);
+  useChatSocket: (room: string, handlers: ChatSocketHandlers) => {
+    mockSocket.rooms.push(room);
     mockSocket.handlers = handlers;
     return {
       status: mockSocket.status,
@@ -144,7 +144,7 @@ beforeEach(async () => {
   client.setQueryData(currentUserKeys.me(), ME);
   await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
   mockSocket.status = 'open';
-  mockSocket.eventIds = [];
+  mockSocket.rooms = [];
   mockSocket.handlers = undefined;
   mockSocket.sendMessage.mockReset().mockResolvedValue(ACK);
   jest
@@ -199,7 +199,7 @@ describe('useRoomLive: history and room (TG-469, US TG-64 criteris 14 i 15)', ()
   it('joins the live room of the same event', async () => {
     await mountRoom();
 
-    expect(new Set(mockSocket.eventIds)).toEqual(new Set([EVENT_ID]));
+    expect(new Set(mockSocket.rooms)).toEqual(new Set([`chat:event:${EVENT_ID}`]));
   });
 
   it('shows the history newest first, telling my messages from the others', async () => {
