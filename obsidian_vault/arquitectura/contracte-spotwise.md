@@ -2,8 +2,8 @@
 titol: "Contracte de serveis amb Spotwise"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-17"
-us: ["TG-85", "TG-50", "TG-351", "TG-643"]
+data: "2026-11-22"
+us: ["TG-85", "TG-50", "TG-351", "TG-643", "TG-352"]
 font: "README.md (arrel), backend/README.md, incepció 2 §8; Taiga TG-50, tasca #387 (31/10/2026); ADR-0031 (10/11/2026); TG-351, tasca #477 (10/11/2026); documents de Spotwise «Respostes de Spotwise sobre el servei d'esdeveniments» i «Servei d'espais de Spotwise per a Perseida» (novembre de 2026)"
 etiquetes: [arquitectura, integracions, spotwise, contracte]
 ---
@@ -113,6 +113,27 @@ Els exemples de resposta del document de Spotwise (amb resultats, sense resultat
 
 - **Límit:** l'endpoint no en té, però demanen no passar de 60 peticions per minut i desar les respostes en cache uns minuts, perquè les dades canvien poc durant el dia ([[0005-redis-nomes-com-a-cache-lazy]]).
 - **Temps d'espera:** recomanen 5 segons; si se supera, es mostra el missatge d'indisponibilitat.
+
+### Integració a Perseida (TG-352)
+
+Perseida exposa `GET /api/meeting-points?profile=&lat=&lon=` ([[api#Punts de trobada (TG-352)]]). Decisions de Raquel (22/11/2026):
+
+| Perfil | Crida a Spotwise | Filtre a Perseida |
+|---|---|---|
+| `watch_party` | `lat`, `lon`, `grup=true` | `te_wifi = true`, `apte_grup = true`, `distancia_m` ≤ 1.500 m |
+| `study` | `lat`, `lon`, `silenci=silencios`, `endolls=molts&endolls=pocs` | `nivell_silenci = silencios`, `distancia_m` ≤ 1.500 m (els endolls no filtren) |
+
+- **Només confirmats:** els espais amb l'atribut del perfil a `null` (sense vots) es descarten.
+- **Sense filtre horari:** no s'envien `data`, `inici` ni `fi`.
+- **Ubicació:** la de la usuària, no la de l'esdeveniment. Sense ubicació no es recomana res.
+- **Mock:** sense `SPOTWISE_API_TOKEN` (buit o absent), el backend fa servir `ExampleSpaceSearch` amb la resposta d'exemple «amb resultats» del document de Spotwise (`app/infrastructure/meeting_points/spotwise_examples.json`). Amb token, `SpotwiseSpaceClient`.
+- **Errors:** qualsevol fallada de Spotwise és `503 MEETING_POINTS_UNAVAILABLE`.
+- **Cache:** 5 min a [[redis]], coordenades arrodonides a 3 decimals.
+- **Configuració:** `SPOTWISE_URL`, `SPOTWISE_API_TOKEN` (secret de GitHub obligatori al CD) i `SPOTWISE_TIMEOUT_SECONDS` (5 s).
+- **Sortides:** una sortida ([[api#Sortides d'observació (TG-629)]]) que tria un local només en desa les coordenades.
+
+> [!warning] HTTP sense xifrar
+> El servei de Spotwise només és accessible per HTTP, i el token viatja en clar entre els dos servidors. Raquel ho accepta (22/11/2026), perquè l'endpoint només llegeix dades d'espais. Cal demanar HTTPS a Spotwise.
 
 ## Regla de canvis
 
