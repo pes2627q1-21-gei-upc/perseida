@@ -137,7 +137,7 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
-| `MEETING_POINTS_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | application/meeting_points (constant; `SpotwiseSpaceClient` la llança si Spotwise no respon en 5 s, no s'hi pot connectar, respon 4xx/5xx o un cos que no és una llista JSON) |
+| `MEETING_POINTS_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona. | Ahora no podemos recomendar locales. Vuelve a intentarlo en un rato. | We can't recommend places right now. Please try again in a while. | application/meeting_points (constant; `SpotwiseSpaceClient` la llança si Spotwise no respon en 5 s, no s'hi pot connectar, respon 4xx/5xx o un cos que no és una llista JSON) |
 
 ## Taula plantilla
 
