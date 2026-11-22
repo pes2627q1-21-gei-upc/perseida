@@ -269,6 +269,22 @@ La API no arranca sin `NASA_API_KEY`. En producción viene del secret de GitHub 
 >
 > Límites del feed: solo se guardan imágenes (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo se descarta (`APOD_UNAVAILABLE` si la API tampoco puede responder). La fecha de una entrada es el día UTC de su publicación y el texto de `explanation` y `copyright` se convierte de HTML a texto plano. El fallo de una llamada se guarda 15 minutos solo cuando fallan el feed **y** la API.
 
+## Puntos de encuentro (Spotwise)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=…&lon=…` recomienda espacios de Spotwise (bibliotecas y cafeterías) cerca de la usuaria (TG-352). Contrato: `obsidian_vault/arquitectura/contracte-spotwise.md`. Requiere sesión (401 `INVALID_SESSION`, 403 si la cuenta está suspendida o borrada).
+
+- La ubicación se redondea a 3 decimales (unos 100 m). Se pide a Spotwise con el perfil (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`) y Perseida se queda con los espacios a 1.500 m como máximo que confirman el perfil: aptos para grupos y con wifi para `watch_party`, silenciosos para `study` (los enchufes solo son una preferencia). Los valores sin votos (`null`) no cuentan como confirmados; se mantiene el orden de Spotwise.
+- El resultado se guarda en Redis **5 minutos** por perfil y ubicación redondeada (`cache:meeting_points:<perfil>:<lat>:<lon>`).
+- Si Spotwise falla (tiempo de espera, conexión, 4xx/5xx o un cuerpo que no es una lista JSON) se responde 503 `MEETING_POINTS_UNAVAILABLE`, nunca un 500, y no se guarda nada. Un espacio inválido se descarta y se registra en el log.
+- Como máximo llegan 60 llamadas por minuto a Spotwise (ventana deslizante, por proceso: un solo cliente creado en el lifespan, ADR-0003); por encima se responde 503 `MEETING_POINTS_UNAVAILABLE` sin llamarlo.
+- Sin `SPOTWISE_API_TOKEN` se sirve la respuesta de ejemplo del documento de Spotwise (mock, `app/infrastructure/meeting_points/spotwise_examples.json`): en local y en la CI nunca se llama a Spotwise.
+
+| Variable | Por defecto | Significado |
+|---|---|---|
+| `SPOTWISE_API_TOKEN` | (vacía: mock) | Token que Spotwise nos pasa por privado. Se envía en la cabecera `Authorization: Token …`, nunca en la URL ni en los logs. En producción viene del secret de GitHub `SPOTWISE_API_TOKEN`; nunca hagas commit de él. |
+| `SPOTWISE_URL` | `http://nattech.fib.upc.edu:40420` | URL base de Spotwise (Spotwise solo sirve HTTP) |
+| `SPOTWISE_TIMEOUT_SECONDS` | `5` | Tiempo de espera de cada petición (el que recomienda Spotwise) |
+
 ## Quiz diario
 
 Una pregunta de astrofísica por día UTC, la misma para todos, en catalán, castellano o inglés (TG-60). Contrato: `obsidian_vault/arquitectura/contracte-quiz.md`.

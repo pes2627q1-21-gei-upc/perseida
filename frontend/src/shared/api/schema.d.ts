@@ -558,6 +558,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/meeting-points': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Punts de trobada recomanats
+     * @description Espais de Spotwise a prop de la ubicació (arrodonida a 3 decimals) que encaixen amb el perfil: `watch_party` (apte per a grups, amb wifi) o `study` (silenciós; amb endolls, si n'hi ha), a 1.500 m com a màxim. En l'ordre de Spotwise; la resposta es desa 5 minuts.
+     */
+    get: operations['list_meeting_points'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -797,6 +817,58 @@ export interface components {
      * @enum {string}
      */
     MediaType: 'image' | 'video';
+    /**
+     * MeetingPointProfile
+     * @description What the meeting is for.
+     * @enum {string}
+     */
+    MeetingPointProfile: 'watch_party' | 'study';
+    /** MeetingPointResponse */
+    MeetingPointResponse: {
+      /**
+       * Id
+       * @description Identificador estable de l'espai a Spotwise
+       */
+      id: number;
+      /**
+       * Name
+       * @description Nom de l'espai
+       */
+      name: string;
+      /** @description Tipus d'espai */
+      type: components['schemas']['SpaceType'];
+      /**
+       * Address
+       * @description Adreça; pot ser buida
+       */
+      address: string;
+      /** @description Ubicació de l'espai */
+      location: components['schemas']['EventLocation'];
+      /**
+       * Wifi
+       * @description Si té wifi públic
+       */
+      wifi: boolean;
+      /** @description Nivell de silenci més votat; null si ningú l'ha votat */
+      silence_level: components['schemas']['SilenceLevel'] | null;
+      /** @description Endolls disponibles més votats; null si ningú els ha votat */
+      plugs: components['schemas']['PlugLevel'] | null;
+      /**
+       * Group Friendly
+       * @description Si és apte per a grups; null si ningú l'ha votat
+       */
+      group_friendly: boolean | null;
+      /**
+       * Distance M
+       * @description Distància en metres des de la ubicació de la petició arrodonida a 3 decimals (fins a uns 80 m d'error)
+       */
+      distance_m: number;
+      /**
+       * Open Now
+       * @description Si és obert ara; null si no se'n sap l'horari
+       */
+      open_now: boolean | null;
+    };
     /** OutingAuthorResponse */
     OutingAuthorResponse: {
       /**
@@ -938,6 +1010,11 @@ export interface components {
        */
       event_id?: string | null;
     };
+    /**
+     * PlugLevel
+     * @enum {string}
+     */
+    PlugLevel: 'many' | 'few' | 'none';
     /** PostAuthorResponse */
     PostAuthorResponse: {
       /**
@@ -1134,6 +1211,16 @@ export interface components {
      * @enum {string}
      */
     Role: 'user' | 'moderator' | 'admin';
+    /**
+     * SilenceLevel
+     * @enum {string}
+     */
+    SilenceLevel: 'silent' | 'murmur' | 'noisy';
+    /**
+     * SpaceType
+     * @enum {string}
+     */
+    SpaceType: 'library' | 'cafe' | 'other';
     /** StreakResponse */
     StreakResponse: {
       /**
@@ -2952,6 +3039,69 @@ export interface operations {
         };
       };
       /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_meeting_points: {
+    parameters: {
+      query: {
+        /** @description Per a què és la trobada. */
+        profile: components['schemas']['MeetingPointProfile'];
+        /** @description Latitud de la usuària (WGS 84). */
+        lat: number;
+        /** @description Longitud de la usuària (WGS 84). */
+        lon: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els espais recomanats; buit si no n'hi ha cap. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MeetingPointResponse'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Paràmetre invàlid (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Spotwise no respon o falla (`MEETING_POINTS_UNAVAILABLE`), o no es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
       503: {
         headers: {
           [name: string]: unknown;

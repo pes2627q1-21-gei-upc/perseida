@@ -2487,6 +2487,115 @@
           }
         }
       }
+    },
+    "/api/meeting-points": {
+      "get": {
+        "tags": [
+          "meeting-points"
+        ],
+        "summary": "Punts de trobada recomanats",
+        "description": "Espais de Spotwise a prop de la ubicació (arrodonida a 3 decimals) que encaixen amb el perfil: `watch_party` (apte per a grups, amb wifi) o `study` (silenciós; amb endolls, si n'hi ha), a 1.500 m com a màxim. En l'ordre de Spotwise; la resposta es desa 5 minuts.",
+        "operationId": "list_meeting_points",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MeetingPointProfile",
+              "description": "Per a què és la trobada."
+            },
+            "description": "Per a què és la trobada."
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "description": "Latitud de la usuària (WGS 84).",
+              "title": "Lat"
+            },
+            "description": "Latitud de la usuària (WGS 84)."
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "description": "Longitud de la usuària (WGS 84).",
+              "title": "Lon"
+            },
+            "description": "Longitud de la usuària (WGS 84)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Els espais recomanats; buit si no n'hi ha cap.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeetingPointResponse"
+                  },
+                  "title": "Response List Meeting Points"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Paràmetre invàlid (`VALIDATION_ERROR`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Spotwise no respon o falla (`MEETING_POINTS_UNAVAILABLE`), o no es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2907,6 +3016,114 @@
         ],
         "title": "MediaType"
       },
+      "MeetingPointProfile": {
+        "type": "string",
+        "enum": [
+          "watch_party",
+          "study"
+        ],
+        "title": "MeetingPointProfile",
+        "description": "What the meeting is for."
+      },
+      "MeetingPointResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Identificador estable de l'espai a Spotwise"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nom de l'espai"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SpaceType",
+            "description": "Tipus d'espai"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address",
+            "description": "Adreça; pot ser buida"
+          },
+          "location": {
+            "$ref": "#/components/schemas/EventLocation",
+            "description": "Ubicació de l'espai"
+          },
+          "wifi": {
+            "type": "boolean",
+            "title": "Wifi",
+            "description": "Si té wifi públic"
+          },
+          "silence_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SilenceLevel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nivell de silenci més votat; null si ningú l'ha votat"
+          },
+          "plugs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlugLevel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Endolls disponibles més votats; null si ningú els ha votat"
+          },
+          "group_friendly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Friendly",
+            "description": "Si és apte per a grups; null si ningú l'ha votat"
+          },
+          "distance_m": {
+            "type": "integer",
+            "title": "Distance M",
+            "description": "Distància en metres des de la ubicació de la petició arrodonida a 3 decimals (fins a uns 80 m d'error)"
+          },
+          "open_now": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Now",
+            "description": "Si és obert ara; null si no se'n sap l'horari"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "address",
+          "location",
+          "wifi",
+          "silence_level",
+          "plugs",
+          "group_friendly",
+          "distance_m",
+          "open_now"
+        ],
+        "title": "MeetingPointResponse"
+      },
       "OutingAuthorResponse": {
         "properties": {
           "id": {
@@ -3131,6 +3348,15 @@
         "type": "object",
         "title": "OutingUpdate",
         "description": "Only the fields sent change. ``event_id: null`` unlinks the event; the other\nfields may be left out but never be null."
+      },
+      "PlugLevel": {
+        "type": "string",
+        "enum": [
+          "many",
+          "few",
+          "none"
+        ],
+        "title": "PlugLevel"
       },
       "PostAuthorResponse": {
         "properties": {
@@ -3469,6 +3695,24 @@
           "admin"
         ],
         "title": "Role"
+      },
+      "SilenceLevel": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "murmur",
+          "noisy"
+        ],
+        "title": "SilenceLevel"
+      },
+      "SpaceType": {
+        "type": "string",
+        "enum": [
+          "library",
+          "cafe",
+          "other"
+        ],
+        "title": "SpaceType"
       },
       "StreakResponse": {
         "properties": {

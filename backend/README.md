@@ -315,6 +315,22 @@ The API does not start without `NASA_API_KEY`. In production it comes from the `
 >
 > Feed limits: only images (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`) are kept; a video entry is discarded (`APOD_UNAVAILABLE` if the API cannot answer either). The date of an entry is the UTC day of its publication, and the text of `explanation` and `copyright` is converted from HTML to plain text. The failure of a call is cached 15 minutes only when the feed **and** the API fail.
 
+## Meeting points (Spotwise)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=…&lon=…` recommends Spotwise spaces (libraries and cafés) near the user (TG-352). Contract: `obsidian_vault/arquitectura/contracte-spotwise.md`. Needs a session (401 `INVALID_SESSION`, 403 for a suspended or deleted account).
+
+- The location is rounded to 3 decimals (about 100 m). Spotwise is asked with the profile (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`), and Perseida keeps the spaces at most 1,500 m away that confirm the profile: group-friendly with wifi for `watch_party`, silent for `study` (plugs are only a preference). Unvoted values (`null`) do not count as confirmed; Spotwise's order is kept.
+- The result is cached in Redis for **5 minutes** per profile and rounded location (`cache:meeting_points:<profile>:<lat>:<lon>`).
+- If Spotwise fails (timeout, connection, 4xx/5xx or a body that is not a JSON list) the answer is 503 `MEETING_POINTS_UNAVAILABLE`, never a 500, and nothing is cached. An invalid space is dropped and logged.
+- At most 60 calls per minute reach Spotwise (sliding window, per process: one client built in the lifespan, ADR-0003); beyond that the answer is 503 `MEETING_POINTS_UNAVAILABLE` without calling it.
+- Without `SPOTWISE_API_TOKEN` the example answer of the Spotwise document is served (mock, `app/infrastructure/meeting_points/spotwise_examples.json`), so local runs and CI never call Spotwise.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SPOTWISE_API_TOKEN` | (empty: mock) | Token Spotwise hands out privately. Sent in the `Authorization: Token …` header, never in the URL or the logs. In production it comes from the `SPOTWISE_API_TOKEN` GitHub secret; never commit it. |
+| `SPOTWISE_URL` | `http://nattech.fib.upc.edu:40420` | Spotwise base URL (Spotwise serves HTTP only) |
+| `SPOTWISE_TIMEOUT_SECONDS` | `5` | Timeout of each request (recommended by Spotwise) |
+
 ## Daily quiz
 
 One astrophysics question per UTC day, the same for everyone, in Catalan, Spanish or English (TG-60). Contract: `obsidian_vault/arquitectura/contracte-quiz.md`.
