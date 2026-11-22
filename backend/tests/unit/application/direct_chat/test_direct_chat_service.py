@@ -21,6 +21,7 @@ from app.domain.direct_chat.errors import (
 from app.domain.direct_chat.models import DirectConversation, UserBlock
 from app.domain.shared.errors import (
     BusinessRuleViolation,
+    ConflictError,
     NotFoundError,
     ValidationError,
 )
@@ -407,6 +408,36 @@ async def test_tg65_a_repeated_client_message_id_returns_the_stored_one(
     assert "rate" not in env.log
     assert "moderate" not in env.log
     assert "save" not in env.log
+
+
+@pytest.mark.parametrize("other", ["another_conversation", "another_text"])
+async def test_tg65_a_reused_client_message_id_with_other_content_is_a_conflict(
+    service: DirectChatService, env: DirectChatHarness, other: str
+) -> None:
+    # Imported here so only this test fails (not the whole module) until it exists.
+    from app.domain.direct_chat.errors import DIRECT_IDEMPOTENCY_CONFLICT
+
+    conversation = await _conversation(env)
+    other_conversation, _ = await env.conversations.get_or_create(ALICE, EVE)
+    client_id = uuid.uuid4()
+    first = await service.send_message(
+        ALICE, conversation.id, "hola", client_message_id=client_id
+    )
+    env.log.clear()
+    env.broadcaster.calls.clear()
+
+    target = other_conversation if other == "another_conversation" else conversation
+    text = "hola" if other == "another_conversation" else " altre text "
+    with pytest.raises(ConflictError) as exc_info:
+        await service.send_message(ALICE, target.id, text, client_message_id=client_id)
+
+    assert exc_info.value.code == DIRECT_IDEMPOTENCY_CONFLICT
+    assert "rate" not in env.log
+    assert "moderate" not in env.log
+    assert "save" not in env.log
+    assert "deliver" not in env.log
+    assert env.messages.messages == [first]
+    assert env.broadcaster.calls == []
 
 
 # --- offline recipient (criteri 5) --------------------------------------------
