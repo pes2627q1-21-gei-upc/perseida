@@ -480,3 +480,42 @@ describe('MeetingPointsScreen announcements of the location (TG-352, WCAG 4.1.3)
     }
   });
 });
+
+// Review of TG-352: on a short screen (a phone in landscape, large text) the top of the page
+// must not be cut off. Whatever the mechanism (a ScrollView, the header of the list), what is
+// above the places scrolls, so the retry of an unavailable location can always be reached.
+describe('MeetingPointsScreen on a short screen (TG-352, WCAG 1.4.10)', () => {
+  /** Whether a host ancestor of the element scrolls (a ScrollView, or the one of a FlatList). */
+  function scrolls(element: ReturnType<typeof screen.getByText>): boolean {
+    for (let node = element.parent; node; node = node.parent) {
+      if (node.type === 'RCTScrollView') return true;
+    }
+    return false;
+  }
+
+  it('scrolls the title of the event and the profiles with the places', async () => {
+    await renderScreen();
+    // The places already scroll, in the list: the helper sees it.
+    expect(scrolls(await screen.findByText(spotwiseLibrary.name))).toBe(true);
+
+    expect(scrolls(screen.getByText(launchEvent.title))).toBe(true);
+    expect(scrolls(screen.getByLabelText(t('meetingPoints.profile.label')))).toBe(true);
+  });
+
+  it('scrolls the message and the retry button when the device cannot find the position', async () => {
+    position.mockRejectedValue(new Error('Location services are disabled'));
+    await renderScreen();
+
+    expect(scrolls(await screen.findByText(t('meetingPoints.location.unavailable')))).toBe(true);
+    expect(scrolls(screen.getByRole('button', { name: t('meetingPoints.location.retry') }))).toBe(
+      true,
+    );
+  });
+
+  it('scrolls the message when the permission is denied', async () => {
+    permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
+    await renderScreen();
+
+    expect(scrolls(await screen.findByText(t('meetingPoints.location.denied')))).toBe(true);
+  });
+});
