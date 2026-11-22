@@ -269,6 +269,7 @@ L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NA
 - La ubicació s'arrodoneix a 3 decimals (uns 100 m). Es demana a Spotwise amb el perfil (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`) i Perseida es queda amb els espais a 1.500 m com a màxim que confirmen el perfil: aptes per a grups i amb wifi per a `watch_party`, silenciosos per a `study` (els endolls només són una preferència). Els valors sense vots (`null`) no compten com a confirmats; es conserva l'ordre de Spotwise.
 - El resultat es desa a Redis **5 minuts** per perfil i ubicació arrodonida (`cache:meeting_points:<perfil>:<lat>:<lon>`).
 - Si Spotwise falla (temps d'espera, connexió, 4xx/5xx o un cos que no és una llista JSON) es respon 503 `MEETING_POINTS_UNAVAILABLE`, mai un 500, i no es desa res. Un espai invàlid es descarta i es registra al log.
+- Com a màxim arriben 60 crides per minut a Spotwise (finestra lliscant, per procés: un sol client creat al lifespan, ADR-0003); per sobre es respon 503 `MEETING_POINTS_UNAVAILABLE` sense cridar-lo.
 - Sense `SPOTWISE_API_TOKEN` es serveix la resposta d'exemple del document de Spotwise (mock, `app/infrastructure/meeting_points/spotwise_examples.json`): en local i a la CI mai es crida Spotwise.
 
 | Variable | Per defecte | Significat |
