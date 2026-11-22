@@ -3,8 +3,8 @@ titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
 data: "2026-11-21"
-us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362", "TG-383", "TG-384"]
-font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist; tasca TG-382: quarantena sense reintents, 20/11/2026; tasca TG-383: bandit i pip-audit, 21/11/2026; tasca TG-384: `pnpm audit`, 21/11/2026; `pnpm audit` bloquejant per decisió de l'equip al xat de l'equip, 21/11/2026)"
+us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362", "TG-383", "TG-384", "TG-657"]
+font: "TG-657 (retroalimentació de testing, 22/11/2026); memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist; tasca TG-382: quarantena sense reintents, 20/11/2026; tasca TG-383: bandit i pip-audit, 21/11/2026; tasca TG-384: `pnpm audit`, 21/11/2026; `pnpm audit` bloquejant per decisió de l'equip al xat de l'equip, 21/11/2026)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
 
@@ -69,6 +69,12 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 - **Paral·lelisme (`pytest-xdist`)**: la CI executa `uv run pytest -n auto -m "not quarantine"`. En local, els tests van en sèrie per defecte; per provar-los en paral·lel, `uv run pytest -n 4` (o `-n 8`).
 - **Aïllament per worker** (`tests/conftest.py`, `tests/integration/conftest.py`, `tests/integration/workers.py`): cada worker `gwN` fa servir la base de dades `<POSTGRES_DB>_gwN`, que es crea i es migra (`alembic upgrade head`) abans del primer test d'integració (els unitaris no s'hi connecten), i l'índex de Redis `15 - N`. Sense xdist es fan servir `POSTGRES_DB` i l'índex 15; ara també l'app i tots els clients de prova hi van (abans, una part dels tests escrivia a l'índex 0). L'índex 0 (dades de desenvolupament) no es buida mai, i per això hi ha com a màxim 15 workers: amb més, la sessió s'atura amb un missatge que demana reduir `-n` (a les màquines de més de 15 nuclis, `-n auto` no serveix). Les bases de dades `_gwN` es conserven entre execucions locals: si un test troba files que no són seves (restes d'una execució anterior a una correcció), esborra-les un cop (`DROP DATABASE <POSTGRES_DB>_gwN`) i tornaran a crear-se netes. A la CI cada execució comença amb una base de dades nova. Dues sessions de pytest alhora a la mateixa màquina comparteixen les bases `_gwN` i els índexs de Redis: no les llancis en paral·lel. Si un worker cau, xdist en crea un de nou amb un número més alt (`gwN`, amb N = nombre de workers); amb 15 workers aquest número ja no té índex de Redis i la sessió s'atura amb un error intern.
 - **Regles per als tests nous**: cap test pot dependre de l'ordre ni de dades d'un altre test. Cada test esborra el que crea, i els clients de Redis i els *engines* de base de dades es creen a partir de `RedisSettings`/`DatabaseSettings`, mai amb host, port o índex escrits a mà. Els ids dels `parametrize` han de ser estables entre processos (res de `uuid` generats en importar el mòdul).
+
+### Retroalimentació dels errors trobats (TG-657)
+
+Cada error trobat en testing o verificació (vermell inesperat, prova manual, CI i mutants, review) es registra a `estat/errors/` amb la plantilla `error-de-testing` i es mira a [[errors-de-testing.base]]; el procediment és a [[retroalimentacio-de-testing]]. Lliçons ja recollides:
+
+- **Un test que simula la navegació no prova que la ruta existeixi.** Les rutes i els botons de navegació es proven amb el router real, no amb un `push` simulat ([[2026-11-18-tg-385-href-null-amaga-la-ruta]]).
 
 ### Tests inestables
 
@@ -205,6 +211,7 @@ Cada job té un test de fum perquè el comandament de tests no falli sense cap t
 
 - [[qualitat]]: Quality Gate i anàlisi estàtica.
 - [[definition-of-done]]: proves com a part de la DoD.
+- [[retroalimentacio-de-testing]]: registre i lliçons dels errors trobats.
 - [[gitflow]]: ordre dels commits `test:` i `feat:`.
 - [[0028-tdd-estricte-i-politica-de-testing-avancada]]: decisió vigent.
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]]
