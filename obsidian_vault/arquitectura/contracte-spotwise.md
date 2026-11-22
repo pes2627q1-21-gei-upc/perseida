@@ -128,7 +128,9 @@ Perseida exposa `GET /api/meeting-points?profile=&lat=&lon=` ([[api#Punts de tro
 - **Ubicació:** la de la usuària, no la de l'esdeveniment. Sense ubicació no es recomana res.
 - **Mock:** sense `SPOTWISE_API_TOKEN` (buit o absent), el backend fa servir `ExampleSpaceSearch` amb la resposta d'exemple «amb resultats» del document de Spotwise (`app/infrastructure/meeting_points/spotwise_examples.json`). Amb token, `SpotwiseSpaceClient`.
 - **Errors:** qualsevol fallada de Spotwise és `503 MEETING_POINTS_UNAVAILABLE`.
-- **Cache:** 5 min a [[redis]], coordenades arrodonides a 3 decimals.
+- **Cache:** 5 min a [[redis]], coordenades arrodonides a 3 decimals. Sense dades caducades: passat el TTL, si Spotwise cau, `503`.
+- **Límit:** com a molt 60 crides per minut a Spotwise (finestra lliscant al client, una instància per procés). La 61a respon `503 MEETING_POINTS_UNAVAILABLE` sense cridar-los (decisió de Raquel, 22/11/2026).
+- **Logs:** les URL de les peticions d'httpx no es registren, perquè porten la ubicació de la usuària.
 - **Configuració:** `SPOTWISE_URL`, `SPOTWISE_API_TOKEN` (secret de GitHub obligatori al CD) i `SPOTWISE_TIMEOUT_SECONDS` (5 s).
 - **Sortides:** una sortida ([[api#Sortides d'observació (TG-629)]]) que tria un local només en desa les coordenades.
 
