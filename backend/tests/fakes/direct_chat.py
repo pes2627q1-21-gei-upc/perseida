@@ -172,7 +172,15 @@ class _LoggedMessages(InMemoryDirectMessageRepository):
 
     async def add(self, message: DirectMessage) -> DirectMessage:
         self.log.append("save")
-        return await super().add(message)
+        # The base ``add`` would go through the overridden ``find_by_client_id``
+        # and log a second "find": call the base lookup explicitly.
+        existing = await InMemoryDirectMessageRepository.find_by_client_id(
+            self, message.sender_id, message.client_message_id
+        )
+        if existing is not None:
+            return existing
+        self.messages.append(message)
+        return message
 
 
 class _LoggedBlocks(InMemoryUserBlockRepository):
