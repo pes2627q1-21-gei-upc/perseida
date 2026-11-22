@@ -387,6 +387,20 @@ Per publicar la pantalla d'inici de sessió com a *In production*, Google demana
 - Per canviar el text n'hi ha prou amb desplegar: nginx llegeix els fitxers a cada petició.
 - Test: `bash infra/scripts/test-public-pages.sh` (cal Docker; l'executa el job `proxy` de la CI).
 
+**Esborrar un compte a petició** (la política de privacitat el promet en 30 dies com a màxim). Encara no hi ha cap endpoint: els comptes s'esborren de manera lògica (`deleted_at`) i diverses taules apunten a `users` amb `RESTRICT`. Al servidor, amb el correu de la petició:
+
+```bash
+cd /opt/perseida
+# 1. Identificador de Google (clau de la sessió a Redis) i id de l'usuari.
+docker compose exec db psql -U perseida perseida -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<correu>';"
+# 2. Primer les files amb RESTRICT; esborrar l'usuari esborra en cascada publicacions, missatges, subscripcions i respostes del quiz.
+docker compose exec db psql -U perseida perseida -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
+# 3. Sessions: els membres de user_sessions:<subject> són <sid>:<tipus>:<jti> i les claus, session:<tipus>:<jti>.
+docker compose exec cache sh -c 'for m in $(redis-cli SMEMBERS user_sessions:<subject>); do redis-cli DEL "session:${m#*:}"; done; redis-cli DEL user_sessions:<subject>'
+```
+
+Després, respon la petició des del correu d'equip.
+
 **Consola de Google Cloud** (algú amb accés al projecte; no ho fa el CD):
 
 1. *Search Console*: la propietat `https://perseida.duckdns.org:40431/` (prefix d'URL) es verifica amb el mètode *etiqueta HTML*; l'etiqueta ja és a `index.html`. Prem *Verifica* quan les pàgines estiguin desplegades.

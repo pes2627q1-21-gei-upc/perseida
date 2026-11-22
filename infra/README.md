@@ -387,6 +387,20 @@ Google requires a home page, a privacy policy and terms of service, all public, 
 - Changing the text only needs a deploy: nginx reads the files on each request.
 - Test: `bash infra/scripts/test-public-pages.sh` (needs Docker; the CI `proxy` job runs it).
 
+**Deleting an account on request** (the privacy policy promises it within 30 days). There is no endpoint yet: accounts are deleted softly (`deleted_at`) and several tables refer to `users` with `RESTRICT`. On the server, with the email of the request:
+
+```bash
+cd /opt/perseida
+# 1. Google identifier (session key in Redis) and user id.
+docker compose exec db psql -U perseida perseida -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<email>';"
+# 2. Rows with RESTRICT first; deleting the user cascades to posts, chat messages, subscriptions and quiz answers.
+docker compose exec db psql -U perseida perseida -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
+# 3. Sessions: members of user_sessions:<subject> are <sid>:<kind>:<jti>, keys are session:<kind>:<jti>.
+docker compose exec cache sh -c 'for m in $(redis-cli SMEMBERS user_sessions:<subject>); do redis-cli DEL "session:${m#*:}"; done; redis-cli DEL user_sessions:<subject>'
+```
+
+Then answer the request from the team email.
+
 **Google Cloud console** (someone with access to the project; the CD does not do it):
 
 1. *Search Console*: the property `https://perseida.duckdns.org:40431/` (URL prefix) is verified with the *HTML tag* method; the tag is already in `index.html`. Press *Verify* once the pages are deployed.

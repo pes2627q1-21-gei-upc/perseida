@@ -19,6 +19,7 @@ Deixar a punt el que Google demana per publicar l'app com a «In production» (q
 - **Spike (#344):** a la consola, `perseida.duckdns.org` ja era un domini autoritzat i s'accepta. Search Console accepta la propietat `https://perseida.duckdns.org:40431/` (prefix d'URL amb port) amb verificació per fitxer HTML o etiqueta `meta`; es fa servir l'etiqueta.
 - **Pàgines:** `infra/nginx-proxy-manager/public/` amb `index.html`, `privacy.html` i `terms.html`, en ca/es/en i sense scripts. La política descriu les dades reals del model (compte de Google, perfil, contingut, sortides amb ubicació, sessió de 30 dies com a màxim i registres tècnics).
 - **Servir-les:** tres `location =` a `static.conf` amb CSP sense scripts, muntatge de només lectura al Compose i còpia al servidor al CD.
+- **Revisió d'arquitectura:** cap problema al codi; s'ha corregit el text perquè coincideixi amb el sistema real (la moderació, com a possibilitat, perquè TG-81 encara no hi és; la posició de «A prop meu» queda als registres tècnics; l'esborrat és a mà en 30 dies).
 - **Proves:** `infra/scripts/test-public-pages.sh` (TDD: el `test:` va abans dels `feat:`), al job `proxy` de la CI. També passa `test-rate-limit.sh`, que inclou `static.conf`.
 
 ## Decisions preses
@@ -28,7 +29,7 @@ Totes de Manel, del 22/11/2026:
 - Les pàgines les serveix nginx-proxy-manager des d'una carpeta, no el backend ([[0009-nginx-proxy-manager-serveix-media-i-spa-admin|ADR-0009]]).
 - Responsable del tractament: l'equip de Perseida, sense noms personals.
 - Contacte: un Gmail d'equip nou, no el correu personal d'una persona.
-- Retenció: mentre existeixi el compte, amb esborrat a petició, i tot en apagar el servidor al final del quadrimestre.
+- Retenció: mentre existeixi el compte, amb esborrat a mà en 30 dies com a màxim si es demana (procediment al README d'`infra/`), i tot en apagar el servidor al final del quadrimestre.
 
 ## Canvis al vault
 
