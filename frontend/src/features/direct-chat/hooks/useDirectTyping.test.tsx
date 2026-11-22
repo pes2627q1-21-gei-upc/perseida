@@ -29,12 +29,13 @@ beforeEach(() => {
   mockUnsubscribe.mockReset();
 });
 afterEach(() => {
+  jest.restoreAllMocks();
   jest.clearAllTimers();
   jest.useRealTimers();
 });
 
-function receive(conversationId: string, isTyping: boolean) {
-  act(() =>
+async function receive(conversationId: string, isTyping: boolean) {
+  await act(async () =>
     mockListener?.({
       type: 'dm.typing',
       payload: { conversation_id: conversationId, is_typing: isTyping },
@@ -45,12 +46,12 @@ function receive(conversationId: string, isTyping: boolean) {
 describe('useDirectTyping (TG-65)', () => {
   it('sends the current conversation typing state', async () => {
     const { result } = await renderHook(() => useDirectTyping(CONVERSATION));
-    act(() => result.current.setTyping(true));
+    await act(async () => result.current.setTyping(true));
     expect(mockSendEphemeral).toHaveBeenCalledWith({
       type: 'dm.typing',
       payload: { conversation_id: CONVERSATION, is_typing: true },
     });
-    act(() => result.current.setTyping(false));
+    await act(async () => result.current.setTyping(false));
     expect(mockSendEphemeral).toHaveBeenLastCalledWith({
       type: 'dm.typing',
       payload: { conversation_id: CONVERSATION, is_typing: false },
@@ -59,26 +60,26 @@ describe('useDirectTyping (TG-65)', () => {
 
   it('shows typing only for this conversation and clears immediately on false', async () => {
     const { result } = await renderHook(() => useDirectTyping(CONVERSATION));
-    receive(OTHER, true);
+    await receive(OTHER, true);
     expect(result.current.isTyping).toBe(false);
-    receive(CONVERSATION, true);
+    await receive(CONVERSATION, true);
     expect(result.current.isTyping).toBe(true);
-    receive(CONVERSATION, false);
+    await receive(CONVERSATION, false);
     expect(result.current.isTyping).toBe(false);
   });
 
   it('expires typing five seconds after the latest true event', async () => {
     const { result } = await renderHook(() => useDirectTyping(CONVERSATION));
-    receive(CONVERSATION, true);
-    act(() => {
+    await receive(CONVERSATION, true);
+    await act(async () => {
       jest.advanceTimersByTime(4000);
     });
-    receive(CONVERSATION, true);
-    act(() => {
+    await receive(CONVERSATION, true);
+    await act(async () => {
       jest.advanceTimersByTime(4999);
     });
     expect(result.current.isTyping).toBe(true);
-    act(() => {
+    await act(async () => {
       jest.advanceTimersByTime(1);
     });
     expect(result.current.isTyping).toBe(false);
@@ -86,8 +87,8 @@ describe('useDirectTyping (TG-65)', () => {
 
   it('ignores message and malformed typing events', async () => {
     const { result } = await renderHook(() => useDirectTyping(CONVERSATION));
-    act(() => mockListener?.({ type: 'dm.message', payload: { conversation_id: CONVERSATION } }));
-    act(() =>
+    await act(async () => mockListener?.({ type: 'dm.message', payload: { conversation_id: CONVERSATION } }));
+    await act(async () =>
       mockListener?.({
         type: 'dm.typing',
         payload: { conversation_id: CONVERSATION, is_typing: 'true' },
@@ -97,16 +98,26 @@ describe('useDirectTyping (TG-65)', () => {
   });
 
   it('clears state on switching conversations and unsubscribes on unmount', async () => {
+    const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout');
+    const clearTimeoutSpy = jest.spyOn(globalThis, 'clearTimeout');
     const { result, rerender, unmount } = await renderHook(
       ({ conversationId }: { conversationId: string }) => useDirectTyping(conversationId),
       { initialProps: { conversationId: CONVERSATION } },
     );
-    receive(CONVERSATION, true);
+    await receive(CONVERSATION, true);
     expect(result.current.isTyping).toBe(true);
     await rerender({ conversationId: OTHER });
     expect(result.current.isTyping).toBe(false);
+    setTimeoutSpy.mockClear();
+    await receive(OTHER, true);
+    const timerIndex = setTimeoutSpy.mock.calls.findIndex(([, delay]) => delay === 5000);
+    expect(timerIndex).toBeGreaterThanOrEqual(0);
+    const typingTimer = setTimeoutSpy.mock.results[timerIndex]?.value;
+    expect(typingTimer).toBeDefined();
     await unmount();
     expect(mockUnsubscribe).toHaveBeenCalled();
-    expect(jest.getTimerCount()).toBe(0);
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(typingTimer);
+    setTimeoutSpy.mockRestore();
+    clearTimeoutSpy.mockRestore();
   });
 });
