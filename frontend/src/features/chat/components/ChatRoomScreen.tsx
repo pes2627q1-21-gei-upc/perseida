@@ -32,7 +32,7 @@ import {
   useReduceTransparency,
 } from '../../../shared/ui';
 import { arrivedKeys, type ChatListItem } from '../chatItems';
-import { useMySubscriptions } from '../hooks/useChat';
+import { useMySubscriptions } from '../../events/hooks/useSubscriptions';
 import { useRoomLive } from '../hooks/useRoomLive';
 import { rowSurface } from '../rowSurface';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
