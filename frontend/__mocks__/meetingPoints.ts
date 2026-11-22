@@ -1,6 +1,8 @@
 // Simulated meeting points for the meeting points tests (TG-352). Same shape as
 // MeetingPointResponse of the API. Synthetic data: no real place nor real person.
 
+import type { MeetingPoint } from '../src/features/meeting-points/api/meetingPoints';
+
 /** The example of Spotwise: every attribute is known. */
 export const spotwiseLibrary = {
   id: 12,
@@ -14,7 +16,7 @@ export const spotwiseLibrary = {
   group_friendly: true,
   distance_m: 290,
   open_now: true,
-} as const;
+} satisfies MeetingPoint;
 
 /** A cafe nobody has voted yet: no wifi, no address and every vote unknown. */
 export const unvotedCafe = {
@@ -29,7 +31,7 @@ export const unvotedCafe = {
   group_friendly: null,
   distance_m: 1140,
   open_now: null,
-} as const;
+} satisfies MeetingPoint;
 
 /** Some other kind of space, with the other values of the votes. */
 export const otherSpace = {
@@ -44,4 +46,4 @@ export const otherSpace = {
   group_friendly: false,
   distance_m: 640,
   open_now: false,
-} as const;
+} satisfies MeetingPoint;

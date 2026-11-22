@@ -13,7 +13,7 @@ const SAFE_AREA = {
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
 };
 
-const points = [spotwiseLibrary, unvotedCafe, otherSpace] as unknown as MeetingPoint[];
+const points: MeetingPoint[] = [spotwiseLibrary, unvotedCafe, otherSpace];
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
 const unavailable = new AppError({

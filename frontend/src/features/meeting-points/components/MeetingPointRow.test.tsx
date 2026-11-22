@@ -21,9 +21,9 @@ jest.mock('phosphor-react-native', () => {
   };
 });
 
-const library = spotwiseLibrary as MeetingPoint;
-const cafe = unvotedCafe as MeetingPoint;
-const other = otherSpace as MeetingPoint;
+const library: MeetingPoint = spotwiseLibrary;
+const cafe: MeetingPoint = unvotedCafe;
+const other: MeetingPoint = otherSpace;
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
 /** The texts of every attribute chip, by the value it stands for. */
