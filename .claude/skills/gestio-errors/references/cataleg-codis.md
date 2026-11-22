@@ -133,6 +133,12 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 |---|---|---|---|---|---|---|---|
 | `EVENT_ALREADY_ENDED` | 409 | `ConflictError` | No | Aquest esdeveniment ja ha acabat. | Este evento ya ha terminado. | This event has already ended. | domain/events |
 
+## Codis dels punts de trobada (TG-352)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `MEETING_POINTS_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | application/meeting_points (constant; `SpotwiseSpaceClient` la llança si Spotwise no respon en 5 s, no s'hi pot connectar, respon 4xx/5xx o un cos que no és una llista JSON) |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
@@ -156,6 +162,7 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 | NASA (APOD...) | Retorna la cache (Redis), sense 500 | `ExternalServiceError` (503) amb codi propi |
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
 | Fonts d'esdeveniments (Launch Library 2, USNO, Skyfield, catàleg) | Es serveixen els esdeveniments desats a PostgreSQL; la font no es torna a cridar en 15 min | Igual: `EVENT_SOURCE_UNAVAILABLE` no arriba al client, mai un 5xx (TG-50, ADR-0031) |
-| Altres (meteo, contaminació lumínica, Spotwise, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
+| Spotwise (espais) | Retorna la recomanació desada a Redis (5 min, per perfil i ubicació arrodonida a 3 decimals) sense cridar Spotwise | `ExternalServiceError` `MEETING_POINTS_UNAVAILABLE` (503), mai un 500; no es desa res (TG-352) |
+| Altres (meteo, contaminació lumínica, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
 Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.
