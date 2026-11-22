@@ -100,7 +100,7 @@ def _to_space(record: Any) -> Space | None:
 
 def to_spaces(records: list[Any]) -> list[Space]:
     """The valid spaces of a Spotwise answer, in its order."""
-    return [space for record in records if (space := _to_space(record))]
+    return [space for record in records if (space := _to_space(record)) is not None]
 
 
 def _params(near: Location, profile: SessionProfile) -> httpx.QueryParams:
