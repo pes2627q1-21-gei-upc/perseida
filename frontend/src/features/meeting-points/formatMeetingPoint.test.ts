@@ -9,7 +9,13 @@ describe('formatDistance', () => {
   });
 
   it('switches to kilometres at 1,000 m', () => {
-    expect(formatDistance(1000, 'ca')).toMatch(/^1([,.]0)? km$/);
+    expect(formatDistance(1000, 'ca')).toBe('1 km');
+  });
+
+  it('shows the decimal only when it is needed', () => {
+    expect(formatDistance(2000, 'ca')).toBe('2 km');
+    expect(formatDistance(2000, 'en')).toBe('2 km');
+    expect(formatDistance(1999, 'ca')).toBe('2 km');
   });
 
   it('shows kilometres with one decimal and the separator of the language', () => {
