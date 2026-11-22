@@ -14,13 +14,27 @@
     "logoutNotConfirmed": "You have been signed out on this device, but the server could not confirm it.",
     "tagline": "Look up"
   },
+  "chat": {
+    "title": "Chat",
+    "loading": "Loading chat rooms",
+    "retry": "Try again",
+    "retryHint": "Loads the chat rooms again",
+    "refresh": "Refresh",
+    "noMessages": "No messages yet",
+    "unknownAuthor": "A Perseida user",
+    "list": {
+      "label": "Chat rooms"
+    },
+    "empty": {
+      "message": "You haven't subscribed to any event yet. Subscribe to one to chat with the community.",
+      "cta": "Explore events"
+    }
+  },
   "common": {
     "back": "Back"
   },
   "comingSoon": {
     "badge": "Coming soon",
-    "chatDesc": "A real-time space to share observations, photos, and stargazing meetups.",
-    "chatTitle": "Community & chat",
     "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
     "gamificationTitle": "Gamification & challenges"
   },
@@ -64,7 +78,14 @@
     "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
     "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
     "OUTING_NOT_FOUND": "This outing doesn't exist or was deleted.",
-    "OUTING_FORBIDDEN": "Only the person who created the outing can change it."
+    "OUTING_FORBIDDEN": "Only the person who created the outing can change it.",
+    "FORBIDDEN": "You don't have permission to do that.",
+    "RATE_LIMITED": "There is a lot of activity right now. Please wait a moment and try again.",
+    "NOT_SUBSCRIBED": "You need to join the room first.",
+    "PUBSUB_UNAVAILABLE": "Chat is unavailable right now. Please try again.",
+    "VALIDATION_ERROR": "Please check the data you entered.",
+    "CHAT_INVALID_CURSOR": "We couldn't load the history. Please reopen the room.",
+    "CHAT_INVALID_LIMIT": "We couldn't load the history. Please reopen the room."
   },
   "events": {
     "category": {

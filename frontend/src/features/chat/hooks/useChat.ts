@@ -2,10 +2,12 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import type { AppError } from '../../../shared/errors';
 import { type ChatHistory, type ChatRoom, fetchMessages, listRooms } from '../api/chat';
+import { listSubscribedEvents, type SubscribedEvent } from '../api/subscriptions';
 
 export const chatKeys = {
   all: ['chat'] as const,
   rooms: ['chat', 'rooms'] as const,
+  subscriptions: ['chat', 'subscriptions'] as const,
   messages: (eventId: string) => [...chatKeys.all, 'messages', eventId] as const,
 };
 
@@ -19,6 +21,15 @@ export function useRooms() {
   return useQuery<ChatRoom[], AppError>({
     queryKey: chatKeys.rooms,
     queryFn: listRooms,
+    retry: retryOnceIfTransient,
+  });
+}
+
+/** Events the user is subscribed to: the rooms of the chat list. Online only. */
+export function useMySubscriptions() {
+  return useQuery<SubscribedEvent[], AppError>({
+    queryKey: chatKeys.subscriptions,
+    queryFn: listSubscribedEvents,
     retry: retryOnceIfTransient,
   });
 }

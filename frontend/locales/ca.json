@@ -14,13 +14,27 @@
     "logoutNotConfirmed": "S'ha tancat la sessió en aquest dispositiu, però no s'ha pogut confirmar al servidor.",
     "tagline": "Mira cap amunt"
   },
+  "chat": {
+    "title": "Xat",
+    "loading": "Carregant sales de xat",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les sales de xat",
+    "refresh": "Actualitza",
+    "noMessages": "Encara no hi ha missatges",
+    "unknownAuthor": "Una usuària de Perseida",
+    "list": {
+      "label": "Sales de xat"
+    },
+    "empty": {
+      "message": "Encara no t'has subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
+      "cta": "Explora els esdeveniments"
+    }
+  },
   "common": {
     "back": "Torna"
   },
   "comingSoon": {
     "badge": "Pròximament",
-    "chatDesc": "Un espai en temps real per compartir observacions, fotos i trobades astronòmiques.",
-    "chatTitle": "Comunitat i xat",
     "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
     "gamificationTitle": "Gamificació i reptes"
   },
@@ -64,7 +78,14 @@
     "OUTING_STARTS_IN_PAST": "La sortida no pot començar en el passat.",
     "OUTING_EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
     "OUTING_NOT_FOUND": "Aquesta sortida no existeix o s'ha esborrat.",
-    "OUTING_FORBIDDEN": "Només qui ha creat la sortida la pot canviar."
+    "OUTING_FORBIDDEN": "Només qui ha creat la sortida la pot canviar.",
+    "FORBIDDEN": "No tens permís per fer això.",
+    "RATE_LIMITED": "Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar.",
+    "NOT_SUBSCRIBED": "Primer t'has d'unir a la sala.",
+    "PUBSUB_UNAVAILABLE": "El xat no està disponible ara mateix. Torna-ho a provar.",
+    "VALIDATION_ERROR": "Revisa les dades introduïdes.",
+    "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
+    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala."
   },
   "events": {
     "category": {
