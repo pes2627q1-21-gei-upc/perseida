@@ -404,7 +404,7 @@ Després, respon la petició des del correu d'equip.
 **Consola de Google Cloud** (algú amb accés al projecte; no ho fa el CD):
 
 1. *Search Console*: la propietat `https://perseida.duckdns.org:40431/` (prefix d'URL) es verifica amb el mètode *etiqueta HTML*; l'etiqueta ja és a `index.html`. Prem *Verifica* quan les pàgines estiguin desplegades.
-2. *Google Auth Platform → Branding*: nom de l'app `Perseida`, correu d'assistència i de contacte del desenvolupador (el correu d'equip), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms` i domini autoritzat `perseida.duckdns.org` (ja hi és). **Sense logo**: activa la verificació de marca.
+2. *Google Auth Platform → Branding*: nom de l'app `Perseida`, correu d'assistència i de contacte del desenvolupador (el correu d'equip, `perseida.fib@gmail.com`), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms` i domini autoritzat `perseida.duckdns.org` (ja hi és). **Sense logo**: activa la verificació de marca.
 3. *Audience → Publish app*: l'estat passa a *In production*. Amb els àmbits `openid`, `email` i `profile`, Google no demana verificació.
 4. Inicia sessió a l'app amb un compte de Google que no sigui usuari de test.
 

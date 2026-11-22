@@ -28,7 +28,7 @@ Totes de Manel, del 22/11/2026:
 
 - Les pàgines les serveix nginx-proxy-manager des d'una carpeta, no el backend ([[0009-nginx-proxy-manager-serveix-media-i-spa-admin|ADR-0009]]).
 - Responsable del tractament: l'equip de Perseida, sense noms personals.
-- Contacte: un Gmail d'equip nou, no el correu personal d'una persona.
+- Contacte: un Gmail d'equip nou (`perseida.fib@gmail.com`), no el correu personal d'una persona.
 - Retenció: mentre existeixi el compte, amb esborrat a mà en 30 dies com a màxim si es demana (procediment al README d'`infra/`), i tot en apagar el servidor al final del quadrimestre.
 
 ## Canvis al vault
@@ -38,7 +38,6 @@ Totes de Manel, del 22/11/2026:
 
 ## Pendent / següents passos
 
-- [ ] Posar el correu d'equip a les tres pàgines (marcador `CORREU_EQUIP_PENDENT`) abans de fusionar.
 - [ ] Després del desplegament a producció: tornar a enganxar `static.conf` a «Advanced» d'NPM i comprovar els tres 200.
 - [ ] Verificar la propietat a Search Console, omplir el Branding i publicar l'app (#348); provar el login amb un compte que no sigui de test (#349).
 

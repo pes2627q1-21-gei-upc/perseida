@@ -404,7 +404,7 @@ Después, responde la petición desde el correo del equipo.
 **Consola de Google Cloud** (alguien con acceso al proyecto; no lo hace el CD):
 
 1. *Search Console*: la propiedad `https://perseida.duckdns.org:40431/` (prefijo de URL) se verifica con el método *etiqueta HTML*; la etiqueta ya está en `index.html`. Pulsa *Verificar* cuando las páginas estén desplegadas.
-2. *Google Auth Platform → Branding*: nombre de la app `Perseida`, correo de asistencia y de contacto del desarrollador (el correo del equipo), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms` y dominio autorizado `perseida.duckdns.org` (ya está). **Sin logo**: activa la verificación de marca.
+2. *Google Auth Platform → Branding*: nombre de la app `Perseida`, correo de asistencia y de contacto del desarrollador (el correo del equipo, `perseida.fib@gmail.com`), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms` y dominio autorizado `perseida.duckdns.org` (ya está). **Sin logo**: activa la verificación de marca.
 3. *Audience → Publish app*: el estado pasa a *In production*. Con los ámbitos `openid`, `email` y `profile`, Google no pide verificación.
 4. Inicia sesión en la app con una cuenta de Google que no sea usuaria de test.
 

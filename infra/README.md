@@ -404,7 +404,7 @@ Then answer the request from the team email.
 **Google Cloud console** (someone with access to the project; the CD does not do it):
 
 1. *Search Console*: the property `https://perseida.duckdns.org:40431/` (URL prefix) is verified with the *HTML tag* method; the tag is already in `index.html`. Press *Verify* once the pages are deployed.
-2. *Google Auth Platform → Branding*: app name `Perseida`, user support email and developer contact (the team email), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms`, authorised domain `perseida.duckdns.org` (already there). **No logo**: it triggers brand verification.
+2. *Google Auth Platform → Branding*: app name `Perseida`, user support email and developer contact (the team email, `perseida.fib@gmail.com`), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms`, authorised domain `perseida.duckdns.org` (already there). **No logo**: it triggers brand verification.
 3. *Audience → Publish app*: the status changes to *In production*. With the `openid`, `email` and `profile` scopes Google does not ask for verification.
 4. Sign in to the app with a Google account that is not a test user.
 
