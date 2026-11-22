@@ -26,7 +26,7 @@ class MeetingPointResponse(BaseModel):
     group_friendly: bool | None = Field(
         ..., description="Si és apte per a grups; null si ningú l'ha votat"
     )
-    distance_m: int | None = Field(
+    distance_m: int = Field(
         ..., description="Distància en metres des de la ubicació de la petició"
     )
     open_now: bool | None = Field(
@@ -35,6 +35,9 @@ class MeetingPointResponse(BaseModel):
 
     @classmethod
     def of(cls, space: Space) -> Self:
+        # ``recommend`` drops the spaces without a distance.
+        if space.distance_m is None:
+            raise ValueError(f"Space {space.id} has no distance")
         return cls(
             id=space.id,
             name=space.name,
