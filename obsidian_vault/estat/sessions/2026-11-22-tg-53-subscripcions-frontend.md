@@ -25,6 +25,12 @@ Deixar a punt la PR 2 de 2 de TG-53: seguir un esdeveniment des del llistat i ve
   - l'estrella queda deshabilitada mentre no hi ha subscripcions;
   - la llista es torna a demanar només quan acaba l'últim canvi, sense parpelleig.
 
+- **Review de la Raquel a la PR**, corregida amb TDD:
+  - les crides passen per `withSession` i renoven la sessió després d'un 401;
+  - el rollback desfà només el toggle que falla;
+  - en acabar s'invaliden també les sales del xat;
+  - el xat i Esdeveniments comparteixen la clau i la crida de `GET /api/me/subscriptions`, i s'ha esborrat el duplicat del xat.
+
 ## Decisions preses
 
 Totes són de Manel (21 i 22/11/2026) i cap no necessita ADR (presentació dins de [[0020-frontend-expo-router-i-estetica-frutiger-cosmo|ADR-0020]]):
@@ -34,11 +40,13 @@ Totes són de Manel (21 i 22/11/2026) i cap no necessita ADR (presentació dins 
 - L'error d'una subscripció es mostra a la mateixa fila.
 - L'error de la fila s'anuncia en mode `polite`, com la resta de l'app.
 - Mentre no han arribat les subscripcions, l'estrella es deshabilita en lloc d'amagar-la.
+- Una sola cache de subscripcions per a Esdeveniments i el xat, en lloc d'invalidar les claus del xat.
 
 ## Canvis al vault
 
 - [[frontend]]: secció «Subscripcions a esdeveniments (TG-53)» i la fila de la pestanya `events`.
 - [[model-de-domini]]: com fa servir l'app els endpoints de subscripció (substitueix el pendent).
+- [[api]]: l'app de TG-53 ja no surt com a pendent.
 
 ## Pendent / següents passos
 
