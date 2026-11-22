@@ -200,6 +200,7 @@ describe('Locales of the meeting points (TG-352)', () => {
     'loading',
     'empty',
     'retry',
+    'retryHint',
     'choose',
     'list.label',
     'profile.label',

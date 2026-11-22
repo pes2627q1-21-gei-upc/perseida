@@ -63,9 +63,20 @@ describe('MeetingPointList (TG-352)', () => {
     const onRetry = jest.fn();
     await renderList({ status: 'error', error: unavailable, onRetry });
 
-    await fireEvent.press(screen.getByRole('button', { name: t('meetingPoints.retry') }));
+    const retry = screen.getByRole('button', { name: t('meetingPoints.retry') });
+    // The hint says what the retry asks for again (TG-352).
+    expect(retry.props.accessibilityHint).toBe(t('meetingPoints.retryHint'));
+    await fireEvent.press(retry);
 
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a final generic error, without a retry button, when the error is unknown', async () => {
+    await renderList({ status: 'error', error: null });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(t('errors.GENERIC_FINAL'));
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByText(t('meetingPoints.empty'))).toBeNull();
   });
 
   it('shows a final error without a retry button', async () => {
