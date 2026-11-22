@@ -4,6 +4,7 @@ tipus: error-testing
 estat: corregit
 data: "2026-11-18"
 us: ["TG-385"]
+font: "Sessió del 18/11/2026 (prova manual web de TG-385)"
 fase: prova-manual
 capa: frontend
 regressio: "frontend/src/features/navigation/__tests__/hiddenRoutes.test.tsx"

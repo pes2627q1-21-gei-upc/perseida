@@ -4,6 +4,7 @@ tipus: error-testing
 estat: obert
 data: "{{date:YYYY-MM-DD}}"
 us: []
+font:
 fase: roig-inesperat
 capa:
 regressio:
