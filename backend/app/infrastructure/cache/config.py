@@ -11,9 +11,11 @@ class RedisSettings(BaseSettings):
 
     redis_host: str = Field(min_length=1)
     redis_port: int = Field(gt=0, le=65535)
+    # Logical database (0..15). The app uses 0; each pytest-xdist worker its own.
+    redis_db: int = Field(default=0, ge=0, le=15)
     cache_default_ttl_seconds: int = Field(default=3600, gt=0)
     redis_socket_timeout_seconds: float = Field(default=2.0, gt=0)
 
     @property
     def redis_url(self) -> str:
-        return f"redis://{self.redis_host}:{self.redis_port}"
+        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"

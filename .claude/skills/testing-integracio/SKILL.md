@@ -10,7 +10,7 @@ La integració és el ~30 % de la piràmide (60/30/10). Verifica que els adaptad
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció: `obsidian_vault/convencions/testing.md`.
 
 > [!note] Estat de les eines
-> Instal·lades: pytest, pytest-asyncio, pytest-cov, respx i httpx. El job de CI del backend ja aixeca PostgreSQL (PostGIS) i Redis com a *service containers* (`.github/workflows/ci.yml`). **Instal·lats (TG-360)**: schemathesis (`tests/integration/test_api_contract.py`), test de la còpia d'OpenAPI (`tests/unit/infrastructure/test_openapi_copy.py`), test de migracions (`tests/integration/test_alembic.py`) i import-linter (`uv run lint-imports`), tots a la CI. **Previstos (US #359, #361 i #362)**: `freezegun`/`time-machine`, pytest-randomly i pytest-xdist; no els afegeixis sense preguntar a la persona.
+> Instal·lades: pytest, pytest-asyncio, pytest-cov, respx i httpx. El job de CI del backend ja aixeca PostgreSQL (PostGIS) i Redis com a *service containers* (`.github/workflows/ci.yml`). **Instal·lats (TG-360)**: schemathesis (`tests/integration/test_api_contract.py`), test de la còpia d'OpenAPI (`tests/unit/infrastructure/test_openapi_copy.py`), test de migracions (`tests/integration/test_alembic.py`) i import-linter (`uv run lint-imports`), tots a la CI. **Instal·lats (TG-362)**: pytest-randomly (ordre aleatori a totes les sessions) i pytest-xdist (`-n auto` a la CI, amb una base de dades `<POSTGRES_DB>_gwN` i un índex de Redis per worker; fixture `redis` a `tests/integration/conftest.py`). **Previstos**: `freezegun`/`time-machine`; no els afegeixis sense preguntar a la persona.
 
 ## Quan usar-la / quan NO
 
@@ -40,7 +40,7 @@ Preguntes d'aquesta skill:
 ## Serveis reals, no mocks del que és nostre
 
 - **PostgreSQL/PostGIS i Redis reals** (docker-compose en local, *service containers* a la CI). No es simula la BD amb SQLite ni Redis amb un mock: les consultes PostGIS, els índexs i el comportament de `asyncpg` només es verifiquen contra el motor real.
-- **Aïllament:** cada test en una transacció que es fa `rollback`, o en un esquema propi; Redis amb prefix de clau per test o `FLUSHDB` d'una BD dedicada. Cap test depèn de dades deixades per un altre (compatibilitat amb `pytest-randomly`/`xdist`, previstos).
+- **Aïllament:** cada test en una transacció que es fa `rollback`, o en un esquema propi; Redis amb prefix de clau per test o `FLUSHDB` d'una BD dedicada. Cap test depèn de dades deixades per un altre ni del procés (`pytest-randomly` i `pytest-xdist` són actius; vegeu `convencions/testing.md`).
 - **Dades:** factories (`backend/tests/factories/`) i fixtures sintètiques; mai dades personals.
 - Valida les consultes crítiques: roundtrip entitat -> BD -> entitat, restriccions úniques, **sense N+1** (compta queries) i `EXPLAIN`.
 

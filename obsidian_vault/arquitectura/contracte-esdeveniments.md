@@ -4,7 +4,7 @@ tipus: arquitectura
 estat: vigent
 data: "2026-11-19"
 us: ["TG-50", "TG-351", "TG-52", "TG-51", "TG-53"]
-font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/; review de la PR #76 i comentari de TG-50 (02/11/2026); respostes de Spotwise (novembre de 2026) i decisió de Raquel sobre els eclipsis (16/11/2026); TG-51, tasques #549 a #551 i #556 (19/11/2026)"
+font: "Taiga: TG-50 i tasca #387 (31/10/2026), TG-351 i TG-52; backend/app/infrastructure/events/schemas.py i backend/tests/fixtures/events/; review de la PR #76 i comentari de TG-50 (02/11/2026); respostes de Spotwise (novembre de 2026) i decisió de Raquel sobre els eclipsis (16/11/2026); TG-51, tasques #549 a #551 i #556 (19/11/2026); TG-51, tasques #552 a #555 (21/11/2026)"
 etiquetes: [arquitectura, contracte, esdeveniments, api, spotwise]
 ---
 
@@ -24,6 +24,7 @@ Forma única d'un esdeveniment astronòmic a l'API de Perseida. La fan servir el
     - `from` i `to` (`AAAA-MM-DD`, dies UTC, `to` inclòs); per defecte `from` és avui i `to`, 30 dies després de `from`; el rang no pot passar de 90 dies.
     - `lat`, `lon` i `radius_km` (1–20.000, per defecte 500): hi surten els esdeveniments amb ubicació dins del radi i **sempre** els que tenen `location: null`. La consulta és `ST_DWithin` sobre `geography`, la mateixa expressió de l'índex GiST (`LOCATION_GEOGRAPHY`), i un test d'integració comprova amb `EXPLAIN` que l'índex filtra per distància.
     - Com `active` i `upcoming`, passa per `EventService`, que refresca les fonts sota demanda (TG-50) després de validar els filtres.
+    - L'app (pestanya Esdeveniments) l'usa amb rangs de 7, 30 o 90 dies des d'avui i sense `radius_km`; la distància a l'usuari la calcula el client, perquè la resposta no la porta (vegeu [[frontend#Llistat filtrable d'esdeveniments (TG-51)]]).
   - Una data que no sigui `AAAA-MM-DD` vàlida o un `days` fora de rang responen 422 `VALIDATION_ERROR` (RFC 9457). A `GET /api/events`, també `from` posterior a `to`, un rang de més de 90 dies, una categoria desconeguda, `lat` o `lon` fora de rang, només un dels dos, o `radius_km` sense coordenades.
 - **OpenAPI (`/api/docs`, tasca #476):** cada endpoint documenta la semàntica, els paràmetres i les respostes 422, 429 (del proxy, `RATE_LIMITED`) i 500 en problem+json. L'exemple de resposta (les fixtures `launch` i `lunar`, a `EVENT_EXAMPLES`) va dins la descripció i no al camp `example`, perquè FastAPI genera l'OpenAPI amb `exclude_none` i hi esborraria els `null`. Un test comprova que és igual a les fixtures.
 - **Regenerar l'OpenAPI:** en canviar els endpoints o aquest esquema, es regeneren la còpia `frontend/openapi/openapi.json` (la comprova `tests/unit/infrastructure/test_openapi_copy.py`) i els tipus `frontend/src/shared/api/schema.d.ts`:

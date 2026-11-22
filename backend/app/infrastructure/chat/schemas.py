@@ -5,10 +5,20 @@ import uuid
 from pydantic import AwareDatetime, BaseModel, Field
 
 
+class ChatAuthorResponse(BaseModel):
+    id: uuid.UUID = Field(description="Identificador de l'autora.")
+    name: str | None = Field(
+        description=(
+            "Nom del perfil de l'autora; `null` si no en té. Mai és el correu: "
+            "l'app hi posa un nom genèric."
+        ),
+    )
+
+
 class ChatMessageResponse(BaseModel):
     id: uuid.UUID = Field(description="Identificador del missatge (UUIDv7).")
     room_id: uuid.UUID = Field(description="Sala a la qual pertany.")
-    author_id: uuid.UUID = Field(description="Identificador de l'autora.")
+    author: ChatAuthorResponse
     text: str = Field(description="Text del missatge, ja netejat pel servidor.")
     sent_at: AwareDatetime = Field(
         description="Instant d'enviament (el posa el servidor)."

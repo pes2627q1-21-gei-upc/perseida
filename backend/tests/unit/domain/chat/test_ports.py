@@ -1,6 +1,6 @@
 import uuid
 
-from app.domain.chat.models import ChatMessage
+from app.domain.chat.models import ChatAuthor, ChatMessage
 from app.domain.chat.ports import (
     ChatRepository,
     EventSubscriptions,
@@ -15,6 +15,7 @@ from tests.unit.domain.chat.fakes import (
 )
 
 USER_ID = uuid.uuid7()
+AUTHOR = ChatAuthor(id=USER_ID, name=None)
 EVENT_ID = uuid.uuid7()
 
 
@@ -36,7 +37,7 @@ async def test_history_pages_are_newest_first_without_gaps_or_repeats() -> None:
     sent = [
         ChatMessage.create(
             room_id=room.id,
-            author_id=USER_ID,
+            author=AUTHOR,
             text=f"missatge {n}",
             client_message_id=uuid.uuid4(),
         )
@@ -72,13 +73,13 @@ async def test_the_room_list_carries_the_latest_message() -> None:
     room = await repository.get_or_create_room(EVENT_ID)
     older = ChatMessage.create(
         room_id=room.id,
-        author_id=USER_ID,
+        author=AUTHOR,
         text="primer",
         client_message_id=uuid.uuid4(),
     )
     newer = ChatMessage.create(
         room_id=room.id,
-        author_id=USER_ID,
+        author=AUTHOR,
         text="segon",
         client_message_id=uuid.uuid4(),
     )

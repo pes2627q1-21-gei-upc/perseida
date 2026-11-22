@@ -111,6 +111,8 @@ def _assert_problem(response: Response, status: int, code: str) -> None:
         ("PATCH", f"/api/posts/{UNKNOWN_ID}", {"text": "Hola"}),
         ("DELETE", f"/api/posts/{UNKNOWN_ID}", None),
     ],
+    # EVENT.id changes on every import: the ids must not depend on it (xdist).
+    ids=["create", "list", "patch", "delete"],
 )
 @pytest.mark.parametrize(
     "headers",

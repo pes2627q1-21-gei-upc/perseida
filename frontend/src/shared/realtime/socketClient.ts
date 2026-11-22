@@ -93,6 +93,13 @@ let lastId = 0;
 
 /** Handlers of each joined room; the room stays joined on the server while it has any. */
 const rooms = new Map<string, Set<{ handler: FrameHandler }>>();
+/**
+ * The subscribe requests not answered yet, id -> room. A frame with an id that is neither one of
+ * these nor a pending request is the late answer of a request that already settled (e.g. an earlier
+ * attempt of a send, or the join of a room that was left before its answer): it is dropped, so it
+ * never reaches a room as if joining it had failed.
+ */
+const joins = new Map<string, string>();
 /** A send() that has not been answered for good yet. */
 interface Outgoing {
   id: string;
@@ -211,6 +218,7 @@ function handleFrame(data: unknown): void {
     return;
   }
 
+  if (frame.id && !joins.delete(frame.id)) return;
   if (!frame.room) return;
   const handlers = rooms.get(frame.room);
   // An `unsubscribe` the client did not ask for (no `id`) means the server revoked the room.
@@ -224,13 +232,20 @@ export function errorOfFrame(frame: ServerFrame): AppError {
   return problemToAppError(problem, Number(problem.status));
 }
 
+/** Asks the server to join `room`, remembering the id of the request to know its answer. */
+function join(room: string): void {
+  const id = nextId();
+  joins.set(id, room);
+  sendFrame({ type: 'subscribe', room, id });
+}
+
 function onAuthenticated(): void {
   suspendedByBackground = false;
   authenticated = true;
   attempts = 0;
   sessionRenewed = false;
   setState({ status: 'open', error: null });
-  rooms.forEach((_, room) => sendFrame({ type: 'subscribe', room, id: nextId() }));
+  rooms.forEach((_, room) => join(room));
   outbox.forEach(transmit);
 }
 
@@ -238,6 +253,7 @@ function handleClose(code: number): void {
   clearTimeout(deadTimer);
   socket = null;
   authenticated = false;
+  joins.clear(); // A closed socket answers nothing more: the rooms are joined again on open.
   suspendOutbox();
 
   if (code === CLOSE_UNAUTHORIZED) {
@@ -388,6 +404,7 @@ function shutdown(): void {
   const current = socket;
   socket = null;
   authenticated = false;
+  joins.clear();
   current?.close(CLOSE_NORMAL);
   rejectOutbox();
   setState({ status: 'closed' });
@@ -431,7 +448,7 @@ export function subscribe(room: string, onFrame: FrameHandler): () => void {
   if (!entries) {
     entries = new Set();
     rooms.set(room, entries);
-    if (authenticated) sendFrame({ type: 'subscribe', room, id: nextId() });
+    if (authenticated) join(room);
   }
   entries.add(entry);
 
@@ -439,6 +456,10 @@ export function subscribe(room: string, onFrame: FrameHandler): () => void {
     const current = rooms.get(room);
     if (!current?.delete(entry) || current.size > 0) return;
     rooms.delete(room);
+    // An answer to a join of this room still on its way belongs to the room that was left.
+    joins.forEach((joined, id) => {
+      if (joined === room) joins.delete(id);
+    });
     if (authenticated) sendFrame({ type: 'unsubscribe', room, id: nextId() });
   };
 }
@@ -466,5 +487,6 @@ export function _resetSocketForTests(): void {
   shutdown();
   auth = null;
   rooms.clear();
+  joins.clear();
   state = { status: 'closed', error: null };
 }

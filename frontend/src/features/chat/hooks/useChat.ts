@@ -2,10 +2,12 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import type { AppError } from '../../../shared/errors';
 import { type ChatHistory, type ChatRoom, fetchMessages, listRooms } from '../api/chat';
+import { listSubscribedEvents, type SubscribedEvent } from '../api/subscriptions';
 
 export const chatKeys = {
   all: ['chat'] as const,
   rooms: ['chat', 'rooms'] as const,
+  subscriptions: ['chat', 'subscriptions'] as const,
   messages: (eventId: string) => [...chatKeys.all, 'messages', eventId] as const,
 };
 
@@ -23,8 +25,20 @@ export function useRooms() {
   });
 }
 
-/** History of an event chat, newest first, one page per cursor. Online only. */
-export function useRoomMessages(eventId: string) {
+/** Events the user is subscribed to: the rooms of the chat list. Online only. */
+export function useMySubscriptions() {
+  return useQuery<SubscribedEvent[], AppError>({
+    queryKey: chatKeys.subscriptions,
+    queryFn: listSubscribedEvents,
+    retry: retryOnceIfTransient,
+  });
+}
+
+/**
+ * History of an event chat, newest first, one page per cursor. Online only. `enabled` waits for
+ * the room to be open: the history of a room that does not exist yet is a CHAT_ROOM_NOT_FOUND.
+ */
+export function useRoomMessages(eventId: string, enabled = true) {
   return useInfiniteQuery<
     ChatHistory,
     AppError,
@@ -36,7 +50,7 @@ export function useRoomMessages(eventId: string) {
     queryFn: ({ pageParam }) => fetchMessages(eventId, pageParam),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.next_cursor ?? undefined,
-    enabled: !!eventId,
+    enabled: !!eventId && enabled,
     retry: retryOnceIfTransient,
   });
 }

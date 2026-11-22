@@ -71,7 +71,7 @@ class ChatFakes:
             (
                 m
                 for m in self.messages
-                if m.author_id == author_id and m.client_message_id == client_message_id
+                if m.author.id == author_id and m.client_message_id == client_message_id
             ),
             None,
         )
