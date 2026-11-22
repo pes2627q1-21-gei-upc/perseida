@@ -88,8 +88,10 @@ describe('direct-chat queries (TG-65 criteria 9–11)', () => {
     });
     expect(fetchMessages).toHaveBeenNthCalledWith(1, CONVERSATION, undefined);
     expect(fetchMessages).toHaveBeenNthCalledWith(2, CONVERSATION, 'cursor-1');
-    expect(result.current.data?.pages).toEqual([first, second]);
-    expect(result.current.hasNextPage).toBe(false);
+    await waitFor(() => {
+      expect(result.current.data?.pages).toEqual([first, second]);
+      expect(result.current.hasNextPage).toBe(false);
+    });
   });
 
   it('does not fetch history for an empty conversation id', async () => {
@@ -107,7 +109,8 @@ describe('direct-chat queries (TG-65 criteria 9–11)', () => {
     await act(async () => {
       await result.current.mutateAsync(CONVERSATION);
     });
-    expect(markRead).toHaveBeenCalledWith(CONVERSATION);
+    expect(markRead).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(markRead).mock.calls[0]?.[0]).toBe(CONVERSATION);
     expect(client.getQueryState(directChatKeys.conversations)?.isInvalidated).toBe(true);
   });
 
