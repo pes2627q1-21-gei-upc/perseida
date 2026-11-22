@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AppError } from '../../../shared/errors';
@@ -40,6 +41,12 @@ export function MeetingPointList({
     retry: t('meetingPoints.retry'),
     retryHint: t('meetingPoints.retryHint'),
   };
+  const empty = status === 'success' && points.length === 0 ? t('meetingPoints.empty') : undefined;
+
+  useEffect(() => {
+    // Android reads the live region by itself; iOS needs an explicit announcement.
+    if (empty && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(empty);
+  }, [empty]);
 
   if (status === 'loading') return <StatusPanel state="loading" texts={texts} />;
   if (status === 'error') {
@@ -68,12 +75,12 @@ export function MeetingPointList({
   };
   // Stryker restore all
 
-  if (points.length === 0) {
+  if (empty) {
     return (
       <View style={look.empty}>
         <GlassPanel>
           <Text accessibilityLiveRegion="polite" style={look.emptyText}>
-            {t('meetingPoints.empty')}
+            {empty}
           </Text>
         </GlassPanel>
       </View>
