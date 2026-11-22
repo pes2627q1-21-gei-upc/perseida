@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, userEvent } from '@testing-library/react-native';
 
 import { otherSpace, spotwiseLibrary, unvotedCafe } from '../../../../__mocks__/meetingPoints';
 import i18n from '../../../shared/i18n';
@@ -242,5 +242,20 @@ describe('MeetingPointRow (TG-352)', () => {
 
     expect(choose).toContain(library.name);
     expect(screen.getByRole('button', { name: new RegExp(escape(choose)) })).toBeTruthy();
+  });
+
+  it('dims while it is pressed, and only then', async () => {
+    await render(<MeetingPointRow point={library} onChoose={jest.fn()} />);
+
+    const button = screen.getByRole('button');
+    expect(button).toHaveStyle({ opacity: 1 });
+
+    // While the finger is down (a long press holds it), the row shows that it is pressed.
+    const holding = userEvent.setup().longPress(button, { duration: 400 });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
+
+    expect(button).toHaveStyle({ opacity: 0.7 });
+    await holding;
+    expect(button).toHaveStyle({ opacity: 1 });
   });
 });

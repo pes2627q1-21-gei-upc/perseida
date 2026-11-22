@@ -4,7 +4,7 @@ import { AccessibilityInfo, FlatList, Platform, ScrollView, StyleSheet, Text } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AppError } from '../../../shared/errors';
-import { readingMaxWidth, useTheme } from '../../../shared/theme';
+import { readingMaxWidth, type Theme, useTheme } from '../../../shared/theme';
 import { GlassPanel, StatusPanel } from '../../../shared/ui';
 import type { MeetingPoint } from '../api/meetingPoints';
 import { MeetingPointRow } from './MeetingPointRow';
@@ -38,7 +38,9 @@ export function MeetingPointList({
   header,
 }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const theme = useTheme();
+  const { spacing } = theme;
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const texts = {
     loadingLabel: t('meetingPoints.loading'),
@@ -60,15 +62,6 @@ export function MeetingPointList({
     paddingRight: insets.right + spacing.md,
   };
 
-  // Visual only: layout and colours of the list, not seen by the tests nor mutated.
-  // Stryker disable all
-  const look = {
-    emptyText: [typography.body, styles.center, { color: colors.text.primary }],
-    list: [styles.column, { maxWidth: readingMaxWidth, gap: spacing.md }, padding],
-    state: [styles.column, styles.grow, { maxWidth: readingMaxWidth, gap: spacing.md }, padding],
-  };
-  // Stryker restore all
-
   let state: ReactElement | null = null;
   if (status === 'loading') state = <StatusPanel state="loading" texts={texts} />;
   else if (status === 'error') {
@@ -83,7 +76,7 @@ export function MeetingPointList({
   } else if (empty) {
     state = (
       <GlassPanel>
-        <Text accessibilityLiveRegion="polite" style={look.emptyText}>
+        <Text accessibilityLiveRegion="polite" style={styles.emptyText}>
           {empty}
         </Text>
       </GlassPanel>
@@ -92,7 +85,7 @@ export function MeetingPointList({
 
   if (state) {
     return (
-      <ScrollView contentContainerStyle={look.state}>
+      <ScrollView contentContainerStyle={[styles.column, styles.grow, styles.list, padding]}>
         {header}
         {state}
       </ScrollView>
@@ -104,26 +97,29 @@ export function MeetingPointList({
       accessibilityRole="list"
       accessibilityLabel={t('meetingPoints.list.label')}
       data={points}
-      keyExtractor={keyOf}
+      // Stryker disable next-line ArrowFunction: React keys, not seen by the person nor the tests.
+      keyExtractor={(point) => String(point.id)}
       renderItem={({ item }) => (
         <GlassPanel>
           <MeetingPointRow point={item} onChoose={onChoose ? () => onChoose(item) : undefined} />
         </GlassPanel>
       )}
       ListHeaderComponent={header}
-      contentContainerStyle={look.list}
+      contentContainerStyle={[styles.column, styles.list, padding]}
     />
   );
 }
 
-// Visual styles and React keys, not mutated.
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on
+// purpose: a changed padding or colour is not behaviour a unit test should pin down
+// (convencions/testing.md, «Mutation testing»). Behaviour stays in the JSX above.
 // Stryker disable all
-function keyOf(point: MeetingPoint) {
-  return String(point.id);
+function createStyles({ colors, spacing, typography }: Theme) {
+  return StyleSheet.create({
+    column: { width: '100%', alignSelf: 'center', maxWidth: readingMaxWidth },
+    grow: { flexGrow: 1 },
+    list: { gap: spacing.md },
+    emptyText: { ...typography.body, textAlign: 'center', color: colors.text.primary },
+  });
 }
-
-const styles = StyleSheet.create({
-  column: { width: '100%', alignSelf: 'center' },
-  center: { textAlign: 'center' },
-  grow: { flexGrow: 1 },
-});
+// Stryker restore all

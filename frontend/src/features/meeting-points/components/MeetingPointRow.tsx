@@ -3,7 +3,7 @@ import { Books, Coffee, MapPin } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useTheme } from '../../../shared/theme';
+import { type Theme, useTheme } from '../../../shared/theme';
 import type { MeetingPoint } from '../api/meetingPoints';
 import { formatDistance } from '../formatMeetingPoint';
 
@@ -44,7 +44,9 @@ function attributeChips(point: MeetingPoint, t: TFunction): string[] {
  */
 export function MeetingPointRow({ point, onChoose }: Props) {
   const { t, i18n } = useTranslation();
-  const { colors, iconSizes, radii, spacing, typography } = useTheme();
+  const theme = useTheme();
+  const { colors, iconSizes } = theme;
+  const styles = createStyles(theme);
   const Icon = TYPE_ICONS[point.type];
   const type = t(`meetingPoints.type.${point.type}`);
   const distance = formatDistance(point.distance_m, i18n.language);
@@ -52,50 +54,24 @@ export function MeetingPointRow({ point, onChoose }: Props) {
   const name = onChoose ? t('meetingPoints.choose', { name: point.name }) : point.name;
   const label = [name, type, distance, point.address, ...chips].filter(Boolean).join(', ');
 
-  // Visual only: layout and colours of the row, not seen by the tests nor mutated.
-  // Stryker disable all
-  const look = {
-    text: [styles.text, { gap: spacing.xs }],
-    line: [styles.wrap, { gap: spacing.xs }],
-    name: [typography.bodyStrong, { color: colors.text.primary }],
-    detail: [typography.caption, { color: colors.text.secondary }],
-    chip: [
-      styles.chip,
-      {
-        borderRadius: radii.pill,
-        borderColor: colors.surface.glassBorder,
-        backgroundColor: colors.surface.onGlass,
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.xs,
-      },
-    ],
-    chipText: [typography.caption, { color: colors.text.primary }],
-    row: [styles.row, { gap: spacing.md }],
-    pressable: ({ pressed }: { pressed: boolean }) => [
-      styles.row,
-      { gap: spacing.md, opacity: pressed ? 0.7 : 1 },
-    ],
-  };
-  // Stryker restore all
-
   const content = (
     <>
       {/* Decorative: the type reaches screen readers as text. */}
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Icon size={iconSizes.md} color={colors.text.primary} weight="duotone" />
       </View>
-      <View style={look.text}>
-        <Text style={look.name}>{point.name}</Text>
-        <View style={look.line}>
-          <Text style={look.detail}>{type}</Text>
-          <Text style={look.detail}>·</Text>
-          <Text style={look.detail}>{distance}</Text>
+      <View style={styles.text}>
+        <Text style={styles.name}>{point.name}</Text>
+        <View style={styles.line}>
+          <Text style={styles.detail}>{type}</Text>
+          <Text style={styles.detail}>·</Text>
+          <Text style={styles.detail}>{distance}</Text>
         </View>
-        {point.address ? <Text style={look.detail}>{point.address}</Text> : null}
-        <View style={look.line}>
+        {point.address ? <Text style={styles.detail}>{point.address}</Text> : null}
+        <View style={styles.line}>
           {chips.map((chip) => (
-            <View key={chip} style={look.chip}>
-              <Text style={look.chipText}>{chip}</Text>
+            <View key={chip} style={styles.chip}>
+              <Text style={styles.chipText}>{chip}</Text>
             </View>
           ))}
         </View>
@@ -105,7 +81,7 @@ export function MeetingPointRow({ point, onChoose }: Props) {
 
   if (!onChoose) {
     return (
-      <View accessible accessibilityLabel={label} style={look.row}>
+      <View accessible accessibilityLabel={label} style={styles.row}>
         {content}
       </View>
     );
@@ -115,18 +91,35 @@ export function MeetingPointRow({ point, onChoose }: Props) {
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onChoose}
-      style={look.pressable}
+      style={({ pressed }) => [styles.row, pressed ? styles.pressed : styles.idle]}
     >
       {content}
     </Pressable>
   );
 }
 
-// Visual styles, not mutated.
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on
+// purpose: a changed padding or colour is not behaviour a unit test should pin down
+// (convencions/testing.md, «Mutation testing»). Behaviour stays in the JSX above.
 // Stryker disable all
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start' },
-  text: { flex: 1 },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  chip: { borderWidth: 1 },
-});
+function createStyles({ colors, radii, spacing, typography }: Theme) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+    idle: { opacity: 1 },
+    pressed: { opacity: 0.7 },
+    text: { flex: 1, gap: spacing.xs },
+    line: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+    name: { ...typography.bodyStrong, color: colors.text.primary },
+    detail: { ...typography.caption, color: colors.text.secondary },
+    chip: {
+      borderWidth: 1,
+      borderRadius: radii.pill,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: colors.surface.onGlass,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    chipText: { ...typography.caption, color: colors.text.primary },
+  });
+}
+// Stryker restore all
