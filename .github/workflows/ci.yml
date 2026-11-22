@@ -132,9 +132,27 @@ jobs:
         run: uv run mypy .
       - name: Arquitectura (import-linter)
         run: uv run --locked --no-build lint-imports
+      # Troballes de gravetat mitjana o alta fallen la PR; les justificacions, només a [tool.bandit]:
+      # --ignore-nosec fa que un # nosec en línia no silenciï cap troballa (TG-362).
+      - name: Seguretat del codi (bandit, gravetat >= mitjana)
+        run: uv run bandit -c pyproject.toml -r app -ll --ignore-nosec
+      # Només les dependències de producció del lockfile, sense pip, contra OSV (TG-362). --require-hashes
+      # no afecta la consulta a OSV: fa fallar el pas si l'export surt sense hashes o sense ==.
+      - name: Vulnerabilitats de les dependències de producció (pip-audit, OSV)
+        run: |
+          uv export --frozen --no-dev --no-emit-project -o "$RUNNER_TEMP/requirements.txt"
+          uv run pip-audit -r "$RUNNER_TEMP/requirements.txt" -s osv --require-hashes --disable-pip
+      # Amb -n auto, l'error d'un marcador quarantine sense reason="TG-NNN ..." salta dins dels workers
+      # i xdist acaba amb un INTERNALERROR que l'amaga; sense xdist surt amb exit 4 i el missatge (TG-382).
+      - name: Validar marcadors de quarantena (recollida sense xdist)
+        run: uv run pytest --collect-only -q -p no:randomly --no-cov
       # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
-      - name: Tests (pytest amb cobertura >= 80%)
-        run: uv run pytest --cov-report=xml:coverage.xml --cov-fail-under=80
+      # En paral·lel (pytest-xdist, -n auto) i en ordre aleatori (pytest-randomly; la llavor surt a la sortida) (TG-362).
+      # Cada worker té la seva BD (<POSTGRES_DB>_gwN, la crea tests/conftest.py) i el seu índex de Redis;
+      # pytest-cov combina la cobertura de tots els workers a coverage.xml.
+      # Exclou els tests en quarantena (-m "not quarantine"); van al pas següent (TG-362).
+      - name: Tests (pytest en paral·lel i ordre aleatori, sense quarantena, cobertura >= 80%)
+        run: uv run pytest -n auto -m "not quarantine" --cov-report=xml:coverage.xml --cov-fail-under=80
       # En una PR apilada (stacked PRs de GitHub) `github.base_ref` val el tronc de la pila (`develop`) i no la
       # branca pare: `diff-cover` i `mutmut` mesurarien tota la pila a cada capa. Aquest pas demana la base real
       # de la PR a l'API REST (`scripts/pr_base.py`) i, si no la pot saber, usa `github.base_ref`. Una PR
@@ -149,6 +167,11 @@ jobs:
         run: |
           base=$(uv run python scripts/pr_base.py --fallback "origin/$BASE_REF" --pr-number "$PR_NUMBER")
           echo "ref=$base" >> "$GITHUB_OUTPUT"
+      # Política TG-362: sense reintents; cada test en quarantena té la seva tasca TG-NNN (reason).
+      # Exit 5 = cap test en quarantena (cas normal), no compta com a fallada.
+      - name: Tests en quarantena (no bloquejant)
+        continue-on-error: true
+        run: uv run pytest -n auto -m quarantine --no-cov || [ $? -eq 5 ]
       - name: Comprovar cobertura del codi nou a la PR (diff-cover >= 90%)
         if: github.event_name == 'pull_request'
         env:
@@ -196,6 +219,10 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Instal·lar dependències
         run: pnpm install --frozen-lockfile
+      # Bloquejant (TG-362), decisió de l'equip del 21/11/2026. Un risc acceptat va a
+      # auditConfig.ignoreGhsas de frontend/pnpm-workspace.yaml amb fila a convencions/seguretat.md.
+      - name: Auditoria de dependències de producció (pnpm audit)
+        run: pnpm audit --prod --audit-level=high
       - name: Lint (eslint + prettier)
         run: pnpm lint
       # L'script es diu `typecheck` i no `tsc`: expo-doctor (EAS Build) avisa si un script
