@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -43,6 +43,7 @@ const ALL_OUTINGS = {};
 export default function MapScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const focused = useIsFocused();
   const [view, setView] = useState<EventsView>('map');
   const [filter, setFilter] = useState<EventFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -103,21 +104,12 @@ export default function MapScreen() {
     status = <MapStatus state="noLocation" onShowList={() => setView('list')} />;
   }
 
-  // The sheet is a Modal on phones: it is closed first, or it stays over the new screen (TG-352).
-  const showOutings = (eventId: string) => {
-    closeSheet();
+  const showOutings = (eventId: string) =>
     router.push({ pathname: '/outings', params: { eventId } });
-  };
 
-  const openOuting = (outingId: string) => {
-    closeSheet();
-    router.push(`/outings/${outingId}`);
-  };
+  const openOuting = (outingId: string) => router.push(`/outings/${outingId}`);
 
-  const showMeetingPoints = (eventId: string) => {
-    closeSheet();
-    router.push(`/meeting-points/${eventId}`);
-  };
+  const showMeetingPoints = (eventId: string) => router.push(`/meeting-points/${eventId}`);
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
@@ -170,10 +162,12 @@ export default function MapScreen() {
           />
         )}
       </View>
+      {/* On phones the sheet is a Modal, over every screen: it hides while another screen is
+          on top and comes back, with the same event, on going back to the map (TG-352). */}
       {!wide && (
         <EventSheet
-          event={selected}
-          outing={selectedOuting}
+          event={focused ? selected : null}
+          outing={focused ? selectedOuting : null}
           onClose={closeSheet}
           onShowOutings={showOutings}
           onShowMeetingPoints={showMeetingPoints}
