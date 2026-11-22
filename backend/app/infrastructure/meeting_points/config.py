@@ -4,7 +4,8 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Spotwise serves only HTTP (contracte-spotwise.md); accepted by Raquel (TG-352).
-SPOTWISE_URL = "http://nattech.fib.upc.edu:40420"
+# The endpoint only reads spaces and HTTPS has been asked for (Sonar S5332).
+SPOTWISE_URL = "http://nattech.fib.upc.edu:40420"  # NOSONAR
 
 
 class SpotwiseSettings(BaseSettings):
