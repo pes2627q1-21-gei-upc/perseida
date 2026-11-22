@@ -30,7 +30,7 @@ Un único proceso FastAPI integra tres responsabilidades:
 | Moderación | Microservicio Kev-4B (modelo local, llamada síncrona) |
 | Dependencias | `uv` (versiones exactas, `uv.lock` versionado) |
 | Calidad | `ruff` (lint + formato, complejidad máx. 10), `mypy` estricto, SonarQube Cloud |
-| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
+| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Arquitectura: hexagonal
 
@@ -185,6 +185,9 @@ uv run ruff format --check .  # comprueba el formato sin modificar archivos
 uv run mypy .                 # tipado estricto
 uv run lint-imports           # contratos de arquitectura (import-linter)
 uv run pytest                 # tests (con cobertura)
+uv run pytest -n auto         # igual, en paralelo (una base de datos e índice de Redis por worker)
+uv run pytest -p randomly --randomly-seed=<semilla>  # reproduce un fallo de orden (semilla en la primera línea de la salida)
+uv run pytest -m quarantine   # solo los tests en cuarentena (@pytest.mark.quarantine(reason="TG-NNN ..."))
 uv run uvicorn app.main:app --reload  # arranca la API (http://127.0.0.1:8000/api/docs)
 ```
 
@@ -216,7 +219,8 @@ uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 
 Redis solo es una caché con TTL y el bus pub/sub del chat WebSocket; no guarda nada que deba sobrevivir (la fuente de verdad es PostgreSQL). El cliente asíncrono se crea en el `lifespan` de FastAPI y se cierra al apagar la aplicación. Configuración (ver `.env.example`):
 
-- `REDIS_HOST`, `REDIS_PORT`: dirección del servidor (`redis://host:port`).
+- `REDIS_HOST`, `REDIS_PORT`: dirección del servidor (`redis://host:port/db`).
+- `REDIS_DB` (opcional, 0..15, por defecto 0): base de datos lógica. Los tests usan la 15 y, con pytest-xdist, una por worker (15, 14...).
 - `CACHE_DEFAULT_TTL_SECONDS`: TTL por defecto en segundos (3600 si no se define).
 - `REDIS_SOCKET_TIMEOUT_SECONDS`: timeout de conexión y de socket en segundos (2 si no se define); un Redis colgado se comporta como un miss.
 

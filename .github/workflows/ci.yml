@@ -132,9 +132,17 @@ jobs:
         run: uv run mypy .
       - name: Arquitectura (import-linter)
         run: uv run --locked --no-build lint-imports
+      # Amb -n auto, l'error d'un marcador quarantine sense reason="TG-NNN ..." salta dins dels workers
+      # i xdist acaba amb un INTERNALERROR que l'amaga; sense xdist surt amb exit 4 i el missatge (TG-382).
+      - name: Validar marcadors de quarantena (recollida sense xdist)
+        run: uv run pytest --collect-only -q -p no:randomly --no-cov
       # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
-      - name: Tests (pytest amb cobertura >= 80%)
-        run: uv run pytest --cov-report=xml:coverage.xml --cov-fail-under=80
+      # En paral·lel (pytest-xdist, -n auto) i en ordre aleatori (pytest-randomly; la llavor surt a la sortida) (TG-362).
+      # Cada worker té la seva BD (<POSTGRES_DB>_gwN, la crea tests/conftest.py) i el seu índex de Redis;
+      # pytest-cov combina la cobertura de tots els workers a coverage.xml.
+      # Exclou els tests en quarantena (-m "not quarantine"); van al pas següent (TG-362).
+      - name: Tests (pytest en paral·lel i ordre aleatori, sense quarantena, cobertura >= 80%)
+        run: uv run pytest -n auto -m "not quarantine" --cov-report=xml:coverage.xml --cov-fail-under=80
       # En una PR apilada (stacked PRs de GitHub) `github.base_ref` val el tronc de la pila (`develop`) i no la
       # branca pare: `diff-cover` i `mutmut` mesurarien tota la pila a cada capa. Aquest pas demana la base real
       # de la PR a l'API REST (`scripts/pr_base.py`) i, si no la pot saber, usa `github.base_ref`. Una PR
@@ -149,6 +157,11 @@ jobs:
         run: |
           base=$(uv run python scripts/pr_base.py --fallback "origin/$BASE_REF" --pr-number "$PR_NUMBER")
           echo "ref=$base" >> "$GITHUB_OUTPUT"
+      # Política TG-362: sense reintents; cada test en quarantena té la seva tasca TG-NNN (reason).
+      # Exit 5 = cap test en quarantena (cas normal), no compta com a fallada.
+      - name: Tests en quarantena (no bloquejant)
+        continue-on-error: true
+        run: uv run pytest -n auto -m quarantine --no-cov || [ $? -eq 5 ]
       - name: Comprovar cobertura del codi nou a la PR (diff-cover >= 90%)
         if: github.event_name == 'pull_request'
         env:

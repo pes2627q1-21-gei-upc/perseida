@@ -2,9 +2,9 @@
 titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
-data: "2026-11-18"
-us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385"]
-font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026)"
+data: "2026-11-20"
+us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362"]
+font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist; tasca TG-382: quarantena sense reintents, 20/11/2026)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
 
@@ -15,7 +15,7 @@ etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-testing-avancada]]): el test en vermell s'escriu **abans** del codi. Les proves segueixen la piràmide 60/30/10. Cap US arriba a Done sense les seves proves.
 
 > [!info] Estat de la implantació
-> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) i TG-359 (US #359) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter), les migracions reversibles, els llindars de cobertura bloquejants (backend i frontend) i el mutation testing sobre el diff (mutmut i Stryker). L'automatització de la resta d'eines marcades com a «previst» (E2E, randomly/xdist, bandit/pip-audit/`pnpm audit`) és pendent i va a les US #361 i #362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
+> La política és vigent per a l'equip des del 2026-10-28. Des de TG-360 (US #360) i TG-359 (US #359) són a la CI els tests de contracte (schemathesis i còpia d'OpenAPI), l'arquitectura (import-linter), les migracions reversibles, els llindars de cobertura bloquejants (backend i frontend) i el mutation testing sobre el diff (mutmut i Stryker). Des de TG-362 (tasca TG-381), els tests del backend s'executen en ordre aleatori (pytest-randomly) i, a la CI, en paral·lel (pytest-xdist); des de la tasca TG-382, els tests inestables van en quarantena en un pas no bloquejant. L'automatització de la resta d'eines marcades com a «previst» (E2E, bandit/pip-audit/`pnpm audit`) és pendent i va a les US #361 i #362 del backlog. Fins llavors, les comprova la persona en local i el revisor a la PR.
 
 ## TDD
 
@@ -51,7 +51,7 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 | Arquitectura | Capes del backend; import-linter bloquejant | `backend/tests/architecture`; import-linter (`[tool.importlinter]` a `pyproject.toml`) | Instal·lat |
 | E2E | Fluxos crítics | Maestro, Playwright | Previst |
 | Accessibilitat | Queries per rol/etiqueta als tests; lint d'a11y | RNTL; `eslint-plugin-jsx-a11y` | RNTL instal·lat; lint previst |
-| Robustesa | Ordre aleatori i execució en paral·lel; quarantena sense reintents | pytest-randomly, pytest-xdist | Previst |
+| Robustesa | Ordre aleatori i execució en paral·lel; quarantena sense reintents | pytest-randomly, pytest-xdist, marcador `quarantine` | Instal·lat (TG-362) |
 | Seguretat | Anàlisi estàtica i dependències | bandit, pip-audit, `pnpm audit` | Previst |
 | Migracions | Cada revisió fa upgrade -> downgrade -> upgrade i l'esquema torna a ser el mateix (coherent amb el rollback d'[[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]) | Alembic + pytest | Instal·lat |
 
@@ -60,12 +60,34 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 - **schemathesis** (`tests/integration/test_api_contract.py`): l'app corre en procés (ASGI, amb el lifespan) sobre PostgreSQL i Redis reals; Google i la NASA, simulats amb `respx`; els endpoints privats s'autentiquen amb un login real amb un token de Google signat amb una clau de prova. Llavor fixa (`360`) i 25 exemples per operació. El check propi `tests/integration/problem_check.py` exigeix `application/problem+json` i els camps `type`, `title`, `status`, `detail`, `code` a tot 4xx/5xx. A `GET /api/apod` s'accepta el 422 de dates fora de rang com a resposta esperada del check `positive_data_acceptance`: el límit superior (avui) no es pot escriure a OpenAPI.
 - **Còpia d'OpenAPI**: `tests/unit/infrastructure/test_openapi_copy.py` compara `create_app().openapi()` amb `frontend/openapi/openapi.json`. Per regenerar-la: `cd backend && uv run python -m scripts.export_openapi && cd ../frontend && pnpm api:generate`. El job `frontend` fa `pnpm api:generate` i falla si `src/shared/api/schema.d.ts` canvia.
 - **import-linter** (`uv run lint-imports`, pas obligatori del job `backend`): el domini no importa FastAPI, SQLModel/SQLAlchemy, Redis, asyncpg ni httpx; l'aplicació no importa `app.infrastructure` ni FastAPI; capes `infrastructure` -> `application` -> `domain`. El test propi `tests/architecture/test_layer_dependencies.py` es manté (llista blanca, imports relatius i aïllament users/auth).
-- **Migracions** (`tests/integration/test_alembic.py::test_every_revision_can_be_undone`): per a cada revisió, instantània de l'esquema, `upgrade`, `downgrade` a l'anterior i comparació. **En local fa `downgrade base` i esborra la base de dades a la qual apunta `POSTGRES_HOST`**; només s'executa si `POSTGRES_HOST` està definit. No és compatible amb `pytest-xdist` (previst a #362) mentre comparteixi la base de dades amb la resta de tests d'integració.
+- **Migracions** (`tests/integration/test_alembic.py::test_every_revision_can_be_undone`): per a cada revisió, instantània de l'esquema, `upgrade`, `downgrade` a l'anterior i comparació. **En local fa `downgrade base` i esborra la base de dades a la qual apunta `POSTGRES_HOST`**; només s'executa si `POSTGRES_HOST` està definit. Amb `pytest-xdist` cada worker té la seva base de dades, de manera que el test només desfà la del seu worker.
 - En local, els tests d'integració i de contracte necessiten PostgreSQL/PostGIS i Redis (`POSTGRES_*`, `REDIS_*`); sense aquestes variables es salten.
+
+### Ordre aleatori i paral·lelisme (TG-362)
+
+- **Ordre aleatori (`pytest-randomly`)**: és actiu a totes les sessions del backend, en local i a la CI. La primera línia de la sortida diu la llavor: `Using --randomly-seed=1234567890`. Per reproduir una fallada que depèn de l'ordre, torna a executar amb la mateixa llavor: `uv run pytest -p randomly --randomly-seed=1234567890` (amb el mateix `-n` si la fallada va sortir en paral·lel). Per depurar sense aleatorietat, `-p no:randomly`. No s'ha de desactivar als `addopts` (ho vigila `tests/architecture/test_test_tooling.py`).
+- **Paral·lelisme (`pytest-xdist`)**: la CI executa `uv run pytest -n auto -m "not quarantine"`. En local, els tests van en sèrie per defecte; per provar-los en paral·lel, `uv run pytest -n 4` (o `-n 8`).
+- **Aïllament per worker** (`tests/conftest.py`, `tests/integration/conftest.py`, `tests/integration/workers.py`): cada worker `gwN` fa servir la base de dades `<POSTGRES_DB>_gwN`, que es crea i es migra (`alembic upgrade head`) abans del primer test d'integració (els unitaris no s'hi connecten), i l'índex de Redis `15 - N`. Sense xdist es fan servir `POSTGRES_DB` i l'índex 15; ara també l'app i tots els clients de prova hi van (abans, una part dels tests escrivia a l'índex 0). L'índex 0 (dades de desenvolupament) no es buida mai, i per això hi ha com a màxim 15 workers: amb més, la sessió s'atura amb un missatge que demana reduir `-n` (a les màquines de més de 15 nuclis, `-n auto` no serveix). Les bases de dades `_gwN` es conserven entre execucions locals: si un test troba files que no són seves (restes d'una execució anterior a una correcció), esborra-les un cop (`DROP DATABASE <POSTGRES_DB>_gwN`) i tornaran a crear-se netes. A la CI cada execució comença amb una base de dades nova. Dues sessions de pytest alhora a la mateixa màquina comparteixen les bases `_gwN` i els índexs de Redis: no les llancis en paral·lel. Si un worker cau, xdist en crea un de nou amb un número més alt (`gwN`, amb N = nombre de workers); amb 15 workers aquest número ja no té índex de Redis i la sessió s'atura amb un error intern.
+- **Regles per als tests nous**: cap test pot dependre de l'ordre ni de dades d'un altre test. Cada test esborra el que crea, i els clients de Redis i els *engines* de base de dades es creen a partir de `RedisSettings`/`DatabaseSettings`, mai amb host, port o índex escrits a mà. Els ids dels `parametrize` han de ser estables entre processos (res de `uuid` generats en importar el mòdul).
 
 ### Tests inestables
 
-Un test inestable es posa en quarantena (marcat i exclòs del bloc obligatori, amb una incidència a Taiga) i es corregeix; **no es fan reintents automàtics** per tapar-lo.
+Un test inestable es posa en quarantena (marcat i exclòs del bloc obligatori, amb una tasca a Taiga) i es corregeix; **no es fan reintents automàtics** per tapar-lo. `pytest-rerunfailures`, `flaky` i `--reruns` estan prohibits (ho vigila `tests/architecture/test_test_tooling.py`), perquè amaguen condicions de carrera reals.
+
+Com es posa un test en quarantena (TG-362, tasca TG-382):
+
+1. Reprodueix la fallada amb la llavor de la sortida (secció anterior) per confirmar que és intermitent i no un error real del codi.
+2. Obre una tasca a Taiga per arreglar-lo.
+3. Marca el test amb el codi de la tasca:
+   ```python
+   @pytest.mark.quarantine(reason="TG-NNN falla de manera intermitent en paral·lel")
+   def test_...():
+   ```
+   El `reason` és obligatori i ha de contenir `TG-<número>`. Sense ell, la recollida de pytest s'atura amb un error (plugin `tests/quarantine.py`).
+4. A la CI, el pas «Validar marcadors de quarantena» fa una recollida sense xdist (`pytest --collect-only -q -p no:randomly --no-cov`), perquè amb xdist l'error del marcador surt com un `INTERNALERROR` sense el missatge. Després, el pas bloquejant executa `pytest -n auto -m "not quarantine"`, i el pas «Tests en quarantena (no bloquejant)», `pytest -n auto -m quarantine --no-cov` amb `continue-on-error`. Aquest segon pas no compta per a la cobertura i, si no hi ha cap test en quarantena, acaba en verd.
+5. Quan la tasca s'arregla, es treu el marcador a la mateixa PR del `fix:`.
+
+En local: `uv run pytest -m quarantine` executa només els tests en quarantena.
 
 ## Proves d'acceptació
 
@@ -145,7 +167,7 @@ A la CI, GitHub Actions executa els tests a cada PR cap a `develop` o `main` i a
 
 | Job | Ordre de tests | Informe de cobertura (artefacte) |
 |---|---|---|
-| `backend` | `uv run pytest --cov-report=xml:coverage.xml`, amb PostgreSQL (PostGIS) i Redis com a *service containers* | `backend-coverage` (`coverage.xml`) |
+| `backend` | `uv run pytest -n auto -m "not quarantine" --cov-report=xml:coverage.xml` (en paral·lel i en ordre aleatori; abans, recollida sense xdist que valida els marcadors de quarantena; després, els tests en quarantena en un pas no bloquejant), amb PostgreSQL (PostGIS) i Redis com a *service containers* | `backend-coverage` (`coverage.xml`) |
 | `frontend` | `pnpm test --coverage --ci` (Jest amb el preset `jest-expo`) | `frontend-coverage` (`lcov.info`) |
 
 Cada job té un test de fum perquè el comandament de tests no falli sense cap test (`backend/tests/test_smoke.py` i `frontend/__tests__/smoke.test.ts`). Vegeu [[qualitat]] per a l'anàlisi estàtica de la CI.
