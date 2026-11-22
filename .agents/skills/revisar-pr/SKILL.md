@@ -13,9 +13,22 @@ Segueix `AGENTS.md` i la skill `vault-context`. Protocol de dubtes: res d'invent
 
 Review **laxa amb l'estil**: només s'informa del que **viola una norma escrita** (vault, ADR, DoD, plantilla de PR, README) o és **bloquejant** (CI en vermell, bug, seguretat, secret, ruptura d'arquitectura, criteri d'acceptació incomplert). Preferències d'estil, noms, format, refactors opcionals i suggeriments «estaria bé» **no es reporten** (el lint ja cobreix el format). Cada troballa cita la norma o el motiu de bloqueig. Si dubtes que sigui una violació, pregunta; no ho posis com a troballa.
 
+## Una PR o un stack de PR
+
+Sovint la persona no et passarà una PR sola sinó un **stack de PR apilades** (una US dividida en capes, amb `gh stack`; vegeu `obsidian_vault/guies/pr-apilades-amb-gh-stack.md`). Ho saps perquè et dona diverses PR o branques, un enllaç a l'stack, o una PR la base de la qual (`baseRefName`) no és `develop` sinó una altra `feature/*`. Si dubtes, pregunta-ho.
+
+Amb un stack:
+
+- **Una review per PR, només del diff de la seva capa:** el rang és `origin/<baseRefName>...origin/<headRefName>`, amb la base de la PR de sota, mai contra `develop`. El que ve de les capes inferiors es revisa a la seva PR i no es repeteix a la de damunt.
+- **Ordre de baix cap a dalt** (les PR es fusionen en aquest ordre). Si una capa depèn d'un comportament que només existeix a una de damunt, és una troballa; i una troballa CRÍTICA o ALTA a una capa pot invalidar les de damunt: avisa-ho.
+- **CI i local per PR** (`gh pr checks <PR>` de cadascuna). Les ordres locals les executes al worktree de cada branca (o només al de la de dalt, que ja inclou les inferiors, i baixes de capa si falla).
+- **Informe:** troballes agrupades per PR, veredicte per PR i un veredicte global de l'stack; punts verificats i preguntes com sempre.
+- **Pas 6 i 7 (publicar):** la pregunta i la confirmació del text exacte van **per PR**; mai aprovis tot l'stack d'una vegada sense la resposta explícita de la persona. Fusionar (`gh stack merge`) és decisió seva.
+- Dades de l'stack amb `gh stack view --json` si la persona el té en local (és només lectura); no facis `gh stack checkout`, `sync`, `rebase` ni `push`, que canvien les seves branques.
+
 ## Passos
 
-1. **Obtén la PR.** Accés a GitHub i ordres: `references/verificacio-pr.md` (`gh` → suggerir instal·lar-lo → MCP de GitHub → local). Llegeix títol, descripció, fitxers, diff i comentaris existents.
+1. **Obtén la PR (o les PR de l'stack).** Accés a GitHub i ordres: `references/verificacio-pr.md` (`gh` → suggerir instal·lar-lo → MCP de GitHub → local). Llegeix títol, descripció, fitxers, diff i comentaris existents.
 2. **Context de Taiga (opcional).** Si hi ha `TG-NN` (donat o a la PR) i l'MCP de Taiga és disponible, llegeix la US/tasca i els criteris d'acceptació. Si no, segueix sense.
 3. **Verifica la CI i el local.** `gh pr checks` i les ordres de lint, tipus i tests dels directoris tocats en un worktree temporal (vegeu la referència). Una comprovació en vermell és una troballa CRÍTICA; si no la pots executar, ho dius.
 4. **Revisa el diff.** Delega a `reviewer-arquitectura` (arquitectura hexagonal, DoD, checklist de PR, eficiència de consultes, seguretat, errors, estètica, WCAG). El prompt de delegació inclou la branca i la base de la PR, el worktree o el rang del diff, i els criteris de la US si els tens (el subagent no veu res més). No dupliquis els seus criteris. Descarta del seu informe les troballes BAIXA i qualsevol cosa d'estil que no violi cap norma. Afegeix tu, de la plantilla `.github/pull_request_template.md`:

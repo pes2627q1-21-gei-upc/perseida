@@ -29,7 +29,7 @@ describe('MapStatus', () => {
   });
 
   it('shows no retry button for an error that will not go away', async () => {
-    await render(<MapStatus state="error" code="VALIDATION_ERROR" />);
+    await render(<MapStatus state="error" code="SOME_UNKNOWN_CODE" />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Alguna cosa ha anat malament.');
     expect(screen.queryByRole('button')).toBeNull();

@@ -43,6 +43,21 @@ Només els directoris tocats per la PR. Ordres exactes dels README (no les supos
 
 Informa de cada ordre amb el seu resultat real. Si no pots executar-ne alguna (falten dependències, versions diferents, sense xarxa), digues-ho i no donis la PR per verificada.
 
+## Stacks de PR (`gh stack`)
+
+Si la PR és una capa d'un stack (la seva `baseRefName` és una altra `feature/*`):
+
+```bash
+gh pr view <PR> --json number,baseRefName,headRefName,statusCheckRollup
+git fetch origin <baseRefName> <headRefName>
+git diff origin/<baseRefName>...origin/<headRefName>   # només el diff d'aquesta capa
+gh stack view --json                                   # només lectura; requereix l'stack en local
+```
+
+- Els requisits de fusió de totes les PR de l'stack els marca la base de la PR de baix (normalment `develop`); la CI s'executa a cada PR.
+- El worktree d'una capa conté també les inferiors; si una comprovació falla a la de dalt, repeteix-la a les de sota per trobar on comença.
+- Mai executis `gh stack checkout`, `sync`, `rebase`, `push` ni `merge` des de `revisar-pr`: modifiquen branques i PR.
+
 ## Context de Taiga (opcional)
 
 Si la persona dona un `TG-NN`, o la PR n'esmenta un al títol, branca o descripció, i l'MCP de Taiga és disponible (`mcp__taiga-mcp__*`): `resolveRef` (projecte `alexga03-astronomia-pes`) → `getUserStory`/`getTask`, `listTasks` i `listComments`. Serveix per contrastar la PR amb els criteris d'acceptació o per entendre la intenció d'un comentari. Si no hi és, no el demanis ni el donis per obligatori. Mai escriguis a Taiga des d'aquestes skills ni demanis credencials.

@@ -2544,6 +2544,34 @@
         ],
         "title": "ApodResponse"
       },
+      "ChatAuthorResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador de l'autora."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Nom del perfil de l'autora; `null` si no en té. Mai és el correu: l'app hi posa un nom genèric."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ChatAuthorResponse"
+      },
       "ChatHistoryResponse": {
         "properties": {
           "messages": {
@@ -2587,11 +2615,8 @@
             "title": "Room Id",
             "description": "Sala a la qual pertany."
           },
-          "author_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Author Id",
-            "description": "Identificador de l'autora."
+          "author": {
+            "$ref": "#/components/schemas/ChatAuthorResponse"
           },
           "text": {
             "type": "string",
@@ -2609,7 +2634,7 @@
         "required": [
           "id",
           "room_id",
-          "author_id",
+          "author",
           "text",
           "sent_at"
         ],

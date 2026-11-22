@@ -30,6 +30,8 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
+    "pytest-randomly==5.1.0",
+    "pytest-xdist==3.8.0",
     "respx==0.23.1",
     "ruff==0.16.10",
     "schemathesis==4.32.7",
@@ -80,6 +82,9 @@ disable_error_code = ["attr-defined"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=app --cov-report=term-missing"
+markers = [
+    "quarantine(reason): test inestable en quarantena; reason ha de referenciar la tasca de Taiga TG-NNN que el soluciona",
+]
 
 [tool.coverage.report]
 show_missing = true

@@ -30,7 +30,7 @@ Un únic procés FastAPI integra tres responsabilitats:
 | Moderació | Microservei Kev-4B (model local, crida síncrona) |
 | Dependències | `uv` (versions exactes, `uv.lock` versionat) |
 | Qualitat | `ruff` (lint + format, complexitat màx. 10), `mypy` estricte, SonarQube Cloud |
-| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
+| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Arquitectura: hexagonal
 
@@ -185,6 +185,9 @@ uv run ruff format --check .  # comprova el format sense modificar fitxers
 uv run mypy .                 # tipatge estricte
 uv run lint-imports           # contractes d'arquitectura (import-linter)
 uv run pytest                 # tests (amb cobertura)
+uv run pytest -n auto         # igual, en paral·lel (una base de dades i un índex de Redis per worker)
+uv run pytest -p randomly --randomly-seed=<llavor>  # reprodueix una fallada d'ordre (llavor a la primera línia de la sortida)
+uv run pytest -m quarantine   # només els tests en quarantena (@pytest.mark.quarantine(reason="TG-NNN ..."))
 uv run uvicorn app.main:app --reload  # arrenca l'API (http://127.0.0.1:8000/api/docs)
 ```
 
@@ -216,7 +219,8 @@ uv run pytest --cov-report=xml:coverage.xml  # tests + informe de cobertura
 
 Redis només és una cache amb TTL i el bus pub/sub del xat WebSocket; no hi viu res que hagi de sobreviure (la font de veritat és PostgreSQL). El client asíncron es crea al `lifespan` de FastAPI i es tanca en aturar l'aplicació. Configuració (vegeu `.env.example`):
 
-- `REDIS_HOST`, `REDIS_PORT`: adreça del servidor (`redis://host:port`).
+- `REDIS_HOST`, `REDIS_PORT`: adreça del servidor (`redis://host:port/db`).
+- `REDIS_DB` (opcional, 0..15, per defecte 0): base de dades lògica. Els tests fan servir la 15 i, amb pytest-xdist, una per worker (15, 14...).
 - `CACHE_DEFAULT_TTL_SECONDS`: TTL per defecte en segons (3600 si no es defineix).
 - `REDIS_SOCKET_TIMEOUT_SECONDS`: timeout de connexió i de socket en segons (2 si no es defineix); un Redis penjat es comporta com un miss.
 
@@ -225,6 +229,8 @@ Per executar un Redis local: `docker run -d --name perseida-redis -p 6379:6379 r
 **Ports** (`app/domain/shared/ports.py`): `Cache` (`get`, `set` amb un `ttl_seconds` opcional per clau) i `PubSub` (`publish`, `subscribe`). Els adaptadors Redis són a `app/infrastructure/cache/`; s'injecten amb `CacheDep` i `PubSubDep` (també funcionen en endpoints WebSocket).
 
 **Cache lazy:** `get_or_load(cache, key, load, adapter, ttl_seconds=None)` (`app/application/shared/cache.py`) retorna el valor de la cache o crida `load`, el desa i el retorna. Si Redis cau, `RedisCache` registra un avís i es comporta com una fallada, de manera que la dada s'obté igualment de la font (cap HTTP 500).
+
+**Claus del xat:** `ratelimit:chat:<user_id>` i `chat:republished:<author_id>:<client_message_id>`, i el canal `room:chat:event:<event_id>` (vegeu [Xat d'esdeveniment](#xat-desdeveniment)).
 
 **Convenció de claus:** qui crida fa servir `<domini>:<id>` i l'adaptador ho desa com `cache:<domini>:<id>`, p. ex. `cache:apod:2026-10-05`. Cada funcionalitat tria el seu TTL.
 
@@ -330,7 +336,7 @@ Els codis d'error (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED
 
 ## WebSocket (temps real)
 
-`/api/ws` (`wss://` darrere nginx-proxy-manager) és l'endpoint de temps real del xat i dels esdeveniments, dins el mateix procés FastAPI i sobre el pub/sub de Redis ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). Les sales concretes són de les funcionalitats que l'usen (US #64 i #65).
+`/api/ws` (`wss://` darrere nginx-proxy-manager) és l'endpoint de temps real del xat i dels esdeveniments, dins el mateix procés FastAPI i sobre el pub/sub de Redis ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). Les sales del xat d'esdeveniment són a [Xat d'esdeveniment](#xat-desdeveniment); les del xat directe són de la US #65.
 
 **Handshake i autenticació.** El handshake no porta cap token ni paràmetre de consulta. El primer frame ha de ser `{"type":"auth","token":"<access token>"}`; si és vàlid i no està revocat, el servidor respon `{"type":"auth","payload":{}}`. Qualsevol altre primer frame, un token invàlid, caducat, de refresh o revocat, o no rebre cap frame en `WS_AUTH_TIMEOUT_SECONDS`, tanca amb 4401. El token no surt mai a la URL ni als logs. L'endpoint crida `AuthService.authenticate` directament (`CurrentSessionDep` usa `HTTPBearer`, que no funciona per WebSocket).
 
@@ -362,6 +368,42 @@ Subscriure's a una sala nova passat `WS_MAX_ROOMS` es respon amb l'error `RATE_L
 Al contenidor, uvicorn aplica `WS_MAX_FRAME_BYTES` abans que l'aplicació rebi el missatge i tanca els missatges massa grans amb el codi 1009; els errors d'aplicació descrits més amunt corresponen a servidors que no apliquen abans aquest límit.
 
 `uvicorn` necessita una llibreria WebSocket (`websockets`, fixada a `pyproject.toml`); sense ella respon 404 al handshake. `tests/integration/test_websocket_uvicorn.py` comprova el 101 contra un servidor real. Altres proves: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) i `tests/integration/test_websocket_redis.py` (Redis real, dos clients, revocació i Redis caigut amb un proxy TCP que es pot tallar).
+
+## Xat d'esdeveniment
+
+Xat per esdeveniment astronòmic ([ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md), nota del component [chat](../obsidian_vault/arquitectura/components/chat.md)): una sala per esdeveniment (0..1, es crea sota demanda), només per a les usuàries subscrites a l'esdeveniment. Els missatges es desen a PostgreSQL i es difonen en temps real pel WebSocket. L'enviament va pel WebSocket; l'API REST dona les sales i l'historial. Tots els endpoints demanen sessió; sense subscripció a l'esdeveniment responen `403 FORBIDDEN`.
+
+| Endpoint | Què fa |
+|---|---|
+| `GET /api/chat/rooms` | Sales dels esdeveniments als quals està subscrita la usuària, cadascuna amb el darrer missatge (o `null`), de més nova a més antiga. L'app construeix la llista de sales amb això i `GET /api/me/subscriptions` |
+| `PUT /api/events/{event_id}/chat/room` | Obre la sala de l'esdeveniment (la crea si cal); idempotent, sempre 200. 404 `EVENT_NOT_FOUND` |
+| `GET /api/events/{event_id}/chat/messages` | Pàgina d'historial, del missatge més nou al més antic. `limit` d'1 a 50 (50 per defecte) i `before` (el `next_cursor` opac de la pàgina anterior). 422 `CHAT_INVALID_LIMIT` o `CHAT_INVALID_CURSOR` |
+
+Cada missatge té `id`, `room_id`, `author {id, name}`, `text` (ja net pel servidor) i `sent_at`; `author.name` és el nom del perfil (pot ser `null`) i mai el correu.
+
+**Sala del WebSocket.** `chat:event:<event_id>` (l'UUID en forma canònica), al canal de Redis `room:chat:event:<event_id>`. El client envia `subscribe` i després `message` amb `payload {"text": "...", "client_message_id": "<UUID>"}`; el `client_message_id` (UUID canònic, generat una sola vegada per missatge i reutilitzat en cada reintent) és obligatori. El servidor respon amb l'ack `{id, sent_at}` del missatge desat i envia el missatge complet a la resta de subscriptors de la sala (l'emissor no el rep una altra vegada). Errors: `VALIDATION_ERROR`, `NOT_SUBSCRIBED`, `FORBIDDEN`, `RATE_LIMITED`, `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG` (màxim 1000 caràcters un cop net), `CHAT_MESSAGE_REJECTED`, `CHAT_IDEMPOTENCY_CONFLICT` (la mateixa clau amb una altra sala o un altre text) i `PUBSUB_UNAVAILABLE` (el missatge és desat però no s'ha pogut publicar; reintentar amb la mateixa clau el publica de nou). Quan la usuària es dona de baixa de l'esdeveniment, el servidor envia un frame `unsubscribe` de la sala.
+
+**Flux d'un missatge.** Comprovació de l'esdeveniment i de la subscripció, neteja del text, comprovació d'idempotència, límit de freqüència, moderació, desat, publicació i ack; s'atura al primer error. El moderador és provisional (ho aprova tot) fins a #81.
+
+| Variable | Significat |
+|---|---|
+| `CHAT_RATE_LIMIT_MESSAGES` | Missatges permesos per usuària i finestra (10 per defecte) |
+| `CHAT_RATE_LIMIT_WINDOW_SECONDS` | Finestra en segons (10 per defecte) |
+| `CHAT_MESSAGE_MAX_LENGTH` | Longitud màxima d'un missatge, d'1 a 1000 (1000 per defecte) |
+
+**Claus i canals de Redis.** `ratelimit:chat:<user_id>` (comptador de finestra fixa, TTL = la finestra), `chat:republished:<author_id>:<client_message_id>` (10 s, perquè un reintent d'un missatge desat no es torni a difondre en bucle) i el canal `room:chat:event:<event_id>`.
+
+**Provar-ho en local.**
+
+```bash
+cd infra && docker compose up -d db cache   # PostgreSQL i Redis (ports publicats per docker-compose.override.yml)
+cd ../backend
+cp .env.example .env                        # POSTGRES_HOST i REDIS_HOST són localhost; omple els secrets
+uv run alembic upgrade head                 # crea les taules (event_chat_rooms, chat_messages, ...)
+uv run uvicorn app.main:app --reload        # API a http://127.0.0.1:8000/api/docs, WebSocket a ws://127.0.0.1:8000/api/ws
+```
+
+Inicia sessió (`POST /api/auth/google`), subscriu-te a un esdeveniment (`PUT /api/events/{event_id}/subscription`), obre la sala (`PUT /api/events/{event_id}/chat/room`) i connecta un client WebSocket a `/api/ws`: primer frame `{"type":"auth","token":"<access token>"}`, després `{"type":"subscribe","room":"chat:event:<event_id>","payload":{},"id":"1"}` i un frame `message` a la mateixa sala amb `payload {"text":"Hola","client_message_id":"<UUID>"}` i un `id` nou.
 
 ## Testing i qualitat
 

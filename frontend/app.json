@@ -30,7 +30,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Perseida usa la teva ubicació només per proposar el lloc de trobada d'una sortida d'observació."
+          "locationWhenInUsePermission": "Perseida usa la teva ubicació per mostrar els esdeveniments a prop teu i per proposar el lloc de trobada d'una sortida d'observació."
         }
       ]
     ],
