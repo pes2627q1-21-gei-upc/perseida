@@ -82,6 +82,28 @@ def test_tg352_settings_timeout_must_be_positive(timeout: float) -> None:
         settings(spotwise_timeout_seconds=timeout)
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "nattech.fib.upc.edu:40420",
+        "ftp://nattech.fib.upc.edu",
+        "http://",
+        "",
+        "http:///x",
+    ],
+)
+def test_tg352_settings_reject_an_unusable_spotwise_url(url: str) -> None:
+    with pytest.raises(ValidationError):
+        settings(spotwise_url=url)
+
+
+@pytest.mark.parametrize(
+    "url", ["http://spotwise.test:40420", "https://spotwise.test/base/"]
+)
+def test_tg352_settings_keep_a_valid_spotwise_url(url: str) -> None:
+    assert settings(spotwise_url=url).spotwise_url == url
+
+
 # --- adapter choice (criteris 2 i 3) --------------------------------------------
 
 
