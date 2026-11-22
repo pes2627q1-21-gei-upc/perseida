@@ -28,10 +28,10 @@ lockfile (``uv export --frozen --no-dev ...``) and audits them with
 ``uv run pip-audit -r <file> -s osv``.
 Criteri 6 (TG-384): the ``frontend`` job runs
 ``pnpm audit --prod --audit-level=high`` in ``frontend/`` right after
-``pnpm install``, as a warning (``continue-on-error: true``) until TG-338, which
-accepts the documented risks (today GHSA-mrhx-c7xc-m3w5, ``zod`` via
-``@expo/cli``) and makes it blocking with the team's agreement; the step (its
-name or the comment above it) names TG-338 so the warning is not forgotten.
+``pnpm install``, as a blocking step (no ``continue-on-error``): the team decided
+on 21/11/2026 that a high or critical vulnerability in the production
+dependencies blocks the PR. An accepted risk goes in ``auditConfig.ignoreGhsas``
+of ``frontend/pnpm-workspace.yaml``, with a row in ``convencions/seguretat.md``.
 
 Paths are resolved from this file, never from the working directory.
 """
