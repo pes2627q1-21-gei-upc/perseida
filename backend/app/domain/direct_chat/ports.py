@@ -1,8 +1,10 @@
 import uuid
+from collections.abc import Collection
 from datetime import datetime
 from typing import Protocol
 
 from app.domain.direct_chat.models import (
+    ConversationSummary,
     DirectConversation,
     DirectCursor,
     DirectMessage,
@@ -51,6 +53,20 @@ class DirectConversationRepository(Protocol):
 
     async def list_of(self, user_id: uuid.UUID) -> list[DirectConversation]:
         """Return the conversations ``user_id`` takes part in.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def summaries_of(self, user_id: uuid.UUID) -> list[ConversationSummary]:
+        """Return the conversations of ``user_id`` with last message and unread count.
+
+        One call, whatever the number of conversations. Newest activity first: by
+        the last message's ``sent_at`` (descending), or by the conversation's
+        ``created_at`` if it has no messages, ties broken by id descending.
+        ``unread_count`` is the number of messages of the other participant sent
+        after the read mark of ``user_id``.
 
         Raises:
             ExternalServiceError: if the database is unavailable.
@@ -129,6 +145,16 @@ class UserBlockRepository(Protocol):
 
     async def is_blocked(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> bool:
         """Return whether ``blocker_id`` blocks ``blocked_id`` (directional).
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def blocked_among(
+        self, blocker_id: uuid.UUID, user_ids: Collection[uuid.UUID]
+    ) -> set[uuid.UUID]:
+        """Return which of ``user_ids`` are blocked by ``blocker_id`` (one query).
 
         Raises:
             ExternalServiceError: if the database is unavailable.
