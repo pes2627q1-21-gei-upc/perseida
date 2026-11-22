@@ -80,6 +80,17 @@ def test_tg352_c4_study_profile_asks_for_silence_and_plugs() -> None:
     )
 
 
+def test_tg352_an_unknown_profile_is_rejected() -> None:
+    with pytest.raises(AssertionError):
+        SessionProfile.of("party")  # type: ignore[arg-type]
+
+
+def test_tg352_a_negative_distance_is_rejected() -> None:
+    with pytest.raises(PydanticValidationError):
+        make_space(distance_m=-1)
+    assert make_space(distance_m=0).distance_m == 0
+
+
 def test_tg352_profile_and_space_are_frozen() -> None:
     with pytest.raises(PydanticValidationError):
         STUDY.max_distance_m = 10  # type: ignore[misc]
