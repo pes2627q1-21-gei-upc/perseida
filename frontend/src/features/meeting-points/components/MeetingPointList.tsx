@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { type ReactElement, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibilityInfo, FlatList, Platform, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, FlatList, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { AppError } from '../../../shared/errors';
@@ -19,11 +19,14 @@ interface Props {
   onChoose?: (point: MeetingPoint) => void;
   /** Room at the top for the floating bar of the screen. */
   topInset?: number;
+  /** What goes above the points and scrolls with them, in every state of the list. */
+  header?: ReactElement;
 }
 
 /**
  * The recommended meeting points (TG-352), in the order of the API, each on glass; or the
- * loading, empty or error state of the list.
+ * loading, empty or error state of the list. Whatever the state, the header scrolls with it, so
+ * nothing is cut off on short screens (WCAG 1.4.10).
  */
 export function MeetingPointList({
   status,
@@ -32,6 +35,7 @@ export function MeetingPointList({
   onRetry,
   onChoose,
   topInset = 0,
+  header,
 }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
@@ -48,18 +52,6 @@ export function MeetingPointList({
     if (empty && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(empty);
   }, [empty]);
 
-  if (status === 'loading') return <StatusPanel state="loading" texts={texts} />;
-  if (status === 'error') {
-    return (
-      <StatusPanel
-        state="error"
-        texts={texts}
-        code={error?.code ?? 'GENERIC_FINAL'}
-        onRetry={error?.retryable ? onRetry : undefined}
-      />
-    );
-  }
-
   // Keeps the points clear of the safe areas and of the bar at the top (tested).
   const padding = {
     paddingTop: topInset + spacing.md,
@@ -71,21 +63,39 @@ export function MeetingPointList({
   // Visual only: layout and colours of the list, not seen by the tests nor mutated.
   // Stryker disable all
   const look = {
-    empty: [styles.column, { maxWidth: readingMaxWidth }, padding],
     emptyText: [typography.body, styles.center, { color: colors.text.primary }],
     list: [styles.column, { maxWidth: readingMaxWidth, gap: spacing.md }, padding],
+    state: [styles.column, styles.grow, { maxWidth: readingMaxWidth, gap: spacing.md }, padding],
   };
   // Stryker restore all
 
-  if (empty) {
+  let state: ReactElement | null = null;
+  if (status === 'loading') state = <StatusPanel state="loading" texts={texts} />;
+  else if (status === 'error') {
+    state = (
+      <StatusPanel
+        state="error"
+        texts={texts}
+        code={error?.code ?? 'GENERIC_FINAL'}
+        onRetry={error?.retryable ? onRetry : undefined}
+      />
+    );
+  } else if (empty) {
+    state = (
+      <GlassPanel>
+        <Text accessibilityLiveRegion="polite" style={look.emptyText}>
+          {empty}
+        </Text>
+      </GlassPanel>
+    );
+  }
+
+  if (state) {
     return (
-      <View style={look.empty}>
-        <GlassPanel>
-          <Text accessibilityLiveRegion="polite" style={look.emptyText}>
-            {empty}
-          </Text>
-        </GlassPanel>
-      </View>
+      <ScrollView contentContainerStyle={look.state}>
+        {header}
+        {state}
+      </ScrollView>
     );
   }
 
@@ -100,6 +110,7 @@ export function MeetingPointList({
           <MeetingPointRow point={item} onChoose={onChoose ? () => onChoose(item) : undefined} />
         </GlassPanel>
       )}
+      ListHeaderComponent={header}
       contentContainerStyle={look.list}
     />
   );
@@ -114,4 +125,5 @@ function keyOf(point: MeetingPoint) {
 const styles = StyleSheet.create({
   column: { width: '100%', alignSelf: 'center' },
   center: { textAlign: 'center' },
+  grow: { flexGrow: 1 },
 });

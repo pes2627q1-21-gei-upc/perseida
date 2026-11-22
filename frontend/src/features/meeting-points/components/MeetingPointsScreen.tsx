@@ -5,6 +5,7 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -94,13 +95,18 @@ export function MeetingPointsScreen({ eventId }: { eventId: string }) {
         maxWidth: readingMaxWidth,
         gap: spacing.md,
         paddingTop: barBottom + spacing.md,
+        paddingBottom: insets.bottom + spacing.md,
         paddingLeft: insets.left + spacing.md,
         paddingRight: insets.right + spacing.md,
       },
     ],
     eventTitle: [typography.bodyStrong, styles.center, { color: colors.text.primary }],
+    header: { gap: spacing.md },
   };
   // Stryker restore all
+
+  // On glass, like the rest: straight on the sky it does not reach 4.5:1 at sunset.
+  const title = eventTitle ? <Text style={look.eventTitle}>{eventTitle}</Text> : null;
 
   return (
     <SkyBackground>
@@ -111,33 +117,44 @@ export function MeetingPointsScreen({ eventId }: { eventId: string }) {
         onLayout={setBarBottom}
       />
       <View style={StyleSheet.absoluteFill}>
-        <View style={look.column}>
-          {eventTitle ? <Text style={look.eventTitle}>{eventTitle}</Text> : null}
-          {status === 'granted' && <ProfileSwitch value={profile} onChange={setProfile} />}
-          {status === 'denied' && <LocationMessage message={t('meetingPoints.location.denied')} />}
-          {status === 'unavailable' && (
-            <LocationMessage
-              message={t('meetingPoints.location.unavailable')}
-              onRetry={() => void request()}
-            />
-          )}
-          {(status === 'idle' || status === 'locating') && (
-            <ActivityIndicator
-              size="large"
-              color={colors.text.primary}
-              accessibilityLabel={t('meetingPoints.location.locating')}
-            />
-          )}
-        </View>
-        {status === 'granted' && (
-          <View style={styles.fill}>
-            <MeetingPointList
-              status={listStatus}
-              points={points.data ?? []}
-              error={points.error}
-              onRetry={() => void points.refetch()}
-            />
-          </View>
+        {status === 'granted' ? (
+          <MeetingPointList
+            status={listStatus}
+            points={points.data ?? []}
+            error={points.error}
+            onRetry={() => void points.refetch()}
+            topInset={barBottom}
+            header={
+              <GlassPanel>
+                <View style={look.header}>
+                  {title}
+                  <ProfileSwitch value={profile} onChange={setProfile} />
+                </View>
+              </GlassPanel>
+            }
+          />
+        ) : (
+          <ScrollView contentContainerStyle={look.column}>
+            {title ? <GlassPanel>{title}</GlassPanel> : null}
+            {status === 'denied' && (
+              <LocationMessage message={t('meetingPoints.location.denied')} />
+            )}
+            {status === 'unavailable' && (
+              <LocationMessage
+                message={t('meetingPoints.location.unavailable')}
+                onRetry={() => void request()}
+              />
+            )}
+            {(status === 'idle' || status === 'locating') && (
+              <GlassPanel>
+                <ActivityIndicator
+                  size="large"
+                  color={colors.text.primary}
+                  accessibilityLabel={t('meetingPoints.location.locating')}
+                />
+              </GlassPanel>
+            )}
+          </ScrollView>
         )}
       </View>
     </SkyBackground>
@@ -147,7 +164,6 @@ export function MeetingPointsScreen({ eventId }: { eventId: string }) {
 // Visual styles, not mutated.
 // Stryker disable all
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
   column: { width: '100%', alignSelf: 'center' },
   center: { textAlign: 'center' },
 });
