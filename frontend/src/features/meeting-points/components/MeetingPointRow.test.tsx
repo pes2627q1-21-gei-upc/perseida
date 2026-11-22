@@ -36,6 +36,7 @@ const chips = {
   fewPlugs: () => t('meetingPoints.attribute.plugs.few'),
   noPlugs: () => t('meetingPoints.attribute.plugs.none'),
   groups: () => t('meetingPoints.attribute.groupFriendly'),
+  notGroups: () => t('meetingPoints.attribute.notGroupFriendly'),
 };
 
 function escape(text: string) {
@@ -110,6 +111,7 @@ describe('MeetingPointRow (TG-352)', () => {
     expect(says(chips.murmur())).toBe(true);
     expect(says(chips.manyPlugs())).toBe(true);
     expect(says(chips.groups())).toBe(true);
+    expect(says(chips.notGroups())).toBe(false);
     expect(says(chips.silent())).toBe(false);
     expect(says(chips.noisy())).toBe(false);
     expect(says(chips.fewPlugs())).toBe(false);
@@ -124,11 +126,12 @@ describe('MeetingPointRow (TG-352)', () => {
     }
   });
 
-  it('shows the other values of the votes, and no group chip when it is not for groups', async () => {
+  it('shows the other values of the votes, and a negative chip when it is not for groups', async () => {
     await render(<MeetingPointRow point={other} />);
 
     expect(says(chips.silent())).toBe(true);
     expect(says(chips.noPlugs())).toBe(true);
+    expect(says(chips.notGroups())).toBe(true);
     expect(says(chips.wifi())).toBe(false);
     expect(says(chips.groups())).toBe(false);
   });

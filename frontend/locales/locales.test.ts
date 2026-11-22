@@ -216,6 +216,7 @@ describe('Locales of the meeting points (TG-352)', () => {
     'attribute.plugs.few',
     'attribute.plugs.none',
     'attribute.groupFriendly',
+    'attribute.notGroupFriendly',
   ];
   // Criterion 5: the approved text of the error, in each language.
   const unavailable = {
@@ -252,6 +253,18 @@ describe('Locales of the meeting points (TG-352)', () => {
 
     it('puts the name of the point in the text to choose it', () => {
       expect(textAt(languages[language].meetingPoints, 'choose')).toMatch(/{{name}}/);
+    });
+
+    it('has chip texts that do not contain one another, so each chip is told apart', () => {
+      const chips = meetingPointKeys
+        .filter((key) => key.startsWith('attribute.'))
+        .map((key) => String(textAt(languages[language].meetingPoints, key) ?? key).toLowerCase());
+
+      for (const [index, chip] of chips.entries()) {
+        for (const other of chips.filter((_, each) => each !== index)) {
+          expect(other).not.toContain(chip);
+        }
+      }
     });
   });
 
