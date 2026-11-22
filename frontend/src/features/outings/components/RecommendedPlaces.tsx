@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Platform, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../shared/errors';
 import { useTheme } from '../../../shared/theme';
@@ -31,6 +31,12 @@ export function RecommendedPlaces({ onChoose }: Props) {
   useEffect(() => {
     if (status === 'idle') void request();
   }, [status, request]);
+
+  const empty = points.data?.length === 0 ? t('meetingPoints.empty') : undefined;
+  useEffect(() => {
+    // Android reads the live region by itself; iOS needs an explicit announcement.
+    if (empty && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(empty);
+  }, [empty]);
 
   // Visual only, not mutated.
   // Stryker disable all
@@ -72,8 +78,12 @@ export function RecommendedPlaces({ onChoose }: Props) {
       />
     );
   }
-  if (points.data.length === 0) {
-    return <Text style={look.empty}>{t('meetingPoints.empty')}</Text>;
+  if (empty) {
+    return (
+      <Text accessibilityLiveRegion="polite" style={look.empty}>
+        {empty}
+      </Text>
+    );
   }
   return (
     <View accessibilityRole="list" accessibilityLabel={t('meetingPoints.list.label')}>
