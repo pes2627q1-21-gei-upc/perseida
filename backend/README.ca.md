@@ -262,6 +262,21 @@ L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NA
 >
 > Límits del feed: només es guarden imatges (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo es descarta (`APOD_UNAVAILABLE` si l'API tampoc pot respondre). La data d'una entrada és el dia UTC de la publicació i el text d'`explanation` i `copyright` es converteix d'HTML a text pla. La fallada d'una crida es guarda 15 minuts només quan fallen el feed **i** l'API.
 
+## Punts de trobada (Spotwise)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=…&lon=…` recomana espais de Spotwise (biblioteques i cafeteries) a prop de la usuària (TG-352). Contracte: `obsidian_vault/arquitectura/contracte-spotwise.md`. Cal sessió (401 `INVALID_SESSION`, 403 si el compte és suspès o esborrat).
+
+- La ubicació s'arrodoneix a 3 decimals (uns 100 m). Es demana a Spotwise amb el perfil (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`) i Perseida es queda amb els espais a 1.500 m com a màxim que confirmen el perfil: aptes per a grups i amb wifi per a `watch_party`, silenciosos per a `study` (els endolls només són una preferència). Els valors sense vots (`null`) no compten com a confirmats; es conserva l'ordre de Spotwise.
+- El resultat es desa a Redis **5 minuts** per perfil i ubicació arrodonida (`cache:meeting_points:<perfil>:<lat>:<lon>`).
+- Si Spotwise falla (temps d'espera, connexió, 4xx/5xx o un cos que no és una llista JSON) es respon 503 `MEETING_POINTS_UNAVAILABLE`, mai un 500, i no es desa res. Un espai invàlid es descarta i es registra al log.
+- Sense `SPOTWISE_API_TOKEN` es serveix la resposta d'exemple del document de Spotwise (mock, `app/infrastructure/meeting_points/spotwise_examples.json`): en local i a la CI mai es crida Spotwise.
+
+| Variable | Per defecte | Significat |
+|---|---|---|
+| `SPOTWISE_API_TOKEN` | (buida: mock) | Token que Spotwise ens passa per privat. S'envia a la capçalera `Authorization: Token …`, mai a la URL ni als logs. En producció ve del secret de GitHub `SPOTWISE_API_TOKEN`; mai en facis commit. |
+| `SPOTWISE_URL` | `http://nattech.fib.upc.edu:40420` | URL base de Spotwise (Spotwise només serveix HTTP) |
+| `SPOTWISE_TIMEOUT_SECONDS` | `5` | Temps d'espera de cada petició (el que recomana Spotwise) |
+
 ## Quiz diari
 
 Una pregunta d'astrofísica per dia UTC, la mateixa per a tothom, en català, castellà o anglès (TG-60). Contracte: `obsidian_vault/arquitectura/contracte-quiz.md`.
