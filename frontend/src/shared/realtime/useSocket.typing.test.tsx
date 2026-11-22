@@ -39,7 +39,7 @@ describe('ephemeral typing transport (TG-65)', () => {
       await jest.advanceTimersByTimeAsync(0);
     });
     await openSocket();
-    act(() => result.current.sendEphemeral({ type: 'dm.typing', payload }));
+    await act(async () => result.current.sendEphemeral({ type: 'dm.typing', payload }));
     expect(lastSocket().sentOfType('dm.typing')).toEqual([{ type: 'dm.typing', payload }]);
   });
 
@@ -48,7 +48,7 @@ describe('ephemeral typing transport (TG-65)', () => {
     await act(async () => {
       await jest.advanceTimersByTimeAsync(0);
     });
-    act(() => result.current.sendEphemeral({ type: 'dm.typing', payload }));
+    await act(async () => result.current.sendEphemeral({ type: 'dm.typing', payload }));
     await openSocket();
     expect(lastSocket().sentOfType('dm.typing')).toEqual([]);
   });
@@ -60,11 +60,11 @@ describe('ephemeral typing transport (TG-65)', () => {
       await jest.advanceTimersByTimeAsync(0);
     });
     await openSocket();
-    act(() => result.current.sendEphemeral({ type: 'dm.typing', payload }));
+    await act(async () => result.current.sendEphemeral({ type: 'dm.typing', payload }));
     await act(async () => {
       lastSocket().networkFailure();
     });
-    act(() => result.current.sendEphemeral({ type: 'dm.typing', payload }));
+    await act(async () => result.current.sendEphemeral({ type: 'dm.typing', payload }));
     await act(async () => {
       await jest.advanceTimersByTimeAsync(1000);
     });
