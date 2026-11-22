@@ -2,9 +2,9 @@
 titol: "Seguretat: injecció SQL, XSS i dependències"
 tipus: convencio
 estat: vigent
-data: "2026-11-17"
-us: ["TG-45", "TG-89"]
-font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89); revisió de TG-628 (17/11/2026)"
+data: "2026-11-21"
+us: ["TG-45", "TG-89", "TG-338"]
+font: "auditoria de TG-45 (2026-10-21); backend/tests/architecture/test_sql_safety.py; backend/app/infrastructure/api/security_headers.py; frontend/.eslintrc.js; infra/nginx-proxy-manager/security-headers.conf; infra/nginx-proxy-manager/static.conf (TG-89); revisió de TG-628 (17/11/2026); auditoria de les dependències del frontend amb `pnpm audit` sobre el lockfile de develop (TG-338, 21/11/2026)"
 etiquetes: [convencio, seguretat, sql-injection, xss, csp, dependencies]
 ---
 
