@@ -477,6 +477,19 @@ export function subscribePrivate(onFrame: FrameHandler): () => void {
   };
 }
 
+/** Typing is ephemeral: send only on an authenticated, open connection, never queue or retry it. */
+export function sendEphemeral(frame: {
+  type: 'dm.typing';
+  payload: { conversation_id: string; is_typing: boolean };
+}): void {
+  if (!authenticated || !socket || socket.readyState !== WebSocket.OPEN) return;
+  try {
+    sendFrame(frame);
+  } catch {
+    // A socket can close between the readyState check and send. The next event will supersede it.
+  }
+}
+
 /**
  * Sends `frame` and resolves with the server's ack. Until the connection is authenticated the
  * request waits in memory. It rejects with the AppError of a non-retryable `error` frame, with the
