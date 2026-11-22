@@ -27,7 +27,11 @@ class MeetingPointResponse(BaseModel):
         ..., description="Si és apte per a grups; null si ningú l'ha votat"
     )
     distance_m: int = Field(
-        ..., description="Distància en metres des de la ubicació de la petició"
+        ...,
+        description=(
+            "Distància en metres des de la ubicació de la petició arrodonida a "
+            "3 decimals (fins a uns 80 m d'error)"
+        ),
     )
     open_now: bool | None = Field(
         ..., description="Si és obert ara; null si no se'n sap l'horari"
