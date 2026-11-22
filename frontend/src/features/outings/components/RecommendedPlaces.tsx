@@ -26,11 +26,27 @@ export function RecommendedPlaces({ onChoose }: Props) {
   const { colors, radii, spacing, typography } = useTheme();
   const location = useDeviceLocation();
   const { status, request } = location;
-  const points = useMeetingPoints('watch_party', status === 'granted' ? location.position : null);
+  const points = useMeetingPoints('watch_party', location.position);
 
   useEffect(() => {
     if (status === 'idle') void request();
   }, [status, request]);
+
+  // Visual only, not mutated.
+  // Stryker disable all
+  const look = {
+    problem: [typography.caption, { color: colors.state.danger }],
+    empty: [typography.caption, { color: colors.text.secondary }],
+    place: {
+      marginTop: spacing.sm,
+      padding: spacing.sm,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: colors.surface.onGlass,
+    },
+  };
+  // Stryker restore all
 
   let problem: string | null = null;
   if (status === 'denied') problem = t('outings.picker.denied');
@@ -41,7 +57,7 @@ export function RecommendedPlaces({ onChoose }: Props) {
 
   if (problem) {
     return (
-      <Text accessibilityRole="alert" style={[typography.caption, { color: colors.state.danger }]}>
+      <Text accessibilityRole="alert" style={look.problem}>
         {problem}
       </Text>
     );
@@ -57,26 +73,12 @@ export function RecommendedPlaces({ onChoose }: Props) {
     );
   }
   if (points.data.length === 0) {
-    return (
-      <Text style={[typography.caption, { color: colors.text.secondary }]}>
-        {t('meetingPoints.empty')}
-      </Text>
-    );
+    return <Text style={look.empty}>{t('meetingPoints.empty')}</Text>;
   }
   return (
     <View accessibilityRole="list" accessibilityLabel={t('meetingPoints.list.label')}>
       {points.data.slice(0, MAX_PLACES).map((point) => (
-        <View
-          key={point.id}
-          style={{
-            marginTop: spacing.sm,
-            padding: spacing.sm,
-            borderRadius: radii.md,
-            borderWidth: 1,
-            borderColor: colors.surface.glassBorder,
-            backgroundColor: colors.surface.onGlass,
-          }}
-        >
+        <View key={point.id} style={look.place}>
           <MeetingPointRow point={point} onChoose={() => onChoose(point)} />
         </View>
       ))}

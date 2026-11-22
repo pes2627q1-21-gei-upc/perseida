@@ -27,6 +27,13 @@ import { ProfileSwitch } from './ProfileSwitch';
 function LocationMessage({ message, onRetry }: { message: string; onRetry?: () => void }) {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useTheme();
+  // Visual only, not mutated.
+  // Stryker disable all
+  const look = {
+    content: { gap: spacing.md },
+    text: [typography.body, styles.center, { color: colors.text.primary }],
+  };
+  // Stryker restore all
 
   useEffect(() => {
     // Android reads the live region by itself; iOS needs an explicit announcement.
@@ -35,11 +42,8 @@ function LocationMessage({ message, onRetry }: { message: string; onRetry?: () =
 
   return (
     <GlassPanel>
-      <View style={{ gap: spacing.md }}>
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[typography.body, styles.center, { color: colors.text.primary }]}
-        >
+      <View style={look.content}>
+        <Text accessibilityLiveRegion="polite" style={look.text}>
           {message}
         </Text>
         {onRetry ? <GelButton label={t('meetingPoints.location.retry')} onPress={onRetry} /> : null}
@@ -63,7 +67,8 @@ export function MeetingPointsScreen({ eventId }: { eventId: string }) {
   const eventTitle = useEventTitle(eventId);
   const location = useDeviceLocation();
   const { status, request } = location;
-  const points = useMeetingPoints(profile, status === 'granted' ? location.position : null);
+  // The position is only there once it is granted: until then nothing is asked.
+  const points = useMeetingPoints(profile, location.position);
 
   // On opening, and again when the permission was given in the settings (back to `idle`).
   useEffect(() => {
@@ -80,14 +85,22 @@ export function MeetingPointsScreen({ eventId }: { eventId: string }) {
   if (points.isError) listStatus = 'error';
   else if (points.isSuccess) listStatus = 'success';
 
-  // Stryker disable next-line ObjectLiteral: safe areas and reading column, visual only.
-  const column = {
-    maxWidth: readingMaxWidth,
-    gap: spacing.md,
-    paddingTop: barBottom + spacing.md,
-    paddingLeft: insets.left + spacing.md,
-    paddingRight: insets.right + spacing.md,
+  // Visual only: the reading column under the bar, clear of the safe areas. Not mutated.
+  // Stryker disable all
+  const look = {
+    column: [
+      styles.column,
+      {
+        maxWidth: readingMaxWidth,
+        gap: spacing.md,
+        paddingTop: barBottom + spacing.md,
+        paddingLeft: insets.left + spacing.md,
+        paddingRight: insets.right + spacing.md,
+      },
+    ],
+    eventTitle: [typography.bodyStrong, styles.center, { color: colors.text.primary }],
   };
+  // Stryker restore all
 
   return (
     <SkyBackground>
@@ -98,12 +111,8 @@ export function MeetingPointsScreen({ eventId }: { eventId: string }) {
         onLayout={setBarBottom}
       />
       <View style={StyleSheet.absoluteFill}>
-        <View style={[styles.column, column]}>
-          {eventTitle ? (
-            <Text style={[typography.bodyStrong, styles.center, { color: colors.text.primary }]}>
-              {eventTitle}
-            </Text>
-          ) : null}
+        <View style={look.column}>
+          {eventTitle ? <Text style={look.eventTitle}>{eventTitle}</Text> : null}
           {status === 'granted' && <ProfileSwitch value={profile} onChange={setProfile} />}
           {status === 'denied' && <LocationMessage message={t('meetingPoints.location.denied')} />}
           {status === 'unavailable' && (
@@ -135,6 +144,8 @@ export function MeetingPointsScreen({ eventId }: { eventId: string }) {
   );
 }
 
+// Visual styles, not mutated.
+// Stryker disable all
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   column: { width: '100%', alignSelf: 'center' },
