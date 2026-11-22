@@ -30,9 +30,7 @@ from app.domain.chat.models import (
 from app.domain.chat.ports import (
     ChatRepository,
     EventSubscriptions,
-    MessageModerator,
     RepublishGuard,
-    SendRateLimiter,
 )
 from app.domain.realtime.models import Frame, FrameType, room_channel
 from app.domain.shared.errors import (
@@ -40,7 +38,7 @@ from app.domain.shared.errors import (
     ConflictError,
     ValidationError,
 )
-from app.domain.shared.ports import PubSub
+from app.domain.shared.ports import MessageModerator, PubSub, SendRateLimiter
 
 logger = logging.getLogger(__name__)
 
