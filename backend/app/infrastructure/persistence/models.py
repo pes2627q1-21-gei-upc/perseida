@@ -18,6 +18,11 @@ from app.infrastructure.chat.tables import (  # noqa: E402, F401
     ChatMessageRow,
     EventChatRoomRow,
 )
+from app.infrastructure.direct_chat.tables import (  # noqa: E402, F401
+    DirectConversationRow,
+    DirectMessageRow,
+    UserBlockRow,
+)
 from app.infrastructure.events.tables import (  # noqa: E402, F401
     AstronomicalEventRow,
     EventSubscriptionRow,
