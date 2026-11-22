@@ -152,6 +152,37 @@ describe('useMeetingPoints (TG-352)', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
+  describe('freshness, like the 5 minutes of the cache of the backend', () => {
+    const start = new Date('2026-11-22T10:00:00Z');
+    const later = (ms: number) => new Date(start.getTime() + ms);
+
+    afterEach(() => jest.useRealTimers());
+
+    it('does not ask again within 5 minutes, but does once they are over', async () => {
+      jest.useFakeTimers({ now: start, advanceTimers: true });
+      const spy = mockFetch(() => jsonResponse([spotwiseLibrary]));
+      const first = await renderHook(() => useMeetingPoints('study', near), { wrapper });
+      await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+
+      await first.unmount();
+
+      // The screen opens again 4:59 later: the points are still fresh.
+      jest.setSystemTime(later(5 * 60 * 1000 - 1000));
+      const second = await renderHook(() => useMeetingPoints('study', near), { wrapper });
+      await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
+      expect(second.result.current.isStale).toBe(false);
+      expect(spy).toHaveBeenCalledTimes(1);
+
+      await second.unmount();
+
+      // 5:01 later they are stale: opening the screen again asks for them.
+      jest.setSystemTime(later(5 * 60 * 1000 + 1000));
+      const third = await renderHook(() => useMeetingPoints('study', near), { wrapper });
+      await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+      expect(third.result.current.data).toEqual([spotwiseLibrary]);
+    });
+  });
+
   it('does not retry a final error', async () => {
     const spy = mockFetch(() => problemResponse(422, 'VALIDATION_ERROR'));
 
