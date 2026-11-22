@@ -18,6 +18,7 @@ from app.infrastructure.auth.dependencies import build_auth_service
 from app.infrastructure.auth.router import router as auth_router
 from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.chat.router import router as chat_router
+from app.infrastructure.direct_chat.router import router as direct_chat_router
 from app.infrastructure.events.config import EventsSettings
 from app.infrastructure.events.launch_library import LaunchLibraryEventSource
 from app.infrastructure.events.meteor_catalog import MeteorShowerCatalogSource
@@ -160,6 +161,7 @@ def create_app() -> FastAPI:
     app.include_router(outings_router, prefix="/api")
     app.include_router(posts_router, prefix="/api")
     app.include_router(chat_router, prefix="/api")
+    app.include_router(direct_chat_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 
