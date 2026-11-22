@@ -32,6 +32,10 @@ const TAB_BAR_FRAME = { position: 'absolute', borderTopWidth: 1, elevation: 0 } 
  * - Sub-routes (map, apod) hidden from the bar with tabBarButton: () => null. Not href: null,
  *   which in expo-router 58 removes the route and sends router.push('/map') back home.
  */
+function accessibleName(title: string, short: string | undefined): string {
+  return short && short !== title ? `${short}, ${title}` : title;
+}
+
 export default function AppLayout() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -145,10 +149,14 @@ export default function AppLayout() {
             name={item.name}
             options={{
               title: t(item.titleKey),
-              // The bar shows the short label where the title does not fit; the screen reader
-              // reads the full name.
+              // The bar shows the short label where the title does not fit. The accessible name
+              // starts with the visible text and adds the full one (WCAG 2.5.3 Label in Name);
+              // when both read the same it is not repeated.
               tabBarLabel: t(item.shortTitleKey ?? item.titleKey),
-              tabBarAccessibilityLabel: t(item.titleKey),
+              tabBarAccessibilityLabel: accessibleName(
+                t(item.titleKey),
+                item.shortTitleKey && t(item.shortTitleKey),
+              ),
               tabBarButtonTestID: item.testID,
               tabBarIcon: ({ color, focused, size }) => (
                 <IconComponent
