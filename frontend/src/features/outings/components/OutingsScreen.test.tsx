@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import { saveTokens } from '../../auth/tokenStorage';
 import { OutingsScreen } from './OutingsScreen';
 
@@ -32,6 +33,7 @@ const SAFE_AREA = {
 
 let client: QueryClient;
 let fetchSpy: jest.SpyInstance;
+const pending = pendingResponses();
 
 function requestsTo(path: string) {
   return fetchSpy.mock.calls
@@ -58,7 +60,8 @@ beforeEach(async () => {
     .mockImplementation(async () => jsonResponse([myOuting, otherOuting]));
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -83,7 +86,7 @@ describe('OutingsScreen of the person', () => {
   });
 
   it('says it is loading, in a way a screen reader announces', async () => {
-    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen();
 

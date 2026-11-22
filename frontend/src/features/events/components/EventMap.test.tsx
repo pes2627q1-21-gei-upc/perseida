@@ -20,6 +20,7 @@ const MARKERS: MapMarker[] = [
     latitude: 28.5618,
     longitude: -80.577,
     label: 'Falcon 9 launch',
+    kind: 'event',
     category: 'launch',
     active: true,
   },

@@ -26,6 +26,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { readingMaxWidth, useTheme } from '../../../shared/theme';
 import { GlassPanel, QuietButton } from '../../../shared/ui';
+import type { Outing } from '../../outings/api/outings';
+import { useEventTitle } from '../../outings/hooks/useEventTitle';
 import { EventPosts } from '../../posts/components/EventPosts';
 import type { ClassifiedEvent } from '../classifyEvents';
 import { formatEventDateTime, formatEventWhere } from '../formatEvent';
@@ -39,23 +41,29 @@ const ENTER_OFFSET = 24;
 const SIDE_WIDTH = 380;
 
 interface Props {
-  /** The event to show; `null` hides the sheet. */
+  /** The event to show; `null` hides the sheet (unless there is an outing). */
   event: ClassifiedEvent | null;
+  /** An outing to show instead of an event (TG-646). */
+  outing?: Outing | null;
   onClose: () => void;
+  /** Opens the page of the outing. Without it the outing has no button. */
+  onOpenOuting?: (outingId: string) => void;
   /** Opens the outings of the event. Without it the sheet has no button for them. */
   onShowOutings?: (eventId: string) => void;
   /** Wide screens: a panel beside the map instead of a sheet over it. */
   side?: boolean;
-  /** Side panel only: room at the top for the floating bar of the screen. */
-  topInset?: number;
 }
 
 interface BodyProps {
-  event: ClassifiedEvent;
+  event: ClassifiedEvent | null;
+  outing: Outing | null;
+  onOpenOuting?: (outingId: string) => void;
   onClose: () => void;
   onShowOutings?: (eventId: string) => void;
   /** Side panel only: the title, which takes the focus when the panel opens. */
   titleRef?: Ref<ComponentRef<typeof Text>>;
+  /** Side panel: fills the height and the content scrolls inside it. */
+  side?: boolean;
 }
 
 function DateRow({ label, value }: { label: string; value: string }) {
@@ -72,8 +80,34 @@ function DateRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function CloseButton({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('events.sheet.close')}
+      onPress={onClose}
+      style={({ pressed }) => ({
+        width: theme.touch.min,
+        height: theme.touch.min,
+        borderRadius: theme.radii.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: pressed ? theme.colors.surface.onGlass : 'transparent',
+      })}
+    >
+      <X size={theme.iconSizes.md} color={theme.colors.text.primary} />
+    </Pressable>
+  );
+}
+
+type EventBodyProps = Omit<BodyProps, 'event' | 'outing' | 'onOpenOuting'> & {
+  event: ClassifiedEvent;
+};
+
 /** What the summary says: the same in the bottom sheet and in the side panel. */
-function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
+function SheetBody({ event, onClose, onShowOutings, titleRef, side = false }: EventBodyProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { height } = useWindowDimensions();
@@ -82,8 +116,8 @@ function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
   const active = event.status === 'active';
 
   return (
-    <GlassPanel>
-      <View style={{ gap: spacing.md }}>
+    <GlassPanel fill={side}>
+      <View style={[{ gap: spacing.md }, side && styles.fill]}>
         <View style={[styles.header, { gap: spacing.md }]}>
           <EventOrb category={event.category} active={active} />
           <View style={[styles.headerText, { gap: spacing.xs }]}>
@@ -103,25 +137,11 @@ function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
               </Text>
             )}
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('events.sheet.close')}
-            onPress={onClose}
-            style={({ pressed }) => ({
-              width: theme.touch.min,
-              height: theme.touch.min,
-              borderRadius: theme.radii.pill,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: pressed ? colors.surface.onGlass : 'transparent',
-            })}
-          >
-            <X size={theme.iconSizes.md} color={colors.text.primary} />
-          </Pressable>
+          <CloseButton onClose={onClose} />
         </View>
 
         <ScrollView
-          style={{ maxHeight: height * MAX_CONTENT_SHARE }}
+          style={side ? styles.fill : { maxHeight: height * MAX_CONTENT_SHARE }}
           contentContainerStyle={{ gap: spacing.md }}
         >
           <View style={{ gap: spacing.xs }}>
@@ -165,8 +185,84 @@ function SheetBody({ event, onClose, onShowOutings, titleRef }: BodyProps) {
   );
 }
 
+/** What the summary of an outing says (TG-646): when, who organises it and its event. */
+function OutingSheetBody({
+  outing,
+  onClose,
+  onOpenOuting,
+  titleRef,
+  side = false,
+}: Omit<BodyProps, 'event' | 'outing' | 'onShowOutings'> & { outing: Outing }) {
+  const { t, i18n } = useTranslation();
+  const { height } = useWindowDimensions();
+  const { colors, spacing, typography } = useTheme();
+  const eventTitle = useEventTitle(outing.event_id);
+
+  return (
+    <GlassPanel fill={side}>
+      <View style={[{ gap: spacing.md }, side && styles.fill]}>
+        <View style={[styles.header, { gap: spacing.md }]}>
+          <View style={[styles.headerText, { gap: spacing.xs }]}>
+            <Text
+              ref={titleRef}
+              accessibilityRole="header"
+              style={[typography.title, { color: colors.text.primary }]}
+            >
+              {outing.title}
+            </Text>
+            <Text style={[typography.caption, { color: colors.text.secondary }]}>
+              {t('events.outings.kind')}
+            </Text>
+          </View>
+          <CloseButton onClose={onClose} />
+        </View>
+
+        <ScrollView
+          style={side ? styles.fill : { maxHeight: height * MAX_CONTENT_SHARE }}
+          contentContainerStyle={{ gap: spacing.md }}
+        >
+          <View style={{ gap: spacing.xs }}>
+            <DateRow
+              label={t('events.sheet.start')}
+              value={formatEventDateTime(outing.starts_at, i18n.language)}
+            />
+            <DateRow
+              label={t('events.sheet.end')}
+              value={formatEventDateTime(outing.ends_at, i18n.language)}
+            />
+            <DateRow
+              label={t('outings.detail.author')}
+              value={outing.author.display_name ?? t('outings.detail.unknownAuthor')}
+            />
+            {outing.event_id ? (
+              <DateRow
+                label={t('outings.detail.event')}
+                value={eventTitle ?? t('events.outings.linkedEvent')}
+              />
+            ) : null}
+          </View>
+          {outing.description ? (
+            <Text style={[typography.body, { color: colors.text.primary }]}>
+              {outing.description}
+            </Text>
+          ) : null}
+          {onOpenOuting && (
+            <QuietButton label={t('events.outings.open')} onPress={() => onOpenOuting(outing.id)} />
+          )}
+        </ScrollView>
+      </View>
+    </GlassPanel>
+  );
+}
+
+/** An event or an outing, in the same shell. */
+function Body({ event, outing, onOpenOuting, ...rest }: BodyProps) {
+  if (outing) return <OutingSheetBody outing={outing} onOpenOuting={onOpenOuting} {...rest} />;
+  return event ? <SheetBody event={event} {...rest} /> : null;
+}
+
 /** Phones: a sheet from the bottom, over the screen. */
-function BottomSheet({ event, onClose, onShowOutings }: BodyProps) {
+function BottomSheet({ event, outing, onClose, onShowOutings, onOpenOuting }: BodyProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -208,7 +304,13 @@ function BottomSheet({ event, onClose, onShowOutings }: BodyProps) {
           enter,
         ]}
       >
-        <SheetBody event={event} onClose={onClose} onShowOutings={onShowOutings} />
+        <Body
+          event={event}
+          outing={outing}
+          onClose={onClose}
+          onShowOutings={onShowOutings}
+          onOpenOuting={onOpenOuting}
+        />
       </Animated.View>
     </View>
   );
@@ -220,7 +322,7 @@ function BottomSheet({ event, onClose, onShowOutings }: BodyProps) {
  * reader) goes to its title, which announces it; on the web, closing it gives the focus back to
  * where it was, usually the marker (WCAG 2.2: 2.4.3 focus order).
  */
-function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { topInset: number }) {
+function SidePanel({ event, outing, onClose, onShowOutings, onOpenOuting }: BodyProps) {
   const { spacing } = useTheme();
   const insets = useSafeAreaInsets();
   const titleRef = useRef<ComponentRef<typeof Text>>(null);
@@ -241,7 +343,7 @@ function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { to
       heading.tabIndex = -1;
       heading.focus();
     }
-  }, [event.id]);
+  }, [event?.id, outing?.id]);
 
   // Only on close: choosing another marker keeps the panel open and must not move the focus back.
   useEffect(
@@ -271,16 +373,19 @@ function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { to
       testID="event-sheet-side"
       style={{
         width: SIDE_WIDTH,
-        paddingTop: topInset + spacing.md,
-        paddingBottom: spacing.md,
+        paddingTop: insets.top + spacing.md,
+        paddingBottom: insets.bottom + spacing.md,
         paddingRight: insets.right + spacing.md,
       }}
     >
-      <SheetBody
+      <Body
         event={event}
+        outing={outing}
         onClose={onClose}
         onShowOutings={onShowOutings}
+        onOpenOuting={onOpenOuting}
         titleRef={titleRef}
+        side
       />
     </View>
   );
@@ -289,36 +394,38 @@ function SidePanel({ event, onClose, onShowOutings, topInset }: BodyProps & { to
 /**
  * Summary of an event (TG-52, criterion 3): the title, the category, the start and end dates,
  * the summary, where it can be seen and a link to the source (plain https only, opened in the
- * browser), followed by the community posts (TG-628). On phones, a glass sheet from the bottom;
+ * browser), followed by the community posts (TG-628). With an outing it shows the outing instead
+ * (TG-646): its dates, its author, its event and a button to its page. On phones, a glass sheet from the bottom;
  * on wide screens, a panel beside the map.
  * It closes with its button, with Escape (web) or the back button (Android), and on phones
  * also by tapping outside it. No sounds.
  */
-export function EventSheet({ event, onClose, onShowOutings, side = false, topInset = 0 }: Props) {
-  if (side) {
-    return event ? (
-      <SidePanel
-        event={event}
-        onClose={onClose}
-        onShowOutings={onShowOutings}
-        topInset={topInset}
-      />
-    ) : null;
-  }
+export function EventSheet({
+  event,
+  outing = null,
+  onClose,
+  onShowOutings,
+  onOpenOuting,
+  side = false,
+}: Props) {
+  const shown = event !== null || outing !== null;
+  const body = { event, outing, onClose, onShowOutings, onOpenOuting };
+  if (side) return shown ? <SidePanel {...body} /> : null;
   return (
     <Modal
       testID="event-sheet"
-      visible={event !== null}
+      visible={shown}
       transparent
       animationType="none"
       onRequestClose={onClose}
     >
-      {event && <BottomSheet event={event} onClose={onClose} onShowOutings={onShowOutings} />}
+      {shown && <BottomSheet {...body} />}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   root: { flex: 1, justifyContent: 'flex-end' },
   sheet: { width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center' },

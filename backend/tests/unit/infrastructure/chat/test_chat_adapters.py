@@ -33,13 +33,21 @@ async def test_tg446_configured_maximum_checks_cleaned_text_before_rate() -> Non
     service = ChatService(env, env, env, env, env, env, message_max_length=3)
     assert (
         await service.send_message(
-            env.user, env.event, " abc ", client_message_id=uuid.uuid4()
+            env.user,
+            env.event,
+            " abc ",
+            client_message_id=uuid.uuid4(),
+            author_name=None,
         )
     ).text == "abc"
     env.calls.clear()
     with pytest.raises(ValidationError) as exc:
         await service.send_message(
-            env.user, env.event, "abcd", client_message_id=uuid.uuid4()
+            env.user,
+            env.event,
+            "abcd",
+            client_message_id=uuid.uuid4(),
+            author_name=None,
         )
     assert exc.value.code == CHAT_MESSAGE_TOO_LONG
     assert "rate" not in env.calls

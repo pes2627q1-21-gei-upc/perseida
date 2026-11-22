@@ -478,7 +478,7 @@ async def test_tg453_c4_history_is_newest_first_with_the_message_fields(
     assert body["next_cursor"] is None
     first = body["messages"][0]
     assert first["room_id"] == str(room_id)
-    assert first["author_id"] == str(author)
+    assert first["author"]["id"] == str(author)
     assert first["text"] == "segon"
     assert datetime.fromisoformat(first["sent_at"]) == NOW + timedelta(minutes=1)
 
@@ -788,3 +788,162 @@ async def test_tg453_c10_history_and_rooms_still_answer_200_with_redis_down(
     assert [r["id"] for r in rooms.json()] == [str(room_id)]
     assert room.status_code == 200
     assert room.json()["id"] == str(room_id)
+
+
+# --- TG-64 / TG-469: l'autor del missatge exposa id i nom (mai el correu) --------
+
+
+SET_DISPLAY_NAME = text("UPDATE users SET display_name = :name WHERE id = :id")
+
+
+async def set_display_name(
+    connection: AsyncConnection, user_id: uuid.UUID, name: str | None
+) -> None:
+    await connection.execute(SET_DISPLAY_NAME, {"id": user_id, "name": name})
+
+
+async def email_of(client: AsyncClient, headers: dict[str, str]) -> str:
+    response = await client.get("/api/users/me", headers=headers)
+    return str(response.json()["email"])
+
+
+async def test_tg469_history_messages_have_author_id_and_name_and_no_author_id_field(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    headers = await login_headers(client)
+    author = await user_id_of(client, headers)
+    await set_display_name(connection, author, "Ada Lovelace")
+    event_id = await subscribed_event(client, connection, headers)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, author, NOW, "hola")
+
+    response = await client.get(messages_of(event_id), headers=headers)
+
+    [message] = response.json()["messages"]
+    assert response.status_code == 200
+    assert message["author"] == {"id": str(author), "name": "Ada Lovelace"}
+    assert "author_id" not in message
+
+
+async def test_tg469_history_author_name_is_null_without_display_name(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    headers = await login_headers(client)
+    author = await user_id_of(client, headers)
+    await set_display_name(connection, author, None)
+    event_id = await subscribed_event(client, connection, headers)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, author, NOW, "hola")
+
+    response = await client.get(messages_of(event_id), headers=headers)
+
+    [message] = response.json()["messages"]
+    assert message["author"] == {"id": str(author), "name": None}
+
+
+async def test_tg469_history_names_the_other_authors_too_and_never_their_email(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    me, other = await login_headers(client), await login_headers(client)
+    me_id, other_id = await user_id_of(client, me), await user_id_of(client, other)
+    await set_display_name(connection, other_id, "Bob")
+    other_email = await email_of(client, other)
+    my_email = await email_of(client, me)
+    event_id = await subscribed_event(client, connection, me)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, other_id, NOW, "de Bob")
+    await seed_message(connection, room_id, me_id, NOW + timedelta(seconds=1), "meu")
+
+    response = await client.get(messages_of(event_id), headers=me)
+
+    by_text = {m["text"]: m["author"] for m in response.json()["messages"]}
+    assert by_text["de Bob"] == {"id": str(other_id), "name": "Bob"}
+    assert by_text["meu"]["id"] == str(me_id)
+    assert other_email not in response.text
+    assert my_email not in response.text
+
+
+async def test_tg469_history_does_not_leak_the_email_as_name_when_no_display_name(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    headers = await login_headers(client)
+    author = await user_id_of(client, headers)
+    email = await email_of(client, headers)
+    await set_display_name(connection, author, None)
+    event_id = await subscribed_event(client, connection, headers)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, author, NOW, "hola")
+
+    response = await client.get(messages_of(event_id), headers=headers)
+
+    assert email not in response.text
+    assert response.json()["messages"][0]["author"]["name"] is None
+
+
+async def test_tg469_rooms_last_message_has_the_author_id_and_name(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    me, other = await login_headers(client), await login_headers(client)
+    me_id, other_id = await user_id_of(client, me), await user_id_of(client, other)
+    await set_display_name(connection, other_id, "Bob")
+    other_email = await email_of(client, other)
+    event_id = await subscribed_event(client, connection, me)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, me_id, NOW, "antic")
+    await seed_message(
+        connection, room_id, other_id, NOW + timedelta(minutes=1), "ultim"
+    )
+
+    response = await client.get(ROOMS, headers=me)
+
+    [room] = response.json()
+    assert response.status_code == 200
+    assert room["last_message"]["author"] == {"id": str(other_id), "name": "Bob"}
+    assert "author_id" not in room["last_message"]
+    assert other_email not in response.text
+
+
+async def test_tg469_rooms_last_message_author_name_is_null_without_display_name(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    headers = await login_headers(client)
+    me_id = await user_id_of(client, headers)
+    await set_display_name(connection, me_id, None)
+    event_id = await subscribed_event(client, connection, headers)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, me_id, NOW, "hola")
+
+    response = await client.get(ROOMS, headers=headers)
+
+    assert response.json()[0]["last_message"]["author"] == {
+        "id": str(me_id),
+        "name": None,
+    }
+
+
+async def test_tg469_put_room_last_message_has_the_author_id_and_name(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    headers = await login_headers(client)
+    me_id = await user_id_of(client, headers)
+    await set_display_name(connection, me_id, "Ada")
+    event_id = await subscribed_event(client, connection, headers)
+    room_id = await seed_room(connection, event_id)
+    await seed_message(connection, room_id, me_id, NOW, "hola")
+
+    response = await client.put(room_of(event_id), headers=headers)
+
+    last = response.json()["last_message"]
+    assert last["author"] == {"id": str(me_id), "name": "Ada"}
+    assert "author_id" not in last
+
+
+async def test_tg469_the_openapi_message_schema_has_author_and_no_author_id(
+    client: AsyncClient,
+) -> None:
+    response = await client.get("/api/openapi.json")
+
+    schema = response.json()["components"]["schemas"]["ChatMessageResponse"]
+    assert "author" in schema["properties"]
+    assert "author_id" not in schema["properties"]
+    assert "author" in schema["required"]

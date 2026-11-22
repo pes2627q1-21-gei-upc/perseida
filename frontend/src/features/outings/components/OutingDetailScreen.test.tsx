@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { myOuting } from '../../../../__mocks__/outings';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import { saveTokens } from '../../auth/tokenStorage';
 import { OutingDetailScreen } from './OutingDetailScreen';
 
@@ -42,6 +43,7 @@ const SOMEONE_ELSE = { ...ME, id: '01a19288-a3f6-7576-a37b-8929dd7f0999' };
 
 let client: QueryClient;
 let fetchSpy: jest.SpyInstance;
+const pending = pendingResponses();
 let me: () => Response | Promise<Response>;
 let remove: () => Response | Promise<Response>;
 
@@ -85,7 +87,8 @@ beforeEach(async () => {
   });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -101,7 +104,7 @@ describe('OutingDetailScreen', () => {
   });
 
   it('says it is loading', async () => {
-    fetchSpy.mockImplementation(() => new Promise(() => undefined));
+    fetchSpy.mockImplementation(() => pending.neverAnswered());
 
     await renderScreen();
 

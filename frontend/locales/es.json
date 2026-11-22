@@ -4,6 +4,7 @@
     "mediaError": "No se ha podido cargar la imagen o el vídeo.",
     "retry": "Vuelve a intentarlo",
     "retryHint": "Vuelve a cargar el APOD",
+    "title": "Imagen del día",
     "videoLabel": "Vídeo del APOD"
   },
   "auth": {
@@ -13,16 +14,64 @@
     "logoutNotConfirmed": "Se ha cerrado la sesión en este dispositivo, pero no se ha podido confirmar en el servidor.",
     "tagline": "Mira hacia arriba"
   },
+  "chat": {
+    "title": "Chat",
+    "loading": "Cargando salas de chat",
+    "retry": "Inténtalo de nuevo",
+    "retryHint": "Vuelve a cargar las salas de chat",
+    "refresh": "Actualizar",
+    "noMessages": "Todavía no hay mensajes",
+    "unknownAuthor": "Una usuaria de Perseida",
+    "list": {
+      "label": "Salas de chat"
+    },
+    "empty": {
+      "message": "Aún no te has suscrito a ningún evento. Suscríbete a uno para charlar con la comunidad.",
+      "cta": "Explora los eventos"
+    },
+    "you": "Tú",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Enviando",
+      "sending": "Enviando",
+      "failed": "No se ha podido enviar el mensaje.",
+      "uncertain": "Es posible que el mensaje ya se haya enviado. Si lo reintentas, no se duplicará.",
+      "retry": "Reintentar",
+      "discard": "Descartar"
+    },
+    "composer": {
+      "label": "Escribe un mensaje",
+      "send": "Enviar",
+      "counter": "{{count}} de {{max}} caracteres",
+      "tooLong": "El mensaje puede tener como máximo {{max}} caracteres."
+    },
+    "messages": {
+      "label": "Mensajes del chat",
+      "loadingOlder": "Cargando mensajes anteriores"
+    },
+    "room": {
+      "title": "Chat del evento",
+      "loading": "Cargando mensajes",
+      "retryHint": "Vuelve a abrir la sala de chat",
+      "empty": "Aún no hay mensajes. ¡Sé la primera persona en escribir!",
+      "revoked": "Ya no formas parte de este chat. Suscríbete al evento para volver a escribir.",
+      "backToRooms": "Volver a las salas",
+      "reconnecting": "Reconectando…",
+      "reconnect": "Reconectar",
+      "newMessage": "Mensaje nuevo de {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Conectando con el chat…",
+        "reconnecting": "Se ha perdido la conexión. Podrás enviar cuando se recupere.",
+        "closed": "No hay conexión con el chat."
+      }
+    }
+  },
   "common": {
     "back": "Volver"
   },
   "comingSoon": {
     "badge": "Próximamente",
-    "chatDesc": "Un espacio en tiempo real para compartir observaciones, fotos y encuentros astronómicos.",
-    "chatTitle": "Comunidad y chat",
-    "eventsDesc": "Muy pronto podrás consultar lluvias de estrellas, eclipses y fenómenos celestes directamente desde aquí.",
-    "eventsMapButton": "Abrir el mapa de eventos",
-    "eventsTitle": "Eventos astronómicos",
     "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
     "gamificationTitle": "Gamificación y retos"
   },
@@ -66,7 +115,14 @@
     "OUTING_STARTS_IN_PAST": "La salida no puede empezar en el pasado.",
     "OUTING_EVENT_NOT_FOUND": "Este evento ya no existe.",
     "OUTING_NOT_FOUND": "Esta salida no existe o se ha borrado.",
-    "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla."
+    "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla.",
+    "FORBIDDEN": "No tienes permiso para hacer esto.",
+    "RATE_LIMITED": "Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo.",
+    "NOT_SUBSCRIBED": "Primero debes unirte a la sala.",
+    "PUBSUB_UNAVAILABLE": "El chat no está disponible ahora mismo. Inténtalo de nuevo.",
+    "VALIDATION_ERROR": "Revisa los datos introducidos.",
+    "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
+    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala."
   },
   "events": {
     "category": {
@@ -80,13 +136,15 @@
       "all": "No hay eventos activos ni en los próximos 30 días.",
       "noLocation": "Ninguno de estos eventos tiene una ubicación en el mapa.",
       "showList": "Ver la lista",
-      "upcoming": "No hay eventos en los próximos 30 días."
+      "upcoming": "No hay eventos en los próximos 30 días.",
+      "outings": "No hay salidas próximas."
     },
     "filter": {
       "active": "Activos",
       "all": "Todos",
       "label": "Mostrar",
-      "upcoming": "Futuros"
+      "upcoming": "Futuros",
+      "outings": "Salidas"
     },
     "list": {
       "label": "Lista de eventos"
@@ -123,6 +181,31 @@
       "label": "Vista",
       "list": "Lista",
       "map": "Mapa"
+    },
+    "outings": {
+      "kind": "Salida",
+      "open": "Abre la salida",
+      "linkedEvent": "Evento relacionado"
+    },
+    "search": {
+      "categories": "Categorías",
+      "range": {
+        "label": "Período",
+        "days7": "7 días",
+        "days30": "30 días",
+        "days90": "90 días"
+      },
+      "near": {
+        "label": "Cerca de mí",
+        "locating": "Buscando tu ubicación…",
+        "denied": "Sin permiso de ubicación no se puede filtrar por proximidad. Puedes activarlo en los ajustes del dispositivo.",
+        "unavailable": "No se ha podido obtener tu ubicación. Comprueba que la localización está activada y vuelve a intentarlo."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} evento",
+      "results_other": "{{count}} eventos",
+      "empty": "No hay eventos con estos filtros.",
+      "openMap": "Abrir el mapa"
     }
   },
   "home": {
@@ -136,7 +219,11 @@
     "events": "Eventos",
     "gamification": "Gamificación",
     "home": "Inicio",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "short": {
+      "events": "Eventos",
+      "gamification": "Logros"
+    }
   },
   "profile": {
     "achievements": {

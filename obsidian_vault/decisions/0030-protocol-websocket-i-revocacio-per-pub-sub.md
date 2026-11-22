@@ -2,9 +2,9 @@
 titol: "ADR-0030: Protocol WebSocket i revocació de sessió per pub/sub"
 tipus: adr
 estat: acceptada
-data: "2026-11-19"
-us: ["TG-63", "TG-64", "TG-654"]
-font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime; aprovació de la PR 78; Taiga: issue TG-654 (idempotència i reintents del xat, 2026-11-19)"
+data: "2026-11-21"
+us: ["TG-63", "TG-64", "TG-654", "TG-469"]
+font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime; aprovació de la PR 78; Taiga: issue TG-654 (idempotència i reintents del xat, 2026-11-19); TG-469 (autor {id, name} al missatge del xat, 2026-11-21)"
 etiquetes: [adr, backend, websocket, redis, pubsub, seguretat]
 ---
 
@@ -46,10 +46,11 @@ El xat d'esdeveniment (#64) ha afegit un punt d'extensió sense canviar el proto
 - **`FORBIDDEN` el donen els handlers de sala.** Subscriure's o enviar un `message` sense estar subscrit a l'esdeveniment és `FORBIDDEN`, i el handler decideix abans del `NOT_SUBSCRIBED` genèric. La connexió continua oberta.
 - **`message` exigeix haver-se unit a la sala.** En una sala amb handler, un `message` d'una connexió que no ha fet `subscribe` a la sala rep `NOT_SUBSCRIBED` (409) i no es desa ni es difon res. Qui no pot unir-se continua rebent `FORBIDDEN`: la sessió pregunta primer al handler amb `subscribe` (el mateix permís que per unir-se) i només si l'accepta respon `NOT_SUBSCRIBED`. Després d'un `unsubscribe` també cal tornar a unir-se. Canvi de contracte respecte de la primera versió, on n'hi havia prou amb ser subscriptor de l'esdeveniment.
 - **Errors de sala.** Qualsevol `DomainError`/`ApplicationError` d'un handler passa al frame `error` amb el seu `code` si és al catàleg (nous: `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG`, `CHAT_MESSAGE_REJECTED`, `CHAT_ROOM_NOT_FOUND`, `EVENT_NOT_FOUND`, `DATABASE_UNAVAILABLE`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`, `ACCOUNT_DELETED`); un `ExternalServiceError` desconegut és `PUBSUB_UNAVAILABLE` i la resta `INTERNAL_ERROR`. El missatge cru de l'excepció no arriba mai al client: el `detail` és el títol HTTP genèric i el text localitzat surt del `code`. Una excepció inesperada d'un handler (un bug) també respon `INTERNAL_ERROR` (amb avís al log) sense tancar la connexió; `ConnectionClosed` i `CancelledError` no s'hi capturen.
-- **Ack amb dades.** En una sala amb handler, l'ack d'un `message` porta `payload = {id, sent_at}` del missatge desat (en lloc de `{}`); el difós als altres és el DTO complet (`id`, `room_id`, `author_id`, `text`, `sent_at`) publicat pel servei, que és qui desa, modera i difon (la sessió no republica).
+- **Ack amb dades.** En una sala amb handler, l'ack d'un `message` porta `payload = {id, sent_at}` del missatge desat (en lloc de `{}`); el difós als altres és el DTO complet (`id`, `room_id`, `author {id, name}`, `text`, `sent_at`; `author.name` és el nom del perfil de qui envia, o `null` si no en té, i el correu no hi surt mai) publicat pel servei, que és qui desa, modera i difon (la sessió no republica).
 - **`origin`.** El servei posa l'id de la connexió emissora a `from` del sobre (`ChatService.send_message(..., origin=conn_id)`), de manera que la sessió emissora no fa eco del seu missatge; amb `origin=None` el sobre no té emissor.
 - **Sala perduda: `unsubscribe` del servidor.** Quan un usuari es dona de baixa de l'esdeveniment (`DELETE /api/events/{id}/subscription`), `SubscriptionService.unsubscribe(user_id, event_id, *, google_sub)` desa la baixa i després publica `{"room": "chat:event:<id>"}` a `room-revoked:<google_sub>` (via `PubSub`; el router passa `session.sub`). Cada connexió s'hi subscriu en autenticar-se: si és unida a la sala, la deixa i envia al client `{"type":"unsubscribe","room":...,"payload":{}}` sense tancar el socket ni tocar altres sales o usuaris; un `room` absent, no text o no unit s'ignora. Un `message` posterior és `FORBIDDEN` (el handler ja no el deixa unir-se) o `NOT_SUBSCRIBED` en una sala sense permís al handler. Si la publicació falla, la baixa es manté, es registra un avís i no es propaga: la connexió conservaria la unió i el handler ja refusa els seus `message` (`FORBIDDEN`), però continuaria rebent els missatges de la sala fins que es reconnecti. El **catàleg de frames** admet doncs que el servidor enviï `unsubscribe` (a més de l'eco de l'ack). Cada connexió té un canal pub/sub més (`room-revoked:<sub>`): fins a `WS_MAX_ROOMS + 2` per socket.
 - El `sub` de la sessió és el `google_sub`: el handler resol l'usuari amb `UserService.get_profile`, com el REST.
+- **Client (TG-64, TG-469):** el client tracta l'ack de `subscribe` com el moment en què la subscripció és activa (el servidor només l'envia quan ho és) i posa l'historial al dia amb cada ack (primera unió, reunió i reconnexió), no en obrir la connexió: demanar-lo en obrir podria perdre missatges publicats abans que la subscripció fos activa.
 
 ## Actualització (TG-654)
 

@@ -1,18 +1,25 @@
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import { ApodStatus } from '../../features/apod/components/ApodStatus';
 import { ApodView } from '../../features/apod/components/ApodView';
 import { useApodToday } from '../../features/apod/hooks/useApodToday';
-import { SkyBackground } from '../../shared/ui';
+import { SkyBackground, TopBar } from '../../shared/ui';
 
 /**
  * Today's APOD (TG-48). The page only orchestrates: data comes from the hook.
  * Retrying after an error shows the loading state again until the new answer arrives.
  */
 export default function ApodScreen() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [barBottom, setBarBottom] = useState(0);
   const { data, error, isFetching, refetch } = useApodToday();
 
   let content;
   if (data) {
-    content = <ApodView apod={data} />;
+    content = <ApodView apod={data} topInset={barBottom} />;
   } else if (error && !isFetching) {
     const onRetry = error.retryable ? () => void refetch() : undefined;
     content = <ApodStatus state="error" code={error.code} onRetry={onRetry} />;
@@ -20,5 +27,22 @@ export default function ApodScreen() {
     content = <ApodStatus state="loading" />;
   }
 
-  return <SkyBackground>{content}</SkyBackground>;
+  function goBack() {
+    // Opened from a link there is nowhere to go back to: go home instead.
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }
+
+  return (
+    <SkyBackground>
+      {/* First in the tree so the reading and Tab order match the visual one (WCAG 1.3.2, 2.4.3). */}
+      <TopBar
+        title={t('apod.title')}
+        testID="apod-top-bar"
+        onBack={goBack}
+        onLayout={setBarBottom}
+      />
+      {content}
+    </SkyBackground>
+  );
 }
