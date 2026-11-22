@@ -9,6 +9,16 @@ Reps els comentaris d'una review de la teva PR i els atens amb criteri tècnic, 
 
 Segueix `AGENTS.md` i la skill `vault-context`. Protocol de dubtes: si un comentari és ambigu o dues solucions són raonables, **pregunta a la persona** (agrupat, amb opcions i recomanació).
 
+## Una PR o un stack de PR
+
+La teva PR pot ser una capa d'un **stack de PR apilades** (`gh stack`; vegeu `obsidian_vault/guies/pr-apilades-amb-gh-stack.md`) i els comentaris poden arribar a diverses PR del mateix stack. Si és així:
+
+- **Recull els comentaris de totes les PR de l'stack** (`gh pr view <PR> --comments` per a cadascuna) i presenta la taula `PR → comentari → decisió → motiu`.
+- **Cada canvi va a la branca de la PR a la qual pertany el codi**, no a la de dalt de tot. Un canvi a una capa inferior pot trencar les de damunt: després, rebasa en cascada (`gh stack rebase`) i torna a executar lint, tipus i tests **a cada capa afectada**, no només a la que has tocat.
+- No reordenis ni plegis commits ni capes per fer-ho més net (`gh stack modify` canvia l'historial i les PR): si calia reestructurar l'stack, pregunta-ho.
+- Un comentari a una capa pot demanar una cosa que ja fa una capa de damunt, o que és d'una altra capa: respon amb la referència a la PR concreta.
+- `gh stack push`/`submit` com `git push`: només si la persona ho demana explícitament.
+
 ## Passos
 
 1. **Obtén els comentaris.** Accés a GitHub: `.agents/skills/revisar-pr/references/verificacio-pr.md` (`gh` → suggerir instal·lar-lo → MCP de GitHub → que la persona els enganxi).

@@ -71,6 +71,19 @@ describe('Locales of the chat (TG-469)', () => {
     'list.label',
     'empty.message',
     'empty.cta',
+    // The room (TG-469).
+    'you',
+    'message.label',
+    'message.sending',
+    'message.failed',
+    'message.uncertain',
+    'message.retry',
+    'composer.label',
+    'composer.send',
+    'composer.counter',
+    'composer.tooLong',
+    'messages.label',
+    'messages.loadingOlder',
   ];
 
   const languages = { ca, es, en } as unknown as Record<
@@ -124,5 +137,58 @@ describe('Texts of the chat errors that cannot be retried (TG-469)', () => {
         expect(text).toMatch(reopens[language]);
       },
     );
+  });
+});
+
+describe('Texts of the chat room (TG-469)', () => {
+  type Chat = Record<string, unknown>;
+  const chat = { ca, es, en } as unknown as Record<'ca' | 'es' | 'en', { chat: Chat }>;
+  /** Every leaf of the chat texts as `path -> text`. */
+  const leaves = (node: Chat, prefix = ''): [string, string][] =>
+    Object.entries(node).flatMap(([key, value]) =>
+      typeof value === 'object' && value !== null
+        ? leaves(value as Chat, `${prefix}${key}.`)
+        : [[`${prefix}${key}`, String(value)] as [string, string]],
+    );
+  const placeholders = (text: string) => (text.match(/{{\w+}}/g) ?? []).sort();
+
+  it('has the same keys in ca, es and en', () => {
+    const keys = (language: 'ca' | 'es' | 'en') =>
+      leaves(chat[language].chat)
+        .map(([path]) => path)
+        .sort();
+
+    expect(keys('es')).toEqual(keys('ca'));
+    expect(keys('en')).toEqual(keys('ca'));
+  });
+
+  it.each(leaves(ca.chat as Chat))(
+    'chat.%s keeps the same {{placeholders}} in es and en',
+    (path, text) => {
+      const at = (language: 'es' | 'en') =>
+        leaves(chat[language].chat).find(([candidate]) => candidate === path)?.[1] ?? '';
+
+      expect(placeholders(at('es'))).toEqual(placeholders(text));
+      expect(placeholders(at('en'))).toEqual(placeholders(text));
+    },
+  );
+
+  it('has the Catalan texts the room shows', () => {
+    const texts = Object.fromEntries(leaves(ca.chat as Chat));
+
+    expect(texts).toMatchObject({
+      you: 'Tu',
+      'message.label': '{{author}}, {{time}}: {{text}}',
+      'message.sending': 'Enviant',
+      'message.failed': "No s'ha pogut enviar el missatge.",
+      'message.retry': 'Reintenta',
+      'composer.label': 'Escriu un missatge',
+      'composer.send': 'Envia',
+      'composer.counter': '{{count}} de {{max}} caràcters',
+      'composer.tooLong': 'El missatge pot tenir com a màxim {{max}} caràcters.',
+      'messages.label': 'Missatges del xat',
+      'messages.loadingOlder': 'Carregant missatges anteriors',
+    });
+    expect(texts['message.uncertain']).toMatch(/ja s'hagi enviat/i);
   });
 });

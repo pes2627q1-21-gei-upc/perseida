@@ -2,9 +2,9 @@
 titol: "GitFlow i política de pull requests"
 tipus: convencio
 estat: vigent
-data: "2026-11-18"
-us: ["TG-85", "TG-33", "TG-353", "TG-652"]
-font: "memòria §2.2; TG-652 (CI cancel·lada per temps a TG-646)"
+data: "2026-11-22"
+us: ["TG-85", "TG-33", "TG-353", "TG-652", "TG-64", "TG-469"]
+font: "memòria §2.2; TG-652 (CI cancel·lada per temps a TG-646); PR apilades amb gh stack: convenció aprovada per Oriol Orbea (22/11/2026, TG-64/TG-469, vegeu la guia pr-apilades-amb-gh-stack)"
 etiquetes: [convencio, git, gitflow, pull-requests]
 ---
 
@@ -20,7 +20,7 @@ Tot el projecte viu en un únic monorepo a GitHub i segueix GitFlow. Cap canvi a
 |---|---|---|---|
 | `main` | permanent | | Codi en producció; cada canvi que hi arriba dispara el desplegament continu (CD). |
 | `develop` | permanent | | Integració; les PR cap aquí disparen la CI i no es completen fins que és verda. |
-| `feature/*` | `develop` | `develop` | Com a màxim una US completa. |
+| `feature/*` | `develop`; en una pila de PR apilades ([[pr-apilades-amb-gh-stack]]), la `feature/*` anterior de la pila | `develop`, o la branca anterior de la pila (la primera PR apunta a `develop`) | Com a màxim una US completa. |
 | `release/*` | `develop` | `main` i després `develop` | Una per sprint, abans de la sprint review; només bugfixes, documentació i canvis de versió. La talla el Scrum Master de l'sprint. |
 | `hotfix/*` | `main` | `main`, `develop` i la `release/*` oberta (si n'hi ha) | Errors urgents en producció. |
 
