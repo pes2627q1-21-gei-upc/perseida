@@ -274,6 +274,8 @@ To run a local Redis: `docker run -d --name perseida-redis -p 6379:6379 redis:8`
 
 **Key convention:** callers use `<domain>:<id>` and the adapter stores it as `cache:<domain>:<id>`, e.g. `cache:apod:2026-10-05`. Each feature chooses its own TTL.
 
+**Chat keys:** `ratelimit:chat:<user_id>` and `chat:republished:<author_id>:<client_message_id>`, and channel `room:chat:event:<event_id>` (see [Event chat](#event-chat)).
+
 **Pub/sub:** `async with pubsub.subscribe(channel) as messages:` yields the messages published after entering the block; every subscriber of the channel receives each message and other channels do not. A Redis failure raises `ExternalServiceError` (`PUBSUB_UNAVAILABLE`, HTTP 503).
 
 Integration tests (`tests/integration/test_redis.py`) run when `REDIS_HOST` is set; the CI provides Redis 8.
@@ -376,7 +378,7 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 
 ## WebSocket (real time)
 
-`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The concrete rooms belong to the features that use it (US #64 and #65).
+`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The event chat rooms are described in [Event chat](#event-chat); the direct-chat rooms belong to US #65.
 
 **Handshake and auth.** The handshake takes no token or query parameter. The first frame must be `{"type":"auth","token":"<access token>"}`; if it is valid and not revoked, the server answers `{"type":"auth","payload":{}}`. Any other first frame, an invalid, expired, refresh or revoked token, or no frame within `WS_AUTH_TIMEOUT_SECONDS` closes with 4401. The token never appears in the URL or the logs. The endpoint calls `AuthService.authenticate` directly (`CurrentSessionDep` uses `HTTPBearer`, which does not work over WebSocket).
 
@@ -409,6 +411,42 @@ Subscribing to a new room past `WS_MAX_ROOMS` is answered with the `RATE_LIMITED
 In the container, uvicorn enforces `WS_MAX_FRAME_BYTES` before the application receives a message and closes oversized messages with code 1009; the application-level errors described above apply when a server does not enforce that limit first.
 
 `uvicorn` needs a WebSocket library (`websockets`, pinned in `pyproject.toml`); without one it answers the handshake with 404. `tests/integration/test_websocket_uvicorn.py` checks the 101 against a real server. Other tests: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) and `tests/integration/test_websocket_redis.py` (real Redis, two clients, revocation and Redis down through a cuttable TCP proxy).
+
+## Event chat
+
+Chat per astronomical event ([ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md), component note [chat](../obsidian_vault/arquitectura/components/chat.md)): one room per event (0..1, created on demand), only for users subscribed to the event. Messages are stored in PostgreSQL and fanned out in real time over the WebSocket. Sending goes through the WebSocket; the REST API gives the rooms and the history. All endpoints need a session; without a subscription to the event they answer `403 FORBIDDEN`.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/chat/rooms` | Rooms of the events the user is subscribed to, each with its latest message (or `null`), newest first. The app builds its room list from this plus `GET /api/me/subscriptions` |
+| `PUT /api/events/{event_id}/chat/room` | Opens the room of the event (creates it if needed); idempotent, always 200. 404 `EVENT_NOT_FOUND` |
+| `GET /api/events/{event_id}/chat/messages` | History page, newest first. `limit` 1 to 50 (50 by default) and `before` (the opaque `next_cursor` of the previous page). 422 `CHAT_INVALID_LIMIT` or `CHAT_INVALID_CURSOR` |
+
+Every message has `id`, `room_id`, `author {id, name}`, `text` (already cleaned by the server) and `sent_at`; `author.name` is the profile name (it may be `null`) and never the email.
+
+**WebSocket room.** `chat:event:<event_id>` (the UUID in canonical form), on Redis channel `room:chat:event:<event_id>`. The client sends `subscribe` and then `message` with `payload {"text": "...", "client_message_id": "<UUID>"}`; the `client_message_id` (canonical UUID, generated once per message and reused in every retry) is required. The server answers with the ack `{id, sent_at}` of the stored message and sends the full message to the other subscribers of the room (the sender does not receive it again). Errors: `VALIDATION_ERROR`, `NOT_SUBSCRIBED`, `FORBIDDEN`, `RATE_LIMITED`, `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG` (max 1000 characters once cleaned), `CHAT_MESSAGE_REJECTED`, `CHAT_IDEMPOTENCY_CONFLICT` (same key with another room or text) and `PUBSUB_UNAVAILABLE` (the message is stored but could not be published; retrying with the same key publishes it again). When the user unsubscribes from the event, the server sends an `unsubscribe` frame for the room.
+
+**Flow of a message.** Event and subscription check, text cleaning, idempotency check, rate limit, moderation, storage, publication, ack; it stops at the first failure. The moderator is provisional (it approves everything) until #81.
+
+| Variable | Meaning |
+|---|---|
+| `CHAT_RATE_LIMIT_MESSAGES` | Messages allowed per user and window (10 by default) |
+| `CHAT_RATE_LIMIT_WINDOW_SECONDS` | Window in seconds (10 by default) |
+| `CHAT_MESSAGE_MAX_LENGTH` | Maximum length of a message, 1 to 1000 (1000 by default) |
+
+**Redis keys and channels.** `ratelimit:chat:<user_id>` (fixed-window counter, TTL = the window), `chat:republished:<author_id>:<client_message_id>` (10 s, so a retry of a stored message is not fanned out again in a loop) and channel `room:chat:event:<event_id>`.
+
+**Try it locally.**
+
+```bash
+cd infra && docker compose up -d db cache   # PostgreSQL and Redis (ports published by docker-compose.override.yml)
+cd ../backend
+cp .env.example .env                        # POSTGRES_HOST and REDIS_HOST are localhost; fill in the secrets
+uv run alembic upgrade head                 # create the tables (event_chat_rooms, chat_messages, ...)
+uv run uvicorn app.main:app --reload        # API at http://127.0.0.1:8000/api/docs, WebSocket at ws://127.0.0.1:8000/api/ws
+```
+
+Sign in (`POST /api/auth/google`), subscribe to an event (`PUT /api/events/{event_id}/subscription`), open the room (`PUT /api/events/{event_id}/chat/room`) and connect a WebSocket client to `/api/ws`: first frame `{"type":"auth","token":"<access token>"}`, then `{"type":"subscribe","room":"chat:event:<event_id>","payload":{},"id":"1"}` and a `message` frame in the same room with `payload {"text":"Hello","client_message_id":"<UUID>"}` and a new `id`.
 
 ## Testing and quality
 

@@ -82,7 +82,7 @@ Detalles: [infraestructura](infra/README.es.md) · [arquitectura del backend](ba
 
 Requisitos: [Docker](https://docs.docker.com/get-docker/), [`uv`](https://docs.astral.sh/uv/) (instala Python 3.14 solo), Node.js con [`pnpm`](https://pnpm.io) (versión fijada en `frontend/package.json`) y, para el móvil, Android Studio/SDK o la app Expo Go (sin inicio de sesión con Google).
 
-1. **Clonar y rama.** `git clone` del repositorio y crea `feature/*` desde `develop` (ver [Flujo de trabajo](#flujo-de-trabajo-y-convenciones)).
+1. **Clonar y rama.** `git clone` del repositorio y crea `feature/*` desde `develop` (o, en una pila de PR apiladas con `gh stack`, desde la `feature/*` anterior; ver [Flujo de trabajo](#flujo-de-trabajo-y-convenciones)).
 2. **Base de datos y caché.** Desde `infra/`: `cp .env.example .env`, rellena los valores locales (nunca hagas commit de `.env`) y ejecuta `docker compose up -d db cache` (o todo el stack con `docker compose up -d --build`; ver el [README de infra](infra/README.es.md)).
 3. **Backend.** Desde `backend/`: `cp .env.example .env` (con `POSTGRES_HOST=localhost`), `uv sync`, `uv run alembic upgrade head` y `uv run uvicorn app.main:app --reload`. La API queda en `http://127.0.0.1:8000/api/docs`. Detalle y comprobaciones: [README del backend](backend/README.es.md).
 4. **Frontend.** Desde `frontend/`: `cp .env.example .env`, define `EXPO_PUBLIC_API_BASE_URL` (emulador Android: `http://10.0.2.2:8000`; móvil físico: la IP LAN de tu ordenador) y, para el inicio de sesión con Google, los client ids `EXPO_PUBLIC_GOOGLE_*` (valores públicos, en las *Actions variables* de GitHub). Después `pnpm install --frozen-lockfile` y `pnpm expo start` (o `pnpm web`).

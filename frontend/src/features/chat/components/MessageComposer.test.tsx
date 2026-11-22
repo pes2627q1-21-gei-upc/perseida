@@ -1,7 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import { AppError } from '../../../shared/errors';
 import { MessageComposer } from './MessageComposer';
 
 /** Same limit as the server (code points); the server stays the real check. */
@@ -23,6 +22,7 @@ describe('MessageComposer (TG-469)', () => {
     await render(<MessageComposer onSend={jest.fn()} />);
 
     expect(field().props.multiline).toBe(true);
+    expect(screen.getByPlaceholderText(LABEL)).toBe(field());
     expect(screen.getByLabelText('0 de 1000 caràcters')).toHaveTextContent('0/1000');
   });
 
@@ -116,18 +116,6 @@ describe('MessageComposer (TG-469)', () => {
       expect(screen.getByLabelText('0 de 1000 caràcters')).toBeOnTheScreen();
     });
 
-    it('keeps the text when sending is rejected, so nothing typed is lost', async () => {
-      const onSend = jest.fn().mockRejectedValue(new Error('no'));
-      await render(<MessageComposer onSend={onSend} />);
-      await type('Hola');
-
-      await fireEvent.press(sendButton());
-
-      await waitFor(() => expect(onSend).toHaveBeenCalled());
-      expect(field().props.value).toBe('Hola');
-      await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
-    });
-
     it('empties the field once the text is sent, if nothing changed meanwhile', async () => {
       let finish: () => void = () => undefined;
       const onSend = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
@@ -182,6 +170,43 @@ describe('MessageComposer (TG-469)', () => {
       await waitFor(() => expect(field().props.value).toBe(''));
     });
 
+    it('does not send twice when two taps land before the screen updates', async () => {
+      const onSend = jest.fn(() => new Promise<void>(() => undefined));
+      await render(<MessageComposer onSend={onSend} />);
+      await type('Hola');
+      const button = sendButton();
+
+      // Both activations reach the button in the same frame: it is not disabled yet.
+      await act(async () => {
+        button.props.onClick({});
+        button.props.onClick({});
+      });
+
+      expect(onSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('is busy and cannot send again while its message is on its way', async () => {
+      await render(<MessageComposer onSend={() => new Promise<void>(() => undefined)} />);
+      await type('Hola');
+
+      await fireEvent.press(sendButton());
+
+      expect(sendButton().props.accessibilityState).toMatchObject({ busy: true, disabled: true });
+    });
+
+    it('can send the next message once the first one went through', async () => {
+      const onSend = jest.fn().mockResolvedValue(undefined);
+      await render(<MessageComposer onSend={onSend} />);
+      await type('Primer');
+      await fireEvent.press(sendButton());
+      await waitFor(() => expect(field().props.value).toBe(''));
+
+      await type('Segon');
+      await fireEvent.press(sendButton());
+
+      expect(onSend).toHaveBeenNthCalledWith(2, 'Segon');
+    });
+
     it('is busy while the parent says so, and cannot send', async () => {
       const onSend = jest.fn();
       await render(<MessageComposer onSend={onSend} busy />);
@@ -207,25 +232,10 @@ describe('MessageComposer (TG-469)', () => {
       expect(onSend).not.toHaveBeenCalled();
     });
 
-    it('shows the error of the send in an alert, in the language of the app', async () => {
-      const error = new AppError({
-        kind: 'http',
-        code: 'CHAT_MESSAGE_REJECTED',
-        status: 422,
-        retryable: false,
-      });
+    it('says nothing and has no live region while it can send', async () => {
+      await render(<MessageComposer onSend={jest.fn()} />);
 
-      await render(<MessageComposer onSend={jest.fn()} error={error} />);
-
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat.',
-      );
-    });
-
-    it('shows no alert without an error', async () => {
-      await render(<MessageComposer onSend={jest.fn()} error={null} />);
-
-      expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+      expect(JSON.stringify(screen.toJSON())).not.toContain('accessibilityLiveRegion');
     });
   });
 

@@ -185,3 +185,71 @@ describe('MessageBubble, message that did not go (TG-469)', () => {
     expect(style.minHeight).toBeGreaterThanOrEqual(48);
   });
 });
+
+describe('MessageBubble, what it holds (TG-469)', () => {
+  /** The texts drawn inside the bubble, in order (an empty one would still take room). */
+  function textsOf(key: string) {
+    return bubble(key)
+      .children.filter((child) => typeof child !== 'string' && child.type === 'Text')
+      .map((child) => (typeof child === 'string' ? child : child.props.children));
+  }
+
+  it('a message of the history holds its text and its time, and the name only when shown', async () => {
+    const item = messageItem({ showAuthor: false });
+    const { rerender } = await render(<MessageBubble item={item} />);
+
+    expect(textsOf(item.key)).toStrictEqual(['Missatge 1', TIME]);
+
+    await rerender(<MessageBubble item={{ ...item, showAuthor: true }} />);
+
+    expect(textsOf(item.key)).toStrictEqual(['Laia', 'Missatge 1', TIME]);
+  });
+
+  it('a message that did not go holds only its text: it has no time yet', async () => {
+    await render(<MessageBubble item={pendingItem('failed')} onRetry={jest.fn()} />);
+
+    expect(textsOf('client-1')).toStrictEqual(['Hola a tothom']);
+  });
+
+  it.each(['failed', 'uncertain'] as const)(
+    '%s: is read as «Tu: text», without saying it is being sent',
+    async (status) => {
+      await render(<MessageBubble item={pendingItem(status)} onRetry={jest.fn()} />);
+
+      expect(bubble('client-1')).toHaveAccessibleName('Tu: Hola a tothom');
+    },
+  );
+
+  it('a message on its way says nothing went wrong and offers no retry, even with one at hand', async () => {
+    await render(
+      <MessageBubble item={pendingItem('sending')} onRetry={jest.fn()} onDiscard={jest.fn()} />,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+    expect(screen.queryByTestId('chat-message-problem-icon')).not.toBeOnTheScreen();
+  });
+
+  it.each([
+    ['failed', "No s'ha pogut enviar el missatge."],
+    ['uncertain', /ja s'hagi enviat/i],
+  ] as const)('%s: reads out on iOS why it did not go', async (status, said) => {
+    // jest-expo already mocks it: spying on it keeps the calls of earlier tests.
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+
+    await render(<MessageBubble item={pendingItem(status)} onRetry={jest.fn()} />);
+
+    expect(announce).toHaveBeenCalledWith(expect.stringMatching(said));
+  });
+
+  it('reads nothing out for a message on its way or one of the history', async () => {
+    // jest-expo already mocks it: spying on it keeps the calls of earlier tests.
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+
+    await render(<MessageBubble item={pendingItem('sending')} />);
+    await render(<MessageBubble item={messageItem()} />);
+
+    expect(announce).not.toHaveBeenCalled();
+  });
+});

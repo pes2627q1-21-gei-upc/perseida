@@ -1,6 +1,12 @@
 import type { ChatMessage } from './api/chat';
 import { dateTimeFormat } from './dateFormat';
 
+/** Why the server refused a message, as the bubble needs it: its code and whether a retry can work. */
+export interface SendFailure {
+  code: string;
+  retryable: boolean;
+}
+
 /**
  * A message the person wrote that the server has not confirmed yet: being sent, refused or lost
  * on the way (`uncertain`: it may have arrived). `clientMessageId` makes a retry idempotent.
@@ -9,6 +15,8 @@ export interface OutgoingMessage {
   clientMessageId: string;
   text: string;
   status: 'sending' | 'failed' | 'uncertain';
+  /** Why it was refused (`failed`). */
+  error?: SendFailure;
 }
 
 /** A message of the history. `showAuthor` is true on the first message of a run of a person. */
@@ -75,9 +83,12 @@ export function buildChatItems({
     clientMessageId: outgoing.clientMessageId,
     text: outgoing.text,
     status: outgoing.status,
+    ...(outgoing.error && { error: outgoing.error }),
   }));
 
   const days = messages.map((message) => dayOf(message.sent_at, timeZone));
+  // How many separators each day already has: messages out of order can start a day twice.
+  const separators = new Map<string, number>();
   messages.forEach((message, index) => {
     const older = messages[index + 1];
     const day = days[index];
@@ -86,7 +97,12 @@ export function buildChatItems({
     const startsRun = lastOfDay || older?.author.id !== message.author.id;
 
     items.push({ kind: 'message', key: message.id, message, mine, showAuthor: !mine && startsRun });
-    if (lastOfDay) items.push({ kind: 'day', key: `day-${day}`, date: message.sent_at });
+    if (lastOfDay) {
+      const repeated = separators.get(day) ?? 0;
+      separators.set(day, repeated + 1);
+      const key = repeated === 0 ? `day-${day}` : `day-${day}-${repeated}`;
+      items.push({ kind: 'day', key, date: message.sent_at });
+    }
   });
   return items;
 }

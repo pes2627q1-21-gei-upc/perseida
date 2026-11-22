@@ -2,8 +2,8 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-19"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51"]
+data: "2026-11-21"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
@@ -98,6 +98,7 @@ APOD (TG-46): `NASA_API_KEY` (obligatòria, secret; sense ella l'API no arrenca;
 - [[0008-google-oauth2-pkce-jwks-i-sessio-propia]]
 - [[0018-errors-rfc-9457-amb-codis-estables]]
 - [[0022-logging-json-global-amb-stdlib]]
+- [[0033-xat-per-esdeveniment-sala-missatge-i-flux]]
 
 ## Publicacions d'esdeveniment (TG-628)
 
@@ -120,6 +121,19 @@ Tots demanen sessió (`CurrentSessionDep`) i tots els errors són `application/p
 
 Tots demanen sessió (`CurrentSessionDep` + `get_profile`: 401, 403 i 503) i tots els errors són `application/problem+json`. El `PUT` i el `DELETE` són sota `/api/events/`, així que comparteixen el 429 `RATE_LIMITED` del proxy (600 per minut entre tots els clients, [[nginx-proxy-manager]]); `GET /api/me/subscriptions` no. Regles i taula a [[model-de-domini#Subscripció a un esdeveniment (implementat al backend)]].
 
+## Xat d'esdeveniment (TG-64)
+
+Privats, amb sessió (401, 403 i 503 com `GET /api/users/me`). Només subscriptors de l'esdeveniment (`403 FORBIDDEN` si no ho són). Component i flux a [[chat]]; decisions a [[0033-xat-per-esdeveniment-sala-missatge-i-flux]].
+
+| Endpoint | Què fa |
+|---|---|
+| `GET /api/chat/rooms` | Sales dels esdeveniments subscrits amb el darrer missatge |
+| `PUT /api/events/{event_id}/chat/room` | Obre (o crea) la sala; idempotent, 200. 404 `EVENT_NOT_FOUND` |
+| `GET /api/events/{event_id}/chat/messages` | Historial paginat per cursor opac (`before`, `limit` 1 a 50). 422 `CHAT_INVALID_LIMIT` o `CHAT_INVALID_CURSOR` |
+| `WS /api/ws`, sala `chat:event:<event_id>` | Subscripció i enviament de missatges (`client_message_id` obligatori); errors `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG`, `CHAT_MESSAGE_REJECTED`, `CHAT_IDEMPOTENCY_CONFLICT`, `RATE_LIMITED`, `PUBSUB_UNAVAILABLE` |
+
+Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS` i `CHAT_MESSAGE_MAX_LENGTH` (vegeu [[chat]]).
+
 ## US de Taiga relacionades
 
 - TG-36 (Imatge Docker del backend i publicació a GHCR)
@@ -135,6 +149,7 @@ Tots demanen sessió (`CurrentSessionDep` + `get_profile`: 401, 403 i 503) i tot
 - TG-53 (subscripció i baixa d'un esdeveniment)
 - TG-88 (APScheduler; infraestructura implementada, vegeu [[backend-hexagonal]])
 - TG-63 (endpoint WebSocket `/api/ws`)
+- TG-64 (xat d'esdeveniment: REST i sales del WebSocket)
 - TG-304 (Jerarquia d'errors i handler RFC 9457)
 - TG-629 (sortides d'observació creades pels usuaris)
 
@@ -147,15 +162,16 @@ Tots demanen sessió (`CurrentSessionDep` + `get_profile`: 401, 403 i 503) i tot
 - **Contenidorització i pipeline GHCR (TG-36)**: implementat (Dockerfile multi-stage, workflow GitHub Actions, proves locals a `infra/scripts/test-backend-docker.sh`).
 - **Validació de tokens de Google i sessió pròpia (TG-44)**: implementat (JWKS, JWT HS256, sessions a Redis, `/api/auth/google`, `/api/auth/refresh`, `CurrentSessionDep`).
 - **Usuari, alta automàtica i tancament de sessió (TG-45)**: implementat (`UserService`, `SqlUserRepository` amb alta concurrent segura, `/api/auth/logout`, `/api/users/me`, error `EMAIL_ALREADY_REGISTERED`).
-- **WebSocket `/api/ws` (TG-63)**: implementat (`RealtimeSession` a `application/realtime`, router a `infrastructure/realtime`, embolcall `{type, room?, payload, id}`, autenticació pel primer frame, heartbeat i revocació per pub/sub; vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Requereix la llibreria `websockets` perquè uvicorn accepti el handshake. Les sales concretes són de TG-64 i TG-65.
+- **WebSocket `/api/ws` (TG-63)**: implementat (`RealtimeSession` a `application/realtime`, router a `infrastructure/realtime`, embolcall `{type, room?, payload, id}`, autenticació pel primer frame, heartbeat i revocació per pub/sub; vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]]). Requereix la llibreria `websockets` perquè uvicorn accepti el handshake. Les sales de xat d'esdeveniment són de TG-64 (vegeu [[chat]]); les del xat directe, de TG-65.
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
 - **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
 - **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
 - **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, pendent (PR 2).
 - **Migracions Alembic (TG-41)**: pendent.
-- **Resta de serveis (xat, moderació, purga i notificacions programades)**: planificat.
+- **Xat d'esdeveniment (TG-64)**: backend implementat (`ChatService`, taules `event_chat_rooms` i `chat_messages`, tres endpoints REST i les sales `chat:event:<id>` del WebSocket; vegeu [[chat]]). El moderador és provisional (aprova tot) fins a #81.
+- **Resta de serveis (moderació real, purga i notificacions programades)**: planificat.
 
 ## Enllaços
 
 - [[arquitectura-fisica]], [[visio-general]], [[backend-hexagonal]]
-- [[postgres]], [[redis]], [[nginx-proxy-manager]], [[moderation]]
+- [[postgres]], [[redis]], [[nginx-proxy-manager]], [[moderation]], [[chat]]

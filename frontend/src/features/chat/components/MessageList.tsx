@@ -32,6 +32,8 @@ interface Props {
   isFetchingMore: boolean;
   onLoadOlder: () => void;
   onRetry: (clientMessageId: string) => void;
+  /** Drops a refused message from the room. */
+  onDiscard?: (clientMessageId: string) => void;
   listProps?: ListProps;
 }
 
@@ -79,6 +81,7 @@ export function MessageList({
   isFetchingMore,
   onLoadOlder,
   onRetry,
+  onDiscard,
   listProps,
 }: Props) {
   const { t } = useTranslation();
@@ -99,7 +102,12 @@ export function MessageList({
     item.kind === 'day' ? (
       <DaySeparator date={item.date} styles={styles} />
     ) : (
-      <MessageBubble item={item} onRetry={onRetry} entering={arrived.has(item.key)} />
+      <MessageBubble
+        item={item}
+        onRetry={onRetry}
+        onDiscard={onDiscard}
+        entering={arrived.has(item.key)}
+      />
     );
 
   return (

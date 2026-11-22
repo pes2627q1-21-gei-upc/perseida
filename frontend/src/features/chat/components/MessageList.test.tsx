@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { makeMessage, PAU } from '../../../../__mocks__/chat';
+import { readingMaxWidth } from '../../../shared/theme';
 import type { ChatMessage } from '../api/chat';
 import type { ChatListItem, DayItem, MessageItem, PendingItem } from '../chatItems';
 import { MessageList } from './MessageList';
@@ -143,5 +145,14 @@ describe('MessageList (TG-469)', () => {
     await renderList({ listProps: { keyboardShouldPersistTaps: 'handled' } });
 
     expect(list().props.keyboardShouldPersistTaps).toBe('handled');
+  });
+
+  it('adds the room the screen asks for (e.g. under the bar) to its own readable column', async () => {
+    await renderList({ listProps: { contentContainerStyle: { paddingTop: 123 } } });
+
+    expect(StyleSheet.flatten(list().props.contentContainerStyle)).toMatchObject({
+      paddingTop: 123,
+      maxWidth: readingMaxWidth,
+    });
   });
 });

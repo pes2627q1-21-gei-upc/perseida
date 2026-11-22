@@ -74,6 +74,10 @@ jobs:
     if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      # `scripts/pr_base.py` consulta l'API REST per saber la base real de la PR (TG-64).
+      pull-requests: read
     defaults:
       run:
         working-directory: backend
@@ -131,12 +135,30 @@ jobs:
       # Inclou schemathesis, la còpia d'OpenAPI i les migracions (TG-360); PostgreSQL i Redis són els service containers.
       - name: Tests (pytest amb cobertura >= 80%)
         run: uv run pytest --cov-report=xml:coverage.xml --cov-fail-under=80
+      # En una PR apilada (stacked PRs de GitHub) `github.base_ref` val el tronc de la pila (`develop`) i no la
+      # branca pare: `diff-cover` i `mutmut` mesurarien tota la pila a cada capa. Aquest pas demana la base real
+      # de la PR a l'API REST (`scripts/pr_base.py`) i, si no la pot saber, usa `github.base_ref`. Una PR
+      # ordinària (base `develop` o `main`) no canvia. Les entrades passen per `env` (mai dins del `run`).
+      - name: Base real de la PR (diff-cover i mutmut)
+        id: pr_base
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          base=$(uv run python scripts/pr_base.py --fallback "origin/$BASE_REF" --pr-number "$PR_NUMBER")
+          echo "ref=$base" >> "$GITHUB_OUTPUT"
       - name: Comprovar cobertura del codi nou a la PR (diff-cover >= 90%)
         if: github.event_name == 'pull_request'
-        run: uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90
+        env:
+          PR_BASE: ${{ steps.pr_base.outputs.ref }}
+        run: uv run diff-cover coverage.xml --compare-branch="$PR_BASE" --fail-under=90
       - name: Mutation testing al domini del backend (mutmut >= 70%)
         if: github.event_name == 'pull_request'
-        run: uv run python scripts/run_mutmut_diff.py --base-branch origin/${{ github.base_ref }}
+        env:
+          PR_BASE: ${{ steps.pr_base.outputs.ref }}
+        run: uv run python scripts/run_mutmut_diff.py --base-branch "$PR_BASE"
       - name: Publicar informe de cobertura
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -153,6 +175,8 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
+      # L'script de mutation consulta l'API REST per saber la base real de la PR (TG-64).
+      pull-requests: read
     defaults:
       run:
         working-directory: frontend
@@ -186,9 +210,14 @@ jobs:
         run: pnpm test --coverage --ci
       - name: Tests dels scripts del frontend (node --test)
         run: node --test scripts/*.test.mjs
+      # En una PR apilada (stacked PRs de GitHub) `github.base_ref` val el tronc de la pila (`develop`) i no la
+      # branca pare: mutaria tota la pila a cada capa (27 fitxers i 1224 mutants a la #130, 56 de 60 min). Amb
+      # `--pr-number` l'script demana la base real de la PR a l'API REST i, si no la pot saber, usa `--base-branch`.
       - name: Mutation testing al frontend (Stryker >= 70%)
         if: github.event_name == 'pull_request'
-        run: pnpm test:mutation --base-branch origin/${{ github.base_ref }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: pnpm test:mutation --base-branch origin/${{ github.base_ref }} --pr-number ${{ github.event.pull_request.number }}
       - name: Publicar informe de cobertura
         uses: actions/upload-artifact@v7.0.1
         with:

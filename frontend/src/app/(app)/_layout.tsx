@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native';
@@ -32,12 +32,19 @@ const TAB_BAR_FRAME = { position: 'absolute', borderTopWidth: 1, elevation: 0 } 
  * - Sub-routes (map, apod) hidden from the bar with tabBarButton: () => null. Not href: null,
  *   which in expo-router 58 removes the route and sends router.push('/map') back home.
  */
+function accessibleName(title: string, short: string | undefined): string {
+  return short && short !== title ? `${short}, ${title}` : title;
+}
+
 export default function AppLayout() {
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
   const insets = useSafeAreaInsets();
+  // In the room of an event the composer takes the bottom of the screen: no tab bar there.
+  const segments: string[] = useSegments();
+  const inChatRoom = segments[1] === 'chat' && segments[2] === '[eventId]';
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -119,6 +126,7 @@ export default function AppLayout() {
             ? theme.colors.surface.glassSolid
             : theme.colors.surface.glass,
           borderTopColor: theme.colors.surface.glassBorder,
+          ...(inChatRoom && { display: 'none' }),
         },
         tabBarBackground: () =>
           !reduceTransparency ? (
@@ -141,7 +149,14 @@ export default function AppLayout() {
             name={item.name}
             options={{
               title: t(item.titleKey),
-              tabBarAccessibilityLabel: t(item.titleKey),
+              // The bar shows the short label where the title does not fit. The accessible name
+              // starts with the visible text and adds the full one (WCAG 2.5.3 Label in Name);
+              // when both read the same it is not repeated.
+              tabBarLabel: t(item.shortTitleKey ?? item.titleKey),
+              tabBarAccessibilityLabel: accessibleName(
+                t(item.titleKey),
+                item.shortTitleKey && t(item.shortTitleKey),
+              ),
               tabBarButtonTestID: item.testID,
               tabBarIcon: ({ color, focused, size }) => (
                 <IconComponent

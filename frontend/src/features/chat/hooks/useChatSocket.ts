@@ -17,13 +17,22 @@ export interface ChatSocketHandlers {
   onRevoked: () => void;
   /** Joining the room failed (e.g. FORBIDDEN, CHAT_ROOM_NOT_FOUND, RATE_LIMITED). */
   onError?: (error: AppError) => void;
+  /**
+   * The server acknowledged joining the room (also after a reconnection or a new attempt): its
+   * subscription is active, so from now on nothing published in the room is missed.
+   */
+  onJoined?: () => void;
 }
 
 /** How many message ids per room are remembered to discard the ones delivered twice. */
 const SEEN_IDS_LIMIT = 200;
 
-/** Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. */
-export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
+/**
+ * Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. A new
+ * `joinAttempt` leaves the room and joins it again (e.g. after the server refused to join it: the
+ * connection does not retry a refused join by itself).
+ */
+export function useChatSocket(eventId: string, handlers: ChatSocketHandlers, joinAttempt = 0) {
   const { status, error, subscribe, send, reconnect } = useSocket(socketAuth);
   const room = `chat:event:${eventId}`;
 
@@ -39,9 +48,10 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
     return subscribe(room, (frame) => {
       const current = handlersRef.current;
       if (frame.id) {
-        // Answers to this client's own requests (the errors of sendMessage reject its promise
-        // instead): only a failed join of the room is reported.
+        // Answers to the joins of this room (the answers of sendMessage settle its promise
+        // instead): a failed join or a join that is active.
         if (frame.type === 'error') current.onError?.(errorOfFrame(frame));
+        else if (frame.type === 'subscribe') current.onJoined?.();
         return;
       }
       if (frame.type === 'message') {
@@ -55,7 +65,9 @@ export function useChatSocket(eventId: string, handlers: ChatSocketHandlers) {
         current.onMessage(message);
       } else if (frame.type === 'unsubscribe') current.onRevoked();
     });
-  }, [room, subscribe]);
+    // `joinAttempt` is not read: changing it is what joins the room again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room, subscribe, joinAttempt]);
 
   /**
    * Sends a message and resolves with the server's ack. After a SEND_UNCERTAIN the server may have

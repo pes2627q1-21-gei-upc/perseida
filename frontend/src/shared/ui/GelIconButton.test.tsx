@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { StyleSheet, Text } from 'react-native';
 
 import { GelIconButton } from './GelIconButton';
@@ -49,5 +49,26 @@ describe('GelIconButton (TG-469)', () => {
     const style = StyleSheet.flatten(screen.getByRole('button', { name: LABEL }).props.style);
     expect(style.minHeight).toBeGreaterThanOrEqual(48);
     expect(style.width).toBe(style.minHeight);
+  });
+
+  it('draws the icon on a positioned layer above the gel layers, so the web does not paint it behind them', async () => {
+    await render(<GelIconButton label={LABEL} icon={icon} onPress={jest.fn()} />);
+
+    const layer = screen.getByTestId('gel-icon-button-icon');
+    const style = StyleSheet.flatten(layer.props.style);
+
+    expect(style.position).toBe('relative');
+    expect(style.zIndex).toBeGreaterThan(0);
+    expect(within(layer).getByTestId('icon')).toBeOnTheScreen();
+  });
+
+  it('keeps the busy spinner on that same layer, and the layer does not catch taps', async () => {
+    await render(<GelIconButton label={LABEL} icon={icon} onPress={jest.fn()} busy />);
+
+    const layer = screen.getByTestId('gel-icon-button-icon');
+
+    expect(StyleSheet.flatten(layer.props.style).zIndex).toBeGreaterThan(0);
+    expect(layer.props.pointerEvents).toBe('none');
+    expect(within(layer).queryByTestId('icon')).not.toBeOnTheScreen();
   });
 });

@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Warning, WarningCircle } from 'phosphor-react-native';
 import { type ComponentRef, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { errorMessage } from '../../../shared/errors';
 import { type Theme, useTheme } from '../../../shared/theme';
 import { QuietButton, useReduceTransparency } from '../../../shared/ui';
 import { type BubbleSurface, bubbleSurface } from '../bubbleSurface';
@@ -19,16 +20,29 @@ import type { MessageItem, PendingItem } from '../chatItems';
 import { dateTimeFormat } from '../dateFormat';
 import { rowSurface } from '../rowSurface';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { ActionSurface } from './ActionSurface';
 
 interface Props {
   item: MessageItem | PendingItem;
   /** Sends a failed or uncertain message again, with the same `clientMessageId`. */
   onRetry?: (clientMessageId: string) => void;
+  /** Drops a refused message from the room. */
+  onDiscard?: (clientMessageId: string) => void;
   /** It arrived while the room is open: it floats in, unless the person asked for reduced motion. */
   entering?: boolean;
 }
 
 type Styles = ReturnType<typeof createStyles>;
+
+/**
+ * Moves the screen reader focus to an element. react-native-web has no `sendAccessibilityEvent`
+ * (calling it throws), so there the element takes the focus itself. It never throws.
+ */
+function moveFocusTo(element: ComponentRef<typeof View>) {
+  if (typeof AccessibilityInfo.sendAccessibilityEvent === 'function')
+    AccessibilityInfo.sendAccessibilityEvent(element, 'focus');
+  else element.focus?.();
+}
 
 /** Soft pulse of a message on its way; still with reduced motion. */
 function SendingDot({ styles }: { styles: Styles }) {
@@ -44,6 +58,7 @@ function SendingDot({ styles }: { styles: Styles }) {
       true,
     );
   }, [reduceMotion, opacity, duration.slow]);
+  // Stryker disable next-line ArrowFunction,ObjectLiteral: opacity of the pulse, visual only.
   const pulse = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
@@ -51,6 +66,7 @@ function SendingDot({ styles }: { styles: Styles }) {
       testID="chat-sending-dot"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      // Stryker disable next-line ArrayDeclaration: look of the dot, visual only.
       style={[styles.dot, pulse]}
     />
   );
@@ -134,20 +150,27 @@ function useFloatIn(entering: boolean) {
  * glass tinted with the accent and the others' plain glass; a message on its way is busy and pulses, and one that did not go
  * says so in text, with an icon (never only colour), and offers to retry it next to the bubble.
  */
-export function MessageBubble({ item, onRetry, entering = false }: Props) {
+export function MessageBubble({ item, onRetry, onDiscard, entering = false }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
   const enter = useFloatIn(entering);
   const bubble = useRef<ComponentRef<typeof View>>(null);
+  // A <div> only takes the focus from code with a tab index; -1 keeps it out of the tab order.
+  const webFocusable = Platform.OS === 'web' ? ({ tabIndex: -1 } as const) : {};
 
   const mine = item.kind === 'pending' || item.mine;
   const surface = bubbleSurface(theme.colors, mine, reduceTransparency);
   const styles = createStyles(theme, surface, reduceTransparency);
   const you = t('chat.you');
   const sending = item.kind === 'pending' && item.status === 'sending';
-  const problem =
-    item.kind === 'pending' && item.status !== 'sending' ? t(`chat.message.${item.status}`) : '';
+  const failure = item.kind === 'pending' ? item.error : undefined;
+  const failed = item.kind === 'pending' && item.status === 'failed';
+  let problem = '';
+  if (failed && failure) problem = errorMessage(t, failure.code, failure.retryable);
+  else if (item.kind === 'pending' && !sending) problem = t(`chat.message.${item.status}`);
+  // A refusal without its reason is taken as one that may go through later.
+  const canRetry = !failed || (failure?.retryable ?? true);
   useAnnounceOnIos(problem || undefined);
 
   let label: string;
@@ -176,6 +199,7 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
         accessible
         accessibilityLabel={label}
         accessibilityState={{ busy: sending }}
+        {...webFocusable}
         style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOthers]}
       >
         <BubbleSkin surface={surface} sending={sending} styles={styles} />
@@ -193,17 +217,26 @@ export function MessageBubble({ item, onRetry, entering = false }: Props) {
       </View>
       {item.kind === 'pending' && problem !== '' && (
         <>
-          <ProblemNote failed={item.status === 'failed'} text={problem} styles={styles} />
-          {onRetry && (
-            <QuietButton
-              label={t('chat.message.retry')}
-              onPress={() => {
-                onRetry(item.clientMessageId);
-                // The button goes away with the retry: the focus goes to the bubble, not nowhere.
-                if (bubble.current)
-                  AccessibilityInfo.sendAccessibilityEvent(bubble.current, 'focus');
-              }}
-            />
+          <ProblemNote failed={failed} text={problem} styles={styles} />
+          {onRetry && canRetry && (
+            <ActionSurface>
+              <QuietButton
+                label={t('chat.message.retry')}
+                onPress={() => {
+                  onRetry(item.clientMessageId);
+                  // The button goes away with the retry: the focus goes to the bubble, not nowhere.
+                  if (bubble.current) moveFocusTo(bubble.current);
+                }}
+              />
+            </ActionSurface>
+          )}
+          {onDiscard && failed && (
+            <ActionSurface>
+              <QuietButton
+                label={t('chat.message.discard')}
+                onPress={() => onDiscard(item.clientMessageId)}
+              />
+            </ActionSurface>
           )}
         </>
       )}

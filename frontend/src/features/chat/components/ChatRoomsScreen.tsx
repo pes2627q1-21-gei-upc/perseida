@@ -10,13 +10,14 @@ import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useMySubscriptions, useRooms } from '../hooks/useChat';
 import { buildRoomList } from '../roomList';
 import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { ActionSurface } from './ActionSurface';
 import { ReloadFailedAlert } from './ReloadFailedAlert';
 import { RoomListItem } from './RoomListItem';
 
 /**
  * The chat tab (TG-469): the events the person is subscribed to, each with the last message of
  * its room, newest first. The subscriptions say what is listed and the rooms what was said
- * last. The page only orchestrates; the rows have no action yet (the room of an event arrives in a later PR of TG-64).
+ * last. The page only orchestrates; tapping a row opens the room of its event.
  */
 export function ChatRoomsScreen() {
   const { t } = useTranslation();
@@ -72,7 +73,13 @@ export function ChatRoomsScreen() {
         accessibilityLabel={t('chat.list.label')}
         data={entries}
         keyExtractor={(entry) => entry.eventId}
-        renderItem={({ item }) => <RoomListItem entry={item} now={now} />}
+        renderItem={({ item }) => (
+          <RoomListItem
+            entry={item}
+            now={now}
+            onPress={() => router.push(`/chat/${item.eventId}`)}
+          />
+        )}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -152,11 +159,13 @@ export function ChatRoomsScreen() {
               {t('chat.title')}
             </Text>
             {entries && (
-              <QuietButton
-                label={t('chat.refresh')}
-                onPress={() => void reload()}
-                busy={fetching}
-              />
+              <ActionSurface>
+                <QuietButton
+                  label={t('chat.refresh')}
+                  onPress={() => void reload()}
+                  busy={fetching}
+                />
+              </ActionSurface>
             )}
           </View>
           {reloadError && (

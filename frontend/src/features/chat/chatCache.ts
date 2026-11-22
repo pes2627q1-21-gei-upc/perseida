@@ -9,11 +9,18 @@ function contains(history: ChatHistoryData, id: string): boolean {
   return history.pages.some((page) => page.messages.some((message) => message.id === id));
 }
 
+/** Whether `a` goes before `b` in the history: newer `sent_at` first, then the bigger id. */
+function isNewer(a: ChatMessage, b: ChatMessage): boolean {
+  const difference = Date.parse(a.sent_at) - Date.parse(b.sent_at);
+  return difference !== 0 ? difference > 0 : a.id > b.id;
+}
+
 /**
- * The history with a new message at its newest end (TG-469), for a message that arrives by the
- * socket or is confirmed by the server. A message is known by its id: one that is already there
- * leaves the history as it was (the same object, so nothing re-renders). Without a history
- * there is nothing to add to: the first fetch brings the message anyway.
+ * The history with a new message on its first page (TG-469), for a message that arrives by the
+ * socket or is confirmed by the server. It goes where its `sent_at` puts it (newest first, the
+ * bigger id first on a tie), since messages can arrive out of order. A message is known by its id:
+ * one that is already there leaves the history as it was (the same object, so nothing
+ * re-renders). Without a history there is nothing to add to: the first fetch brings it anyway.
  */
 export function addMessage(
   history: ChatHistoryData | undefined,
@@ -22,9 +29,13 @@ export function addMessage(
   if (!history || contains(history, message.id)) return history;
   return {
     ...history,
-    pages: history.pages.map((page, index) =>
-      index === 0 ? { ...page, messages: [message, ...page.messages] } : page,
-    ),
+    pages: history.pages.map((page, index) => {
+      if (index !== 0) return page;
+      const at = page.messages.findIndex((other) => isNewer(message, other));
+      const messages = [...page.messages];
+      messages.splice(at < 0 ? messages.length : at, 0, message);
+      return { ...page, messages };
+    }),
   };
 }
 
