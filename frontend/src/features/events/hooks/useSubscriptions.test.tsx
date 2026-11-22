@@ -215,10 +215,9 @@ describe('useToggleSubscription (TG-53, criterion 7)', () => {
 
     await act(async () => second.resolve(new Response(null, { status: 201 })));
     await waitFor(() => expect(client.isMutating()).toBe(0));
-    expect(invalidate).toHaveBeenCalledTimes(1);
-    expect(invalidate).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: eventKeys.subscriptions() }),
-    );
+    // Once for each key: the subscriptions and the rooms of the chat.
+    const keys = invalidate.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(keys).toEqual([eventKeys.subscriptions(), chatKeys.rooms]);
   });
 
   /** The PUT or DELETE of `eventId` fails with `failure`; the others wait for `pending`. */
