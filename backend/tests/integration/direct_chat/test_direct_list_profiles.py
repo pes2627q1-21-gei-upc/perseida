@@ -9,6 +9,7 @@ from httpx import AsyncClient
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker
 
+from app.domain.direct_chat.ports import DirectConversationRepository
 from tests.integration.chat.test_chat_api import (
     _preexisting_data_is_kept as _preexisting_data_is_kept,
 )
@@ -21,11 +22,16 @@ from tests.integration.chat.test_chat_api import google_certs as google_certs
 from tests.integration.chat.test_chat_api import login_headers, user_id_of
 from tests.integration.direct_chat.test_direct_chat_repository import (
     _user,
+)
+from tests.integration.direct_chat.test_direct_chat_repository import (
     conversations as conversations,
+)
+from tests.integration.direct_chat.test_direct_chat_repository import (
     engine as engine,
+)
+from tests.integration.direct_chat.test_direct_chat_repository import (
     sessions as sessions,
 )
-from app.domain.direct_chat.ports import DirectConversationRepository
 
 pytestmark = pytest.mark.skipif(
     not (os.getenv("POSTGRES_HOST") and os.getenv("REDIS_HOST")),
@@ -48,7 +54,8 @@ async def test_tg65_summaries_include_other_profiles_in_one_query(
         async with sessions.begin() as session:
             await session.execute(
                 text(
-                    "UPDATE users SET display_name=:name, avatar_url=:avatar WHERE id=:id"
+                    "UPDATE users SET display_name=:name, avatar_url=:avatar "
+                    "WHERE id=:id"
                 ),
                 {"id": other.id, "name": name, "avatar": avatar},
             )
