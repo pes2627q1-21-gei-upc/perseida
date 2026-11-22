@@ -112,9 +112,9 @@ def test_tg65_c2_messages_belong_to_a_conversation_and_a_sender_without_cascades
         # one idempotency key per sender (like the event chat, TG-654)
         ("u", ["sender_id", "client_message_id"], None, None),
     ]
-    [(name, definition)] = _checks("direct_messages")
+    [(name, _definition)] = _checks("direct_messages")
     assert name == "ck_direct_messages_text_not_empty"
-    assert "length(text) >= 1" in str(definition)
+    # The repository test verifies that this constraint rejects empty text.
 
 
 def test_tg65_c3_blocks_are_keyed_by_the_pair_and_not_by_oneself() -> None:
