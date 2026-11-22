@@ -30,6 +30,7 @@ from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.auth.dependencies import get_auth_service
 from app.infrastructure.meeting_points import router as meeting_points_router
 from app.infrastructure.meeting_points.dependencies import get_meeting_point_service
+from app.infrastructure.meeting_points.schemas import MeetingPointResponse
 from app.infrastructure.users.dependencies import get_user_service
 from app.main import create_app
 from tests.factories.meeting_points import EXAMPLE_SPACES, make_space
@@ -313,3 +314,17 @@ def test_tg352_openapi_errors_are_problem_json_and_503_cites_its_code() -> None:
     for code in ("401", "422", "503"):
         assert set(responses[code]["content"]) == {PROBLEM_JSON}
     assert MEETING_POINTS_UNAVAILABLE in responses["503"]["description"]
+
+
+def test_tg352_openapi_distance_m_is_a_required_integer() -> None:
+    schema = create_app().openapi()["components"]["schemas"]["MeetingPointResponse"]
+
+    assert "distance_m" in schema["required"]
+    assert schema["properties"]["distance_m"]["type"] == "integer"
+    assert "anyOf" not in schema["properties"]["distance_m"]
+
+
+def test_tg352_a_space_without_distance_cannot_be_answered() -> None:
+    # recommend drops them; reaching the response would be a bug.
+    with pytest.raises(ValueError, match="distance"):
+        MeetingPointResponse.of(make_space(distance_m=None))
