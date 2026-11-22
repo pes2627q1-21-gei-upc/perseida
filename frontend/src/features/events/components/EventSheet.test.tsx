@@ -202,6 +202,15 @@ describe('EventSheet', () => {
     expect(style.maxHeight).toBeUndefined();
   });
 
+  it('on phones caps the content of the sheet at a share of the screen, without filling it', async () => {
+    await renderSheet(launch);
+
+    const [scroll] = screen.root!.queryAll((node) => node.type === 'RCTScrollView');
+    const style = StyleSheet.flatten(scroll.props.style);
+    expect(style.maxHeight).toBeGreaterThan(0);
+    expect(style.flex).toBeUndefined();
+  });
+
   it('on wide screens keeps the top and bottom safe areas plus the spacing of the panel (TG-647)', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const legacy = { topInset: 80 };
