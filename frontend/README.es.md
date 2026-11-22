@@ -83,6 +83,20 @@ Ruta `/(app)/quiz` (de momento, acceso desde el inicio temporal). Código en `sr
 - **Pantalla:** la pregunta con sus 4 opciones (botones de radio) y un botón de enviar desactivado hasta que se elige una opción y ocupado mientras se envía. Una vez respondida (o si ya lo estaba), el resultado: si se ha acertado, la opción correcta y la elegida con palabras e iconos, la explicación y un enlace a la fuente. Las dos vistas tienen un botón «Volver al inicio», así no hace falta el botón atrás del sistema.
 - **Errores:** los de carga muestran un mensaje traducido con reintento si son transitorios. Si falla el envío, la opción elegida se conserva. Tras `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` se carga la pregunta nueva con un aviso; tras `QUIZ_ALREADY_ANSWERED`, el resultado. Si esa recarga falla, se muestra el error con reintento aunque haya una pregunta anterior en caché.
 
+## Chat de evento (TG-64)
+
+Código en `src/features/chat/`; el contrato REST y el protocolo WebSocket son los del backend ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md), [ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md)). Notas de diseño en `obsidian_vault/arquitectura/frontend.md`.
+
+- **Conexión en tiempo real compartida (`src/shared/realtime/`):** un cliente WebSocket genérico sin lógica de chat (`socketClient.ts`) y su hook `useSocket`. Hay una sola conexión por proceso, abierta por el primer consumidor y cerrada por el último; se autentica con el primer frame, reconecta con espera exponencial y envía los frames del chat con reintentos. `shared/` nunca importa de `features/` (lo hace cumplir una regla de ESLint): la sesión se inyecta (`features/auth/socketAuth.ts`).
+- **Funcionalidad de chat (`src/features/chat/`):**
+  - `api/` y `hooks/useChat.ts`: `useRooms`, `useMySubscriptions` y `useRoomMessages(eventId)` (historial con cursor opaco, 50 por página).
+  - `hooks/useChatSocket.ts`: se suscribe a `chat:event:<eventId>` y envía mensajes con un `client_message_id` que se reutiliza en cada reintento.
+  - `roomList.ts`: la lista de salas se construye en el cliente a partir de las suscripciones de la usuaria y de las salas que devuelve la API.
+  - `components/`: `ChatRoomsScreen` y `RoomListItem` (la lista) y las piezas de la sala, `MessageBubble`, `MessageComposer` y `MessageList`, la pantalla `ChatRoomScreen` que las monta, y los datos puros en `chatCache.ts` y `chatItems.ts`.
+- **Qué hay hoy:** la ruta de pestaña `/(app)/chat` muestra la lista de salas de chat de los eventos a los que la usuaria está suscrita, cada una con su último mensaje, y cada fila abre la sala (`router.push('/chat/<eventId>')`). La sala es `ChatRoomScreen`, en la ruta `src/app/(app)/chat/[eventId].tsx`: el cielo, una barra de cristal con el título del evento, los mensajes encima y el compositor sobre el teclado. La mueve el hook `useRoomLive(eventId)` (abre la sala, carga el historial, añade lo que llega en vivo y envía: un mensaje está pendiente hasta que el servidor lo confirma, y uno rechazado se queda en su burbuja con el motivo para reintentarlo o descartarlo). La barra de pestañas se oculta dentro de la sala (`useSegments()` en `(app)/_layout.tsx`). Un mensaje confirmado da un impacto háptico ligero y un envío rechazado una háptica de error, con `expo-haptics` (fijada en 58.0.7); la háptica nunca lanza, así que es un extra donde la plataforma no la tiene (p. ej. la web).
+
+**Probarlo.** Arranca la base de datos y la caché con `docker compose up -d db cache` en `infra/` y, en `backend/`, `uv run alembic upgrade head` y `uv run uvicorn app.main:app --reload` (detalle en [`../backend/README.es.md`](../backend/README.es.md#chat-de-evento)). Arranca la app con `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 pnpm web`. Tu `.env` puede apuntar a producción: esa variable lo sobrescribe, de modo que las pruebas en local nunca tocan producción. Inicia sesión, suscríbete a un evento, abre la pestaña del chat y toca su sala.
+
 ## Ejecutar y testear
 
 ```bash
@@ -208,7 +222,7 @@ pnpm test --coverage --ci         # Jest + informe de cobertura
 
 ## Convenciones
 
-- GitFlow con ramas `feature/*` desde `develop`; PR aprobada por una persona distinta de la autora y con CI en verde.
+- GitFlow con ramas `feature/*` desde `develop` (en una pila de PR apiladas, desde la `feature/*` anterior); PR aprobada por una persona distinta de la autora y con CI en verde.
 - Mismas reglas de TypeScript estricto y lint para todo el equipo (ficheros de configuración versionados).
 - El código generado con asistentes de IA pasa exactamente por la misma revisión y puertas de calidad.
 

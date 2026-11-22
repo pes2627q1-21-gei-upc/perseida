@@ -27,6 +27,19 @@ class EventChatRoom(BaseModel):
         return cls(id=uuid.uuid7(), event_id=event_id, created_at=datetime.now(UTC))
 
 
+class ChatAuthor(BaseModel):
+    """The author of a chat message.
+
+    ``name`` is the profile name, or ``None`` when the account has none: the email
+    is personal data and is never shown to the room.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: uuid.UUID
+    name: str | None
+
+
 class ChatMessage(BaseModel):
     """A text message sent by a user to a room. Messages are never edited."""
 
@@ -34,7 +47,7 @@ class ChatMessage(BaseModel):
 
     id: uuid.UUID
     room_id: uuid.UUID
-    author_id: uuid.UUID
+    author: ChatAuthor
     text: str
     sent_at: AwareDatetime
     # Idempotency key chosen by the sender: unique per author, so a retry of the
@@ -59,7 +72,7 @@ class ChatMessage(BaseModel):
         cls,
         *,
         room_id: uuid.UUID,
-        author_id: uuid.UUID,
+        author: ChatAuthor,
         text: str,
         client_message_id: uuid.UUID,
     ) -> ChatMessage:
@@ -67,7 +80,7 @@ class ChatMessage(BaseModel):
         return cls(
             id=uuid.uuid7(),
             room_id=room_id,
-            author_id=author_id,
+            author=author,
             text=text,
             sent_at=datetime.now(UTC),
             client_message_id=client_message_id,

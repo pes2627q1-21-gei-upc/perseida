@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-19"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026)"
+data: "2026-11-21"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51", "TG-469", "TG-470"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-469 (autor {id, name} al missatge del xat, 2026-11-21); TG-470 (autor als missatges, ADR-0033, 2026-11-20)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -99,16 +99,17 @@ Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.
 
 ## Xat d'esdeveniment (domini implementat)
 
-Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64). La persistència és implementada (TG-448 i TG-450; vegeu [[#Persistència del xat]]); l'API encara no. Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
+Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64). La persistència (TG-448 i TG-450; vegeu [[#Persistència del xat]]), l'API REST i el WebSocket són implementats; el component és a [[chat]] i les decisions a [[0033-xat-per-esdeveniment-sala-missatge-i-flux]]. Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
 
 | Entitat | Camps | Notes |
 |---|---|---|
 | `EventChatRoom` | `id` (UUIDv7), `event_id`, `created_at` | una sala com a màxim per esdeveniment (0..1); immutable |
-| `ChatMessage` | `id` (UUIDv7), `room_id`, `author_id`, `text`, `sent_at` | immutable; el servidor assigna `id` i `sent_at` (UTC) |
+| `ChatAuthor` | `id`, `name` | autor d'un missatge: `name` és el `display_name` del perfil i pot ser `null`; mai el correu (TG-469) |
+| `ChatMessage` | `id` (UUIDv7), `room_id`, `author` (`ChatAuthor`), `text`, `sent_at`, `client_message_id` | immutable; el servidor assigna `id` i `sent_at` (UTC); `client_message_id` és la clau d'idempotència del client (TG-654) i no s'exposa a l'API |
 
 Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`) i els separadors de línia i de paràgraf (`Zl`, `Zp`), excepte el salt de línia i la tabulació. A més, s'eliminen només els invisibles perillosos, que són els de la propietat Unicode `Default_Ignorable_Code_Point` (UCD 18) menys els benignes: bidi embeddings, overrides i isolates, zero-width space, word joiner, guionet suau, fillers de hangul, selectors de variació que no són d'emoji i tots els tags (poden amagar text ASCII). Es conserven ZWJ i ZWNJ (emojis compostos i alguns scripts), LRM, RLM i ALM (marques direccionals d'un sol caràcter), els selectors d'emoji `FE0E`/`FE0F` i, de les tag sequences, només les banderes d'Anglaterra, Escòcia i Gal·les. No s'elimina cap caràcter pel fet de ser no assignat (`Cn`): els emojis nous passen encara que la versió d'Unicode de Python no els conegui. Un text amb només marques invisibles (o el braille en blanc) és buit. Efecte acceptat per l'equip (11/11/2026): l'escriptura mongola (selectors de variació i separador de vocal) i els selectors de variació ideogràfics perden aquests caràcters. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
 
-Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter` i `EventSubscriptions` (`is_subscribed(user_id, event_id)`, que compleix `SqlEventSubscriptionRepository` de TG-53; vegeu [[#Subscripció a un esdeveniment (implementat al backend)]]). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. El contracte no demostra atomicitat entre PostgreSQL i Redis; reintents i duplicats i la identitat de connexió es resolen amb TG-459.
+Ports: `ChatRepository` (sales, missatges, `require_event(event_id)` i pàgina d'històric amb ordre i cursor exclusiu `(sent_at, id)`), `MessageModerator` (`moderate(text) -> ModerationResult`, que substituirà #81), `SendRateLimiter`, `RepublishGuard` (anti-inundació dels reintents) i `EventSubscriptions` (`is_subscribed(user_id, event_id)`, que compleix `SqlEventSubscriptionRepository` de TG-53; vegeu [[#Subscripció a un esdeveniment (implementat al backend)]]). El cursor públic codifica data i id en base64url. El servei desa el missatge amb `ChatRepository.add_message` i després el publica al `PubSub` de `domain/shared/ports.py`, al canal `room:chat:event:<event_id>` (sala `chat:event:<event_id>` segons [[0030-protocol-websocket-i-revocacio-per-pub-sub|ADR-0030]]), amb un sobre `{from: null, frame}`. Abans de desar, el servei limita la freqüència per usuari i modera el text. Si desar falla, no es publica; si publicar falla, el missatge queda desat (surt a l'històric) i es llança `PUBSUB_UNAVAILABLE`. El servei comprova l'existència amb `require_event` (404), després la subscripció (403) i només aleshores crea la sala. No hi ha atomicitat entre PostgreSQL i Redis; els reintents i els duplicats es resolen amb `client_message_id` i la identitat de connexió (`from` del sobre) amb TG-459 i TG-654 ([[0033-xat-per-esdeveniment-sala-missatge-i-flux]]).
 
 ### Persistència del xat
 
@@ -123,7 +124,8 @@ Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_cha
 - `get_or_create_room` fa `INSERT ... ON CONFLICT (event_id) DO NOTHING RETURNING` i, si no retorna res, rellegeix la sala: dues peticions alhora deixen una sola fila. Si l'esdeveniment no existeix (o s'esborra a mig camí), `NotFoundError(EVENT_NOT_FOUND)`.
 - `page` demana `limit + 1` files, ordenades per `(sent_at, id)` descendent i estrictament anteriors al cursor; el `next_cursor` és el de l'últim missatge retornat només si hi ha més files. Rebutja `limit < 1` (el servei ja valida 1..50).
 - `list_rooms_of` és una sola consulta: sales existents dels esdeveniments subscrits (join amb `event_subscriptions`) amb l'últim missatge (`LEFT JOIN LATERAL`), per data de l'últim missatge descendent; les sales sense missatges van al final, per `created_at` descendent.
-- Errors: `OperationalError`, `InterfaceError` i `OSError` de la base de dades es tradueixen a `ExternalServiceError` amb el codi `DATABASE_UNAVAILABLE` (a `app/application/shared/error_codes.py`, patró 503 per als repositoris; vegeu [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]). `add_message` només tradueix a `NotFoundError(CHAT_ROOM_NOT_FOUND)` (`app/application/chat/errors.py`) la violació de la FK `fk_chat_messages_room_id_event_chat_rooms`; qualsevol altra `IntegrityError` (id repetit, `CHECK` del text, autor inexistent) no es tradueix. Els dos codis són al catàleg de `gestio-errors` amb els textos pendents fins que el router (TG-455) els exposi.
+- `author {id, name}` (TG-469): el repositori uneix els missatges amb `users` per obtenir `display_name`; la pàgina fa una sola consulta addicional per als autors distints (cap si és buida; mai una per missatge) i `add_message` fa `INSERT … RETURNING` i només rellegeix amb el nom en cas de conflicte d'idempotència. A la taula només hi ha `author_id`.
+- Errors: `OperationalError`, `InterfaceError` i `OSError` de la base de dades es tradueixen a `ExternalServiceError` amb el codi `DATABASE_UNAVAILABLE` (a `app/application/shared/error_codes.py`, patró 503 per als repositoris; vegeu [[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]). `add_message` només tradueix a `NotFoundError(CHAT_ROOM_NOT_FOUND)` (`app/application/chat/errors.py`) la violació de la FK `fk_chat_messages_room_id_event_chat_rooms`; qualsevol altra `IntegrityError` (id repetit, `CHECK` del text, autor inexistent) no es tradueix. Els dos codis són al catàleg de `gestio-errors` i els exposa el router del xat (TG-455).
 
 ## Esdeveniment astronòmic (implementat)
 
@@ -444,6 +446,7 @@ Flux del motor (`AchievementService`):
 
 ## Enllaços
 
-- [[visio-general]], [[backend-hexagonal]], [[postgres]]
+- [[visio-general]], [[backend-hexagonal]], [[postgres]], [[chat]]
+- [[0033-xat-per-esdeveniment-sala-missatge-i-flux]]
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]], [[0006-postgresql-postgis-font-de-veritat]]
 - [[epiques-i-us]]

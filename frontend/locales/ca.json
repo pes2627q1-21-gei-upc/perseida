@@ -14,13 +14,64 @@
     "logoutNotConfirmed": "S'ha tancat la sessió en aquest dispositiu, però no s'ha pogut confirmar al servidor.",
     "tagline": "Mira cap amunt"
   },
+  "chat": {
+    "title": "Xat",
+    "loading": "Carregant sales de xat",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les sales de xat",
+    "refresh": "Actualitza",
+    "noMessages": "Encara no hi ha missatges",
+    "unknownAuthor": "Una usuària de Perseida",
+    "list": {
+      "label": "Sales de xat"
+    },
+    "empty": {
+      "message": "Encara no t'has subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
+      "cta": "Explora els esdeveniments"
+    },
+    "you": "Tu",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Enviant",
+      "sending": "Enviant",
+      "failed": "No s'ha pogut enviar el missatge.",
+      "uncertain": "És possible que el missatge ja s'hagi enviat. Si el reintentes, no es duplicarà.",
+      "retry": "Reintenta",
+      "discard": "Descarta"
+    },
+    "composer": {
+      "label": "Escriu un missatge",
+      "send": "Envia",
+      "counter": "{{count}} de {{max}} caràcters",
+      "tooLong": "El missatge pot tenir com a màxim {{max}} caràcters."
+    },
+    "messages": {
+      "label": "Missatges del xat",
+      "loadingOlder": "Carregant missatges anteriors"
+    },
+    "room": {
+      "title": "Xat de l'esdeveniment",
+      "loading": "Carregant missatges",
+      "retryHint": "Torna a obrir la sala de xat",
+      "empty": "Encara no hi ha missatges. Sigues la primera persona a escriure!",
+      "revoked": "Ja no formes part d'aquest xat. Subscriu-te a l'esdeveniment per tornar-hi a escriure.",
+      "backToRooms": "Torna a les sales",
+      "reconnecting": "Reconnectant…",
+      "reconnect": "Reconnecta",
+      "newMessage": "Missatge nou de {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Connectant amb el xat…",
+        "reconnecting": "S'ha perdut la connexió. Podràs enviar quan es recuperi.",
+        "closed": "No hi ha connexió amb el xat."
+      }
+    }
+  },
   "common": {
     "back": "Torna"
   },
   "comingSoon": {
     "badge": "Pròximament",
-    "chatDesc": "Un espai en temps real per compartir observacions, fotos i trobades astronòmiques.",
-    "chatTitle": "Comunitat i xat",
     "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
     "gamificationTitle": "Gamificació i reptes"
   },
@@ -64,7 +115,14 @@
     "OUTING_STARTS_IN_PAST": "La sortida no pot començar en el passat.",
     "OUTING_EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
     "OUTING_NOT_FOUND": "Aquesta sortida no existeix o s'ha esborrat.",
-    "OUTING_FORBIDDEN": "Només qui ha creat la sortida la pot canviar."
+    "OUTING_FORBIDDEN": "Només qui ha creat la sortida la pot canviar.",
+    "FORBIDDEN": "No tens permís per fer això.",
+    "RATE_LIMITED": "Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar.",
+    "NOT_SUBSCRIBED": "Primer t'has d'unir a la sala.",
+    "PUBSUB_UNAVAILABLE": "El xat no està disponible ara mateix. Torna-ho a provar.",
+    "VALIDATION_ERROR": "Revisa les dades introduïdes.",
+    "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
+    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala."
   },
   "events": {
     "category": {
@@ -161,7 +219,11 @@
     "events": "Esdeveniments",
     "gamification": "Gamificació",
     "home": "Inici",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "short": {
+      "events": "Agenda",
+      "gamification": "Fites"
+    }
   },
   "profile": {
     "achievements": {

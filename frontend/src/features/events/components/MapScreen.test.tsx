@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import MapScreen from '../../../app/(app)/map';
 import i18n from '../../../shared/i18n';
 import { clearTokens, saveTokens } from '../../auth/tokenStorage';
@@ -56,6 +57,7 @@ const SAFE_AREA = {
 const MAP_LABEL = 'Mapa dels esdeveniments amb ubicació';
 
 let client: QueryClient;
+const pending = pendingResponses();
 
 /** The host view that holds the top bar and the controls: the column of the screen. */
 function columnOf(bar: ReturnType<typeof screen.getByTestId>) {
@@ -124,7 +126,8 @@ beforeEach(() => {
   mockEventsApi();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -293,7 +296,7 @@ describe('Events map screen', () => {
 
   it('shows that the events are loading (criterion 5)', async () => {
     jest.restoreAllMocks();
-    mockEventsApi({ active: () => new Promise<Response>(() => undefined) });
+    mockEventsApi({ active: () => pending.neverAnswered() });
 
     await renderScreen();
 

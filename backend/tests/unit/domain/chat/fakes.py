@@ -32,14 +32,14 @@ class InMemoryChatRepository:
             (
                 m
                 for m in self.messages
-                if m.author_id == author_id and m.client_message_id == client_message_id
+                if m.author.id == author_id and m.client_message_id == client_message_id
             ),
             None,
         )
 
     async def add_message(self, message: ChatMessage) -> ChatMessage:
         existing = await self.find_by_client_id(
-            message.author_id, message.client_message_id
+            message.author.id, message.client_message_id
         )
         if existing is not None:
             return existing
