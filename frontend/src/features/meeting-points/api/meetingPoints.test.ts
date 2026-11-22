@@ -96,6 +96,11 @@ describe('fetchMeetingPoints (TG-352)', () => {
     );
 
     expect(failure).toBeInstanceOf(AppError);
-    expect(failure).toMatchObject({ code: 'INVALID_RESPONSE', status: 200, retryable: false });
+    expect(failure).toMatchObject({
+      kind: 'http',
+      code: 'INVALID_RESPONSE',
+      status: 200,
+      retryable: false,
+    });
   });
 });
