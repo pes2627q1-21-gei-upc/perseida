@@ -290,3 +290,70 @@ async def test_tg352_c6_the_first_space_keeps_its_fields(
 
     assert first == LIBRARY_12
     assert first.location == Location(latitude=41.4045, longitude=2.1712)
+
+
+# --- outgoing rate limit (60 per minute, ADR-0003: one process) -----------------
+
+
+class Clock:
+    """Monotonic clock moved by hand."""
+
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+@respx.mock
+async def test_tg352_at_most_60_calls_per_minute_reach_spotwise() -> None:
+    route = respx.get(SPACES_URL).respond(json=[])
+    clock = Clock()
+    async with httpx.AsyncClient() as http:
+        client = SpotwiseSpaceClient(http, BASE_URL, SecretStr(TOKEN), 5.0, clock)
+        for _ in range(60):
+            await client.search(NEAR, WATCH_PARTY)
+        clock.now += 59.9
+
+        with pytest.raises(ExternalServiceError) as raised:
+            await client.search(NEAR, WATCH_PARTY)
+
+        assert raised.value.code == MEETING_POINTS_UNAVAILABLE
+        assert route.call_count == 60
+        clock.now += 0.1
+        assert await client.search(NEAR, WATCH_PARTY) == []
+        assert route.call_count == 61
+
+
+@respx.mock
+async def test_tg352_the_limit_is_a_sliding_minute() -> None:
+    route = respx.get(SPACES_URL).respond(json=[])
+    clock = Clock()
+    async with httpx.AsyncClient() as http:
+        client = SpotwiseSpaceClient(http, BASE_URL, SecretStr(TOKEN), 5.0, clock)
+        for _ in range(30):
+            await client.search(NEAR, WATCH_PARTY)
+        clock.now += 30
+        for _ in range(30):
+            await client.search(NEAR, WATCH_PARTY)
+        clock.now += 30
+        # The first 30 left the window; the last 30 are still in it.
+        for _ in range(30):
+            await client.search(NEAR, WATCH_PARTY)
+
+        with pytest.raises(ExternalServiceError):
+            await client.search(NEAR, WATCH_PARTY)
+
+    assert route.call_count == 90
+
+
+@respx.mock
+async def test_tg352_a_failed_call_counts_towards_the_limit() -> None:
+    route = respx.get(SPACES_URL).respond(503)
+    async with httpx.AsyncClient() as http:
+        client = SpotwiseSpaceClient(http, BASE_URL, SecretStr(TOKEN), 5.0, Clock())
+        for _ in range(61):
+            with pytest.raises(ExternalServiceError):
+                await client.search(NEAR, WATCH_PARTY)
+
+    assert route.call_count == 60
