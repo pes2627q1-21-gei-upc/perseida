@@ -3,6 +3,7 @@
 import uuid
 from datetime import datetime
 
+from app.application.shared.errors import ExternalServiceError
 from app.domain.direct_chat.models import (
     DirectConversation,
     DirectCursor,
@@ -10,6 +11,8 @@ from app.domain.direct_chat.models import (
     DirectMessagePage,
     UserBlock,
 )
+from app.domain.shared.moderation import ModerationResult
+from tests.fakes.chat import ChatFakes
 
 
 class InMemoryDirectConversationRepository:
@@ -123,3 +126,96 @@ class RecordingPushNotifier:
 
     async def notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
         self.sent.append((recipient_id, message))
+
+
+class FakeChatUserDirectory:
+    """Existing users; a deleted or unknown user is simply not in the set."""
+
+    def __init__(self, log: list[str] | None = None) -> None:
+        self.existing: set[uuid.UUID] = set()
+        self.log = log if log is not None else []
+
+    async def exists(self, user_id: uuid.UUID) -> bool:
+        self.log.append("directory")
+        return user_id in self.existing
+
+
+class FakeDirectMessageBroadcaster:
+    """Records every delivery; ``recipients`` is what deliver reports as connected."""
+
+    def __init__(self, log: list[str] | None = None) -> None:
+        self.log = log if log is not None else []
+        self.fail = False
+        self.recipients = 1
+        self.calls: list[tuple[DirectMessage, uuid.UUID, str | None]] = []
+
+    async def deliver(
+        self, message: DirectMessage, *, recipient_id: uuid.UUID, origin: str | None
+    ) -> int:
+        self.log.append("deliver")
+        if self.fail:
+            raise ExternalServiceError("PUBSUB_UNAVAILABLE")
+        self.calls.append((message, recipient_id, origin))
+        return self.recipients
+
+
+class _LoggedMessages(InMemoryDirectMessageRepository):
+    def __init__(self, log: list[str]) -> None:
+        super().__init__()
+        self.log = log
+
+    async def find_by_client_id(
+        self, sender_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> DirectMessage | None:
+        self.log.append("find")
+        return await super().find_by_client_id(sender_id, client_message_id)
+
+    async def add(self, message: DirectMessage) -> DirectMessage:
+        self.log.append("save")
+        return await super().add(message)
+
+
+class _LoggedBlocks(InMemoryUserBlockRepository):
+    def __init__(self, log: list[str]) -> None:
+        super().__init__()
+        self.log = log
+
+    async def is_blocked(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> bool:
+        self.log.append("block")
+        return await super().is_blocked(blocker_id, blocked_id)
+
+
+class _Chat(ChatFakes):
+    """Limiter and moderator of the event chat, with a way to make the limiter fail."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.fail_rate = False
+
+    async def hit(self, user_id: uuid.UUID) -> bool:
+        if self.fail_rate:
+            self.calls.append("rate")
+            raise ExternalServiceError("REDIS_UNAVAILABLE")
+        return await super().hit(user_id)
+
+    async def moderate(self, text: str) -> ModerationResult:
+        return await super().moderate(text)
+
+
+class DirectChatHarness:
+    """Every port of the direct chat service, all writing to one ordered ``log``.
+
+    The limiter and the moderator are those of ``ChatFakes`` (flags ``allowed`` and
+    ``approved``); they log ``"rate"`` and ``"moderate"`` into the same list.
+    """
+
+    def __init__(self) -> None:
+        self.log: list[str] = []
+        self.conversations = InMemoryDirectConversationRepository()
+        self.messages = _LoggedMessages(self.log)
+        self.blocks = _LoggedBlocks(self.log)
+        self.users = FakeChatUserDirectory(self.log)
+        self.broadcaster = FakeDirectMessageBroadcaster(self.log)
+        self.push = RecordingPushNotifier()
+        self.chat = _Chat()
+        self.chat.calls = self.log
