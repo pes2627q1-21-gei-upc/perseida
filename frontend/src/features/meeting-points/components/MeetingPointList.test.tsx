@@ -1,10 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
+import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { otherSpace, spotwiseLibrary, unvotedCafe } from '../../../../__mocks__/meetingPoints';
 import { AppError, errorMessage } from '../../../shared/errors';
 import i18n from '../../../shared/i18n';
+import { buildTheme } from '../../../shared/theme';
 import type { MeetingPoint } from '../api/meetingPoints';
 import { MeetingPointList } from './MeetingPointList';
 
@@ -126,5 +128,69 @@ describe('MeetingPointList (TG-352)', () => {
 
     expect(onChoose).toHaveBeenCalledTimes(1);
     expect(onChoose).toHaveBeenCalledWith(expect.objectContaining({ id: unvotedCafe.id }));
+  });
+});
+
+describe('MeetingPointList announcements (TG-352, WCAG 4.1.3)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('announces on iOS that there are no places nearby', async () => {
+    // jest-expo runs as iOS, where a status is announced explicitly.
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    await renderList({ status: 'success', points: [] });
+
+    expect(announce).toHaveBeenCalledWith(t('meetingPoints.empty'));
+  });
+
+  it('does not announce the list of points', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    await renderList({ status: 'success', points });
+
+    expect(announce).not.toHaveBeenCalledWith(t('meetingPoints.empty'));
+  });
+
+  it.each(['android', 'web'] as const)(
+    'does not announce explicitly on %s: the polite live region reads it',
+    async (os) => {
+      jest.replaceProperty(Platform, 'OS', os);
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+      await renderList({ status: 'success', points: [] });
+
+      expect(screen.getByText(t('meetingPoints.empty'))).toHaveProp(
+        'accessibilityLiveRegion',
+        'polite',
+      );
+      expect(announce).not.toHaveBeenCalledWith(t('meetingPoints.empty'));
+    },
+  );
+});
+
+describe('MeetingPointList safe areas (TG-352)', () => {
+  const insets = { top: 47, left: 12, right: 8, bottom: 34 };
+  const { spacing } = buildTheme('dia');
+
+  it('keeps the points clear of the safe areas and of the bar at the top', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={{ frame: SAFE_AREA.frame, insets }}>
+        <MeetingPointList
+          status="success"
+          points={points}
+          error={null}
+          onRetry={jest.fn()}
+          topInset={60}
+        />
+      </SafeAreaProvider>,
+    );
+
+    const list = screen.getByLabelText(t('meetingPoints.list.label'));
+    expect(StyleSheet.flatten(list.props.contentContainerStyle)).toMatchObject({
+      paddingTop: 60 + spacing.md,
+      paddingBottom: insets.bottom + spacing.md,
+      paddingLeft: insets.left + spacing.md,
+      paddingRight: insets.right + spacing.md,
+    });
   });
 });
