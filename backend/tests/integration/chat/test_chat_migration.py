@@ -4,7 +4,6 @@ event_chat_rooms and chat_messages, their keys, cascades and the history index.
 
 import asyncio
 import os
-from pathlib import Path
 
 import pytest
 from alembic.script import Script, ScriptDirectory
@@ -123,12 +122,12 @@ def test_tg654_c2_the_client_message_id_is_unique_per_author() -> None:
 
 
 def _revision_of_client_message_id() -> Script:
-    """The migration that adds the idempotency key."""
-    for revision in ScriptDirectory.from_config(_alembic_config()).walk_revisions():
-        source = Path(str(revision.module.__file__)).read_text(encoding="utf-8")
-        if "client_message_id" in source:
-            return revision
-    raise AssertionError("no migration adds client_message_id")
+    """The event-chat idempotency migration (TG-654), not direct chat."""
+    revision = ScriptDirectory.from_config(_alembic_config()).get_revision(
+        "e7a3c5b9d104"
+    )
+    assert revision is not None
+    return revision
 
 
 def test_tg654_c3_the_migration_undoes_and_redoes_the_idempotency_key() -> None:
