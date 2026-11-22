@@ -1,4 +1,6 @@
-from pydantic import Field, SecretStr
+from urllib.parse import urlsplit
+
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Spotwise serves only HTTP (contracte-spotwise.md); accepted by Raquel (TG-352).
@@ -21,3 +23,12 @@ class SpotwiseSettings(BaseSettings):
     spotwise_api_token: SecretStr | None = None
     # Spotwise recommends 5 s.
     spotwise_timeout_seconds: float = Field(default=5.0, gt=0)
+
+    @field_validator("spotwise_url")
+    @classmethod
+    def _require_http_url(cls, value: str) -> str:
+        # Fails at startup instead of on every request (httpx.InvalidURL).
+        url = urlsplit(value)
+        if url.scheme not in ("http", "https") or not url.hostname:
+            raise ValueError("must be an http or https URL with a host")
+        return value
