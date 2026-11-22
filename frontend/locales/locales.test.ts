@@ -192,3 +192,91 @@ describe('Texts of the chat room (TG-469)', () => {
     expect(texts['message.uncertain']).toMatch(/ja s'hagi enviat/i);
   });
 });
+
+describe('Locales of the meeting points (TG-352)', () => {
+  // Texts the meeting points components show. Their wording is free; they must exist everywhere.
+  const meetingPointKeys = [
+    'title',
+    'loading',
+    'empty',
+    'retry',
+    'retryHint',
+    'choose',
+    'list.label',
+    'profile.label',
+    'profile.watch_party',
+    'profile.study',
+    'type.library',
+    'type.cafe',
+    'type.other',
+    'attribute.wifi',
+    'attribute.silence.silent',
+    'attribute.silence.murmur',
+    'attribute.silence.noisy',
+    'attribute.plugs.many',
+    'attribute.plugs.few',
+    'attribute.plugs.none',
+    'attribute.groupFriendly',
+    'attribute.notGroupFriendly',
+  ];
+  // Criterion 5: the approved text of the error, in each language.
+  const unavailable = {
+    ca: "Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona.",
+    es: 'Ahora no podemos recomendar locales. Vuelve a intentarlo en un rato.',
+    en: "We can't recommend places right now. Please try again in a while.",
+  };
+  type Texts = Record<string, unknown>;
+  const languages = { ca, es, en } as unknown as Record<
+    'ca' | 'es' | 'en',
+    { errors: Record<string, string>; meetingPoints?: Texts }
+  >;
+  const textAt = (node: unknown, path: string): unknown =>
+    path.split('.').reduce<unknown>((value, key) => (value as Texts)?.[key], node);
+  /** Every leaf of the texts as `path -> text`. */
+  const leaves = (node: Texts, prefix = ''): [string, string][] =>
+    Object.entries(node).flatMap(([key, value]) =>
+      typeof value === 'object' && value !== null
+        ? leaves(value as Texts, `${prefix}${key}.`)
+        : [[`${prefix}${key}`, String(value)] as [string, string]],
+    );
+
+  describe.each(['ca', 'es', 'en'] as const)('%s', (language) => {
+    it.each(meetingPointKeys)('has a text for meetingPoints.%s', (key) => {
+      const text = textAt(languages[language].meetingPoints, key);
+
+      expect(typeof text).toBe('string');
+      expect((text as string).length).toBeGreaterThan(0);
+    });
+
+    it('has the approved text for errors.MEETING_POINTS_UNAVAILABLE', () => {
+      expect(languages[language].errors.MEETING_POINTS_UNAVAILABLE).toBe(unavailable[language]);
+    });
+
+    it('puts the name of the point in the text to choose it', () => {
+      expect(textAt(languages[language].meetingPoints, 'choose')).toMatch(/{{name}}/);
+    });
+
+    it('has chip texts that do not contain one another, so each chip is told apart', () => {
+      const chips = meetingPointKeys
+        .filter((key) => key.startsWith('attribute.'))
+        .map((key) => String(textAt(languages[language].meetingPoints, key) ?? key).toLowerCase());
+
+      for (const [index, chip] of chips.entries()) {
+        for (const other of chips.filter((_, each) => each !== index)) {
+          expect(other).not.toContain(chip);
+        }
+      }
+    });
+  });
+
+  it('has the same meeting points keys in ca, es and en', () => {
+    const keys = (language: 'ca' | 'es' | 'en') =>
+      leaves(languages[language].meetingPoints ?? {})
+        .map(([path]) => path)
+        .sort();
+
+    expect(keys('ca').length).toBeGreaterThan(0);
+    expect(keys('es')).toEqual(keys('ca'));
+    expect(keys('en')).toEqual(keys('ca'));
+  });
+});
