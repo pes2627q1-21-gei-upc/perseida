@@ -14,3 +14,6 @@ CONVERSATION_NOT_FOUND = "CONVERSATION_NOT_FOUND"
 USER_NOT_FOUND = "USER_NOT_FOUND"
 # Either user blocks the other: nobody can send in the conversation (history stays).
 USER_BLOCKED = "USER_BLOCKED"
+# A ``client_message_id`` already used by the sender for another conversation or
+# another text (409): an idempotent retry must repeat the same message.
+DIRECT_IDEMPOTENCY_CONFLICT = "DIRECT_IDEMPOTENCY_CONFLICT"

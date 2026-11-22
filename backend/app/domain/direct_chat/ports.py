@@ -170,5 +170,9 @@ class PushNotifier(Protocol):
     """Tells a recipient who is not connected that a message arrived."""
 
     async def notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
-        """Notify ``recipient_id`` of ``message``."""
+        """Notify ``recipient_id`` of ``message``.
+
+        Best effort: it must not raise to the service; if it does, the service
+        logs the error and carries on (the message is already stored).
+        """
         ...

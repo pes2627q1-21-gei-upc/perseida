@@ -1,5 +1,6 @@
 """Application use cases for the direct chat between two users (US #65)."""
 
+import logging
 import uuid
 
 from app.application.shared.error_codes import PUBSUB_UNAVAILABLE, RATE_LIMITED
@@ -11,6 +12,7 @@ from app.application.shared.errors import (
 from app.domain.direct_chat.errors import (
     CANNOT_MESSAGE_SELF,
     CONVERSATION_NOT_FOUND,
+    DIRECT_IDEMPOTENCY_CONFLICT,
     USER_BLOCKED,
     USER_NOT_FOUND,
 )
@@ -23,9 +25,15 @@ from app.domain.direct_chat.ports import (
     PushNotifier,
     UserBlockRepository,
 )
-from app.domain.shared.errors import BusinessRuleViolation, NotFoundError
+from app.domain.shared.errors import (
+    BusinessRuleViolation,
+    ConflictError,
+    NotFoundError,
+)
 from app.domain.shared.moderation import CHAT_MESSAGE_REJECTED
 from app.domain.shared.ports import MessageModerator, SendRateLimiter
+
+logger = logging.getLogger(__name__)
 
 
 class DirectChatService:
@@ -80,8 +88,9 @@ class DirectChatService:
         Order: participant, blocks (both ways), text validation, idempotency, rate
         limit, moderation, store, deliver. A retry with the same
         ``client_message_id`` returns the stored message (no rate limit, no
-        moderation, no new row) and delivers it again. If the recipient has no
-        live connection, a push is sent instead.
+        moderation, no new row) and delivers it again; the same key for another
+        conversation or text is a conflict. If the recipient has no live
+        connection, a best-effort push is sent instead (a failing push is logged).
 
         ``origin`` is the id of the sender's connection (not echoed back to it).
 
@@ -90,6 +99,8 @@ class DirectChatService:
                 ``user_id`` is not a participant.
             ForbiddenError: USER_BLOCKED if either user blocks the other.
             ValidationError: VALIDATION_ERROR for an empty or too long text.
+            ConflictError: DIRECT_IDEMPOTENCY_CONFLICT if the key was used with
+                another conversation or text.
             RateLimitedError: RATE_LIMITED if the sender sent too much.
             BusinessRuleViolation: CHAT_MESSAGE_REJECTED if moderation refuses it.
             ExternalServiceError: if the limiter or a store is unavailable
@@ -116,6 +127,11 @@ class DirectChatService:
         stored = await self._messages.find_by_client_id(user_id, client_message_id)
         if stored is None:
             stored = await self._store(message)
+        elif (
+            stored.conversation_id != message.conversation_id
+            or stored.text != message.text
+        ):
+            raise ConflictError(DIRECT_IDEMPOTENCY_CONFLICT)
         await self._deliver(stored, recipient_id, origin)
         return stored
 
@@ -137,4 +153,11 @@ class DirectChatService:
         except ExternalServiceError as exc:
             raise ExternalServiceError(PUBSUB_UNAVAILABLE) from exc
         if receivers == 0:
+            await self._notify(recipient_id, message)
+
+    async def _notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
+        """Best effort: the message is already stored and delivered."""
+        try:
             await self._push.notify(recipient_id, message)
+        except Exception:
+            logger.warning("Could not push the direct message", exc_info=True)
