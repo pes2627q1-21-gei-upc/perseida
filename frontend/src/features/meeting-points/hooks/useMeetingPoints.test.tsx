@@ -143,6 +143,15 @@ describe('useMeetingPoints (TG-352)', () => {
     });
   });
 
+  it('does not retry by itself when Spotwise is unavailable: only the retry button does', async () => {
+    const spy = mockFetch(() => problemResponse(503, 'MEETING_POINTS_UNAVAILABLE'));
+
+    const { result } = await renderHook(() => useMeetingPoints('study', near), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
   it('does not retry a final error', async () => {
     const spy = mockFetch(() => problemResponse(422, 'VALIDATION_ERROR'));
 
