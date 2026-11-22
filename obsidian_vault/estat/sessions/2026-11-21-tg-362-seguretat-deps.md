@@ -16,19 +16,19 @@ Tercera tasca de TG-362 (TG-383), a la segona PR de la US. L'objectiu és que la
 
 ## Què s'ha fet
 
-- Tests en vermell (`fa65d24`): a `tests/architecture/test_test_tooling.py`, el pas bloquejant de bandit, la configuració a `pyproject.toml`, l'auditoria del lockfile de producció contra OSV i `defusedxml` fixat com a dependència de producció. A `tests/unit/infrastructure/apod/test_nasa_feed_client.py`, el test de regressió `test_tg383_entities_of_a_dtd_are_never_expanded`.
-- **Vulnerabilitat corregida** (`023f12f`): `NasaApodFeedClient` (`app/infrastructure/apod/nasa_feed_client.py`) frenava les DTD amb una regex sobre el pròleg. Posant un comentari davant de la DTD, la regex se saltava i s'expandia un «billion laughs». Ara el feed es parseja amb `defusedxml==0.7.1` (`fromstring(..., forbid_dtd=True)`): qualsevol DTD es rebutja amb `NasaApodError`. `types-defusedxml` s'ha afegit al grup `dev`, per a mypy.
-- `bandit[toml]==1.9.4` i `pip-audit==2.10.1` al grup `dev` (`d24ce6a`). La configuració de bandit és a `[tool.bandit]`, sense `skips` ni `exclude_dirs` (bandit exclou per subcadena; amb `-r app` no cal), i la CI passa `--ignore-nosec` perquè només valguin les justificacions de `[tool.bandit]` (`a16c9db`, `5f96099`). Les troballes de gravetat baixa (B105 a `errors.py`, B405) es mostren però no bloquegen.
-- CI (`6bc98f5`), al job `backend`, després d'import-linter i abans dels tests, dos passos bloquejants:
-  - `uv run bandit -c pyproject.toml -r app -ll` (i `--ignore-nosec` des de `5f96099`);
+- Tests en vermell (`918e242`): a `tests/architecture/test_test_tooling.py`, el pas bloquejant de bandit, la configuració a `pyproject.toml`, l'auditoria del lockfile de producció contra OSV i `defusedxml` fixat com a dependència de producció. A `tests/unit/infrastructure/apod/test_nasa_feed_client.py`, el test de regressió `test_tg383_entities_of_a_dtd_are_never_expanded`.
+- **Vulnerabilitat corregida** (`daf4b68`): `NasaApodFeedClient` (`app/infrastructure/apod/nasa_feed_client.py`) frenava les DTD amb una regex sobre el pròleg. Posant un comentari davant de la DTD, la regex se saltava i s'expandia un «billion laughs». Ara el feed es parseja amb `defusedxml==0.7.1` (`fromstring(..., forbid_dtd=True)`): qualsevol DTD es rebutja amb `NasaApodError`. `types-defusedxml` s'ha afegit al grup `dev`, per a mypy.
+- `bandit[toml]==1.9.4` i `pip-audit==2.10.1` al grup `dev` (`a43286a`). La configuració de bandit és a `[tool.bandit]`, sense `skips` ni `exclude_dirs` (bandit exclou per subcadena; amb `-r app` no cal), i la CI passa `--ignore-nosec` perquè només valguin les justificacions de `[tool.bandit]` (`353e224`, `190796e`). Les troballes de gravetat baixa (B105 a `errors.py`, B405) es mostren però no bloquegen.
+- CI (`ca2f936`), al job `backend`, després d'import-linter i abans dels tests, dos passos bloquejants:
+  - `uv run bandit -c pyproject.toml -r app -ll` (i `--ignore-nosec` des de `190796e`);
   - `uv export --frozen --no-dev --no-emit-project` i `pip-audit -s osv --require-hashes --disable-pip`.
 - Verificat en local: bandit sense troballes de gravetat mitjana o alta, i pip-audit sense vulnerabilitats conegudes.
 - Documentació: [[testing]], [[seguretat]], [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i els README del backend (ca, es, en). Cap nota del vault descrivia la comprovació amb regex. Les skills `testing-*` i `gestio-errors` no esmentaven bandit ni pip-audit, i per això no s'han tocat.
 
 ### Tasca TG-384 (criteri 6): `pnpm audit` com a avís
 
-- Test en vermell (`22d869c`, qa-tester): `test_tg362_ci_audits_the_frontend_production_dependencies` a `tests/architecture/test_test_tooling.py` exigeix al job `frontend` un únic pas `pnpm audit --prod --audit-level=high`, just després de `pnpm install`, amb `continue-on-error: true` i una referència a TG-338.
-- CI (`5b51a46`): pas «Auditoria de dependències de producció (pnpm audit, avís fins a TG-338)» al job `frontend`, just després de `pnpm install --frozen-lockfile`, amb `continue-on-error: true` i un comentari que diu que TG-338 l'ha de fer bloquejant i decidir sobre GHSA-mrhx-c7xc-m3w5.
+- Test en vermell (`60cd0ec`, qa-tester): `test_tg362_ci_audits_the_frontend_production_dependencies` a `tests/architecture/test_test_tooling.py` exigeix al job `frontend` un únic pas `pnpm audit --prod --audit-level=high`, just després de `pnpm install`, amb `continue-on-error: true` i una referència a TG-338.
+- CI (`7a7f928`): pas «Auditoria de dependències de producció (pnpm audit, avís fins a TG-338)» al job `frontend`, just després de `pnpm install --frozen-lockfile`, amb `continue-on-error: true` i un comentari que diu que TG-338 l'ha de fer bloquejant i decidir sobre GHSA-mrhx-c7xc-m3w5.
 - Verificat en local, a `frontend/`: `pnpm audit --prod --audit-level=high` surt amb codi 1 i informa de GHSA-mrhx-c7xc-m3w5 (`zod` < 4.6.6, alta, via `expo` → `@expo/cli`; 4 vulnerabilitats: 1 alta i 3 moderades). Com que el pas porta `continue-on-error`, a la CI es veurà en vermell però no farà fallar el job. `uv run pytest tests/architecture/test_test_tooling.py --no-cov` passa sencer (29 tests).
 - Documentació: [[testing]], [[seguretat]], [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i els README del frontend (ca, es, en).
 
@@ -36,8 +36,8 @@ Tercera tasca de TG-362 (TG-383), a la segona PR de la US. L'objectiu és que la
 
 L'equip ha decidit al xat de l'equip (21/11/2026) que el pas `pnpm audit --prod --audit-level=high` del job `frontend` sigui bloquejant. TG-338 (expo 58.0.26) elimina `zod` 3 (GHSA-mrhx-c7xc-m3w5) i, amb aquest canvi, l'audit surt amb 0 (verificat el 21/11/2026). TG-338 va per una altra branca: en aquesta branca l'audit encara surt amb 1 fins que s'integri TG-338.
 
-- Test en vermell (`360961c`): `test_tg362_ci_audits_the_frontend_production_dependencies` exigeix que el pas no porti `continue-on-error`.
-- CI (`5b0ff0a`): s'ha tret `continue-on-error: true`, el pas es diu «Auditoria de dependències de producció (pnpm audit)» i el comentari diu que un risc acceptat va a `auditConfig.ignoreGhsas` de `frontend/pnpm-workspace.yaml`, amb fila a [[seguretat]].
+- Test en vermell (`6ec3cde`): `test_tg362_ci_audits_the_frontend_production_dependencies` exigeix que el pas no porti `continue-on-error`.
+- CI (`bce2006`): s'ha tret `continue-on-error: true`, el pas es diu «Auditoria de dependències de producció (pnpm audit)» i el comentari diu que un risc acceptat va a `auditConfig.ignoreGhsas` de `frontend/pnpm-workspace.yaml`, amb fila a [[seguretat]].
 - Documentació: [[testing]], [[seguretat]], [[0028-tdd-estricte-i-politica-de-testing-avancada|ADR-0028]] i els README del frontend (ca, es, en) ja diuen que és bloquejant.
 
 ## Decisions preses
