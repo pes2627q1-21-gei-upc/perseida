@@ -175,7 +175,7 @@ class Harness:
         self.run_id = uuid4().hex[:12]
         # The app reaches Redis through the proxy; ``direct`` is for the checks.
         self.via_proxy = Redis.from_url(
-            f"redis://127.0.0.1:{proxy.port}",
+            f"redis://127.0.0.1:{proxy.port}/{RedisSettings().redis_db}",
             decode_responses=True,
             socket_connect_timeout=SOCKET_TIMEOUT_SECONDS,
             socket_timeout=SOCKET_TIMEOUT_SECONDS,
