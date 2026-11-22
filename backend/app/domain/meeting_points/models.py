@@ -6,9 +6,9 @@ keeps only those that confirm what the profile needs (contracte-spotwise.md).
 
 from collections.abc import Iterable
 from enum import StrEnum
-from typing import Self
+from typing import Self, assert_never
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.shared.location import Location
 
@@ -60,21 +60,25 @@ class SessionProfile(BaseModel):
     @classmethod
     def of(cls, profile: MeetingPointProfile) -> Self:
         """The session profile agreed with Spotwise for ``profile``."""
-        if profile is MeetingPointProfile.WATCH_PARTY:
-            return cls(
-                group=True,
-                silence=frozenset(),
-                plugs=frozenset(),
-                wifi_required=True,
-                max_distance_m=MAX_DISTANCE_M,
-            )
-        return cls(
-            group=None,
-            silence=frozenset({SilenceLevel.SILENT}),
-            plugs=frozenset({PlugLevel.MANY, PlugLevel.FEW}),
-            wifi_required=False,
-            max_distance_m=MAX_DISTANCE_M,
-        )
+        match profile:
+            case MeetingPointProfile.WATCH_PARTY:
+                return cls(
+                    group=True,
+                    silence=frozenset(),
+                    plugs=frozenset(),
+                    wifi_required=True,
+                    max_distance_m=MAX_DISTANCE_M,
+                )
+            case MeetingPointProfile.STUDY:
+                return cls(
+                    group=None,
+                    silence=frozenset({SilenceLevel.SILENT}),
+                    plugs=frozenset({PlugLevel.MANY, PlugLevel.FEW}),
+                    wifi_required=False,
+                    max_distance_m=MAX_DISTANCE_M,
+                )
+            case _:
+                assert_never(profile)
 
 
 class Space(BaseModel):
@@ -92,7 +96,7 @@ class Space(BaseModel):
     silence: SilenceLevel | None
     plugs: PlugLevel | None
     group_friendly: bool | None
-    distance_m: int | None
+    distance_m: int | None = Field(ge=0)
     open_now: bool | None
 
 
