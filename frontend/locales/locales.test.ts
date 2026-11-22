@@ -275,6 +275,7 @@ describe('Locales of the meeting points (TG-352)', () => {
     const screenKeys = [
       'meetingPoints.location.denied',
       'meetingPoints.location.unavailable',
+      'meetingPoints.location.retry',
       'events.sheet.meetingPoints',
       'outings.picker.recommend',
     ];
