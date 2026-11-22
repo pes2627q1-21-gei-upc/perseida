@@ -78,6 +78,11 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 ## Iteracions
 <què va fallar, la causa i la correcció; cap test afeblit>
 
+## Errors trobats (retroalimentació de testing)
+| Nota a `estat/errors/` | Fase | Causa | Test de regressió | Lliçó |
+|---|---|---|---|---|
+| <[[AAAA-MM-DD-TG-NN-resum]]> | <roig-inesperat / prova-manual / ci-mutants / review> | <...> | <fitxer::nom> | <skill / convencio / cap> |
+
 ## Pendent humà (no marcat com a fet)
 - [ ] PR oberta per la persona (cap push/PR fet per l'agent)
 - [ ] Aprovada per algú que no sigui l'autora

@@ -123,15 +123,17 @@ Dos portes, les dues han de passar:
 - L'historial mostra `test:` abans de `feat:`.
 - `reviewer-arquitectura` sobre el diff: cap troballa CRÍTICA ni ALTA oberta.
 - Vault actualitzat si cal; entrada a `obsidian_vault/estat/sessions/` (regla 4).
+- Errors trobats (vermell inesperat, prova manual, CI i mutants, review) registrats a `obsidian_vault/estat/errors/` amb la plantilla `error-de-testing`, el test de regressió i la lliçó (`convencions/retroalimentacio-de-testing.md`). Si un subagent retorna un bloc `ERRORS TROBATS`, crea tu les notes.
 - Si tens tocat skills o subagents: `node .agents/scripts/sync-skills.mjs` i `node .agents/scripts/sync-agents.mjs` (i els `--check`).
 
-**Itera:** si alguna porta falla, corregeix la causa (no el símptoma) i repeteix **les dues**. Si el mateix punt falla tres cops, **atura't i pregunta**: no martellegis. No afebleixis un test ni un criteri per fer-lo passar.
+**Itera:** si alguna porta falla, corregeix la causa (no el símptoma) i repeteix **les dues**. Si el mateix punt falla tres cops, **atura't i pregunta**: no martellegis. No afebleixis un test ni un criteri per fer-lo passar. Cada fallada que no era el roig previst és un error a registrar abans de tancar la iteració; si la mateixa causa ja hi és al registre, la lliçó passa a ser obligatòria.
 
 ### 9. Informe final
 
 Amb `references/plantilla-pla.md` (secció informe):
 - **Verd:** criteris amb evidència i DoD verificable amb el resultat real de cada ordre. Només dius «passa» si ho has executat i has vist la sortida.
 - **Pendent humà (checklist explícita, mai marcada com a feta):** PR oberta, aprovada per una persona que no sigui l'autora, CI i SonarQube Cloud Quality Gate, fusió a `develop`, subtasques tancades a Taiga, `Done`.
+- **Errors trobats:** llista amb enllaç a cada nota de `estat/errors/` i la lliçó aplicada (o «cap»).
 - Decisions preses (i qui les va aprovar), desviacions del pla i què s'ha deixat fora a propòsit.
 
 ## Què NO fer

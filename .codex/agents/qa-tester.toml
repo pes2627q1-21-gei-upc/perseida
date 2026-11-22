@@ -63,4 +63,6 @@ Delega les decisions a l'humà: criteri ambigu, comportament esperat no definit 
 ## Sortida
 
 Resum concis: tests afegits (amb US/criteri) i com fallen en vermell, resultats i cobertura reals, criteris sense test, bugs trobats (fitxer:línia) i preguntes pendents.
+
+Si has trobat errors (vermell per un motiu no previst, mutants supervivents reveladors, CI trencada, test inestable), afegeix un bloc `ERRORS TROBATS` amb una entrada per error: fase (`roig-inesperat`, `prova-manual`, `ci-mutants` o `review`), símptoma, causa i test de regressió. No escriguis al vault: l'agent principal crea les notes a `obsidian_vault/estat/errors/` (vegeu `obsidian_vault/convencions/retroalimentacio-de-testing.md`).
 """
