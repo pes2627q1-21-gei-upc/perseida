@@ -24,6 +24,7 @@ from app.domain.meeting_points.models import (
     SpaceType,
 )
 from app.domain.shared.location import Location
+from app.infrastructure.logging import configure_logging
 from app.infrastructure.meeting_points.spotwise_client import SpotwiseSpaceClient
 from tests.factories.meeting_points import EXAMPLE_SPACES, LIBRARY_12
 
@@ -357,3 +358,30 @@ async def test_tg352_a_failed_call_counts_towards_the_limit() -> None:
                 await client.search(NEAR, WATCH_PARTY)
 
     assert route.call_count == 60
+
+
+# --- the user's location stays out of the logs ----------------------------------
+
+
+@respx.mock
+async def test_tg352_the_location_sent_to_spotwise_is_not_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    respx.get(SPACES_URL).respond(json=example())
+    loggers = [logging.getLogger(name) for name in ("httpx", "httpcore")]
+    levels = [logger.level for logger in loggers]
+    root = logging.getLogger()
+    handlers, root_level = list(root.handlers), root.level
+    try:
+        configure_logging()
+        caplog.set_level(logging.DEBUG)
+        async with httpx.AsyncClient() as http:
+            client = SpotwiseSpaceClient(http, BASE_URL, SecretStr(TOKEN), 5.0)
+            await client.search(NEAR, WATCH_PARTY)
+    finally:
+        root.handlers, root.level = handlers, root_level
+        for logger, level in zip(loggers, levels, strict=True):
+            logger.setLevel(level)
+
+    assert "41.404" not in caplog.text
+    assert "2.171" not in caplog.text
