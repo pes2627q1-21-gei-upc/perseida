@@ -860,7 +860,7 @@ export interface components {
       group_friendly: boolean | null;
       /**
        * Distance M
-       * @description Distància en metres des de la ubicació de la petició
+       * @description Distància en metres des de la ubicació de la petició arrodonida a 3 decimals (fins a uns 80 m d'error)
        */
       distance_m: number;
       /**
