@@ -307,6 +307,27 @@ describe('Events map screen', () => {
     expect(path).toBe(`/meeting-points/${launchEvent.id}`);
   });
 
+  // Found trying the app on a phone (TG-352): the sheet is a Modal, so if it stays open it
+  // covers the screen just opened.
+  it.each([
+    ['the outings', 'events.sheet.outings'],
+    ['the meeting points', 'events.sheet.meetingPoints'],
+  ])('closes the summary when it opens %s, so it does not cover them (TG-352)', async (_, key) => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t(key) }));
+
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+    // A hidden Modal renders nothing: the summary of the event is gone.
+    expect(screen.queryByRole('header', { name: launchEvent.title })).toBeNull();
+    expect(screen.queryByTestId('event-sheet')).toBeNull();
+  });
+
   it('opens the summary from the list too, and closes it', async () => {
     await renderScreen();
     await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
@@ -618,6 +639,23 @@ describe('Events map screen with outings (TG-646)', () => {
     expect(screen.getByRole('header', { name: otherOuting.title })).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
     expect(mockRouter.push).toHaveBeenCalledWith(`/outings/${otherOuting.id}`);
+  });
+
+  it('closes the summary of the outing when its page opens, so it does not cover it (TG-352)', async () => {
+    mockApi(() => jsonResponse([otherOuting]));
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(otherOuting.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: otherOuting.id }) } }),
+    );
+    expect(screen.getByRole('header', { name: otherOuting.title })).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith(`/outings/${otherOuting.id}`);
+    expect(screen.queryByRole('header', { name: otherOuting.title })).toBeNull();
   });
 
   it('names a row of an outing in the list with its title, "Sortida" and its date (TG-52)', async () => {
