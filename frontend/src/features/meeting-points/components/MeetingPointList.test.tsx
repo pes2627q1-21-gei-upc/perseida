@@ -231,4 +231,31 @@ describe('MeetingPointList safe areas (TG-352)', () => {
       paddingRight: insets.right + spacing.md,
     });
   });
+
+  it('keeps the empty message clear of the safe areas and of the bar at the top', async () => {
+    await render(
+      <SafeAreaProvider initialMetrics={{ frame: SAFE_AREA.frame, insets }}>
+        <MeetingPointList
+          status="success"
+          points={[]}
+          error={null}
+          onRetry={jest.fn()}
+          topInset={60}
+        />
+      </SafeAreaProvider>,
+    );
+
+    const styles = [];
+    for (let node = screen.getByText(t('meetingPoints.empty')).parent; node; node = node.parent) {
+      styles.push(StyleSheet.flatten(node.props.style ?? node.props.contentContainerStyle));
+    }
+    expect(styles).toContainEqual(
+      expect.objectContaining({
+        paddingTop: 60 + spacing.md,
+        paddingBottom: insets.bottom + spacing.md,
+        paddingLeft: insets.left + spacing.md,
+        paddingRight: insets.right + spacing.md,
+      }),
+    );
+  });
 });
