@@ -160,7 +160,7 @@ async def test_tg352_c4_nulls_are_kept_in_the_answer() -> None:
     assert body["type"] == "cafe"
 
 
-async def test_tg352_c4_an_unknown_silence_level_is_null() -> None:
+async def test_tg352_c4_an_unvoted_silence_level_is_null() -> None:
     space = make_space(id=6, silence=None)
     async for client, auth in _client(FakeSpaceSearch([space])):
         response = await client.get(PATH, params=WATCH_PARTY, headers=auth)
