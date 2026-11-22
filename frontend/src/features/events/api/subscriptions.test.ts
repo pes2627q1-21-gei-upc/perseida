@@ -1,6 +1,7 @@
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent } from '../../../../__mocks__/events';
 import { AppError } from '../../../shared/errors';
+import { _resetActiveRefreshPromise } from '../../auth/api/refreshToken';
 import { clearTokens, saveTokens } from '../../auth/tokenStorage';
 import { listMySubscriptions, subscribe, unsubscribe } from './subscriptions';
 
@@ -15,10 +16,14 @@ jest.mock('expo-secure-store', () => {
 });
 
 beforeEach(async () => {
+  _resetActiveRefreshPromise();
   await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
 });
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  _resetActiveRefreshPromise();
+  jest.restoreAllMocks();
+});
 
 function mockFetch(response: () => Response) {
   return jest.spyOn(globalThis, 'fetch').mockImplementation(async () => response());
@@ -123,6 +128,52 @@ describe('the session (subscriptions are private)', () => {
 
       await expect(call()).rejects.toMatchObject({ code: 'INVALID_SESSION', status: 401 });
       expect(spy).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [
+      'list',
+      () => listMySubscriptions(),
+      () => jsonResponse([launchEvent]),
+      '/api/me/subscriptions',
+    ],
+    [
+      'subscribe',
+      () => subscribe(launchEvent.id),
+      () => new Response(null, { status: 201 }),
+      `/api/events/${launchEvent.id}/subscription`,
+    ],
+    [
+      'unsubscribe',
+      () => unsubscribe(launchEvent.id),
+      () => new Response(null, { status: 204 }),
+      `/api/events/${launchEvent.id}/subscription`,
+    ],
+  ])(
+    '%s renews the session once after a 401 and repeats the request with the new token',
+    async (_, call, ok, path) => {
+      const calls: { path: string; auth: string | null }[] = [];
+      jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const request = input as Request;
+        const { pathname } = new URL(request.url);
+        const auth = request.headers.get('authorization');
+        calls.push({ path: pathname, auth });
+        if (pathname === '/api/auth/refresh') {
+          return jsonResponse({
+            access_token: 'access-2',
+            refresh_token: 'refresh-2',
+            token_type: 'bearer',
+            expires_in: 900,
+          });
+        }
+        return auth === 'Bearer access-2' ? ok() : problemResponse(401, 'INVALID_SESSION');
+      });
+
+      await call();
+
+      expect(calls.map((item) => item.path)).toEqual([path, '/api/auth/refresh', path]);
+      expect(calls[2]?.auth).toBe('Bearer access-2');
     },
   );
 });

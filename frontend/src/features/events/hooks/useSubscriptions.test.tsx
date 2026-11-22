@@ -12,6 +12,7 @@ import {
 import { AppError } from '../../../shared/errors';
 import { saveTokens } from '../../auth/tokenStorage';
 import type { AstronomicalEvent } from '../api/getEvents';
+import { chatKeys } from '../../chat/hooks/useChat';
 import { eventKeys } from './useEvents';
 import { useMySubscriptions, useToggleSubscription } from './useSubscriptions';
 
@@ -31,7 +32,7 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-type Route = () => Response | Promise<Response>;
+type Route = (request: Request) => Response | Promise<Response>;
 
 /** Answers the subscription endpoints, each with its own body or failure. */
 function mockSubscriptionsApi(routes: { list?: Route; put?: Route; remove?: Route } = {}) {
@@ -41,10 +42,10 @@ function mockSubscriptionsApi(routes: { list?: Route; put?: Route; remove?: Rout
   return jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const request = input as Request;
     const { pathname } = new URL(request.url);
-    if (pathname === '/api/me/subscriptions') return list();
+    if (pathname === '/api/me/subscriptions') return list(request);
     if (/^\/api\/events\/[^/]+\/subscription$/.test(pathname)) {
-      if (request.method === 'PUT') return put();
-      if (request.method === 'DELETE') return remove();
+      if (request.method === 'PUT') return put(request);
+      if (request.method === 'DELETE') return remove(request);
     }
     throw new Error(`unexpected request ${request.method} ${pathname}`);
   });
@@ -217,6 +218,73 @@ describe('useToggleSubscription (TG-53, criterion 7)', () => {
     expect(invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: eventKeys.subscriptions() }),
+    );
+  });
+
+  /** The PUT or DELETE of `eventId` fails with `failure`; the others wait for `pending`. */
+  function failOnly(eventId: string, failure: () => Response, pending: Promise<Response>) {
+    return (request: Request) => (request.url.includes(eventId) ? failure() : pending);
+  }
+
+  it('undoes only the subscribe that fails, keeping another toggle still in flight', async () => {
+    const pending = deferred();
+    mockSubscriptionsApi({
+      put: failOnly(
+        launchEvent.id,
+        () => problemResponse(409, 'EVENT_ALREADY_ENDED'),
+        pending.promise,
+      ),
+    });
+    const { result } = await renderHook(() => useToggleSubscription(), { wrapper });
+
+    await act(async () => {
+      result.current.mutate({ event: launchEvent, subscribed: true });
+      result.current.mutate({ event: meteorShowerEvent, subscribed: true });
+    });
+
+    // The launch goes away; the meteor shower, still in flight, stays.
+    await waitFor(() =>
+      expect(ids(cached())).toEqual([meteorShowerEvent.id, lunarEvent.id, solarEvent.id]),
+    );
+    await act(async () => pending.resolve(new Response(null, { status: 201 })));
+  });
+
+  it('puts back, in order, only the event whose unsubscribe fails', async () => {
+    const pending = deferred();
+    mockSubscriptionsApi({
+      remove: failOnly(
+        lunarEvent.id,
+        () => problemResponse(500, 'INTERNAL_ERROR'),
+        pending.promise,
+      ),
+      put: () => pending.promise,
+    });
+    const { result } = await renderHook(() => useToggleSubscription(), { wrapper });
+
+    await act(async () => {
+      result.current.mutate({ event: lunarEvent, subscribed: false });
+      result.current.mutate({ event: launchEvent, subscribed: true });
+    });
+
+    await waitFor(() =>
+      expect(ids(cached())).toEqual([launchEvent.id, lunarEvent.id, solarEvent.id]),
+    );
+    await act(async () => pending.resolve(new Response(null, { status: 201 })));
+  });
+
+  it('marks the rooms of the chat stale when it ends: they list the followed events', async () => {
+    mockSubscriptionsApi();
+    const invalidate = jest.spyOn(client, 'invalidateQueries');
+    const { result } = await renderHook(() => useToggleSubscription(), { wrapper });
+
+    await act(async () => {
+      result.current.mutate({ event: launchEvent, subscribed: true });
+    });
+
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: chatKeys.rooms }),
+      ),
     );
   });
 
