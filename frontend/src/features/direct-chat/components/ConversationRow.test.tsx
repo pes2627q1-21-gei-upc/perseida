@@ -98,7 +98,9 @@ describe('ConversationRow (TG-65)', () => {
       }),
     });
 
-    const image = screen.getByTestId('direct-conversation-avatar-image');
+    const image = screen.getByTestId('direct-conversation-avatar-image', {
+      includeHiddenElements: true,
+    });
     expect(image.props.source).toEqual({ uri: 'https://example.test/laia.png' });
     expect(image.props.accessibilityElementsHidden).toBe(true);
     expect(screen.queryByText('L')).toBeNull();
