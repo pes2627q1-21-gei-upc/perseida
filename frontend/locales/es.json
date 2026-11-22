@@ -173,7 +173,8 @@
       "moreInfo": "Más información",
       "openHint": "Abre la ficha del evento",
       "start": "Inicio",
-      "outings": "Salidas de este evento"
+      "outings": "Salidas de este evento",
+      "meetingPoints": "Puntos de encuentro"
     },
     "status": {
       "active": "Activo ahora"
@@ -224,6 +225,12 @@
     "choose": "Elegir {{name}}",
     "list": {
       "label": "Puntos de encuentro recomendados"
+    },
+    "location": {
+      "locating": "Buscando tu ubicación",
+      "denied": "Sin permiso de ubicación no podemos recomendarte locales. Puedes activarlo en los ajustes del dispositivo.",
+      "unavailable": "No encontramos tu ubicación. Comprueba que la ubicación del dispositivo está activada.",
+      "retry": "Vuelve a buscar la ubicación"
     },
     "profile": {
       "label": "Para qué os encontráis",
@@ -388,6 +395,7 @@
       "hint": "Mueve el mapa hasta que la mira quede sobre el lugar.",
       "choose": "Elige este lugar",
       "useMine": "Usa mi ubicación",
+      "recommend": "Locales recomendados cerca",
       "denied": "No hemos podido obtener tu ubicación. Mueve el mapa para elegir el lugar.",
       "latitude": "Latitud",
       "longitude": "Longitud",

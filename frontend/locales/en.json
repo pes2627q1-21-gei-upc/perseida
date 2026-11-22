@@ -173,7 +173,8 @@
       "moreInfo": "More information",
       "openHint": "Opens the event details",
       "start": "Starts",
-      "outings": "Outings for this event"
+      "outings": "Outings for this event",
+      "meetingPoints": "Meeting points"
     },
     "status": {
       "active": "Happening now"
@@ -224,6 +225,12 @@
     "choose": "Choose {{name}}",
     "list": {
       "label": "Recommended meeting points"
+    },
+    "location": {
+      "locating": "Finding your location",
+      "denied": "Without location permission we can't recommend places. You can turn it on in your device settings.",
+      "unavailable": "We can't find your location. Check that location is turned on in your device.",
+      "retry": "Find my location again"
     },
     "profile": {
       "label": "What you are meeting for",
@@ -388,6 +395,7 @@
       "hint": "Move the map until the crosshair is over the place.",
       "choose": "Choose this place",
       "useMine": "Use my location",
+      "recommend": "Recommended places nearby",
       "denied": "We couldn't get your location. Move the map to choose the place.",
       "latitude": "Latitude",
       "longitude": "Longitude",

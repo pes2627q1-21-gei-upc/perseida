@@ -173,7 +173,8 @@
       "moreInfo": "Més informació",
       "openHint": "Obre la fitxa de l'esdeveniment",
       "start": "Inici",
-      "outings": "Sortides d'aquest esdeveniment"
+      "outings": "Sortides d'aquest esdeveniment",
+      "meetingPoints": "Punts de trobada"
     },
     "status": {
       "active": "Actiu ara"
@@ -224,6 +225,12 @@
     "choose": "Tria {{name}}",
     "list": {
       "label": "Punts de trobada recomanats"
+    },
+    "location": {
+      "locating": "Buscant la teva ubicació",
+      "denied": "Sense permís d'ubicació no et podem recomanar locals. El pots activar a la configuració del dispositiu.",
+      "unavailable": "No trobem la teva ubicació. Comprova que la ubicació del dispositiu està activada.",
+      "retry": "Torna a buscar la ubicació"
     },
     "profile": {
       "label": "Per a què us trobeu",
@@ -388,6 +395,7 @@
       "hint": "Mou el mapa fins que la mira quedi sobre el lloc.",
       "choose": "Tria aquest lloc",
       "useMine": "Usa la meva ubicació",
+      "recommend": "Locals recomanats a prop",
       "denied": "No hem pogut obtenir la teva ubicació. Mou el mapa per triar el lloc.",
       "latitude": "Latitud",
       "longitude": "Longitud",
