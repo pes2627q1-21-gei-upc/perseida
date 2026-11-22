@@ -1,9 +1,26 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
-import { useState } from 'react';
+import { type ReactElement, useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
+import { otherSpace, spotwiseLibrary, unvotedCafe } from '../../../../__mocks__/meetingPoints';
+import i18n from '../../../shared/i18n';
+import { saveTokens } from '../../auth/tokenStorage';
+import type { MeetingPoint } from '../../meeting-points/api/meetingPoints';
 import { formatCoordinate } from '../formatOuting';
 import { LocationField } from './LocationField';
+
+// SecureStore is native: an in-memory store stands in for the device keychain (TG-352).
+jest.mock('expo-secure-store', () => {
+  const store = new Map<string, string>();
+  return {
+    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
+  };
+});
 
 let mockMapProps: {
   start: { latitude: number; longitude: number; zoom: number };
@@ -272,5 +289,206 @@ describe('LocationField', () => {
     await render(<LocationField value={null} onChange={jest.fn()} error="Tria on us trobareu." />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Tria on us trobareu.');
+  });
+});
+
+// TG-352 criterion 7: creating or editing an outing, the watch party places near the person,
+// and choosing one makes its coordinates the place of the outing.
+describe('LocationField recommended places (TG-352, criterion 7)', () => {
+  /** Where the person is: synthetic coordinates in Barcelona. */
+  const DEVICE = { latitude: 41.4036, longitude: 2.1744 };
+  const SAFE_AREA = {
+    frame: { x: 0, y: 0, width: 390, height: 844 },
+    insets: { top: 0, left: 0, right: 0, bottom: 0 },
+  };
+  /** Six places: only the first five are offered. Synthetic data. */
+  const sixPoints: MeetingPoint[] = [
+    spotwiseLibrary,
+    unvotedCafe,
+    otherSpace,
+    {
+      ...unvotedCafe,
+      id: 15,
+      name: "Bar d'exemple",
+      location: { latitude: 41.42, longitude: 2.19 },
+    },
+    {
+      ...otherSpace,
+      id: 16,
+      name: "Sala d'exemple",
+      location: { latitude: 41.43, longitude: 2.2 },
+    },
+    {
+      ...spotwiseLibrary,
+      id: 17,
+      name: "Ateneu d'exemple",
+      location: { latitude: 41.44, longitude: 2.21 },
+    },
+  ];
+  const recommend = () => i18n.t('outings.picker.recommend');
+  const chooseName = (point: MeetingPoint) =>
+    new RegExp(`^${escape(i18n.t('meetingPoints.choose', { name: point.name }))}`);
+
+  let client: QueryClient;
+  let fetchSpy: jest.SpyInstance;
+  let meetingPoints: () => Response | Promise<Response>;
+
+  function escape(text: string) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /** The query strings of the requests for meeting points, in order. */
+  function pointRequests(): URLSearchParams[] {
+    return fetchSpy.mock.calls
+      .map(([input]) => new URL((input as Request).url))
+      .filter((url) => url.pathname === '/api/meeting-points')
+      .map((url) => url.searchParams);
+  }
+
+  function grantAt(latitude: number, longitude: number) {
+    permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+    position.mockResolvedValue({ coords: { latitude, longitude } } as Location.LocationObject);
+  }
+
+  /** The providers the form has in the app: the queries and the safe areas. */
+  function withProviders(element: ReactElement) {
+    return (
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <QueryClientProvider client={client}>{element}</QueryClientProvider>
+      </SafeAreaProvider>
+    );
+  }
+
+  async function renderField(onChange = jest.fn()) {
+    await render(withProviders(<LocationField value={null} onChange={onChange} />));
+    return onChange;
+  }
+
+  beforeEach(async () => {
+    client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+    await saveTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+    meetingPoints = () => jsonResponse(sixPoints);
+    fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const { pathname } = new URL((input as Request).url);
+      if (pathname === '/api/meeting-points') return meetingPoints();
+      throw new Error(`unexpected request to ${pathname}`);
+    });
+  });
+
+  afterEach(() => {
+    client.clear();
+    fetchSpy.mockRestore();
+  });
+
+  it('has a button for it, with its own text, that asks nothing until it is pressed', async () => {
+    await renderField();
+
+    expect(recommend()).not.toBe('outings.picker.recommend');
+    expect(screen.getByRole('button', { name: recommend() })).toBeTruthy();
+    expect(permission).not.toHaveBeenCalled();
+    expect(pointRequests()).toEqual([]);
+  });
+
+  it('asks for the location and shows the first five watch party places around the person', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    for (const point of sixPoints.slice(0, 5)) {
+      expect(await screen.findByRole('button', { name: chooseName(point) })).toBeTruthy();
+    }
+    expect(screen.queryByText(sixPoints[5].name)).toBeNull();
+    expect(permission).toHaveBeenCalledTimes(1);
+    expect(pointRequests()).toHaveLength(1);
+    const [search] = pointRequests();
+    expect(search.get('profile')).toBe('watch_party');
+    expect(Number(search.get('lat'))).toBe(DEVICE.latitude);
+    expect(Number(search.get('lon'))).toBe(DEVICE.longitude);
+  });
+
+  it('does not choose the location of the person by itself', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    const onChange = await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+    await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('chooses only the coordinates of the place and moves the map there', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    const onChange = await renderField();
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: chooseName(unvotedCafe) }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    // Only the coordinates: neither the name nor the address of the place.
+    expect(onChange.mock.calls[0][0]).toEqual({
+      latitude: unvotedCafe.location.latitude,
+      longitude: unvotedCafe.location.longitude,
+    });
+    expect(mockMapProps.start).toMatchObject(unvotedCafe.location);
+  });
+
+  it('fills the latitude and longitude fields with the place chosen', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    function Controlled() {
+      const [value, setValue] = useState<{ latitude: number; longitude: number } | null>(null);
+      return <LocationField value={value} onChange={setValue} />;
+    }
+    await render(withProviders(<Controlled />));
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: chooseName(otherSpace) }));
+
+    expect(screen.getByLabelText('Latitud').props.value).toBe(
+      formatCoordinate(otherSpace.location.latitude, 'ca'),
+    );
+    expect(screen.getByLabelText('Longitud').props.value).toBe(
+      formatCoordinate(otherSpace.location.longitude, 'ca'),
+    );
+  });
+
+  it('explains it and asks the API nothing when the person denies the location', async () => {
+    permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
+    const onChange = await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(position).not.toHaveBeenCalled();
+    expect(pointRequests()).toEqual([]);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByText(spotwiseLibrary.name)).toBeNull();
+  });
+
+  it('explains it and asks the API nothing when the device cannot find the location', async () => {
+    permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+    position.mockRejectedValue(new Error('Location services are disabled'));
+    const onChange = await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(pointRequests()).toEqual([]);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('shows the message of unavailability when Spotwise does not answer', async () => {
+    grantAt(DEVICE.latitude, DEVICE.longitude);
+    meetingPoints = () => problemResponse(503, 'MEETING_POINTS_UNAVAILABLE');
+    const onChange = await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona.",
+      ),
+    );
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
