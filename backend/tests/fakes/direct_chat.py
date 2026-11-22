@@ -123,8 +123,11 @@ class InMemoryUserBlockRepository:
 class RecordingPushNotifier:
     def __init__(self) -> None:
         self.sent: list[tuple[uuid.UUID, DirectMessage]] = []
+        self.fail = False
 
     async def notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
+        if self.fail:
+            raise RuntimeError("push provider down")
         self.sent.append((recipient_id, message))
 
 

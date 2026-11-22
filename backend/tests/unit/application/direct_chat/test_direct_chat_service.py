@@ -454,3 +454,21 @@ async def test_tg65_recipient_without_connections_gets_a_push(
     )
 
     assert env.push.sent == [(BOB, message)]
+
+
+async def test_tg65_a_failing_push_does_not_fail_the_send(
+    service: DirectChatService, env: DirectChatHarness
+) -> None:
+    conversation = await _conversation(env)
+    env.broadcaster.recipients = 0
+    env.push.fail = True
+
+    message = await service.send_message(
+        ALICE, conversation.id, "hola", client_message_id=uuid.uuid4()
+    )
+
+    assert env.messages.messages == [message]
+    assert env.broadcaster.calls == [(message, BOB, None)]
+    assert env.log.count("save") == 1
+    assert env.log.count("deliver") == 1
+    assert env.push.sent == []
