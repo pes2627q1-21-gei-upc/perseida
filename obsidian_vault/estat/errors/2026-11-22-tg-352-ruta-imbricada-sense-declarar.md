@@ -9,7 +9,7 @@ fase: roig-inesperat
 capa: frontend
 regressio: "frontend/src/features/navigation/__tests__/meetingPointsRoute.test.tsx"
 commit: "31a690e4"
-llico: cap
+llico: convencio
 etiquetes: [error-testing]
 ---
 
@@ -36,4 +36,4 @@ Llista nova `HIDDEN_NESTED_ROUTES = ['meeting-points/[eventId]']` a `navigationC
 
 ## Lliçó
 
-Cap per ara. El mateix podria afectar `/outings/*` (TG-629), que no és a cap de les dues llistes; Raquel ho provarà a l'app abans d'obrir les PR. Si es confirma, cal una regla a [[frontend]] sobre on es declaren les rutes imbricades.
+Convenció. La mateixa causa afectava `/outings/*` ([[2026-11-22-tg-629-rutes-de-sortides-no-s-obren]]), i per això la regla és ara a [[frontend#Navegació per pestanyes i perfil (TG-385)]] i el test guardià la fa complir.
