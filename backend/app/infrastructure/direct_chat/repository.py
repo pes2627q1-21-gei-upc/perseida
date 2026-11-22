@@ -23,6 +23,7 @@ from app.infrastructure.direct_chat.tables import (
     UserBlockRow,
 )
 from app.infrastructure.persistence.errors import database_errors
+from app.infrastructure.users.tables import UserRow
 
 
 def _conversation(row: DirectConversationRow) -> DirectConversation:
@@ -145,8 +146,27 @@ class SqlDirectConversationRepository:
             .scalar_subquery()
         )
         statement = (
-            select(DirectConversationRow, last, unread.label("unread"))
-            .outerjoin(last, true())
+            select(
+                DirectConversationRow,
+                last,
+                unread.label("unread"),
+                col(UserRow.display_name).label("other_display_name"),
+                col(UserRow.avatar_url).label("other_avatar_url"),
+            )
+            .select_from(DirectConversationRow)
+            .outerjoin_from(DirectConversationRow, last, true())
+            .join_from(
+                DirectConversationRow,
+                UserRow,
+                col(UserRow.id)
+                == case(
+                    (
+                        col(DirectConversationRow.user_a_id) == user_id,
+                        col(DirectConversationRow.user_b_id),
+                    ),
+                    else_=col(DirectConversationRow.user_a_id),
+                ),
+            )
             .where(
                 or_(
                     col(DirectConversationRow.user_a_id) == user_id,
@@ -177,6 +197,8 @@ class SqlDirectConversationRepository:
                     client_message_id=row.client_message_id,
                 ),
                 unread_count=row.unread,
+                other_display_name=row.other_display_name,
+                other_avatar_url=row.other_avatar_url,
             )
             for row in rows
         ]

@@ -180,6 +180,8 @@ class ConversationSummary(BaseModel):
     conversation: DirectConversation
     last_message: DirectMessage | None = None
     unread_count: int = Field(ge=0)
+    other_display_name: str | None = None
+    other_avatar_url: str | None = None
 
 
 class UserBlock(BaseModel):

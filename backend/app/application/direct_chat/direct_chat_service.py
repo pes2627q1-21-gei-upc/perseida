@@ -215,6 +215,8 @@ class DirectChatService:
         return ConversationOverview(
             conversation_id=conversation.id,
             other_user_id=other_id,
+            other_display_name=summary.other_display_name,
+            other_avatar_url=summary.other_avatar_url,
             last_message_preview=_preview(last.text) if last else None,
             last_message_at=last.sent_at if last else None,
             last_message_sender_id=last.sender_id if last else None,
