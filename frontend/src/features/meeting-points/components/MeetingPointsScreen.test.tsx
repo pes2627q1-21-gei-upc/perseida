@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
-import { AccessibilityInfo, AppState, type AppStateStatus } from 'react-native';
+import { AccessibilityInfo, AppState, type AppStateStatus, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -351,5 +351,123 @@ describe('MeetingPointsScreen (TG-352)', () => {
       expect(Number(search.get('lat'))).toBe(DEVICE.latitude);
       expect(Number(search.get('lon'))).toBe(DEVICE.longitude);
     });
+  });
+});
+
+describe('MeetingPointsScreen back button (TG-352)', () => {
+  it('goes back to where the person came from', async () => {
+    mockRouter.canGoBack.mockReturnValue(true);
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: t('common.back') }));
+
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it('goes home when it was opened from a link, with nowhere to go back to', async () => {
+    mockRouter.canGoBack.mockReturnValue(false);
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: t('common.back') }));
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/');
+    expect(mockRouter.back).not.toHaveBeenCalled();
+  });
+});
+
+describe('MeetingPointsScreen states (TG-352)', () => {
+  const locatingLabel = () => t('meetingPoints.location.locating');
+
+  it('shows only the spinner of the location while locating', async () => {
+    position.mockReturnValue(new Promise(() => undefined));
+    await renderScreen();
+    await waitFor(() => expect(permission).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByLabelText(locatingLabel())).toBeTruthy();
+    expect(screen.queryByLabelText(t('meetingPoints.profile.label'))).toBeNull();
+    expect(screen.queryByLabelText(t('meetingPoints.loading'))).toBeNull();
+    expect(screen.queryByText(t('meetingPoints.location.denied'))).toBeNull();
+    expect(screen.queryByText(t('meetingPoints.location.unavailable'))).toBeNull();
+  });
+
+  it('says the places are loading, not that there are none, while the API answers', async () => {
+    meetingPoints = () => new Promise(() => undefined);
+    await renderScreen();
+
+    expect(await screen.findByLabelText(t('meetingPoints.loading'))).toBeTruthy();
+    expect(screen.queryByText(t('meetingPoints.empty'))).toBeNull();
+    // Once the position is here, the spinner of the location is gone.
+    expect(screen.queryByLabelText(locatingLabel())).toBeNull();
+  });
+
+  it('once granted shows the places without the spinner nor the messages of the location', async () => {
+    await renderScreen();
+    await screen.findByText(spotwiseLibrary.name);
+
+    expect(screen.queryByLabelText(locatingLabel())).toBeNull();
+    expect(screen.queryByText(t('meetingPoints.location.denied'))).toBeNull();
+    expect(screen.queryByText(t('meetingPoints.location.unavailable'))).toBeNull();
+  });
+
+  it('without the permission shows neither the profiles nor the list, not even loading', async () => {
+    permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
+    await renderScreen();
+    await screen.findByText(t('meetingPoints.location.denied'));
+
+    expect(screen.queryByLabelText(t('meetingPoints.profile.label'))).toBeNull();
+    expect(screen.queryByLabelText(t('meetingPoints.loading'))).toBeNull();
+    expect(screen.queryByLabelText(locatingLabel())).toBeNull();
+    expect(screen.queryByText(t('meetingPoints.location.unavailable'))).toBeNull();
+  });
+
+  it('without the position shows neither the profiles nor the list, and not the denied text', async () => {
+    position.mockRejectedValue(new Error('Location services are disabled'));
+    await renderScreen();
+    await screen.findByText(t('meetingPoints.location.unavailable'));
+
+    expect(screen.queryByLabelText(t('meetingPoints.profile.label'))).toBeNull();
+    expect(screen.queryByLabelText(t('meetingPoints.loading'))).toBeNull();
+    expect(screen.queryByText(t('meetingPoints.location.denied'))).toBeNull();
+  });
+});
+
+describe('MeetingPointsScreen announcements of the location (TG-352, WCAG 4.1.3)', () => {
+  function deny() {
+    permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
+  }
+
+  it.each(['android', 'web'] as const)(
+    'does not announce explicitly on %s: the polite live region reads it',
+    async (os) => {
+      jest.replaceProperty(Platform, 'OS', os);
+      deny();
+      const announce = announceSpy();
+      await renderScreen();
+
+      const message = await screen.findByText(t('meetingPoints.location.denied'));
+      expect(message).toHaveProp('accessibilityLiveRegion', 'polite');
+      expect(announce).not.toHaveBeenCalledWith(t('meetingPoints.location.denied'));
+    },
+  );
+
+  it('announces the message again when it changes, as with the language', async () => {
+    deny();
+    const announce = announceSpy();
+    await renderScreen();
+    await screen.findByText(t('meetingPoints.location.denied'));
+    try {
+      await act(async () => {
+        await i18n.changeLanguage('es');
+      });
+
+      const spanish = i18n.t('meetingPoints.location.denied');
+      expect(await screen.findByText(spanish)).toBeTruthy();
+      expect(announce).toHaveBeenLastCalledWith(spanish);
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage('ca');
+      });
+    }
   });
 });
