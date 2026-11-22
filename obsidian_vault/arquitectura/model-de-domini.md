@@ -2,7 +2,7 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-21"
+data: "2026-11-22"
 us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51", "TG-399", "TG-400", "TG-469", "TG-470"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-399 i TG-400 (domini del xat directe, 2026-11-21); TG-469 (autor {id, name} al missatge del xat, 2026-11-21); TG-470 (autor als missatges, ADR-0033, 2026-11-20)"
 etiquetes: [arquitectura, domini, uml, model]
@@ -320,8 +320,7 @@ Endpoints (privats, amb sessió; l'usuari surt de la sessió com a `GET /api/use
 | `DELETE /api/events/{event_id}/subscription` | Dona de baixa | `204`; 422 si l'identificador no és vàlid |
 | `GET /api/me/subscriptions` | Esdeveniments subscrits | `200` `EventResponse[]` ([[contracte-esdeveniments]]) |
 
-> [!todo] Pendent
-> - L'app (botó al llistat de TG-51 i secció «Els meus esdeveniments») va a la PR 2 de TG-53.
+L'app els fa servir des de la pestanya Esdeveniments: l'estrella de cada fila i la pestanya «Els meus» (vegeu [[frontend#Subscripcions a esdeveniments (TG-53)]]).
 
 ## Diagrama (transcripció)
 
