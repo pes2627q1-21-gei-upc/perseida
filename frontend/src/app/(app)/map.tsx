@@ -103,12 +103,21 @@ export default function MapScreen() {
     status = <MapStatus state="noLocation" onShowList={() => setView('list')} />;
   }
 
-  const showOutings = (eventId: string) =>
+  // The sheet is a Modal on phones: it is closed first, or it stays over the new screen (TG-352).
+  const showOutings = (eventId: string) => {
+    closeSheet();
     router.push({ pathname: '/outings', params: { eventId } });
+  };
 
-  const openOuting = (outingId: string) => router.push(`/outings/${outingId}`);
+  const openOuting = (outingId: string) => {
+    closeSheet();
+    router.push(`/outings/${outingId}`);
+  };
 
-  const showMeetingPoints = (eventId: string) => router.push(`/meeting-points/${eventId}`);
+  const showMeetingPoints = (eventId: string) => {
+    closeSheet();
+    router.push(`/meeting-points/${eventId}`);
+  };
 
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
