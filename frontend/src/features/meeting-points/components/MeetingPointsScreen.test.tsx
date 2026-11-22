@@ -401,6 +401,15 @@ describe('MeetingPointsScreen states (TG-352)', () => {
     expect(screen.queryByLabelText(locatingLabel())).toBeNull();
   });
 
+  it('says there are no places nearby when the API finds none', async () => {
+    meetingPoints = () => jsonResponse([]);
+    await renderScreen();
+
+    expect(await screen.findByText(t('meetingPoints.empty'))).toBeTruthy();
+    expect(screen.queryByLabelText(t('meetingPoints.loading'))).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('once granted shows the places without the spinner nor the messages of the location', async () => {
     await renderScreen();
     await screen.findByText(spotwiseLibrary.name);
