@@ -3,6 +3,12 @@ import { Chats, House, Planet, Trophy, User } from 'phosphor-react-native';
 
 export type TabRouteName = 'index' | 'events' | 'chat' | 'gamification' | 'profile';
 export type HiddenRouteName = 'map' | 'apod' | 'quiz';
+export type HiddenNestedRouteName =
+  | 'meeting-points/[eventId]'
+  | 'outings/index'
+  | 'outings/new'
+  | 'outings/[id]/index'
+  | 'outings/[id]/edit';
 
 export interface TabItem {
   name: TabRouteName;
@@ -55,6 +61,13 @@ export const HIDDEN_ROUTES: readonly HiddenRouteName[] = ['map', 'apod', 'quiz']
 
 /**
  * Hidden routes inside a folder of the (app) group with no layout of its own (TG-352): declared
- * apart from HIDDEN_ROUTES, which are the files and the folders with a layout.
+ * apart from HIDDEN_ROUTES, which are the files and the folders with a layout. Undeclared, the
+ * tab layout cannot open them: router.push sends the user back home (the outings, TG-629).
  */
-export const HIDDEN_NESTED_ROUTES: readonly string[] = ['meeting-points/[eventId]'] as const;
+export const HIDDEN_NESTED_ROUTES: readonly HiddenNestedRouteName[] = [
+  'meeting-points/[eventId]',
+  'outings/index',
+  'outings/new',
+  'outings/[id]/index',
+  'outings/[id]/edit',
+] as const;
