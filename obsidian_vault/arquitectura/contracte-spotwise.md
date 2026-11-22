@@ -135,7 +135,7 @@ Perseida exposa `GET /api/meeting-points?profile=&lat=&lon=` ([[api#Punts de tro
 - **Sortides:** una sortida ([[api#Sortides d'observació (TG-629)]]) que tria un local només en desa les coordenades.
 
 > [!warning] HTTP sense xifrar
-> El servei de Spotwise només és accessible per HTTP, i el token viatja en clar entre els dos servidors. Raquel ho accepta (22/11/2026), perquè l'endpoint només llegeix dades d'espais. Cal demanar HTTPS a Spotwise.
+> El servei de Spotwise només és accessible per HTTP, i el token viatja en clar entre els dos servidors. També hi viatja en clar la ubicació de la persona, arrodonida a 3 decimals (uns 100 m). Raquel ho accepta (22/11/2026), perquè l'endpoint només llegeix dades d'espais i la ubicació no s'hi envia exacta. Cal demanar HTTPS a Spotwise.
 
 ## Regla de canvis
 
