@@ -23,6 +23,8 @@ Abans d'implementar TG-352, deixar un mètode perquè els errors trobats en test
 - Enllaços des de [[testing]], [[definition-of-done]] (nou criteri), [[actualitzacio-del-vault]] i [[00-index]].
 - Skills `implementar-us` (porta B de la fase 8 i informe) i `testing-tdd`, i subagent `qa-tester` (bloc `ERRORS TROBATS`). Sincronitzats amb `sync-skills.mjs` i `sync-agents.mjs`.
 
+- **Review de la PR #137** (canvis demanats): el frontmatter de les notes d'error no complia [[notes-obsidian]]. Ara la convenció admet `tipus: error-testing` amb `estat` `obert`/`corregit`, la plantilla porta `font` i els noms del registre van en minúscules. És el primer error registrat amb el mètode: [[2026-11-22-tg-657-frontmatter-fora-de-la-convencio]].
+
 ## Decisions preses
 
 - Registre únic amb un `.base`, i no una secció per sessió (triat per la persona).
