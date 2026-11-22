@@ -87,7 +87,9 @@ describe('useDirectTyping (TG-65)', () => {
 
   it('ignores message and malformed typing events', async () => {
     const { result } = await renderHook(() => useDirectTyping(CONVERSATION));
-    await act(async () => mockListener?.({ type: 'dm.message', payload: { conversation_id: CONVERSATION } }));
+    await act(async () =>
+      mockListener?.({ type: 'dm.message', payload: { conversation_id: CONVERSATION } }),
+    );
     await act(async () =>
       mockListener?.({
         type: 'dm.typing',
