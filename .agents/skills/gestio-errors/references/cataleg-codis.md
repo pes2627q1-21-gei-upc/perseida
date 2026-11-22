@@ -162,7 +162,7 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 | NASA (APOD...) | Retorna la cache (Redis), sense 500 | `ExternalServiceError` (503) amb codi propi |
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
 | Fonts d'esdeveniments (Launch Library 2, USNO, Skyfield, catàleg) | Es serveixen els esdeveniments desats a PostgreSQL; la font no es torna a cridar en 15 min | Igual: `EVENT_SOURCE_UNAVAILABLE` no arriba al client, mai un 5xx (TG-50, ADR-0031) |
-| Spotwise (espais) | Retorna la recomanació desada a Redis (5 min, per perfil i ubicació arrodonida a 3 decimals) sense cridar Spotwise | `ExternalServiceError` `MEETING_POINTS_UNAVAILABLE` (503), mai un 500; no es desa res (TG-352) |
+| Spotwise (espais) | Només dins del TTL de 5 min (per perfil i ubicació arrodonida a 3 decimals) es retorna la recomanació desada a Redis, sense cridar Spotwise. Un cop caducada no es serveix mai: no hi ha fallback amb dades caducades (decisió de la persona, TG-352) | `ExternalServiceError` `MEETING_POINTS_UNAVAILABLE` (503), mai un 500; no es desa res. També si ja s'han fet 60 crides a Spotwise en l'últim minut (límit de sortida per procés) (TG-352) |
 | Altres (meteo, contaminació lumínica, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
 Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.
