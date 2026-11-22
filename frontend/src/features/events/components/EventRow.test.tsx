@@ -171,7 +171,8 @@ describe('EventRow subscription star (TG-53, criteria 7 and 8)', () => {
     'does not announce the error explicitly on %s: the live region reads it',
     async (os) => {
       jest.replaceProperty(Platform, 'OS', os);
-      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      // The native module is already a mock: clear the calls of the tests before.
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockClear();
 
       await render(
         <EventRow
