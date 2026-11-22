@@ -108,6 +108,12 @@ function subscriptionRequests(method: 'PUT' | 'DELETE'): string[] {
     .map(([input]) => urlOf(input).pathname);
 }
 
+/** How many times the screen asked for the subscriptions of the session. */
+function subscriptionsFetches(): number {
+  return fetchSpy.mock.calls.filter(([input]) => urlOf(input).pathname === '/api/me/subscriptions')
+    .length;
+}
+
 /** Today in UTC plus `days`, as YYYY-MM-DD. */
 function utcDay(days = 0): string {
   const now = new Date();
@@ -721,6 +727,33 @@ describe('Events tab: subscriptions (TG-53)', () => {
       ).toBeTruthy();
     });
 
+    it('disables the stars while the subscriptions load, and enables them when they arrive', async () => {
+      const pending = deferred();
+      subscriptionsApi.mine = () => pending.promise;
+      await renderScreen();
+
+      expect(
+        await screen.findByRole('button', { name: follow(launchEvent.title), disabled: true }),
+      ).toBeTruthy();
+
+      await act(async () => pending.resolve(jsonResponse([lunarEvent])));
+
+      expect(
+        await screen.findByRole('button', { name: follow(launchEvent.title), disabled: false }),
+      ).toBeTruthy();
+    });
+
+    it('keeps the stars disabled when the subscriptions cannot be loaded', async () => {
+      subscriptionsApi.mine = () => problemResponse(500, 'INTERNAL_ERROR');
+      await renderScreen();
+      await screen.findByText(launchEvent.title);
+
+      await waitFor(() => expect(subscriptionsFetches()).toBeGreaterThanOrEqual(2));
+      expect(
+        screen.getByRole('button', { name: follow(launchEvent.title), disabled: true }),
+      ).toBeTruthy();
+    });
+
     it('keeps the rows themselves not pressable', async () => {
       await renderScreen();
       await screen.findByRole('button', { name: follow(lunarEvent.title) });
@@ -733,7 +766,9 @@ describe('Events tab: subscriptions (TG-53)', () => {
       subscriptionsApi.subscribe = () => pending.promise;
       await renderScreen();
 
-      await fireEvent.press(await screen.findByRole('button', { name: follow(launchEvent.title) }));
+      await fireEvent.press(
+        await screen.findByRole('button', { name: follow(launchEvent.title), disabled: false }),
+      );
 
       // Before the API answers.
       await waitFor(() =>
@@ -749,7 +784,9 @@ describe('Events tab: subscriptions (TG-53)', () => {
       subscriptionsApi.subscribe = () => problemResponse(409, 'EVENT_ALREADY_ENDED');
       await renderScreen();
 
-      await fireEvent.press(await screen.findByRole('button', { name: follow(launchEvent.title) }));
+      await fireEvent.press(
+        await screen.findByRole('button', { name: follow(launchEvent.title), disabled: false }),
+      );
 
       expect(await screen.findByRole('alert')).toHaveTextContent(ALREADY_ENDED);
       expect(
@@ -766,7 +803,9 @@ describe('Events tab: subscriptions (TG-53)', () => {
           : new Promise<Response>(() => undefined);
       };
       await renderScreen();
-      await fireEvent.press(await screen.findByRole('button', { name: follow(launchEvent.title) }));
+      await fireEvent.press(
+        await screen.findByRole('button', { name: follow(launchEvent.title), disabled: false }),
+      );
       expect(await screen.findByRole('alert')).toHaveTextContent(ALREADY_ENDED);
 
       await fireEvent.press(screen.getByRole('button', { name: follow(launchEvent.title) }));

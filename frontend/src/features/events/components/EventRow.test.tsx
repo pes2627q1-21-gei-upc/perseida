@@ -1,5 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
+import {
+  AccessibilityInfo,
+  Platform,
+  type StyleProp,
+  StyleSheet,
+  type ViewStyle,
+} from 'react-native';
 
 import { launchEvent, lunarEvent } from '../../../../__mocks__/events';
 import i18n from '../../../shared/i18n';
@@ -16,6 +22,7 @@ function distanceText(km: string) {
 }
 
 afterEach(async () => {
+  jest.restoreAllMocks();
   await i18n.changeLanguage('ca');
 });
 
@@ -130,6 +137,72 @@ describe('EventRow subscription star (TG-53, criteria 7 and 8)', () => {
     );
 
     expect(screen.getByRole('alert')).toHaveTextContent('Aquest esdeveniment ja ha acabat.');
+  });
+
+  it('reads the error of the subscription as a polite live region (Android and the web)', async () => {
+    await render(
+      <EventRow
+        event={fullMoon}
+        onToggleSubscription={jest.fn()}
+        subscriptionError="Aquest esdeveniment ja ha acabat."
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveProp('accessibilityLiveRegion', 'polite');
+    expect(screen.getByRole('alert')).toHaveProp('aria-live', 'polite');
+  });
+
+  it('announces the error of the subscription on iOS, which ignores live regions', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+    await render(
+      <EventRow
+        event={fullMoon}
+        onToggleSubscription={jest.fn()}
+        subscriptionError="Aquest esdeveniment ja ha acabat."
+      />,
+    );
+
+    expect(announce).toHaveBeenCalledWith('Aquest esdeveniment ja ha acabat.');
+  });
+
+  it.each(['android', 'web'] as const)(
+    'does not announce the error explicitly on %s: the live region reads it',
+    async (os) => {
+      jest.replaceProperty(Platform, 'OS', os);
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+
+      await render(
+        <EventRow
+          event={fullMoon}
+          onToggleSubscription={jest.fn()}
+          subscriptionError="Aquest esdeveniment ja ha acabat."
+        />,
+      );
+
+      expect(announce).not.toHaveBeenCalled();
+    },
+  );
+
+  it('disables the star while it cannot know whether the event is followed', async () => {
+    const onToggle = jest.fn();
+    await render(
+      <EventRow event={fullMoon} onToggleSubscription={onToggle} subscriptionDisabled />,
+    );
+
+    const star = screen.getByRole('button', { name: follow(lunarEvent.title), disabled: true });
+    await fireEvent.press(star);
+
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('enables the star by default', async () => {
+    await render(<EventRow event={fullMoon} onToggleSubscription={jest.fn()} />);
+
+    expect(
+      screen.getByRole('button', { name: follow(lunarEvent.title), disabled: false }),
+    ).toBeTruthy();
   });
 
   it('shows no alert without an error', async () => {

@@ -187,6 +187,39 @@ describe('useToggleSubscription (TG-53, criterion 7)', () => {
     expect(ids(cached())).toEqual([lunarEvent.id, solarEvent.id]);
   });
 
+  it('asks again only when the last of several toggles ends, so a refetch does not undo the others', async () => {
+    const first = deferred();
+    const second = deferred();
+    const answers = [first.promise, second.promise];
+    const spy = mockSubscriptionsApi({ put: () => answers.shift() ?? first.promise });
+    const invalidate = jest.spyOn(client, 'invalidateQueries');
+    const { result } = await renderHook(() => useToggleSubscription(), { wrapper });
+
+    await act(async () => {
+      result.current.mutate({ event: launchEvent, subscribed: true });
+      result.current.mutate({ event: meteorShowerEvent, subscribed: true });
+    });
+    await waitFor(() => expect(requestsOf(spy, 'PUT')).toHaveLength(2));
+
+    await act(async () => first.resolve(new Response(null, { status: 201 })));
+    await waitFor(() => expect(client.isMutating()).toBe(1));
+    expect(invalidate).not.toHaveBeenCalled();
+    // The second toggle is still on screen while the first one has ended.
+    expect(ids(cached())).toEqual([
+      launchEvent.id,
+      meteorShowerEvent.id,
+      lunarEvent.id,
+      solarEvent.id,
+    ]);
+
+    await act(async () => second.resolve(new Response(null, { status: 201 })));
+    await waitFor(() => expect(client.isMutating()).toBe(0));
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(invalidate).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: eventKeys.subscriptions() }),
+    );
+  });
+
   it.each([
     ['succeeds', () => new Response(null, { status: 201 })],
     ['fails', () => problemResponse(409, 'EVENT_ALREADY_ENDED')],
