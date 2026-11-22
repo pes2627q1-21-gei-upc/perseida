@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, AppState, type AppStateStatus } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -40,6 +40,7 @@ jest.mock('expo-location', () => ({
 
 const permission = jest.mocked(Location.requestForegroundPermissionsAsync);
 const position = jest.mocked(Location.getCurrentPositionAsync);
+const currentPermission = jest.mocked(Location.getForegroundPermissionsAsync);
 
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -289,6 +290,66 @@ describe('MeetingPointsScreen (TG-352)', () => {
 
       await screen.findByText(t(key));
       expect(announce).toHaveBeenCalledWith(t(key));
+    });
+
+    it('offers to try again when the device cannot find the position, and asks for it again', async () => {
+      position.mockRejectedValueOnce(new Error('Location services are disabled'));
+      await renderScreen();
+      await screen.findByText(t('meetingPoints.location.unavailable'));
+      const label = t('meetingPoints.location.retry');
+      expect(label).not.toBe('meetingPoints.location.retry');
+
+      await fireEvent.press(screen.getByRole('button', { name: label }));
+
+      expect(await screen.findByText(spotwiseLibrary.name)).toBeTruthy();
+      expect(position).toHaveBeenCalledTimes(2);
+      expect(pointRequests()).toHaveLength(1);
+    });
+
+    it('offers no button to try again when the permission is denied: it is given in the settings', async () => {
+      permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
+      await renderScreen();
+      await screen.findByText(t('meetingPoints.location.denied'));
+
+      expect(screen.queryByRole('button', { name: t('meetingPoints.location.retry') })).toBeNull();
+    });
+  });
+
+  describe('back to the app with the permission given in the settings (criterion 1)', () => {
+    /** Listeners of AppState 'change', so a test can bring the app back to the foreground. */
+    let appStateListeners: ((state: AppStateStatus) => void)[] = [];
+
+    beforeEach(() => {
+      appStateListeners = [];
+      jest.spyOn(AppState, 'addEventListener').mockImplementation((type, listener) => {
+        if (type === 'change') appStateListeners.push(listener as (state: AppStateStatus) => void);
+        return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+      });
+    });
+
+    it('asks for the position again by itself and shows the places', async () => {
+      permission.mockResolvedValueOnce({
+        status: 'denied',
+      } as Location.LocationPermissionResponse);
+      await renderScreen();
+      await screen.findByText(t('meetingPoints.location.denied'));
+      expect(position).not.toHaveBeenCalled();
+      expect(pointRequests()).toEqual([]);
+
+      // The person gives the permission in the settings and comes back to the app.
+      currentPermission.mockResolvedValue({
+        status: 'granted',
+      } as Location.LocationPermissionResponse);
+      await act(async () => {
+        for (const listener of appStateListeners) listener('active');
+      });
+
+      expect(await screen.findByText(spotwiseLibrary.name)).toBeTruthy();
+      expect(permission).toHaveBeenCalledTimes(2);
+      expect(position).toHaveBeenCalledTimes(1);
+      const [search] = pointRequests();
+      expect(Number(search.get('lat'))).toBe(DEVICE.latitude);
+      expect(Number(search.get('lon'))).toBe(DEVICE.longitude);
     });
   });
 });
