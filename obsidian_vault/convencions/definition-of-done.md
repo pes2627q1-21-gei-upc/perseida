@@ -3,8 +3,8 @@ titol: "Definition of Ready i Definition of Done"
 tipus: convencio
 estat: vigent
 data: "2026-10-28"
-us: ["TG-85", "TG-353", "TG-359"]
-font: "memòria §2.1, §2.4.3; TG-359"
+us: ["TG-85", "TG-353", "TG-359", "TG-657"]
+font: "memòria §2.1, §2.4.3; TG-359; TG-657"
 etiquetes: [convencio, dod, dor, scrum, taiga]
 ---
 
@@ -18,6 +18,7 @@ La Definition of Done (DoD) és única i comuna a totes les US; s'hi afegeixen e
 
 - Compleix els seus criteris d'acceptació.
 - S'ha fet amb TDD estricte: l'historial de la PR mostra el commit `test:` (en vermell) abans del `feat:`/`fix:`; hi ha tests unitaris dels components modificats i, si cal, d'integració (persistència o externs) i de regressió (bugs). Cobertura: 80 % global i 90 % del codi nou; mutation testing (score ≥ 70 %) als fitxers canviats de domini (backend) i a les línies canviades dels fitxers de lògica (frontend, esmena de TG-628), automatitzats i bloquejants a la CI des de TG-359. Vegeu [[testing]] i [[0028-tdd-estricte-i-politica-de-testing-avancada]].
+- Els errors trobats durant el testing i la verificació de la US són al registre `estat/errors/`, amb el test de regressió i la lliçó. Vegeu [[retroalimentacio-de-testing]].
 - Totes les seves subtasques estan tancades.
 - El codi s'ha integrat a `develop` mitjançant una PR que ha superat les comprovacions automàtiques (linters, comprovació de tipus, tests i Quality Gate de SonarQube Cloud, que exigeix cobertura sobre el codi nou; cap US arriba a Done sense les seves proves).
 - La PR ha estat revisada i aprovada per una persona diferent de les que l'han desenvolupada.
@@ -54,3 +55,4 @@ US (no unificats amb els de les tasques): New, Ready, In progress, Ready for tes
 - [[assistents-ia]]: el codi generat amb IA passa per la mateixa DoD.
 - [[gitflow]]: model de branques i protecció.
 - [[qualitat]] i [[testing]]: portes de qualitat i proves que formen part de la DoD.
+- [[retroalimentacio-de-testing]]: registre dels errors trobats.

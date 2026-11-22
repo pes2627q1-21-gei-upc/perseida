@@ -29,6 +29,7 @@ El vault és el context compartit de l'equip i dels agents; ha de reflectir la r
 | Nou servei o component | Nota a `arquitectura/components/` | `plantilles/component` |
 | Convenció nova | Nota a `convencions/` | `plantilles/convencio` |
 | Nova guia pas a pas o d'onboarding | Nota a `guies/` (`tipus: guia`) | cap; copia l'estructura d'una guia existent |
+| Error trobat en testing o verificació | `estat/errors/AAAA-MM-DD-TG-NN-resum.md` ([[retroalimentacio-de-testing]]) | `plantilles/error-de-testing` |
 | Fi de sessió | `estat/sessions/AAAA-MM-DD-<tema>.md` | `plantilles/sessio` |
 
 Les notes s'escriuen amb la skill `obsidian-markdown` (vegeu [[notes-obsidian]]).

@@ -3,8 +3,8 @@ titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
 data: "2026-11-18"
-us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385"]
-font: "memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026)"
+us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-657"]
+font: "TG-657 (retroalimentació de testing, 22/11/2026); memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
 
@@ -62,6 +62,12 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 - **import-linter** (`uv run lint-imports`, pas obligatori del job `backend`): el domini no importa FastAPI, SQLModel/SQLAlchemy, Redis, asyncpg ni httpx; l'aplicació no importa `app.infrastructure` ni FastAPI; capes `infrastructure` -> `application` -> `domain`. El test propi `tests/architecture/test_layer_dependencies.py` es manté (llista blanca, imports relatius i aïllament users/auth).
 - **Migracions** (`tests/integration/test_alembic.py::test_every_revision_can_be_undone`): per a cada revisió, instantània de l'esquema, `upgrade`, `downgrade` a l'anterior i comparació. **En local fa `downgrade base` i esborra la base de dades a la qual apunta `POSTGRES_HOST`**; només s'executa si `POSTGRES_HOST` està definit. No és compatible amb `pytest-xdist` (previst a #362) mentre comparteixi la base de dades amb la resta de tests d'integració.
 - En local, els tests d'integració i de contracte necessiten PostgreSQL/PostGIS i Redis (`POSTGRES_*`, `REDIS_*`); sense aquestes variables es salten.
+
+### Retroalimentació dels errors trobats (TG-657)
+
+Cada error trobat en testing o verificació (vermell inesperat, prova manual, CI i mutants, review) es registra a `estat/errors/` amb la plantilla `error-de-testing` i es mira a [[errors-de-testing.base]]; el procediment és a [[retroalimentacio-de-testing]]. Lliçons ja recollides:
+
+- **Un test que simula la navegació no prova que la ruta existeixi.** Les rutes i els botons de navegació es proven amb el router real, no amb un `push` simulat ([[2026-11-18-tg-385-href-null-amaga-la-ruta]]).
 
 ### Tests inestables
 
@@ -154,6 +160,7 @@ Cada job té un test de fum perquè el comandament de tests no falli sense cap t
 
 - [[qualitat]]: Quality Gate i anàlisi estàtica.
 - [[definition-of-done]]: proves com a part de la DoD.
+- [[retroalimentacio-de-testing]]: registre i lliçons dels errors trobats.
 - [[gitflow]]: ordre dels commits `test:` i `feat:`.
 - [[0028-tdd-estricte-i-politica-de-testing-avancada]]: decisió vigent.
 - [[0004-arquitectura-hexagonal-i-tdd-al-domini]]
