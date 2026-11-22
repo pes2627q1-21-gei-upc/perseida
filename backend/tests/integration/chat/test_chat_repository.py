@@ -25,7 +25,12 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from alembic import command
-from app.domain.chat.models import ChatCursor, ChatMessage, EventChatRoom
+from app.domain.chat.models import (
+    ChatAuthor,
+    ChatCursor,
+    ChatMessage,
+    EventChatRoom,
+)
 from app.domain.chat.ports import ChatRepository
 from app.domain.events.errors import EVENT_NOT_FOUND
 from app.domain.events.models import AstronomicalEvent, EventSubscription
@@ -123,13 +128,15 @@ def repo(sessions: async_sessionmaker[AsyncSession]) -> ChatRepository:
     return _repository(sessions)
 
 
-async def _user(sessions: async_sessionmaker[AsyncSession]) -> User:
+async def _user(
+    sessions: async_sessionmaker[AsyncSession], display_name: str | None = "Ada"
+) -> User:
     unique = f"{PREFIX}-{uuid.uuid4().hex}"
     return await SqlUserRepository(sessions).add(
         User.create(
             google_sub=f"sub-{unique}",
             email=f"{unique}@example.test",
-            display_name="Ada",
+            display_name=display_name,
         )
     )
 
@@ -177,7 +184,7 @@ def _message(
     return ChatMessage(
         id=uuid.uuid7(),
         room_id=room.id,
-        author_id=author.id,
+        author=ChatAuthor(id=author.id, name=author.display_name),
         client_message_id=client_message_id or uuid.uuid4(),
         text=body,
         sent_at=sent_at,
@@ -692,3 +699,130 @@ async def test_tg654_a_repeated_message_id_is_still_a_primary_key_error(
 
     with pytest.raises(IntegrityError, match="pk_chat_messages"):
         await repo.add_message(other_key)
+
+
+# --- TG-64 / TG-469: nom de l'autora (users.display_name) per join ---------------
+
+
+async def test_tg469_page_returns_the_author_name_from_the_profile(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions, "Ada Lovelace")
+    room = await _room_with(repo, sessions)
+    await repo.add_message(_message(room, author, NOW, "hola"))
+
+    page = await repo.page(room.id, None, 10)
+
+    assert [m.author for m in page.messages] == [
+        ChatAuthor(id=author.id, name="Ada Lovelace")
+    ]
+
+
+async def test_tg469_page_author_name_is_null_without_display_name(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions, None)
+    room = await _room_with(repo, sessions)
+    await repo.add_message(_message(room, author, NOW, "hola"))
+
+    page = await repo.page(room.id, None, 10)
+
+    assert [m.author for m in page.messages] == [ChatAuthor(id=author.id, name=None)]
+
+
+async def test_tg469_page_names_each_author_of_the_room(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    ada, bob = await _user(sessions, "Ada"), await _user(sessions, None)
+    room = await _room_with(repo, sessions)
+    await repo.add_message(_message(room, ada, NOW, "a"))
+    await repo.add_message(_message(room, bob, NOW + timedelta(seconds=1), "b"))
+
+    page = await repo.page(room.id, None, 10)
+
+    assert [m.author for m in page.messages] == [
+        ChatAuthor(id=bob.id, name=None),
+        ChatAuthor(id=ada.id, name="Ada"),
+    ]
+
+
+async def test_tg469_the_author_name_follows_later_profile_changes(
+    repo: ChatRepository,
+    sessions: async_sessionmaker[AsyncSession],
+    engine: AsyncEngine,
+) -> None:
+    # El nom no es copia al missatge: es llegeix del perfil en cada consulta
+    author = await _user(sessions, "Ada")
+    room = await _room_with(repo, sessions)
+    await repo.add_message(_message(room, author, NOW, "hola"))
+    async with engine.begin() as connection:
+        await connection.execute(
+            text("UPDATE users SET display_name = 'Ada B' WHERE id = :id"),
+            {"id": author.id},
+        )
+
+    page = await repo.page(room.id, None, 10)
+
+    assert page.messages[0].author == ChatAuthor(id=author.id, name="Ada B")
+
+
+async def test_tg469_rooms_of_a_user_carry_the_name_of_the_last_author(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    me, other = await _user(sessions, "Ada"), await _user(sessions, "Bob")
+    event = await _event(sessions)
+    await _subscribe(sessions, me, event)
+    room = await repo.get_or_create_room(event.id)
+    await repo.add_message(_message(room, me, NOW, "primer"))
+    await repo.add_message(_message(room, other, NOW + timedelta(seconds=1), "ultim"))
+
+    [summary] = await repo.list_rooms_of(me.id)
+
+    assert summary.last_message is not None
+    assert summary.last_message.author == ChatAuthor(id=other.id, name="Bob")
+
+
+async def test_tg469_rooms_last_message_author_name_is_null_without_display_name(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    me = await _user(sessions, None)
+    event = await _event(sessions)
+    await _subscribe(sessions, me, event)
+    room = await repo.get_or_create_room(event.id)
+    await repo.add_message(_message(room, me, NOW, "hola"))
+
+    [summary] = await repo.list_rooms_of(me.id)
+
+    assert summary.last_message is not None
+    assert summary.last_message.author == ChatAuthor(id=me.id, name=None)
+
+
+async def test_tg469_find_by_client_id_returns_the_author_name(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions, "Ada")
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    await repo.add_message(_message(room, author, NOW, "hola", key))
+
+    found = await repo.find_by_client_id(author.id, key)
+
+    assert found is not None
+    assert found.author == ChatAuthor(id=author.id, name="Ada")
+
+
+async def test_tg469_add_message_returns_the_message_with_its_author_name(
+    repo: ChatRepository, sessions: async_sessionmaker[AsyncSession]
+) -> None:
+    author = await _user(sessions, "Ada")
+    room = await _room_with(repo, sessions)
+    key = uuid.uuid4()
+    first = await repo.add_message(_message(room, author, NOW, "primer", key))
+
+    # Un reintent concurrent retorna el desat, tambe amb el nom de l'autora
+    retry = await repo.add_message(
+        _message(room, author, NOW + timedelta(seconds=1), "primer", key)
+    )
+
+    assert first.author == ChatAuthor(id=author.id, name="Ada")
+    assert retry.author == ChatAuthor(id=author.id, name="Ada")

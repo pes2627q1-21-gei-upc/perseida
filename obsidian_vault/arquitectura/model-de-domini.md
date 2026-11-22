@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-19"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026)"
+data: "2026-11-21"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51", "TG-469"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-469 (autor {id, name} al missatge del xat, 2026-11-21)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -104,7 +104,8 @@ Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i cod
 | Entitat | Camps | Notes |
 |---|---|---|
 | `EventChatRoom` | `id` (UUIDv7), `event_id`, `created_at` | una sala com a màxim per esdeveniment (0..1); immutable |
-| `ChatMessage` | `id` (UUIDv7), `room_id`, `author_id`, `text`, `sent_at` | immutable; el servidor assigna `id` i `sent_at` (UTC) |
+| `ChatAuthor` | `id`, `name` (`str \| None`) | immutable; `name` és el `display_name` del perfil, o `None` si no en té: el correu no surt mai a la sala |
+| `ChatMessage` | `id` (UUIDv7), `room_id`, `author` (`ChatAuthor`), `text`, `sent_at` | immutable; el servidor assigna `id` i `sent_at` (UTC); el DTO de l'API i del WebSocket exposa `author {id, name}`, no `author_id` |
 
 Regles del text: es retallen els espais dels extrems i s'eliminen els caràcters de control (`Cc`; el NUL fa fallar PostgreSQL), els surrogats (`Cs`) i els separadors de línia i de paràgraf (`Zl`, `Zp`), excepte el salt de línia i la tabulació. A més, s'eliminen només els invisibles perillosos, que són els de la propietat Unicode `Default_Ignorable_Code_Point` (UCD 18) menys els benignes: bidi embeddings, overrides i isolates, zero-width space, word joiner, guionet suau, fillers de hangul, selectors de variació que no són d'emoji i tots els tags (poden amagar text ASCII). Es conserven ZWJ i ZWNJ (emojis compostos i alguns scripts), LRM, RLM i ALM (marques direccionals d'un sol caràcter), els selectors d'emoji `FE0E`/`FE0F` i, de les tag sequences, només les banderes d'Anglaterra, Escòcia i Gal·les. No s'elimina cap caràcter pel fet de ser no assignat (`Cn`): els emojis nous passen encara que la versió d'Unicode de Python no els conegui. Un text amb només marques invisibles (o el braille en blanc) és buit. Efecte acceptat per l'equip (11/11/2026): l'escriptura mongola (selectors de variació i separador de vocal) i els selectors de variació ideogràfics perden aquests caràcters. Un cop net, buit dona `CHAT_MESSAGE_EMPTY` i de més de 1000 caràcters `CHAT_MESSAGE_TOO_LONG`; mai es trunca. `CHAT_MESSAGE_REJECTED` és per a un text que el moderador ha refusat.
 
@@ -119,6 +120,7 @@ Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_cha
 | `event_chat_rooms` | `id` (UUIDv7), `event_id`, `created_at` | `event_id` FK a `astronomical_events` `ON DELETE CASCADE` i `UNIQUE` (una sala com a màxim per esdeveniment) |
 | `chat_messages` | `id` (UUIDv7), `room_id`, `author_id`, `text` (`varchar(1000)`), `sent_at` (`timestamptz`), `client_message_id` (`uuid`, `NOT NULL`, el genera el client; TG-654) | FK a la sala i a `users`, totes dues `ON DELETE CASCADE`; `UNIQUE(author_id, client_message_id)` (idempotència dels reenviaments, [[0030-protocol-websocket-i-revocacio-per-pub-sub]]); `CHECK length(text) >= 1` (xarxa de seguretat sobre el domini; el màxim el dona el tipus); índex `(room_id, sent_at DESC, id DESC)` per a l'històric i índex per `author_id` per a la cascada en esborrar un usuari |
 
+- La taula guarda només `author_id`; el nom de l'autor no es desa al missatge: el repositori el llegeix de `users.display_name`. `add_message` i `find_by_client_id` ho fan amb un `JOIN` a la mateixa consulta, `list_rooms_of` amb un `LEFT JOIN` i `page` amb una consulta addicional per PK per als autors (com a molt `limit`) de la pàgina, mai una consulta per missatge.
 - `sent_at` té `server_default now()` (ADR-0023), però el domini sempre envia el valor: l'ordre del cursor en depèn.
 - `get_or_create_room` fa `INSERT ... ON CONFLICT (event_id) DO NOTHING RETURNING` i, si no retorna res, rellegeix la sala: dues peticions alhora deixen una sola fila. Si l'esdeveniment no existeix (o s'esborra a mig camí), `NotFoundError(EVENT_NOT_FOUND)`.
 - `page` demana `limit + 1` files, ordenades per `(sent_at, id)` descendent i estrictament anteriors al cursor; el `next_cursor` és el de l'últim missatge retornat només si hi ha més files. Rebutja `limit < 1` (el servei ja valida 1..50).
