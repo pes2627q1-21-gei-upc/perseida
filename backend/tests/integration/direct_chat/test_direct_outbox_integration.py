@@ -16,11 +16,16 @@ import pytest
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+)
 
+from app.application.direct_chat.direct_chat_service import DirectChatService
 from app.application.shared.error_codes import PUBSUB_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
-from app.application.direct_chat.direct_chat_service import DirectChatService
 from app.domain.direct_chat.models import DirectMessage, UserBlock
 from app.infrastructure.chat.moderator import ApproveAllModerator
 from app.infrastructure.chat.rate_limiter import RedisSendRateLimiter
@@ -40,10 +45,13 @@ from tests.integration.chat.test_chat_api import connection as connection
 from tests.integration.chat.test_chat_api import factory as factory
 from tests.integration.direct_chat.test_direct_chat_repository import _pair
 from tests.integration.direct_chat.test_direct_chat_repository import engine as engine
-from tests.integration.direct_chat.test_direct_chat_repository import sessions as sessions
+from tests.integration.direct_chat.test_direct_chat_repository import (
+    sessions as sessions,
+)
 
 pytestmark = pytest.mark.skipif(
-    not os.getenv("POSTGRES_HOST"), reason="PostgreSQL integration test requires its host"
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires its host",
 )
 
 
@@ -67,16 +75,26 @@ async def make_message(factory: async_sessionmaker[AsyncSession]) -> DirectMessa
         sender.id, recipient.id
     )
     return DirectMessage(
-        id=uuid.uuid7(), conversation_id=conversation.id, sender_id=sender.id,
-        text="hello", sent_at=datetime.now(UTC), client_message_id=uuid.uuid4(),
+        id=uuid.uuid7(),
+        conversation_id=conversation.id,
+        sender_id=sender.id,
+        text="hello",
+        sent_at=datetime.now(UTC),
+        client_message_id=uuid.uuid4(),
     )
 
 
 async def pending(connection: AsyncConnection, message_id: uuid.UUID) -> int:
-    return int(await connection.scalar(
-        text("SELECT count(*) FROM direct_message_outbox "
-             "WHERE message_id = :id AND delivered_at IS NULL"), {"id": message_id}
-    ) or 0)
+    return int(
+        await connection.scalar(
+            text(
+                "SELECT count(*) FROM direct_message_outbox "
+                "WHERE message_id = :id AND delivered_at IS NULL"
+            ),
+            {"id": message_id},
+        )
+        or 0
+    )
 
 
 async def test_tg65_unavailable_redis_limiter_does_not_store_or_publish(
@@ -87,24 +105,33 @@ async def test_tg65_unavailable_redis_limiter_does_not_store_or_publish(
     unavailable = Redis(host="127.0.0.1", port=1, socket_connect_timeout=0.2)
     broadcaster = RecordingBroadcaster()
     service = DirectChatService(
-        SqlDirectConversationRepository(factory), SqlDirectMessageRepository(factory),
-        SqlUserBlockRepository(factory), SqlChatUserDirectory(factory),
-        RedisSendRateLimiter(unavailable), ApproveAllModerator(), broadcaster,
+        SqlDirectConversationRepository(factory),
+        SqlDirectMessageRepository(factory),
+        SqlUserBlockRepository(factory),
+        SqlChatUserDirectory(factory),
+        RedisSendRateLimiter(unavailable),
+        ApproveAllModerator(),
+        broadcaster,
         NoopPushNotifier(),
     )
     try:
         with pytest.raises(ExternalServiceError) as error:
             await service.send_message(
-                message.sender_id, message.conversation_id, message.text,
+                message.sender_id,
+                message.conversation_id,
+                message.text,
                 client_message_id=message.client_message_id,
             )
     finally:
         await unavailable.aclose()
     assert error.value.code == PUBSUB_UNAVAILABLE
-    assert await connection.scalar(
-        text("SELECT count(*) FROM direct_messages WHERE sender_id = :sender"),
-        {"sender": message.sender_id},
-    ) == 0
+    assert (
+        await connection.scalar(
+            text("SELECT count(*) FROM direct_messages WHERE sender_id = :sender"),
+            {"sender": message.sender_id},
+        )
+        == 0
+    )
     assert broadcaster.delivered == []
 
 
@@ -113,19 +140,25 @@ async def test_tg65_outbox_insert_failure_rolls_back_message(
 ) -> None:
     message = await make_message(factory)
     # One transaction: PostgreSQL undoes this temporary constraint at test teardown.
-    await connection.execute(text(
-        "ALTER TABLE direct_message_outbox ADD CONSTRAINT tg65_reject_event "
-        "CHECK (message_id <> '" + str(message.id) + "'::uuid)"
-    ))
+    await connection.execute(
+        text(
+            "ALTER TABLE direct_message_outbox ADD CONSTRAINT tg65_reject_event "
+            "CHECK (message_id <> '" + str(message.id) + "'::uuid)"
+        )
+    )
 
     # Constraint violations remain IntegrityError: database_errors maps only
     # connection failures, not broken integrity constraints.
     with pytest.raises(IntegrityError):
         await SqlDirectMessageRepository(factory).add(message)
 
-    assert await connection.scalar(
-        text("SELECT count(*) FROM direct_messages WHERE id = :id"), {"id": message.id}
-    ) == 0
+    assert (
+        await connection.scalar(
+            text("SELECT count(*) FROM direct_messages WHERE id = :id"),
+            {"id": message.id},
+        )
+        == 0
+    )
     assert await pending(connection, message.id) == 0
 
 
@@ -158,14 +191,19 @@ async def test_tg65_block_cancels_pending_delivery_without_deleting_history(
     recipient = conversation.other_participant(message.sender_id)
     messages = SqlDirectMessageRepository(factory)
     await messages.add(message)
-    await SqlUserBlockRepository(factory).block(UserBlock.create(recipient, message.sender_id))
+    await SqlUserBlockRepository(factory).block(
+        UserBlock.create(recipient, message.sender_id)
+    )
     broadcaster = RecordingBroadcaster()
 
     await DirectOutboxDispatcher(factory, broadcaster).dispatch_once()
 
     assert broadcaster.delivered == []
     assert await pending(connection, message.id) == 0
-    assert await messages.find_by_client_id(message.sender_id, message.client_message_id) == message
+    assert (
+        await messages.find_by_client_id(message.sender_id, message.client_message_id)
+        == message
+    )
 
 
 async def test_tg65_committed_block_before_dispatch_suppresses_delivery(
@@ -174,7 +212,9 @@ async def test_tg65_committed_block_before_dispatch_suppresses_delivery(
     # Separate committed transactions: unlike factory's shared savepoint,
     # the dispatcher observes the same state as another application instance.
     message = await make_message(sessions)
-    conversation = await SqlDirectConversationRepository(sessions).get(message.conversation_id)
+    conversation = await SqlDirectConversationRepository(sessions).get(
+        message.conversation_id
+    )
     assert conversation is not None
     recipient = conversation.other_participant(message.sender_id)
     messages = SqlDirectMessageRepository(sessions)
@@ -183,7 +223,9 @@ async def test_tg65_committed_block_before_dispatch_suppresses_delivery(
     blocked = asyncio.Event()
 
     async def block() -> None:
-        await SqlUserBlockRepository(sessions).block(UserBlock.create(recipient, message.sender_id))
+        await SqlUserBlockRepository(sessions).block(
+            UserBlock.create(recipient, message.sender_id)
+        )
         blocked.set()  # block() returned after its commit
 
     async def dispatch() -> None:
@@ -195,7 +237,12 @@ async def test_tg65_committed_block_before_dispatch_suppresses_delivery(
         assert broadcaster.delivered == []
         async with engine.connect() as connection:
             assert await pending(connection, message.id) == 0
-        assert await messages.find_by_client_id(message.sender_id, message.client_message_id) == message
+        assert (
+            await messages.find_by_client_id(
+                message.sender_id, message.client_message_id
+            )
+            == message
+        )
     finally:
         async with engine.begin() as connection:
             await connection.execute(

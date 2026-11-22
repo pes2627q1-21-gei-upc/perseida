@@ -8,7 +8,11 @@ from tests.unit.application.direct_chat.test_direct_chat_service import (
     ALICE,
     BOB,
     _conversation,
+)
+from tests.unit.application.direct_chat.test_direct_chat_service import (
     env as env,
+)
+from tests.unit.application.direct_chat.test_direct_chat_service import (
     service as service,
 )
 
@@ -26,4 +30,4 @@ async def test_tg65_send_accepts_durably_without_publishing_inline(
     assert env.messages.messages == [message]
     assert env.broadcaster.calls == []
     assert env.push.sent == []
-    assert BOB == conversation.other_participant(ALICE)
+    assert conversation.other_participant(ALICE) == BOB

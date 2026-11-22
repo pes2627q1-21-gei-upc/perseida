@@ -11,16 +11,25 @@ from app.infrastructure.direct_chat.outbox import DirectOutboxDispatcher
 from app.infrastructure.direct_chat.repository import SqlDirectMessageRepository
 from tests.integration.direct_chat.test_direct_outbox_integration import (
     RecordingBroadcaster,
-    _preexisting_data_is_kept as _preexisting_data_is_kept,
-    _schema_at_head as _schema_at_head,
-    connection as connection,
-    factory as factory,
     make_message,
     pending,
 )
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    _preexisting_data_is_kept as _preexisting_data_is_kept,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    _schema_at_head as _schema_at_head,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    connection as connection,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    factory as factory,
+)
 
 pytestmark = pytest.mark.skipif(
-    not os.getenv("POSTGRES_HOST"), reason="PostgreSQL integration test requires its host"
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires its host",
 )
 
 

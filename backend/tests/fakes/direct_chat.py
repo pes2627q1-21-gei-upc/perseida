@@ -100,7 +100,9 @@ class InMemoryDirectMessageRepository:
             None,
         )
 
-    async def add(self, message: DirectMessage, *, origin: str | None = None) -> DirectMessage:
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
         existing = await self.find_by_client_id(
             message.sender_id, message.client_message_id
         )
@@ -219,7 +221,9 @@ class _LoggedMessages(InMemoryDirectMessageRepository):
         self.log.append("find")
         return await super().find_by_client_id(sender_id, client_message_id)
 
-    async def add(self, message: DirectMessage, *, origin: str | None = None) -> DirectMessage:
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
         self.log.append("save")
         # The base ``add`` would go through the overridden ``find_by_client_id``
         # and log a second "find": call the base lookup explicitly.

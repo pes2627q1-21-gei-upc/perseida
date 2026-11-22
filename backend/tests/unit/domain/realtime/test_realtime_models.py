@@ -25,8 +25,11 @@ def test_frame_type_values_are_the_wire_contract() -> None:
         "error",
         "ping",
         "pong",
+        "dm.send",
+        "dm.message",
+        "dm.typing",
     }
-    assert len(FrameType) == 7
+    assert len(FrameType) == 10
 
 
 def test_frame_type_is_a_str_enum() -> None:

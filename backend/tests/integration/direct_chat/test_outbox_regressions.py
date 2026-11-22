@@ -17,16 +17,25 @@ from app.infrastructure.direct_chat.repository import (
 )
 from tests.integration.direct_chat.test_direct_outbox_integration import (
     RecordingBroadcaster,
-    _preexisting_data_is_kept as _preexisting_data_is_kept,
-    _schema_at_head as _schema_at_head,
-    connection as connection,
-    factory as factory,
     make_message,
     pending,
 )
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    _preexisting_data_is_kept as _preexisting_data_is_kept,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    _schema_at_head as _schema_at_head,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    connection as connection,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
+    factory as factory,
+)
 
 pytestmark = pytest.mark.skipif(
-    not os.getenv("POSTGRES_HOST"), reason="PostgreSQL integration test requires its host"
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires its host",
 )
 
 
@@ -35,7 +44,9 @@ async def test_tg65_block_then_unblock_never_releases_cancelled_message(
 ) -> None:
     message = await make_message(factory)
     messages = SqlDirectMessageRepository(factory)
-    conversation = await SqlDirectConversationRepository(factory).get(message.conversation_id)
+    conversation = await SqlDirectConversationRepository(factory).get(
+        message.conversation_id
+    )
     assert conversation is not None
     recipient = conversation.other_participant(message.sender_id)
     blocks = SqlUserBlockRepository(factory)
@@ -48,7 +59,10 @@ async def test_tg65_block_then_unblock_never_releases_cancelled_message(
 
     assert broadcaster.delivered == []
     assert await pending(connection, message.id) == 0
-    assert await messages.find_by_client_id(message.sender_id, message.client_message_id) == message
+    assert (
+        await messages.find_by_client_id(message.sender_id, message.client_message_id)
+        == message
+    )
 
 
 class SelectivelyFailingBroadcaster(RecordingBroadcaster):
@@ -83,7 +97,10 @@ async def test_tg65_a_permanent_item_failure_does_not_starve_other_messages(
     assert failed.id in broadcaster.attempted
     assert [message.id for message in broadcaster.delivered] == [healthy.id]
     assert await pending(connection, healthy.id) == 0
-    assert await messages.find_by_client_id(failed.sender_id, failed.client_message_id) == failed
+    assert (
+        await messages.find_by_client_id(failed.sender_id, failed.client_message_id)
+        == failed
+    )
 
 
 async def test_tg65_worker_drains_pending_items_before_sleeping(
@@ -98,17 +115,21 @@ async def test_tg65_worker_drains_pending_items_before_sleeping(
     broadcaster = RecordingBroadcaster()
     dispatcher = DirectOutboxDispatcher(factory, broadcaster)
 
-    class FirstSleep(Exception):
+    class FirstSleepError(Exception):
         pass
 
     async def stop_at_first_sleep(_seconds: float) -> None:
-        raise FirstSleep
+        raise FirstSleepError
 
     # The first idle wait is our deterministic observation point; no real delay.
-    monkeypatch.setattr("app.infrastructure.direct_chat.outbox.asyncio.sleep", stop_at_first_sleep)
-    with pytest.raises(FirstSleep):
+    monkeypatch.setattr(
+        "app.infrastructure.direct_chat.outbox.asyncio.sleep", stop_at_first_sleep
+    )
+    with pytest.raises(FirstSleepError):
         await dispatcher.run()
 
-    assert {message.id for message in broadcaster.delivered} == {message.id for message in messages}
+    assert {message.id for message in broadcaster.delivered} == {
+        message.id for message in messages
+    }
     for message in messages:
         assert await pending(connection, message.id) == 0
