@@ -81,7 +81,7 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 ## Errors trobats (retroalimentació de testing)
 | Nota a `estat/errors/` | Fase | Causa | Test de regressió | Lliçó |
 |---|---|---|---|---|
-| <[[AAAA-MM-DD-TG-NN-resum]]> | <roig-inesperat / prova-manual / ci-mutants / review> | <...> | <fitxer::nom> | <skill / convencio / cap> |
+| <[[AAAA-MM-DD-tg-nn-resum]]> | <roig-inesperat / prova-manual / ci-mutants / review> | <...> | <fitxer::nom> | <skill / convencio / cap> |
 
 ## Pendent humà (no marcat com a fet)
 - [ ] PR oberta per la persona (cap push/PR fet per l'agent)

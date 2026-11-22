@@ -29,7 +29,7 @@ No es registra: un test que falla pel motiu previst (és el roig normal del TDD)
 
 ## Com es compleix
 
-1. **Anota'l en el moment**, amb la plantilla `plantilles/error-de-testing`, a `estat/errors/AAAA-MM-DD-TG-NN-resum.md`. Un error = una nota.
+1. **Anota'l en el moment**, amb la plantilla `plantilles/error-de-testing`, a `estat/errors/AAAA-MM-DD-tg-nn-resum.md`. Un error = una nota.
 2. **Reprodueix-lo amb un test** (`test:` abans del `fix:`, [[testing#TDD]]). Si no es pot automatitzar, diu per què i com es comprova a mà.
 3. **Escriu la causa, no el símptoma.** «Falla el botó» és un símptoma; «`href: null` treu la ruta del navegador» és una causa.
 4. **Decideix la lliçó** (camp `llico`): què canvia perquè no es repeteixi.
