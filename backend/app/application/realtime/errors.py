@@ -6,19 +6,19 @@ from app.application.shared.error_codes import (
 )
 
 # Re-exported for the chat and the session; it lives in application.shared.
+from app.application.shared.error_codes import PUBSUB_UNAVAILABLE as PUBSUB_UNAVAILABLE
 from app.application.shared.error_codes import RATE_LIMITED as RATE_LIMITED
 from app.domain.realtime.models import Frame, FrameType
+from app.domain.shared.moderation import CHAT_MESSAGE_REJECTED as CHAT_MESSAGE_REJECTED
 
 VALIDATION_ERROR = "VALIDATION_ERROR"
 UNKNOWN_FRAME_TYPE = "UNKNOWN_FRAME_TYPE"
 NOT_SUBSCRIBED = "NOT_SUBSCRIBED"
-PUBSUB_UNAVAILABLE = "PUBSUB_UNAVAILABLE"
 INTERNAL_ERROR = "INTERNAL_ERROR"
 FORBIDDEN = "FORBIDDEN"
 # Codes of the room handlers (chat, TG-459); they travel unchanged, as in REST.
 CHAT_MESSAGE_EMPTY = "CHAT_MESSAGE_EMPTY"
 CHAT_MESSAGE_TOO_LONG = "CHAT_MESSAGE_TOO_LONG"
-CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
 CHAT_IDEMPOTENCY_CONFLICT = "CHAT_IDEMPOTENCY_CONFLICT"
 CHAT_ROOM_NOT_FOUND = "CHAT_ROOM_NOT_FOUND"
 EVENT_NOT_FOUND = "EVENT_NOT_FOUND"
