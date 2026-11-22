@@ -134,9 +134,20 @@ describe('MeetingPointList (TG-352)', () => {
 describe('MeetingPointList announcements (TG-352, WCAG 4.1.3)', () => {
   afterEach(() => jest.restoreAllMocks());
 
+  /**
+   * The announce of AccessibilityInfo is already a jest.fn() of the setup: spyOn gives back that
+   * same mock and restoreAllMocks does not empty its calls. Only its calls are cleared, so the
+   * other mocks of the file keep theirs.
+   */
+  function announceSpy() {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+    return announce;
+  }
+
   it('announces on iOS that there are no places nearby', async () => {
     // jest-expo runs as iOS, where a status is announced explicitly.
-    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    const announce = announceSpy();
 
     await renderList({ status: 'success', points: [] });
 
@@ -144,7 +155,7 @@ describe('MeetingPointList announcements (TG-352, WCAG 4.1.3)', () => {
   });
 
   it('does not announce the list of points', async () => {
-    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    const announce = announceSpy();
 
     await renderList({ status: 'success', points });
 
@@ -155,7 +166,7 @@ describe('MeetingPointList announcements (TG-352, WCAG 4.1.3)', () => {
     'does not announce explicitly on %s: the polite live region reads it',
     async (os) => {
       jest.replaceProperty(Platform, 'OS', os);
-      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      const announce = announceSpy();
 
       await renderList({ status: 'success', points: [] });
 
