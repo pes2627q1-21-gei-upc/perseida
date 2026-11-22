@@ -47,9 +47,7 @@ class DirectConversation(BaseModel):
                 CANNOT_MESSAGE_SELF, "A user cannot talk to themselves"
             )
         if self.user_a_id > self.user_b_id:
-            raise BusinessRuleViolation(
-                VALIDATION_ERROR, "The pair of users must be ordered"
-            )
+            raise ValidationError(VALIDATION_ERROR, "The pair of users must be ordered")
         return self
 
     @classmethod
@@ -106,12 +104,12 @@ class DirectConversation(BaseModel):
 
         Raises:
             NotFoundError: CONVERSATION_NOT_FOUND if ``user_id`` is a stranger.
-            BusinessRuleViolation: VALIDATION_ERROR if ``message`` belongs to
+            ValidationError: VALIDATION_ERROR if ``message`` belongs to
                 another conversation.
         """
         self._require_participant(user_id)
         if message.conversation_id != self.id:
-            raise BusinessRuleViolation(
+            raise ValidationError(
                 VALIDATION_ERROR, "The message is not of this conversation"
             )
         if message.sender_id == user_id:
