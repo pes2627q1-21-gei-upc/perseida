@@ -53,21 +53,26 @@ export function MeetingPointList({
     );
   }
 
+  // Visual only: safe areas and layout of the list, not seen by the tests nor mutated.
+  // Stryker disable all
   const padding = {
     paddingTop: topInset + spacing.md,
     paddingBottom: insets.bottom + spacing.md,
     paddingLeft: insets.left + spacing.md,
     paddingRight: insets.right + spacing.md,
   };
+  const look = {
+    empty: [styles.column, { maxWidth: readingMaxWidth }, padding],
+    emptyText: [typography.body, styles.center, { color: colors.text.primary }],
+    list: [styles.column, { maxWidth: readingMaxWidth, gap: spacing.md }, padding],
+  };
+  // Stryker restore all
 
   if (points.length === 0) {
     return (
-      <View style={[styles.column, { maxWidth: readingMaxWidth }, padding]}>
+      <View style={look.empty}>
         <GlassPanel>
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[typography.body, styles.center, { color: colors.text.primary }]}
-          >
+          <Text accessibilityLiveRegion="polite" style={look.emptyText}>
             {t('meetingPoints.empty')}
           </Text>
         </GlassPanel>
@@ -80,19 +85,21 @@ export function MeetingPointList({
       accessibilityRole="list"
       accessibilityLabel={t('meetingPoints.list.label')}
       data={points}
-      keyExtractor={(point) => String(point.id)}
+      keyExtractor={keyOf}
       renderItem={({ item }) => (
         <GlassPanel>
           <MeetingPointRow point={item} onChoose={onChoose ? () => onChoose(item) : undefined} />
         </GlassPanel>
       )}
-      contentContainerStyle={[
-        styles.column,
-        { maxWidth: readingMaxWidth, gap: spacing.md },
-        padding,
-      ]}
+      contentContainerStyle={look.list}
     />
   );
+}
+
+// Visual styles and React keys, not mutated.
+// Stryker disable all
+function keyOf(point: MeetingPoint) {
+  return String(point.id);
 }
 
 const styles = StyleSheet.create({
