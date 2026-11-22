@@ -177,6 +177,33 @@ describe('MeetingPointList announcements (TG-352, WCAG 4.1.3)', () => {
       expect(announce).not.toHaveBeenCalledWith(t('meetingPoints.empty'));
     },
   );
+
+  it.each([
+    ['loading', null],
+    ['error', unavailable],
+  ] as const)('does not say there are no places while the list is %s', async (status, error) => {
+    const announce = announceSpy();
+
+    await renderList({ status, error, points: [] });
+
+    expect(announce).not.toHaveBeenCalledWith(t('meetingPoints.empty'));
+    expect(screen.queryByText(t('meetingPoints.empty'))).toBeNull();
+  });
+
+  it('announces on iOS that there are no places once the loading ends with none', async () => {
+    const announce = announceSpy();
+    const list = (status: Props['status']) => (
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <MeetingPointList status={status} points={[]} error={null} onRetry={jest.fn()} />
+      </SafeAreaProvider>
+    );
+    const { rerender } = await render(list('loading'));
+    expect(announce).not.toHaveBeenCalledWith(t('meetingPoints.empty'));
+
+    await rerender(list('success'));
+
+    expect(announce).toHaveBeenCalledWith(t('meetingPoints.empty'));
+  });
 });
 
 describe('MeetingPointList safe areas (TG-352)', () => {
