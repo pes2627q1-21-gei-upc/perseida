@@ -29,8 +29,10 @@ export interface SubscriptionToggle {
 export function useToggleSubscription() {
   const client = useQueryClient();
   const key = eventKeys.subscriptions();
+  const mutationKey = [...key, 'toggle'];
 
   return useMutation<void, AppError, SubscriptionToggle, { previous?: AstronomicalEvent[] }>({
+    mutationKey,
     mutationFn: ({ event, subscribed }) =>
       subscribed ? subscribe(event.id) : unsubscribe(event.id),
     onMutate: async ({ event, subscribed }) => {
@@ -45,6 +47,10 @@ export function useToggleSubscription() {
     onError: (_error, _toggle, context) => {
       if (context?.previous) client.setQueryData(key, context.previous);
     },
-    onSettled: () => client.invalidateQueries({ queryKey: key }),
+    // Only when the last toggle ends: a refetch in between would undo the ones still in flight.
+    onSettled: () =>
+      client.isMutating({ mutationKey }) === 1
+        ? client.invalidateQueries({ queryKey: key })
+        : undefined,
   });
 }

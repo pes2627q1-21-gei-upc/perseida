@@ -1,6 +1,7 @@
 import { Star } from 'phosphor-react-native';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../../../shared/theme';
 import type { ClassifiedEvent } from '../classifyEvents';
@@ -19,6 +20,8 @@ interface Props {
   onToggleSubscription?: () => void;
   /** Already translated message of a failed subscription, shown in the row. */
   subscriptionError?: string;
+  /** The star cannot be pressed: whether the event is followed is not known yet. */
+  subscriptionDisabled?: boolean;
 }
 
 /**
@@ -32,12 +35,20 @@ export function EventRow({
   subscribed = false,
   onToggleSubscription,
   subscriptionError,
+  subscriptionDisabled = false,
 }: Props) {
   const { t, i18n } = useTranslation();
   const { colors, iconSizes, radii, spacing, touch, typography } = useTheme();
   const when = formatEventWhen(event, i18n.language);
   const where = formatEventWhere(event.location, t, i18n.language);
   const active = event.status === 'active';
+
+  useEffect(() => {
+    // Android and the web read the polite live region by themselves; iOS needs an announcement.
+    if (subscriptionError && Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(subscriptionError);
+    }
+  }, [subscriptionError]);
   const distance =
     distanceKm === undefined
       ? undefined
@@ -82,7 +93,8 @@ export function EventRow({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('events.subscription.follow', { title: event.title })}
-            accessibilityState={{ selected: subscribed }}
+            accessibilityState={{ selected: subscribed, disabled: subscriptionDisabled }}
+            disabled={subscriptionDisabled}
             onPress={onToggleSubscription}
             style={({ pressed }) => ({
               minWidth: touch.min,
@@ -91,6 +103,7 @@ export function EventRow({
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: pressed ? colors.surface.onGlass : 'transparent',
+              opacity: subscriptionDisabled ? 0.5 : 1,
             })}
           >
             {/* Outlined or filled: the shape tells the state, not only the colour. */}
@@ -104,6 +117,8 @@ export function EventRow({
         {subscriptionError ? (
           <Text
             accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            aria-live="polite"
             style={[typography.caption, { color: colors.state.danger }]}
           >
             {subscriptionError}

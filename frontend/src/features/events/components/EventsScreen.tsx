@@ -299,6 +299,8 @@ export function EventsScreen() {
           subscribed={followed.has(item.id)}
           onToggleSubscription={() => toggleFollow(item)}
           subscriptionError={rowErrors[item.id]}
+          // Until the subscriptions arrive, the star would show a state that may be wrong.
+          subscriptionDisabled={subscriptions.data === undefined}
         />
       </View>
     );
