@@ -62,4 +62,14 @@ describe('NoAccessScreen (TG-77 criteri 3)', () => {
     expect(within(region).getByText(TEXT.message)).toBeOnTheScreen();
     expect(screen.getByText(TEXT.message)).not.toHaveProp('accessibilityLiveRegion');
   });
+
+  it('cancels the pending tick when it goes away before the message comes in', async () => {
+    const clear = jest.spyOn(globalThis, 'clearTimeout');
+    const view = await renderScreen();
+
+    await view.unmount();
+
+    expect(clear).toHaveBeenCalled();
+    clear.mockRestore();
+  });
 });

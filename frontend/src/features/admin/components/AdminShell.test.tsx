@@ -62,6 +62,8 @@ describe('AdminShell (TG-77 criteri 6)', () => {
       const main = screen.getByLabelText(TEXT.main);
       expect(banner).toHaveProp('role', 'banner');
       expect(main).toHaveProp('role', 'main');
+      // Focusable from code (the skip link) but out of the tab order.
+      expect(main).toHaveProp('tabIndex', -1);
       expect(within(banner).getByText(TEXT.appName)).toBeOnTheScreen();
       expect(within(main).getByText(TEXT.content)).toBeOnTheScreen();
     });
@@ -91,13 +93,21 @@ describe('AdminShell (TG-77 criteri 6)', () => {
       await renderShell();
       const link = screen.getByRole('link', { name: TEXT.skip });
       const ring = () => StyleSheet.flatten(screen.getByTestId('skip-link-ring').props.style);
+      const wrapper = () => screen.getByTestId('skip-link-ring');
+      // Hidden until the keyboard reaches it, and the pointer goes through it to the bar.
       expect(ring().boxShadow).toBeUndefined();
+      expect(ring().opacity).toBe(0);
+      expect(wrapper()).toHaveProp('pointerEvents', 'none');
 
       await fireEvent(link, 'focus');
       expect(ring().boxShadow).toMatch(/^0 0 0 3px #/);
+      expect(ring().opacity).toBe(1);
+      expect(wrapper()).toHaveProp('pointerEvents', 'auto');
 
       await fireEvent(link, 'blur');
       expect(ring().boxShadow).toBeUndefined();
+      expect(ring().opacity).toBe(0);
+      expect(wrapper()).toHaveProp('pointerEvents', 'none');
     });
 
     it('lets the pointer go through the hidden skip link, so it does not cover the top bar', async () => {

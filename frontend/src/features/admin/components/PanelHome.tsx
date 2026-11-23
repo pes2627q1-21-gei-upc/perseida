@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
-import { focusRingShadow, useTheme } from '../../../shared/theme';
+import { focusRingShadow, type Theme, useTheme } from '../../../shared/theme';
 import { GlassPanel } from '../../../shared/ui';
 import { PANEL_SECTIONS, type PanelSection } from '../panelSections';
 
@@ -16,16 +16,12 @@ function SectionCard({ section }: { section: PanelSection }) {
   const theme = useTheme();
   const router = useRouter();
   const [focused, setFocused] = useState(false);
+  const styles = homeStyles(theme);
 
   return (
     <View
       testID="section-ring"
-      style={{
-        flexGrow: 1,
-        flexBasis: 240,
-        borderRadius: theme.radii.lg,
-        ...(focused && { boxShadow: focusRingShadow(theme.colors.focusRing) }),
-      }}
+      style={[styles.cardRing, focused && { boxShadow: focusRingShadow(theme.colors.focusRing) }]}
     >
       <Pressable
         accessibilityRole="link"
@@ -34,19 +30,9 @@ function SectionCard({ section }: { section: PanelSection }) {
         onPress={() => router.push(section.href)}
         // A solid surface, not glass: glass is only for floating layers, and a list of cards
         // with BlurView would go over 2-3 per screen (estetica-frutiger-cosmo checklist).
-        style={{
-          minHeight: theme.touch.min,
-          justifyContent: 'center',
-          padding: theme.spacing.md,
-          borderRadius: theme.radii.lg,
-          borderWidth: 1,
-          borderColor: theme.colors.surface.glassBorder,
-          backgroundColor: theme.colors.surface.glassSolid,
-        }}
+        style={styles.card}
       >
-        <Text style={[theme.typography.title, { color: theme.colors.text.primary }]}>
-          {t(section.titleKey)}
-        </Text>
+        <Text style={styles.cardTitle}>{t(section.titleKey)}</Text>
       </Pressable>
     </View>
   );
@@ -56,18 +42,16 @@ function SectionCard({ section }: { section: PanelSection }) {
 export function PanelHome({ sections = PANEL_SECTIONS }: { sections?: readonly PanelSection[] }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const styles = homeStyles(theme);
 
   return (
-    <View style={{ gap: theme.spacing.lg }}>
+    <View style={styles.page}>
       <GlassPanel>
-        <Text
-          accessibilityRole="header"
-          style={[theme.typography.headline, { color: theme.colors.text.primary }]}
-        >
+        <Text accessibilityRole="header" style={styles.welcome}>
           {t('admin.home.welcome')}
         </Text>
       </GlassPanel>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.md }}>
+      <View style={styles.cards}>
         {sections.map((section) => (
           <SectionCard key={section.href} section={section} />
         ))}
@@ -75,3 +59,26 @@ export function PanelHome({ sections = PANEL_SECTIONS }: { sections?: readonly P
     </View>
   );
 }
+
+// Purely visual styles, left out of mutation testing on purpose (convencions/testing.md).
+// Stryker disable all
+function homeStyles(theme: Theme) {
+  const { spacing, colors, typography, radii } = theme;
+  return {
+    page: { gap: spacing.lg },
+    welcome: { ...typography.headline, color: colors.text.primary },
+    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+    cardRing: { flexGrow: 1, flexBasis: 240, borderRadius: radii.lg },
+    card: {
+      minHeight: theme.touch.min,
+      justifyContent: 'center',
+      padding: spacing.md,
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderColor: colors.surface.glassBorder,
+      backgroundColor: colors.surface.glassSolid,
+    },
+    cardTitle: { ...typography.title, color: colors.text.primary },
+  } as const;
+}
+// Stryker restore all

@@ -1,10 +1,10 @@
 import { type ComponentRef, type ReactNode, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type EdgeInsets, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { moveFocusTo } from '../../../shared/a11y/moveFocusTo';
-import { focusRingShadow, useTheme } from '../../../shared/theme';
+import { focusRingShadow, type Theme, useTheme } from '../../../shared/theme';
 import { GlassPanel, SkyBackground } from '../../../shared/ui';
 import { LogoutButton } from '../../auth/components/LogoutButton';
 
@@ -20,86 +20,53 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const main = useRef<ComponentRef<typeof View>>(null);
   const [skipFocused, setSkipFocused] = useState(false);
-  const column = {
-    width: '100%',
-    maxWidth: theme.breakpoints.desktop,
-    alignSelf: 'center',
-  } as const;
+  const styles = shellStyles(theme, insets);
 
   return (
     <SkyBackground>
-      <View
-        style={{
-          flex: 1,
-          paddingTop: insets.top + theme.spacing.sm,
-          paddingLeft: insets.left + theme.spacing.md,
-          paddingRight: insets.right + theme.spacing.md,
-        }}
-      >
+      <View style={styles.root}>
         {/* First thing the keyboard reaches; invisible until it has the focus (WCAG 2.4.1). */}
         <View
           testID="skip-link-ring"
           // Hidden, the pointer goes through it to the bar; the keyboard still reaches it.
           pointerEvents={skipFocused ? 'auto' : 'none'}
-          style={{
-            position: 'absolute',
-            zIndex: 10,
-            top: insets.top + theme.spacing.sm,
-            left: insets.left + theme.spacing.md,
-            borderRadius: theme.radii.pill,
-            backgroundColor: theme.colors.surface.glassSolid,
-            opacity: skipFocused ? 1 : 0,
-            ...(skipFocused && { boxShadow: focusRingShadow(theme.colors.focusRing) }),
-          }}
+          style={[
+            styles.skipRing,
+            {
+              opacity: skipFocused ? 1 : 0,
+              ...(skipFocused && { boxShadow: focusRingShadow(theme.colors.focusRing) }),
+            },
+          ]}
         >
           <Pressable
             accessibilityRole="link"
             onFocus={() => setSkipFocused(true)}
             onBlur={() => setSkipFocused(false)}
             onPress={() => {
+              // Stryker disable next-line ConditionalExpression: the ref is set once mounted; the guard is for the type.
               if (main.current) moveFocusTo(main.current);
             }}
-            style={{
-              minHeight: theme.touch.min,
-              justifyContent: 'center',
-              paddingHorizontal: theme.spacing.md,
-            }}
+            style={styles.skipLink}
           >
-            <Text style={[theme.typography.bodyStrong, { color: theme.colors.text.primary }]}>
-              {t('admin.skipToContent')}
-            </Text>
+            <Text style={styles.skipText}>{t('admin.skipToContent')}</Text>
           </Pressable>
         </View>
-        <View role="banner" accessibilityLabel={t('admin.topBar.label')} style={column}>
+        <View role="banner" accessibilityLabel={t('admin.topBar.label')} style={styles.column}>
           <GlassPanel>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: theme.spacing.md,
-              }}
-            >
+            <View style={styles.bar}>
               {/* The name of the app is not translated (US #93). */}
-              <Text style={[theme.typography.title, { color: theme.colors.text.primary }]}>
-                Perseida
-              </Text>
+              <Text style={styles.appName}>Perseida</Text>
               <LogoutButton />
             </View>
           </GlassPanel>
         </View>
-        <ScrollView
-          contentContainerStyle={{
-            paddingTop: theme.spacing.lg,
-            paddingBottom: insets.bottom + theme.spacing.lg,
-          }}
-        >
+        <ScrollView contentContainerStyle={styles.scroll}>
           <View
             ref={main}
             role="main"
             accessibilityLabel={t('admin.main.label')}
             tabIndex={-1}
-            style={column}
+            style={styles.column}
           >
             {children}
           </View>
@@ -108,3 +75,47 @@ export function AdminShell({ children }: { children: ReactNode }) {
     </SkyBackground>
   );
 }
+
+// Purely visual styles, all from theme tokens. They are left out of mutation testing on purpose:
+// a changed padding, radius or font is not behaviour a unit test should pin down
+// (convencions/testing.md, «Mutation testing»). Behaviour stays in the JSX above.
+// Stryker disable all
+function shellStyles(theme: Theme, insets: EdgeInsets) {
+  const { spacing, colors, typography } = theme;
+  return {
+    root: {
+      flex: 1,
+      paddingTop: insets.top + spacing.sm,
+      paddingLeft: insets.left + spacing.md,
+      paddingRight: insets.right + spacing.md,
+    },
+    column: {
+      width: '100%',
+      maxWidth: theme.breakpoints.desktop,
+      alignSelf: 'center',
+    },
+    skipRing: {
+      position: 'absolute',
+      zIndex: 10,
+      top: insets.top + spacing.sm,
+      left: insets.left + spacing.md,
+      borderRadius: theme.radii.pill,
+      backgroundColor: colors.surface.glassSolid,
+    },
+    skipLink: {
+      minHeight: theme.touch.min,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    skipText: { ...typography.bodyStrong, color: colors.text.primary },
+    bar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    appName: { ...typography.title, color: colors.text.primary },
+    scroll: { paddingTop: spacing.lg, paddingBottom: insets.bottom + spacing.lg },
+  } as const;
+}
+// Stryker restore all
