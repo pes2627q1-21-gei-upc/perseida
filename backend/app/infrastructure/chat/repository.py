@@ -1,4 +1,5 @@
 import uuid
+
 from sqlalchemy import Select, exists, select, true
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
