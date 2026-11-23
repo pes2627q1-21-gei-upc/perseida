@@ -83,9 +83,13 @@ describe('useDirectTyping (TG-65)', () => {
   it('sends false after five seconds without activity', async () => {
     const { result } = await renderHook(() => useDirectTyping(CONVERSATION));
     await act(async () => result.current.setTyping(true));
-    await act(async () => { jest.advanceTimersByTime(4999); });
+    await act(async () => {
+      jest.advanceTimersByTime(4999);
+    });
     expect(mockSendEphemeral).toHaveBeenCalledTimes(1);
-    await act(async () => { jest.advanceTimersByTime(1); });
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
     expect(mockSendEphemeral).toHaveBeenLastCalledWith({
       type: 'dm.typing',
       payload: { conversation_id: CONVERSATION, is_typing: false },
