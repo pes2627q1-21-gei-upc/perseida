@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { NoAccessScreen } from './NoAccessScreen';
@@ -45,6 +45,12 @@ describe('NoAccessScreen (TG-77 criteri 3)', () => {
   it('announces the message politely to a screen reader (decided with the person, WCAG 4.1.3)', async () => {
     await renderScreen();
 
-    expect(screen.getByText(TEXT.message).props.accessibilityLiveRegion).toBe('polite');
+    // A screen reader only announces a change inside a live region that already existed: the
+    // region is a container that mounts empty and gets the message after, not the text itself.
+    const region = screen.getByTestId('no-access-live-region');
+    expect(region).toHaveProp('accessibilityLiveRegion', 'polite');
+    expect(region).toHaveProp('aria-live', 'polite');
+    expect(within(region).getByText(TEXT.message)).toBeOnTheScreen();
+    expect(screen.getByText(TEXT.message)).not.toHaveProp('accessibilityLiveRegion');
   });
 });
