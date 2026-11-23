@@ -75,7 +75,15 @@ describe('AdminShell (TG-77 criteri 6)', () => {
       await fireEvent(link, 'focus');
       await fireEvent.press(link);
 
-      expect(send).toHaveBeenCalledWith(expect.anything(), 'focus');
+      // The ref is the View instance, not the element a query returns: it is checked by its props.
+      expect(send).toHaveBeenCalledTimes(1);
+      const [target, event] = send.mock.calls[0] as unknown as [
+        { props: { role?: string; accessibilityLabel?: string } },
+        string,
+      ];
+      expect(target.props.role).toBe('main');
+      expect(target.props.accessibilityLabel).toBe(TEXT.main);
+      expect(event).toBe('focus');
       send.mockRestore();
     });
 
