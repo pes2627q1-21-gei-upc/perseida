@@ -308,6 +308,7 @@ Un sol *proxy host* ho serveix tot des del mateix origen:
 | `/api/events` i `/api/events/` | `api:8000` amb un límit de peticions compartit (endpoints públics per a Spotwise, TG-351, TG-643) |
 | `/media/` | El mateix NPM, des del volum `media_data` (multimèdia dels usuaris) |
 | `/admin/` | El mateix NPM, des del volum `admin_dist` (SPA del panell d'administració) |
+| `/`, `/privacy`, `/terms` | El mateix NPM, des de `nginx-proxy-manager/public` (pàgines públiques per a Google Auth Platform, TG-343) |
 
 ### Ports i panell
 
@@ -371,6 +372,42 @@ Els endpoints públics d'esdeveniments (`/api/events` i `/api/events/`, TG-351 i
 - `docker compose up` no recrea el proxy si només canvia el contingut d'`http_top.conf`, així que el CD valida i recarrega nginx després de cada desplegament (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (cal Docker; l'executa el job `proxy` de la CI). `bash infra/scripts/test-npm-startup.sh` arrenca la imatge real d'NPM amb el muntatge d'`http_top.conf` del Compose i comprova que s'aixeca i carrega la zona, i que amb un muntatge de només lectura falla (regressió del hotfix 0.2.1).
 - El límit compta l'adreça de la connexió TCP (`$realip_remote_addr`), no la de `$remote_addr`: NPM es fia de la capçalera `X-Real-IP` quan la petició arriba d'una xarxa privada, i a producció totes hi arriben (NAT de la UPC), així que un client podria triar-se la clau. El test ho comprova amb una `X-Real-IP` falsa a cada petició (TG-643).
+
+### Pàgines públiques (Google Auth Platform)
+
+Per publicar la pantalla d'inici de sessió com a *In production*, Google demana una pàgina principal, una política de privacitat i unes condicions del servei, totes públiques (TG-343). Són HTML estàtic a `nginx-proxy-manager/public/` (català, castellà i anglès a cada pàgina, sense scripts), que el Compose munta de només lectura a `/public` i el CD copia a `/opt/perseida/nginx-proxy-manager/public/`. `static.conf` les serveix a `/`, `/privacy` i `/terms` (coincidència exacta: la resta de camins continuen anant a l'API) amb una CSP sense scripts.
+
+- **Després del primer desplegament que les porti**, torna a enganxar el `static.conf` nou a *Advanced* (no es munta) i comprova:
+
+  ```bash
+  curl -sI https://perseida.duckdns.org:40431/ | head -1          # HTTP/2 200
+  curl -sI https://perseida.duckdns.org:40431/privacy | head -1   # HTTP/2 200
+  curl -sI https://perseida.duckdns.org:40431/terms | head -1     # HTTP/2 200
+  ```
+
+- Per canviar el text n'hi ha prou amb desplegar: nginx llegeix els fitxers a cada petició.
+- Test: `bash infra/scripts/test-public-pages.sh` (cal Docker; l'executa el job `proxy` de la CI).
+
+**Esborrar un compte a petició** (la política de privacitat el promet en 30 dies com a màxim). Encara no hi ha cap endpoint: els comptes s'esborren de manera lògica (`deleted_at`) i diverses taules apunten a `users` amb `RESTRICT`. Al servidor, amb el correu de la petició:
+
+```bash
+cd /opt/perseida
+# 1. Identificador de Google (clau de la sessió a Redis) i id de l'usuari.
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<correu>';"
+# 2. Primer les files amb RESTRICT; esborrar l'usuari esborra en cascada publicacions, missatges, subscripcions i respostes del quiz.
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
+# 3. Sessions: els membres de user_sessions:<subject> són <sid>:<tipus>:<jti> i les claus, session:<tipus>:<jti>.
+docker compose exec cache sh -c 'for m in $(redis-cli SMEMBERS user_sessions:<subject>); do redis-cli DEL "session:${m#*:}"; done; redis-cli DEL user_sessions:<subject>'
+```
+
+Després, respon la petició des del correu d'equip.
+
+**Consola de Google Cloud** (algú amb accés al projecte; no ho fa el CD):
+
+1. *Search Console*: la propietat `https://perseida.duckdns.org:40431/` (prefix d'URL) es verifica amb el mètode *etiqueta HTML*; l'etiqueta ja és a `index.html`. Prem *Verifica* quan les pàgines estiguin desplegades.
+2. *Google Auth Platform → Branding*: nom de l'app `Perseida`, correu d'assistència i de contacte del desenvolupador (el correu d'equip, `perseida.fib@gmail.com`), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms` i domini autoritzat `perseida.duckdns.org` (ja hi és). **Sense logo**: activa la verificació de marca.
+3. *Audience → Publish app*: l'estat passa a *In production*. Amb els àmbits `openid`, `email` i `profile`, Google no demana verificació.
+4. Inicia sessió a l'app amb un compte de Google que no sigui usuari de test.
 
 ### Volums
 
