@@ -6,13 +6,14 @@ import DirectListRoute from '../../../app/(app)/chat/direct/index';
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
+const mockCanGoBack = jest.fn(() => false);
 const mockList = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: mockPush,
     replace: mockReplace,
     back: mockBack,
-    canGoBack: () => false,
+    canGoBack: mockCanGoBack,
   }),
   useLocalSearchParams: () => ({ conversationId: 'c-1' }),
 }));
@@ -44,9 +45,32 @@ jest.mock('../../direct-chat/components/DirectConversationScreen', () => {
 });
 jest.mock('../../direct-chat/hooks/useDirectChat', () => ({ useConversations: () => mockList() }));
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockCanGoBack.mockReturnValue(false);
+});
 
 describe('direct chat routes (TG-65)', () => {
+  it.each([
+    ['loading', { isPending: true, error: null, data: undefined }],
+    ['error', { isPending: false, error: { code: 'DATABASE_UNAVAILABLE', retryable: false }, data: undefined }],
+    ['not found', { isPending: false, error: null, data: [] }],
+  ])('provides back navigation from %s, including on a deep link', async (_state, query) => {
+    mockList.mockReturnValue(query);
+    await render(<DirectConversationRoute />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
+    expect(mockReplace).toHaveBeenCalledWith('/chat/direct');
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it('uses the navigation history on the loading screen when available', async () => {
+    mockCanGoBack.mockReturnValue(true);
+    mockList.mockReturnValue({ isPending: true, error: null, data: undefined });
+    await render(<DirectConversationRoute />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
   it('opens the selected conversation without exposing profile data in the route', async () => {
     await render(<DirectListRoute />);
     await fireEvent.press(screen.getByText('open'));
