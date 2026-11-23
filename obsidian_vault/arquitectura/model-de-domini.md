@@ -2,7 +2,7 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-21"
+data: "2026-11-22"
 us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51", "TG-399", "TG-400", "TG-469", "TG-470"]
 font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-399 i TG-400 (domini del xat directe, 2026-11-21); TG-469 (autor {id, name} al missatge del xat, 2026-11-21); TG-470 (autor als missatges, ADR-0033, 2026-11-20)"
 etiquetes: [arquitectura, domini, uml, model]
@@ -323,8 +323,7 @@ Endpoints (privats, amb sessió; l'usuari surt de la sessió com a `GET /api/use
 | `DELETE /api/events/{event_id}/subscription` | Dona de baixa | `204`; 422 si l'identificador no és vàlid |
 | `GET /api/me/subscriptions` | Esdeveniments subscrits | `200` `EventResponse[]` ([[contracte-esdeveniments]]) |
 
-> [!todo] Pendent
-> - L'app (botó al llistat de TG-51 i secció «Els meus esdeveniments») va a la PR 2 de TG-53.
+L'app els fa servir des de la pestanya Esdeveniments: l'estrella de cada fila i la pestanya «Els meus» (vegeu [[frontend#Subscripcions a esdeveniments (TG-53)]]).
 
 ## Diagrama (transcripció)
 
@@ -461,9 +460,13 @@ Flux del motor (`AchievementService`):
 
 **Connexió amb la ratxa:** `StreakService.register_activity` avisa un port genèric, `ActivityLog` (`app/domain/shared/ports.py`), amb l'activitat `"streak_days"` i la ratxa actual. `AchievementService` implementa aquest port (`record`). El port viu a `domain/shared` i l'activitat és un text perquè les features no s'importin entre elles ([[backend-hexagonal]]). Si el motor falla, la ratxa ja registrada es manté i només es registra un avís. Quiz (TG-61) i subscripció (TG-53) hi connectaran la seva activitat de la mateixa manera, sense tocar el motor.
 
+**Registre en consultar l'APOD:** `GET /api/apod` continua sent públic; la sessió hi és opcional (`get_optional_session`). Amb sessió vàlida, el router crida `ApodActivityService.register_visit` (`application/apod`), que fa de «best effort» a través del port `DailyActivityRegistrar` (`app/domain/apod/ports.py`); l'adaptador `UserStreakActivityRegistrar` (`infrastructure/apod`) resol l'usuari i avisa `StreakService.register_activity` (una vegada al dia, dia UTC), de manera que `apod` no importa `users` ni `streaks`. Això pot desbloquejar fites; sense sessió, amb token invàlid o caducat, no es registra res. Un error en registrar només queda al log i mai fa fallar la resposta de l'APOD. L'app només demana l'APOD d'avui, així que obrir l'app sense consultar-lo no compta com a activitat.
+
+**Consulta (`GET /api/users/me/achievements`):** protegit amb sessió (401 `INVALID_SESSION` sense). Retorna una llista plana amb les fites del catàleg i el progrés de l'usuari de la sessió, i només el seu. Cada element porta `code`, `name`, `description`, `category`, `position`, `current` (progrés), `goal` (meta), `unlocked` i `unlocked_at` (UTC; `null` si no està desbloquejada). L'ordre és fix: les categories segueixen l'ordre de l'enum `AchievementCategory` (ratxes, quiz, esdeveniments, social, minijoc) i dins de cada una, `position`. Les dates surten del mètode `list_unlocked_at` del port `AchievementRepository` (`list_unlocked_ids` es manté per a `record_activity`).
+
 > [!todo] Pendent
-> - Registrar l'activitat en consultar l'APOD, l'endpoint `GET /api/users/me/achievements` (amb data de desbloqueig, progrés i meta) i els errors documentats: següent PR de TG-58. El port `AchievementRepository` encara només retorna els ids desbloquejats; caldrà afegir-hi les dates.
 > - Les fites de quiz i subscripció queden a 0 fins que TG-61 i TG-53 hi connectin l'activitat.
+> - La pantalla de fites i la compartició (TG-59) i l'avís en desbloquejar una fita queden per a altres US.
 
 ## Enllaços
 

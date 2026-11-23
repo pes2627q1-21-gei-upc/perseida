@@ -1,6 +1,6 @@
 import { makeMessage, makeRoom, makeSubscribedEvent } from '../../../__mocks__/chat';
 import type { ChatRoom } from './api/chat';
-import type { SubscribedEvent } from './api/subscriptions';
+import type { SubscribedEvent } from './roomList';
 import { buildRoomList } from './roomList';
 
 // The mocks are plain objects with the shape of the API; the types are the contract.

@@ -8,7 +8,11 @@ from app.application.apod.errors import APOD_UNAVAILABLE
 from app.domain.apod.models import Apod, MediaType
 from app.infrastructure.api.params import IsoDate
 from app.infrastructure.api.schemas import PROBLEM_CONTENT, ProblemDetails
-from app.infrastructure.apod.dependencies import ApodServiceDep
+from app.infrastructure.apod.dependencies import (
+    ApodActivityServiceDep,
+    ApodServiceDep,
+)
+from app.infrastructure.auth.dependencies import OptionalSessionDep
 
 router = APIRouter(tags=["apod"])
 
@@ -43,7 +47,10 @@ class ApodResponse(BaseModel):
     summary="Imatge astronòmica del dia (APOD)",
     description=(
         "Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui "
-        "(data UTC). La data ha d'estar entre el 16/06/1995 i avui."
+        "(data UTC). La data ha d'estar entre el 16/06/1995 i avui. "
+        "L'endpoint és públic: la sessió (capçalera `Authorization: Bearer`) és "
+        "opcional i, si n'hi ha una de vàlida, registra l'activitat del dia de la "
+        "ratxa. Una sessió absent o invàlida no és un error i no canvia la resposta."
     ),
     response_description="L'APOD de la data demanada.",
     responses={
@@ -68,6 +75,8 @@ class ApodResponse(BaseModel):
 )
 async def get_apod(
     service: ApodServiceDep,
+    session: OptionalSessionDep,
+    activity: ApodActivityServiceDep,
     day: Annotated[
         IsoDate | None,
         Query(
@@ -78,4 +87,7 @@ async def get_apod(
     ] = None,
 ) -> ApodResponse:
     """Retorna l'APOD d'avui o d'una data concreta."""
-    return ApodResponse.from_apod(await service.get_apod(day))
+    apod = await service.get_apod(day)
+    if session is not None:
+        await activity.register_visit(session.sub)
+    return ApodResponse.from_apod(apod)

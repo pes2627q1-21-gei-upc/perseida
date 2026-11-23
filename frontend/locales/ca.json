@@ -87,6 +87,7 @@
     "DATABASE_UNAVAILABLE": "El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
     "EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
+    "EVENT_ALREADY_ENDED": "Aquest esdeveniment ja ha acabat.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
     "GOOGLE_SIGN_IN_EXPO_GO": "L'inici de sessió amb Google no funciona a Expo Go. Usa l'app instal·lada (build de desenvolupament).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "L'inici de sessió amb Google encara no està disponible.",
@@ -96,6 +97,7 @@
     "INVALID_GOOGLE_TOKEN": "No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.",
     "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar el contingut.",
     "INVALID_SESSION": "La teva sessió ha caducat. Torna a iniciar sessió.",
+    "MEETING_POINTS_UNAVAILABLE": "Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
     "NOT_FOUND": "No s'ha trobat el que busques.",
     "POST_FORBIDDEN": "Només qui ha escrit aquesta publicació la pot editar o esborrar.",
@@ -172,7 +174,8 @@
       "moreInfo": "Més informació",
       "openHint": "Obre la fitxa de l'esdeveniment",
       "start": "Inici",
-      "outings": "Sortides d'aquest esdeveniment"
+      "outings": "Sortides d'aquest esdeveniment",
+      "meetingPoints": "Punts de trobada"
     },
     "status": {
       "active": "Actiu ara"
@@ -206,6 +209,18 @@
       "results_other": "{{count}} esdeveniments",
       "empty": "No hi ha esdeveniments amb aquests filtres.",
       "openMap": "Obre el mapa"
+    },
+    "tabs": {
+      "label": "Vista",
+      "all": "Tots",
+      "mine": "Els meus"
+    },
+    "subscription": {
+      "follow": "Segueix {{title}}",
+      "unavailable": "No s'han pogut carregar els esdeveniments que segueixes: les estrelles es tornaran a activar quan es carreguin."
+    },
+    "mine": {
+      "empty": "Encara no segueixes cap esdeveniment. Toca l'estrella d'un esdeveniment per seguir-lo."
     }
   },
   "home": {
@@ -213,6 +228,48 @@
     "mapLink": "Mapa d'esdeveniments",
     "quizLink": "Pregunta del dia",
     "outingsLink": "Les meves sortides"
+  },
+  "meetingPoints": {
+    "title": "Punts de trobada",
+    "loading": "Carregant punts de trobada",
+    "empty": "No hi ha locals recomanats a prop.",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a demanar els punts de trobada",
+    "choose": "Tria {{name}}",
+    "list": {
+      "label": "Punts de trobada recomanats"
+    },
+    "location": {
+      "locating": "Buscant la teva ubicació",
+      "denied": "Sense permís d'ubicació no et podem recomanar locals. El pots activar a la configuració del dispositiu.",
+      "unavailable": "No trobem la teva ubicació. Comprova que la ubicació del dispositiu està activada.",
+      "retry": "Torna a buscar la ubicació"
+    },
+    "profile": {
+      "label": "Per a què us trobeu",
+      "watch_party": "Observació",
+      "study": "Estudi"
+    },
+    "type": {
+      "library": "Biblioteca",
+      "cafe": "Cafeteria",
+      "other": "Altre espai"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silenciós",
+        "murmur": "Murmuri",
+        "noisy": "Sorollós"
+      },
+      "plugs": {
+        "many": "Molts endolls",
+        "few": "Pocs endolls",
+        "none": "Sense endolls"
+      },
+      "groupFriendly": "Bo per a grups",
+      "notGroupFriendly": "Millor sense grups"
+    }
   },
   "nav": {
     "chat": "Xat",
@@ -351,6 +408,7 @@
       "hint": "Mou el mapa fins que la mira quedi sobre el lloc.",
       "choose": "Tria aquest lloc",
       "useMine": "Usa la meva ubicació",
+      "recommend": "Locals recomanats a prop",
       "denied": "No hem pogut obtenir la teva ubicació. Mou el mapa per triar el lloc.",
       "latitude": "Latitud",
       "longitude": "Longitud",

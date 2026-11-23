@@ -75,6 +75,21 @@ class UserService:
             ForbiddenError: ACCOUNT_SUSPENDED (suspended or banned) or
                 ACCOUNT_DELETED.
         """
+        return await self._get_active(google_sub)
+
+    async def update_language(self, google_sub: str, language: Language) -> User:
+        """Set the preferred language of an authenticated account and return it.
+
+        Raises:
+            UnauthorizedError: INVALID_SESSION if the session points to no account.
+            ForbiddenError: ACCOUNT_SUSPENDED (suspended or banned) or
+                ACCOUNT_DELETED.
+        """
+        updated = (await self._get_active(google_sub)).change_language(language)
+        await self._users.save_preferred_language(updated)
+        return updated
+
+    async def _get_active(self, google_sub: str) -> User:
         user = await self._users.get_by_google_sub(google_sub)
         if user is None:
             raise UnauthorizedError(INVALID_SESSION)

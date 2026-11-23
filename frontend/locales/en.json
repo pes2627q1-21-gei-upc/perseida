@@ -87,6 +87,7 @@
     "DATABASE_UNAVAILABLE": "The service isn't available right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
     "EVENT_NOT_FOUND": "This event no longer exists.",
+    "EVENT_ALREADY_ENDED": "This event has already ended.",
     "GENERIC_FINAL": "Something went wrong.",
     "GOOGLE_SIGN_IN_EXPO_GO": "Google sign-in doesn't work in Expo Go. Use the installed app (development build).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "Google sign-in isn't available yet.",
@@ -96,6 +97,7 @@
     "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
     "INVALID_RESPONSE": "Something went wrong. We couldn't load the content.",
     "INVALID_SESSION": "Your session has expired. Please sign in again.",
+    "MEETING_POINTS_UNAVAILABLE": "We can't recommend places right now. Please try again in a while.",
     "NETWORK_ERROR": "No connection. Check your network and try again.",
     "NOT_FOUND": "We couldn't find what you were looking for.",
     "POST_FORBIDDEN": "Only the person who wrote this post can edit or delete it.",
@@ -172,7 +174,8 @@
       "moreInfo": "More information",
       "openHint": "Opens the event details",
       "start": "Starts",
-      "outings": "Outings for this event"
+      "outings": "Outings for this event",
+      "meetingPoints": "Meeting points"
     },
     "status": {
       "active": "Happening now"
@@ -206,6 +209,18 @@
       "results_other": "{{count}} events",
       "empty": "No events match these filters.",
       "openMap": "Open the map"
+    },
+    "tabs": {
+      "label": "View",
+      "all": "All",
+      "mine": "Mine"
+    },
+    "subscription": {
+      "follow": "Follow {{title}}",
+      "unavailable": "The events you follow couldn't be loaded: the stars will work again once they load."
+    },
+    "mine": {
+      "empty": "You don't follow any event yet. Tap the star of an event to follow it."
     }
   },
   "home": {
@@ -213,6 +228,48 @@
     "mapLink": "Events map",
     "quizLink": "Question of the day",
     "outingsLink": "My outings"
+  },
+  "meetingPoints": {
+    "title": "Meeting points",
+    "loading": "Loading meeting points",
+    "empty": "No recommended places nearby.",
+    "retry": "Try again",
+    "retryHint": "Asks for the meeting points again",
+    "choose": "Choose {{name}}",
+    "list": {
+      "label": "Recommended meeting points"
+    },
+    "location": {
+      "locating": "Finding your location",
+      "denied": "Without location permission we can't recommend places. You can turn it on in your device settings.",
+      "unavailable": "We can't find your location. Check that location is turned on in your device.",
+      "retry": "Find my location again"
+    },
+    "profile": {
+      "label": "What you are meeting for",
+      "watch_party": "Watch party",
+      "study": "Study"
+    },
+    "type": {
+      "library": "Library",
+      "cafe": "Café",
+      "other": "Other space"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silent",
+        "murmur": "Murmur",
+        "noisy": "Noisy"
+      },
+      "plugs": {
+        "many": "Many plugs",
+        "few": "Few plugs",
+        "none": "No plugs"
+      },
+      "groupFriendly": "Good for groups",
+      "notGroupFriendly": "Better without groups"
+    }
   },
   "nav": {
     "chat": "Chat",
@@ -351,6 +408,7 @@
       "hint": "Move the map until the crosshair is over the place.",
       "choose": "Choose this place",
       "useMine": "Use my location",
+      "recommend": "Recommended places nearby",
       "denied": "We couldn't get your location. Move the map to choose the place.",
       "latitude": "Latitude",
       "longitude": "Longitude",

@@ -1,4 +1,5 @@
-"""The backend suite runs in random order and in parallel (TG-362, US #362).
+"""The backend suite runs in random order and in parallel, and CI audits its
+security (TG-362, US #362).
 
 Criteri 1: pytest-randomly runs in every session and prints the seed.
 Criteri 2: ``pytest -n auto`` (pytest-xdist) runs in CI.
@@ -15,6 +16,22 @@ hook ``pytest_collection_modifyitems(config, items)`` and raises
 ``pytest.UsageError`` naming the test and ``TG-`` when a ``quarantine`` mark is
 invalid. ``tests/conftest.py`` activates it for the real suite (re-exporting the
 hook or registering the module as a plugin).
+
+Criteri 4 (TG-383): ``uv run bandit -c pyproject.toml -r app -ll --ignore-nosec``
+is a blocking step of the ``backend`` job (medium and high findings fail the PR);
+its configuration is ``[tool.bandit]`` in ``backend/pyproject.toml``, the only
+place where a finding may be justified (inline ``# nosec`` comments are ignored).
+B314 (``xml.etree`` on the NASA feed) is fixed with ``defusedxml``, a pinned
+production dependency, not skipped.
+Criteri 5 (TG-383): a blocking step exports the production requirements from the
+lockfile (``uv export --frozen --no-dev ...``) and audits them with
+``uv run pip-audit -r <file> -s osv``.
+Criteri 6 (TG-384): the ``frontend`` job runs
+``pnpm audit --prod --audit-level=high`` in ``frontend/`` right after
+``pnpm install``, as a blocking step (no ``continue-on-error``): the team decided
+on 21/11/2026 that a high or critical vulnerability in the production
+dependencies blocks the PR. An accepted risk goes in ``auditConfig.ignoreGhsas``
+of ``frontend/pnpm-workspace.yaml``, with a row in ``convencions/seguretat.md``.
 
 Paths are resolved from this file, never from the working directory.
 """
@@ -36,7 +53,10 @@ CI_WORKFLOW = BACKEND_DIR.parent / ".github" / "workflows" / "ci.yml"
 PINNED_TOOLS = {
     "pytest-randomly": "5.1.0",
     "pytest-xdist": "3.8.0",
+    "bandit[toml]": "1.9.4",
+    "pip-audit": "2.10.1",
 }
+DEFUSEDXML = "defusedxml==0.7.1"
 
 
 def _dev_dependencies() -> list[str]:
@@ -45,13 +65,20 @@ def _dev_dependencies() -> list[str]:
     return dev
 
 
+def _job(workflow: str, name: str) -> str:
+    """Text of the job ``name``: from its key to the next top-level job."""
+    match = re.search(
+        rf"^  {re.escape(name)}:\n(?P<body>(?:^(?:    .*|\s*)\n)+)",
+        workflow,
+        re.MULTILINE,
+    )
+    assert match, f"ci.yml has no '{name}' job"
+    return match["body"]
+
+
 def _backend_job(workflow: str) -> str:
     """Text of the ``backend`` job: from its key to the next top-level job."""
-    match = re.search(
-        r"^  backend:\n(?P<body>(?:^(?:    .*|\s*)\n)+)", workflow, re.MULTILINE
-    )
-    assert match, "ci.yml has no 'backend' job"
-    return match["body"]
+    return _job(workflow, "backend")
 
 
 @pytest.mark.parametrize(("package", "version"), PINNED_TOOLS.items())
@@ -120,10 +147,26 @@ def _ini_options() -> dict[str, object]:
     return options
 
 
+def _steps_with_comments(job: str) -> list[str]:
+    """Each step of ``job``, as text, including the comment lines just above its
+    ``- `` line (a comment there documents the step that follows it)."""
+    steps: list[list[str]] = []
+    comments: list[str] = []
+    for line in job.splitlines(keepends=True):
+        if re.match(r"      #", line):
+            comments.append(line)
+        elif line.startswith("      - "):
+            steps.append([*comments, line])
+            comments = []
+        elif steps:
+            steps[-1].extend([*comments, line])
+            comments = []
+    return ["".join(step) for step in steps]
+
+
 def _backend_steps() -> list[str]:
-    """Each step of the ``backend`` job, as text, from its ``- `` line."""
-    job = _backend_job(CI_WORKFLOW.read_text(encoding="utf-8"))
-    return re.split(r"^      - ", job, flags=re.MULTILINE)[1:]
+    """Each step of the ``backend`` job, as text, with the comments above it."""
+    return _steps_with_comments(_backend_job(CI_WORKFLOW.read_text(encoding="utf-8")))
 
 
 def _pytest_run(step: str) -> str | None:
@@ -285,3 +328,136 @@ def test_tg362_collection_without_xdist_reports_an_invalid_quarantine(
     assert result.returncode == pytest.ExitCode.USAGE_ERROR, output
     assert "TG-" in output, output
     assert "INTERNALERROR" not in output, output
+
+
+def _steps_running(pattern: str) -> list[str]:
+    return [step for step in _backend_steps() if re.search(pattern, step)]
+
+
+def _assert_blocking(step: str) -> None:
+    assert "continue-on-error" not in step, step
+    assert not re.search(r"\|\|\s*(true|:|exit 0)\b", step), step
+
+
+def test_tg362_ci_runs_bandit_as_a_blocking_step() -> None:
+    steps = _steps_running(r"\buv run\b[^\n]*\bbandit\b")
+
+    assert len(steps) == 1, "the backend job has no 'uv run bandit' step"
+    step = steps[0]
+    assert re.search(r"\s-c pyproject\.toml\b", step), step
+    assert re.search(r"\s-r app\b", step), step
+    # Medium and high findings: -ll (not -lll, which only reports high).
+    assert re.search(r"\s(-ll(?!l)|--severity-level[ =]medium)\b", step), step
+    # Justifications live only in [tool.bandit]: an inline ``# nosec`` must not
+    # silence a finding (criteri 4).
+    assert re.search(r"\s--ignore-nosec\b", step), step
+    _assert_blocking(step)
+
+
+def test_tg362_bandit_is_configured_in_pyproject() -> None:
+    data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    bandit = data["tool"].get("bandit")
+
+    assert isinstance(bandit, dict), "pyproject.toml has no [tool.bandit] section"
+    # The XML of the NASA feed is parsed with defusedxml, not skipped (TG-383).
+    skips = bandit.get("skips", [])
+    assert "B314" not in skips, skips
+    assert "B405" not in skips, skips
+
+
+def test_tg362_ci_audits_the_production_lockfile_with_osv() -> None:
+    steps = _backend_steps()
+    audits = [
+        index
+        for index, step in enumerate(steps)
+        if re.search(r"\buv run\b[^\n]*\bpip-audit\b", step)
+    ]
+
+    assert len(audits) == 1, "the backend job has no 'uv run pip-audit' step"
+    audit = steps[audits[0]]
+    assert re.search(r"\s(-s|--vulnerability-service)[ =]osv\b", audit), audit
+    _assert_blocking(audit)
+
+    requirements = re.search(
+        r"\bpip-audit\b[^\n]*\s(?:-r|--requirement)[ =](\S+)", audit
+    )
+    assert requirements, audit
+    exports = [
+        match
+        for step in steps[: audits[0] + 1]
+        for match in re.finditer(r"\buv export\b[^\n]*", step)
+    ]
+    assert exports, "the requirements audited are not a 'uv export'"
+    production = [
+        export[0]
+        for export in exports
+        if re.search(r"\s--no-dev\b", export[0])
+        and re.search(r"\s--(frozen|locked)\b", export[0])
+        and requirements[1] in export[0]
+    ]
+    assert production, (exports, requirements[1])
+
+
+def test_tg362_defusedxml_is_a_pinned_production_dependency() -> None:
+    data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+
+    assert DEFUSEDXML in data["project"]["dependencies"]
+
+
+def _runs_in_frontend(job: str, step: str) -> bool:
+    """True when ``step`` runs inside ``frontend/``: the job sets
+    ``defaults.run.working-directory: frontend`` or the step sets its own
+    ``working-directory: frontend``."""
+    job_default = re.search(
+        r"^    defaults:\n      run:\n        working-directory:\s*frontend/?\s*$",
+        job,
+        re.MULTILINE,
+    )
+    step_own = re.search(
+        r"^        working-directory:\s*frontend/?\s*$", step, re.MULTILINE
+    )
+    return bool(job_default or step_own)
+
+
+def _assert_frontend_audit(workflow: str) -> None:
+    job = _job(workflow, "frontend")
+    steps = _steps_with_comments(job)
+    installs = [
+        index
+        for index, step in enumerate(steps)
+        if re.search(r"run:\s*pnpm install\b", step)
+    ]
+    audits = [
+        index
+        for index, step in enumerate(steps)
+        if re.search(r"run:\s*pnpm audit\b", step)
+    ]
+
+    assert len(installs) == 1, "the frontend job has no 'pnpm install' step"
+    assert len(audits) == 1, "the frontend job has no 'pnpm audit' step"
+    audit = steps[audits[0]]
+    command = re.search(r"run:\s*(pnpm audit\b[^\n]*)", audit)
+    assert command, audit
+    assert re.search(r"\s--prod\b", command[1]), command[1]
+    assert re.search(r"\s--audit-level[ =]high\b", command[1]), command[1]
+    assert audits[0] == installs[0] + 1, "the audit must run right after the install"
+    _assert_blocking(audit)
+    assert _runs_in_frontend(job, audit), "the audit must run in frontend/"
+
+
+def test_tg362_ci_audits_the_frontend_production_dependencies() -> None:
+    """The frontend job audits its production dependencies right after the
+    install, inside ``frontend/``, as a blocking step (team decision,
+    21/11/2026): an accepted risk goes in ``auditConfig.ignoreGhsas``."""
+    _assert_frontend_audit(CI_WORKFLOW.read_text(encoding="utf-8"))
+
+
+def test_tg384_frontend_audit_check_rejects_a_step_outside_frontend() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    defaults = "    defaults:\n      run:\n        working-directory: frontend\n"
+    frontend = _job(workflow, "frontend")
+    assert defaults in frontend, "ci.yml changed: update this test"
+    without = workflow.replace(frontend, frontend.replace(defaults, ""))
+
+    with pytest.raises(AssertionError, match="must run in frontend/"):
+        _assert_frontend_audit(without)

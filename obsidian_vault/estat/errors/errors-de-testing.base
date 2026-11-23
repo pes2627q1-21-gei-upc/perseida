@@ -1,0 +1,61 @@
+filters:
+  and:
+    - file.inFolder("estat/errors")
+    - 'tipus == "error-testing"'
+
+formulas:
+  dies_oberts: 'if(estat == "obert", (today() - date(data)).days, "")'
+
+properties:
+  us:
+    displayName: "US"
+  fase:
+    displayName: "Fase"
+  estat:
+    displayName: "Estat"
+  capa:
+    displayName: "Capa"
+  llico:
+    displayName: "Lliçó"
+  regressio:
+    displayName: "Test de regressió"
+  formula.dies_oberts:
+    displayName: "Dies oberts"
+
+views:
+  - type: table
+    name: "Tots"
+    order:
+      - data
+      - file.name
+      - us
+      - fase
+      - capa
+      - estat
+      - llico
+    groupBy:
+      property: fase
+      direction: ASC
+
+  - type: table
+    name: "Oberts"
+    filters:
+      and:
+        - 'estat == "obert"'
+    order:
+      - data
+      - file.name
+      - us
+      - fase
+      - formula.dies_oberts
+
+  - type: table
+    name: "Per US"
+    order:
+      - file.name
+      - fase
+      - estat
+      - regressio
+    groupBy:
+      property: us
+      direction: ASC

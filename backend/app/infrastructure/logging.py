@@ -13,6 +13,9 @@ _STANDARD_ATTRS = frozenset(vars(logging.LogRecord("", 0, "", 0, "", None, None)
 }
 
 _UVICORN_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access")
+# Their INFO/DEBUG lines carry the full request URL, e.g. the user's location
+# sent to Spotwise (TG-352); only warnings and errors go through.
+_QUIET_LOGGERS = ("httpx", "httpcore")
 
 
 class JsonFormatter(logging.Formatter):
@@ -50,3 +53,5 @@ def configure_logging(level: int = logging.INFO) -> None:
         uvicorn_logger = logging.getLogger(name)
         uvicorn_logger.handlers = []
         uvicorn_logger.propagate = True
+    for name in _QUIET_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
