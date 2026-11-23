@@ -103,6 +103,18 @@ afterEach(() => {
 });
 
 describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
+  it('uses the other participant name for messages loaded from history', async () => {
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
+    });
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION, 'Anna'), { wrapper });
+    expect(result.current.items).toContainEqual(expect.objectContaining({
+      kind: 'message',
+      message: expect.objectContaining({ author: { id: 'other', name: 'Anna' } }),
+    }));
+  });
+
   it('does not mark messages read in background and reloads before marking on return', async () => {
     let finish!: (result: unknown) => void;
     const data = { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] };
