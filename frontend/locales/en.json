@@ -56,6 +56,9 @@
     "title": "Your next achievements"
   },
   "admin": {
+    "home": {
+      "welcome": "Welcome to the Perseida admin panel"
+    },
     "noAccess": {
       "message": "Your account doesn't have permission to open the admin panel.",
       "title": "No access"

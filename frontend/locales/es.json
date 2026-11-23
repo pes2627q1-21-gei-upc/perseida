@@ -56,6 +56,9 @@
     "title": "Tus próximos logros"
   },
   "admin": {
+    "home": {
+      "welcome": "Bienvenida al panel de administración de Perseida"
+    },
     "noAccess": {
       "message": "Tu cuenta no tiene permiso para entrar al panel de administración.",
       "title": "Sin acceso"
