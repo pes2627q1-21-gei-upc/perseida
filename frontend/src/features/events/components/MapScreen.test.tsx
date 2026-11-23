@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
 import { myOuting, otherOuting } from '../../../../__mocks__/outings';
+import { pendingResponses } from '../../../../__mocks__/pendingResponses';
 import MapScreen from '../../../app/(app)/map';
 import i18n from '../../../shared/i18n';
 import { clearTokens, saveTokens } from '../../auth/tokenStorage';
@@ -18,7 +19,10 @@ const mockRouter = {
   replace: jest.fn(),
 };
 
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
+// Whether the map is the screen on top (TG-352): a test sets it to false as if another screen
+// had been pushed over it, since the router is a mock here.
+let mockFocused = true;
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useIsFocused: () => mockFocused }));
 
 // SecureStore is native: an in-memory store stands in for the device keychain.
 jest.mock('expo-secure-store', () => {
@@ -56,6 +60,7 @@ const SAFE_AREA = {
 const MAP_LABEL = 'Mapa dels esdeveniments amb ubicació';
 
 let client: QueryClient;
+const pending = pendingResponses();
 
 /** The host view that holds the top bar and the controls: the column of the screen. */
 function columnOf(bar: ReturnType<typeof screen.getByTestId>) {
@@ -96,14 +101,24 @@ async function findStatusAlert() {
   return queryStatusAlerts()[0];
 }
 
-async function renderScreen() {
-  return render(
+function screenTree() {
+  return (
     <SafeAreaProvider initialMetrics={SAFE_AREA}>
       <QueryClientProvider client={client}>
         <MapScreen />
       </QueryClientProvider>
-    </SafeAreaProvider>,
+    </SafeAreaProvider>
   );
+}
+
+async function renderScreen() {
+  return render(screenTree());
+}
+
+/** As the router would: the map loses the focus to the screen pushed over it, or gets it back. */
+async function setFocused(view: Awaited<ReturnType<typeof renderScreen>>, focused: boolean) {
+  mockFocused = focused;
+  await view.rerender(screenTree());
 }
 
 /** Waits until the page of the map satisfies `ready` and returns it. */
@@ -120,11 +135,13 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   mockRouter.canGoBack.mockReturnValue(true);
   mockWide = false;
+  mockFocused = true;
   mockWebViewMounts = 0;
   mockEventsApi();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await pending.release();
   client.clear();
   jest.clearAllMocks();
   jest.restoreAllMocks();
@@ -279,6 +296,58 @@ describe('Events map screen', () => {
     });
   });
 
+  it('opens the meeting points of the event from its summary (TG-352, criterion 4)', async () => {
+    await renderScreen();
+    await waitForMapHtml((page) => page.includes(launchEvent.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+    );
+
+    await fireEvent.press(
+      screen.getByRole('button', { name: i18n.t('events.sheet.meetingPoints') }),
+    );
+
+    // The route is /meeting-points/<eventId>, given as a path or as a pathname with params.
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+    const [target] = mockRouter.push.mock.calls[0] as [
+      string | { pathname: string; params: { eventId: string } },
+    ];
+    const path =
+      typeof target === 'string'
+        ? target
+        : target.pathname.replace('[eventId]', target.params.eventId);
+    expect(path).toBe(`/meeting-points/${launchEvent.id}`);
+  });
+
+  // Found trying the app on a phone (TG-352): the sheet is a Modal, so it must not cover the
+  // screen just opened; changed requirement of the person: coming back, the sheet is there again.
+  it.each([
+    ['the outings', 'events.sheet.outings'],
+    ['the meeting points', 'events.sheet.meetingPoints'],
+  ])(
+    'hides the summary while %s are shown, and shows it again coming back (TG-352)',
+    async (_, key) => {
+      const view = await renderScreen();
+      await waitForMapHtml((page) => page.includes(launchEvent.id));
+      await act(() =>
+        screen
+          .getByLabelText(MAP_LABEL)
+          .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: launchEvent.id }) } }),
+      );
+      await fireEvent.press(screen.getByRole('button', { name: i18n.t(key) }));
+      expect(mockRouter.push).toHaveBeenCalledTimes(1);
+
+      await setFocused(view, false);
+      // A hidden Modal renders nothing: the summary does not cover the new screen.
+      expect(screen.queryByTestId('event-sheet', { includeHiddenElements: true })).toBeNull();
+
+      await setFocused(view, true);
+      expect(screen.getByRole('header', { name: launchEvent.title })).toBeTruthy();
+    },
+  );
+
   it('opens the summary from the list too, and closes it', async () => {
     await renderScreen();
     await fireEvent.press(screen.getByRole('tab', { name: 'Llista' }));
@@ -293,7 +362,7 @@ describe('Events map screen', () => {
 
   it('shows that the events are loading (criterion 5)', async () => {
     jest.restoreAllMocks();
-    mockEventsApi({ active: () => new Promise<Response>(() => undefined) });
+    mockEventsApi({ active: () => pending.neverAnswered() });
 
     await renderScreen();
 
@@ -590,6 +659,27 @@ describe('Events map screen with outings (TG-646)', () => {
     expect(screen.getByRole('header', { name: otherOuting.title })).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
     expect(mockRouter.push).toHaveBeenCalledWith(`/outings/${otherOuting.id}`);
+  });
+
+  it('hides the summary of the outing while its page is shown, and shows it again coming back (TG-352)', async () => {
+    mockApi(() => jsonResponse([otherOuting]));
+    const view = await renderScreen();
+    await waitForMapHtml((page) => page.includes(otherOuting.id));
+    await act(() =>
+      screen
+        .getByLabelText(MAP_LABEL)
+        .props.onMessage({ nativeEvent: { data: JSON.stringify({ select: otherOuting.id }) } }),
+    );
+    expect(screen.getByRole('header', { name: otherOuting.title })).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: i18n.t('events.outings.open') }));
+    expect(mockRouter.push).toHaveBeenCalledWith(`/outings/${otherOuting.id}`);
+
+    await setFocused(view, false);
+    expect(screen.queryByTestId('event-sheet', { includeHiddenElements: true })).toBeNull();
+
+    await setFocused(view, true);
+    expect(screen.getByRole('header', { name: otherOuting.title })).toBeTruthy();
   });
 
   it('names a row of an outing in the list with its title, "Sortida" and its date (TG-52)', async () => {

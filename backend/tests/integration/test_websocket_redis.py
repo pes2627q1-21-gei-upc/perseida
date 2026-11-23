@@ -219,7 +219,7 @@ def build_app(proxy: TcpProxy) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings = RedisSettings()
         redis = Redis.from_url(
-            f"redis://127.0.0.1:{proxy.port}",
+            f"redis://127.0.0.1:{proxy.port}/{settings.redis_db}",
             decode_responses=True,
             socket_connect_timeout=SOCKET_TIMEOUT_SECONDS,
             socket_timeout=SOCKET_TIMEOUT_SECONDS,

@@ -4,7 +4,7 @@ Convenció: `SCREAMING_SNAKE`, forma `<ENTITAT>_<MOTIU>` (p. ex. `EVENT_NOT_FOUN
 
 ## Codis transversals (TG-304)
 
-Els genera el handler base, no un `DomainError`. Textos aprovats per la persona responsable (TG-304).
+Els genera el handler base, no un `DomainError`. Textos aprovats per la persona responsable (TG-304). El text de `RATE_LIMITED` el va revisar Oriol Orbea (22/11/2026, TG-469): és únic per a tots els seus orígens (també el del xat).
 
 | Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
@@ -13,7 +13,7 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 | `NOT_FOUND` | 404 | Ruta inexistent | No | No s'ha trobat el que busques. | No se ha encontrado lo que buscas. | We couldn't find what you were looking for. | infrastructure/api |
 | `METHOD_NOT_ALLOWED` | 405 | Mètode HTTP no permès | No | Aquesta acció no està permesa. | Esta acción no está permitida. | This action is not allowed. | infrastructure/api |
 | `HTTP_<status>` | `<status>` | Altres errors HTTP de Starlette | Segons status | (missatge genèric) | (mensaje genérico) | (generic message) | infrastructure/api |
-| `RATE_LIMITED` | 429 | Límit de peticions per IP del proxy (no passa per l'API; amb `Retry-After`) | Sí | Has fet massa peticions. Torna-ho a provar d'aquí a una estona. | Has hecho demasiadas peticiones. Vuelve a intentarlo en un rato. | Too many requests. Please try again in a while. | infra/nginx-proxy-manager/rate-limit.conf (TG-351, `/api/events/`) |
+| `RATE_LIMITED` | 429 | Límit de peticions per IP del proxy (no passa per l'API; amb `Retry-After`) | Sí | Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar. | Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo. | There is a lot of activity right now. Please wait a moment and try again. | infra/nginx-proxy-manager/rate-limit.conf (TG-351, `/api/events/`). Text únic del client per a tots els orígens de `RATE_LIMITED` (també el del xat, TG-469): no descriu qui el provoca ni culpa la persona |
 
 ## Codis del client (TG-120)
 
@@ -46,6 +46,8 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `USER_EMAIL_INVALID` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users (correu massa llarg o amb espais o caràcters de control) |
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
+| `CANNOT_MESSAGE_SELF` | 422 | `BusinessRuleViolation` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa o bloqueig amb un mateix usuari; TG-400) |
+| `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; TG-400) |
 
 ## Codis dels esdeveniments (TG-351)
 
@@ -56,7 +58,7 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 
 ## Codis de les sortides d'observació (TG-629)
 
-Textos aprovats per Raquel (17/11/2026).
+Textos aprovats per Raquel (17/11/2026). Textos de `RATE_LIMITED`, `CHAT_INVALID_CURSOR` i `CHAT_INVALID_LIMIT` revisats per Oriol Orbea (22/11/2026), TG-469; `NOT_SUBSCRIBED` passa a no recuperable (un 409 no es reintenta al client) amb l'aprovació d'Oriol Orbea (22/11/2026), TG-469.
 
 | Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
@@ -81,11 +83,11 @@ Textos aprovats per Raquel (17/11/2026).
 |---|---|---|---|---|---|---|---|
 | `PUBSUB_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | El xat no està disponible ara mateix. Torna-ho a provar. | El chat no está disponible ahora mismo. Inténtalo de nuevo. | Chat is unavailable right now. Please try again. | infrastructure/cache |
 | `UNKNOWN_FRAME_TYPE` | 422 | frame `error` del WebSocket | Sí | No entenem aquest missatge. | No entendemos este mensaje. | We don't understand this message. | application/realtime (TG-63) |
-| `NOT_SUBSCRIBED` | 409 | frame `error` del WebSocket | Sí | Primer t'has d'unir a la sala. | Primero debes unirte a la sala. | You need to join the room first. | application/realtime (TG-63) |
+| `NOT_SUBSCRIBED` | 409 | frame `error` del WebSocket | No | Primer t'has d'unir a la sala. | Primero debes unirte a la sala. | You need to join the room first. | application/realtime (TG-63) |
 | `FORBIDDEN` | 403 | frame `error` del WebSocket | No | No tens permís per fer això. | No tienes permiso para hacer esto. | You don't have permission to do that. | application/realtime (TG-63; l'emeten #64 i #65) |
-| `RATE_LIMITED` | 429 | `RateLimitedError` (REST) i frame `error` del WebSocket | Sí | Massa missatges seguits. Espera una mica. | Demasiados mensajes seguidos. Espera un poco. | Too many messages. Please wait a moment. | application/realtime (TG-63; límit de sales) i application/chat (TG-442; límit d'enviament per REST) |
-| `CHAT_INVALID_CURSOR` | 422 | `ValidationError` | No | El cursor de l'historial no és vàlid. | El cursor del historial no es válido. | The history cursor is not valid. | application/chat (TG-442) |
-| `CHAT_INVALID_LIMIT` | 422 | `ValidationError` | No | El límit de l'historial no és vàlid. | El límite del historial no es válido. | The history limit is not valid. | application/chat (TG-442) |
+| `RATE_LIMITED` | 429 | `RateLimitedError` (REST) i frame `error` del WebSocket | Sí | Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar. | Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo. | There is a lot of activity right now. Please wait a moment and try again. | application/realtime (TG-63; límit de sales) i application/chat (TG-442; límit d'enviament per REST) |
+| `CHAT_INVALID_CURSOR` | 422 | `ValidationError` | No | No s'ha pogut carregar l'historial. Torna a obrir la sala. | No se ha podido cargar el historial. Vuelve a abrir la sala. | We couldn't load the history. Please reopen the room. | application/chat (TG-442) |
+| `CHAT_INVALID_LIMIT` | 422 | `ValidationError` | No | No s'ha pogut carregar l'historial. Torna a obrir la sala. | No se ha podido cargar el historial. Vuelve a abrir la sala. | We couldn't load the history. Please reopen the room. | application/chat (TG-442) |
 | `CHAT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` (frame `error` del WebSocket) | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/chat (`send_message` amb un `client_message_id` ja usat amb un altre text; TG-654) |
 
 ## Codis d'autenticació (TG-44)
@@ -133,6 +135,12 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 |---|---|---|---|---|---|---|---|
 | `EVENT_ALREADY_ENDED` | 409 | `ConflictError` | No | Aquest esdeveniment ja ha acabat. | Este evento ya ha terminado. | This event has already ended. | domain/events |
 
+## Codis dels punts de trobada (TG-352)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `MEETING_POINTS_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona. | Ahora no podemos recomendar locales. Vuelve a intentarlo en un rato. | We can't recommend places right now. Please try again in a while. | application/meeting_points (constant; `SpotwiseSpaceClient` la llança si Spotwise no respon en 5 s, no s'hi pot connectar, respon 4xx/5xx o un cos que no és una llista JSON) |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
@@ -156,6 +164,7 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 | NASA (APOD...) | Retorna la cache (Redis), sense 500 | `ExternalServiceError` (503) amb codi propi |
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
 | Fonts d'esdeveniments (Launch Library 2, USNO, Skyfield, catàleg) | Es serveixen els esdeveniments desats a PostgreSQL; la font no es torna a cridar en 15 min | Igual: `EVENT_SOURCE_UNAVAILABLE` no arriba al client, mai un 5xx (TG-50, ADR-0031) |
-| Altres (meteo, contaminació lumínica, Spotwise, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
+| Spotwise (espais) | Només dins del TTL de 5 min (per perfil i ubicació arrodonida a 3 decimals) es retorna la recomanació desada a Redis, sense cridar Spotwise. Un cop caducada no es serveix mai: no hi ha fallback amb dades caducades (decisió de la persona, TG-352) | `ExternalServiceError` `MEETING_POINTS_UNAVAILABLE` (503), mai un 500; no es desa res. També si ja s'han fet 60 crides a Spotwise en l'últim minut (límit de sortida per procés) (TG-352) |
+| Altres (meteo, contaminació lumínica, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
 Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.

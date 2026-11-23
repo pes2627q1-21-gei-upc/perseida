@@ -9,6 +9,8 @@ const mockReplace = jest.fn();
 const mockRouter = { replace: mockReplace };
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
+  // The layout reads where the person is (to hide the bar in a chat room, TG-469): the home tab.
+  useSegments: () => ['(app)'],
   Stack: () => null,
   Tabs: Object.assign(({ children }: { children?: React.ReactNode }) => children ?? null, {
     Screen: () => null,

@@ -2,8 +2,8 @@
 titol: "Serveis externs"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-10"
-us: ["TG-85", "TG-44", "TG-46", "TG-328", "TG-50"]
+data: "2026-11-22"
+us: ["TG-85", "TG-44", "TG-46", "TG-328", "TG-50", "TG-352"]
 font: "README.md (arrel), backend/README.md, incepció 1 (NASA Open APIs), incepció 2 §6 i §3, memòria §3.4.1; Taiga: backlog (llistat de US, 2026-10-07); Taiga TG-46 i codi de backend/app/infrastructure/apod/ (2026-10-22); Taiga TG-328, crides a api.nasa.gov i al feed de science.nasa.gov (2026-10-25); Taiga TG-50, crides a ll.thespacedevs.com i aa.usno.navy.mil i codi de backend/app/infrastructure/events/ (2026-11-10)"
 etiquetes: [arquitectura, integracions, nasa, google, fcm, esdeveniments]
 ---
@@ -20,6 +20,7 @@ Serveis de tercers que Perseida no reimplementa. L'API els consulta des del back
 | Firebase Cloud Messaging (FCM) | Notificacions push | API |
 | Launch Library 2 (The Space Devs) | Llançaments de coets (esdeveniments `launch`) | API |
 | USNO (US Naval Observatory) | Eclipsis solars (esdeveniments `solar`) | API |
+| Spotwise (grup 21B) | Punts de trobada: biblioteques i cafeteries de Barcelona (TG-352) | API |
 
 ## NASA
 
@@ -68,7 +69,7 @@ Notificacions push cap a l'app; les programades les dispara l'APScheduler de l'[
 
 ## Equips d'altres grups
 
-Spotwise (grup 21B): vegeu [[contracte-spotwise]].
+Spotwise (grup 21B): vegeu [[contracte-spotwise]]. El servei d'espais el consumeix `SpotwiseSpaceClient` (`app/infrastructure/meeting_points/`): HTTP, `Authorization: Token` (`SPOTWISE_API_TOKEN`), timeout de 5 s, sense reintents, cache de 5 min a [[redis]]; sense token, mock amb la resposta d'exemple ([[contracte-spotwise#Integració a Perseida (TG-352)]]).
 
 ## Enllaços
 

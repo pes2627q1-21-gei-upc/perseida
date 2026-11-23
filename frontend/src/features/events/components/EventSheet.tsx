@@ -50,6 +50,8 @@ interface Props {
   onOpenOuting?: (outingId: string) => void;
   /** Opens the outings of the event. Without it the sheet has no button for them. */
   onShowOutings?: (eventId: string) => void;
+  /** Opens the meeting points of the event (TG-352). Without it the sheet has no button for them. */
+  onShowMeetingPoints?: (eventId: string) => void;
   /** Wide screens: a panel beside the map instead of a sheet over it. */
   side?: boolean;
 }
@@ -60,6 +62,7 @@ interface BodyProps {
   onOpenOuting?: (outingId: string) => void;
   onClose: () => void;
   onShowOutings?: (eventId: string) => void;
+  onShowMeetingPoints?: (eventId: string) => void;
   /** Side panel only: the title, which takes the focus when the panel opens. */
   titleRef?: Ref<ComponentRef<typeof Text>>;
   /** Side panel: fills the height and the content scrolls inside it. */
@@ -107,7 +110,14 @@ type EventBodyProps = Omit<BodyProps, 'event' | 'outing' | 'onOpenOuting'> & {
 };
 
 /** What the summary says: the same in the bottom sheet and in the side panel. */
-function SheetBody({ event, onClose, onShowOutings, titleRef, side = false }: EventBodyProps) {
+function SheetBody({
+  event,
+  onClose,
+  onShowOutings,
+  onShowMeetingPoints,
+  titleRef,
+  side = false,
+}: EventBodyProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { height } = useWindowDimensions();
@@ -178,6 +188,12 @@ function SheetBody({ event, onClose, onShowOutings, titleRef, side = false }: Ev
               onPress={() => onShowOutings(event.id)}
             />
           )}
+          {onShowMeetingPoints && (
+            <QuietButton
+              label={t('events.sheet.meetingPoints')}
+              onPress={() => onShowMeetingPoints(event.id)}
+            />
+          )}
           <EventPosts eventId={event.id} />
         </ScrollView>
       </View>
@@ -192,7 +208,9 @@ function OutingSheetBody({
   onOpenOuting,
   titleRef,
   side = false,
-}: Omit<BodyProps, 'event' | 'outing' | 'onShowOutings'> & { outing: Outing }) {
+}: Omit<BodyProps, 'event' | 'outing' | 'onShowOutings' | 'onShowMeetingPoints'> & {
+  outing: Outing;
+}) {
   const { t, i18n } = useTranslation();
   const { height } = useWindowDimensions();
   const { colors, spacing, typography } = useTheme();
@@ -256,13 +274,22 @@ function OutingSheetBody({
 }
 
 /** An event or an outing, in the same shell. */
-function Body({ event, outing, onOpenOuting, ...rest }: BodyProps) {
+function Body({ event, outing, onOpenOuting, onShowMeetingPoints, ...rest }: BodyProps) {
   if (outing) return <OutingSheetBody outing={outing} onOpenOuting={onOpenOuting} {...rest} />;
-  return event ? <SheetBody event={event} {...rest} /> : null;
+  return event ? (
+    <SheetBody event={event} onShowMeetingPoints={onShowMeetingPoints} {...rest} />
+  ) : null;
 }
 
 /** Phones: a sheet from the bottom, over the screen. */
-function BottomSheet({ event, outing, onClose, onShowOutings, onOpenOuting }: BodyProps) {
+function BottomSheet({
+  event,
+  outing,
+  onClose,
+  onShowOutings,
+  onShowMeetingPoints,
+  onOpenOuting,
+}: BodyProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -309,6 +336,7 @@ function BottomSheet({ event, outing, onClose, onShowOutings, onOpenOuting }: Bo
           outing={outing}
           onClose={onClose}
           onShowOutings={onShowOutings}
+          onShowMeetingPoints={onShowMeetingPoints}
           onOpenOuting={onOpenOuting}
         />
       </Animated.View>
@@ -322,7 +350,14 @@ function BottomSheet({ event, outing, onClose, onShowOutings, onOpenOuting }: Bo
  * reader) goes to its title, which announces it; on the web, closing it gives the focus back to
  * where it was, usually the marker (WCAG 2.2: 2.4.3 focus order).
  */
-function SidePanel({ event, outing, onClose, onShowOutings, onOpenOuting }: BodyProps) {
+function SidePanel({
+  event,
+  outing,
+  onClose,
+  onShowOutings,
+  onShowMeetingPoints,
+  onOpenOuting,
+}: BodyProps) {
   const { spacing } = useTheme();
   const insets = useSafeAreaInsets();
   const titleRef = useRef<ComponentRef<typeof Text>>(null);
@@ -383,6 +418,7 @@ function SidePanel({ event, outing, onClose, onShowOutings, onOpenOuting }: Body
         outing={outing}
         onClose={onClose}
         onShowOutings={onShowOutings}
+        onShowMeetingPoints={onShowMeetingPoints}
         onOpenOuting={onOpenOuting}
         titleRef={titleRef}
         side
@@ -405,11 +441,12 @@ export function EventSheet({
   outing = null,
   onClose,
   onShowOutings,
+  onShowMeetingPoints,
   onOpenOuting,
   side = false,
 }: Props) {
   const shown = event !== null || outing !== null;
-  const body = { event, outing, onClose, onShowOutings, onOpenOuting };
+  const body = { event, outing, onClose, onShowOutings, onShowMeetingPoints, onOpenOuting };
   if (side) return shown ? <SidePanel {...body} /> : null;
   return (
     <Modal

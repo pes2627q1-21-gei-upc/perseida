@@ -3,10 +3,21 @@ import { Chats, House, Planet, Trophy, User } from 'phosphor-react-native';
 
 export type TabRouteName = 'index' | 'events' | 'chat' | 'gamification' | 'profile';
 export type HiddenRouteName = 'map' | 'apod' | 'quiz';
+export type HiddenNestedRouteName =
+  | 'meeting-points/[eventId]'
+  | 'outings/index'
+  | 'outings/new'
+  | 'outings/[id]/index'
+  | 'outings/[id]/edit';
 
 export interface TabItem {
   name: TabRouteName;
   titleKey: string;
+  /**
+   * A shorter visible label for the bar, for a title that does not fit under the icon at 360 px.
+   * The title stays the accessible name and the heading of the screen.
+   */
+  shortTitleKey?: string;
   icon: Icon;
   testID?: string;
 }
@@ -21,6 +32,7 @@ export const TAB_CONFIG: readonly TabItem[] = [
   {
     name: 'events',
     titleKey: 'nav.events',
+    shortTitleKey: 'nav.short.events',
     icon: Planet,
     testID: 'tab-events',
   },
@@ -33,6 +45,7 @@ export const TAB_CONFIG: readonly TabItem[] = [
   {
     name: 'gamification',
     titleKey: 'nav.gamification',
+    shortTitleKey: 'nav.short.gamification',
     icon: Trophy,
     testID: 'tab-gamification',
   },
@@ -45,3 +58,16 @@ export const TAB_CONFIG: readonly TabItem[] = [
 ] as const;
 
 export const HIDDEN_ROUTES: readonly HiddenRouteName[] = ['map', 'apod', 'quiz'] as const;
+
+/**
+ * Hidden routes inside a folder of the (app) group with no layout of its own (TG-352): declared
+ * apart from HIDDEN_ROUTES, which are the files and the folders with a layout. Undeclared, the
+ * tab layout cannot open them: router.push sends the user back home (the outings, TG-629).
+ */
+export const HIDDEN_NESTED_ROUTES: readonly HiddenNestedRouteName[] = [
+  'meeting-points/[eventId]',
+  'outings/index',
+  'outings/new',
+  'outings/[id]/index',
+  'outings/[id]/edit',
+] as const;

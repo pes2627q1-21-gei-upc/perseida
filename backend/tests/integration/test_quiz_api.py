@@ -43,7 +43,6 @@ from app.infrastructure.auth.google_verifier import (
 )
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
-from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_cache import RedisCache
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
@@ -71,8 +70,6 @@ SOLUTION_FIELDS = {"correct_option", "explanation", "source_url"}
 EXTRA_ID = uuid.UUID("01a1bd9a-ffff-7000-8000-000000000000")
 # Nothing listens on port 1: every call to this Redis fails, as when it is down.
 DOWN_REDIS_URL = "redis://127.0.0.1:1/0"
-# Redis database only for these tests (the app uses 0), emptied before and after.
-TEST_REDIS_DB = 15
 ROLLBACK_PREFIX = "quiz-rollback"
 DAY_EXISTS = text("SELECT EXISTS (SELECT 1 FROM quiz_days WHERE quiz_date = :day)")
 DELETE_DAY = text("DELETE FROM quiz_days WHERE quiz_date = :day")
@@ -143,20 +140,6 @@ def factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
         expire_on_commit=False,
         join_transaction_mode="create_savepoint",
     )
-
-
-@pytest.fixture
-async def redis() -> AsyncIterator[Redis]:
-    """A Redis database only for these tests, emptied before and after."""
-    client = Redis.from_url(
-        RedisSettings().redis_url, db=TEST_REDIS_DB, decode_responses=True
-    )
-    try:
-        await client.flushdb()
-        yield client
-    finally:
-        await client.flushdb()
-        await client.aclose()
 
 
 def build_app(

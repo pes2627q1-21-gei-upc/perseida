@@ -3,8 +3,8 @@ titol: "Convencions d'escriptura de les notes"
 tipus: convencio
 estat: vigent
 data: "2026-10-07"
-us: ["TG-85"]
-font: "memòria §2.10; AGENTS.md; skill vault-context"
+us: ["TG-85", "TG-657"]
+font: "memòria §2.10; AGENTS.md; skill vault-context; TG-657 (tipus error-testing, review de la PR #137)"
 etiquetes: [convencio, obsidian, frontmatter, escriptura]
 ---
 
@@ -20,11 +20,13 @@ Camps: `titol`, `tipus`, `estat`, `data`, `us`, `font`, `etiquetes`.
 
 | Camp | Valors |
 |---|---|
-| `tipus` | `adr`, `arquitectura`, `component`, `convencio`, `sessio`, `guia`, `producte`, `estat`, `index` |
-| `estat` | `esborrany`, `vigent`, `obsoleta`; per als ADR, `proposada`, `acceptada`, `substituida` |
+| `tipus` | `adr`, `arquitectura`, `component`, `convencio`, `sessio`, `guia`, `producte`, `estat`, `index`, `error-testing` |
+| `estat` | `esborrany`, `vigent`, `obsoleta`; per als ADR, `proposada`, `acceptada`, `substituida`; per als `error-testing`, `obert` i `corregit` ([[retroalimentacio-de-testing]]) |
 | `data` | `AAAA-MM-DD` |
 | `us` | Referències de Taiga en forma `TG-NN` |
 | `font` | D'on surt la informació (PR, reunió, document) |
+
+Les llistes de `tipus` i `estat` són tancades: un valor nou s'afegeix aquí abans de crear-ne la primera nota.
 
 ## Noms i enllaços
 

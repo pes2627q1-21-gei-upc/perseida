@@ -14,13 +14,64 @@
     "logoutNotConfirmed": "You have been signed out on this device, but the server could not confirm it.",
     "tagline": "Look up"
   },
+  "chat": {
+    "title": "Chat",
+    "loading": "Loading chat rooms",
+    "retry": "Try again",
+    "retryHint": "Loads the chat rooms again",
+    "refresh": "Refresh",
+    "noMessages": "No messages yet",
+    "unknownAuthor": "A Perseida user",
+    "list": {
+      "label": "Chat rooms"
+    },
+    "empty": {
+      "message": "You haven't subscribed to any event yet. Subscribe to one to chat with the community.",
+      "cta": "Explore events"
+    },
+    "you": "You",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Sending",
+      "sending": "Sending",
+      "failed": "The message could not be sent.",
+      "uncertain": "The message may have been sent already. If you retry, it won't be duplicated.",
+      "retry": "Retry",
+      "discard": "Discard"
+    },
+    "composer": {
+      "label": "Write a message",
+      "send": "Send",
+      "counter": "{{count}} of {{max}} characters",
+      "tooLong": "A message can be up to {{max}} characters long."
+    },
+    "messages": {
+      "label": "Chat messages",
+      "loadingOlder": "Loading earlier messages"
+    },
+    "room": {
+      "title": "Event chat",
+      "loading": "Loading messages",
+      "retryHint": "Opens the chat room again",
+      "empty": "No messages yet. Be the first to write!",
+      "revoked": "You are no longer part of this chat. Subscribe to the event to write here again.",
+      "backToRooms": "Back to the rooms",
+      "reconnecting": "Reconnecting…",
+      "reconnect": "Reconnect",
+      "newMessage": "New message from {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Connecting to the chat…",
+        "reconnecting": "The connection was lost. You can send once it is back.",
+        "closed": "There is no connection to the chat."
+      }
+    }
+  },
   "common": {
     "back": "Back"
   },
   "comingSoon": {
     "badge": "Coming soon",
-    "chatDesc": "A real-time space to share observations, photos, and stargazing meetups.",
-    "chatTitle": "Community & chat",
     "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
     "gamificationTitle": "Gamification & challenges"
   },
@@ -45,6 +96,7 @@
     "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
     "INVALID_RESPONSE": "Something went wrong. We couldn't load the content.",
     "INVALID_SESSION": "Your session has expired. Please sign in again.",
+    "MEETING_POINTS_UNAVAILABLE": "We can't recommend places right now. Please try again in a while.",
     "NETWORK_ERROR": "No connection. Check your network and try again.",
     "NOT_FOUND": "We couldn't find what you were looking for.",
     "POST_FORBIDDEN": "Only the person who wrote this post can edit or delete it.",
@@ -64,7 +116,14 @@
     "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
     "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
     "OUTING_NOT_FOUND": "This outing doesn't exist or was deleted.",
-    "OUTING_FORBIDDEN": "Only the person who created the outing can change it."
+    "OUTING_FORBIDDEN": "Only the person who created the outing can change it.",
+    "FORBIDDEN": "You don't have permission to do that.",
+    "RATE_LIMITED": "There is a lot of activity right now. Please wait a moment and try again.",
+    "NOT_SUBSCRIBED": "You need to join the room first.",
+    "PUBSUB_UNAVAILABLE": "Chat is unavailable right now. Please try again.",
+    "VALIDATION_ERROR": "Please check the data you entered.",
+    "CHAT_INVALID_CURSOR": "We couldn't load the history. Please reopen the room.",
+    "CHAT_INVALID_LIMIT": "We couldn't load the history. Please reopen the room."
   },
   "events": {
     "category": {
@@ -114,7 +173,8 @@
       "moreInfo": "More information",
       "openHint": "Opens the event details",
       "start": "Starts",
-      "outings": "Outings for this event"
+      "outings": "Outings for this event",
+      "meetingPoints": "Meeting points"
     },
     "status": {
       "active": "Happening now"
@@ -156,12 +216,58 @@
     "quizLink": "Question of the day",
     "outingsLink": "My outings"
   },
+  "meetingPoints": {
+    "title": "Meeting points",
+    "loading": "Loading meeting points",
+    "empty": "No recommended places nearby.",
+    "retry": "Try again",
+    "retryHint": "Asks for the meeting points again",
+    "choose": "Choose {{name}}",
+    "list": {
+      "label": "Recommended meeting points"
+    },
+    "location": {
+      "locating": "Finding your location",
+      "denied": "Without location permission we can't recommend places. You can turn it on in your device settings.",
+      "unavailable": "We can't find your location. Check that location is turned on in your device.",
+      "retry": "Find my location again"
+    },
+    "profile": {
+      "label": "What you are meeting for",
+      "watch_party": "Watch party",
+      "study": "Study"
+    },
+    "type": {
+      "library": "Library",
+      "cafe": "Café",
+      "other": "Other space"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silent",
+        "murmur": "Murmur",
+        "noisy": "Noisy"
+      },
+      "plugs": {
+        "many": "Many plugs",
+        "few": "Few plugs",
+        "none": "No plugs"
+      },
+      "groupFriendly": "Good for groups",
+      "notGroupFriendly": "Better without groups"
+    }
+  },
   "nav": {
     "chat": "Chat",
     "events": "Events",
     "gamification": "Gamification",
     "home": "Home",
-    "profile": "Profile"
+    "profile": "Profile",
+    "short": {
+      "events": "Events",
+      "gamification": "Awards"
+    }
   },
   "profile": {
     "achievements": {
@@ -289,6 +395,7 @@
       "hint": "Move the map until the crosshair is over the place.",
       "choose": "Choose this place",
       "useMine": "Use my location",
+      "recommend": "Recommended places nearby",
       "denied": "We couldn't get your location. Move the map to choose the place.",
       "latitude": "Latitude",
       "longitude": "Longitude",
