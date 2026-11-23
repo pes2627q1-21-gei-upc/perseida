@@ -11,6 +11,7 @@ import { breakpoints, fontFamilies, type Theme, touch, useTheme } from '../../..
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
 import { AchievementProgressSection } from '../../achievements';
 import { LogoutButton } from '../../auth/components/LogoutButton';
+import { LanguageMenu } from '../../language';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useUserProfile } from '../hooks/useUserProfile';
 
@@ -35,10 +36,9 @@ export function ProfileScreen() {
         .toUpperCase()
     : 'U';
 
-  // A role or a language the app does not know yet is not shown, never as the raw value.
-  const optionalText = (key: string) => (i18n.exists(key) ? t(key) : '');
-  const roleText = data ? optionalText(`profile.role.${data.role}`) : '';
-  const languageText = data ? optionalText(`profile.language.${data.preferred_language}`) : '';
+  // A role the app does not know yet is not shown, never as the raw value.
+  const roleKey = data ? `profile.role.${data.role}` : '';
+  const roleText = data && i18n.exists(roleKey) ? t(roleKey) : '';
 
   // Intl throws RangeError on an invalid date: then the line is left out, not the whole screen.
   const createdAt = data ? new Date(data.created_at) : null;
@@ -111,6 +111,7 @@ export function ProfileScreen() {
             <>
               <GlassPanel>
                 <View style={styles.identity}>
+                  <LanguageMenu />
                   <View
                     testID="profile-avatar"
                     // Decorative: the name below already identifies the user (WCAG 1.1.1).
@@ -153,12 +154,6 @@ export function ProfileScreen() {
                           weight="bold"
                         />
                         <Text style={styles.roleText}>{roleText}</Text>
-                      </View>
-                    ) : null}
-
-                    {languageText ? (
-                      <View style={styles.chip}>
-                        <Text style={styles.secondaryCaption}>{languageText}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -278,7 +273,6 @@ function createStyles({ colors, radii, spacing, typography, iconSizes }: Theme) 
       paddingVertical: spacing.xs,
     },
     roleText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold, color: colors.brand },
-    secondaryCaption: { ...typography.caption, color: colors.text.secondary },
     secondaryText: { ...typography.body, color: colors.text.secondary },
     slot: { gap: spacing.xs, paddingVertical: spacing.xs },
     slotHeader: {
