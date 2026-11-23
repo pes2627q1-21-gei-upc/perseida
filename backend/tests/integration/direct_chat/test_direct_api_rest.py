@@ -164,7 +164,7 @@ async def test_tg65_strangers_cannot_view_or_mark_a_conversation(
 
 @pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 51}, {"before": "bad"}])
 async def test_tg65_invalid_history_pagination_is_a_problem(
-    client: AsyncClient, params: dict[str, object]
+    client: AsyncClient, params: dict[str, str | int]
 ) -> None:
     ana, bob = await login_headers(client), await login_headers(client)
     conversation = await open_conversation(client, ana, await user_id_of(client, bob))
