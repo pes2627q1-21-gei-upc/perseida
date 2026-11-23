@@ -15,7 +15,7 @@ import { useReduceTransparency } from '../../../shared/ui';
 import { EventOrb } from '../../events/components/EventOrb';
 import { formatMessageTime } from '../formatChat';
 import type { RoomListEntry } from '../roomList';
-import { rowSurface } from '../rowSurface';
+import { rowCardStyle } from '../rowCardStyle';
 
 interface Props {
   entry: RoomListEntry;
@@ -124,19 +124,7 @@ function createStyles(
   reduceTransparency: boolean,
 ) {
   return StyleSheet.create({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      overflow: 'hidden',
-      borderWidth: 1,
-      minHeight: touch.min,
-      gap: spacing.md,
-      padding: spacing.md,
-      borderRadius: radii.lg,
-      borderColor: colors.surface.glassBorder,
-      backgroundColor: rowSurface(colors.surface, reduceTransparency),
-      boxShadow: `0 8px 24px ${colors.accentGlow}33`,
-    },
+    row: rowCardStyle({ colors, spacing, radii, touch }, reduceTransparency),
     rowPressed: { borderColor: colors.accentGlow },
     text: { flex: 1, gap: spacing.xs },
     head: {
