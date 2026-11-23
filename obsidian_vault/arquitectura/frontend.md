@@ -3,8 +3,8 @@ titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
 data: "2026-11-22"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654", "TG-51", "TG-469", "TG-352"]
-font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026); Taiga: TG-629, tasques #640-#642, i decisions de Raquel (18/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521); Taiga: issue TG-654 (connexió morta, AppState i cua de reintents del client WebSocket, 2026-11-19); Taiga: TG-51, tasques #552-#555, i decisions de Manel (21/11/2026); review d'AlexGa03 a la PR #130 (nom accessible de les pestanyes, fusió en lectura dels missatges arribats en viu, 2026-11-22); review d'AlexGa03 a la PR #127 (bombolla pròpia de vidre tenyit, buidat del camp del xat, 2026-11-22); Taiga: TG-469, pantalla de la sala (2026-11-20)"
+us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654", "TG-51", "TG-469", "TG-53", "TG-352"]
+font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026); Taiga: TG-629, tasques #640-#642, i decisions de Raquel (18/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521); Taiga: issue TG-654 (connexió morta, AppState i cua de reintents del client WebSocket, 2026-11-19); Taiga: TG-51, tasques #552-#555, i decisions de Manel (21/11/2026); review d'AlexGa03 a la PR #130 (nom accessible de les pestanyes, fusió en lectura dels missatges arribats en viu, 2026-11-22); review d'AlexGa03 a la PR #127 (bombolla pròpia de vidre tenyit, buidat del camp del xat, 2026-11-22); Taiga: TG-469, pantalla de la sala (2026-11-20); Taiga: TG-53, tasques #561 i #562, i decisions de Manel (21 i 22/11/2026)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
 
@@ -67,7 +67,7 @@ El grup `(app)` és una barra de pestanyes (`Tabs` d'Expo Router) a `src/app/(ap
 | Ruta | Pestanya | Pantalla actual |
 |---|---|---|
 | `index` | Inici | Inici temporal de TG-118 (enllaços a `/apod` i `/map`) |
-| `events` | Esdeveniments | `EventsScreen` (`src/features/events`, TG-51): llistat filtrable, amb botó cap a `/map` |
+| `events` | Esdeveniments | `EventsScreen` (`src/features/events`, TG-51): llistat filtrable amb pestanyes «Tots | Els meus» (TG-53), amb botó cap a `/map` |
 | `chat` | Xat | «Pròximament» |
 | `gamification` | Gamificació | «Pròximament» |
 | `profile` | Perfil | `ProfileScreen` (`src/features/profile`) |
@@ -114,6 +114,15 @@ Pestanya Esdeveniments (`src/app/(app)/events.tsx` → `EventsScreen`, `src/feat
 - **Llista:** `EventRow` sobre vidre sense blur (`surface.glass`; el `BlurView` només és al panell dels filtres i als d'estat, com a molt 2 per pantalla), sense acció en tocar-la (la fitxa és de TG-55). «Actiu ara» surt de `statusOn` (`classifyEvents.ts`), la mateixa regla que `GET /api/events/active`. El recompte de resultats és una regió viva `polite` i, a iOS, `announceForAccessibility`. Mentre arriben els resultats de filtres nous (`isPlaceholderData`), la llista s'anuncia ocupada (`busy`), no mostra distàncies i el recompte no canvia.
 - **Estats:** càrrega, buit i error amb reintent (`StatusPanel`).
 - **Components compartits nous:** `GelChip` (`src/shared/ui`), xip de gel anunciat com a `checkbox`; seleccionat porta una icona `Check`, perquè el color no sigui l'única pista (WCAG 1.4.1).
+
+## Subscripcions a esdeveniments (TG-53)
+
+Dins de la pestanya Esdeveniments ([[#Llistat filtrable d'esdeveniments (TG-51)]]), amb els endpoints privats de [[model-de-domini#Subscripció a un esdeveniment (implementat al backend)|subscripcions]]. Decisions de Manel del 21 i el 22/11/2026.
+
+- **Dades:** `listMySubscriptions`, `subscribe` i `unsubscribe` (`src/features/events/api/subscriptions.ts`) passen per `withSession`: porten la sessió i, després d'un 401, la renoven un cop i repeteixen la petició; sense sessió, `INVALID_SESSION` sense cridar l'API. `useMySubscriptions` (clau `eventKeys.subscriptions()`) i `useToggleSubscription`: la llista canvia a l'instant (optimista, ordenada per `starts_at` i `id`), si l'API falla només es desfà aquell canvi, sobre la llista tal com és ara (un altre pot ser encara en vol), i es torna a demanar quan acaba l'últim canvi en vol (`mutationKey` i `isMutating`), perquè una resposta intermèdia no desfaci els altres. En acabar també s'invaliden les sales del xat (`chatKeys.rooms`). El xat fa servir el mateix `useMySubscriptions` i la mateixa clau: una sola cache de `GET /api/me/subscriptions` per a les dues pestanyes.
+- **Pestanyes:** `GelSegmented` «Tots | Els meus» a dalt de la pantalla. Els filtres només són a «Tots»; «Els meus» (`useMyEvents`) mostra tots els esdeveniments seguits, també els acabats, amb estats de càrrega, buit (regió viva `polite` i, a iOS, `announceForAccessibility`) i error amb reintent. Deixar de seguir-ne un el treu de la llista a l'instant.
+- **Una sola llista per a les dues pestanyes:** canvien les files, l'estat buit i la capçalera, però el títol i les pestanyes en són sempre el primer fill, de manera que canviar de pestanya no les desmunta i el teclat o el lector de pantalla no perden el focus (WCAG 2.4.3; review de la PR #138, test `keeps the same tabs mounted…`). Una pestanya nova no ha de muntar una llista pròpia.
+- **Estrella:** a cada `EventRow`, botó amb la icona Phosphor `Star` (`regular` / `fill`), etiqueta «Segueix {{title}}», `accessibilityState.selected` i objectiu de `touch.min`. Fins que arriben les subscripcions (o si no s'han pogut carregar) l'estrella queda deshabilitada, perquè no mostri un estat que pot ser fals. Si no s'han pogut carregar, la capçalera de «Tots» ho diu (`events.subscription.unavailable`) amb l'error i, si és transitori, un botó de reintent (`StatusPanel`). Si falla, la fila mostra el missatge de l'error (`errorMessage`, rol `alert`, regió viva `polite` i, a iOS, `announceForAccessibility`; p. ex. `EVENT_ALREADY_ENDED`) i un nou intent l'esborra.
 
 ## Publicacions d'esdeveniment (TG-628)
 

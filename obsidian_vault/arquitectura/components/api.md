@@ -174,7 +174,7 @@ Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
 - **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
 - **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
-- **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, pendent (PR 2).
+- **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, implementada: estrella a cada fila del llistat i pestanya «Els meus» (vegeu [[frontend#Subscripcions a esdeveniments (TG-53)]]).
 - **Punts de trobada amb Spotwise (TG-352)**: backend implementat (`MeetingPointService`, port `SpaceSearch`, `SpotwiseSpaceClient` i mock `ExampleSpaceSearch`, `/api/meeting-points`); l'app, pendent (PR 2 i 3 de l'stack).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Xat d'esdeveniment (TG-64)**: backend implementat (`ChatService`, taules `event_chat_rooms` i `chat_messages`, tres endpoints REST i les sales `chat:event:<id>` del WebSocket; vegeu [[chat]]). El moderador és provisional (aprova tot) fins a #81.

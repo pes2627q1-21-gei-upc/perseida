@@ -87,6 +87,7 @@
     "DATABASE_UNAVAILABLE": "El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
     "EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
+    "EVENT_ALREADY_ENDED": "Aquest esdeveniment ja ha acabat.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
     "GOOGLE_SIGN_IN_EXPO_GO": "L'inici de sessió amb Google no funciona a Expo Go. Usa l'app instal·lada (build de desenvolupament).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "L'inici de sessió amb Google encara no està disponible.",
@@ -208,6 +209,18 @@
       "results_other": "{{count}} esdeveniments",
       "empty": "No hi ha esdeveniments amb aquests filtres.",
       "openMap": "Obre el mapa"
+    },
+    "tabs": {
+      "label": "Vista",
+      "all": "Tots",
+      "mine": "Els meus"
+    },
+    "subscription": {
+      "follow": "Segueix {{title}}",
+      "unavailable": "No s'han pogut carregar els esdeveniments que segueixes: les estrelles es tornaran a activar quan es carreguin."
+    },
+    "mine": {
+      "empty": "Encara no segueixes cap esdeveniment. Toca l'estrella d'un esdeveniment per seguir-lo."
     }
   },
   "home": {
