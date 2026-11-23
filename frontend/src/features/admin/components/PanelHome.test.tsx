@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import type { PanelSection } from '../panelSections';
@@ -54,6 +55,19 @@ describe('PanelHome (TG-77 criteri 6)', () => {
       expect(screen.getAllByRole('link')).toHaveLength(2);
       expect(screen.getByRole('link', { name: 'Sense accés' })).toBeOnTheScreen();
       expect(screen.getByRole('link', { name: 'Tanca la sessió' })).toBeOnTheScreen();
+    });
+
+    it('shows a focus ring on the card the keyboard is on, and only on that one', async () => {
+      await renderHome(SECTIONS);
+      const ring = (index: number) =>
+        StyleSheet.flatten(screen.getAllByTestId('section-ring')[index].props.style);
+
+      await fireEvent(screen.getByRole('link', { name: 'Sense accés' }), 'focus');
+      expect(ring(0).boxShadow).toMatch(/^0 0 0 3px #/);
+      expect(ring(1).boxShadow).toBeUndefined();
+
+      await fireEvent(screen.getByRole('link', { name: 'Sense accés' }), 'blur');
+      expect(ring(0).boxShadow).toBeUndefined();
     });
 
     it('opens the section of the card that is pressed', async () => {

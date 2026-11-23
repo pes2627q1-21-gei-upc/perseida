@@ -41,4 +41,10 @@ describe('NoAccessScreen (TG-77 criteri 3)', () => {
 
     expect(screen.getByRole('button', { name: TEXT.logout })).toBeOnTheScreen();
   });
+
+  it('announces the message politely to a screen reader (decided with the person, WCAG 4.1.3)', async () => {
+    await renderScreen();
+
+    expect(screen.getByText(TEXT.message).props.accessibilityLiveRegion).toBe('polite');
+  });
 });
