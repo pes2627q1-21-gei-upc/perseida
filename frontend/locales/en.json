@@ -359,6 +359,7 @@
       "es": "Castellano"
     },
     "languageMenu": {
+      "changed": "Language changed to {{name}}",
       "error": "The language could not be saved to your account. The change stays here.",
       "hint": "Opens the list of languages",
       "label": "Language: {{code}}, {{name}}",

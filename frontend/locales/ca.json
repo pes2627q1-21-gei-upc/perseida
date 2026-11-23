@@ -359,6 +359,7 @@
       "es": "Castellano"
     },
     "languageMenu": {
+      "changed": "Idioma canviat a {{name}}",
       "error": "No s'ha pogut desar l'idioma al teu compte. Aquí es manté el canvi.",
       "hint": "Obre la llista d'idiomes",
       "label": "Idioma: {{code}}, {{name}}",

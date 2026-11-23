@@ -1,7 +1,7 @@
 import { Check, Globe } from 'phosphor-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   DEFAULT_LANGUAGE,
@@ -30,7 +30,16 @@ export function LanguageMenu() {
 
   const choose = (language: Language) => {
     setOpen(false);
-    if (language !== current) change(language);
+    if (language === current) return;
+    change(language);
+    // The label of the button changes, but nothing tells the screen reader: announce it in
+    // the new language.
+    AccessibilityInfo.announceForAccessibility(
+      t('profile.languageMenu.changed', {
+        lng: language,
+        name: t(`profile.language.${language}`, { lng: language }),
+      }),
+    );
   };
 
   return (
