@@ -238,6 +238,13 @@ SQLite local com a outbox i cache de lectura, sincronitzats més tard amb polít
 
 SPA amb React Native Web: gestió i suspensió d'usuaris, supervisió d'esdeveniments publicats, mètriques d'ús i cua de revisió d'informes. Accés per rol. El bundle estàtic el serveix [[nginx-proxy-manager]] ([[0009-nginx-proxy-manager-serveix-media-i-spa-admin]]).
 
+### Accés i rutes (TG-77)
+
+- **Ruta:** el panell és el grup `src/app/(admin)/panel`, sota `/panel`. La web sencera es serveix sota `/admin/` (`experiments.baseUrl` d'`app.json`, TG-585), que és on nginx-proxy-manager serveix la SPA. Per tant, a `pnpm web` l'app (mòbil inclosa) és a `http://localhost:8081/admin/`, no a l'arrel.
+- **`/login` reutilitzat:** és la mateixa pantalla que a l'app mòbil. Al mòbil porta sempre a `/(app)`. A la web llegeix el perfil (`getCurrentUser`) i porta a `/panel` només si el rol és `admin` o `moderator` (`canAccessAdmin`), i a `/(app)` en la resta de casos, també si el perfil no es pot llegir (llavors hi decideix el guardià). Així una compte `user` pot continuar provant l'app a la web.
+- **Guardià compartit:** `useSessionGuard` (`features/auth/hooks`) comprova i renova la sessió i envia a `/login` si no n'hi ha; el fan servir `(app)/_layout.tsx` i el panell. `AdminGate` (`features/admin/components`) hi afegeix el rol: un `admin` o `moderator` hi entra, qualsevol altra compte veu «Sense accés» (`NoAccessScreen`) i la ruta de darrere no es dibuixa. El perfil només es demana quan la sessió ja és confirmada.
+- **Si falla la lectura del perfil:** el guardià esborra els tokens i porta a `/login`; sense esborrar-los, `/login` la tornaria a enviar al panell en bucle. Codi d'error `INSUFFICIENT_ROLE` al catàleg de [[0018-errors-rfc-9457-amb-codis-estables]].
+
 ## Estructura planificada
 
 ```
