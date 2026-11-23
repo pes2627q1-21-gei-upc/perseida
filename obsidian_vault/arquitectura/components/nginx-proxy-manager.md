@@ -2,9 +2,9 @@
 titol: "Component: nginx-proxy-manager"
 tipus: component
 estat: vigent
-data: "2026-11-19"
-us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351", "TG-643", "TG-51"]
-font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477); review de la PR #83 (16/11/2026); review de la PR #100 (17/11/2026); TG-51 (19/11/2026); review de la PR #129 (20/11/2026)"
+data: "2026-11-22"
+us: ["TG-85", "TG-37", "TG-89", "TG-96", "TG-38", "TG-63", "TG-351", "TG-643", "TG-51", "TG-343"]
+font: "infra/README.md, memòria §3.4.1, incepció 2 §6; infra/docker-compose.yml (TG-37, TG-89); infra/nginx-proxy-manager/rate-limit.conf (TG-351, tasca #477); review de la PR #83 (16/11/2026); review de la PR #100 (17/11/2026); TG-51 (19/11/2026); review de la PR #129 (20/11/2026); TG-343 (22/11/2026)"
 etiquetes: [component, nginx-proxy-manager, proxy, tls]
 ---
 
@@ -27,7 +27,17 @@ Nginx Proxy Manager amb la imatge oficial `jc21/nginx-proxy-manager:2.12.3` fixa
 > [!info] Producció a Virtech
 > A Virtech no hi ha els ports 80 i 443 públics: es publiquen el `8080` i el `8081` (`40430` i `40431` des de fora) i el certificat s'obté amb el repte DNS-01 de DuckDNS ([[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01]]).
 
-Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api/ws` (WebSocket del xat), `/api/events` i `/api/events/...` (API amb límit de peticions), `/media/` i `/admin/` (els serveix el mateix NPM). La configuració avançada es versiona a `infra/nginx-proxy-manager/` (`static.conf`, `websocket.conf`, `security-headers.conf`, `rate-limit.conf`) i els passos per recrear-lo són a la secció «nginx-proxy-manager» del README d'`infra/`, perquè NPM desa els *proxy hosts* a la seva base de dades.
+Un sol *proxy host* cap a `api:8000` amb aquestes rutes: `/api/...` (API), `/api/ws` (WebSocket del xat), `/api/events` i `/api/events/...` (API amb límit de peticions), `/media/`, `/admin/` i les pàgines públiques `/`, `/privacy` i `/terms` (els serveix el mateix NPM). La configuració avançada es versiona a `infra/nginx-proxy-manager/` (`static.conf`, `websocket.conf`, `security-headers.conf`, `rate-limit.conf`) i els passos per recrear-lo són a la secció «nginx-proxy-manager» del README d'`infra/`, perquè NPM desa els *proxy hosts* a la seva base de dades.
+
+## Pàgines públiques (TG-343)
+
+Pàgina principal, política de privacitat i condicions del servei que Google demana per publicar l'app a Google Auth Platform ([[0008-google-oauth2-pkce-jwks-i-sessio-propia#Concreció (TG-343 · Publicació a Google Auth Platform)|ADR-0008]]).
+
+- HTML estàtic a `infra/nginx-proxy-manager/public/` (`index.html`, `privacy.html`, `terms.html`), amb els tres idiomes a cada pàgina (seccions `lang="ca"`, `"es"` i `"en"` amb àncores) i sense scripts. La principal porta l'etiqueta de verificació de Search Console.
+- El Compose munta la carpeta de només lectura a `/public` (fora de `/data`, així que el `chown` d'NPM no la toca) i el CD la copia a `/opt/perseida/nginx-proxy-manager/public/`.
+- `static.conf` hi té tres `location =` (coincidència exacta: qualsevol altre camí, també `/index.html`, continua anant a l'API) amb `default_type` propi, `Cache-Control: no-cache` i una CSP `default-src 'none'; style-src 'unsafe-inline'`. Les capçaleres es repeteixen a cada bloc perquè el fitxer s'enganxa a «Advanced», on no es pot incloure cap altre fitxer.
+- Després del primer desplegament que les porta, cal tornar a enganxar `static.conf` a «Advanced».
+- Ho comprova `infra/scripts/test-public-pages.sh` al job `proxy` de la CI.
 
 ## Límit de peticions (TG-351)
 
@@ -66,6 +76,7 @@ Variables a `.env.example`: `HTTP_PORT`, `HTTPS_PORT` i `NPM_ADMIN_PORT`. El tok
 - TG-89 (nginx-proxy-manager)
 - TG-96 (pujada de media)
 - TG-351 (límit de peticions per IP als endpoints d'esdeveniments, tasca #477)
+- TG-343 (pàgines públiques per a Google Auth Platform)
 
 ## Estat d'implementació
 
