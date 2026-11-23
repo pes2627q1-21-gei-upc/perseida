@@ -22,9 +22,17 @@ from app.infrastructure.direct_chat.repository import (
 )
 from tests.integration.direct_chat.test_direct_outbox_integration import (
     _preexisting_data_is_kept as _preexisting_data_is_kept,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
     _schema_at_head as _schema_at_head,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
     connection as connection,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
     factory as factory,
+)
+from tests.integration.direct_chat.test_direct_outbox_integration import (
     make_message,
     pending,
 )
@@ -44,7 +52,9 @@ class ObservedNoopPush(NoopPushNotifier):
         await super().notify(recipient_id, message)
 
 
-@pytest.mark.parametrize("recipient_connections,sender_connections", [(0, 0), (0, 1), (1, 1), (2, 1)])
+@pytest.mark.parametrize(
+    "recipient_connections,sender_connections", [(0, 0), (0, 1), (1, 1), (2, 1)]
+)
 async def test_tg65_recipient_subscriber_count_controls_offline_push(
     recipient_connections: int,
     sender_connections: int,
@@ -53,7 +63,9 @@ async def test_tg65_recipient_subscriber_count_controls_offline_push(
     redis: Redis,
 ) -> None:
     message = await make_message(factory)
-    conversation = await SqlDirectConversationRepository(factory).get(message.conversation_id)
+    conversation = await SqlDirectConversationRepository(factory).get(
+        message.conversation_id
+    )
     assert conversation is not None
     recipient = conversation.other_participant(message.sender_id)
     await SqlDirectMessageRepository(factory).add(message)
@@ -63,11 +75,15 @@ async def test_tg65_recipient_subscriber_count_controls_offline_push(
 
     async with AsyncExitStack() as stack:
         recipient_streams = [
-            await stack.enter_async_context(pubsub.subscribe(direct_user_channel(recipient)))
+            await stack.enter_async_context(
+                pubsub.subscribe(direct_user_channel(recipient))
+            )
             for _ in range(recipient_connections)
         ]
         sender_streams = [
-            await stack.enter_async_context(pubsub.subscribe(direct_user_channel(message.sender_id)))
+            await stack.enter_async_context(
+                pubsub.subscribe(direct_user_channel(message.sender_id))
+            )
             for _ in range(sender_connections)
         ]
         await DirectOutboxDispatcher(factory, broadcaster, push).dispatch_once()
@@ -75,7 +91,9 @@ async def test_tg65_recipient_subscriber_count_controls_offline_push(
         for stream in [*recipient_streams, *sender_streams]:
             envelope = json.loads(await asyncio.wait_for(anext(stream), 5))
             assert envelope["frame"]["payload"]["id"] == str(message.id)
-        assert push.calls == ([(recipient, message)] if recipient_connections == 0 else [])
+        assert push.calls == (
+            [(recipient, message)] if recipient_connections == 0 else []
+        )
         assert await pending(connection, message.id) == 0
 
 
@@ -84,14 +102,20 @@ async def test_tg65_broadcaster_reports_recipient_subscribers_only(
     recipient_connections: int, factory: async_sessionmaker[AsyncSession], redis: Redis
 ) -> None:
     message = await make_message(factory)
-    conversation = await SqlDirectConversationRepository(factory).get(message.conversation_id)
+    conversation = await SqlDirectConversationRepository(factory).get(
+        message.conversation_id
+    )
     assert conversation is not None
     recipient = conversation.other_participant(message.sender_id)
     pubsub = RedisPubSub(redis)
     async with AsyncExitStack() as stack:
         for _ in range(recipient_connections):
-            await stack.enter_async_context(pubsub.subscribe(direct_user_channel(recipient)))
-        await stack.enter_async_context(pubsub.subscribe(direct_user_channel(message.sender_id)))
+            await stack.enter_async_context(
+                pubsub.subscribe(direct_user_channel(recipient))
+            )
+        await stack.enter_async_context(
+            pubsub.subscribe(direct_user_channel(message.sender_id))
+        )
         count = await DirectMessagePubSubBroadcaster(pubsub).deliver(
             message, recipient_id=recipient, origin=None
         )

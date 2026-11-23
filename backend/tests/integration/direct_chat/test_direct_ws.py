@@ -18,12 +18,22 @@ from sqlalchemy import bindparam, text
 
 from tests.integration.chat.test_chat_ws import (
     Harness,
-    _environment as _environment,
-    _preexisting_data_is_kept as _preexisting_data_is_kept,
-    _schema_at_head as _schema_at_head,
-    harness as harness,
-    proxy as proxy,
     sql,
+)
+from tests.integration.chat.test_chat_ws import (
+    _environment as _environment,
+)
+from tests.integration.chat.test_chat_ws import (
+    _preexisting_data_is_kept as _preexisting_data_is_kept,
+)
+from tests.integration.chat.test_chat_ws import (
+    _schema_at_head as _schema_at_head,
+)
+from tests.integration.chat.test_chat_ws import (
+    harness as harness,
+)
+from tests.integration.chat.test_chat_ws import (
+    proxy as proxy,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -66,17 +76,25 @@ def open_conversation(env: Harness, sender: str, recipient: str) -> str:
 
 
 def send_dm(ws: Any, conversation_id: str, body: str, frame_id: str) -> dict[str, Any]:
-    ws.send_json({
-        "type": "dm.send", "id": frame_id,
-        "payload": {"conversation_id": conversation_id, "text": body,
-                    "client_message_id": str(uuid.uuid4())},
-    })
+    ws.send_json(
+        {
+            "type": "dm.send",
+            "id": frame_id,
+            "payload": {
+                "conversation_id": conversation_id,
+                "text": body,
+                "client_message_id": str(uuid.uuid4()),
+            },
+        }
+    )
     return receive_json(ws)
 
 
 def receive_json(ws: Any) -> dict[str, Any]:
     """Bound the wait for a frame so a broken delivery does not hang CI."""
-    result: queue.Queue[tuple[dict[str, Any] | None, BaseException | None]] = queue.Queue()
+    result: queue.Queue[tuple[dict[str, Any] | None, BaseException | None]] = (
+        queue.Queue()
+    )
 
     def receive() -> None:
         try:
@@ -101,7 +119,9 @@ def assert_alive(ws: Any) -> None:
     assert receive_json(ws) == {"type": "pong", "id": probe, "payload": {}}
 
 
-def test_tg65_dm_send_ack_and_private_delivery_to_both_participants(dm_env: Harness) -> None:
+def test_tg65_dm_send_ack_and_private_delivery_to_both_participants(
+    dm_env: Harness,
+) -> None:
     for user in ("sender", "recipient", "outsider"):
         dm_env.login(user)
     conversation_id = open_conversation(dm_env, "sender", "recipient")
@@ -129,7 +149,9 @@ def test_tg65_dm_send_ack_and_private_delivery_to_both_participants(dm_env: Harn
         assert_alive(outsider)
 
 
-def test_tg65_dm_send_by_nonparticipant_is_not_found_and_not_delivered(dm_env: Harness) -> None:
+def test_tg65_dm_send_by_nonparticipant_is_not_found_and_not_delivered(
+    dm_env: Harness,
+) -> None:
     for user in ("sender", "recipient", "outsider"):
         dm_env.login(user)
     conversation_id = open_conversation(dm_env, "sender", "recipient")
@@ -151,9 +173,15 @@ def test_tg65_typing_is_ephemeral_and_private(dm_env: Harness) -> None:
         sender = dm_env.connect("sender", stack)
         recipient = dm_env.connect("recipient", stack)
         outsider = dm_env.connect("outsider", stack)
-        sender.send_json({"type": "dm.typing", "payload": {
-            "conversation_id": conversation_id, "is_typing": True,
-        }})
+        sender.send_json(
+            {
+                "type": "dm.typing",
+                "payload": {
+                    "conversation_id": conversation_id,
+                    "is_typing": True,
+                },
+            }
+        )
         frame = receive_json(recipient)
         assert frame["type"] == "dm.typing"
         assert frame["payload"]["conversation_id"] == conversation_id
@@ -184,9 +212,16 @@ def test_tg65_typing_denied_for_outsider_or_blocked_user(
     with ExitStack() as stack:
         listener = dm_env.connect("recipient", stack)
         socket = dm_env.connect(actor, stack)
-        socket.send_json({"type": "dm.typing", "id": "t1", "payload": {
-            "conversation_id": conversation_id, "is_typing": True,
-        }})
+        socket.send_json(
+            {
+                "type": "dm.typing",
+                "id": "t1",
+                "payload": {
+                    "conversation_id": conversation_id,
+                    "is_typing": True,
+                },
+            }
+        )
         error = receive_json(socket)
         assert error["type"] == "error"
         assert error["id"] == "t1"
