@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { canAccessAdmin } from '../features/admin/canAccessAdmin';
+import { getCurrentUser } from '../features/auth/api/getCurrentUser';
 import { signInWithGoogle } from '../features/auth/api/googleSignIn';
 import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
@@ -14,8 +16,17 @@ import { getTokens, saveTokens } from '../features/auth/tokenStorage';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
 
-// The web build is the admin panel; the mobile app lives in the (app) group (TG-77 criteri 2).
-const homeRoute = () => (Platform.OS === 'web' ? '/panel' : '/(app)');
+// The web build is the admin panel: staff go to it, any other account to the mobile app
+// (TG-77 criteri 2). If the profile cannot be read, the (app) guard decides what happens next.
+async function homeRoute(): Promise<'/panel' | '/(app)'> {
+  if (Platform.OS !== 'web') return '/(app)';
+  try {
+    const user = await getCurrentUser();
+    return canAccessAdmin(user.role) ? '/panel' : '/(app)';
+  } catch {
+    return '/(app)';
+  }
+}
 
 /** Sign-in screen. Its memorable element is the Perseid shower over the lake. */
 export default function LoginScreen() {
@@ -36,7 +47,7 @@ export default function LoginScreen() {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
       });
-      router.replace(homeRoute());
+      router.replace(await homeRoute());
     },
     onError: (err) => setPressedNotice(toAuthErrorMessage(err)),
     onCancel: () => {
@@ -53,10 +64,10 @@ export default function LoginScreen() {
   useEffect(() => {
     let mounted = true;
     void getTokens()
-      .then((tokens) => {
-        if (mounted && tokens) {
-          router.replace(homeRoute());
-        }
+      .then(async (tokens) => {
+        if (!tokens) return;
+        const route = await homeRoute();
+        if (mounted) router.replace(route);
       })
       .catch((error: unknown) => {
         if (mounted) {
