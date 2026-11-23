@@ -39,6 +39,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
         {/* First thing the keyboard reaches; invisible until it has the focus (WCAG 2.4.1). */}
         <View
           testID="skip-link-ring"
+          // Hidden, the pointer goes through it to the bar; the keyboard still reaches it.
+          pointerEvents={skipFocused ? 'auto' : 'none'}
           style={{
             position: 'absolute',
             zIndex: 10,

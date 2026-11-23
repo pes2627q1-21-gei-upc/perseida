@@ -69,8 +69,11 @@ describe('AdminShell (TG-77 criteri 6)', () => {
     it('offers a link to skip to the content that moves the focus to the page', async () => {
       const send = jest.spyOn(AccessibilityInfo, 'sendAccessibilityEvent').mockImplementation();
       await renderShell();
+      const link = screen.getByRole('link', { name: TEXT.skip });
 
-      await fireEvent.press(screen.getByRole('link', { name: TEXT.skip }));
+      // As with the keyboard: Tab reaches the link (it shows up) and then it is pressed.
+      await fireEvent(link, 'focus');
+      await fireEvent.press(link);
 
       expect(send).toHaveBeenCalledWith(expect.anything(), 'focus');
       send.mockRestore();
