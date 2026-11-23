@@ -6,7 +6,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { type Theme, useTheme } from '../../../shared/theme';
 import { useReduceTransparency } from '../../../shared/ui';
 import { formatMessageTime } from '../../chat/formatChat';
-import { rowSurface } from '../../chat/rowSurface';
+import { rowCardStyle } from '../../chat/rowCardStyle';
 import { conversationLabel, initialOf, previewText } from '../conversationRow';
 import type { ConversationView } from '../types';
 import { UnreadBadge } from './UnreadBadge';
@@ -116,19 +116,7 @@ function createStyles(
   reduceTransparency: boolean,
 ) {
   return StyleSheet.create({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      overflow: 'hidden',
-      borderWidth: 1,
-      minHeight: touch.min,
-      gap: spacing.md,
-      padding: spacing.md,
-      borderRadius: radii.lg,
-      borderColor: colors.surface.glassBorder,
-      backgroundColor: rowSurface(colors.surface, reduceTransparency),
-      boxShadow: `0 8px 24px ${colors.accentGlow}33`,
-    },
+    row: rowCardStyle({ colors, spacing, radii, touch }, reduceTransparency),
     rowPressed: { borderColor: colors.accentGlow },
     avatar: {
       alignItems: 'center',
