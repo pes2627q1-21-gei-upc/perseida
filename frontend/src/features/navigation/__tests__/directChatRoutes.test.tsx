@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import DirectConversationRoute from '../../../app/(app)/chat/direct/[conversationId]';
 import DirectListRoute from '../../../app/(app)/chat/direct/index';
@@ -8,6 +10,13 @@ const mockReplace = jest.fn();
 const mockBack = jest.fn();
 const mockCanGoBack = jest.fn(() => false);
 const mockList = jest.fn();
+const SAFE_AREA = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
+function wrapper({ children }: { children: ReactNode }) {
+  return <SafeAreaProvider initialMetrics={SAFE_AREA}>{children}</SafeAreaProvider>;
+}
 jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: mockPush,
@@ -53,11 +62,18 @@ beforeEach(() => {
 describe('direct chat routes (TG-65)', () => {
   it.each([
     ['loading', { isPending: true, error: null, data: undefined }],
-    ['error', { isPending: false, error: { code: 'DATABASE_UNAVAILABLE', retryable: false }, data: undefined }],
+    [
+      'error',
+      {
+        isPending: false,
+        error: { code: 'DATABASE_UNAVAILABLE', retryable: false },
+        data: undefined,
+      },
+    ],
     ['not found', { isPending: false, error: null, data: [] }],
   ])('provides back navigation from %s, including on a deep link', async (_state, query) => {
     mockList.mockReturnValue(query);
-    await render(<DirectConversationRoute />);
+    await render(<DirectConversationRoute />, { wrapper });
     await fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
     expect(mockReplace).toHaveBeenCalledWith('/chat/direct');
     expect(mockBack).not.toHaveBeenCalled();
@@ -66,13 +82,13 @@ describe('direct chat routes (TG-65)', () => {
   it('uses the navigation history on the loading screen when available', async () => {
     mockCanGoBack.mockReturnValue(true);
     mockList.mockReturnValue({ isPending: true, error: null, data: undefined });
-    await render(<DirectConversationRoute />);
+    await render(<DirectConversationRoute />, { wrapper });
     await fireEvent.press(screen.getByRole('button', { name: 'Torna' }));
     expect(mockBack).toHaveBeenCalledTimes(1);
     expect(mockReplace).not.toHaveBeenCalled();
   });
   it('opens the selected conversation without exposing profile data in the route', async () => {
-    await render(<DirectListRoute />);
+    await render(<DirectListRoute />, { wrapper });
     await fireEvent.press(screen.getByText('open'));
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/chat/direct/[conversationId]',
@@ -93,7 +109,7 @@ describe('direct chat routes (TG-65)', () => {
         },
       ],
     });
-    await render(<DirectConversationRoute />);
+    await render(<DirectConversationRoute />, { wrapper });
     await fireEvent.press(screen.getByText('Laia true'));
     expect(mockReplace).toHaveBeenCalledWith('/chat/direct');
   });

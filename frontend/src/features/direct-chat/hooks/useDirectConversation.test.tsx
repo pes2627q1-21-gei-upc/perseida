@@ -9,7 +9,9 @@ import { useDirectConversation } from './useDirectConversation';
 const mockSend = jest.fn();
 const mockHistory = jest.fn();
 const mockMarkRead = jest.fn();
+let mockIsFocused = true;
 let mockListener: ((frame: ServerFrame) => void) | undefined;
+jest.mock('expo-router', () => ({ useIsFocused: () => mockIsFocused }));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'client-id-1') }));
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
@@ -59,6 +61,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 beforeEach(() => {
+  mockIsFocused = true;
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   mockListener = undefined;
   jest.clearAllMocks();
@@ -80,6 +83,61 @@ beforeEach(() => {
 afterEach(() => client.clear());
 
 describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
+  it('does not mark a background conversation read, including when a message arrives', async () => {
+    mockIsFocused = false;
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      refetch: jest.fn().mockResolvedValue({
+        data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
+        isError: false,
+      }),
+    });
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: message });
+    });
+    expect(mockMarkRead).not.toHaveBeenCalled();
+  });
+
+  it('does not mark the conversation read when fetching history fails', async () => {
+    const error = new AppError({
+      kind: 'http',
+      code: 'DATABASE_UNAVAILABLE',
+      status: 503,
+      retryable: true,
+    });
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      data: undefined,
+      error,
+      isPending: false,
+      refetch: jest.fn().mockResolvedValue({ data: undefined, error, isError: true }),
+    });
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    expect(result.current.error).toBe(error);
+    expect(mockMarkRead).not.toHaveBeenCalled();
+  });
+
+  it('waits for history to reload successfully before marking read on connection', async () => {
+    let finish!: (result: unknown) => void;
+    const refetch = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(refetch).toHaveBeenCalled());
+    expect(mockMarkRead).not.toHaveBeenCalled();
+    await act(async () => {
+      finish({
+        data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
+        isError: false,
+      });
+    });
+    await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+  });
   it('exposes persisted history and marks the open conversation as read', async () => {
     mockHistory.mockReturnValue({
       data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
@@ -101,24 +159,36 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
   });
 
-
   it('signals only new incoming websocket messages, not history, own events or duplicates', async () => {
     mockHistory.mockReturnValue({
       data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-      isPending: false, error: null, isFetching: false, hasNextPage: false,
-      isFetchingNextPage: false, refetch: jest.fn(), fetchNextPage: jest.fn(),
+      isPending: false,
+      error: null,
+      isFetching: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      refetch: jest.fn(),
+      fetchNextPage: jest.fn(),
     });
     const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
     expect(result.current.lastIncoming).toBeUndefined();
-    await act(async () => { mockListener?.({ type: 'dm.message', payload: message }); });
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: message });
+    });
     expect(result.current.lastIncoming).toBeUndefined();
-    await act(async () => { mockListener?.({ type: 'dm.message', payload: { ...message, id: 'own', sender_id: 'me' } }); });
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: { ...message, id: 'own', sender_id: 'me' } });
+    });
     expect(result.current.lastIncoming).toBeUndefined();
     const live = { ...message, id: 'fresh', text: 'Nou' };
-    await act(async () => { mockListener?.({ type: 'dm.message', payload: live }); });
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: live });
+    });
     expect(result.current.lastIncoming).toEqual(live);
     const reference = result.current.lastIncoming;
-    await act(async () => { mockListener?.({ type: 'dm.message', payload: live }); });
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: live });
+    });
     expect(result.current.lastIncoming).toBe(reference);
   });
 
@@ -127,7 +197,9 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       ({ id }: { id: string }) => useDirectConversation(id),
       { wrapper, initialProps: { id: CONVERSATION } },
     );
-    await act(async () => { mockListener?.({ type: 'dm.message', payload: message }); });
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: message });
+    });
     expect(result.current.lastIncoming).toEqual(message);
     await rerender({ id: OTHER });
     expect(result.current.lastIncoming).toBeUndefined();
