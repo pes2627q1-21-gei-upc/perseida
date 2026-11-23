@@ -2653,6 +2653,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid request body encoding (HTTP_400).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [

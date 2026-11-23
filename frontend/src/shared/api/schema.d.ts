@@ -3226,6 +3226,15 @@ export interface operations {
           'application/json': components['schemas']['DirectConversationResponse'];
         };
       };
+      /** @description Invalid request body encoding (HTTP_400). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
       401: {
         headers: {

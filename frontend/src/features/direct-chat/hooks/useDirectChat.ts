@@ -1,6 +1,9 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 
 import type { AppError } from '../../../shared/errors';
+import { useSocket } from '../../../shared/realtime';
+import { socketAuth } from '../../auth/socketAuth';
 import {
   blockUser,
   type ConversationOverview,
@@ -23,6 +26,24 @@ function retryOnceIfTransient(failureCount: number, error: AppError): boolean {
 }
 
 export function useConversations() {
+  const client = useQueryClient();
+  const { status, subscribePrivate } = useSocket(socketAuth);
+  const previousStatus = useRef(status);
+  useEffect(
+    () =>
+      subscribePrivate((frame) => {
+        if (frame.type === 'dm.message') {
+          void client.invalidateQueries({ queryKey: directChatKeys.conversations });
+        }
+      }),
+    [client, subscribePrivate],
+  );
+  useEffect(() => {
+    if (status === 'open' && previousStatus.current !== 'open') {
+      void client.invalidateQueries({ queryKey: directChatKeys.conversations });
+    }
+    previousStatus.current = status;
+  }, [client, status]);
   return useQuery<ConversationOverview[], AppError>({
     queryKey: directChatKeys.conversations,
     queryFn: listConversations,

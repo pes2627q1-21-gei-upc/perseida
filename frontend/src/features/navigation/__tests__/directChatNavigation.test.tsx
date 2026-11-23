@@ -53,14 +53,12 @@ async function renderApp(initialUrl: string) {
   jest
     .spyOn(tokenStorage, 'getTokens')
     .mockResolvedValue({ accessToken: 'test-access', refreshToken: 'test-refresh' });
-  jest
-    .spyOn(refreshToken, 'refreshSession')
-    .mockResolvedValue({
-      access_token: 'test-access',
-      refresh_token: 'test-refresh',
-      token_type: 'bearer',
-      expires_in: 900,
-    });
+  jest.spyOn(refreshToken, 'refreshSession').mockResolvedValue({
+    access_token: 'test-access',
+    refresh_token: 'test-refresh',
+    token_type: 'bearer',
+    expires_in: 900,
+  });
   return renderRouter(
     {
       '(app)/_layout': AppLayout,

@@ -1,6 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
+import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { type AppError } from '../../../shared/errors';
 import { type ServerFrame, useSocket } from '../../../shared/realtime';
@@ -10,7 +12,7 @@ import type { ChatMessage } from '../../chat/api/chat';
 import { buildChatItems, type OutgoingMessage } from '../../chat/chatItems';
 import { directChatKeys, useDirectMessages, useMarkRead } from './useDirectChat';
 
-type DirectEvent = {
+export type DirectEvent = {
   id: string;
   conversation_id: string;
   sender_id: string;
@@ -55,31 +57,78 @@ export function useDirectConversation(conversationId: string) {
   const user = useCurrentUser();
   const markRead = useMarkRead();
   const socket = useSocket(socketAuth);
+  const isFocused = useIsFocused();
+  const [isForeground, setIsForeground] = useState(AppState.currentState === 'active');
+  const historyReady = useRef(false);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') historyReady.current = false;
+      setIsForeground(state === 'active');
+    });
+    return () => subscription.remove();
+  }, []);
   const { status: socketStatus, subscribePrivate, send: sendFrame, reconnect } = socket;
   const { refetch: refetchHistory } = history;
   const [arrived, setArrived] = useState<DirectEvent[]>([]);
   const [pending, setPending] = useState<ScopedOutgoing[]>([]);
+  const eventScope = useMemo(
+    () => ({ conversationId, socketStatus }),
+    [conversationId, socketStatus],
+  );
+  const [lastIncoming, setLastIncoming] = useState<{ scope: object; message: DirectEvent }>();
+  const seenMessageIds = useRef(new Set<string>());
+  const myUserId = user.data?.id;
+
+  // Seed the deduplication set from history as well as live frames. A replayed
+  // outbox event must not be announced if it is already visible in history.
+  useEffect(() => {
+    for (const page of history.data?.pages ?? []) {
+      for (const message of page.messages) seenMessageIds.current.add(message.id);
+    }
+  }, [history.data]);
   const markReadRef = useRef(markRead.mutate);
   useEffect(() => {
     markReadRef.current = markRead.mutate;
   });
 
   useEffect(() => {
+    historyReady.current = false;
+    if (!conversationId || !isFocused || !isForeground) return;
+    let cancelled = false;
+    // Read the latest history before advancing the read mark; Redis is not needed here.
+    void refetchHistory()
+      .then((result) => {
+        if (cancelled || result.isError || !result.data) return;
+        historyReady.current = true;
+        markReadRef.current(conversationId);
+      })
+      .catch(() => {
+        // The query exposes its error and leaves unread messages intact.
+      });
+    return () => {
+      cancelled = true;
+      historyReady.current = false;
+    };
+  }, [conversationId, isFocused, isForeground, refetchHistory, socketStatus]);
+
+  useEffect(() => {
     if (!conversationId || socketStatus !== 'open') return;
-    // Re-fetch after authentication/reconnection so messages sent while offline are recovered.
-    void refetchHistory();
-    markReadRef.current(conversationId);
     return subscribePrivate((frame: ServerFrame) => {
       if (frame.type !== 'dm.message') return;
       const message = directEvent(frame.payload);
-      if (!message || message.conversation_id !== conversationId) return;
+      if (!message) return;
+      void queryClient.invalidateQueries({ queryKey: directChatKeys.conversations });
+      if (message.conversation_id !== conversationId) return;
+      const alreadySeen = seenMessageIds.current.has(message.id);
+      seenMessageIds.current.add(message.id);
+      if (!alreadySeen && message.sender_id !== myUserId)
+        setLastIncoming({ scope: eventScope, message });
       setArrived((current) =>
         current.some((item) => item.id === message.id) ? current : [...current, message],
       );
-      void queryClient.invalidateQueries({ queryKey: directChatKeys.conversations });
-      markReadRef.current(conversationId);
+      if (historyReady.current) markReadRef.current(conversationId);
     });
-  }, [conversationId, socketStatus, subscribePrivate, queryClient, refetchHistory]);
+  }, [conversationId, socketStatus, subscribePrivate, queryClient, myUserId, eventScope]);
 
   const updatePending = useCallback(
     (id: string, status: OutgoingMessage['status'], error?: OutgoingMessage['error']) => {
@@ -110,6 +159,7 @@ export function useDirectConversation(conversationId: string) {
           sender_id: user.data.id,
           text,
         };
+        seenMessageIds.current.add(message.id);
         setArrived((current) =>
           current.some((item) => item.id === message.id) ? current : [...current, message],
         );
@@ -176,6 +226,10 @@ export function useDirectConversation(conversationId: string) {
 
   return {
     items,
+    lastIncoming:
+      myUserId && lastIncoming?.scope === eventScope && lastIncoming.message.sender_id !== myUserId
+        ? lastIncoming.message
+        : undefined,
     isLoading: user.isPending || history.isPending,
     error: user.error ?? history.error,
     status: socketStatus,

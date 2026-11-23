@@ -77,10 +77,30 @@ it('announces the first and second incoming messages after an empty history on i
   const { rerender } = await render(screenElement());
   expect(announce).not.toHaveBeenCalled();
 
-  mockLive.mockReturnValue({ ...mockLive(), items: [first], lastIncoming: { id: 'm1', conversation_id: CONVERSATION, sender_id: OTHER, text: 'Hola', sent_at: first.message.sent_at } });
+  mockLive.mockReturnValue({
+    ...mockLive(),
+    items: [first],
+    lastIncoming: {
+      id: 'm1',
+      conversation_id: CONVERSATION,
+      sender_id: OTHER,
+      text: 'Hola',
+      sent_at: first.message.sent_at,
+    },
+  });
   await rerender(screenElement());
   expect(announce).toHaveBeenCalledWith('Missatge nou de Laia: Hola');
-  mockLive.mockReturnValue({ ...mockLive(), items: [second, first], lastIncoming: { id: 'm2', conversation_id: CONVERSATION, sender_id: OTHER, text: 'Bona nit', sent_at: second.message.sent_at } });
+  mockLive.mockReturnValue({
+    ...mockLive(),
+    items: [second, first],
+    lastIncoming: {
+      id: 'm2',
+      conversation_id: CONVERSATION,
+      sender_id: OTHER,
+      text: 'Bona nit',
+      sent_at: second.message.sent_at,
+    },
+  });
   await rerender(screenElement());
   expect(announce).toHaveBeenCalledWith('Missatge nou de Laia: Bona nit');
 });
@@ -88,7 +108,17 @@ it('announces the first and second incoming messages after an empty history on i
 it('exposes the first incoming message after an empty history in an Android live region', async () => {
   jest.replaceProperty(Platform, 'OS', 'android');
   const { rerender } = await render(screenElement());
-  mockLive.mockReturnValue({ ...mockLive(), items: [first], lastIncoming: { id: 'm1', conversation_id: CONVERSATION, sender_id: OTHER, text: 'Hola', sent_at: first.message.sent_at } });
+  mockLive.mockReturnValue({
+    ...mockLive(),
+    items: [first],
+    lastIncoming: {
+      id: 'm1',
+      conversation_id: CONVERSATION,
+      sender_id: OTHER,
+      text: 'Hola',
+      sent_at: first.message.sent_at,
+    },
+  });
   await rerender(screenElement());
   expect(screen.getByText('Missatge nou de Laia: Hola')).toHaveProp(
     'accessibilityLiveRegion',
@@ -103,7 +133,6 @@ it('does not announce messages already present when the screen first renders', a
   await render(screenElement());
   expect(announce).not.toHaveBeenCalled();
 });
-
 
 it('does not announce history loaded or paged after mount', async () => {
   jest.replaceProperty(Platform, 'OS', 'ios');

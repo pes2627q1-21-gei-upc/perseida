@@ -168,6 +168,12 @@ export function ChatRoomsScreen() {
               </ActionSurface>
             )}
           </View>
+          <ActionSurface>
+            <QuietButton
+              label={t('directChat.list.title')}
+              onPress={() => router.push('/chat/direct')}
+            />
+          </ActionSurface>
           {reloadError && (
             <View style={styles.reloadAlert}>
               <ReloadFailedAlert

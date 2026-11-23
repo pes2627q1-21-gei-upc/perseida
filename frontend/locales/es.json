@@ -82,7 +82,21 @@
     "noMessages": "Aún no hay mensajes",
     "unread_one": "{{count}} mensaje sin leer",
     "unread_other": "{{count}} mensajes sin leer",
-    "you": "Tú: {{text}}"
+    "you": "Tú: {{text}}",
+    "list": {
+      "title": "Conversaciones",
+      "loading": "Cargando conversaciones",
+      "userId": "Identificador de usuario",
+      "open": "Iniciar conversación",
+      "empty": "Aún no tienes conversaciones",
+      "unknownUser": "Usuario"
+    },
+    "room": {
+      "loading": "Cargando conversación",
+      "block": "Bloquear",
+      "unblock": "Desbloquear",
+      "typing": "{{name}} está escribiendo"
+    }
   },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
@@ -131,7 +145,12 @@
     "PUBSUB_UNAVAILABLE": "El chat no está disponible ahora mismo. Inténtalo de nuevo.",
     "VALIDATION_ERROR": "Revisa los datos introducidos.",
     "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
-    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala."
+    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
+    "USER_NOT_FOUND": "No se ha encontrado este usuario.",
+    "CANNOT_MESSAGE_SELF": "No puedes abrir una conversación contigo mismo.",
+    "CONVERSATION_NOT_FOUND": "No se ha encontrado esta conversación.",
+    "USER_BLOCKED": "No se puede enviar el mensaje.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "Este mensaje ya existe con otro contenido."
   },
   "events": {
     "category": {
