@@ -457,9 +457,13 @@ Flux del motor (`AchievementService`):
 
 **Connexió amb la ratxa:** `StreakService.register_activity` avisa un port genèric, `ActivityLog` (`app/domain/shared/ports.py`), amb l'activitat `"streak_days"` i la ratxa actual. `AchievementService` implementa aquest port (`record`). El port viu a `domain/shared` i l'activitat és un text perquè les features no s'importin entre elles ([[backend-hexagonal]]). Si el motor falla, la ratxa ja registrada es manté i només es registra un avís. Quiz (TG-61) i subscripció (TG-53) hi connectaran la seva activitat de la mateixa manera, sense tocar el motor.
 
+**Registre en consultar l'APOD:** `GET /api/apod` continua sent públic; la sessió hi és opcional (`get_optional_session`). Amb sessió vàlida, el router crida `ApodActivityService.register_visit` (`application/apod`), que fa de «best effort» a través del port `DailyActivityRegistrar` (`app/domain/apod/ports.py`); l'adaptador `UserStreakActivityRegistrar` (`infrastructure/apod`) resol l'usuari i avisa `StreakService.register_activity` (una vegada al dia, dia UTC), de manera que `apod` no importa `users` ni `streaks`. Això pot desbloquejar fites; sense sessió, amb token invàlid o caducat, no es registra res. Un error en registrar només queda al log i mai fa fallar la resposta de l'APOD. L'app només demana l'APOD d'avui, així que obrir l'app sense consultar-lo no compta com a activitat.
+
+**Consulta (`GET /api/users/me/achievements`):** protegit amb sessió (401 `INVALID_SESSION` sense). Retorna una llista plana amb les fites del catàleg i el progrés de l'usuari de la sessió, i només el seu. Cada element porta `code`, `name`, `description`, `category`, `position`, `current` (progrés), `goal` (meta), `unlocked` i `unlocked_at` (UTC; `null` si no està desbloquejada). L'ordre és fix: les categories segueixen l'ordre de l'enum `AchievementCategory` (ratxes, quiz, esdeveniments, social, minijoc) i dins de cada una, `position`. Les dates surten del mètode `list_unlocked_at` del port `AchievementRepository` (`list_unlocked_ids` es manté per a `record_activity`).
+
 > [!todo] Pendent
-> - Registrar l'activitat en consultar l'APOD, l'endpoint `GET /api/users/me/achievements` (amb data de desbloqueig, progrés i meta) i els errors documentats: següent PR de TG-58. El port `AchievementRepository` encara només retorna els ids desbloquejats; caldrà afegir-hi les dates.
 > - Les fites de quiz i subscripció queden a 0 fins que TG-61 i TG-53 hi connectin l'activitat.
+> - La pantalla de fites i la compartició (TG-59) i l'avís en desbloquejar una fita queden per a altres US.
 
 ## Enllaços
 

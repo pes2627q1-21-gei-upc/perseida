@@ -163,6 +163,7 @@ The first time the workflow pushes the image, GitHub links the package to the re
 | `POSTGRES_DB`, `POSTGRES_USER` | Secret | Production database name and user |
 | `JWT_SECRET` | Secret | Session JWT key, at least 32 characters (`openssl rand -hex 32`) |
 | `NASA_API_KEY` | Secret | NASA API key for the APOD (<https://api.nasa.gov>) |
+| `SPOTWISE_API_TOKEN` | Secret | Token of the Spotwise spaces service for the meeting points (TG-352); Spotwise hands it out privately |
 | `POSTGRES_PORT` | Variable | Database port |
 | `POSTGRES_HOST` | Variable | `postgres` (network alias of the database service) |
 | `REDIS_HOST` | Variable | `redis` (network alias of the cache service) |

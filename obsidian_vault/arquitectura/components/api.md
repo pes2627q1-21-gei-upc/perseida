@@ -3,7 +3,7 @@ titol: "Component: api"
 tipus: component
 estat: vigent
 data: "2026-11-22"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470"]
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470", "TG-352"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
@@ -76,6 +76,14 @@ Privats, amb sessió; l'usuària s'obté de la sessió com a `GET /api/users/me`
 | `DELETE /api/outings/{id}` | Només l'autora; `204` |
 
 Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
+
+## Punts de trobada (TG-352)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=&lon=`: privat, amb sessió (mateixos 401, 403 i 503 que `/api/users/me`). Recomana biblioteques i cafeteries a prop de la ubicació de la usuària (no de l'esdeveniment) amb el servei d'espais de Spotwise ([[contracte-spotwise#Servei consumit per Perseida]]). No està lligat a cap esdeveniment, perquè també el fa servir el formulari de sortides (decisió de Raquel, 22/11/2026).
+
+- `422 VALIDATION_ERROR` si falta un paràmetre, el perfil no existeix o la ubicació és fora de rang.
+- `503 MEETING_POINTS_UNAVAILABLE` si Spotwise falla (timeout de 5 s, error de connexió, 4xx, 5xx o resposta il·legible); mai `500`.
+- `MeetingPointService` (`app/application/meeting_points/`) desa el resultat a [[redis]] 5 min (`meeting_points:<perfil>:<lat>:<lon>`, coordenades arrodonides a 3 decimals).
 
 ## Seguretat (TG-45)
 
@@ -167,6 +175,7 @@ Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS
 - **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
 - **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
 - **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, implementada: estrella a cada fila del llistat i pestanya «Els meus» (vegeu [[frontend#Subscripcions a esdeveniments (TG-53)]]).
+- **Punts de trobada amb Spotwise (TG-352)**: backend implementat (`MeetingPointService`, port `SpaceSearch`, `SpotwiseSpaceClient` i mock `ExampleSpaceSearch`, `/api/meeting-points`); l'app, pendent (PR 2 i 3 de l'stack).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Xat d'esdeveniment (TG-64)**: backend implementat (`ChatService`, taules `event_chat_rooms` i `chat_messages`, tres endpoints REST i les sales `chat:event:<id>` del WebSocket; vegeu [[chat]]). El moderador és provisional (aprova tot) fins a #81.
 - **Resta de serveis (moderació real, purga i notificacions programades)**: planificat.

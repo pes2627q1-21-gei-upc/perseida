@@ -29,7 +29,7 @@ Un únic procés FastAPI integra tres responsabilitats:
 | Autenticació | Google OAuth2 + PKCE · validació de tokens de Google via JWKS · sessió pròpia del backend (JWT) |
 | Moderació | Microservei Kev-4B (model local, crida síncrona) |
 | Dependències | `uv` (versions exactes, `uv.lock` versionat) |
-| Qualitat | `ruff` (lint + format, complexitat màx. 10), `mypy` estricte, SonarQube Cloud |
+| Qualitat | `ruff` (lint + format, complexitat màx. 10), `mypy` estricte, SonarQube Cloud, `bandit` (seguretat del codi), `pip-audit` (vulnerabilitats de les dependències, OSV) |
 | Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Arquitectura: hexagonal
@@ -184,6 +184,9 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # comprova el format sense modificar fitxers
 uv run mypy .                 # tipatge estricte
 uv run lint-imports           # contractes d'arquitectura (import-linter)
+uv run bandit -c pyproject.toml -r app -ll --ignore-nosec  # seguretat del codi (falla amb gravetat mitjana o alta)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # dependències de producció (amb hashes i ==, que --require-hashes comprova)
+uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # vulnerabilitats conegudes (OSV)
 uv run pytest                 # tests (amb cobertura)
 uv run pytest -n auto         # igual, en paral·lel (una base de dades i un índex de Redis per worker)
 uv run pytest -p randomly --randomly-seed=<llavor>  # reprodueix una fallada d'ordre (llavor a la primera línia de la sortida)
@@ -265,6 +268,22 @@ L'API no arrenca sense `NASA_API_KEY`. En producció ve del secret de GitHub `NA
 > Ara mateix l'API de la NASA respon amb un farciment en lloc de l'APOD (el logotip de NASA Science i un text genèric, observat el 2026-10-21; l'APOD s'ha mudat a science.nasa.gov). Per això el feed RSS va primer. El client continua rebutjant el farciment (també al feed), així que mai es desa.
 >
 > Límits del feed: només es guarden imatges (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo es descarta (`APOD_UNAVAILABLE` si l'API tampoc pot respondre). La data d'una entrada és el dia UTC de la publicació i el text d'`explanation` i `copyright` es converteix d'HTML a text pla. La fallada d'una crida es guarda 15 minuts només quan fallen el feed **i** l'API.
+
+## Punts de trobada (Spotwise)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=…&lon=…` recomana espais de Spotwise (biblioteques i cafeteries) a prop de la usuària (TG-352). Contracte: `obsidian_vault/arquitectura/contracte-spotwise.md`. Cal sessió (401 `INVALID_SESSION`, 403 si el compte és suspès o esborrat).
+
+- La ubicació s'arrodoneix a 3 decimals (uns 100 m). Es demana a Spotwise amb el perfil (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`) i Perseida es queda amb els espais a 1.500 m com a màxim que confirmen el perfil: aptes per a grups i amb wifi per a `watch_party`, silenciosos per a `study` (els endolls només són una preferència). Els valors sense vots (`null`) no compten com a confirmats; es conserva l'ordre de Spotwise.
+- El resultat es desa a Redis **5 minuts** per perfil i ubicació arrodonida (`cache:meeting_points:<perfil>:<lat>:<lon>`).
+- Si Spotwise falla (temps d'espera, connexió, 4xx/5xx o un cos que no és una llista JSON) es respon 503 `MEETING_POINTS_UNAVAILABLE`, mai un 500, i no es desa res. Un espai invàlid es descarta i es registra al log.
+- Com a màxim arriben 60 crides per minut a Spotwise (finestra lliscant, per procés: un sol client creat al lifespan, ADR-0003); per sobre es respon 503 `MEETING_POINTS_UNAVAILABLE` sense cridar-lo.
+- Sense `SPOTWISE_API_TOKEN` es serveix la resposta d'exemple del document de Spotwise (mock, `app/infrastructure/meeting_points/spotwise_examples.json`): en local i a la CI mai es crida Spotwise.
+
+| Variable | Per defecte | Significat |
+|---|---|---|
+| `SPOTWISE_API_TOKEN` | (buida: mock) | Token que Spotwise ens passa per privat. S'envia a la capçalera `Authorization: Token …`, mai a la URL ni als logs. En producció ve del secret de GitHub `SPOTWISE_API_TOKEN`; mai en facis commit. |
+| `SPOTWISE_URL` | `http://nattech.fib.upc.edu:40420` | URL base de Spotwise (Spotwise només serveix HTTP) |
+| `SPOTWISE_TIMEOUT_SECONDS` | `5` | Temps d'espera de cada petició (el que recomana Spotwise) |
 
 ## Quiz diari
 

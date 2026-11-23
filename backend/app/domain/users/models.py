@@ -95,6 +95,10 @@ class User(BaseModel):
         """Return the account with ``last_login_at`` set to ``at``."""
         return self.model_copy(update={"last_login_at": at})
 
+    def change_language(self, language: Language) -> User:
+        """Return the account with ``preferred_language`` set to ``language``."""
+        return self.model_copy(update={"preferred_language": language})
+
     @classmethod
     def create(
         cls,

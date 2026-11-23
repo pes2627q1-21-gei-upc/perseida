@@ -97,6 +97,7 @@
     "INVALID_GOOGLE_TOKEN": "No hemos podido verificar tu cuenta de Google. Vuelve a iniciar sesión.",
     "INVALID_RESPONSE": "Algo ha salido mal. No se ha podido cargar el contenido.",
     "INVALID_SESSION": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+    "MEETING_POINTS_UNAVAILABLE": "Ahora no podemos recomendar locales. Vuelve a intentarlo en un rato.",
     "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo.",
     "NOT_FOUND": "No se ha encontrado lo que buscas.",
     "POST_FORBIDDEN": "Solo quien ha escrito esta publicación puede editarla o borrarla.",
@@ -173,7 +174,8 @@
       "moreInfo": "Más información",
       "openHint": "Abre la ficha del evento",
       "start": "Inicio",
-      "outings": "Salidas de este evento"
+      "outings": "Salidas de este evento",
+      "meetingPoints": "Puntos de encuentro"
     },
     "status": {
       "active": "Activo ahora"
@@ -226,6 +228,48 @@
     "mapLink": "Mapa de eventos",
     "quizLink": "Pregunta del día",
     "outingsLink": "Mis salidas"
+  },
+  "meetingPoints": {
+    "title": "Puntos de encuentro",
+    "loading": "Cargando puntos de encuentro",
+    "empty": "No hay locales recomendados cerca.",
+    "retry": "Reintentar",
+    "retryHint": "Vuelve a pedir los puntos de encuentro",
+    "choose": "Elegir {{name}}",
+    "list": {
+      "label": "Puntos de encuentro recomendados"
+    },
+    "location": {
+      "locating": "Buscando tu ubicación",
+      "denied": "Sin permiso de ubicación no podemos recomendarte locales. Puedes activarlo en los ajustes del dispositivo.",
+      "unavailable": "No encontramos tu ubicación. Comprueba que la ubicación del dispositivo está activada.",
+      "retry": "Vuelve a buscar la ubicación"
+    },
+    "profile": {
+      "label": "Para qué os encontráis",
+      "watch_party": "Observación",
+      "study": "Estudio"
+    },
+    "type": {
+      "library": "Biblioteca",
+      "cafe": "Cafetería",
+      "other": "Otro espacio"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silencioso",
+        "murmur": "Murmullo",
+        "noisy": "Ruidoso"
+      },
+      "plugs": {
+        "many": "Muchos enchufes",
+        "few": "Pocos enchufes",
+        "none": "Sin enchufes"
+      },
+      "groupFriendly": "Bueno para grupos",
+      "notGroupFriendly": "Mejor sin grupos"
+    }
   },
   "nav": {
     "chat": "Chat",
@@ -364,6 +408,7 @@
       "hint": "Mueve el mapa hasta que la mira quede sobre el lugar.",
       "choose": "Elige este lugar",
       "useMine": "Usa mi ubicación",
+      "recommend": "Locales recomendados cerca",
       "denied": "No hemos podido obtener tu ubicación. Mueve el mapa para elegir el lugar.",
       "latitude": "Latitud",
       "longitude": "Longitud",
