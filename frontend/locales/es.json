@@ -55,6 +55,12 @@
     "streakStart": "Abre la imagen astronómica del día para empezar tu racha.",
     "title": "Tus próximos logros"
   },
+  "admin": {
+    "noAccess": {
+      "message": "Tu cuenta no tiene permiso para entrar al panel de administración.",
+      "title": "Sin acceso"
+    }
+  },
   "apod": {
     "loadingLabel": "Cargando el APOD",
     "mediaError": "No se ha podido cargar la imagen o el vídeo.",

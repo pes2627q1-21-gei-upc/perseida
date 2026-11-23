@@ -55,6 +55,12 @@
     "streakStart": "Open the astronomy picture of the day to start your streak.",
     "title": "Your next achievements"
   },
+  "admin": {
+    "noAccess": {
+      "message": "Your account doesn't have permission to open the admin panel.",
+      "title": "No access"
+    }
+  },
   "apod": {
     "loadingLabel": "Loading the APOD",
     "mediaError": "The image or video couldn't be loaded.",

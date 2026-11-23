@@ -103,7 +103,7 @@ Código en `src/features/chat/`; el contrato REST y el protocolo WebSocket son l
 cd frontend                       # desde la raíz del repositorio
 pnpm install --frozen-lockfile    # instala las dependencias exactamente como en pnpm-lock.yaml
 pnpm expo start                   # arranca el servidor de desarrollo de Expo (emulador Android / dispositivo; Expo Go debe ser del SDK 58)
-pnpm web                          # la misma app en el navegador (React Native Web)
+pnpm web                          # la misma app en el navegador (React Native Web), servida bajo /admin/ (p. ej. http://localhost:8081/admin/)
 pnpm lint                         # ESLint + Prettier (también comprueba el formato)
 pnpm typecheck                    # comprobación de tipos estricta (tsc --noEmit)
 pnpm test                         # Jest (preset jest-expo)
