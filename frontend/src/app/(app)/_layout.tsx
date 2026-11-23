@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessionGuard } from '../../features/auth/hooks/useSessionGuard';
+import { useStartupLanguage } from '../../features/language';
 import {
   HIDDEN_NESTED_ROUTES,
   HIDDEN_ROUTES,
@@ -46,6 +47,7 @@ export default function AppLayout() {
   const segments: string[] = useSegments();
   const inChatRoom = segments[1] === 'chat' && segments[2] === '[eventId]';
   const isReady = useSessionGuard();
+  useStartupLanguage(isReady);
 
   if (!isReady) {
     return null;
