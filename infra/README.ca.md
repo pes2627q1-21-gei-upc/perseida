@@ -392,9 +392,9 @@ Per publicar la pantalla d'inici de sessió com a *In production*, Google demana
 ```bash
 cd /opt/perseida
 # 1. Identificador de Google (clau de la sessió a Redis) i id de l'usuari.
-docker compose exec db psql -U perseida perseida -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<correu>';"
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<correu>';"
 # 2. Primer les files amb RESTRICT; esborrar l'usuari esborra en cascada publicacions, missatges, subscripcions i respostes del quiz.
-docker compose exec db psql -U perseida perseida -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
 # 3. Sessions: els membres de user_sessions:<subject> són <sid>:<tipus>:<jti> i les claus, session:<tipus>:<jti>.
 docker compose exec cache sh -c 'for m in $(redis-cli SMEMBERS user_sessions:<subject>); do redis-cli DEL "session:${m#*:}"; done; redis-cli DEL user_sessions:<subject>'
 ```

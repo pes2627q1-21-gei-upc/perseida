@@ -392,9 +392,9 @@ Google requires a home page, a privacy policy and terms of service, all public, 
 ```bash
 cd /opt/perseida
 # 1. Google identifier (session key in Redis) and user id.
-docker compose exec db psql -U perseida perseida -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<email>';"
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<email>';"
 # 2. Rows with RESTRICT first; deleting the user cascades to posts, chat messages, subscriptions and quiz answers.
-docker compose exec db psql -U perseida perseida -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
 # 3. Sessions: members of user_sessions:<subject> are <sid>:<kind>:<jti>, keys are session:<kind>:<jti>.
 docker compose exec cache sh -c 'for m in $(redis-cli SMEMBERS user_sessions:<subject>); do redis-cli DEL "session:${m#*:}"; done; redis-cli DEL user_sessions:<subject>'
 ```
