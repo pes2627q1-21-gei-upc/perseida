@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { AppError } from '../../../shared/errors';
 import type { ServerFrame } from '../../../shared/realtime';
@@ -10,6 +11,8 @@ const mockSend = jest.fn();
 const mockHistory = jest.fn();
 const mockMarkRead = jest.fn();
 let mockIsFocused = true;
+let appStateListeners: ((state: AppStateStatus) => void)[] = [];
+const originalAppState = Object.getOwnPropertyDescriptor(AppState, 'currentState')!;
 let mockListener: ((frame: ServerFrame) => void) | undefined;
 jest.mock('expo-router', () => ({ useIsFocused: () => mockIsFocused }));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'client-id-1') }));
@@ -65,6 +68,16 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   mockListener = undefined;
   jest.clearAllMocks();
+  appStateListeners = [];
+  Object.defineProperty(AppState, 'currentState', {
+    configurable: true,
+    writable: true,
+    value: 'active',
+  });
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((type, listener) => {
+    if (type === 'change') appStateListeners.push(listener as (state: AppStateStatus) => void);
+    return { remove: jest.fn() } as never;
+  });
   mockHistory.mockReturnValue({
     data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
     isPending: false,
@@ -72,12 +85,10 @@ beforeEach(() => {
     isFetching: false,
     hasNextPage: false,
     isFetchingNextPage: false,
-    refetch: jest
-      .fn()
-      .mockResolvedValue({
-        data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
-        isError: false,
-      }),
+    refetch: jest.fn().mockResolvedValue({
+      data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
+      isError: false,
+    }),
     fetchNextPage: jest.fn(),
   });
   mockSend.mockResolvedValue({
@@ -85,9 +96,45 @@ beforeEach(() => {
     payload: { id: 'message-2', sent_at: '2026-11-22T12:01:00Z' },
   });
 });
-afterEach(() => client.clear());
+afterEach(() => {
+  client.clear();
+  jest.restoreAllMocks();
+  Object.defineProperty(AppState, 'currentState', originalAppState);
+});
 
 describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
+  it('does not mark messages read in background and reloads before marking on return', async () => {
+    let finish!: (result: unknown) => void;
+    const data = { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] };
+    const refetch = jest
+      .fn()
+      .mockResolvedValueOnce({ data, isError: false })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      );
+    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+    mockMarkRead.mockClear();
+    await act(async () => {
+      appStateListeners.forEach((listener) => listener('background'));
+    });
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: message });
+    });
+    expect(mockMarkRead).not.toHaveBeenCalled();
+    await act(async () => {
+      appStateListeners.forEach((listener) => listener('active'));
+    });
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(2));
+    expect(mockMarkRead).not.toHaveBeenCalled();
+    await act(async () => {
+      finish({ data, isError: false });
+    });
+    await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+  });
   it('does not mark read when a history request completes after focus was lost', async () => {
     let finish!: (result: unknown) => void;
     const refetch = jest.fn(
@@ -196,12 +243,10 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       isFetching: false,
       hasNextPage: false,
       isFetchingNextPage: false,
-      refetch: jest
-        .fn()
-        .mockResolvedValue({
-          data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-          isError: false,
-        }),
+      refetch: jest.fn().mockResolvedValue({
+        data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
+        isError: false,
+      }),
       fetchNextPage: jest.fn(),
     });
     const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
@@ -222,12 +267,10 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       isFetching: false,
       hasNextPage: false,
       isFetchingNextPage: false,
-      refetch: jest
-        .fn()
-        .mockResolvedValue({
-          data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-          isError: false,
-        }),
+      refetch: jest.fn().mockResolvedValue({
+        data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
+        isError: false,
+      }),
       fetchNextPage: jest.fn(),
     });
     const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
