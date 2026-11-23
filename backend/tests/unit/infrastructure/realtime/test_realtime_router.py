@@ -24,7 +24,10 @@ from app.domain.realtime.models import revocation_channel
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.auth.dependencies import get_auth_service, get_session_store
 from app.infrastructure.cache.dependencies import get_pubsub
-from app.infrastructure.realtime.dependencies import get_direct_handler, get_realtime_config
+from app.infrastructure.realtime.dependencies import (
+    get_direct_handler,
+    get_realtime_config,
+)
 from app.infrastructure.realtime.router import router
 from tests.fakes.auth import (
     FakeAccountGateway,
