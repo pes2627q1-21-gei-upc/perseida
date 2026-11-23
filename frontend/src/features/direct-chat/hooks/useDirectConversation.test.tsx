@@ -80,21 +80,6 @@ beforeEach(() => {
 afterEach(() => client.clear());
 
 describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
-  it('isolates pending messages and a late acknowledgement when switching conversations', async () => {
-    let finish!: (ack: unknown) => void;
-    mockSend.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
-    const { result, rerender } = await renderHook(
-      ({ id }: { id: string }) => useDirectConversation(id),
-      { wrapper, initialProps: { id: CONVERSATION } },
-    );
-    await act(async () => { await result.current.send('Privat'); });
-    expect(result.current.items).toContainEqual(expect.objectContaining({ kind: 'pending', text: 'Privat' }));
-    await rerender({ id: OTHER });
-    expect(result.current.items).not.toContainEqual(expect.objectContaining({ kind: 'pending', text: 'Privat' }));
-    await act(async () => { finish({ type: 'dm.send', payload: { id: 'late-ack', sent_at: '2026-11-22T12:01:00Z' } }); });
-    expect(result.current.items).not.toContainEqual(expect.objectContaining({ kind: 'message', message: expect.objectContaining({ id: 'late-ack' }) }));
-  });
-
   it('exposes persisted history and marks the open conversation as read', async () => {
     mockHistory.mockReturnValue({
       data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
@@ -150,7 +135,11 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
 
   it('never shows an earlier conversation send in the new conversation after a late ack', async () => {
     let resolveSend!: (value: { type: string; payload: { id: string; sent_at: string } }) => void;
-    mockSend.mockReturnValueOnce(new Promise((resolve) => { resolveSend = resolve; }));
+    mockSend.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSend = resolve;
+      }),
+    );
     const { result, rerender } = await renderHook(
       ({ id }: { id: string }) => useDirectConversation(id),
       { wrapper, initialProps: { id: CONVERSATION } },
@@ -172,7 +161,10 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       await pendingSend;
     });
     expect(result.current.items).not.toContainEqual(
-      expect.objectContaining({ kind: 'message', message: expect.objectContaining({ id: 'late-message-a' }) }),
+      expect.objectContaining({
+        kind: 'message',
+        message: expect.objectContaining({ id: 'late-message-a' }),
+      }),
     );
     expect(result.current.items).not.toContainEqual(
       expect.objectContaining({ kind: 'pending', text: 'Només a A' }),
