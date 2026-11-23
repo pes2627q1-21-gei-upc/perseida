@@ -3,6 +3,8 @@ from collections.abc import AsyncIterator
 from contextlib import AbstractAsyncContextManager
 from typing import Protocol
 
+from app.domain.shared.moderation import ModerationResult
+
 
 class Cache(Protocol):
     """Key-value cache with expiration. Keys are ``<domain>:<id>``.
@@ -58,4 +60,24 @@ class ActivityLog(Protocol):
 
     async def record(self, user_id: uuid.UUID, activity: str, value: int) -> None:
         """Record the activity. Unknown activities are ignored."""
+        ...
+
+
+class MessageModerator(Protocol):
+    """Decides whether a text may be published (ADR-0007)."""
+
+    async def moderate(self, text: str) -> ModerationResult:
+        """Return the verdict on ``text``."""
+        ...
+
+
+class SendRateLimiter(Protocol):
+    """Limits how often a user may send messages."""
+
+    async def hit(self, user_id: uuid.UUID) -> bool:
+        """Count one send of ``user_id``. Return False if the limit is exceeded.
+
+        Raises:
+            ExternalServiceError: if the counter is unavailable.
+        """
         ...

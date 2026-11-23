@@ -23,7 +23,10 @@ from app.application.realtime.realtime_session import RealtimeConfig
 from app.domain.auth.models import GoogleIdentity
 from app.infrastructure.auth.dependencies import get_auth_service, get_session_store
 from app.infrastructure.cache.dependencies import get_pubsub
-from app.infrastructure.realtime.dependencies import get_realtime_config
+from app.infrastructure.realtime.dependencies import (
+    get_direct_handler,
+    get_realtime_config,
+)
 from app.infrastructure.realtime.router import router
 from tests.fakes.auth import (
     FakeAccountGateway,
@@ -53,6 +56,7 @@ def _build_app() -> FastAPI:
     app.dependency_overrides[get_pubsub] = lambda: pubsub
     app.dependency_overrides[get_session_store] = lambda: store
     app.dependency_overrides[get_realtime_config] = lambda: config
+    app.dependency_overrides[get_direct_handler] = lambda: None
     return app
 
 

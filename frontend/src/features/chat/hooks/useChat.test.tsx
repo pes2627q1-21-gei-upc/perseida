@@ -12,7 +12,9 @@ import {
 } from '../../../../__mocks__/chat';
 import { AppError } from '../../../shared/errors';
 import { saveTokens } from '../../auth/tokenStorage';
-import { chatKeys, useMySubscriptions, useRoomMessages, useRooms } from './useChat';
+import { eventKeys } from '../../events/hooks/useEvents';
+import { useMySubscriptions } from '../../events/hooks/useSubscriptions';
+import { chatKeys, useRoomMessages, useRooms } from './useChat';
 
 // SecureStore is native: an in-memory store stands in for the device keychain.
 jest.mock('expo-secure-store', () => {
@@ -66,7 +68,8 @@ describe('chatKeys', () => {
   it('centralises the query keys of the chat feature (TG-466)', () => {
     expect(chatKeys.all).toEqual(['chat']);
     expect(chatKeys.rooms).toEqual(['chat', 'rooms']);
-    expect(chatKeys.subscriptions).toEqual(['chat', 'subscriptions']);
+    // The subscriptions are the ones of the Events tab (TG-53): one cache for both.
+    expect('subscriptions' in chatKeys).toBe(false);
     expect(chatKeys.messages(EVENT_ID)).toEqual(['chat', 'messages', EVENT_ID]);
   });
 });
@@ -211,7 +214,7 @@ describe('useRoomMessages', () => {
   });
 });
 
-describe('useMySubscriptions', () => {
+describe('useMySubscriptions, shared with the Events tab (TG-53)', () => {
   it('returns the events the user is subscribed to (TG-469)', async () => {
     const events = [makeSubscribedEvent(1), makeSubscribedEvent(2)];
     const calls = mockFetch(() => jsonResponse(events));
@@ -224,14 +227,14 @@ describe('useMySubscriptions', () => {
     expect(calls[0]?.auth).toBe('Bearer access-1');
   });
 
-  it('stores the answer under chatKeys.subscriptions', async () => {
+  it('stores the answer under eventKeys.subscriptions, the key of the Events tab', async () => {
     const events = [makeSubscribedEvent(1)];
     mockFetch(() => jsonResponse(events));
 
     const { result } = await renderHook(() => useMySubscriptions(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(client.getQueryData(chatKeys.subscriptions)).toEqual(events);
+    expect(client.getQueryData(eventKeys.subscriptions())).toEqual(events);
   });
 
   it('returns the problem+json as an AppError', async () => {

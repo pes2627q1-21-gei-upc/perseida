@@ -8,8 +8,8 @@ from app.domain.chat.models import (
     ChatRepositoryPage,
     ChatRoomSummary,
     EventChatRoom,
-    ModerationResult,
 )
+from app.domain.shared.moderation import ModerationResult
 
 
 class InMemoryChatRepository:

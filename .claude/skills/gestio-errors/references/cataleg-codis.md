@@ -46,8 +46,11 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `USER_EMAIL_INVALID` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users (correu massa llarg o amb espais o caràcters de control) |
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
-| `CANNOT_MESSAGE_SELF` | 422 | `BusinessRuleViolation` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa o bloqueig amb un mateix usuari; TG-400) |
-| `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; TG-400) |
+| `CANNOT_MESSAGE_SELF` | 422 | `BusinessRuleViolation` | Sí | No et pots enviar missatges a tu mateix. | No puedes enviarte mensajes a ti mismo. | You can't message yourself. | domain/direct_chat (conversa o bloqueig amb un mateix usuari; TG-400). Text aprovat per Oriol Orbea (22/11/2026, TG-65) |
+| `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta conversa no existeix. | Esta conversación no existe. | This conversation doesn't exist. | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; TG-400). Text aprovat per Oriol Orbea (22/11/2026, TG-65) |
+| `USER_NOT_FOUND` | 404 | `NotFoundError` | No | No hem trobat aquest usuari. | No hemos encontrado a este usuario. | We couldn't find this user. | application/direct_chat (obrir una conversa amb un usuari inexistent o esborrat; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
+| `USER_BLOCKED` | 403 | `ForbiddenError` | No | Ara no pots enviar missatges en aquesta conversa. | Ahora no puedes enviar mensajes en esta conversación. | You can't send messages in this conversation right now. | application/direct_chat (algun dels dos usuaris bloqueja l'altre; el text no revela qui bloqueja; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
+| `DIRECT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/direct_chat (`send_message` amb un `client_message_id` ja usat amb una altra conversa o un altre text; TG-65) |
 
 ## Codis dels esdeveniments (TG-351)
 
@@ -135,6 +138,12 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 |---|---|---|---|---|---|---|---|
 | `EVENT_ALREADY_ENDED` | 409 | `ConflictError` | No | Aquest esdeveniment ja ha acabat. | Este evento ya ha terminado. | This event has already ended. | domain/events |
 
+## Codis dels punts de trobada (TG-352)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `MEETING_POINTS_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona. | Ahora no podemos recomendar locales. Vuelve a intentarlo en un rato. | We can't recommend places right now. Please try again in a while. | application/meeting_points (constant; `SpotwiseSpaceClient` la llança si Spotwise no respon en 5 s, no s'hi pot connectar, respon 4xx/5xx o un cos que no és una llista JSON) |
+
 ## Taula plantilla
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
@@ -158,6 +167,7 @@ Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND
 | NASA (APOD...) | Retorna la cache (Redis), sense 500 | `ExternalServiceError` (503) amb codi propi |
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
 | Fonts d'esdeveniments (Launch Library 2, USNO, Skyfield, catàleg) | Es serveixen els esdeveniments desats a PostgreSQL; la font no es torna a cridar en 15 min | Igual: `EVENT_SOURCE_UNAVAILABLE` no arriba al client, mai un 5xx (TG-50, ADR-0031) |
-| Altres (meteo, contaminació lumínica, Spotwise, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
+| Spotwise (espais) | Només dins del TTL de 5 min (per perfil i ubicació arrodonida a 3 decimals) es retorna la recomanació desada a Redis, sense cridar Spotwise. Un cop caducada no es serveix mai: no hi ha fallback amb dades caducades (decisió de la persona, TG-352) | `ExternalServiceError` `MEETING_POINTS_UNAVAILABLE` (503), mai un 500; no es desa res. També si ja s'han fet 60 crides a Spotwise en l'últim minut (límit de sortida per procés) (TG-352) |
+| Altres (meteo, contaminació lumínica, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
 Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.

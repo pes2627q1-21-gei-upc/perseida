@@ -31,7 +31,7 @@ env:
   ENV_EXTRA_REQUIRED: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS
   # Només poden ser secrets (mai variables): una variable es veuria sense
   # emmascarar als logs públics.
-  ENV_SECRET_ONLY: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS POSTGRES_PASSWORD POSTGRES_DB POSTGRES_USER JWT_SECRET NASA_API_KEY
+  ENV_SECRET_ONLY: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS POSTGRES_PASSWORD POSTGRES_DB POSTGRES_USER JWT_SECRET NASA_API_KEY SPOTWISE_API_TOKEN
 
 jobs:
   # Falla abans de tocar el servidor si falta algun secret o variable requerit.
@@ -144,6 +144,9 @@ jobs:
           # estigui el proxy en marxa o no (hotfix 0.2.2).
           scp -q infra/nginx-proxy-manager/http_top.conf virtech:/opt/perseida/http_top.conf.new
           ssh virtech 'cd /opt/perseida && sh install-http-top.sh http_top.conf.new && rm -f http_top.conf.new'
+          # Pàgines públiques que el Compose munta a NPM a /public (TG-343).
+          ssh virtech 'mkdir -p /opt/perseida/nginx-proxy-manager/public'
+          scp -q infra/nginx-proxy-manager/public/*.html virtech:/opt/perseida/nginx-proxy-manager/public/
           ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
 
       # El servidor baixa la imatge de GHCR (paquet privat) amb el token efímer

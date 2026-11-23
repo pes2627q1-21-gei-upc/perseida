@@ -31,7 +31,10 @@ from app.infrastructure.apod.nasa_provider import (
     NasaApodProvider,
 )
 from app.infrastructure.apod.router import router
+from app.infrastructure.auth.dependencies import get_auth_service
 from app.infrastructure.cache.redis_cache import RedisCache
+from app.infrastructure.streaks.dependencies import get_streak_service
+from app.infrastructure.users.dependencies import get_user_service
 from tests.factories.apod import make_apod
 from tests.fakes.apod import FakeApodRepository
 from tests.fakes.cache import FakeCache
@@ -290,6 +293,10 @@ async def test_tg46_c7_endpoint_answers_503_problem_json(
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(router, prefix="/api")
+    # No session in these tests: the optional-session dependencies are not used.
+    app.dependency_overrides[get_auth_service] = lambda: object()
+    app.dependency_overrides[get_user_service] = lambda: object()
+    app.dependency_overrides[get_streak_service] = lambda: object()
     app.dependency_overrides[get_apod_provider] = lambda: make_provider(
         http, cache, repository
     )

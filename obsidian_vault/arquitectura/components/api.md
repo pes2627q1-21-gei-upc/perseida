@@ -2,9 +2,9 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-21"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51"
+data: "2026-11-23"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470", "TG-65", "TG-352"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51; TG-65 i backend/app/infrastructure/direct_chat (23/11/2026)"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -77,6 +77,14 @@ Privats, amb sessió; l'usuària s'obté de la sessió com a `GET /api/users/me`
 
 Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
 
+## Punts de trobada (TG-352)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=&lon=`: privat, amb sessió (mateixos 401, 403 i 503 que `/api/users/me`). Recomana biblioteques i cafeteries a prop de la ubicació de la usuària (no de l'esdeveniment) amb el servei d'espais de Spotwise ([[contracte-spotwise#Servei consumit per Perseida]]). No està lligat a cap esdeveniment, perquè també el fa servir el formulari de sortides (decisió de Raquel, 22/11/2026).
+
+- `422 VALIDATION_ERROR` si falta un paràmetre, el perfil no existeix o la ubicació és fora de rang.
+- `503 MEETING_POINTS_UNAVAILABLE` si Spotwise falla (timeout de 5 s, error de connexió, 4xx, 5xx o resposta il·legible); mai `500`.
+- `MeetingPointService` (`app/application/meeting_points/`) desa el resultat a [[redis]] 5 min (`meeting_points:<perfil>:<lat>:<lon>`, coordenades arrodonides a 3 decimals).
+
 ## Seguretat (TG-45)
 
 Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
@@ -134,6 +142,20 @@ Privats, amb sessió (401, 403 i 503 com `GET /api/users/me`). Només subscripto
 
 Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS` i `CHAT_MESSAGE_MAX_LENGTH` (vegeu [[chat]]).
 
+## Xat directe (TG-65)
+
+A la branca de treball TG-65 els endpoints són privats i requereixen sessió. Errors RFC 9457 amb `code`; la integració i la revisió de la pila encara estan pendents.
+
+| Endpoint | Funció |
+|---|---|
+| `POST /api/direct-conversations` | Cos `{user_id}`; crea (201) o recupera (200) la conversa de la parella |
+| `GET /api/direct-conversations` | Converses amb perfil de l'altre usuari, vista prèvia i no llegits |
+| `GET /api/direct-conversations/{id}/messages` | Historial amb `before` i `limit` (50 per defecte) |
+| `POST /api/direct-conversations/{id}/read` | Marca de llegit del participant (204) |
+| `PUT` / `DELETE /api/users/{id}/block` | Bloqueig i desbloqueig idempotents (204) |
+
+A `/api/ws`, `dm.send` porta `conversation_id`, `text` i `client_message_id`; l'ack correlacionat retorna `id` i `sent_at` i confirma acceptació durable, no entrega. `dm.message` comunica el missatge; `dm.typing` és efímer i no es desa. Les connexions autenticades escolten un canal intern per usuari, no una sala subscrita arbitràriament pel client. Flux i límits a [[chat]] i [[0034-outbox-xat-directe]].
+
 ## US de Taiga relacionades
 
 - TG-36 (Imatge Docker del backend i publicació a GHCR)
@@ -166,7 +188,8 @@ Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS
 - **Quiz diari (TG-60)**: implementat (`QuizService`, banc de 100 preguntes, cache a Redis, `/api/quiz/today` i `/api/quiz/today/answer`).
 - **Sortides d'observació (TG-629)**: backend implementat (`OutingService`, taula `outings`, `/api/outings`); l'app, pendent (tasques #640 i #641).
 - **Publicacions d'esdeveniment (TG-628)**: implementat (`PostService`, `SqlPostRepository`, taula `posts` i els quatre endpoints).
-- **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, pendent (PR 2).
+- **Subscripcions a esdeveniments (TG-53)**: backend implementat (`SubscriptionService`, `SqlEventSubscriptionRepository`, taula `event_subscriptions` i els tres endpoints); l'app, implementada: estrella a cada fila del llistat i pestanya «Els meus» (vegeu [[frontend#Subscripcions a esdeveniments (TG-53)]]).
+- **Punts de trobada amb Spotwise (TG-352)**: backend implementat (`MeetingPointService`, port `SpaceSearch`, `SpotwiseSpaceClient` i mock `ExampleSpaceSearch`, `/api/meeting-points`); l'app, pendent (PR 2 i 3 de l'stack).
 - **Migracions Alembic (TG-41)**: pendent.
 - **Xat d'esdeveniment (TG-64)**: backend implementat (`ChatService`, taules `event_chat_rooms` i `chat_messages`, tres endpoints REST i les sales `chat:event:<id>` del WebSocket; vegeu [[chat]]). El moderador és provisional (aprova tot) fins a #81.
 - **Resta de serveis (moderació real, purga i notificacions programades)**: planificat.

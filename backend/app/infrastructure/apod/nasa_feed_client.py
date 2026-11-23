@@ -7,6 +7,8 @@ from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
 import httpx
+from defusedxml import DefusedXmlException
+from defusedxml.ElementTree import fromstring as defused_fromstring
 
 from app.domain.apod.models import Apod, MediaType
 from app.domain.shared.errors import DomainError
@@ -71,17 +73,12 @@ def _item_date(item: ET.Element) -> dt.date | None:
 def _parse_feed(content: bytes) -> list[tuple[dt.date, ET.Element]]:
     if len(content) > _MAX_FEED_BYTES:
         raise NasaApodError("NASA APOD feed is too large")
-    # A feed never needs a DTD: refusing it rules out entity expansion and external
-    # entities without adding a dependency (xml.etree does not fetch them anyway).
-    # A DTD can only come before the root element; the items carry whole HTML pages
-    # in CDATA (``<!doctype html>``), which are not DTDs.
-    first_element = re.search(rb"<[A-Za-z_:]", content)
-    prolog = content if first_element is None else content[: first_element.start()]
-    if re.search(rb"<!(DOCTYPE|ENTITY)", prolog, re.IGNORECASE):
-        raise NasaApodError("NASA APOD feed has a DTD")
+    # A feed never needs a DTD: defusedxml refuses it wherever it hides (and with it
+    # entity expansion and external entities), with the error of an invalid feed
+    # (TG-383, bandit B314). The HTML in CDATA (``<!doctype html>``) is not a DTD.
     try:
-        root = ET.fromstring(content)
-    except ET.ParseError as exc:
+        root = defused_fromstring(content, forbid_dtd=True)
+    except (DefusedXmlException, ET.ParseError) as exc:
         raise NasaApodError("NASA APOD feed is not valid XML") from exc
     dated = [(_item_date(item), item) for item in root.iterfind("./channel/item")]
     return [(day, item) for day, item in dated if day is not None]

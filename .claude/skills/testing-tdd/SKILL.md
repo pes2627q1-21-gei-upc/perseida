@@ -68,6 +68,10 @@ Patrons i exemples: [references/patrons-per-capa.md](references/patrons-per-capa
 2. Corregeix (commit `fix:`); el test es queda a la suite.
 3. Si el bug depèn de l'entorn (BD, hora, xarxa), escriu el test al nivell on es manifesta (vegeu `testing-integracio`).
 
+## Retroalimentació: registra els errors
+
+Tot error que trobis en testing o verificació (vermell per un motiu no previst o que passa a la primera, error de prova manual, CI o mutants, defecte de la review) es registra a `obsidian_vault/estat/errors/` amb la plantilla `plantilles/error-de-testing` (skill `obsidian-markdown`): símptoma, **causa**, correcció, test de regressió i lliçó. Procediment i fases a `obsidian_vault/convencions/retroalimentacio-de-testing.md`. Un vermell pel motiu previst no es registra. Si ets un subagent, retorna un bloc `ERRORS TROBATS` (fase, símptoma, causa, test) a l'agent principal.
+
 ## Cobertura i qualitat dels tests
 
 - Llindars de la política: **80 % global** i **90 % del codi nou**; la CI de la PR falla si no es compleixen (bloquejant des de TG-359 mitjançant `diff-cover`, `coverageThreshold` al frontend i SonarQube Cloud). En local es comproven amb `uv run pytest` i `pnpm test --coverage`.
@@ -84,6 +88,7 @@ Patrons i exemples: [references/patrons-per-capa.md](references/patrons-per-capa
 - [ ] Cap test modificat per fer-lo passar.
 - [ ] Tests unitaris de tots els components/mòduls modificats.
 - [ ] Test de regressió si és un bug.
+- [ ] Errors trobats registrats a `estat/errors/`, amb la lliçó.
 - [ ] Cobertura mesurada (80 % global, 90 % codi nou) i resultats reals reportats.
 - [ ] `ruff`, `mypy` strict, ESLint i `tsc` nets.
 - [ ] Cap secret ni dada personal a tests ni fixtures.
