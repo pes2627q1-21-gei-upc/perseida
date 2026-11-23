@@ -20,6 +20,7 @@ from app.infrastructure.chat.tables import (  # noqa: E402, F401
 )
 from app.infrastructure.direct_chat.tables import (  # noqa: E402, F401
     DirectConversationRow,
+    DirectMessageOutboxRow,
     DirectMessageRow,
     UserBlockRow,
 )

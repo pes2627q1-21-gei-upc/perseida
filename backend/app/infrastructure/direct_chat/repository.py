@@ -1,13 +1,18 @@
 import uuid
 from collections.abc import Collection
-from datetime import datetime
+from datetime import UTC, datetime
 
-from sqlalchemy import case, delete, exists, func, or_, select, true, update
+from sqlalchemy import case, delete, exists, func, or_, select, text, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col, tuple_
 
-from app.domain.direct_chat.errors import CONVERSATION_NOT_FOUND, VALIDATION_ERROR
+from app.application.shared.errors import ForbiddenError
+from app.domain.direct_chat.errors import (
+    CONVERSATION_NOT_FOUND,
+    USER_BLOCKED,
+    VALIDATION_ERROR,
+)
 from app.domain.direct_chat.models import (
     ConversationSummary,
     DirectConversation,
@@ -19,11 +24,21 @@ from app.domain.direct_chat.models import (
 from app.domain.shared.errors import NotFoundError, ValidationError
 from app.infrastructure.direct_chat.tables import (
     DirectConversationRow,
+    DirectMessageOutboxRow,
     DirectMessageRow,
     UserBlockRow,
 )
 from app.infrastructure.persistence.errors import database_errors
 from app.infrastructure.users.tables import UserRow
+
+
+async def lock_pair(session: AsyncSession, a: uuid.UUID, b: uuid.UUID) -> None:
+    """Serialize block changes with dispatch across all application instances."""
+    key = ":".join(str(value) for value in sorted((a, b)))
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(hashtextextended(:pair, 0))"),
+        {"pair": key},
+    )
 
 
 def _conversation(row: DirectConversationRow) -> DirectConversation:
@@ -220,7 +235,9 @@ class SqlDirectMessageRepository:
                 row = await session.scalar(statement)
         return None if row is None else _message(row)
 
-    async def add(self, message: DirectMessage) -> DirectMessage:
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
         statement = (
             insert(DirectMessageRow)
             .values(**message.model_dump())
@@ -233,10 +250,38 @@ class SqlDirectMessageRepository:
         )
         with database_errors():
             async with self._session_factory() as session:
+                conversation = await session.get_one(
+                    DirectConversationRow, message.conversation_id
+                )
+                await lock_pair(session, conversation.user_a_id, conversation.user_b_id)
+                blocked = await session.scalar(
+                    select(
+                        exists().where(
+                            or_(
+                                (col(UserBlockRow.blocker_id) == conversation.user_a_id)
+                                & (
+                                    col(UserBlockRow.blocked_id)
+                                    == conversation.user_b_id
+                                ),
+                                (col(UserBlockRow.blocker_id) == conversation.user_b_id)
+                                & (
+                                    col(UserBlockRow.blocked_id)
+                                    == conversation.user_a_id
+                                ),
+                            )
+                        )
+                    )
+                )
+                if blocked:
+                    raise ForbiddenError(USER_BLOCKED, "The conversation is blocked")
                 row = await session.scalar(statement)
-                await session.commit()
                 if row is None:
                     row = (await session.scalars(find)).one()
+                else:
+                    session.add(
+                        DirectMessageOutboxRow(message_id=row.id, origin=origin)
+                    )
+                await session.commit()
         return _message(row)
 
     async def page(
@@ -297,7 +342,25 @@ class SqlUserBlockRepository:
         )
         with database_errors():
             async with self._session_factory() as session:
+                await lock_pair(session, user_block.blocker_id, user_block.blocked_id)
                 await session.execute(statement)
+                pair_conversation = select(col(DirectConversationRow.id)).where(
+                    col(DirectConversationRow.user_a_id)
+                    == min(user_block.blocker_id, user_block.blocked_id),
+                    col(DirectConversationRow.user_b_id)
+                    == max(user_block.blocker_id, user_block.blocked_id),
+                )
+                pair_messages = select(col(DirectMessageRow.id)).where(
+                    col(DirectMessageRow.conversation_id).in_(pair_conversation)
+                )
+                await session.execute(
+                    update(DirectMessageOutboxRow)
+                    .where(
+                        col(DirectMessageOutboxRow.message_id).in_(pair_messages),
+                        col(DirectMessageOutboxRow.delivered_at).is_(None),
+                    )
+                    .values(delivered_at=datetime.now(UTC))
+                )
                 await session.commit()
 
     async def unblock(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> None:
@@ -307,6 +370,7 @@ class SqlUserBlockRepository:
         )
         with database_errors():
             async with self._session_factory() as session:
+                await lock_pair(session, blocker_id, blocked_id)
                 await session.execute(statement)
                 await session.commit()
 
