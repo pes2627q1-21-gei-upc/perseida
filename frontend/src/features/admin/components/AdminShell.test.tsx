@@ -88,5 +88,18 @@ describe('AdminShell (TG-77 criteri 6)', () => {
       await fireEvent(link, 'blur');
       expect(ring().boxShadow).toBeUndefined();
     });
+
+    it('lets the pointer go through the hidden skip link, so it does not cover the top bar', async () => {
+      await renderShell();
+      const link = screen.getByRole('link', { name: TEXT.skip });
+      const ring = () => screen.getByTestId('skip-link-ring');
+      expect(ring()).toHaveProp('pointerEvents', 'none');
+
+      await fireEvent(link, 'focus');
+      expect(ring()).toHaveProp('pointerEvents', 'auto');
+
+      await fireEvent(link, 'blur');
+      expect(ring()).toHaveProp('pointerEvents', 'none');
+    });
   });
 });
