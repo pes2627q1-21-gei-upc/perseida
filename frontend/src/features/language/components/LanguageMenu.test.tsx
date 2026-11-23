@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { AccessibilityInfo } from 'react-native';
 
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
 import i18n from '../../../shared/i18n';
@@ -104,6 +105,44 @@ describe('LanguageMenu (TG-92)', () => {
     const request = fetchSpy.mock.calls[0][0] as Request;
     expect(request.method).toBe('PATCH');
     await expect(request.json()).resolves.toEqual({ preferred_language: 'es' });
+  });
+
+  it('TG-92 Criteri 9: announces the change to the screen reader, in the new language', async () => {
+    accountAnswers('es');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+    await renderMenu();
+    await openMenu();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Castellano' }));
+
+    expect(announce).toHaveBeenCalledWith('Idioma cambiado a Castellano');
+  });
+
+  it('does not announce anything when the current language is chosen again', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+    await renderMenu();
+    await openMenu();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Català' }));
+
+    expect(announce).not.toHaveBeenCalled();
+  });
+
+  it('TG-92 Criteri 9: the button explains what it does and the status texts are live regions', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => undefined));
+    await renderMenu();
+
+    expect(screen.getByRole('button', { name: 'Idioma: CA, Català' }).props.accessibilityHint).toBe(
+      "Obre la llista d'idiomes",
+    );
+
+    await openMenu();
+    await fireEvent.press(screen.getByRole('radio', { name: 'English' }));
+
+    const saving = await screen.findByText(i18n.t('profile.languageMenu.saving'));
+    expect(saving.props.accessibilityLiveRegion).toBe('polite');
   });
 
   it('choosing the current language only closes the menu', async () => {
