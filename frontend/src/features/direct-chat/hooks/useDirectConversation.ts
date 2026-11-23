@@ -51,7 +51,7 @@ function asChatMessage(message: DirectEvent, name: string | null): ChatMessage {
 }
 
 /** A private conversation over the authenticated socket and cursor-based history. */
-export function useDirectConversation(conversationId: string) {
+export function useDirectConversation(conversationId: string, otherName?: string) {
   const queryClient = useQueryClient();
   const history = useDirectMessages(conversationId);
   const user = useCurrentUser();
@@ -217,12 +217,15 @@ export function useDirectConversation(conversationId: string) {
     unique.sort((a, b) => b.sent_at.localeCompare(a.sent_at) || b.id.localeCompare(a.id));
     return buildChatItems({
       messages: unique.map((message) =>
-        asChatMessage(message, message.sender_id === user.data?.id ? user.data.display_name : null),
+        asChatMessage(
+          message,
+          message.sender_id === user.data?.id ? user.data.display_name : (otherName ?? null),
+        ),
       ),
       myUserId: user.data?.id ?? '',
       pending: pending.filter((item) => item.conversationId === conversationId),
     });
-  }, [arrived, conversationId, history.data, pending, user.data]);
+  }, [arrived, conversationId, history.data, otherName, pending, user.data]);
 
   return {
     items,

@@ -73,7 +73,7 @@ export function DirectConversationScreen({
   const theme = useTheme();
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
-  const live = useDirectConversation(conversationId);
+  const live = useDirectConversation(conversationId, otherUser.displayName);
   const typing = useDirectTyping(conversationId);
   const block = useBlockUser();
   const unblock = useUnblockUser();
