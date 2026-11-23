@@ -2,9 +2,9 @@
 titol: "Google OAuth2 amb PKCE, validació JWKS i sessió pròpia"
 tipus: adr
 estat: acceptada
-data: "2026-10-26"
-us: ["TG-85", "TG-43", "TG-44", "TG-45", "TG-38", "TG-342"]
-font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87); Taiga: US TG-45 (criteris d'acceptació); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52)"
+data: "2026-11-22"
+us: ["TG-85", "TG-43", "TG-44", "TG-45", "TG-38", "TG-342", "TG-343"]
+font: "backend/README.md; frontend/README.md; infra/README.md; memòria §2.9.3; incepció 2 §6 (02-10-2026); Taiga: backlog (llistat de US, 2026-10-07); Taiga: US TG-44 (criteris d'acceptació i notes de coordinació amb TG-45 i TG-87); Taiga: US TG-45 (criteris d'acceptació); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-343, tasques #344 i #345, i spike de Manel a la consola de Google (22/11/2026)"
 etiquetes: [adr, autenticacio, oauth2, pkce, jwks, seguretat]
 ---
 
@@ -89,15 +89,29 @@ Correcció del flux mòbil. No canvia la decisió.
 - **Builds de prova amb EAS:** per provar el login a un mòbil sense Android Studio, l'equip pot compilar un APK a EAS Build (organització d'Expo `perseida-fib-upc`, perfil `preview` de `frontend/eas.json`). El keystore és compartit i el guarda Expo: el seu SHA-1 és el que ha d'estar registrat al client Android de Google Cloud, i no se n'ha de generar cap de nou. No substitueix l'APK de release de la US TG-329 (GitHub Actions).
 - **Pantalla de consentiment en producció:** perquè entri qualsevol compte de Google (no només els usuaris de test), l'app ha d'estar publicada («In production») a Google Auth Platform. Amb els àmbits `openid`, `email` i `profile` no cal verificació.
 
+## Concreció (TG-343 · Publicació a Google Auth Platform)
+
+No canvia la decisió: concreta què cal perquè entri qualsevol compte de Google.
+
+- **Domini (spike #344, 22/11/2026):** `perseida.duckdns.org` ja és un domini autoritzat de Google Auth Platform (Branding) i la consola l'accepta. `duckdns.org` és a la Public Suffix List ([[0026-produccio-per-ports-nat-amb-duckdns-i-certificat-dns-01|ADR-0026]]), així que `perseida.duckdns.org` compta com a domini propi. Search Console accepta la propietat de prefix d'URL `https://perseida.duckdns.org:40431/` (amb el port) i ofereix verificar-la amb un fitxer HTML o una etiqueta `meta`. **No cal domini propi ni quedar-se en mode Testing.**
+- **Verificació a Search Console:** amb l'etiqueta `meta` dins de la pàgina principal, que es versiona (el valor no és secret: és a l'HTML públic). Es prem *Verifica* quan les pàgines són a producció.
+- **Pàgines públiques:** principal (`/`), política de privacitat (`/privacy`) i condicions del servei (`/terms`), HTML estàtic en català, castellà i anglès que serveix nginx-proxy-manager ([[0009-nginx-proxy-manager-serveix-media-i-spa-admin|ADR-0009]], [[nginx-proxy-manager#Pàgines públiques (TG-343)]]).
+- **Tractament de dades (#345, decisions de Manel, 22/11/2026):** responsable, l'equip de Perseida (projecte acadèmic de PES, UPC-FIB), sense noms personals; contacte, un correu d'equip (no el d'una persona, per la regla de dades personals d'AGENTS.md); retenció, mentre existeixi el compte (els registres tècnics, fins que s'apaga el servidor), amb esborrat a mà en 30 dies com a màxim si es demana per correu (procediment al README d'`infra/`: encara no hi ha endpoint i l'esborrat de l'app és lògic), i de tot en apagar el servidor al final del quadrimestre. La moderació es descriu com a possibilitat, perquè el moderador real (TG-81) encara no és en producció. La política descriu les dades reals del model ([[model-de-domini]]).
+- **Branding sense logo:** el logo activa la verificació de marca de Google.
+
 ## Alternatives descartades
 
-- No consta cap alternativa discutida a les fonts.
+- **Domini propi** (TG-343): no cal, perquè la consola accepta `perseida.duckdns.org`.
+- **Mantenir el mode Testing** amb usuaris de test (TG-343): limita l'app a 100 comptes coneguts; només calia si el domini no s'acceptava.
+- **Servir les pàgines des del backend** (TG-343): s'evitava tocar el CD i NPM, però contradeia l'ADR-0009 (NPM serveix l'estàtic). Decisió de Manel, 22/11/2026.
+
 
 ## US de Taiga relacionades
 
 - TG-43 (inici de sessió amb Google OAuth2 i PKCE des de l'app mòbil)
 - TG-44 (validació de tokens de Google via JWKS i emissió de sessió pròpia)
 - TG-45 (model d'usuari, alta automàtica al primer accés i tancament de sessió)
+- TG-343 (publicació a Google Auth Platform amb pàgines públiques)
 - TG-85 (vault d'Obsidian)
 
 ## Enllaços

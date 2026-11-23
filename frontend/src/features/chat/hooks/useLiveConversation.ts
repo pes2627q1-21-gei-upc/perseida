@@ -14,6 +14,7 @@ import { useCurrentUser } from '../../auth/hooks/useCurrentUser';
 import type { ChatMessage, ChatRoom } from '../api/chat';
 import { addMessage, type ChatHistoryData, flattenMessages } from '../chatCache';
 import { buildChatItems, type OutgoingMessage, type SendFailure } from '../chatItems';
+import { eventKeys } from '../../events/hooks/useEvents';
 import { chatKeys } from './useChat';
 import { type SentChatMessage, useChatSocket } from './useChatSocket';
 
@@ -160,7 +161,7 @@ export function useLiveConversation({
   const takeOut = useCallback(() => {
     setRevoked(true);
     void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
-    void queryClient.invalidateQueries({ queryKey: chatKeys.subscriptions });
+    void queryClient.invalidateQueries({ queryKey: eventKeys.subscriptions() });
   }, [queryClient]);
 
   const socket = useChatSocket(

@@ -45,6 +45,8 @@ jobs:
               - "infra/nginx-proxy-manager/**"
               - "infra/scripts/test-rate-limit.sh"
               - "infra/scripts/test-npm-startup.sh"
+              - "infra/scripts/test-public-pages.sh"
+              - ".github/workflows/cd.yml"
               - "infra/scripts/install-http-top.sh"
               - "infra/docker-compose.yml"
               - ".github/workflows/ci.yml"
@@ -68,6 +70,9 @@ jobs:
       # Regressió del hotfix 0.2.1: NPM no arrencava amb `http_top.conf` de només lectura.
       - name: NPM arrenca amb el muntatge d'http_top.conf del Compose
         run: bash infra/scripts/test-npm-startup.sh
+      # Pàgines públiques per a Google Auth Platform (TG-343): 200, tres idiomes i CSP.
+      - name: Pàgines públiques (/, /privacy i /terms)
+        run: bash infra/scripts/test-public-pages.sh
 
   backend:
     needs: changes
@@ -132,6 +137,16 @@ jobs:
         run: uv run mypy .
       - name: Arquitectura (import-linter)
         run: uv run --locked --no-build lint-imports
+      # Troballes de gravetat mitjana o alta fallen la PR; les justificacions, només a [tool.bandit]:
+      # --ignore-nosec fa que un # nosec en línia no silenciï cap troballa (TG-362).
+      - name: Seguretat del codi (bandit, gravetat >= mitjana)
+        run: uv run bandit -c pyproject.toml -r app -ll --ignore-nosec
+      # Només les dependències de producció del lockfile, sense pip, contra OSV (TG-362). --require-hashes
+      # no afecta la consulta a OSV: fa fallar el pas si l'export surt sense hashes o sense ==.
+      - name: Vulnerabilitats de les dependències de producció (pip-audit, OSV)
+        run: |
+          uv export --frozen --no-dev --no-emit-project -o "$RUNNER_TEMP/requirements.txt"
+          uv run pip-audit -r "$RUNNER_TEMP/requirements.txt" -s osv --require-hashes --disable-pip
       # Amb -n auto, l'error d'un marcador quarantine sense reason="TG-NNN ..." salta dins dels workers
       # i xdist acaba amb un INTERNALERROR que l'amaga; sense xdist surt amb exit 4 i el missatge (TG-382).
       - name: Validar marcadors de quarantena (recollida sense xdist)
@@ -209,6 +224,10 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Instal·lar dependències
         run: pnpm install --frozen-lockfile
+      # Bloquejant (TG-362), decisió de l'equip del 21/11/2026. Un risc acceptat va a
+      # auditConfig.ignoreGhsas de frontend/pnpm-workspace.yaml amb fila a convencions/seguretat.md.
+      - name: Auditoria de dependències de producció (pnpm audit)
+        run: pnpm audit --prod --audit-level=high
       - name: Lint (eslint + prettier)
         run: pnpm lint
       # L'script es diu `typecheck` i no `tsc`: expo-doctor (EAS Build) avisa si un script

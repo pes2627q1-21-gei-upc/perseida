@@ -211,3 +211,26 @@ def test_a_malformed_or_oversized_email_is_rejected(email: str) -> None:
         User.create(google_sub="sub-123", email=email)
 
     assert exc_info.value.code == "USER_EMAIL_INVALID"
+
+
+@pytest.mark.parametrize("language", list(Language))
+def test_change_language_returns_a_copy_with_the_new_language(
+    language: Language,
+) -> None:
+    # TG-92 / US #92 criteri 1: l'idioma preferit canvia
+    original = _user(preferred_language=Language.CA)
+
+    changed = original.change_language(language)
+
+    assert changed.preferred_language is language
+    assert changed.model_copy(update={"preferred_language": Language.CA}) == original
+
+
+def test_change_language_does_not_mutate_the_original() -> None:
+    # TG-92 / US #92 criteri 1: User és immutable, l'original no canvia
+    original = _user(preferred_language=Language.CA)
+
+    changed = original.change_language(Language.EN)
+
+    assert original.preferred_language is Language.CA
+    assert changed is not original

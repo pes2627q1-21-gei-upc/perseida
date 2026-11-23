@@ -2,9 +2,9 @@
 titol: "Component: chat"
 tipus: component
 estat: vigent
-data: "2026-11-20"
-us: ["TG-64", "TG-654", "TG-469", "TG-470"]
-font: "backend/app/{domain,application,infrastructure}/chat; ADR-0030 i ADR-0033; Taiga: US TG-64 i tasca TG-470"
+data: "2026-11-23"
+us: ["TG-64", "TG-654", "TG-469", "TG-470", "TG-65"]
+font: "backend/app/{domain,application,infrastructure}/chat; ADR-0030 i ADR-0033; Taiga: US TG-64 i tasca TG-470; TG-65 i backend/app/infrastructure/direct_chat (23/11/2026)"
 etiquetes: [component, chat, websocket, backend, redis, postgres]
 ---
 
@@ -12,7 +12,7 @@ etiquetes: [component, chat, websocket, backend, redis, postgres]
 
 ## Responsabilitat
 
-Xat d'esdeveniment: una sala per esdeveniment astronòmic (0..1), només per a qui hi està subscrit, amb historial a [[postgres]] i difusió en temps real per WebSocket sobre el pub/sub de [[redis]]. Desa, modera i difon cada missatge, de manera idempotent; no fa xat directe entre usuaris (US #65) ni modera de debò encara (vegeu [[moderation]]). Decisions i regles a [[0033-xat-per-esdeveniment-sala-missatge-i-flux]]; protocol de frames a [[0030-protocol-websocket-i-revocacio-per-pub-sub]].
+Xat d'esdeveniment: una sala per esdeveniment astronòmic (0..1), només per a qui hi està subscrit, amb historial a [[postgres]] i difusió en temps real per WebSocket sobre el pub/sub de [[redis]]. Desa, modera i difon cada missatge, de manera idempotent; no modera de debò encara (vegeu [[moderation]]). Decisions i regles a [[0033-xat-per-esdeveniment-sala-missatge-i-flux]]; protocol de frames a [[0030-protocol-websocket-i-revocacio-per-pub-sub]].
 
 ## Tecnologia i versió
 
@@ -92,6 +92,16 @@ Només els noms de les variables, mai els valors (valors per defecte al codi i a
 - Les del WebSocket (`WS_*`) són a [[0030-protocol-websocket-i-revocacio-per-pub-sub]].
 
 Claus i canals de Redis a [[redis]]; taules a [[postgres]] i [[model-de-domini#Persistència del xat]].
+
+## Xat directe (TG-65, en curs)
+
+El xat directe té mòdul propi `app/{domain,application,infrastructure}/direct_chat/`; les consultes i els endpoints són a [[api#Xat directe (TG-65)]] i el model a [[model-de-domini#Xat directe (domini implementat)]]. El moderador provisional aprova tot i `NoopPushNotifier` deixa la implementació real a TG-73.
+
+L'enviament valida participant, bloqueig, text, idempotència, límit i moderació; desa missatge i outbox en una transacció. Un despachador en el cicle de vida de l'app publica i reintenta; l'ack significa acceptació durable, no entrega. El consumidor deduplica per id perquè es pot publicar més d'una vegada. Si el bloqueig es completa abans del despatx, no es publica el missatge pendent. Vegeu [[0034-outbox-xat-directe]] (proposada).
+
+Redis `PUBLISH` dona el nombre de subscripcions al canal intern del destinatari en aquell instant; només si és zero es crida el push provisional, en mode best effort. És una instantània, no una confirmació que el dispositiu hagi rebut el missatge. Si una publicació falla o supera el timeout del socket Redis, l'entrada queda pendent per reintentar; un resultat desconegut pot produir duplicats. El canal del remitent es publica separadament i s'exclou l'eco de la connexió d'origen.
+
+`dm.typing` es valida contra la conversa i els bloquejos i es difon només al destinatari; és efímer i no forma part de l'historial. El backend de TG-65 és en una branca de treball pendent de revisió i integració; la disponibilitat del client s'ha de verificar amb la seva pila.
 
 ## Decisions relacionades
 

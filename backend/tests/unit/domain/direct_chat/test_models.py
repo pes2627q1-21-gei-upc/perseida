@@ -118,7 +118,7 @@ def test_a_pair_built_out_of_order_is_rejected() -> None:
     # TG-65 criteri 3: la parella és sempre ordenada, una sola clau per parella
     low, high = sorted((USER_1, USER_2))
 
-    with pytest.raises(BusinessRuleViolation) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         DirectConversation(
             id=uuid.uuid7(),
             user_a_id=high,
@@ -248,7 +248,7 @@ def test_is_unread_for_refuses_a_message_of_another_conversation() -> None:
     conversation = _conversation()
     message = _message(sender_id=USER_2, sent_at=T0)  # conversa aleatòria
 
-    with pytest.raises(BusinessRuleViolation) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         conversation.is_unread_for(USER_1, message)
 
     assert exc_info.value.code == VALIDATION_ERROR

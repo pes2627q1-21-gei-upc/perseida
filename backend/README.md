@@ -29,7 +29,7 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 | Auth | Google OAuth2 + PKCE · Google token validation via JWKS · own backend session (JWT) |
 | Moderation | Kev-4B microservice (local model, synchronous call) |
 | Dependencies | `uv` (`uv.lock` committed) |
-| Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud |
+| Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud, `bandit` (code security), `pip-audit` (dependency vulnerabilities, OSV) |
 | Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Architecture: hexagonal
@@ -205,6 +205,9 @@ uv run ruff check .           # lint
 uv run ruff format --check .   # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run lint-imports           # architecture contracts (import-linter)
+uv run bandit -c pyproject.toml -r app -ll --ignore-nosec  # code security (fails on medium or high severity)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # production dependencies (with hashes and ==, which --require-hashes checks)
+uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # known vulnerabilities (OSV)
 uv run pytest                 # tests (with coverage)
 uv run pytest -n auto         # same, in parallel (one database and Redis index per worker)
 uv run pytest -p randomly --randomly-seed=<seed>  # reproduce an order-dependent failure (seed on the first output line)
@@ -312,6 +315,22 @@ The API does not start without `NASA_API_KEY`. In production it comes from the `
 >
 > Feed limits: only images (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`) are kept; a video entry is discarded (`APOD_UNAVAILABLE` if the API cannot answer either). The date of an entry is the UTC day of its publication, and the text of `explanation` and `copyright` is converted from HTML to plain text. The failure of a call is cached 15 minutes only when the feed **and** the API fail.
 
+## Meeting points (Spotwise)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=…&lon=…` recommends Spotwise spaces (libraries and cafés) near the user (TG-352). Contract: `obsidian_vault/arquitectura/contracte-spotwise.md`. Needs a session (401 `INVALID_SESSION`, 403 for a suspended or deleted account).
+
+- The location is rounded to 3 decimals (about 100 m). Spotwise is asked with the profile (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`), and Perseida keeps the spaces at most 1,500 m away that confirm the profile: group-friendly with wifi for `watch_party`, silent for `study` (plugs are only a preference). Unvoted values (`null`) do not count as confirmed; Spotwise's order is kept.
+- The result is cached in Redis for **5 minutes** per profile and rounded location (`cache:meeting_points:<profile>:<lat>:<lon>`).
+- If Spotwise fails (timeout, connection, 4xx/5xx or a body that is not a JSON list) the answer is 503 `MEETING_POINTS_UNAVAILABLE`, never a 500, and nothing is cached. An invalid space is dropped and logged.
+- At most 60 calls per minute reach Spotwise (sliding window, per process: one client built in the lifespan, ADR-0003); beyond that the answer is 503 `MEETING_POINTS_UNAVAILABLE` without calling it.
+- Without `SPOTWISE_API_TOKEN` the example answer of the Spotwise document is served (mock, `app/infrastructure/meeting_points/spotwise_examples.json`), so local runs and CI never call Spotwise.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SPOTWISE_API_TOKEN` | (empty: mock) | Token Spotwise hands out privately. Sent in the `Authorization: Token …` header, never in the URL or the logs. In production it comes from the `SPOTWISE_API_TOKEN` GitHub secret; never commit it. |
+| `SPOTWISE_URL` | `http://nattech.fib.upc.edu:40420` | Spotwise base URL (Spotwise serves HTTP only) |
+| `SPOTWISE_TIMEOUT_SECONDS` | `5` | Timeout of each request (recommended by Spotwise) |
+
 ## Daily quiz
 
 One astrophysics question per UTC day, the same for everyone, in Catalan, Spanish or English (TG-60). Contract: `obsidian_vault/arquitectura/contracte-quiz.md`.
@@ -382,7 +401,7 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 
 ## WebSocket (real time)
 
-`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The event chat rooms are described in [Event chat](#event-chat); the direct-chat rooms belong to US #65.
+`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The event chat rooms are described in [Event chat](#event-chat); direct messages are described in [Direct chat](#direct-chat-tg-65).
 
 **Handshake and auth.** The handshake takes no token or query parameter. The first frame must be `{"type":"auth","token":"<access token>"}`; if it is valid and not revoked, the server answers `{"type":"auth","payload":{}}`. Any other first frame, an invalid, expired, refresh or revoked token, or no frame within `WS_AUTH_TIMEOUT_SECONDS` closes with 4401. The token never appears in the URL or the logs. The endpoint calls `AuthService.authenticate` directly (`CurrentSessionDep` uses `HTTPBearer`, which does not work over WebSocket).
 
@@ -451,6 +470,26 @@ uv run uvicorn app.main:app --reload        # API at http://127.0.0.1:8000/api/d
 ```
 
 Sign in (`POST /api/auth/google`), subscribe to an event (`PUT /api/events/{event_id}/subscription`), open the room (`PUT /api/events/{event_id}/chat/room`) and connect a WebSocket client to `/api/ws`: first frame `{"type":"auth","token":"<access token>"}`, then `{"type":"subscribe","room":"chat:event:<event_id>","payload":{},"id":"1"}` and a `message` frame in the same room with `payload {"text":"Hello","client_message_id":"<UUID>"}` and a new `id`.
+
+## Direct chat (TG-65)
+
+The direct chat has a persistent conversation for each ordered pair of users, without a follow requirement. Endpoints require a session and return errors as RFC 9457 problem details with a stable `code`.
+
+| Endpoint | Behaviour |
+|---|---|
+| `POST /api/direct-conversations` | Body `{ "user_id": "<UUID>" }`; 201 when created, 200 for the existing conversation. |
+| `GET /api/direct-conversations` | Conversations with the other user's id, display name and avatar URL, last-message preview, unread count and whether the current user blocked the other. |
+| `GET /api/direct-conversations/{id}/messages` | History in descending order; `limit` 1 to 50 (default 50), `before` is the previous opaque `next_cursor`. |
+| `POST /api/direct-conversations/{id}/read` | Advance the participant's read mark; 204. |
+| `PUT /api/users/{id}/block` / `DELETE /api/users/{id}/block` | Idempotently block or unblock; 204. History is preserved. |
+
+**WebSocket.** After the normal `/api/ws` authentication, a client sends `dm.send` with an `id` and payload `{ "conversation_id": "<UUID>", "text": "...", "client_message_id": "<UUID>" }`. UUIDs use canonical form. The `dm.send` ack carries the request `id` and payload `{ "id": "<message UUID>", "sent_at": "<timestamp>" }`: it confirms durable acceptance, not delivery. A `dm.message` frame carries the message to the recipient's connected sessions and the sender's other sessions; it omits `client_message_id`. The authenticated client does not choose its private Redis channel. The ephemeral `dm.typing` frame carries `{ "conversation_id": "<UUID>", "is_typing": true }` (or `false`); it reaches the other participant only and is not stored. Errors use the shared `error` frame and preserve the request id.
+
+The service checks participation, blocking, text, idempotency, rate limit and moderation. Text is limited to 1000 cleaned characters. An unknown or deleted user returns `USER_NOT_FOUND`; messaging oneself returns `CANNOT_MESSAGE_SELF`; a nonparticipant sees `CONVERSATION_NOT_FOUND`; either direction of blocking prevents sending with `USER_BLOCKED`. Retrying the same sender/key with different content returns `DIRECT_IDEMPOTENCY_CONFLICT`. The provisional moderator approves all messages until TG-81.
+
+**Durability.** PostgreSQL commits the message and its outbox entry in one transaction. A dispatcher started with the app retries pending entries after a failed publication; delivery is at least once, so clients deduplicate by stable message id. A completed block before dispatch cancels publication of a pending entry while preserving history. Redis failure at the rate limiter rejects a new send before persistence; a publication failure or timeout after acceptance leaves the outbox pending. These semantics and their difference from the original literal TG-65 criterion are recorded in [ADR-0034](../obsidian_vault/decisions/0034-outbox-xat-directe.md), currently proposed.
+
+`CHAT_RATE_LIMIT_MESSAGES` and `CHAT_RATE_LIMIT_WINDOW_SECONDS` configure the message limit (defaults 10 per 10 seconds), using the shared chat counter. Typing uses a separate Redis counter with the same configured limit and window. `REDIS_SOCKET_TIMEOUT_SECONDS` (default 2) bounds the combined Redis publication for a direct message. Redis `PUBLISH` returns the number of recipient-channel subscribers at publication time: when it is zero, the dispatcher calls `PushNotifier`. This is an instantaneous estimate, not a delivery receipt. `NoopPushNotifier` performs no notification and is best effort; **TODO(TG-73)**: replace it with real push support, without adding FCM here.
 
 ## Testing and quality
 

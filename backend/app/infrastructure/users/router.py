@@ -33,6 +33,10 @@ def _problem(description: str) -> dict[str, Any]:
     }
 
 
+class UpdateUserRequest(BaseModel):
+    preferred_language: Language = Field(..., description="Nou idioma preferit")
+
+
 class UserResponse(BaseModel):
     id: str = Field(..., description="Identificador intern de l'usuari (UUID)")
     email: str = Field(..., description="Correu del compte de Google")
@@ -77,3 +81,30 @@ async def get_current_user(
 ) -> UserResponse:
     """Retorna el perfil de l'usuari de la sessió."""
     return UserResponse.from_user(await service.get_profile(session.sub))
+
+
+@router.patch(
+    "/me",
+    operation_id="update_current_user",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Actualitza l'usuari autenticat",
+    description="Canvia l'idioma preferit de l'usuari propietari de la sessió.",
+    response_description="El perfil actualitzat.",
+    responses={
+        400: _problem("El cos de la petició no es pot llegir (codificació no vàlida)."),
+        401: _problem(f"Sessió absent, invàlida o revocada (`{INVALID_SESSION}`)."),
+        403: _problem(
+            f"El compte és suspès (`{ACCOUNT_SUSPENDED}`) o esborrat "
+            f"(`{ACCOUNT_DELETED}`)."
+        ),
+        422: _problem("Cos de la petició invàlid (`VALIDATION_ERROR`)."),
+        503: _problem(f"No es pot comprovar la sessió (`{SESSION_UNAVAILABLE}`)."),
+    },
+)
+async def update_current_user(
+    body: UpdateUserRequest, session: CurrentSessionDep, service: UserServiceDep
+) -> UserResponse:
+    """Canvia l'idioma preferit de l'usuari de la sessió."""
+    user = await service.update_language(session.sub, body.preferred_language)
+    return UserResponse.from_user(user)
