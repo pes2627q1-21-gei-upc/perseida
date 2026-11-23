@@ -115,7 +115,10 @@ it('exposes a polite zero announcement on Android after the badge disappears', a
   const { rerender } = await render(tree());
   mockList.mockReturnValue({ ...list(0), data: [] });
   await rerender(tree());
-  expect(screen.getByText('0 missatges sense llegir')).toHaveProp('accessibilityLiveRegion', 'polite');
+  expect(screen.getByText('0 missatges sense llegir')).toHaveProp(
+    'accessibilityLiveRegion',
+    'polite',
+  );
 });
 
 it('does not announce the first result after loading', async () => {

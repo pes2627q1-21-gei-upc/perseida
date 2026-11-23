@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibilityInfo, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { type AppError, errorMessage } from '../../../shared/errors';
@@ -57,7 +65,9 @@ export function ConversationsScreen({ onOpen }: { onOpen: (id: string) => void }
   }
   useEffect(() => {
     if (Platform.OS === 'ios' && unreadState.notice !== undefined) {
-      AccessibilityInfo.announceForAccessibility(t('directChat.unread', { count: unreadState.notice }));
+      AccessibilityInfo.announceForAccessibility(
+        t('directChat.unread', { count: unreadState.notice }),
+      );
     }
   }, [t, unreadState.notice]);
   const now = new Date();
@@ -97,7 +107,10 @@ export function ConversationsScreen({ onOpen }: { onOpen: (id: string) => void }
           <Text accessibilityRole="header" style={styles.title}>
             {t('directChat.list.title')}
           </Text>
-          <UnreadBadge count={total} live={Platform.OS === 'android' && unreadState.notice !== undefined} />
+          <UnreadBadge
+            count={total}
+            live={Platform.OS === 'android' && unreadState.notice !== undefined}
+          />
           {Platform.OS === 'android' && unreadState.notice === 0 && total === 0 && (
             <Text accessibilityLiveRegion="polite" style={styles.srOnly}>
               {t('directChat.unread', { count: 0 })}
