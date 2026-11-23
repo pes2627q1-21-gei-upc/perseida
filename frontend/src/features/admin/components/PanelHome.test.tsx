@@ -2,12 +2,22 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { colors } from '../../../shared/theme';
 import type { PanelSection } from '../panelSections';
 import { PANEL_SECTIONS } from '../panelSections';
 import { PanelHome } from './PanelHome';
 
 // Texts in Catalan, the language of the tests (jest.setup.js).
 const WELCOME = "Benvinguda al panell d'administració de Perseida";
+
+// Each BlurView is a View with a test id, so the test can count them (RNTL 14 has no UNSAFE_*).
+jest.mock('expo-blur', () => {
+  const { createElement } = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    BlurView: (props: object) => createElement(View, { ...props, testID: 'blur-view' }),
+  };
+});
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
@@ -68,6 +78,18 @@ describe('PanelHome (TG-77 criteri 6)', () => {
 
       await fireEvent(screen.getByRole('link', { name: 'Sense accés' }), 'blur');
       expect(ring(0).boxShadow).toBeUndefined();
+    });
+
+    it('draws the cards as a solid surface without blur: glass is only for floating layers', async () => {
+      await renderHome([...SECTIONS, { href: '/panel/tercera', titleKey: 'admin.skipToContent' }]);
+
+      // Only the welcome is glass, however many sections there are (checklist: 2-3 BlurView).
+      expect(screen.queryAllByTestId('blur-view', { includeHiddenElements: true })).toHaveLength(1);
+      const card = StyleSheet.flatten(
+        screen.getByRole('link', { name: 'Sense accés' }).props.style,
+      );
+      expect(card.backgroundColor).toBe(colors.dia.surface.glassSolid);
+      expect(card.borderColor).toBe(colors.dia.surface.glassBorder);
     });
 
     it('opens the section of the card that is pressed', async () => {
