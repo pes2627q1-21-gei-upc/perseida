@@ -31,7 +31,10 @@ export function NoAccessScreen() {
               >
                 {t('admin.noAccess.title')}
               </Text>
-              <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[theme.typography.body, { color: theme.colors.text.secondary }]}
+              >
                 {t('admin.noAccess.message')}
               </Text>
               <LogoutButton />

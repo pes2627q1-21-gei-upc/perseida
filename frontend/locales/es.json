@@ -59,9 +59,16 @@
     "home": {
       "welcome": "Bienvenida al panel de administración de Perseida"
     },
+    "main": {
+      "label": "Contenido del panel"
+    },
     "noAccess": {
       "message": "Tu cuenta no tiene permiso para entrar al panel de administración.",
       "title": "Sin acceso"
+    },
+    "skipToContent": "Salta al contenido",
+    "topBar": {
+      "label": "Barra superior del panel"
     }
   },
   "apod": {

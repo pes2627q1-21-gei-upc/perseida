@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { AccessibilityInfo, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -11,6 +11,8 @@ const TEXT = {
   logout: 'Tanca la sessió',
   content: 'Contingut de la secció',
   skip: 'Salta al contingut',
+  topBar: 'Barra superior del panell',
+  main: 'Contingut del panell',
 };
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: jest.fn() }) }));
@@ -52,12 +54,16 @@ describe('AdminShell (TG-77 criteri 6)', () => {
   });
 
   describe('accessibility for keyboard and screen readers (WCAG 2.2 AA, TG-77 criteri 8)', () => {
-    it('marks the top bar and the page as regions, so a screen reader can jump to them', async () => {
+    it('marks the top bar and the page as named regions, so a screen reader can jump to them', async () => {
       await renderShell();
 
-      expect(screen.getByRole('banner')).toBeOnTheScreen();
-      expect(screen.getByRole('main')).toBeOnTheScreen();
-      expect(screen.getByRole('main')).toHaveTextContent(TEXT.content);
+      // A View is not an accessibility element for getByRole: the named region is found by label.
+      const banner = screen.getByLabelText(TEXT.topBar);
+      const main = screen.getByLabelText(TEXT.main);
+      expect(banner).toHaveProp('role', 'banner');
+      expect(main).toHaveProp('role', 'main');
+      expect(within(banner).getByText(TEXT.appName)).toBeOnTheScreen();
+      expect(within(main).getByText(TEXT.content)).toBeOnTheScreen();
     });
 
     it('offers a link to skip to the content that moves the focus to the page', async () => {
