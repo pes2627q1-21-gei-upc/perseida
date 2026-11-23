@@ -1,3 +1,4 @@
+from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 import httpx
@@ -8,14 +9,17 @@ from starlette.requests import HTTPConnection
 
 from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.auth.errors import INVALID_SESSION
-from app.application.shared.errors import UnauthorizedError
+from app.application.shared.error_codes import INSUFFICIENT_ROLE
+from app.application.shared.errors import ForbiddenError, UnauthorizedError
 from app.domain.auth.models import SessionClaims
 from app.domain.auth.ports import AccountGateway, SessionStore
+from app.domain.users.models import Role, User
 from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.google_verifier import GoogleJwksVerifier
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
+from app.infrastructure.users.dependencies import UserServiceDep
 
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_DAY = 24 * 60 * 60
@@ -69,3 +73,20 @@ async def get_current_session(
 
 
 CurrentSessionDep = Annotated[SessionClaims, Depends(get_current_session)]
+
+
+def require_role(*roles: Role) -> Callable[..., Awaitable[User]]:
+    """Dependency that lets in only the accounts whose role is one of ``roles``.
+
+    No session answers 401 and another role 403 (``INSUFFICIENT_ROLE``). The role is
+    read from the account on every request, so a change applies at once; a suspended
+    or deleted account is a 403 whatever its role. Returns the account.
+    """
+
+    async def dependency(session: CurrentSessionDep, users: UserServiceDep) -> User:
+        user = await users.get_profile(session.sub)
+        if user.role not in roles:
+            raise ForbiddenError(INSUFFICIENT_ROLE)
+        return user
+
+    return dependency
