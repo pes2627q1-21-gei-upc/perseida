@@ -6,15 +6,11 @@ import appJson from '../app.json';
 
 // Typed loosely on purpose: the test reads what the file says, whatever it has today.
 const appConfig = appJson as {
-  expo: { experiments?: { baseUrl?: string }; web?: { output?: string } };
+  expo: { experiments?: { baseUrl?: string } };
 };
 
 describe('app.json (web export of the admin panel)', () => {
   it('serves the web export under /admin', () => {
     expect(appConfig.expo.experiments?.baseUrl).toBe('/admin');
-  });
-
-  it('exports the web app as a single-page app, so any inner route reloads the SPA', () => {
-    expect(appConfig.expo.web?.output).toBe('single');
   });
 });

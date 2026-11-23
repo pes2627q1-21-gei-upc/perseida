@@ -24,6 +24,9 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "experiments": {
+      "baseUrl": "/admin"
+    },
     "plugins": [
       "expo-router",
       "./plugins/withAndroidRelease",
