@@ -30,7 +30,6 @@ from app.application.auth.auth_service import AuthService, SessionDurations
 from app.application.auth.errors import ACCOUNT_SUSPENDED, INVALID_SESSION
 from app.application.shared.error_codes import INSUFFICIENT_ROLE
 from app.domain.users.models import Role, User
-from app.infrastructure.auth.dependencies import require_role
 from app.infrastructure.auth.google_verifier import (
     GOOGLE_CERTS_URL,
     GoogleJwksVerifier,
@@ -40,7 +39,7 @@ from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.account_gateway import UserAccountGateway
-from app.infrastructure.users.dependencies import build_user_service
+from app.infrastructure.users.dependencies import build_user_service, require_role
 from app.main import create_app
 from tests.factories.google import CLIENT_ID, KEY, jwk, token
 from tests.integration.isolation import row_counts

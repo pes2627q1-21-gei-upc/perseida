@@ -14,8 +14,8 @@ from app.application.users.user_service import UserService
 from app.domain.auth.models import GoogleIdentity
 from app.domain.users.models import AccountStatus, Role, User
 from app.infrastructure.api.error_handlers import register_error_handlers
-from app.infrastructure.auth.dependencies import get_auth_service, require_role
-from app.infrastructure.users.dependencies import get_user_service
+from app.infrastructure.auth.dependencies import get_auth_service
+from app.infrastructure.users.dependencies import get_user_service, require_role
 from tests.fakes.auth import (
     FakeAccountGateway,
     FakeGoogleTokenVerifier,
