@@ -72,7 +72,12 @@ beforeEach(() => {
     isFetching: false,
     hasNextPage: false,
     isFetchingNextPage: false,
-    refetch: jest.fn(),
+    refetch: jest
+      .fn()
+      .mockResolvedValue({
+        data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
+        isError: false,
+      }),
     fetchNextPage: jest.fn(),
   });
   mockSend.mockResolvedValue({
@@ -83,6 +88,51 @@ beforeEach(() => {
 afterEach(() => client.clear());
 
 describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
+  it('does not mark read when a history request completes after focus was lost', async () => {
+    let finish!: (result: unknown) => void;
+    const refetch = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
+    const { rerender } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(refetch).toHaveBeenCalled());
+    mockIsFocused = false;
+    await rerender(undefined);
+    await act(async () => {
+      finish({ data: { pages: [], pageParams: [] }, isError: false });
+    });
+    expect(mockMarkRead).not.toHaveBeenCalled();
+  });
+
+  it('does not mark the old conversation read when its history completes after switching', async () => {
+    const resolvers: ((result: unknown) => void)[] = [];
+    const refetch = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
+    const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
+      wrapper,
+      initialProps: { id: CONVERSATION },
+    });
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+    await rerender({ id: OTHER });
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+    await act(async () => {
+      resolvers[0]?.({ data: { pages: [], pageParams: [] }, isError: false });
+    });
+    expect(mockMarkRead).not.toHaveBeenCalledWith(CONVERSATION);
+    await act(async () => {
+      resolvers[1]?.({ data: { pages: [], pageParams: [] }, isError: false });
+    });
+    expect(mockMarkRead).toHaveBeenCalledWith(OTHER);
+  });
+
   it('does not mark a background conversation read, including when a message arrives', async () => {
     mockIsFocused = false;
     mockHistory.mockReturnValue({
@@ -146,7 +196,12 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       isFetching: false,
       hasNextPage: false,
       isFetchingNextPage: false,
-      refetch: jest.fn(),
+      refetch: jest
+        .fn()
+        .mockResolvedValue({
+          data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
+          isError: false,
+        }),
       fetchNextPage: jest.fn(),
     });
     const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
@@ -167,7 +222,12 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       isFetching: false,
       hasNextPage: false,
       isFetchingNextPage: false,
-      refetch: jest.fn(),
+      refetch: jest
+        .fn()
+        .mockResolvedValue({
+          data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
+          isError: false,
+        }),
       fetchNextPage: jest.fn(),
     });
     const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });

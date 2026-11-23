@@ -5,12 +5,15 @@ import type { ReactNode } from 'react';
 import type { ServerFrame } from '../../../shared/realtime';
 import { useDirectConversation } from './useDirectConversation';
 
+jest.mock('expo-router', () => ({ useIsFocused: () => true }));
 const mockMarkRead = jest.fn();
 const mockRefetch = jest.fn();
 let mockListener: ((frame: ServerFrame) => void) | undefined;
 const mockSubscribe = (listener: (frame: ServerFrame) => void) => {
   mockListener = listener;
-  return () => { mockListener = undefined; };
+  return () => {
+    mockListener = undefined;
+  };
 };
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'client-id-1') }));
 jest.mock('../../../shared/realtime', () => ({
@@ -54,6 +57,10 @@ beforeEach(() => {
   client.setQueryData(key, []);
   mockListener = undefined;
   jest.clearAllMocks();
+  mockRefetch.mockResolvedValue({
+    data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
+    isError: false,
+  });
 });
 afterEach(() => client.clear());
 
@@ -63,16 +70,18 @@ it('TG-65 criterion 11 invalidates the inbox for a message in another conversati
   await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(OPEN));
   mockMarkRead.mockClear();
 
-  await act(async () => mockListener?.({
-    type: 'dm.message',
-    payload: {
-      id: '01900000-0000-7000-8000-000000000055',
-      conversation_id: OTHER,
-      sender_id: 'someone-else',
-      text: 'Missatge per una altra conversa',
-      sent_at: '2026-11-22T12:00:00Z',
-    },
-  }));
+  await act(async () =>
+    mockListener?.({
+      type: 'dm.message',
+      payload: {
+        id: '01900000-0000-7000-8000-000000000055',
+        conversation_id: OTHER,
+        sender_id: 'someone-else',
+        text: 'Missatge per una altra conversa',
+        sent_at: '2026-11-22T12:00:00Z',
+      },
+    }),
+  );
 
   expect(client.getQueryState(key)?.isInvalidated).toBe(true);
   expect(mockMarkRead).not.toHaveBeenCalled();
