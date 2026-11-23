@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionm
 
 from app.domain.direct_chat.models import DirectMessage
 from app.domain.realtime.models import direct_user_channel
+from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.direct_chat.broadcaster import DirectMessagePubSubBroadcaster
 from app.infrastructure.direct_chat.outbox import DirectOutboxDispatcher
@@ -70,7 +71,9 @@ async def test_tg65_recipient_subscriber_count_controls_offline_push(
     recipient = conversation.other_participant(message.sender_id)
     await SqlDirectMessageRepository(factory).add(message)
     pubsub = RedisPubSub(redis)
-    broadcaster = DirectMessagePubSubBroadcaster(pubsub)
+    broadcaster = DirectMessagePubSubBroadcaster(
+        pubsub, timeout_seconds=RedisSettings().redis_socket_timeout_seconds
+    )
     push = ObservedNoopPush()
 
     async with AsyncExitStack() as stack:
@@ -116,7 +119,7 @@ async def test_tg65_broadcaster_reports_recipient_subscribers_only(
         await stack.enter_async_context(
             pubsub.subscribe(direct_user_channel(message.sender_id))
         )
-        count = await DirectMessagePubSubBroadcaster(pubsub).deliver(
-            message, recipient_id=recipient, origin=None
-        )
+        count = await DirectMessagePubSubBroadcaster(
+            pubsub, timeout_seconds=RedisSettings().redis_socket_timeout_seconds
+        ).deliver(message, recipient_id=recipient, origin=None)
     assert count == recipient_connections

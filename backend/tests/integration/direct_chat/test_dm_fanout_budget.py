@@ -30,8 +30,10 @@ async def test_tg65_timeout_budget_is_shared_by_both_publishes() -> None:
     publisher = StagedPublisher()
     broadcaster = DirectMessagePubSubBroadcaster(publisher, timeout_seconds=0.5)
     message = DirectMessage.create(
-        conversation_id=uuid.uuid7(), sender_id=uuid.uuid7(),
-        text="hello", client_message_id=uuid.uuid4(),
+        conversation_id=uuid.uuid7(),
+        sender_id=uuid.uuid7(),
+        text="hello",
+        client_message_id=uuid.uuid4(),
     )
     # The first publish spends most of the total budget; the outer bound is
     # longer than one deadline but shorter than two independent deadlines.

@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from app.application.shared.error_codes import PUBSUB_UNAVAILABLE
 from app.application.shared.errors import ExternalServiceError
 from app.domain.direct_chat.models import UserBlock
-from app.infrastructure.direct_chat.broadcaster import DirectMessagePubSubBroadcaster
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
+from app.infrastructure.direct_chat.broadcaster import DirectMessagePubSubBroadcaster
 from app.infrastructure.direct_chat.outbox import DirectOutboxDispatcher
 from app.infrastructure.direct_chat.repository import (
     SqlDirectConversationRepository,
@@ -20,11 +20,14 @@ from app.infrastructure.direct_chat.repository import (
     SqlUserBlockRepository,
 )
 from tests.integration.direct_chat.test_direct_chat_repository import engine as engine
-from tests.integration.direct_chat.test_direct_chat_repository import sessions as sessions
+from tests.integration.direct_chat.test_direct_chat_repository import (
+    sessions as sessions,
+)
 from tests.integration.direct_chat.test_direct_outbox_integration import make_message
 
 pytestmark = pytest.mark.skipif(
-    not os.getenv("POSTGRES_HOST"), reason="PostgreSQL integration test requires its host"
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires its host",
 )
 
 
@@ -87,7 +90,9 @@ async def test_tg65_unavailable_redis_is_a_controlled_failure(
     message = await make_message(sessions)
     redis = Redis(host="127.0.0.1", port=1, socket_connect_timeout=0.2)
     try:
-        broadcaster = DirectMessagePubSubBroadcaster(RedisPubSub(redis), timeout_seconds=0.2)
+        broadcaster = DirectMessagePubSubBroadcaster(
+            RedisPubSub(redis), timeout_seconds=0.2
+        )
         with pytest.raises(ExternalServiceError) as error:
             await asyncio.wait_for(
                 broadcaster.deliver(message, recipient_id=uuid.uuid7(), origin=None), 2
@@ -115,16 +120,27 @@ async def test_tg65_stalled_fanout_releases_pair_lock_for_block(
     try:
         await asyncio.wait_for(publisher.started.wait(), 2)
         blocker = asyncio.create_task(
-            SqlUserBlockRepository(sessions).block(UserBlock.create(recipient, message.sender_id))
+            SqlUserBlockRepository(sessions).block(
+                UserBlock.create(recipient, message.sender_id)
+            )
         )
         # The dispatcher and blocker use different factory-created connections.
         await asyncio.wait_for(dispatch_task, 2)
         await asyncio.wait_for(blocker, 2)
         assert publisher.cancelled.is_set()
-        assert await messages.find_by_client_id(message.sender_id, message.client_message_id) == message
-        assert await SqlUserBlockRepository(sessions).is_blocked(recipient, message.sender_id)
+        assert (
+            await messages.find_by_client_id(
+                message.sender_id, message.client_message_id
+            )
+            == message
+        )
+        assert await SqlUserBlockRepository(sessions).is_blocked(
+            recipient, message.sender_id
+        )
     finally:
         dispatch_task.cancel()
         if blocker is not None:
             blocker.cancel()
-        await asyncio.gather(dispatch_task, *( [blocker] if blocker else [] ), return_exceptions=True)
+        await asyncio.gather(
+            dispatch_task, *([blocker] if blocker else []), return_exceptions=True
+        )
