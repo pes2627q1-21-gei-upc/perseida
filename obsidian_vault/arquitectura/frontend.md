@@ -169,6 +169,15 @@ Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal; a la pestanya de 
 - **Components compartits:** `StatusPanel` (`src/shared/ui`), el panell de càrrega i d'error amb reintent; l'APOD (`ApodStatus`) i el quiz (`QuizStatus`) només hi posen els seus textos.
 - **Errors:** càrrega amb missatge per codi i reintent si és transitori; si falla l'enviament, es conserva l'opció; `QUIZ_EXPIRED` i `QUIZ_QUESTION_MISMATCH` recarreguen la pregunta i mostren un avís; `QUIZ_ALREADY_ANSWERED` recarrega i mostra el resultat. Si la recàrrega falla, es mostra l'error amb reintent encara que hi hagi una pregunta anterior en memòria cau.
 
+## Fites: targetes de progrés al perfil (TG-57)
+
+Codi a `src/features/achievements/`; dades de `GET /api/users/me/achievements` (TG-58), que retorna tot el catàleg amb el progrés de la sessió. L'app només llegeix les fites: el registre de l'activitat es fa al servidor (TG-58).
+
+- **Base comuna amb TG-59:** `getMyAchievements` (passa per `withSession`; una resposta que no és una llista és `INVALID_RESPONSE`), `useMyAchievements` (clau `achievementKeys.mine()`, `staleTime` de 5 minuts, un reintent si l'error és transitori) i `AchievementProgressBar` (`accessibilityRole="progressbar"` amb `accessibilityValue`, mai per sobre de la meta). La secció de fites de TG-59 ha de reutilitzar aquest hook i aquesta barra: una sola petició en memòria cau per a les dues.
+- **Fita actual per categoria:** `categoryProgress` (`model/`) dona una entrada per categoria en ordre fix (ratxes, quiz, esdeveniments, social, minijoc), encara que l'API no n'enviï cap: la primera no desbloquejada per `position` o, si totes ho estan, l'última marcada com a completada.
+- **Targetes:** `AchievementProgressSection` es col·loca al perfil a l'espai que TG-385 reservava per a la ratxa (l'espai `streak` desapareix de `ProfileScreen`). Cada `AchievementCategoryCard` mostra la icona, el nom de la fita i la barra; la ratxa porta «X/Y dies» amb plural i, a 0, una invitació a començar; una categoria completada, la barra plena i un text d'enhorabona.
+- **Noms traduïts per codi:** el catàleg del servidor només té el nom en català. L'app el tradueix amb `achievements.names.<code>` (`useAchievementName`); una fita nova que l'app encara no coneix mostra el nom del servidor. Una fita nova al catàleg, doncs, necessita la seva clau als tres locales.
+
 ## Xat d'esdeveniment: API i hooks (TG-64)
 
 Codi a `src/features/chat/`; el contracte REST i el protocol WebSocket són els del backend ([[0030-protocol-websocket-i-revocacio-per-pub-sub]]). La connexió en temps real és a [[#Temps real: connexió WebSocket compartida (TG-64)]]; la pantalla de la sala i els textos de la UI són de TG-469 ([[#Sala de xat: pantalla i hook de la sala (TG-469)]]).
