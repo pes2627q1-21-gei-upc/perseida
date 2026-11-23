@@ -64,6 +64,7 @@ ADR acceptada > arquitectura vigent > README dels directoris. Si hi ha conflicte
 - [[0031-fonts-d-esdeveniments-sota-demanda|ADR-0031 Fonts d'esdeveniments sota demanda]]
 - [[0032-leaflet-per-al-mapa-web-i-webview|ADR-0032 Leaflet per al mapa (web i WebView)]]
 - [[0033-xat-per-esdeveniment-sala-missatge-i-flux|ADR-0033 Xat per esdeveniment: sala, missatge i flux]]
+- [[0034-outbox-xat-directe|ADR-0034 Outbox transaccional per al xat directe]]
 
 **convencions/**: [[gitflow]], [[definition-of-done]], [[qualitat]], [[seguretat]], [[testing]], [[assistents-ia]], [[actualitzacio-del-vault]], [[notes-obsidian]]
 

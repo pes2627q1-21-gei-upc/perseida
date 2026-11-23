@@ -382,7 +382,7 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 
 ## WebSocket (real time)
 
-`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The event chat rooms are described in [Event chat](#event-chat); the direct-chat rooms belong to US #65.
+`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The event chat rooms are described in [Event chat](#event-chat); direct messages are described in [Direct chat](#direct-chat-tg-65).
 
 **Handshake and auth.** The handshake takes no token or query parameter. The first frame must be `{"type":"auth","token":"<access token>"}`; if it is valid and not revoked, the server answers `{"type":"auth","payload":{}}`. Any other first frame, an invalid, expired, refresh or revoked token, or no frame within `WS_AUTH_TIMEOUT_SECONDS` closes with 4401. The token never appears in the URL or the logs. The endpoint calls `AuthService.authenticate` directly (`CurrentSessionDep` uses `HTTPBearer`, which does not work over WebSocket).
 
@@ -451,6 +451,26 @@ uv run uvicorn app.main:app --reload        # API at http://127.0.0.1:8000/api/d
 ```
 
 Sign in (`POST /api/auth/google`), subscribe to an event (`PUT /api/events/{event_id}/subscription`), open the room (`PUT /api/events/{event_id}/chat/room`) and connect a WebSocket client to `/api/ws`: first frame `{"type":"auth","token":"<access token>"}`, then `{"type":"subscribe","room":"chat:event:<event_id>","payload":{},"id":"1"}` and a `message` frame in the same room with `payload {"text":"Hello","client_message_id":"<UUID>"}` and a new `id`.
+
+## Direct chat (TG-65)
+
+The direct chat has a persistent conversation for each ordered pair of users, without a follow requirement. Endpoints require a session and return errors as RFC 9457 problem details with a stable `code`.
+
+| Endpoint | Behaviour |
+|---|---|
+| `POST /api/direct-conversations` | Body `{ "user_id": "<UUID>" }`; 201 when created, 200 for the existing conversation. |
+| `GET /api/direct-conversations` | Conversations with the other user's id, display name and avatar URL, last-message preview, unread count and whether the current user blocked the other. |
+| `GET /api/direct-conversations/{id}/messages` | History in descending order; `limit` 1 to 50 (default 50), `before` is the previous opaque `next_cursor`. |
+| `POST /api/direct-conversations/{id}/read` | Advance the participant's read mark; 204. |
+| `PUT /api/users/{id}/block` / `DELETE /api/users/{id}/block` | Idempotently block or unblock; 204. History is preserved. |
+
+**WebSocket.** After the normal `/api/ws` authentication, a client sends `dm.send` with an `id` and payload `{ "conversation_id": "<UUID>", "text": "...", "client_message_id": "<UUID>" }`. UUIDs use canonical form. The `dm.send` ack carries the request `id` and payload `{ "id": "<message UUID>", "sent_at": "<timestamp>" }`: it confirms durable acceptance, not delivery. A `dm.message` frame carries the message to the recipient's connected sessions and the sender's other sessions; it omits `client_message_id`. The authenticated client does not choose its private Redis channel. The ephemeral `dm.typing` frame carries `{ "conversation_id": "<UUID>", "is_typing": true }` (or `false`); it reaches the other participant only and is not stored. Errors use the shared `error` frame and preserve the request id.
+
+The service checks participation, blocking, text, idempotency, rate limit and moderation. Text is limited to 1000 cleaned characters. An unknown or deleted user returns `USER_NOT_FOUND`; messaging oneself returns `CANNOT_MESSAGE_SELF`; a nonparticipant sees `CONVERSATION_NOT_FOUND`; either direction of blocking prevents sending with `USER_BLOCKED`. Retrying the same sender/key with different content returns `DIRECT_IDEMPOTENCY_CONFLICT`. The provisional moderator approves all messages until TG-81.
+
+**Durability.** PostgreSQL commits the message and its outbox entry in one transaction. A dispatcher started with the app retries pending entries after a failed publication; delivery is at least once, so clients deduplicate by stable message id. A completed block before dispatch cancels publication of a pending entry while preserving history. Redis failure at the rate limiter rejects a new send before persistence; a publication failure or timeout after acceptance leaves the outbox pending. These semantics and their difference from the original literal TG-65 criterion are recorded in [ADR-0034](../obsidian_vault/decisions/0034-outbox-xat-directe.md), currently proposed.
+
+`CHAT_RATE_LIMIT_MESSAGES` and `CHAT_RATE_LIMIT_WINDOW_SECONDS` configure the message limit (defaults 10 per 10 seconds), using the shared chat counter. Typing uses a separate Redis counter with the same configured limit and window. `REDIS_SOCKET_TIMEOUT_SECONDS` (default 2) bounds the combined Redis publication for a direct message. Redis `PUBLISH` returns the number of recipient-channel subscribers at publication time: when it is zero, the dispatcher calls `PushNotifier`. This is an instantaneous estimate, not a delivery receipt. `NoopPushNotifier` performs no notification and is best effort; **TODO(TG-73)**: replace it with real push support, without adding FCM here.
 
 ## Testing and quality
 
