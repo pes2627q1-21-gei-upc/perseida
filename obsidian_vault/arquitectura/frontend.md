@@ -2,8 +2,8 @@
 titol: "Frontend: app mòbil i panell d'administració"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-22"
-us: ["TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654", "TG-51", "TG-469", "TG-53", "TG-352"]
+data: "2026-11-23"
+us: ["TG-77", "TG-85", "TG-66", "TG-48", "TG-45", "TG-35", "TG-327", "TG-43", "TG-91", "TG-342", "TG-52", "TG-628", "TG-629", "TG-385", "TG-64", "TG-654", "TG-51", "TG-469", "TG-53", "TG-352"]
 font: "frontend/README.md, incepció 2 §6; Taiga: backlog (llistat de US, 2026-10-07); .github/workflows/ci.yml (PR #24); Taiga: tasca #327 (Expo SDK 58); Taiga: US #91 (i18n); Taiga: US #43 (Google OAuth2 PKCE); Taiga: tasca TG-342 (login amb Google al mòbil, PR #52); Taiga: TG-52, tasques #488-#492 i decisions de Raquel (10-12/11/2026 i 16/11/2026); Taiga: TG-628, tasques #634 i #635 (17/11/2026); Taiga: TG-629, tasques #640-#642, i decisions de Raquel (18/11/2026); Taiga: TG-385 (navegació i perfil, tasques #388 i #517-#521); Taiga: issue TG-654 (connexió morta, AppState i cua de reintents del client WebSocket, 2026-11-19); Taiga: TG-51, tasques #552-#555, i decisions de Manel (21/11/2026); review d'AlexGa03 a la PR #130 (nom accessible de les pestanyes, fusió en lectura dels missatges arribats en viu, 2026-11-22); review d'AlexGa03 a la PR #127 (bombolla pròpia de vidre tenyit, buidat del camp del xat, 2026-11-22); Taiga: TG-469, pantalla de la sala (2026-11-20); Taiga: TG-53, tasques #561 i #562, i decisions de Manel (21 i 22/11/2026)"
 etiquetes: [arquitectura, frontend, react-native, expo, offline]
 ---
@@ -246,6 +246,22 @@ SQLite local com a outbox i cache de lectura, sincronitzats més tard amb polít
 ## Panell d'administració
 
 SPA amb React Native Web: gestió i suspensió d'usuaris, supervisió d'esdeveniments publicats, mètriques d'ús i cua de revisió d'informes. Accés per rol. El bundle estàtic el serveix [[nginx-proxy-manager]] ([[0009-nginx-proxy-manager-serveix-media-i-spa-admin]]).
+
+### Accés i rutes (TG-77)
+
+- **Ruta:** el panell és el grup `src/app/(admin)/panel`, sota `/panel`. La web sencera es serveix sota `/admin/` (`experiments.baseUrl` d'`app.json`, TG-585), que és on nginx-proxy-manager serveix la SPA. Per tant, a `pnpm web` l'app (mòbil inclosa) és a `http://localhost:8081/admin/`, no a l'arrel.
+- **`/login` reutilitzat:** és la mateixa pantalla que a l'app mòbil. Al mòbil porta sempre a `/(app)`. A la web llegeix el perfil (`getCurrentUser`) i porta a `/panel` només si el rol és `admin` o `moderator` (`canAccessAdmin`), i a `/(app)` en la resta de casos, també si el perfil no es pot llegir (llavors hi decideix el guardià). Així una compte `user` pot continuar provant l'app a la web.
+- **Guardià compartit:** `useSessionGuard` (`features/auth/hooks`) comprova i renova la sessió i envia a `/login` si no n'hi ha; el fan servir `(app)/_layout.tsx` i el panell. `AdminGate` (`features/admin/components`) hi afegeix el rol: un `admin` o `moderator` hi entra, qualsevol altra compte veu «Sense accés» (`NoAccessScreen`) i la ruta de darrere no es dibuixa. El perfil només es demana quan la sessió ja és confirmada.
+- **Si falla la lectura del perfil:** el guardià esborra els tokens i porta a `/login`; sense esborrar-los, `/login` la tornaria a enviar al panell en bucle. Codi d'error `INSUFFICIENT_ROLE` al catàleg de [[0018-errors-rfc-9457-amb-codis-estables]].
+
+### Esquelet i accessibilitat (TG-77, #587 i #588)
+
+- **Marc de totes les pàgines:** `AdminShell` (`features/admin/components`) va al layout `(admin)/panel/_layout.tsx`, dins del guardià (`AdminGate` → `AdminShell` → `Slot`). Pinta l'escena de cel i llac de `SkyBackground` (sense la pluja de Perseides del login), una barra de vidre a dalt amb el nom «Perseida» (no es tradueix) i el `LogoutButton`, i la pàgina a sota amb scroll i amplada màxima d'escriptori (`breakpoints.desktop`, 1280 px). Les seccions futures el hereten sense repetir-lo.
+- **Inici i seccions:** `PanelHome` mostra el missatge de benvinguda (`admin.home.welcome`, fix i sense el nom de la persona) com a títol de la pantalla i una targeta per cada entrada de `PANEL_SECTIONS` (`features/admin/panelSections.ts`). La llista és **buida a propòsit**: cada US (TG-78 usuaris, TG-79 supervisió i mètriques, TG-80 denúncies) hi afegeix `{ href, titleKey }` i la seva ruta a `src/app/(admin)/panel/`; la targeta surt sola.
+- **Accessibilitat (WCAG 2.2 AA):** un enllaç «Salta al contingut» és el primer que arriba el teclat, invisible fins que té el focus, i mou el focus a la pàgina (`moveFocusTo`, `src/shared/a11y`, que a la web, sense `sendAccessibilityEvent`, fa `focus()` a l'element). La barra és una regió `banner` i la pàgina una `main`, totes dues amb nom (`admin.topBar.label` i `admin.main.label`). L'avís de «Sense accés» és una regió `polite`. Les targetes i l'enllaç de salt mostren l'anell de focus (`colors.focusRing`) amb `onFocus`/`onBlur`. Sense límit d'escala del text (`maxFontSizeMultiplier`), decidit amb la persona responsable.
+- **Textos:** `admin.*` a `ca`, `es` i `en` (`home`, `main`, `noAccess`, `skipToContent`, `topBar`); un test comprova que l'inici, la barra i «Sense accés» surten sencers als tres idiomes i que canviar d'idioma amb la pantalla oberta canvia el text.
+- **No comprovat encara:** el focus visible dels botons compartits (`QuietButton` i `GelButton` no dibuixen anell propi), el contrast mesurat sobre el pitjor fons i la prova amb un lector de pantalla real.
+- **Publicació:** el CD compila el panell i el deixa a `admin_dist` ([[nginx-proxy-manager]], TG-77 #589).
 
 ## Estructura planificada
 
