@@ -28,6 +28,7 @@ and ``VALIDATION_ERROR`` for a payload without a ``text`` string.
 """
 
 import asyncio
+import json
 import os
 import time
 import uuid
@@ -73,7 +74,8 @@ JWT_SECRET = "s" * 40
 SOCKET_TIMEOUT_SECONDS = 1.0
 RATE_LIMIT_WINDOW_SECONDS = 3
 RATE_LIMIT_MESSAGES = 10
-MESSAGE_KEYS = {"id", "room_id", "author_id", "text", "sent_at"}
+MESSAGE_KEYS = {"id", "room_id", "author", "text", "sent_at"}
+SET_DISPLAY_NAME = text("UPDATE users SET display_name = :name WHERE id = :id")
 
 INSERT_EVENT = text(
     "INSERT INTO astronomical_events"
@@ -173,7 +175,7 @@ class Harness:
         self.run_id = uuid4().hex[:12]
         # The app reaches Redis through the proxy; ``direct`` is for the checks.
         self.via_proxy = Redis.from_url(
-            f"redis://127.0.0.1:{proxy.port}",
+            f"redis://127.0.0.1:{proxy.port}/{RedisSettings().redis_db}",
             decode_responses=True,
             socket_connect_timeout=SOCKET_TIMEOUT_SECONDS,
             socket_timeout=SOCKET_TIMEOUT_SECONDS,
@@ -367,7 +369,7 @@ def test_tg457_a_message_reaches_the_other_subscriber_and_the_sender_gets_an_ack
         dto = received["payload"]
         assert set(dto) == MESSAGE_KEYS
         assert dto["text"] == "Hola, cel clar!"
-        assert dto["author_id"] == str(harness.users["ana"])
+        assert dto["author"]["id"] == str(harness.users["ana"])
         assert uuid.UUID(dto["id"]).version == 7
         assert datetime.fromisoformat(dto["sent_at"]).tzinfo is not None
         # the ack is the frame of the sender (same id and room), with the
@@ -680,7 +682,7 @@ def test_tg457_a_message_sent_over_the_websocket_appears_in_the_rest_history(
         stored = harness.history("bob", event_id)
         assert [message["id"] for message in stored] == [ack["payload"]["id"]]
         assert stored[0]["text"] == "per a l'historic"
-        assert stored[0]["author_id"] == str(harness.users["ana"])
+        assert stored[0]["author"]["id"] == str(harness.users["ana"])
         assert stored[0]["sent_at"] == ack["payload"]["sent_at"]
 
 
@@ -895,3 +897,75 @@ def test_tg654_a_message_without_client_message_id_is_a_validation_error(
 
         assert_error(reply, "VALIDATION_ERROR", "m1", room)
         assert harness.history("ana", event_id) == []
+
+
+# --- TG-64 / TG-469: el missatge difos porta l'autor {id, name} -------------------
+
+
+def test_tg469_the_broadcast_message_carries_the_author_id_and_name(
+    harness: Harness,
+) -> None:
+    harness.login("ana")
+    harness.login("bob")
+    sql(SET_DISPLAY_NAME, {"id": harness.users["ana"], "name": "Ada Lovelace"})
+    event_id = harness.event("ana", "bob")
+    room = room_of(event_id)
+    with ExitStack() as stack:
+        sender = harness.connect("ana", stack)
+        listener = harness.connect("bob", stack)
+        harness.join(sender, room)
+        harness.join(listener, room)
+
+        harness.send(sender, room, {"text": "Hola!"}, "m1")
+        received = listener.receive_json()
+
+        dto = received["payload"]
+        assert dto["author"] == {
+            "id": str(harness.users["ana"]),
+            "name": "Ada Lovelace",
+        }
+        assert "author_id" not in dto
+
+
+def test_tg469_the_broadcast_author_name_is_null_without_display_name_and_no_email(
+    harness: Harness,
+) -> None:
+    harness.login("ana")
+    harness.login("bob")
+    sql(SET_DISPLAY_NAME, {"id": harness.users["ana"], "name": None})
+    event_id = harness.event("ana", "bob")
+    room = room_of(event_id)
+    with ExitStack() as stack:
+        sender = harness.connect("ana", stack)
+        listener = harness.connect("bob", stack)
+        harness.join(sender, room)
+        harness.join(listener, room)
+
+        ack = harness.send(sender, room, {"text": "Hola!"}, "m1")
+        received = listener.receive_json()
+
+        assert received["payload"]["author"] == {
+            "id": str(harness.users["ana"]),
+            "name": None,
+        }
+        assert "@example.test" not in json.dumps(received)
+        assert "@example.test" not in json.dumps(ack)
+
+
+def test_tg469_the_history_of_a_message_sent_over_ws_has_the_author_name(
+    harness: Harness,
+) -> None:
+    harness.login("ana")
+    harness.login("bob")
+    sql(SET_DISPLAY_NAME, {"id": harness.users["ana"], "name": "Ada"})
+    event_id = harness.event("ana", "bob")
+    room = room_of(event_id)
+    with ExitStack() as stack:
+        sender = harness.connect("ana", stack)
+        harness.join(sender, room)
+
+        harness.send(sender, room, {"text": "per a l'historic"}, "m1")
+
+        [stored] = harness.history("bob", event_id)
+        assert stored["author"] == {"id": str(harness.users["ana"]), "name": "Ada"}
+        assert "author_id" not in stored

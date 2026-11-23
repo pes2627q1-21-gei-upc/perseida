@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -43,6 +43,7 @@ const ALL_OUTINGS = {};
 export default function MapScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const focused = useIsFocused();
   const [view, setView] = useState<EventsView>('map');
   const [filter, setFilter] = useState<EventFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -108,6 +109,8 @@ export default function MapScreen() {
 
   const openOuting = (outingId: string) => router.push(`/outings/${outingId}`);
 
+  const showMeetingPoints = (eventId: string) => router.push(`/meeting-points/${eventId}`);
+
   function goBack() {
     // Opened from a link there is nowhere to go back to: go home instead.
     if (router.canGoBack()) router.back();
@@ -154,16 +157,20 @@ export default function MapScreen() {
             outing={selectedOuting}
             onClose={closeSheet}
             onShowOutings={showOutings}
+            onShowMeetingPoints={showMeetingPoints}
             onOpenOuting={openOuting}
           />
         )}
       </View>
+      {/* On phones the sheet is a Modal, over every screen: it hides while another screen is
+          on top and comes back, with the same event, on going back to the map (TG-352). */}
       {!wide && (
         <EventSheet
-          event={selected}
-          outing={selectedOuting}
+          event={focused ? selected : null}
+          outing={focused ? selectedOuting : null}
           onClose={closeSheet}
           onShowOutings={showOutings}
+          onShowMeetingPoints={showMeetingPoints}
           onOpenOuting={openOuting}
         />
       )}

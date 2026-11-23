@@ -50,7 +50,7 @@ Segueix [[0023-convencions-del-model-de-dades]]: clau `uuid` generada per `uuidv
 - TG-41 (Alembic)
 - TG-70 (PostGIS)
 - TG-46 (taula `apod`)
-- TG-448 i TG-450 (taules del xat d'esdeveniment, [[model-de-domini#Persistència del xat]])
+- TG-448 i TG-450 (taules del xat d'esdeveniment, [[model-de-domini#Persistència del xat]] i [[chat]])
 
 ## Estat d'implementació
 

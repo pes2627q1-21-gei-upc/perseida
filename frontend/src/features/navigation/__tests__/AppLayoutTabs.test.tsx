@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppLayout from '../../../app/(app)/_layout';
 import * as refreshTokenModule from '../../auth/api/refreshToken';
 import * as tokenStorage from '../../auth/tokenStorage';
+import i18n from '../../../shared/i18n';
 import { colors, touch, typography } from '../../../shared/theme';
 
 const dia = colors.dia;
@@ -35,6 +36,9 @@ jest.mock('expo-router', () => {
 
   return {
     useRouter: () => ({ replace: jest.fn() }),
+    // The layout may read where the person is (e.g. to hide the bar in a chat room, TG-469):
+    // here, the home tab.
+    useSegments: () => ['(app)'],
     Tabs: MockTabs,
     Stack: () => null,
   };
@@ -176,8 +180,59 @@ describe('AppLayout Tab Navigation Structure (TG-385 #388)', () => {
       const labels = mockTabsScreens
         .filter((s) => !s.options.tabBarButton)
         .map((s) => s.options.tabBarAccessibilityLabel);
-      expect(labels).toEqual(['Inici', 'Esdeveniments', 'Xat', 'Gamificació', 'Perfil']);
+      expect(labels).toEqual([
+        'Inici',
+        'Agenda, Esdeveniments',
+        'Xat',
+        'Fites, Gamificació',
+        'Perfil',
+      ]);
     });
+  });
+
+  describe('visible label and accessible name of each tab, in each language (TG-469)', () => {
+    // At 360 px the long titles do not fit under the icon: «Esdeveniments» and «Gamificació»
+    // have a short visible label; the accessible name starts with it and adds the long one, and
+    // the screen title stays long. When both are the same word it is not repeated.
+    const mainTabs = () => mockTabsScreens.filter((s) => !s.options.tabBarButton);
+
+    afterEach(async () => {
+      await act(() => i18n.changeLanguage('ca'));
+    });
+
+    it.each([
+      [
+        'ca',
+        ['Inici', 'Agenda', 'Xat', 'Fites', 'Perfil'],
+        ['Inici', 'Agenda, Esdeveniments', 'Xat', 'Fites, Gamificació', 'Perfil'],
+        ['Inici', 'Esdeveniments', 'Xat', 'Gamificació', 'Perfil'],
+      ],
+      [
+        'es',
+        ['Inicio', 'Eventos', 'Chat', 'Logros', 'Perfil'],
+        ['Inicio', 'Eventos', 'Chat', 'Logros, Gamificación', 'Perfil'],
+        ['Inicio', 'Eventos', 'Chat', 'Gamificación', 'Perfil'],
+      ],
+      [
+        'en',
+        ['Home', 'Events', 'Chat', 'Awards', 'Profile'],
+        ['Home', 'Events', 'Chat', 'Awards, Gamification', 'Profile'],
+        ['Home', 'Events', 'Chat', 'Gamification', 'Profile'],
+      ],
+    ])(
+      'in %s the accessible name starts with the visible label and adds the long name (WCAG 2.5.3); the title stays long',
+      async (language, visible, accessible, titles) => {
+        await act(() => i18n.changeLanguage(language));
+        await act(async () => {
+          renderLayout();
+        });
+
+        await waitFor(() => expect(mainTabs()).toHaveLength(5));
+        expect(mainTabs().map((s) => s.options.tabBarLabel)).toEqual(visible);
+        expect(mainTabs().map((s) => s.options.tabBarAccessibilityLabel)).toEqual(accessible);
+        expect(mainTabs().map((s) => s.options.title)).toEqual(titles);
+      },
+    );
   });
 
   it('draws the tab bar as blurred glass, light by day (TG-385 criteri 5)', async () => {

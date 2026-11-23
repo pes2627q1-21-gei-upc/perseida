@@ -1,6 +1,6 @@
 import os
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -17,6 +17,7 @@ from app.infrastructure.events.repository import SqlEventRepository
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.posts.repository import SqlPostRepository
 from app.infrastructure.users.repository import SqlUserRepository
+from tests.integration.isolation import row_counts
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("POSTGRES_HOST"),
@@ -24,6 +25,15 @@ pytestmark = pytest.mark.skipif(
 )
 
 NOW = datetime(2026, 11, 17, 10, 0, 0, tzinfo=UTC)
+# The users and events of these tests; their posts go with them (ON DELETE CASCADE).
+DELETE_OWN_ROWS = (
+    text(
+        "DELETE FROM user_identities WHERE user_id IN"
+        " (SELECT id FROM users WHERE email LIKE 'post-%@test.cat')"
+    ),
+    text("DELETE FROM users WHERE email LIKE 'post-%@test.cat'"),
+    text("DELETE FROM astronomical_events WHERE external_id LIKE 'test-event-%'"),
+)
 
 
 @pytest.fixture(scope="module")
@@ -33,6 +43,13 @@ def _migrated() -> None:
     config.set_main_option("script_location", str(backend_dir / "alembic"))
     config.attributes["configure_logger"] = False
     command.upgrade(config, "head")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _preexisting_data_is_kept(_migrated: None) -> Iterator[None]:
+    before = row_counts()
+    yield
+    assert row_counts() == before
 
 
 @pytest.fixture
@@ -47,6 +64,11 @@ async def session_factory(
             await session.commit()
         yield factory
     finally:
+        # Leave no users behind: other modules count every row of ``users``.
+        async with factory() as session:
+            for statement in DELETE_OWN_ROWS:
+                await session.execute(statement)
+            await session.commit()
         await engine.dispose()
 
 

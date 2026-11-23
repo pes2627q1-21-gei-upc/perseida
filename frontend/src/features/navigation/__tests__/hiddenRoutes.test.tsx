@@ -70,9 +70,9 @@ describe('Sub-routes hidden from the tab bar (TG-385 #388)', () => {
     const tabs = screen.getAllByRole(role);
     expect(tabs.map((tab) => tab.props.accessibilityLabel)).toEqual([
       'Inici',
-      'Esdeveniments',
+      'Agenda, Esdeveniments',
       'Xat',
-      'Gamificació',
+      'Fites, Gamificació',
       'Perfil',
     ]);
   });
