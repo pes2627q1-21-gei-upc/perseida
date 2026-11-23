@@ -69,7 +69,7 @@ describe('DirectConversationScreen (TG-65 criteria 9, 12, 15, 16)', () => {
   it('shows the empty state and an accessible message field', async () => {
     await renderScreen();
     expect(screen.getByText(/encara no hi ha missatges/i)).toBeOnTheScreen();
-    expect(screen.getByRole('textbox')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Escriu un missatge')).toBeOnTheScreen();
   });
 
   it('announces a retryable history error and retries on request', async () => {
@@ -88,7 +88,7 @@ describe('DirectConversationScreen (TG-65 criteria 9, 12, 15, 16)', () => {
 
   it('sends text using the shared message composer', async () => {
     await renderScreen();
-    await fireEvent.changeText(screen.getByRole('textbox'), 'Hola');
+    await fireEvent.changeText(screen.getByLabelText('Escriu un missatge'), 'Hola');
     await fireEvent.press(screen.getByRole('button', { name: /envia/i }));
     expect(mockSend).toHaveBeenCalledWith('Hola');
   });
