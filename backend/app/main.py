@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.infrastructure.achievements.router import router as achievements_router
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.cors import add_cors
 from app.infrastructure.api.error_handlers import register_error_handlers
@@ -36,6 +37,9 @@ from app.infrastructure.events.usno import UsnoSolarEclipseSource
 from app.infrastructure.health.dependencies import build_health_service
 from app.infrastructure.health.router import router as health_router
 from app.infrastructure.logging import configure_logging
+from app.infrastructure.meeting_points.config import SpotwiseSettings
+from app.infrastructure.meeting_points.dependencies import build_space_search
+from app.infrastructure.meeting_points.router import router as meeting_points_router
 from app.infrastructure.outings.router import router as outings_router
 from app.infrastructure.persistence import models  # noqa: F401  (naming convention)
 from app.infrastructure.persistence.config import DatabaseSettings
@@ -63,6 +67,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = DatabaseSettings()
     nasa_settings = NasaSettings()
     events_settings = EventsSettings()
+    spotwise_settings = SpotwiseSettings()
     scheduler = (
         get_job_scheduler() if get_scheduler_settings().scheduler_enabled else None
     )
@@ -107,7 +112,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                             connect=events_settings.events_connect_timeout_seconds,
                         )
                     ) as events_http,
+                    httpx.AsyncClient(
+                        timeout=spotwise_settings.spotwise_timeout_seconds
+                    ) as spotwise_http,
                 ):
+                    # Spotwise without a token: its example answer (TG-352).
+                    app.state.space_search = build_space_search(
+                        spotwise_settings, spotwise_http
+                    )
                     # One instance per process: LL2 enforces its quota and
                     # Skyfield loads the ephemeris once (ADR-0031).
                     app.state.event_sources = [
@@ -174,10 +186,12 @@ def create_app() -> FastAPI:
     app.include_router(subscriptions_router, prefix="/api")
     app.include_router(quiz_router, prefix="/api")
     app.include_router(streaks_router, prefix="/api")
+    app.include_router(achievements_router, prefix="/api")
     app.include_router(outings_router, prefix="/api")
     app.include_router(posts_router, prefix="/api")
     app.include_router(chat_router, prefix="/api")
     app.include_router(direct_chat_router, prefix="/api")
+    app.include_router(meeting_points_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
 

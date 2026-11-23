@@ -11,6 +11,7 @@ import type { SocketStatus } from '../../../shared/realtime';
 import { currentUserKeys } from '../../auth/hooks/useCurrentUser';
 import { saveTokens } from '../../auth/tokenStorage';
 import type { ChatListItem } from '../chatItems';
+import { eventKeys } from '../../events/hooks/useEvents';
 import { chatKeys } from './useChat';
 import type { ChatSocketHandlers, SentChatMessage } from './useChatSocket';
 import { useRoomLive } from './useRoomLive';
@@ -206,12 +207,12 @@ describe('useRoomLive: the history and its room (TG-469, US TG-64 criteri 14)', 
 
 describe('useRoomLive: taken out of the room (TG-469, US TG-64 criteri 17)', () => {
   it('also invalidates the subscriptions, which list the rooms of the chat tab', async () => {
-    client.setQueryData(chatKeys.subscriptions, []);
+    client.setQueryData(eventKeys.subscriptions(), []);
     await mountRoom();
 
     await act(async () => mockSocket.handlers?.onRevoked());
 
-    expect(client.getQueryState(chatKeys.subscriptions)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(eventKeys.subscriptions())?.isInvalidated).toBe(true);
   });
 });
 
