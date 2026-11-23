@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -31,6 +32,16 @@ class SqlAchievementRepository:
                 )
             )
             return set(result.scalars())
+
+    async def list_unlocked_at(self, user_id: uuid.UUID) -> dict[uuid.UUID, datetime]:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(
+                    col(UserAchievementRow.achievement_id),
+                    col(UserAchievementRow.unlocked_at),
+                ).where(col(UserAchievementRow.user_id) == user_id)
+            )
+            return {row.achievement_id: row.unlocked_at for row in result}
 
     async def unlock(
         self, user_id: uuid.UUID, achievement_ids: set[uuid.UUID]

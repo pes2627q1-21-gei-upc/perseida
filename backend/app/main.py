@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.infrastructure.achievements.router import router as achievements_router
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.cors import add_cors
 from app.infrastructure.api.error_handlers import register_error_handlers
@@ -168,6 +169,7 @@ def create_app() -> FastAPI:
     app.include_router(subscriptions_router, prefix="/api")
     app.include_router(quiz_router, prefix="/api")
     app.include_router(streaks_router, prefix="/api")
+    app.include_router(achievements_router, prefix="/api")
     app.include_router(outings_router, prefix="/api")
     app.include_router(posts_router, prefix="/api")
     app.include_router(chat_router, prefix="/api")
