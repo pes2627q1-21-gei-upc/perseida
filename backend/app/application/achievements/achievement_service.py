@@ -1,9 +1,11 @@
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.domain.achievements.models import (
     Achievement,
+    AchievementCategory,
     AchievementKind,
     UserAchievement,
 )
@@ -21,6 +23,7 @@ class AchievementProgress:
     current: int
     goal: int
     unlocked: bool
+    unlocked_at: datetime | None = None
 
 
 class AchievementService:
@@ -57,16 +60,30 @@ class AchievementService:
         await self.record_activity(user_id, activity, value)
 
     async def list_progress(self, user_id: uuid.UUID) -> list[AchievementProgress]:
-        """Return every catalog achievement with the user's progress on it."""
+        """Return every catalog achievement with the user's progress on it.
+
+        Ordered by category (``AchievementCategory`` order), then ``position``.
+        """
         catalog = await self._achievements.list_catalog()
-        unlocked_ids = await self._achievements.list_unlocked_ids(user_id)
+        unlocked_at = await self._achievements.list_unlocked_at(user_id)
         streak = await self._streak_days(user_id)
         items: list[AchievementProgress] = []
-        for achievement in catalog:
-            unlocked = achievement.id in unlocked_ids
+        category_order = list(AchievementCategory)
+        for achievement in sorted(
+            catalog, key=lambda a: (category_order.index(a.category), a.position)
+        ):
+            unlocked = achievement.id in unlocked_at
             current_value = (
                 streak if achievement.kind is AchievementKind.STREAK_DAYS else 0
             )
             current, goal = progress(achievement, current_value, unlocked=unlocked)
-            items.append(AchievementProgress(achievement, current, goal, unlocked))
+            items.append(
+                AchievementProgress(
+                    achievement,
+                    current,
+                    goal,
+                    unlocked,
+                    unlocked_at.get(achievement.id),
+                )
+            )
         return items

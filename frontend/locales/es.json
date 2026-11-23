@@ -93,6 +93,7 @@
     "DATABASE_UNAVAILABLE": "El servicio no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
     "EMAIL_ALREADY_REGISTERED": "Este correo ya está asociado a otra cuenta.",
     "EVENT_NOT_FOUND": "Este evento ya no existe.",
+    "EVENT_ALREADY_ENDED": "Este evento ya ha terminado.",
     "GENERIC_FINAL": "Algo ha salido mal.",
     "GOOGLE_SIGN_IN_EXPO_GO": "El inicio de sesión con Google no funciona en Expo Go. Usa la app instalada (build de desarrollo).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "El inicio de sesión con Google aún no está disponible.",
@@ -214,6 +215,18 @@
       "results_other": "{{count}} eventos",
       "empty": "No hay eventos con estos filtros.",
       "openMap": "Abrir el mapa"
+    },
+    "tabs": {
+      "label": "Vista",
+      "all": "Todos",
+      "mine": "Los míos"
+    },
+    "subscription": {
+      "follow": "Sigue {{title}}",
+      "unavailable": "No se han podido cargar los eventos que sigues: las estrellas se volverán a activar cuando se carguen."
+    },
+    "mine": {
+      "empty": "Aún no sigues ningún evento. Toca la estrella de un evento para seguirlo."
     }
   },
   "home": {

@@ -93,6 +93,7 @@
     "DATABASE_UNAVAILABLE": "The service isn't available right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
     "EVENT_NOT_FOUND": "This event no longer exists.",
+    "EVENT_ALREADY_ENDED": "This event has already ended.",
     "GENERIC_FINAL": "Something went wrong.",
     "GOOGLE_SIGN_IN_EXPO_GO": "Google sign-in doesn't work in Expo Go. Use the installed app (development build).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "Google sign-in isn't available yet.",
@@ -214,6 +215,18 @@
       "results_other": "{{count}} events",
       "empty": "No events match these filters.",
       "openMap": "Open the map"
+    },
+    "tabs": {
+      "label": "View",
+      "all": "All",
+      "mine": "Mine"
+    },
+    "subscription": {
+      "follow": "Follow {{title}}",
+      "unavailable": "The events you follow couldn't be loaded: the stars will work again once they load."
+    },
+    "mine": {
+      "empty": "You don't follow any event yet. Tap the star of an event to follow it."
     }
   },
   "home": {

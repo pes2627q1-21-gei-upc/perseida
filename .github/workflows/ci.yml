@@ -45,6 +45,8 @@ jobs:
               - "infra/nginx-proxy-manager/**"
               - "infra/scripts/test-rate-limit.sh"
               - "infra/scripts/test-npm-startup.sh"
+              - "infra/scripts/test-public-pages.sh"
+              - ".github/workflows/cd.yml"
               - "infra/scripts/install-http-top.sh"
               - "infra/docker-compose.yml"
               - ".github/workflows/ci.yml"
@@ -68,6 +70,9 @@ jobs:
       # Regressió del hotfix 0.2.1: NPM no arrencava amb `http_top.conf` de només lectura.
       - name: NPM arrenca amb el muntatge d'http_top.conf del Compose
         run: bash infra/scripts/test-npm-startup.sh
+      # Pàgines públiques per a Google Auth Platform (TG-343): 200, tres idiomes i CSP.
+      - name: Pàgines públiques (/, /privacy i /terms)
+        run: bash infra/scripts/test-public-pages.sh
 
   backend:
     needs: changes

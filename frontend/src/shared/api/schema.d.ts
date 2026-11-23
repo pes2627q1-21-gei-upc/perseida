@@ -33,7 +33,7 @@ export interface paths {
     };
     /**
      * Imatge astronòmica del dia (APOD)
-     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui.
+     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui. L'endpoint és públic: la sessió (capçalera `Authorization: Bearer`) és opcional i, si n'hi ha una de vàlida, registra l'activitat del dia de la ratxa. Una sessió absent o invàlida no és un error i no canvia la resposta.
      */
     get: operations['get_apod'];
     put?: never;
@@ -121,7 +121,11 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /**
+     * Actualitza l'usuari autenticat
+     * @description Canvia l'idioma preferit de l'usuari propietari de la sessió.
+     */
+    patch: operations['update_current_user'];
     trace?: never;
   };
   '/api/events': {
@@ -398,6 +402,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/users/me/achievements': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Fites de l'usuari autenticat
+     * @description Retorna tot el catàleg de fites amb el progrés de l'usuari de la sessió, ordenat per categoria (streaks, quiz, events, social, minigame) i, dins de cada categoria, per posició.
+     */
+    get: operations['list_my_achievements'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/outings': {
     parameters: {
       query?: never;
@@ -582,6 +606,57 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * AchievementCategory
+     * @description Catalog section an achievement is grouped under (independent of ``kind``).
+     * @enum {string}
+     */
+    AchievementCategory: 'streaks' | 'quiz' | 'events' | 'social' | 'minigame';
+    /** AchievementResponse */
+    AchievementResponse: {
+      /**
+       * Code
+       * @description Codi estable de la fita
+       */
+      code: string;
+      /**
+       * Name
+       * @description Nom de la fita
+       */
+      name: string;
+      /**
+       * Description
+       * @description Descripció de la fita
+       */
+      description: string;
+      /** @description Categoria de la fita */
+      category: components['schemas']['AchievementCategory'];
+      /**
+       * Position
+       * @description Posició dins de la categoria
+       */
+      position: number;
+      /**
+       * Current
+       * @description Progrés actual de l'usuari
+       */
+      current: number;
+      /**
+       * Goal
+       * @description Objectiu per desbloquejar la fita
+       */
+      goal: number;
+      /**
+       * Unlocked
+       * @description Si l'usuari l'ha desbloquejada
+       */
+      unlocked: boolean;
+      /**
+       * Unlocked At
+       * @description Moment de desbloqueig (UTC), o null si no ho està
+       */
+      unlocked_at: string | null;
+    };
     /** ApodResponse */
     ApodResponse: {
       /**
@@ -1255,6 +1330,11 @@ export interface components {
        */
       expires_in: number;
     };
+    /** UpdateUserRequest */
+    UpdateUserRequest: {
+      /** @description Nou idioma preferit */
+      preferred_language: components['schemas']['Language'];
+    };
     /** UserResponse */
     UserResponse: {
       /**
@@ -1571,6 +1651,75 @@ export interface operations {
       };
       /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  update_current_user: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateUserRequest'];
+      };
+    };
+    responses: {
+      /** @description El perfil actualitzat. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cos de la petició invàlid (`VALIDATION_ERROR`). */
+      422: {
         headers: {
           [name: string]: unknown;
         };
@@ -2154,6 +2303,53 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['StreakResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_my_achievements: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Les fites amb progrés i data de desbloqueig. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AchievementResponse'][];
         };
       };
       /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */

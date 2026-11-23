@@ -1,6 +1,9 @@
 import type { EventCategory } from '../events/api/getEvents';
 import type { ChatRoom } from './api/chat';
-import type { SubscribedEvent } from './api/subscriptions';
+import type { AstronomicalEvent } from '../events/api/getEvents';
+
+/** An event the user follows: the rooms of the chat list are theirs (TG-469). */
+export type SubscribedEvent = AstronomicalEvent;
 
 /** One row of the chat list: a subscribed event and what was said last in its room. */
 export interface RoomListEntry {

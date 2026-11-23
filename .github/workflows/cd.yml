@@ -144,6 +144,9 @@ jobs:
           # estigui el proxy en marxa o no (hotfix 0.2.2).
           scp -q infra/nginx-proxy-manager/http_top.conf virtech:/opt/perseida/http_top.conf.new
           ssh virtech 'cd /opt/perseida && sh install-http-top.sh http_top.conf.new && rm -f http_top.conf.new'
+          # Pàgines públiques que el Compose munta a NPM a /public (TG-343).
+          ssh virtech 'mkdir -p /opt/perseida/nginx-proxy-manager/public'
+          scp -q infra/nginx-proxy-manager/public/*.html virtech:/opt/perseida/nginx-proxy-manager/public/
           ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
 
       # El servidor baixa la imatge de GHCR (paquet privat) amb el token efímer

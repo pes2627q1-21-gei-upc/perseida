@@ -9,6 +9,9 @@ from app.application.apod.apod_service import ApodService
 from app.domain.apod.models import MediaType
 from app.infrastructure.apod.dependencies import get_apod_service
 from app.infrastructure.apod.router import ApodResponse, router
+from app.infrastructure.auth.dependencies import get_auth_service
+from app.infrastructure.streaks.dependencies import get_streak_service
+from app.infrastructure.users.dependencies import get_user_service
 from tests.factories.apod import make_apod
 from tests.fakes.apod import FakeApodProvider
 
@@ -45,6 +48,10 @@ def app(provider: FakeApodProvider) -> FastAPI:
     # Router only, not create_app(): the full-app flow is TG-116.
     app = FastAPI()
     app.include_router(router, prefix="/api")
+    # No session in these tests: the optional-session dependencies are not used.
+    app.dependency_overrides[get_auth_service] = lambda: object()
+    app.dependency_overrides[get_user_service] = lambda: object()
+    app.dependency_overrides[get_streak_service] = lambda: object()
     app.dependency_overrides[get_apod_service] = lambda: ApodService(
         provider, today=lambda: TODAY
     )

@@ -23,3 +23,7 @@ class UserRepository(Protocol):
     async def save_last_login(self, user: User) -> None:
         """Persist ``user.last_login_at``."""
         ...
+
+    async def save_preferred_language(self, user: User) -> None:
+        """Persist ``user.preferred_language``."""
+        ...

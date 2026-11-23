@@ -42,7 +42,7 @@
           "apod"
         ],
         "summary": "Imatge astronòmica del dia (APOD)",
-        "description": "Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui.",
+        "description": "Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui. L'endpoint és públic: la sessió (capçalera `Authorization: Bearer`) és opcional i, si n'hi ha una de vàlida, registra l'activitat del dia de la ratxa. Una sessió absent o invàlida no és un error i no canvia la resposta.",
         "operationId": "get_apod",
         "parameters": [
           {
@@ -338,6 +338,91 @@
           },
           "403": {
             "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Actualitza l'usuari autenticat",
+        "description": "Canvia l'idioma preferit de l'usuari propietari de la sessió.",
+        "operationId": "update_current_user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "El perfil actualitzat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El cos de la petició no es pot llegir (codificació no vàlida).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Cos de la petició invàlid (`VALIDATION_ERROR`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1248,6 +1333,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StreakResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sessió absent, invàlida o revocada (`INVALID_SESSION`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No es pot comprovar la sessió (`SESSION_UNAVAILABLE`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/achievements": {
+      "get": {
+        "tags": [
+          "achievements"
+        ],
+        "summary": "Fites de l'usuari autenticat",
+        "description": "Retorna tot el catàleg de fites amb el progrés de l'usuari de la sessió, ordenat per categoria (streaks, quiz, events, social, minigame) i, dins de cada categoria, per posició.",
+        "operationId": "list_my_achievements",
+        "responses": {
+          "200": {
+            "description": "Les fites amb progrés i data de desbloqueig.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AchievementResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List My Achievements"
                 }
               }
             }
@@ -2600,6 +2746,87 @@
   },
   "components": {
     "schemas": {
+      "AchievementCategory": {
+        "type": "string",
+        "enum": [
+          "streaks",
+          "quiz",
+          "events",
+          "social",
+          "minigame"
+        ],
+        "title": "AchievementCategory",
+        "description": "Catalog section an achievement is grouped under (independent of ``kind``)."
+      },
+      "AchievementResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Codi estable de la fita"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nom de la fita"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Descripció de la fita"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AchievementCategory",
+            "description": "Categoria de la fita"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "description": "Posició dins de la categoria"
+          },
+          "current": {
+            "type": "integer",
+            "title": "Current",
+            "description": "Progrés actual de l'usuari"
+          },
+          "goal": {
+            "type": "integer",
+            "title": "Goal",
+            "description": "Objectiu per desbloquejar la fita"
+          },
+          "unlocked": {
+            "type": "boolean",
+            "title": "Unlocked",
+            "description": "Si l'usuari l'ha desbloquejada"
+          },
+          "unlocked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unlocked At",
+            "description": "Moment de desbloqueig (UTC), o null si no ho està"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "description",
+          "category",
+          "position",
+          "current",
+          "goal",
+          "unlocked",
+          "unlocked_at"
+        ],
+        "title": "AchievementResponse"
+      },
       "ApodResponse": {
         "properties": {
           "date": {
@@ -3763,6 +3990,19 @@
           "expires_in"
         ],
         "title": "TokenResponse"
+      },
+      "UpdateUserRequest": {
+        "properties": {
+          "preferred_language": {
+            "$ref": "#/components/schemas/Language",
+            "description": "Nou idioma preferit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "preferred_language"
+        ],
+        "title": "UpdateUserRequest"
       },
       "UserResponse": {
         "properties": {

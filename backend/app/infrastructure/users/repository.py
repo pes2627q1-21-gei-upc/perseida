@@ -95,6 +95,14 @@ class SqlUserRepository:
                 .values(last_login_at=user.last_login_at)
             )
 
+    async def save_preferred_language(self, user: User) -> None:
+        async with self._session_factory() as session, session.begin():
+            await session.execute(
+                update(UserRow)
+                .where(col(UserRow.id) == user.id)
+                .values(preferred_language=user.preferred_language.value)
+            )
+
     @staticmethod
     async def _find(session: AsyncSession, google_sub: str) -> User | None:
         result = await session.execute(
