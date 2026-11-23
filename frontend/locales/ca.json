@@ -214,7 +214,8 @@
       "mine": "Els meus"
     },
     "subscription": {
-      "follow": "Segueix {{title}}"
+      "follow": "Segueix {{title}}",
+      "unavailable": "No s'han pogut carregar els esdeveniments que segueixes: les estrelles es tornaran a activar quan es carreguin."
     },
     "mine": {
       "empty": "Encara no segueixes cap esdeveniment. Toca l'estrella d'un esdeveniment per seguir-lo."

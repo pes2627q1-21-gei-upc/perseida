@@ -32,7 +32,7 @@ import { useDeviceLocation } from '../hooks/useDeviceLocation';
 import { useEventSearch } from '../hooks/useEventSearch';
 import { useMySubscriptions, useToggleSubscription } from '../hooks/useSubscriptions';
 import { EventRow } from './EventRow';
-import { MyEvents } from './MyEvents';
+import { useMyEvents } from './MyEvents';
 
 /** Order of the category chips; the chosen ones are sent in this order. */
 const CATEGORIES: readonly EventCategory[] = ['lunar', 'solar', 'meteor_shower', 'launch'];
@@ -63,6 +63,7 @@ export function EventsScreen() {
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const subscriptions = useMySubscriptions();
   const toggleSubscription = useToggleSubscription();
+  const mine = useMyEvents(tab === 'mine');
   const followed = new Set(subscriptions.data?.map((event) => event.id));
 
   const denied = location.status === 'denied';
@@ -171,9 +172,23 @@ export function EventsScreen() {
     </View>
   );
 
-  const header = (
-    <View style={{ gap: spacing.md }}>
-      {top}
+  // On «All», why the stars are disabled when the subscriptions fail, with a retry (review of
+  // the PR #138); «Mine» shows the same error as its own state.
+  const subscriptionsNotice = subscriptions.isError ? (
+    <View style={{ gap: spacing.sm }}>
+      <Text style={secondary}>{t('events.subscription.unavailable')}</Text>
+      <StatusPanel
+        state="error"
+        texts={statusTexts}
+        code={subscriptions.error.code}
+        onRetry={subscriptions.error.retryable ? () => void subscriptions.refetch() : undefined}
+      />
+    </View>
+  ) : null;
+
+  const searchControls = (
+    <>
+      {subscriptionsNotice}
       <GlassPanel>
         <View style={{ gap: spacing.md }}>
           <View style={{ gap: spacing.sm }}>
@@ -251,6 +266,15 @@ export function EventsScreen() {
           {t('events.search.results', { count: data.length })}
         </Text>
       )}
+    </>
+  );
+
+  // The same list and header for both tabs: `top` (title and tabs) stays the first child, so
+  // switching tabs never unmounts the tab the person just pressed (WCAG 2.4.3).
+  const header = (
+    <View style={{ gap: spacing.md }}>
+      {top}
+      {tab === 'all' ? searchControls : null}
     </View>
   );
 
@@ -318,34 +342,30 @@ export function EventsScreen() {
     },
   ];
 
-  if (tab === 'mine') {
-    return (
-      <SkyBackground>
-        <MyEvents header={top} contentContainerStyle={contentStyle} renderRow={renderRow} />
-      </SkyBackground>
-    );
-  }
+  const onAll = tab === 'all';
+  // While the results of the previous filters are shown, the new ones are on their way.
+  const busy = onAll && isPlaceholderData;
 
   return (
     <SkyBackground>
       <FlatList
-        data={events}
+        data={onAll ? events : mine.events}
         keyExtractor={(event) => event.id}
         ListHeaderComponent={header}
-        ListEmptyComponent={renderEmpty()}
+        ListEmptyComponent={onAll ? renderEmpty() : mine.empty}
         renderItem={({ item }) =>
           renderRow(
             item,
-            // The results of the previous filters may not be the ones near the device.
-            near && item.location && !isPlaceholderData
+            // «Mine» has no distance; the results of the previous filters may not be the ones
+            // near the device.
+            onAll && near && item.location && !isPlaceholderData
               ? distanceKm(near, item.location)
               : undefined,
           )
         }
         contentContainerStyle={contentStyle}
-        // While the results of the previous filters are shown, the new ones are on their way.
-        accessibilityState={{ busy: isPlaceholderData }}
-        aria-busy={isPlaceholderData}
+        accessibilityState={{ busy }}
+        aria-busy={busy}
         showsVerticalScrollIndicator={false}
       />
     </SkyBackground>

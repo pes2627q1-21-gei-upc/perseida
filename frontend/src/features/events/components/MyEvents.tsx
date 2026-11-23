@@ -1,30 +1,28 @@
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  AccessibilityInfo,
-  FlatList,
-  Platform,
-  type StyleProp,
-  Text,
-  type ViewStyle,
-} from 'react-native';
+import { AccessibilityInfo, Platform, Text } from 'react-native';
 
 import { useTheme } from '../../../shared/theme';
 import { GlassPanel, StatusPanel } from '../../../shared/ui';
 import { type ClassifiedEvent, statusOn } from '../classifyEvents';
 import { useMySubscriptions } from '../hooks/useSubscriptions';
 
-interface Props {
-  /** Top of the screen (title and tabs), first in the list so it scrolls with it. */
-  header: ReactElement;
-  contentContainerStyle: StyleProp<ViewStyle>;
-  /** Draws a row, the same way as on «All». */
-  renderRow: (event: ClassifiedEvent) => ReactElement;
+interface MyEventsView {
+  /** The events the user follows, with their status now; none while loading or on error. */
+  events: ClassifiedEvent[];
+  /** What the list shows when it has no rows: loading, error with retry, or empty. */
+  empty: ReactElement;
 }
 
-/** «Mine» of the Events tab (TG-53): the events the user follows, without filters. */
-export function MyEvents({ header, contentContainerStyle, renderRow }: Props) {
+/**
+ * «Mine» of the Events tab (TG-53): the events the user follows, without filters. It gives the
+ * rows and the empty state, and the screen draws them in the same list as «All» so the tabs
+ * are never unmounted when switching (review of the PR #138, WCAG 2.4.3).
+ *
+ * `active` is true while «Mine» is shown: only then is its empty state announced on iOS.
+ */
+export function useMyEvents(active: boolean): MyEventsView {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const { data, isLoading, isError, error, refetch } = useMySubscriptions();
@@ -32,8 +30,8 @@ export function MyEvents({ header, contentContainerStyle, renderRow }: Props) {
 
   useEffect(() => {
     // Android and the web read the polite live region by themselves; iOS needs an announcement.
-    if (empty && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(empty);
-  }, [empty]);
+    if (active && empty && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(empty);
+  }, [active, empty]);
 
   const now = new Date();
   const events = isError
@@ -45,19 +43,19 @@ export function MyEvents({ header, contentContainerStyle, renderRow }: Props) {
     retryHint: t('events.retryHint'),
   };
 
-  function renderEmpty() {
-    if (isLoading) return <StatusPanel state="loading" texts={statusTexts} />;
-    if (isError) {
-      return (
-        <StatusPanel
-          state="error"
-          texts={statusTexts}
-          code={error.code}
-          onRetry={error.retryable ? () => void refetch() : undefined}
-        />
-      );
-    }
-    return (
+  let emptyState: ReactElement;
+  if (isLoading) emptyState = <StatusPanel state="loading" texts={statusTexts} />;
+  else if (isError) {
+    emptyState = (
+      <StatusPanel
+        state="error"
+        texts={statusTexts}
+        code={error.code}
+        onRetry={error.retryable ? () => void refetch() : undefined}
+      />
+    );
+  } else {
+    emptyState = (
       <GlassPanel>
         <Text
           accessibilityLiveRegion="polite"
@@ -70,15 +68,5 @@ export function MyEvents({ header, contentContainerStyle, renderRow }: Props) {
     );
   }
 
-  return (
-    <FlatList
-      data={events}
-      keyExtractor={(event) => event.id}
-      ListHeaderComponent={header}
-      ListEmptyComponent={renderEmpty()}
-      renderItem={({ item }) => renderRow(item)}
-      contentContainerStyle={contentContainerStyle}
-      showsVerticalScrollIndicator={false}
-    />
-  );
+  return { events, empty: emptyState };
 }

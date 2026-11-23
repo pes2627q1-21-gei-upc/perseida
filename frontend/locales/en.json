@@ -214,7 +214,8 @@
       "mine": "Mine"
     },
     "subscription": {
-      "follow": "Follow {{title}}"
+      "follow": "Follow {{title}}",
+      "unavailable": "The events you follow couldn't be loaded: the stars will work again once they load."
     },
     "mine": {
       "empty": "You don't follow any event yet. Tap the star of an event to follow it."
