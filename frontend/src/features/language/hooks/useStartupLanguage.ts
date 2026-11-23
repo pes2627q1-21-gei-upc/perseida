@@ -20,13 +20,15 @@ export function useStartupLanguage(ready: boolean) {
     async function apply() {
       const saved = await getSavedLanguage();
       if (mounted && saved) await i18n.changeLanguage(saved);
+      // If the person chooses a language while the account loads, their choice stands.
+      const chosenAtStart = i18n.language;
       try {
         const profile = await queryClient.fetchQuery({
           queryKey: profileKeys.me(),
           queryFn: getUserProfile,
           staleTime: USER_PROFILE_STALE_TIME_MS,
         });
-        if (!mounted) return;
+        if (!mounted || i18n.language !== chosenAtStart) return;
         await i18n.changeLanguage(profile.preferred_language);
         await saveLanguage(profile.preferred_language);
       } catch {

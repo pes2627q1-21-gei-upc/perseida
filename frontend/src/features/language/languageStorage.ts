@@ -7,7 +7,11 @@ import { isLanguage, type Language } from '../../shared/i18n';
 const LANGUAGE_KEY = 'perseida.language';
 
 export async function saveLanguage(language: Language): Promise<void> {
-  await SecureStore.setItemAsync(LANGUAGE_KEY, language);
+  try {
+    await SecureStore.setItemAsync(LANGUAGE_KEY, language);
+  } catch {
+    // The device cannot save it: the language still applies and the account still gets it.
+  }
 }
 
 /** The language last saved on this device, or null if there is none or it cannot be read. */

@@ -14,6 +14,8 @@ import { saveLanguage } from '../languageStorage';
 export function useChangeLanguage() {
   const queryClient = useQueryClient();
   const mutation = useMutation<UserProfile, AppError, Language>({
+    // One at a time: quick changes reach the account in the order they were chosen.
+    scope: { id: 'language' },
     mutationFn: async (language) => {
       await saveLanguage(language);
       return updateLanguage(language);
