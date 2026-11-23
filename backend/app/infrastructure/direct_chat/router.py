@@ -48,6 +48,7 @@ _ERRORS: dict[int | str, dict[str, Any]] = {
     responses={
         **_ERRORS,
         200: {"description": "Conversa existent.", "model": DirectConversationResponse},
+        400: _problem("Invalid request body encoding (HTTP_400)."),
     },
 )
 async def open_direct_conversation(
