@@ -206,6 +206,51 @@ describe('Login screen', () => {
     expect(mockReplace).toHaveBeenCalledWith('/(app)');
   });
 
+  describe('on the web, where the panel lives (TG-77 criteri 2)', () => {
+    beforeEach(() => {
+      jest.replaceProperty(Platform, 'OS', 'web');
+    });
+
+    it('takes a signed-in person to the panel, not to the mobile app', async () => {
+      jest.spyOn(googleSignInModule, 'signInWithGoogle').mockResolvedValueOnce({
+        access_token: 'acc-1',
+        refresh_token: 'ref-1',
+        token_type: 'bearer' as const,
+        expires_in: 900,
+      });
+      jest.spyOn(tokenStorage, 'saveTokens').mockResolvedValueOnce();
+      let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+      jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+        capturedOptions = opts;
+        return {
+          signIn: jest.fn(async () => {
+            await capturedOptions?.onSuccess?.('id-token-valid');
+            return { type: 'success' as const, idToken: 'id-token-valid' };
+          }),
+          isAuthenticating: false,
+        };
+      });
+      await renderScreen();
+
+      await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
+
+      expect(mockReplace).toHaveBeenCalledWith('/panel');
+      expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
+    });
+
+    it('takes a person who already has a session to the panel', async () => {
+      jest.spyOn(tokenStorage, 'getTokens').mockResolvedValueOnce({
+        accessToken: 'existing-acc',
+        refreshToken: 'existing-ref',
+      });
+
+      await renderScreen();
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/panel'));
+      expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
+    });
+  });
+
   it('TG-43 Criteri 5: handles cancellation from useGoogleAuth without error notice', async () => {
     let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
     jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
