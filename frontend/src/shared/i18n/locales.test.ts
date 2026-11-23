@@ -89,6 +89,7 @@ describe('locales', () => {
     'events.tabs.all',
     'events.tabs.mine',
     'events.subscription.follow',
+    'events.subscription.unavailable',
     'events.mine.empty',
     'errors.EVENT_ALREADY_ENDED',
   ];

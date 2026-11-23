@@ -712,6 +712,27 @@ describe('Events tab: subscriptions (TG-53)', () => {
       expect(screen.queryByLabelText(t('events.search.range.label'))).toBeNull();
       expect(screen.queryByRole('switch', { name: NEAR() })).toBeNull();
     });
+
+    // Review of the PR #138: a new list per tab unmounted the tabs, and the keyboard or the
+    // screen reader lost the focus of the tab just pressed (WCAG 2.4.3, criterion 8).
+    it('keeps the same tabs mounted when switching between All and Mine', async () => {
+      subscriptionsApi.mine = () => jsonResponse([lunarEvent]);
+      await renderScreen();
+      await screen.findByText(launchEvent.title);
+      const tabs = screen.getByLabelText(t('events.tabs.label'));
+      const mine = screen.getByRole('tab', { name: t('events.tabs.mine') });
+
+      await openMine();
+      await screen.findByText(lunarEvent.title);
+
+      expect(screen.getByLabelText(t('events.tabs.label'))).toBe(tabs);
+      expect(screen.getByRole('tab', { name: t('events.tabs.mine'), selected: true })).toBe(mine);
+
+      await fireEvent.press(screen.getByRole('tab', { name: t('events.tabs.all') }));
+      await screen.findByText(launchEvent.title);
+
+      expect(screen.getByLabelText(t('events.tabs.label'))).toBe(tabs);
+    });
   });
 
   describe('the star on All (criteria 7 and 8)', () => {
@@ -752,6 +773,40 @@ describe('Events tab: subscriptions (TG-53)', () => {
       expect(
         screen.getByRole('button', { name: follow(launchEvent.title), disabled: true }),
       ).toBeTruthy();
+    });
+
+    // Review of the PR #138: the stars were disabled with no word of why nor a way to retry.
+    it('says why the stars are disabled when the subscriptions fail, and a retry enables them', async () => {
+      let failing = true;
+      subscriptionsApi.mine = () =>
+        failing ? problemResponse(500, 'INTERNAL_ERROR') : jsonResponse([lunarEvent]);
+      await renderScreen();
+      await screen.findByText(launchEvent.title);
+
+      expect(await screen.findByText(t('events.subscription.unavailable'))).toBeTruthy();
+      expect(t('events.subscription.unavailable')).not.toBe('events.subscription.unavailable');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Alguna cosa ha anat malament. Torna-ho a provar.',
+      );
+      failing = false;
+      await fireEvent.press(screen.getByRole('button', { name: 'Torna-ho a provar' }));
+
+      expect(
+        await screen.findByRole('button', { name: follow(lunarEvent.title), selected: true }),
+      ).not.toBeDisabled();
+      expect(screen.queryByText(t('events.subscription.unavailable'))).toBeNull();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('says nothing about the subscriptions while they load or once they are here', async () => {
+      const pending = deferred();
+      subscriptionsApi.mine = () => pending.promise;
+      await renderScreen();
+      await screen.findByText(launchEvent.title);
+
+      expect(screen.queryByText(t('events.subscription.unavailable'))).toBeNull();
+      await act(async () => pending.resolve(jsonResponse([])));
+      expect(screen.queryByText(t('events.subscription.unavailable'))).toBeNull();
     });
 
     it('keeps the rows themselves not pressable', async () => {
