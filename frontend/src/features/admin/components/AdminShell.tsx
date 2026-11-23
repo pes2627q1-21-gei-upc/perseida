@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { moveFocusTo } from '../../../shared/a11y/moveFocusTo';
-import { useTheme } from '../../../shared/theme';
+import { focusRingShadow, useTheme } from '../../../shared/theme';
 import { GlassPanel, SkyBackground } from '../../../shared/ui';
 import { LogoutButton } from '../../auth/components/LogoutButton';
 
@@ -49,7 +49,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             borderRadius: theme.radii.pill,
             backgroundColor: theme.colors.surface.glassSolid,
             opacity: skipFocused ? 1 : 0,
-            ...(skipFocused && { boxShadow: `0 0 0 3px ${theme.colors.focusRing}` }),
+            ...(skipFocused && { boxShadow: focusRingShadow(theme.colors.focusRing) }),
           }}
         >
           <Pressable

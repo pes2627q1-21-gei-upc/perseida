@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
-import { useTheme } from '../../../shared/theme';
+import { focusRingShadow, useTheme } from '../../../shared/theme';
 import { GlassPanel } from '../../../shared/ui';
 import { PANEL_SECTIONS, type PanelSection } from '../panelSections';
 
@@ -21,7 +21,7 @@ function SectionCard({ section }: { section: PanelSection }) {
         flexGrow: 1,
         flexBasis: 240,
         borderRadius: theme.radii.lg,
-        ...(focused && { boxShadow: `0 0 0 3px ${theme.colors.focusRing}` }),
+        ...(focused && { boxShadow: focusRingShadow(theme.colors.focusRing) }),
       }}
     >
       <Pressable
