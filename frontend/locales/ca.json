@@ -1,4 +1,10 @@
 {
+  "admin": {
+    "noAccess": {
+      "message": "El teu compte no té permís per entrar al panell d'administració.",
+      "title": "Sense accés"
+    }
+  },
   "apod": {
     "loadingLabel": "Carregant l'APOD",
     "mediaError": "No s'ha pogut carregar la imatge o el vídeo.",

@@ -14,6 +14,9 @@ import { getTokens, saveTokens } from '../features/auth/tokenStorage';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
 
+// The web build is the admin panel; the mobile app lives in the (app) group (TG-77 criteri 2).
+const homeRoute = () => (Platform.OS === 'web' ? '/panel' : '/(app)');
+
 /** Sign-in screen. Its memorable element is the Perseid shower over the lake. */
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -33,7 +36,7 @@ export default function LoginScreen() {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
       });
-      router.replace('/(app)');
+      router.replace(homeRoute());
     },
     onError: (err) => setPressedNotice(toAuthErrorMessage(err)),
     onCancel: () => {
@@ -52,7 +55,7 @@ export default function LoginScreen() {
     void getTokens()
       .then((tokens) => {
         if (mounted && tokens) {
-          router.replace('/(app)');
+          router.replace(homeRoute());
         }
       })
       .catch((error: unknown) => {

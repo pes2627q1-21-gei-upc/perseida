@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react-native';
-import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import PanelLayout from '../../app/(admin)/panel/_layout';
@@ -11,7 +10,10 @@ import * as tokenStorage from '../auth/tokenStorage';
 // The routes of the panel are what the layout's Slot draws: a stand-in shows when it does.
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: jest.fn() }),
-  Slot: () => <Text>Ruta del panell</Text>,
+  Slot: () => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <Text>Ruta del panell</Text>;
+  },
 }));
 
 jest.mock('expo-secure-store', () => ({
