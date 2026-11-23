@@ -2,6 +2,7 @@ import { act, render, waitFor } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppLayout, { SESSION_REFRESH_INTERVAL_MS } from '../../../app/(app)/_layout';
+import * as startupLanguage from '../../language/hooks/useStartupLanguage';
 import * as refreshTokenModule from '../api/refreshToken';
 import * as tokenStorage from '../tokenStorage';
 
@@ -75,6 +76,19 @@ describe('AppLayout Route Guard & Session Renewal (TG-43 #233)', () => {
       expect(refreshSpy).toHaveBeenCalledTimes(1);
       expect(mockReplace).not.toHaveBeenCalled();
     });
+  });
+
+  it('TG-92 Criteri 5: applies the language of the account only once the session is confirmed', async () => {
+    const languageSpy = jest.spyOn(startupLanguage, 'useStartupLanguage').mockImplementation();
+    jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
+    jest.spyOn(tokenStorage, 'getTokens').mockResolvedValue(validTokens);
+
+    await act(async () => {
+      renderLayout();
+    });
+
+    await waitFor(() => expect(languageSpy).toHaveBeenLastCalledWith(true));
+    expect(languageSpy).toHaveBeenCalledWith(false);
   });
 
   it('redirects to /login when session renewal detects an expired or revoked session (401)', async () => {
