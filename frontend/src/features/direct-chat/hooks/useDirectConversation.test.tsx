@@ -80,6 +80,21 @@ beforeEach(() => {
 afterEach(() => client.clear());
 
 describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
+  it('isolates pending messages and a late acknowledgement when switching conversations', async () => {
+    let finish!: (ack: unknown) => void;
+    mockSend.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+    const { result, rerender } = await renderHook(
+      ({ id }: { id: string }) => useDirectConversation(id),
+      { wrapper, initialProps: { id: CONVERSATION } },
+    );
+    await act(async () => { await result.current.send('Privat'); });
+    expect(result.current.items).toContainEqual(expect.objectContaining({ kind: 'pending', text: 'Privat' }));
+    await rerender({ id: OTHER });
+    expect(result.current.items).not.toContainEqual(expect.objectContaining({ kind: 'pending', text: 'Privat' }));
+    await act(async () => { finish({ type: 'dm.send', payload: { id: 'late-ack', sent_at: '2026-11-22T12:01:00Z' } }); });
+    expect(result.current.items).not.toContainEqual(expect.objectContaining({ kind: 'message', message: expect.objectContaining({ id: 'late-ack' }) }));
+  });
+
   it('exposes persisted history and marks the open conversation as read', async () => {
     mockHistory.mockReturnValue({
       data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
@@ -131,6 +146,37 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     const messages = result.current.items.filter((item) => item.kind === 'message');
     expect(messages).toHaveLength(1);
     expect(messages[0]).toMatchObject({ message: { id: message.id, text: 'Hola' }, mine: false });
+  });
+
+  it('never shows an earlier conversation send in the new conversation after a late ack', async () => {
+    let resolveSend!: (value: { type: string; payload: { id: string; sent_at: string } }) => void;
+    mockSend.mockReturnValueOnce(new Promise((resolve) => { resolveSend = resolve; }));
+    const { result, rerender } = await renderHook(
+      ({ id }: { id: string }) => useDirectConversation(id),
+      { wrapper, initialProps: { id: CONVERSATION } },
+    );
+    let pendingSend!: Promise<unknown>;
+    await act(async () => {
+      pendingSend = result.current.send('Només a A');
+    });
+    expect(result.current.items).toContainEqual(
+      expect.objectContaining({ kind: 'pending', text: 'Només a A' }),
+    );
+
+    await rerender({ id: OTHER });
+    expect(result.current.items).not.toContainEqual(
+      expect.objectContaining({ kind: 'pending', text: 'Només a A' }),
+    );
+    await act(async () => {
+      resolveSend({ type: 'dm.send', payload: { id: 'late-message-a', sent_at: message.sent_at } });
+      await pendingSend;
+    });
+    expect(result.current.items).not.toContainEqual(
+      expect.objectContaining({ kind: 'message', message: expect.objectContaining({ id: 'late-message-a' }) }),
+    );
+    expect(result.current.items).not.toContainEqual(
+      expect.objectContaining({ kind: 'pending', text: 'Només a A' }),
+    );
   });
 
   it('keeps a refused send as a failed message with the server error', async () => {
