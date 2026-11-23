@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +12,13 @@ export function NoAccessScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const [announced, setAnnounced] = useState(false);
+
+  // On the next tick, once the empty region is in place, so the change is announced.
+  useEffect(() => {
+    const timer = setTimeout(() => setAnnounced(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <SkyBackground>
@@ -31,12 +39,19 @@ export function NoAccessScreen() {
               >
                 {t('admin.noAccess.title')}
               </Text>
-              <Text
+              {/* A screen reader only announces a change inside a live region that already
+                  existed: the region mounts empty and the message comes in right after. */}
+              <View
+                testID="no-access-live-region"
                 accessibilityLiveRegion="polite"
-                style={[theme.typography.body, { color: theme.colors.text.secondary }]}
+                aria-live="polite"
               >
-                {t('admin.noAccess.message')}
-              </Text>
+                {announced && (
+                  <Text style={[theme.typography.body, { color: theme.colors.text.secondary }]}>
+                    {t('admin.noAccess.message')}
+                  </Text>
+                )}
+              </View>
               <LogoutButton />
             </View>
           </GlassPanel>

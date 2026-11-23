@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react-native';
+import { act, render, screen, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { NoAccessScreen } from './NoAccessScreen';
@@ -28,11 +28,17 @@ function renderScreen() {
   );
 }
 
+// Fake timers: each test decides when the tick that brings the message in goes by.
+beforeEach(() => jest.useFakeTimers());
+afterEach(() => jest.useRealTimers());
+
 describe('NoAccessScreen (TG-77 criteri 3)', () => {
   it('tells the person, with a heading, that this account cannot use the panel', async () => {
     await renderScreen();
 
     expect(screen.getByRole('header', { name: TEXT.title })).toBeOnTheScreen();
+    // The message comes in right after the mount (see the live region test).
+    await act(() => jest.runOnlyPendingTimers());
     expect(screen.getByText(TEXT.message)).toBeOnTheScreen();
   });
 
@@ -50,6 +56,9 @@ describe('NoAccessScreen (TG-77 criteri 3)', () => {
     const region = screen.getByTestId('no-access-live-region');
     expect(region).toHaveProp('accessibilityLiveRegion', 'polite');
     expect(region).toHaveProp('aria-live', 'polite');
+    expect(within(region).queryByText(TEXT.message)).toBeNull();
+
+    await act(() => jest.runOnlyPendingTimers());
     expect(within(region).getByText(TEXT.message)).toBeOnTheScreen();
     expect(screen.getByText(TEXT.message)).not.toHaveProp('accessibilityLiveRegion');
   });
