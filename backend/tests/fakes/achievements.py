@@ -18,6 +18,12 @@ class FakeAchievementRepository:
     async def list_unlocked_ids(self, user_id: uuid.UUID) -> set[uuid.UUID]:
         return set(self.unlocked.get(user_id, {}))
 
+    async def list_unlocked_at(self, user_id: uuid.UUID) -> dict[uuid.UUID, datetime]:
+        return {
+            achievement_id: item.unlocked_at
+            for achievement_id, item in self.unlocked.get(user_id, {}).items()
+        }
+
     async def unlock(
         self, user_id: uuid.UUID, achievement_ids: set[uuid.UUID]
     ) -> list[UserAchievement]:

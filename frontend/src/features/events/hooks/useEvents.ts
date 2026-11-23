@@ -15,6 +15,7 @@ export const eventKeys = {
   active: () => [...eventKeys.all, 'active'] as const,
   upcoming: (days: number) => [...eventKeys.all, 'upcoming', days] as const,
   search: (filters: EventSearchFilters) => [...eventKeys.all, 'search', filters] as const,
+  subscriptions: () => [...eventKeys.all, 'subscriptions'] as const,
 };
 
 /** The map shows the events of the next 30 days, the maximum the API allows. */

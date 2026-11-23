@@ -202,6 +202,15 @@ describe('EventSheet', () => {
     expect(style.maxHeight).toBeUndefined();
   });
 
+  it('on phones caps the content of the sheet at a share of the screen, without filling it', async () => {
+    await renderSheet(launch);
+
+    const [scroll] = screen.root!.queryAll((node) => node.type === 'RCTScrollView');
+    const style = StyleSheet.flatten(scroll.props.style);
+    expect(style.maxHeight).toBeGreaterThan(0);
+    expect(style.flex).toBeUndefined();
+  });
+
   it('on wide screens keeps the top and bottom safe areas plus the spacing of the panel (TG-647)', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const legacy = { topInset: 80 };
@@ -303,6 +312,69 @@ describe('EventSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     await unmount();
     expect(remove).toHaveBeenCalled();
+  });
+});
+
+// TG-352 criterion 4: from the summary of an event to the places recommended for it.
+describe('EventSheet meeting points (TG-352)', () => {
+  const label = () => i18n.t('events.sheet.meetingPoints');
+
+  async function renderWith(props: {
+    event?: ClassifiedEvent | null;
+    outing?: typeof myOuting | null;
+    onShowMeetingPoints?: (eventId: string) => void;
+    side?: boolean;
+  }) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={client}>
+        <SafeAreaProvider initialMetrics={SAFE_AREA}>
+          <EventSheet
+            event={props.event ?? null}
+            outing={props.outing ?? null}
+            onClose={jest.fn()}
+            side={props.side}
+            onShowMeetingPoints={props.onShowMeetingPoints}
+          />
+        </SafeAreaProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('has its own text for the button', () => {
+    expect(label()).not.toBe('events.sheet.meetingPoints');
+    expect(label()).not.toBe(i18n.t('events.sheet.outings'));
+  });
+
+  it('has a button to the meeting points of the event that gives its id', async () => {
+    const onShowMeetingPoints = jest.fn();
+    await renderWith({ event: launch, onShowMeetingPoints });
+
+    await fireEvent.press(screen.getByRole('button', { name: label() }));
+
+    expect(onShowMeetingPoints).toHaveBeenCalledTimes(1);
+    expect(onShowMeetingPoints).toHaveBeenCalledWith(launch.id);
+  });
+
+  it('has the button on wide screens too', async () => {
+    const onShowMeetingPoints = jest.fn();
+    await renderWith({ event: eclipse, onShowMeetingPoints, side: true });
+
+    await fireEvent.press(screen.getByRole('button', { name: label() }));
+
+    expect(onShowMeetingPoints).toHaveBeenCalledWith(eclipse.id);
+  });
+
+  it('has no button when the screen gives no way to open them', async () => {
+    await renderWith({ event: launch });
+
+    expect(screen.queryByRole('button', { name: label() })).toBeNull();
+  });
+
+  it('has no button for an outing', async () => {
+    await renderWith({ outing: myOuting, onShowMeetingPoints: jest.fn() });
+
+    expect(screen.queryByRole('button', { name: label() })).toBeNull();
   });
 });
 

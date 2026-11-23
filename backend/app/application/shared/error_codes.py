@@ -7,6 +7,8 @@ INVALID_SESSION = "INVALID_SESSION"
 # ForbiddenError (403); a banned account also answers ACCOUNT_SUSPENDED.
 ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED"
 ACCOUNT_DELETED = "ACCOUNT_DELETED"
+# The account is active but its role is not one the route requires (require_role).
+INSUFFICIENT_ROLE = "INSUFFICIENT_ROLE"
 
 # ExternalServiceError (503): PostgreSQL is unreachable (connection refused, closed
 # or lost). Repositories map connection failures to this code.

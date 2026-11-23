@@ -34,7 +34,10 @@ export interface ClassifiedEvents {
   all: ClassifiedEvent[];
 }
 
-function byStartThenId(a: ClassifiedEvent, b: ClassifiedEvent): number {
+type Sortable = Pick<AstronomicalEvent, 'id' | 'starts_at'>;
+
+/** Order of the API: by start and then by id. */
+export function byStartThenId(a: Sortable, b: Sortable): number {
   if (a.starts_at !== b.starts_at) return a.starts_at < b.starts_at ? -1 : 1;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }

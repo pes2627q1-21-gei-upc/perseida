@@ -104,6 +104,7 @@ Límit: **no moguis mai la US a `Done`** (requereix PR aprovada per una altra pe
 
 - Treballa a `feature/*` (GitFlow; màxim una US per branca). Si el pla divideix la US en diverses PR, una branca per PR, en l'ordre del pla. **No treballis a `main`, `develop`, `release/*` ni `hotfix/*`.** Si ets en una altra branca, pregunta.
 - Delega als subagents/skills de la taula; cada skill porta el seu propi protocol de dubtes i la seva checklist.
+- **L'encàrrec al subagent porta la checklist de la skill de domini.** Abans de delegar, llegeix la skill que toca i copia a l'encàrrec els punts que s'hi apliquen: les preguntes del client extern de `backend-adaptador` (quota i límit de peticions, timeout, reintents, TTL, què fer si cau), el test d'integració quan es toquen la persistència, la cache o un servei extern, i regenerar la còpia de l'OpenAPI del frontend quan canvia un endpoint (`testing-integracio`). No limitis l'abast de l'encàrrec («no toquis el frontend») si això deixa fora un pas obligatori. Origen: [TG-352](../../../obsidian_vault/estat/errors/2026-11-22-tg-352-copia-openapi-desfasada.md).
 - **TDD estricte:** per a cada criteri, primer el test en vermell (comprova que falla pel motiu correcte) i commit `test:`; després el codi (`feat:`/`fix:`) i el refactor (`refactor:`). El `test:` va sempre abans del `feat:`; no hi ha cap script que ho verifiqui: ho comprova el revisor.
 - Commits atòmics `TG-NN tipus(àmbit): resum`, un canvi lògic per commit, seguint les instruccions de la persona sobre l'atribució. **Si no saps el `TG-NN`, pregunta-ho.** Cap secret, `.env`, token ni dada personal (regla 6).
 - **Mai push, merge ni PR** si la persona no ho demana explícitament.
@@ -123,15 +124,17 @@ Dos portes, les dues han de passar:
 - L'historial mostra `test:` abans de `feat:`.
 - `reviewer-arquitectura` sobre el diff: cap troballa CRÍTICA ni ALTA oberta.
 - Vault actualitzat si cal; entrada a `obsidian_vault/estat/sessions/` (regla 4).
+- Errors trobats (vermell inesperat, prova manual, CI i mutants, review) registrats a `obsidian_vault/estat/errors/` amb la plantilla `error-de-testing`, el test de regressió i la lliçó (`convencions/retroalimentacio-de-testing.md`). Si un subagent retorna un bloc `ERRORS TROBATS`, crea tu les notes.
 - Si tens tocat skills o subagents: `node .agents/scripts/sync-skills.mjs` i `node .agents/scripts/sync-agents.mjs` (i els `--check`).
 
-**Itera:** si alguna porta falla, corregeix la causa (no el símptoma) i repeteix **les dues**. Si el mateix punt falla tres cops, **atura't i pregunta**: no martellegis. No afebleixis un test ni un criteri per fer-lo passar.
+**Itera:** si alguna porta falla, corregeix la causa (no el símptoma) i repeteix **les dues**. Si el mateix punt falla tres cops, **atura't i pregunta**: no martellegis. No afebleixis un test ni un criteri per fer-lo passar. Cada fallada que no era el roig previst és un error a registrar abans de tancar la iteració; si la mateixa causa ja hi és al registre, la lliçó passa a ser obligatòria.
 
 ### 9. Informe final
 
 Amb `references/plantilla-pla.md` (secció informe):
 - **Verd:** criteris amb evidència i DoD verificable amb el resultat real de cada ordre. Només dius «passa» si ho has executat i has vist la sortida.
 - **Pendent humà (checklist explícita, mai marcada com a feta):** PR oberta, aprovada per una persona que no sigui l'autora, CI i SonarQube Cloud Quality Gate, fusió a `develop`, subtasques tancades a Taiga, `Done`.
+- **Errors trobats:** llista amb enllaç a cada nota de `estat/errors/` i la lliçó aplicada (o «cap»).
 - Decisions preses (i qui les va aprovar), desviacions del pla i què s'ha deixat fora a propòsit.
 
 ## Què NO fer

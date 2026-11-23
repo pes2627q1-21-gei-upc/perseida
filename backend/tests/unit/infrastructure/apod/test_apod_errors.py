@@ -16,6 +16,9 @@ from app.domain.apod.rules import FIRST_APOD_DATE
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.apod.dependencies import get_apod_service
 from app.infrastructure.apod.router import router
+from app.infrastructure.auth.dependencies import get_auth_service
+from app.infrastructure.streaks.dependencies import get_streak_service
+from app.infrastructure.users.dependencies import get_user_service
 from tests.factories.apod import make_apod
 from tests.fakes.apod import FakeApodProvider
 
@@ -28,6 +31,10 @@ def build_app(provider: FakeApodProvider) -> FastAPI:
     app = FastAPI()
     app.include_router(router, prefix="/api")
     register_error_handlers(app)
+    # No session in these tests: the optional-session dependencies are not used.
+    app.dependency_overrides[get_auth_service] = lambda: object()
+    app.dependency_overrides[get_user_service] = lambda: object()
+    app.dependency_overrides[get_streak_service] = lambda: object()
     app.dependency_overrides[get_apod_service] = lambda: ApodService(
         provider, today=lambda: TODAY
     )

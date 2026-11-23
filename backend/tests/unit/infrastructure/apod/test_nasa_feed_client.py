@@ -225,6 +225,50 @@ async def test_tg328_unusable_answers_raise_nasa_apod_error(
         await client.fetch()
 
 
+_LAUGHS = (
+    '<!ENTITY l "lol">'
+    '<!ENTITY l1 "&l;&l;&l;&l;&l;&l;&l;&l;&l;&l;">'
+    '<!ENTITY l2 "&l1;&l1;&l1;&l1;&l1;&l1;&l1;&l1;&l1;&l1;">'
+    '<!ENTITY l3 "&l2;&l2;&l2;&l2;&l2;&l2;&l2;&l2;&l2;&l2;">'
+)
+_XXE = '<!ENTITY l3 SYSTEM "file:///etc/hostname">'
+
+
+def _feed_with_dtd(entities: str) -> str:
+    """The real feed with a DTD that defines ``&l3;``, used in the title.
+
+    The comment holds ``<a``, which looks like the start of an element: a check
+    that only looks for a DTD before the first ``<letter`` misses this one.
+    """
+    declaration, rest = FEED.split("\n", 1)
+    rest = rest.replace(
+        "<title>Dark Matter in a Simulated Universe</title>", "<title>&l3;</title>"
+    )
+    assert "&l3;" in rest
+    return f"{declaration}\n<!-- <a -->\n<!DOCTYPE rss [{entities}]>\n{rest}"
+
+
+@pytest.mark.parametrize(
+    "feed",
+    [_feed_with_dtd(_LAUGHS), _feed_with_dtd(_XXE)],
+    ids=["billion-laughs", "xxe"],
+)
+@respx.mock
+async def test_tg383_entities_of_a_dtd_are_never_expanded(
+    client: NasaApodFeedClient, feed: str
+) -> None:
+    """Bandit B314: the feed is parsed with defusedxml, so a DTD is refused
+    wherever it hides, with the error of an invalid feed.
+
+    ``billion-laughs`` is the real regression (``xml.etree`` expanded it). ``xxe``
+    already raised ``NasaApodError`` before (``xml.etree`` does not resolve
+    external entities); it is a guard that it still does with defusedxml."""
+    respx.get(FEED_URL).respond(text=feed)
+
+    with pytest.raises(NasaApodError):
+        await client.fetch(date(2026, 10, 25))
+
+
 @respx.mock
 async def test_tg328_items_without_a_valid_date_are_ignored(
     client: NasaApodFeedClient,

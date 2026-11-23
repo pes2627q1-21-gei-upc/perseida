@@ -29,7 +29,7 @@ Un único proceso FastAPI integra tres responsabilidades:
 | Autenticación | Google OAuth2 + PKCE · validación de tokens de Google vía JWKS · sesión propia del backend (JWT) |
 | Moderación | Microservicio Kev-4B (modelo local, llamada síncrona) |
 | Dependencias | `uv` (versiones exactas, `uv.lock` versionado) |
-| Calidad | `ruff` (lint + formato, complejidad máx. 10), `mypy` estricto, SonarQube Cloud |
+| Calidad | `ruff` (lint + formato, complejidad máx. 10), `mypy` estricto, SonarQube Cloud, `bandit` (seguridad del código), `pip-audit` (vulnerabilidades de las dependencias, OSV) |
 | Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Arquitectura: hexagonal
@@ -184,6 +184,9 @@ uv run ruff check .           # lint
 uv run ruff format --check .  # comprueba el formato sin modificar archivos
 uv run mypy .                 # tipado estricto
 uv run lint-imports           # contratos de arquitectura (import-linter)
+uv run bandit -c pyproject.toml -r app -ll --ignore-nosec  # seguridad del código (falla con gravedad media o alta)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # dependencias de producción (con hashes y ==, que --require-hashes comprueba)
+uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # vulnerabilidades conocidas (OSV)
 uv run pytest                 # tests (con cobertura)
 uv run pytest -n auto         # igual, en paralelo (una base de datos e índice de Redis por worker)
 uv run pytest -p randomly --randomly-seed=<semilla>  # reproduce un fallo de orden (semilla en la primera línea de la salida)
@@ -265,6 +268,22 @@ La API no arranca sin `NASA_API_KEY`. En producción viene del secret de GitHub 
 > Ahora mismo la API de la NASA responde con un relleno en lugar del APOD (el logo de NASA Science y un texto genérico, observado el 2026-10-21; el APOD se ha mudado a science.nasa.gov). Por eso el feed RSS va primero. El cliente sigue rechazando el relleno (también en el feed), así que nunca se guarda.
 >
 > Límites del feed: solo se guardan imágenes (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`); una entrada de vídeo se descarta (`APOD_UNAVAILABLE` si la API tampoco puede responder). La fecha de una entrada es el día UTC de su publicación y el texto de `explanation` y `copyright` se convierte de HTML a texto plano. El fallo de una llamada se guarda 15 minutos solo cuando fallan el feed **y** la API.
+
+## Puntos de encuentro (Spotwise)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=…&lon=…` recomienda espacios de Spotwise (bibliotecas y cafeterías) cerca de la usuaria (TG-352). Contrato: `obsidian_vault/arquitectura/contracte-spotwise.md`. Requiere sesión (401 `INVALID_SESSION`, 403 si la cuenta está suspendida o borrada).
+
+- La ubicación se redondea a 3 decimales (unos 100 m). Se pide a Spotwise con el perfil (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`) y Perseida se queda con los espacios a 1.500 m como máximo que confirman el perfil: aptos para grupos y con wifi para `watch_party`, silenciosos para `study` (los enchufes solo son una preferencia). Los valores sin votos (`null`) no cuentan como confirmados; se mantiene el orden de Spotwise.
+- El resultado se guarda en Redis **5 minutos** por perfil y ubicación redondeada (`cache:meeting_points:<perfil>:<lat>:<lon>`).
+- Si Spotwise falla (tiempo de espera, conexión, 4xx/5xx o un cuerpo que no es una lista JSON) se responde 503 `MEETING_POINTS_UNAVAILABLE`, nunca un 500, y no se guarda nada. Un espacio inválido se descarta y se registra en el log.
+- Como máximo llegan 60 llamadas por minuto a Spotwise (ventana deslizante, por proceso: un solo cliente creado en el lifespan, ADR-0003); por encima se responde 503 `MEETING_POINTS_UNAVAILABLE` sin llamarlo.
+- Sin `SPOTWISE_API_TOKEN` se sirve la respuesta de ejemplo del documento de Spotwise (mock, `app/infrastructure/meeting_points/spotwise_examples.json`): en local y en la CI nunca se llama a Spotwise.
+
+| Variable | Por defecto | Significado |
+|---|---|---|
+| `SPOTWISE_API_TOKEN` | (vacía: mock) | Token que Spotwise nos pasa por privado. Se envía en la cabecera `Authorization: Token …`, nunca en la URL ni en los logs. En producción viene del secret de GitHub `SPOTWISE_API_TOKEN`; nunca hagas commit de él. |
+| `SPOTWISE_URL` | `http://nattech.fib.upc.edu:40420` | URL base de Spotwise (Spotwise solo sirve HTTP) |
+| `SPOTWISE_TIMEOUT_SECONDS` | `5` | Tiempo de espera de cada petición (el que recomienda Spotwise) |
 
 ## Quiz diario
 

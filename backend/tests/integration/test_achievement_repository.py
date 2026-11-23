@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from alembic import command
+from app.application.achievements.achievement_service import AchievementService
 from app.domain.achievements.models import Achievement
 from app.domain.users.models import User
 from app.infrastructure.achievements.repository import SqlAchievementRepository
@@ -254,3 +255,64 @@ async def test_tg572_concurrent_unlocks_leave_one_row_and_report_it_once(
 
     assert sorted(len(result) for result in results) == [0, 1]
     assert await _count_rows(engine, user_id, first.id) == 1
+
+
+async def _no_streak(user_id: uuid.UUID) -> int:
+    return 0
+
+
+def _reached_by_a_streak_of_7(achievement: Achievement) -> bool:
+    return achievement.kind.value == "streak_days" and achievement.threshold <= 7
+
+
+async def test_tg575_concurrent_record_activity_unlocks_each_achievement_once(
+    repo: SqlAchievementRepository, engine: AsyncEngine, user_id: uuid.UUID
+) -> None:
+    # TG-575 / US TG-58 criteri 3: dues peticions alhora a nivell de servei
+    # (cadascuna llegeix "cap desbloquejada" i totes intenten desbloquejar).
+    service = AchievementService(repo, _no_streak)
+    catalog = await repo.list_catalog()
+    first = _by_code(catalog, "primera_llum")
+    weekly = _by_code(catalog, "orbita_setmanal")
+
+    results = await asyncio.gather(
+        *(service.record_activity(user_id, "streak_days", 7) for _ in range(4))
+    )
+
+    reported = [item.achievement_id for result in results for item in result]
+    # Each reached achievement is reported by exactly one of the calls.
+    expected = [a.id for a in catalog if _reached_by_a_streak_of_7(a)]
+    assert sorted(reported) == sorted(expected)
+    assert {first.id, weekly.id} <= set(reported)
+    assert await _count_rows(engine, user_id, first.id) == 1
+    assert await _count_rows(engine, user_id, weekly.id) == 1
+
+
+# TG-574 (US TG-58 criteri 7): les desbloquejades amb la seva data
+async def test_tg574_list_unlocked_at_returns_each_unlock_moment_in_utc(
+    repo: SqlAchievementRepository, user_id: uuid.UUID
+) -> None:
+    catalog = await repo.list_catalog()
+    first = _by_code(catalog, "primera_llum")
+    second = _by_code(catalog, "orbita_setmanal")
+    unlocked = await repo.unlock(user_id, {first.id, second.id})
+
+    moments = await repo.list_unlocked_at(user_id)
+
+    assert moments == {item.achievement_id: item.unlocked_at for item in unlocked}
+    assert all(moment.utcoffset() == timedelta(0) for moment in moments.values())
+
+
+async def test_tg574_list_unlocked_at_only_returns_the_users_own(
+    repo: SqlAchievementRepository, engine: AsyncEngine, user_id: uuid.UUID
+) -> None:
+    catalog = await repo.list_catalog()
+    first = _by_code(catalog, "primera_llum")
+    second = _by_code(catalog, "orbita_setmanal")
+    other = await _new_user(engine)
+    await repo.unlock(user_id, {first.id})
+    await repo.unlock(other, {second.id})
+
+    assert set(await repo.list_unlocked_at(user_id)) == {first.id}
+    assert set(await repo.list_unlocked_at(other)) == {second.id}
+    assert await repo.list_unlocked_at(uuid.uuid4()) == {}
