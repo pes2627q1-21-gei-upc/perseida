@@ -16,12 +16,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
-from app.infrastructure.direct_chat.repository import (
-    SqlDirectConversationRepository,
-    SqlDirectMessageRepository,
-    SqlUserBlockRepository,
-)
-from app.infrastructure.direct_chat.user_directory import SqlChatUserDirectory
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import (
@@ -52,6 +46,12 @@ from app.domain.shared.errors import (
     ValidationError,
 )
 from app.domain.users.models import User
+from app.infrastructure.direct_chat.repository import (
+    SqlDirectConversationRepository,
+    SqlDirectMessageRepository,
+    SqlUserBlockRepository,
+)
+from app.infrastructure.direct_chat.user_directory import SqlChatUserDirectory
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.repository import SqlUserRepository
 
