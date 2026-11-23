@@ -97,6 +97,8 @@ Entitat `app/domain/users/models.py`; taules a `app/infrastructure/users/tables.
 
 `user_identities(provider, subject, user_id, created_at)`: identitat externa (`google_sub` = `subject`), PK `(provider, subject)`, FK a `users`. A l'entitat de domini, `google_sub` és un camp de `User`; el repositori ho mapeja.
 
+**Canvi d'idioma (TG-92):** `PATCH /api/users/me` amb cos `{preferred_language}` (`ca`, `es` o `en`) canvia l'idioma preferit de qui té la sessió i retorna el perfil actualitzat com `GET /api/users/me`. L'usuari surt sempre de la sessió (`session.sub`), mai de la ruta ni del cos: els camps extra del cos (`id`, `email`, `role`) s'ignoren. Errors amb codi estable ([[0018-errors-rfc-9457-amb-codis-estables]]): 401 `INVALID_SESSION` sense sessió, 403 si el compte és suspès o esborrat, 422 `VALIDATION_ERROR` amb un valor no vàlid, `null` o absent, i 400 si el cos no es pot llegir. `User.change_language()` retorna una còpia amb l'idioma nou; el port `save_preferred_language` fa un `UPDATE` per clau primària (com `save_last_login`) i `UserService.update_language()` comparteix les comprovacions d'estat amb `get_profile`. Sense migració: la columna ja existia (TG-45). L'app el fa servir des de [[frontend#Selector d'idioma i preferència (TG-92)]].
+
 ## Xat d'esdeveniment (domini implementat)
 
 Entitats a `app/domain/chat/models.py`, ports a `app/domain/chat/ports.py` i codis a `app/domain/chat/errors.py` (US #64). La persistència (TG-448 i TG-450; vegeu [[#Persistència del xat]]), l'API REST i el WebSocket són implementats; el component és a [[chat]] i les decisions a [[0033-xat-per-esdeveniment-sala-missatge-i-flux]]. Els atributs concreten els del diagrama: `roomId` és `id` i `messageId` és `id`.
