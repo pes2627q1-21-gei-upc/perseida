@@ -7,7 +7,10 @@ import { focusRingShadow, useTheme } from '../../../shared/theme';
 import { GlassPanel } from '../../../shared/ui';
 import { PANEL_SECTIONS, type PanelSection } from '../panelSections';
 
-/** One card of the home: a link to its section, with a focus ring for the keyboard (WCAG 2.4.7). */
+/**
+ * One card of the home: a link to its section on a solid surface, with a focus ring for the
+ * keyboard (WCAG 2.4.7).
+ */
 function SectionCard({ section }: { section: PanelSection }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -29,13 +32,21 @@ function SectionCard({ section }: { section: PanelSection }) {
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onPress={() => router.push(section.href)}
-        style={{ minHeight: theme.touch.min }}
+        // A solid surface, not glass: glass is only for floating layers, and a list of cards
+        // with BlurView would go over 2-3 per screen (estetica-frutiger-cosmo checklist).
+        style={{
+          minHeight: theme.touch.min,
+          justifyContent: 'center',
+          padding: theme.spacing.md,
+          borderRadius: theme.radii.lg,
+          borderWidth: 1,
+          borderColor: theme.colors.surface.glassBorder,
+          backgroundColor: theme.colors.surface.glassSolid,
+        }}
       >
-        <GlassPanel>
-          <Text style={[theme.typography.title, { color: theme.colors.text.primary }]}>
-            {t(section.titleKey)}
-          </Text>
-        </GlassPanel>
+        <Text style={[theme.typography.title, { color: theme.colors.text.primary }]}>
+          {t(section.titleKey)}
+        </Text>
       </Pressable>
     </View>
   );
