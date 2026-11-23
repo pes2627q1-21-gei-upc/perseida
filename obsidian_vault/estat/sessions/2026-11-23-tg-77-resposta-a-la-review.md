@@ -30,4 +30,4 @@ Cap ADR nova.
 
 ## Verificació local
 
-Pendent d'executar `pnpm lint`, `pnpm typecheck` i `pnpm test` abans del push.
+`pnpm lint` i `pnpm typecheck` nets; `pnpm test`: 2309 tests passats (174 suites), després del merge de `develop` amb la #147 (TG-57).
