@@ -223,11 +223,11 @@ def test_change_language_returns_a_copy_with_the_new_language(
     changed = original.change_language(language)
 
     assert changed.preferred_language is language
-    assert changed.model_copy(update={"preferred_language": Language.CA}) == (original)
+    assert changed.model_copy(update={"preferred_language": Language.CA}) == original
 
 
 def test_change_language_does_not_mutate_the_original() -> None:
-    # TG-92 / US #92 criteri 3: User és immutable, l'original no canvia
+    # TG-92 / US #92 criteri 1: User és immutable, l'original no canvia
     original = _user(preferred_language=Language.CA)
 
     changed = original.change_language(Language.EN)

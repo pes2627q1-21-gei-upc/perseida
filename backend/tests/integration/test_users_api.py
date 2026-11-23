@@ -463,7 +463,7 @@ async def test_patch_me_changes_the_language_and_persists_it(
 async def test_patch_me_with_an_invalid_language_is_a_422_and_changes_nothing(
     client: AsyncClient, engine: AsyncEngine, sub: str, body: dict[str, Any]
 ) -> None:
-    # TG-92 / US #92 criteri 2
+    # TG-92 / US #92 criteri 1
     tokens = (await login(client, sub, language="en")).json()
 
     response = await client.patch("/api/users/me", json=body, headers=bearer(tokens))
@@ -489,7 +489,7 @@ async def test_patch_me_with_an_invalid_language_is_a_422_and_changes_nothing(
 async def test_patch_me_without_a_valid_session_is_a_401(
     client: AsyncClient, headers: dict[str, str]
 ) -> None:
-    # TG-92 / US #92 criteri 2
+    # TG-92 / US #92 criteri 1
     response = await client.patch(
         "/api/users/me", json={"preferred_language": "es"}, headers=headers
     )
@@ -497,26 +497,43 @@ async def test_patch_me_without_a_valid_session_is_a_401(
     assert_problem(response, 401, INVALID_SESSION)
 
 
-async def test_patch_me_on_a_suspended_account_is_a_403_and_changes_nothing(
-    client: AsyncClient, engine: AsyncEngine, sub: str
+@pytest.mark.parametrize(
+    ("update", "code"),
+    [
+        pytest.param("status = 'suspended'", ACCOUNT_SUSPENDED, id="suspended"),
+        pytest.param("deleted_at = now()", ACCOUNT_DELETED, id="deleted"),
+    ],
+)
+async def test_patch_me_on_an_unusable_account_is_a_403_and_changes_nothing(
+    client: AsyncClient, engine: AsyncEngine, sub: str, update: str, code: str
 ) -> None:
-    # TG-92 / US #92 criteri 2
+    # TG-92 / US #92 criteri 1
     tokens = (await login(client, sub, language="ca")).json()
+    email = f"{sub}@example.test"
     async with engine.begin() as connection:
-        await connection.execute(text("UPDATE users SET status = 'suspended'"))
+        await connection.execute(
+            text(f"UPDATE users SET {update} WHERE email = :e"), {"e": email}
+        )
 
     response = await client.patch(
         "/api/users/me", json={"preferred_language": "es"}, headers=bearer(tokens)
     )
 
-    assert_problem(response, 403, ACCOUNT_SUSPENDED)
-    assert await scalar(engine, "SELECT preferred_language FROM users") == "ca"
+    assert_problem(response, 403, code)
+    assert (
+        await scalar(
+            engine,
+            "SELECT preferred_language FROM users WHERE email = :e",
+            e=email,
+        )
+        == "ca"
+    )
 
 
 async def test_patch_me_only_changes_the_account_of_the_session(
     client: AsyncClient, engine: AsyncEngine, sub: str
 ) -> None:
-    # TG-92 / US #92 criteri 3: l'usuari surt de la sessió, no del cos
+    # TG-92 / US #92 criteri 2: l'usuari surt de la sessió, no del cos
     mine = (await login(client, sub, language="ca")).json()
     other_sub = f"{sub}-other"
     other = (await login(client, other_sub, language="ca")).json()
@@ -551,7 +568,7 @@ async def test_patch_me_only_changes_the_account_of_the_session(
 async def test_patch_me_ignores_extra_fields_such_as_email_and_role(
     client: AsyncClient, engine: AsyncEngine, sub: str
 ) -> None:
-    # TG-92 / US #92 criteri 3: el cos no pot canviar l'email ni el rol
+    # TG-92 / US #92 criteri 2: el cos no pot canviar l'email ni el rol
     tokens = (await login(client, sub, language="ca")).json()
 
     response = await client.patch(

@@ -195,7 +195,7 @@ async def test_update_language_saves_and_returns_the_updated_account() -> None:
 async def test_update_language_of_a_session_without_account_is_an_invalid_session() -> (
     None
 ):
-    # TG-92 / US #92 criteri 2
+    # TG-92 / US #92 criteri 1
     repo = InMemoryUserRepository()
 
     with pytest.raises(UnauthorizedError) as exc_info:
@@ -216,7 +216,7 @@ async def test_update_language_of_a_session_without_account_is_an_invalid_sessio
 async def test_update_language_rejects_suspended_banned_and_deleted_accounts(
     overrides: dict[str, object], code: str
 ) -> None:
-    # TG-92 / US #92 criteri 2: res es desa si el compte no és actiu
+    # TG-92 / US #92 criteri 1: res es desa si el compte no és actiu
     repo = InMemoryUserRepository(_existing(**overrides))
 
     with pytest.raises(ForbiddenError) as exc_info:
@@ -228,7 +228,7 @@ async def test_update_language_rejects_suspended_banned_and_deleted_accounts(
 
 
 async def test_update_language_only_touches_the_session_account() -> None:
-    # TG-92 / US #92 criteri 3: només el seu compte
+    # TG-92 / US #92 criteri 2: només el seu compte
     mine = _existing()
     other = User.create(google_sub="sub-2", email="bob@example.test")
     repo = InMemoryUserRepository(mine, other)
