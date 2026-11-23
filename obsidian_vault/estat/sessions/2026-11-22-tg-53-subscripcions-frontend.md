@@ -4,7 +4,7 @@ tipus: sessio
 estat: vigent
 data: "2026-11-22"
 us: ["TG-53"]
-font: "Taiga: TG-53 i tasques #561 i #562; decisions de Manel (21/11/2026); revisió de reviewer-arquitectura sobre el diff"
+font: "Taiga: TG-53 i tasques #561 i #562; decisions de Manel (21/11/2026); revisió de reviewer-arquitectura sobre el diff; reviews de la Raquel a la PR #138 (22/11/2026) i decisions de Manel sobre els seus dubtes (23/11/2026)"
 etiquetes: [sessio, frontend, esdeveniments, accessibilitat]
 ---
 
@@ -18,7 +18,7 @@ Deixar a punt la PR 2 de 2 de TG-53: seguir un esdeveniment des del llistat i ve
 
 - **Dades:** `listMySubscriptions`, `subscribe` i `unsubscribe` amb la sessió, i els hooks `useMySubscriptions` i `useToggleSubscription` (optimista, amb rollback i invalidació).
 - **Pantalla:** pestanyes «Tots | Els meus» a Esdeveniments (`GelSegmented`), estrella per seguir a cada `EventRow` i `MyEvents` amb estats de càrrega, buit i error.
-- **Textos:** ca/es/en (`events.tabs.*`, `events.subscription.follow`, `events.mine.empty` i `errors.EVENT_ALREADY_ENDED`).
+- **Textos:** ca/es/en (`events.tabs.*`, `events.subscription.follow`, `events.subscription.unavailable`, `events.mine.empty` i `errors.EVENT_ALREADY_ENDED`).
 - **Proves:** TDD estricte, un commit `test:` abans de cada `feat:`.
 - **Revisió d'arquitectura** (sense CRÍTICA ni ALTA), corregida amb TDD:
   - l'error de la fila s'anuncia (regió viva `polite` i `announceForAccessibility` a iOS);
@@ -30,6 +30,9 @@ Deixar a punt la PR 2 de 2 de TG-53: seguir un esdeveniment des del llistat i ve
   - el rollback desfà només el toggle que falla;
   - en acabar s'invaliden també les sales del xat;
   - el xat i Esdeveniments comparteixen la clau i la crida de `GET /api/me/subscriptions`, i s'ha esborrat el duplicat del xat.
+- **Segona ronda de la Raquel (23/11/2026)**, dubtes no bloquejants, corregits amb TDD:
+  - les dues pestanyes fan servir una sola llista (`MyEvents` passa a ser el hook `useMyEvents`), perquè canviar de pestanya no desmunti el `GelSegmented` ni faci perdre el focus (WCAG 2.4.3);
+  - a «Tots», si no s'han pogut carregar les subscripcions, la capçalera ho diu amb un reintent (`events.subscription.unavailable`, ca/es/en).
 
 ## Decisions preses
 
@@ -41,6 +44,7 @@ Totes són de Manel (21 i 22/11/2026) i cap no necessita ADR (presentació dins 
 - L'error de la fila s'anuncia en mode `polite`, com la resta de l'app.
 - Mentre no han arribat les subscripcions, l'estrella es deshabilita en lloc d'amagar-la.
 - Una sola cache de subscripcions per a Esdeveniments i el xat, en lloc d'invalidar les claus del xat.
+- Una sola `FlatList` per a «Tots» i «Els meus», en lloc de posar les pestanyes fora de la llista (la capçalera continua fent scroll); i l'avís de «Tots» quan fallen les subscripcions, dins d'aquesta PR (23/11/2026).
 
 ## Canvis al vault
 
