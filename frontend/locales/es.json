@@ -1,4 +1,60 @@
 {
+  "achievements": {
+    "category": {
+      "events": "Eventos",
+      "minigame": "Minijuego",
+      "quiz": "Quiz",
+      "social": "Social",
+      "streaks": "Rachas"
+    },
+    "completed": "¡Enhorabuena! Has completado todos los logros de esta categoría.",
+    "empty": "Todavía no hay logros en esta categoría.",
+    "loading": "Cargando los logros...",
+    "names": {
+      "ambaixador_del_cosmos": "Embajador del cosmos",
+      "astrofisic": "Astrofísico",
+      "astronom_aprenent": "Astrónomo aprendiz",
+      "cacador_d_eclipsis": "Cazador de eclipses",
+      "calendari_celeste": "Calendario celeste",
+      "cartograf_celeste": "Cartógrafo celeste",
+      "cel_clar": "Cielo despejado",
+      "cicle_lunar": "Ciclo lunar",
+      "colleccionista_d_aurores": "Coleccionista de auroras",
+      "comandant": "Comandante",
+      "cumul_estellar": "Cúmulo estelar",
+      "eclipsi_total": "Eclipse total",
+      "efemerides": "Efemérides",
+      "estrella_fixa": "Estrella fija",
+      "estrella_polar": "Estrella polar",
+      "galaxia": "Galaxia",
+      "gran_mestre_estellar": "Gran maestro estelar",
+      "llancament": "Lanzamiento",
+      "llegenda_cosmica": "Leyenda cósmica",
+      "lluna_plena": "Luna llena",
+      "missio_complerta": "Misión cumplida",
+      "orbita_compartida": "Órbita compartida",
+      "orbita_setmanal": "Órbita semanal",
+      "perseida": "Perseida",
+      "postal_de_l_espai": "Postal del espacio",
+      "primer_senyal": "Primera señal",
+      "primera_alineacio": "Primera alineación",
+      "primera_llum": "Primera luz",
+      "record_galactic": "Récord galáctico",
+      "record_orbital": "Récord orbital",
+      "repte_llencat": "Reto lanzado",
+      "satellit": "Satélite",
+      "senyal_de_radio": "Señal de radio",
+      "telescopi_nou": "Telescopio nuevo"
+    },
+    "progress": "{{current}}/{{goal}}",
+    "progressA11y": "{{name}}, {{current}} de {{goal}}",
+    "progressDays_one": "{{current}}/{{count}} día",
+    "progressDays_other": "{{current}}/{{count}} días",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los logros",
+    "streakStart": "Abre la imagen astronómica del día para empezar tu racha.",
+    "title": "Tus próximos logros"
+  },
   "admin": {
     "noAccess": {
       "message": "Tu cuenta no tiene permiso para entrar al panel de administración.",
@@ -310,10 +366,6 @@
       "admin": "Administrador",
       "moderator": "Moderador",
       "user": "Observador"
-    },
-    "streak": {
-      "desc": "Completa el cuestionario diario para mantener viva tu racha celeste.",
-      "title": "Racha de observación"
     },
     "title": "Tu perfil"
   },
