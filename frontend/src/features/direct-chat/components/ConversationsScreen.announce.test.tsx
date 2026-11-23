@@ -99,3 +99,31 @@ it('announces only changes to the total in an Android polite live region', async
     screen.getByRole('button', { name: /conversa amb pau, 3 missatges sense llegir/i }),
   ).toBeOnTheScreen();
 });
+
+it('announces a change to zero on iOS even though the visible badge disappears', async () => {
+  jest.replaceProperty(Platform, 'OS', 'ios');
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+  const { rerender } = await render(tree());
+  mockList.mockReturnValue({ ...list(0), data: [] });
+  await rerender(tree());
+  expect(announce).toHaveBeenCalledTimes(1);
+  expect(announce).toHaveBeenCalledWith('0 missatges sense llegir');
+});
+
+it('exposes a polite zero announcement on Android after the badge disappears', async () => {
+  jest.replaceProperty(Platform, 'OS', 'android');
+  const { rerender } = await render(tree());
+  mockList.mockReturnValue({ ...list(0), data: [] });
+  await rerender(tree());
+  expect(screen.getByText('0 missatges sense llegir')).toHaveProp('accessibilityLiveRegion', 'polite');
+});
+
+it('does not announce the first result after loading', async () => {
+  jest.replaceProperty(Platform, 'OS', 'ios');
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+  mockList.mockReturnValue({ data: undefined, isPending: true, error: null, refetch: jest.fn() });
+  const { rerender } = await render(tree());
+  mockList.mockReturnValue(list(1));
+  await rerender(tree());
+  expect(announce).not.toHaveBeenCalled();
+});
