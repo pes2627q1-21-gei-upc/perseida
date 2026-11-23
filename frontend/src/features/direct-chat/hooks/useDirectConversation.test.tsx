@@ -101,6 +101,40 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
   });
 
+
+  it('signals only new incoming websocket messages, not history, own events or duplicates', async () => {
+    mockHistory.mockReturnValue({
+      data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
+      isPending: false, error: null, isFetching: false, hasNextPage: false,
+      isFetchingNextPage: false, refetch: jest.fn(), fetchNextPage: jest.fn(),
+    });
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    expect(result.current.lastIncoming).toBeUndefined();
+    await act(async () => { mockListener?.({ type: 'dm.message', payload: message }); });
+    expect(result.current.lastIncoming).toBeUndefined();
+    await act(async () => { mockListener?.({ type: 'dm.message', payload: { ...message, id: 'own', sender_id: 'me' } }); });
+    expect(result.current.lastIncoming).toBeUndefined();
+    const live = { ...message, id: 'fresh', text: 'Nou' };
+    await act(async () => { mockListener?.({ type: 'dm.message', payload: live }); });
+    expect(result.current.lastIncoming).toEqual(live);
+    const reference = result.current.lastIncoming;
+    await act(async () => { mockListener?.({ type: 'dm.message', payload: live }); });
+    expect(result.current.lastIncoming).toBe(reference);
+  });
+
+  it('does not reannounce an old event after leaving and returning to a conversation', async () => {
+    const { result, rerender } = await renderHook(
+      ({ id }: { id: string }) => useDirectConversation(id),
+      { wrapper, initialProps: { id: CONVERSATION } },
+    );
+    await act(async () => { mockListener?.({ type: 'dm.message', payload: message }); });
+    expect(result.current.lastIncoming).toEqual(message);
+    await rerender({ id: OTHER });
+    expect(result.current.lastIncoming).toBeUndefined();
+    await rerender({ id: CONVERSATION });
+    expect(result.current.lastIncoming).toBeUndefined();
+  });
+
   it('sends dm.send with conversation, text and a client-generated id', async () => {
     const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
     await act(async () => {
