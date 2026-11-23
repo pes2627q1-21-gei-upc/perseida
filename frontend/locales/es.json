@@ -354,9 +354,16 @@
       "title": "Seguidores"
     },
     "language": {
-      "ca": "Catalán",
-      "en": "Inglés",
-      "es": "Español"
+      "ca": "Català",
+      "en": "English",
+      "es": "Castellano"
+    },
+    "languageMenu": {
+      "error": "No se ha podido guardar el idioma en tu cuenta. Aquí se mantiene el cambio.",
+      "hint": "Abre la lista de idiomas",
+      "label": "Idioma: {{code}}, {{name}}",
+      "saving": "Guardando el idioma...",
+      "title": "Idioma"
     },
     "loading": "Cargando el perfil...",
     "memberSince": "Miembro desde {{date}}",
