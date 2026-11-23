@@ -104,6 +104,26 @@ describe('useStartupLanguage', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it('does not undo a language the person chose while the account was still loading', async () => {
+    let answer!: () => void;
+    jest.spyOn(globalThis, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          answer = () => resolve(jsonResponse({ ...mockUserProfile, preferred_language: 'es' }));
+        }),
+    );
+    await renderHook(() => useStartupLanguage(true));
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    await saveLanguage('en');
+    await i18n.changeLanguage('en');
+
+    answer();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(i18n.language).toBe('en');
+    expect(await getSavedLanguage()).toBe('en');
+  });
+
   it('does not change the language after the screen is gone', async () => {
     let answer!: () => void;
     jest.spyOn(globalThis, 'fetch').mockImplementation(

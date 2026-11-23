@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { mockUserProfile } from '../../../../__mocks__/profile';
+import * as SecureStore from 'expo-secure-store';
+
 import i18n from '../../../shared/i18n';
 import { saveTokens } from '../../auth/tokenStorage';
 import { profileKeys } from '../../profile';
@@ -131,5 +133,49 @@ describe('useChangeLanguage', () => {
     });
 
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('still saves to the account when the device cannot save the language', async () => {
+    jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(new Error('keychain locked'));
+    const spy = mockFetch(() => jsonResponse(updated));
+    const { result } = await renderHook(() => useChangeLanguage(), { wrapper });
+
+    await act(async () => {
+      result.current.change('es');
+    });
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.isSaving).toBe(false));
+    expect(result.current.error).toBeNull();
+  });
+
+  it('sends two quick changes one after the other, so the account ends with the last one', async () => {
+    const answers: ((response: Response) => void)[] = [];
+    const spy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() => new Promise<Response>((resolve) => answers.push(resolve)));
+    const { result } = await renderHook(() => useChangeLanguage(), { wrapper });
+
+    await act(async () => {
+      result.current.change('es');
+      result.current.change('en');
+    });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    expect(await (spy.mock.calls[0][0] as Request).json()).toEqual({ preferred_language: 'es' });
+
+    await act(async () => {
+      answers[0](jsonResponse({ ...mockUserProfile, preferred_language: 'es' }));
+    });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+    expect(await (spy.mock.calls[1][0] as Request).json()).toEqual({ preferred_language: 'en' });
+
+    await act(async () => {
+      answers[1](jsonResponse({ ...mockUserProfile, preferred_language: 'en' }));
+    });
+    await waitFor(() =>
+      expect(client.getQueryData<{ preferred_language: string }>(profileKeys.me())).toMatchObject({
+        preferred_language: 'en',
+      }),
+    );
   });
 });

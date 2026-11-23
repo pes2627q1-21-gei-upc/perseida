@@ -40,4 +40,10 @@ describe('languageStorage', () => {
 
     expect(await getSavedLanguage()).toBeNull();
   });
+
+  it('does not fail when the device storage cannot save', async () => {
+    jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(new Error('keychain locked'));
+
+    await expect(saveLanguage('es')).resolves.toBeUndefined();
+  });
 });
