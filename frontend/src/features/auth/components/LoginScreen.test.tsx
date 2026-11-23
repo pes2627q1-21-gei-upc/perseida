@@ -10,6 +10,7 @@ import { authErrorMessage } from '../strings';
 import i18n from '../../../shared/i18n';
 import { AppError, networkError } from '../../../shared/errors';
 import * as googleSignInModule from '../api/googleSignIn';
+import * as currentUserModule from '../api/getCurrentUser';
 import * as tokenStorage from '../tokenStorage';
 import LoginScreen from '../../../app/login';
 
@@ -207,11 +208,7 @@ describe('Login screen', () => {
   });
 
   describe('on the web, where the panel lives (TG-77 criteri 2)', () => {
-    beforeEach(() => {
-      jest.replaceProperty(Platform, 'OS', 'web');
-    });
-
-    it('takes a signed-in person to the panel, not to the mobile app', async () => {
+    const signInOk = async () => {
       jest.spyOn(googleSignInModule, 'signInWithGoogle').mockResolvedValueOnce({
         access_token: 'acc-1',
         refresh_token: 'ref-1',
@@ -231,23 +228,66 @@ describe('Login screen', () => {
         };
       });
       await renderScreen();
-
       await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
+    };
 
-      expect(mockReplace).toHaveBeenCalledWith('/panel');
-      expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
-    });
-
-    it('takes a person who already has a session to the panel', async () => {
+    const existingSession = async () => {
       jest.spyOn(tokenStorage, 'getTokens').mockResolvedValueOnce({
         accessToken: 'existing-acc',
         refreshToken: 'existing-ref',
       });
-
       await renderScreen();
+    };
+
+    beforeEach(() => {
+      jest.replaceProperty(Platform, 'OS', 'web');
+    });
+
+    it.each(['admin', 'moderator'] as const)(
+      'takes a signed-in %s to the panel, not to the mobile app',
+      async (role) => {
+        jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role } as never);
+
+        await signInOk();
+
+        expect(mockReplace).toHaveBeenCalledWith('/panel');
+        expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
+      },
+    );
+
+    it('takes a signed-in plain user to the mobile app', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role: 'user' } as never);
+
+      await signInOk();
+
+      expect(mockReplace).toHaveBeenCalledWith('/(app)');
+      expect(mockReplace).not.toHaveBeenCalledWith('/panel');
+    });
+
+    it('takes a person whose profile cannot be read to the mobile app', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockRejectedValue(new Error('offline'));
+
+      await signInOk();
+
+      expect(mockReplace).toHaveBeenCalledWith('/(app)');
+    });
+
+    it('takes an admin who already has a session to the panel', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role: 'admin' } as never);
+
+      await existingSession();
 
       await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/panel'));
       expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
+    });
+
+    it('takes a plain user who already has a session to the mobile app', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role: 'user' } as never);
+
+      await existingSession();
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(app)'));
+      expect(mockReplace).not.toHaveBeenCalledWith('/panel');
     });
   });
 
