@@ -1,4 +1,66 @@
 {
+  "achievements": {
+    "category": {
+      "events": "Esdeveniments",
+      "minigame": "Minijoc",
+      "quiz": "Quiz",
+      "social": "Social",
+      "streaks": "Ratxes"
+    },
+    "completed": "Enhorabona! Has completat totes les fites d'aquesta categoria.",
+    "empty": "Encara no hi ha fites en aquesta categoria.",
+    "loading": "Carregant les fites...",
+    "names": {
+      "ambaixador_del_cosmos": "Ambaixador del cosmos",
+      "astrofisic": "Astrofísic",
+      "astronom_aprenent": "Astrònom aprenent",
+      "cacador_d_eclipsis": "Caçador d'eclipsis",
+      "calendari_celeste": "Calendari celeste",
+      "cartograf_celeste": "Cartògraf celeste",
+      "cel_clar": "Cel clar",
+      "cicle_lunar": "Cicle lunar",
+      "colleccionista_d_aurores": "Col·leccionista d'aurores",
+      "comandant": "Comandant",
+      "cumul_estellar": "Cúmul estel·lar",
+      "eclipsi_total": "Eclipsi total",
+      "efemerides": "Efemèrides",
+      "estrella_fixa": "Estrella fixa",
+      "estrella_polar": "Estrella polar",
+      "galaxia": "Galàxia",
+      "gran_mestre_estellar": "Gran mestre estel·lar",
+      "llancament": "Llançament",
+      "llegenda_cosmica": "Llegenda còsmica",
+      "lluna_plena": "Lluna plena",
+      "missio_complerta": "Missió complerta",
+      "orbita_compartida": "Òrbita compartida",
+      "orbita_setmanal": "Òrbita setmanal",
+      "perseida": "Perseida",
+      "postal_de_l_espai": "Postal de l'espai",
+      "primer_senyal": "Primer senyal",
+      "primera_alineacio": "Primera alineació",
+      "primera_llum": "Primera llum",
+      "record_galactic": "Rècord galàctic",
+      "record_orbital": "Rècord orbital",
+      "repte_llencat": "Repte llençat",
+      "satellit": "Satèl·lit",
+      "senyal_de_radio": "Senyal de ràdio",
+      "telescopi_nou": "Telescopi nou"
+    },
+    "progress": "{{current}}/{{goal}}",
+    "progressA11y": "{{name}}, {{current}} de {{goal}}",
+    "progressDays_one": "{{current}}/{{count}} dia",
+    "progressDays_other": "{{current}}/{{count}} dies",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les fites",
+    "streakStart": "Obre la imatge astronòmica del dia per començar la teva ratxa.",
+    "title": "Les teves properes fites"
+  },
+  "admin": {
+    "noAccess": {
+      "message": "El teu compte no té permís per entrar al panell d'administració.",
+      "title": "Sense accés"
+    }
+  },
   "apod": {
     "loadingLabel": "Carregant l'APOD",
     "mediaError": "No s'ha pogut carregar la imatge o el vídeo.",
@@ -304,10 +366,6 @@
       "admin": "Administrador",
       "moderator": "Moderador",
       "user": "Observador"
-    },
-    "streak": {
-      "desc": "Completa el qüestionari diari per mantenir viva la teva ratxa celest.",
-      "title": "Ratxa d'observació"
     },
     "title": "El teu perfil"
   },
