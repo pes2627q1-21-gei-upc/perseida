@@ -6,6 +6,7 @@ import { AccessibilityInfo, AppState, type AppStateStatus, Platform } from 'reac
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
+import { isOnGlass } from '../../../../__mocks__/onGlass';
 import { otherSpace, spotwiseLibrary, unvotedCafe } from '../../../../__mocks__/meetingPoints';
 import i18n from '../../../shared/i18n';
 import { saveTokens } from '../../auth/tokenStorage';
@@ -544,6 +545,17 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
 
     expect(await screen.findByLabelText(i18n.t('meetingPoints.location.locating'))).toBeTruthy();
     expect(screen.queryByLabelText(i18n.t('meetingPoints.loading'))).toBeNull();
+  });
+
+  it('draws the spinner of the places on glass, not straight on the sky (TG-658)', async () => {
+    permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+    position.mockReturnValue(new Promise(() => undefined));
+    await renderField();
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    const spinner = await screen.findByLabelText(i18n.t('meetingPoints.location.locating'));
+    expect(isOnGlass(spinner)).toBe(true);
   });
 
   it('says the places are loading once the position is here and the API answers', async () => {
