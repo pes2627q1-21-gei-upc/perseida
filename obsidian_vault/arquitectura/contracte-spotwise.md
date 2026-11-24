@@ -125,7 +125,7 @@ Perseida exposa `GET /api/meeting-points?profile=&lat=&lon=` ([[api#Punts de tro
 
 - **Només confirmats:** els espais amb l'atribut del perfil a `null` (sense vots) es descarten.
 - **Sense filtre horari:** no s'envien `data`, `inici` ni `fi`.
-- **Ubicació:** la de la usuària, no la de l'esdeveniment. Sense ubicació no es recomana res.
+- **Ubicació:** la que envia el client. A la pantalla de punts de trobada d'un esdeveniment és la de la usuària, no la de l'esdeveniment. Al formulari de sortida és el lloc de la sortida que es crea: el ja triat o, si encara no n'hi ha, el centre del mapa en prémer «Recomana» (TG-661, decisió de Raquel, 24/11/2026). Sense ubicació no es recomana res.
 - **Mock:** sense `SPOTWISE_API_TOKEN` (buit o absent), el backend fa servir `ExampleSpaceSearch` amb la resposta d'exemple «amb resultats» del document de Spotwise (`app/infrastructure/meeting_points/spotwise_examples.json`). Amb token, `SpotwiseSpaceClient`.
 - **Errors:** qualsevol fallada de Spotwise és `503 MEETING_POINTS_UNAVAILABLE`.
 - **Cache:** 5 min a [[redis]], coordenades arrodonides a 3 decimals. Sense dades caducades: passat el TTL, si Spotwise cau, `503`.

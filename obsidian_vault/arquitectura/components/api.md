@@ -79,7 +79,7 @@ Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zon
 
 ## Punts de trobada (TG-352)
 
-`GET /api/meeting-points?profile=watch_party|study&lat=&lon=`: privat, amb sessió (mateixos 401, 403 i 503 que `/api/users/me`). Recomana biblioteques i cafeteries a prop de la ubicació de la usuària (no de l'esdeveniment) amb el servei d'espais de Spotwise ([[contracte-spotwise#Servei consumit per Perseida]]). No està lligat a cap esdeveniment, perquè també el fa servir el formulari de sortides (decisió de Raquel, 22/11/2026).
+`GET /api/meeting-points?profile=watch_party|study&lat=&lon=`: privat, amb sessió (mateixos 401, 403 i 503 que `/api/users/me`). Recomana biblioteques i cafeteries a prop de la ubicació que rep (`lat`, `lon`): la de la usuària a la pantalla d'un esdeveniment, o el lloc de la sortida al formulari de sortides (TG-661), amb el servei d'espais de Spotwise ([[contracte-spotwise#Servei consumit per Perseida]]). No està lligat a cap esdeveniment, perquè també el fa servir el formulari de sortides (decisió de Raquel, 22/11/2026).
 
 - `422 VALIDATION_ERROR` si falta un paràmetre, el perfil no existeix o la ubicació és fora de rang.
 - `503 MEETING_POINTS_UNAVAILABLE` si Spotwise falla (timeout de 5 s, error de connexió, 4xx, 5xx o resposta il·legible); mai `500`.
