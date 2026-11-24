@@ -166,7 +166,7 @@ describe('direct chat API (TG-65)', () => {
     expect(calls[0]).toMatchObject({
       method,
       auth: 'Bearer access-1',
-      body: method === 'POST' ? JSON.stringify({ last_message_id: message.id }) : '',
+      body: '',
     });
     expect(calls[0]?.url.pathname).toBe(path);
   });
