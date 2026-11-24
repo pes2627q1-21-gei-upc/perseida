@@ -94,6 +94,44 @@ describe('ConversationsScreen (TG-65 criteria 10, 11, 15, 16)', () => {
     ).toBeOnTheScreen();
   });
 
+  it('shows the latest message preview from the other participant without a sender prefix', async () => {
+    await renderScreen();
+
+    expect(screen.getByText('Hola')).toBeOnTheScreen();
+    expect(screen.queryByText('Tu: Hola')).toBeNull();
+  });
+
+  it('prefixes the latest message preview when it was sent by the current user', async () => {
+    mockList.mockReturnValue({
+      data: [{ ...overview, last_message_sender_id: 'me' }],
+      isPending: false,
+      error: null,
+      refetch: mockRefresh,
+    });
+    await renderScreen();
+
+    expect(screen.getByText('Tu: Hola')).toBeOnTheScreen();
+  });
+
+  it('shows the empty-message state when the conversation has no latest message', async () => {
+    mockList.mockReturnValue({
+      data: [
+        {
+          ...overview,
+          last_message_preview: null,
+          last_message_at: null,
+          last_message_sender_id: null,
+        },
+      ],
+      isPending: false,
+      error: null,
+      refetch: mockRefresh,
+    });
+    await renderScreen();
+
+    expect(screen.getByText('Encara no hi ha missatges')).toBeOnTheScreen();
+  });
+
   it('announces the total unread messages across conversations', async () => {
     mockList.mockReturnValue({
       data: [

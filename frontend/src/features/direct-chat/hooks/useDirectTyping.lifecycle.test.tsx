@@ -141,4 +141,12 @@ describe('typing output lifecycle (TG-65)', () => {
     await act(async () => jest.advanceTimersByTime(5000));
     expect(mockSend).toHaveBeenCalledTimes(2);
   });
+
+  it('does not send a stop signal on unmount if typing never started', async () => {
+    const { unmount } = await renderHook(() => useDirectTyping(A));
+
+    await unmount();
+
+    expect(mockSend).not.toHaveBeenCalled();
+  });
 });
