@@ -27,6 +27,7 @@ Provar l'app en local amb el token de Spotwise i corregir que el botó «Recoman
 Cap ADR nova.
 
 - **Origen de la cerca al formulari de sortida:** el lloc triat de la sortida o, si no, el centre del mapa (decisió de Raquel, 24/11/2026). La pantalla de punts de trobada d'un esdeveniment manté la ubicació del dispositiu.
+- **Sense lloc triat i amb el mapa sense moure, la llista surt buida:** la cerca parteix del centre del món. És el comportament esperat de l'opció triada, no un error.
 - **El punt es fixa en prémer «Recomana»:** moure el mapa després no refà la cerca, perquè cada crida compta pel límit de Spotwise.
 
 ## Canvis al vault
@@ -37,7 +38,6 @@ Cap ADR nova.
 ## Pendent / següents passos
 
 - [ ] Obrir la PR a `develop` quan Raquel ho demani (no s'ha fet push).
-- [ ] Sense lloc triat i sense moure el mapa, la cerca surt del centre del món i dona una llista buida: decidir si cal avisar-ne.
 - [ ] Una errada meva: `cp .env.example .env` va sobreescriure `infra/.env`; es va refer a partir de `backend/.env`.
 
 ## US de Taiga
