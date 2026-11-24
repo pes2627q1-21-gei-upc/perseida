@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
+import * as SecureStore from 'expo-secure-store';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
 import { mockUserProfile } from '../../../../__mocks__/profile';
@@ -102,6 +103,31 @@ describe('useStartupLanguage', () => {
 
     expect(i18n.language).toBe('ca');
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('keeps the current language while the account loads when nothing was saved on the device', async () => {
+    await i18n.changeLanguage('en');
+    jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => undefined));
+
+    await renderHook(() => useStartupLanguage(true));
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+
+    expect(i18n.language).toBe('en');
+  });
+
+  it('does not apply the saved language if the screen is gone before it is read', async () => {
+    let finishReading!: (value: string) => void;
+    jest
+      .mocked(SecureStore.getItemAsync)
+      .mockImplementationOnce(() => new Promise<string>((resolve) => (finishReading = resolve)));
+    jest.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => undefined));
+    const { unmount } = await renderHook(() => useStartupLanguage(true));
+
+    unmount();
+    finishReading('es');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(i18n.language).toBe('ca');
   });
 
   it('does not undo a language the person chose while the account was still loading', async () => {

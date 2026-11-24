@@ -326,6 +326,8 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
     await screen.findByText('alex@example.com');
     expect(screen.queryByText('astronomer')).not.toBeOnTheScreen();
+    // Nor the translation key, which is what i18next gives back for a text it does not have.
+    expect(screen.queryByText('profile.role.astronomer')).not.toBeOnTheScreen();
     expect(screen.queryByText('fr')).not.toBeOnTheScreen();
   });
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { AccessibilityInfo } from 'react-native';
 
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
@@ -79,6 +79,20 @@ describe('LanguageMenu (TG-92)', () => {
     await renderMenu();
 
     expect(screen.getByText('CA')).toBeOnTheScreen();
+  });
+
+  it('TG-92 Criteri 9: only the chosen language has the tick, so colour is not the only sign', async () => {
+    await renderMenu();
+    await openMenu();
+
+    const tick = 'phosphor-react-native-check-bold';
+    expect(within(screen.getByRole('radio', { name: 'Català' })).getByTestId(tick)).toBeTruthy();
+    expect(
+      within(screen.getByRole('radio', { name: 'Castellano' })).queryByTestId(tick),
+    ).not.toBeOnTheScreen();
+    expect(
+      within(screen.getByRole('radio', { name: 'English' })).queryByTestId(tick),
+    ).not.toBeOnTheScreen();
   });
 
   it('closes when the button is pressed again', async () => {
