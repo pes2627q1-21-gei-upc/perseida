@@ -9,7 +9,7 @@ import { useTheme } from '../../../shared/theme';
 import { QuietButton } from '../../../shared/ui';
 import type { MeetingPoint } from '../../meeting-points/api/meetingPoints';
 import { formatCoordinate } from '../formatOuting';
-import { type OutingLocation, parseCoordinates } from '../outingForm';
+import { type OutingLocation, type OutingPlace, parseCoordinates } from '../outingForm';
 import { LocationMap } from './LocationMap';
 import { RecommendedPlaces } from './RecommendedPlaces';
 import { TextField } from './TextField';
@@ -22,6 +22,11 @@ interface Props {
   /** The chosen place; null until the person chooses one. */
   value: OutingLocation | null;
   onChange: (location: OutingLocation) => void;
+  /**
+   * The recommended local chosen as the place, or null when the place is chosen in any other
+   * way: its name would not match the new coordinates (TG-661).
+   */
+  onPlaceChange?: (place: OutingPlace | null) => void;
   /** Already translated message of the field. */
   error?: string;
 }
@@ -38,7 +43,7 @@ function startOf(value: OutingLocation | null): MapCamera {
  * for people who cannot drag it (WCAG 2.5.7). Moving the map is not choosing: the value
  * only changes when the person chooses.
  */
-export function LocationField({ value, onChange, error }: Props) {
+export function LocationField({ value, onChange, onPlaceChange, error }: Props) {
   const { t, i18n } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
   const [start, setStart] = useState(() => startOf(value));
@@ -85,6 +90,7 @@ export function LocationField({ value, onChange, error }: Props) {
       setDenied(false);
       setStart({ ...place, zoom: PLACE_ZOOM });
       onChange(place);
+      onPlaceChange?.(null);
     } catch {
       setDenied(true);
     } finally {
@@ -92,11 +98,12 @@ export function LocationField({ value, onChange, error }: Props) {
     }
   }
 
-  function choosePlace({ location }: MeetingPoint) {
+  function choosePlace({ location, name, address }: MeetingPoint) {
     const place = { latitude: location.latitude, longitude: location.longitude };
     setRecommend(null);
     setStart({ ...place, zoom: PLACE_ZOOM });
     onChange(place);
+    onPlaceChange?.({ name, address });
   }
 
   function chooseCoordinates() {
@@ -105,6 +112,7 @@ export function LocationField({ value, onChange, error }: Props) {
     if (!place) return;
     setStart({ ...place, zoom: PLACE_ZOOM });
     onChange(place);
+    onPlaceChange?.(null);
   }
 
   return (
@@ -129,7 +137,10 @@ export function LocationField({ value, onChange, error }: Props) {
       <View style={[styles.buttons, { gap: spacing.sm }]}>
         <QuietButton
           label={t('outings.picker.choose')}
-          onPress={() => onChange({ latitude: center.latitude, longitude: center.longitude })}
+          onPress={() => {
+            onChange({ latitude: center.latitude, longitude: center.longitude });
+            onPlaceChange?.(null);
+          }}
         />
         <QuietButton
           label={t('outings.picker.useMine')}
