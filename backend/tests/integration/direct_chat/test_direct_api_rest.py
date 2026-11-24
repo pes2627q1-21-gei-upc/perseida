@@ -223,3 +223,40 @@ async def test_tg65_block_and_unblock_are_idempotent_and_keep_history(
         {"a": ana_id, "b": bob_id},
     )
     assert count == 0
+
+
+async def test_tg65_read_only_advances_through_the_loaded_message(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    ana, bob = await login_headers(client), await login_headers(client)
+    bob_id = await user_id_of(client, bob)
+    conversation = await open_conversation(client, ana, bob_id)
+    first = await seed_message(connection, conversation, bob_id, NOW, "first")
+    await seed_message(
+        connection, conversation, bob_id, NOW + timedelta(seconds=1), "later"
+    )
+    response = await client.post(
+        f"{ROOT}/{conversation}/read", headers=ana, json={"last_message_id": first}
+    )
+    assert response.status_code == 204
+    listing = (await client.get(ROOT, headers=ana)).json()
+    assert listing[0]["unread_count"] == 1
+
+
+async def test_tg65_read_requires_the_identifier_of_a_message_in_the_conversation(
+    client: AsyncClient, connection: AsyncConnection
+) -> None:
+    ana, bob, other = (
+        await login_headers(client),
+        await login_headers(client),
+        await login_headers(client),
+    )
+    bob_id, other_id = await user_id_of(client, bob), await user_id_of(client, other)
+    conversation = await open_conversation(client, ana, bob_id)
+    another = await open_conversation(client, ana, other_id)
+    foreign = await seed_message(connection, another, other_id, NOW, "foreign")
+    path = f"{ROOT}/{conversation}/read"
+    assert (await client.post(path, headers=ana)).status_code == 422
+    assert (
+        await client.post(path, headers=ana, json={"last_message_id": foreign})
+    ).status_code == 404

@@ -990,3 +990,17 @@ async def test_tg65_c10_the_other_adapters_map_an_unreachable_database() -> None
             assert error.value.code == DATABASE_UNAVAILABLE
     finally:
         await dead.dispose()
+
+
+async def test_tg65_message_commit_order_survives_clock_skew(
+    conversations: DirectConversationRepository,
+    messages: DirectMessageRepository,
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    ada, grace = await _pair(sessions)
+    conversation, _ = await conversations.get_or_create(ada.id, grace.id)
+    first = await messages.add(
+        _message(conversation, ada.id, NOW + timedelta(hours=1), "first")
+    )
+    second = await messages.add(_message(conversation, grace.id, NOW, "second"))
+    assert second.sent_at > first.sent_at
