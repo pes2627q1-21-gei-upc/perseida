@@ -147,10 +147,18 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       pageParams: [undefined],
     };
     const liveMessage = { ...message, id: 'incoming-live-message', text: 'Nou' };
+    const refreshedData = {
+      pages: [{ messages: [liveMessage, latestHistoryMessage], next_cursor: null }],
+      pageParams: [undefined],
+    };
+    const refetch = jest
+      .fn()
+      .mockResolvedValueOnce({ data, isError: false })
+      .mockResolvedValueOnce({ data: refreshedData, isError: false });
     mockHistory.mockReturnValue({
       ...mockHistory(),
       data,
-      refetch: jest.fn().mockResolvedValue({ data, isError: false }),
+      refetch,
     });
 
     await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
@@ -166,11 +174,40 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       mockListener?.({ type: 'dm.message', payload: liveMessage });
     });
 
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(2));
     expect(mockMarkRead).toHaveBeenCalledTimes(1);
     expect(mockMarkRead).toHaveBeenCalledWith({
       conversationId: CONVERSATION,
       lastMessageId: liveMessage.id,
     });
+  });
+
+  it('does not refresh read state from live messages before the initial history snapshot resolves', async () => {
+    let finish!: (result: unknown) => void;
+    const refetch = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      mockListener?.({
+        type: 'dm.message',
+        payload: { ...message, id: 'during-initial-load' },
+      });
+    });
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockMarkRead).not.toHaveBeenCalled();
+
+    await act(async () => {
+      finish({ data: { pages: [{ messages: [] }] }, isError: false });
+    });
+    expect(mockMarkRead).not.toHaveBeenCalled();
   });
 
   it('reloads history before marking a newly received message as read', async () => {
