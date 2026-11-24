@@ -158,6 +158,7 @@ async def test_tg65_strangers_cannot_view_or_mark_a_conversation(
         "GET" if action == "messages" else "POST",
         f"{ROOT}/{conversation}/{action}",
         headers=stranger,
+        json={"last_message_id": str(uuid.uuid7())} if action == "read" else None,
     )
     assert_problem(response, 404, "CONVERSATION_NOT_FOUND")
 
@@ -180,7 +181,10 @@ async def test_tg65_read_updates_only_the_authenticated_participants_mark(
     ana, bob = await login_headers(client), await login_headers(client)
     ana_id, bob_id = await user_id_of(client, ana), await user_id_of(client, bob)
     conversation = await open_conversation(client, ana, bob_id)
-    response = await client.post(f"{ROOT}/{conversation}/read", headers=ana)
+    message_id = await seed_message(connection, conversation, bob_id, NOW, "Hola")
+    response = await client.post(
+        f"{ROOT}/{conversation}/read", headers=ana, json={"last_message_id": message_id}
+    )
     assert 200 <= response.status_code < 300
     row = (
         await connection.execute(
@@ -192,7 +196,7 @@ async def test_tg65_read_updates_only_the_authenticated_participants_mark(
         )
     ).one()
     my_mark, other_mark = (row[1], row[2]) if row[0] == ana_id else (row[2], row[1])
-    assert my_mark is not None
+    assert my_mark == NOW
     assert other_mark is None
 
 

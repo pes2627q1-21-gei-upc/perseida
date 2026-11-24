@@ -51,6 +51,7 @@ from app.infrastructure.direct_chat.repository import (
     SqlDirectMessageRepository,
     SqlUserBlockRepository,
 )
+from app.infrastructure.direct_chat.tables import DirectMessageRow
 from app.infrastructure.direct_chat.user_directory import SqlChatUserDirectory
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.users.repository import SqlUserRepository
@@ -215,8 +216,12 @@ async def _conversation_with_history(
         )
         for index in range(count)
     ]
-    for message in random.Random(65).sample(history, k=len(history)):
-        await messages.add(message)
+    # Direct inserts preserve timestamp ties to exercise the keyset cursor even
+    # though normal repository writes assign strictly increasing timestamps.
+    async with sessions() as session:
+        for message in random.Random(65).sample(history, k=len(history)):
+            session.add(DirectMessageRow(**message.model_dump()))
+        await session.commit()
     return conversation, history
 
 
@@ -567,9 +572,11 @@ async def test_tg65_c4_the_client_id_is_unique_per_sender_not_global(
     from_grace = _message(conversation, grace.id, NOW, "de Grace", client_id)
 
     assert await messages.add(from_ada) == from_ada
-    assert await messages.add(from_grace) == from_grace
+    stored_grace = await messages.add(from_grace)
+    assert stored_grace.id == from_grace.id
+    assert stored_grace.sent_at > from_ada.sent_at
     assert await messages.find_by_client_id(ada.id, client_id) == from_ada
-    assert await messages.find_by_client_id(grace.id, client_id) == from_grace
+    assert await messages.find_by_client_id(grace.id, client_id) == stored_grace
 
 
 async def test_tg65_c4_find_by_client_id_is_none_when_the_sender_never_sent_it(
