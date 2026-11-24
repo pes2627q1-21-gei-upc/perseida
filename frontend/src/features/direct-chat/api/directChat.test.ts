@@ -217,3 +217,16 @@ describe('direct chat API (TG-65)', () => {
     });
   });
 });
+
+describe('TG-65 criteria 9 and 10: invalid successful API responses', () => {
+  it.each([
+    ['open conversation', () => openConversation(OTHER)],
+    ['conversation list', () => listConversations()],
+    ['message history', () => fetchMessages(CONVERSATION)],
+  ] as const)('rejects a null %s response with a stable error', async (_name, request) => {
+    mockFetch(() => jsonResponse(null));
+    await expect(request()).rejects.toMatchObject({
+      kind: 'http', code: 'INVALID_RESPONSE', status: 200, retryable: false,
+    });
+  });
+});
