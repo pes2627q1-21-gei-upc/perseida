@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import * as Crypto from 'expo-crypto';
 import type { ReactNode } from 'react';
 
 import { AppError } from '../../../shared/errors';
@@ -99,6 +100,39 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       }),
     );
     await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+  });
+
+  it('keeps history safe when no page data is available', async () => {
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      data: undefined,
+    });
+
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+
+    expect(result.current.items).toEqual([]);
+  });
+
+  it('orders history newest first and uses descending message ids for equal timestamps', async () => {
+    const timestamp = '2026-11-22T12:00:00Z';
+    const historyMessages = [
+      { ...message, id: 'tie-a', sent_at: timestamp },
+      { ...message, id: 'older', sent_at: '2026-11-22T11:00:00Z' },
+      { ...message, id: 'tie-z', sent_at: timestamp },
+    ];
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      data: {
+        pages: [{ messages: historyMessages, next_cursor: null }],
+        pageParams: [undefined],
+      },
+    });
+
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+
+    expect(
+      result.current.items.filter((item) => item.kind === 'message').map((item) => item.message.id),
+    ).toEqual(['tie-z', 'tie-a', 'older']);
   });
 
   it('sends dm.send with conversation, text and a client-generated id', async () => {
@@ -212,6 +246,99 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       await result.current.retry('client-id-1');
     });
     expect(mockSend.mock.calls[0]?.[0]).toEqual(mockSend.mock.calls[1]?.[0]);
+  });
+
+  it('does not retry a pending send after switching to another conversation', async () => {
+    mockSend.mockRejectedValueOnce(
+      new AppError({ kind: 'network', code: 'SEND_UNCERTAIN', retryable: true }),
+    );
+    const { result, rerender } = await renderHook(
+      ({ id }: { id: string }) => useDirectConversation(id),
+      { wrapper, initialProps: { id: CONVERSATION } },
+    );
+
+    await act(async () => {
+      await result.current.send('Només a aquesta conversa');
+    });
+    await waitFor(() =>
+      expect(result.current.items).toContainEqual(
+        expect.objectContaining({ kind: 'pending', status: 'uncertain' }),
+      ),
+    );
+
+    await rerender({ id: OTHER });
+    await act(async () => {
+      await result.current.retry('client-id-1');
+    });
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('discards only the pending message with the requested client id', async () => {
+    jest
+      .mocked(Crypto.randomUUID)
+      .mockReturnValueOnce('client-id-1')
+      .mockReturnValueOnce('client-id-2');
+    mockSend.mockReturnValue(new Promise(() => undefined));
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+
+    await act(async () => {
+      await result.current.send('Primer');
+      await result.current.send('Segon');
+    });
+    await act(async () => {
+      result.current.discard('client-id-1');
+    });
+
+    expect(result.current.items).not.toContainEqual(
+      expect.objectContaining({ kind: 'pending', clientMessageId: 'client-id-1' }),
+    );
+    expect(result.current.items).toContainEqual(
+      expect.objectContaining({ kind: 'pending', clientMessageId: 'client-id-2', text: 'Segon' }),
+    );
+  });
+
+  it('loads older history only when another page is available and no fetch is active', async () => {
+    const fetchNextPage = jest.fn();
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      fetchNextPage,
+    });
+    const { result, rerender } = await renderHook(
+      ({ id }: { id: string }) => useDirectConversation(id),
+      { wrapper, initialProps: { id: CONVERSATION } },
+    );
+
+    await act(async () => {
+      result.current.loadOlder();
+    });
+    expect(fetchNextPage).toHaveBeenCalledWith({ cancelRefetch: false });
+
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      hasNextPage: true,
+      isFetchingNextPage: true,
+      fetchNextPage,
+    });
+    await rerender({ id: OTHER });
+    await act(async () => {
+      result.current.loadOlder();
+    });
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage,
+    });
+    await rerender({ id: CONVERSATION });
+    await act(async () => {
+      result.current.loadOlder();
+    });
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
   });
 });
 
