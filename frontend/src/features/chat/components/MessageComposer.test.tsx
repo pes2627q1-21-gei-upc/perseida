@@ -131,7 +131,8 @@ describe('MessageComposer (TG-469)', () => {
     it('after the send, keeps only what was added meanwhile, not the text already sent', async () => {
       let finish: () => void = () => undefined;
       const onSend = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
-      await render(<MessageComposer onSend={onSend} />);
+      const onTyping = jest.fn();
+      await render(<MessageComposer onSend={onSend} onTyping={onTyping} />);
       await type('Hola');
       await fireEvent.press(sendButton());
 
@@ -140,6 +141,7 @@ describe('MessageComposer (TG-469)', () => {
 
       await waitFor(() => expect(sendButton().props.accessibilityState.disabled).toBe(false));
       expect(field().props.value).toBe('i una cosa més');
+      expect(onTyping).toHaveBeenLastCalledWith(true);
     });
 
     it('keeps the whole text when it was edited inside what was sent', async () => {
