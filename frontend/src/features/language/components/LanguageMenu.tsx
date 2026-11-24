@@ -71,7 +71,6 @@ export function LanguageMenu() {
               <Pressable
                 key={language}
                 accessibilityRole="radio"
-                accessibilityLabel={t(`profile.language.${language}`)}
                 accessibilityState={{ checked: selected }}
                 onPress={() => choose(language)}
                 style={styles.option}
