@@ -22,6 +22,8 @@ Segona PR de la TG-92: que la persona triï l'idioma al perfil, que els textos c
 - **Textos i accessibilitat (#596):** `profile.language.*` passen a autònims (Català, Castellano, English) i claus noves `profile.languageMenu.*` als tres idiomes; anunci del canvi per al lector de pantalla; etiquetes, estats i *live regions*. Contrast mesurat amb `contrast.py` sobre `glassSolid` als quatre temes (5,8:1 a 15,2:1).
 - **Revisió (#597):** `reviewer-arquitectura` no va trobar cap troballa crítica ni alta. S'han corregit les tres mitjanes de comportament amb TDD: la cursa entre l'arrencada i una elecció de la persona, el desat local que fallava i bloquejava l'API, i l'ordre de dos canvis ràpids (`scope` de la mutació).
 
+- **Mutation testing (Stryker, línies canviades):** 105 mutants, puntuació **80,95 %** (llindar 70 %). 13 supervivents: 4 al càlcul del rol de `ProfileScreen` (test existent massa feble davant d'un rol desconegut), 6 a `LanguageMenu` (la ✓ de l'opció triada i l'anunci amb idioma explícit), 2 a la guarda de `useStartupLanguage` i 1 equivalent (`id` del `scope`). `languageStorage.web.ts` surt sense cobertura a Stryker però té el 100 % a Jest.
+
 ## Decisions preses
 
 - **Desat al mòbil amb `expo-secure-store`** (Simona, 2026-11-24): cap dependència nova; no és un secret, però no hi ha emmagatzematge de dades normals. A web, `localStorage`. Política de dependències: [[0013-uv-i-pnpm-com-a-gestors-de-dependencies]].
