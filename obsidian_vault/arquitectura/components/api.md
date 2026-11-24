@@ -69,13 +69,13 @@ Privats, amb sessió; l'usuària s'obté de la sessió com a `GET /api/users/me`
 
 | Endpoint | Què fa |
 |---|---|
-| `POST /api/outings` | Crea una sortida de la usuària de la sessió. `201` amb la sortida i la capçalera `Location`; `422` si les dades no són vàlides |
+| `POST /api/outings` | Crea una sortida de la usuària de la sessió. `201` amb la sortida i la capçalera `Location`; `422` si les dades no són vàlides. `place` (`name`, `address`) és opcional: el local recomanat triat |
 | `GET /api/outings` | Sortides que encara no han començat, per `starts_at` i `id`. Filtres opcionals `event_id` i `mine=true` («les meves sortides», decisió de Raquel, 17/11/2026) |
 | `GET /api/outings/{id}` | Detall amb l'autora (`id`, `display_name`, `avatar_url`); `404 OUTING_NOT_FOUND` |
-| `PATCH /api/outings/{id}` | Només l'autora (`403 OUTING_FORBIDDEN`). Canvien només els camps enviats; només `event_id` pot ser null |
+| `PATCH /api/outings/{id}` | Només l'autora (`403 OUTING_FORBIDDEN`). Canvien només els camps enviats; només `event_id` i `place` poden ser null. Canviar `location` sense `place` esborra el `place` (TG-661) |
 | `DELETE /api/outings/{id}` | Només l'autora; `204` |
 
-Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
+Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
 
 ## Punts de trobada (TG-352)
 

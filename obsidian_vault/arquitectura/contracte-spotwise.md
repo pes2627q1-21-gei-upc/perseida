@@ -132,7 +132,7 @@ Perseida exposa `GET /api/meeting-points?profile=&lat=&lon=` ([[api#Punts de tro
 - **Límit:** com a molt 60 crides per minut a Spotwise (finestra lliscant al client, una instància per procés). La 61a respon `503 MEETING_POINTS_UNAVAILABLE` sense cridar-los (decisió de Raquel, 22/11/2026).
 - **Logs:** les URL de les peticions d'httpx no es registren, perquè porten la ubicació de la usuària.
 - **Configuració:** `SPOTWISE_URL`, `SPOTWISE_API_TOKEN` (secret de GitHub obligatori al CD) i `SPOTWISE_TIMEOUT_SECONDS` (5 s).
-- **Sortides:** una sortida ([[api#Sortides d'observació (TG-629)]]) que tria un local només en desa les coordenades.
+- **Sortides:** una sortida ([[api#Sortides d'observació (TG-629)]]) que tria un local en desa les coordenades i el nom i l'adreça (`place`; TG-661, decisió de Raquel, 24/11/2026). No en desa l'identificador de Spotwise.
 
 > [!warning] HTTP sense xifrar
 > El servei de Spotwise només és accessible per HTTP, i el token viatja en clar entre els dos servidors. També hi viatja en clar la ubicació de la persona, arrodonida a 3 decimals (uns 100 m). Raquel ho accepta (22/11/2026), perquè l'endpoint només llegeix dades d'espais i la ubicació no s'hi envia exacta. Cal demanar HTTPS a Spotwise.
