@@ -1,14 +1,14 @@
 ---
 titol: "TG-65: Stryker quedava sota el llindar a la integració del xat"
 tipus: error-testing
-estat: obert
+estat: corregit
 data: 2026-11-24
 us: [TG-65]
-font: "CI runs 45446259997 i 45465198435; commit aa95385d"
+font: "CI runs 45446259997, 45465198435 i 45471190997; commits aa95385d i 569b9ab2"
 fase: ci-mutants
 capa: frontend
-regressio: "frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::latest message previews and empty-message state; frontend/src/features/direct-chat/hooks/useDirectTyping.lifecycle.test.tsx::does not send a stop signal on unmount if typing never started"
-commit: aa95385d
+regressio: "frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::latest message previews and empty-message state; frontend/src/features/direct-chat/components/ConversationsScreen.announce.test.tsx::does not expose a zero announcement on the initial Android result; frontend/src/features/direct-chat/hooks/useDirectTyping.lifecycle.test.tsx::does not send a stop signal on unmount if typing never started"
+commit: 569b9ab2
 llico: skill
 etiquetes: [error-testing, tg-65, frontend, mutation-testing]
 ---
@@ -20,7 +20,7 @@ etiquetes: [error-testing, tg-65, frontend, mutation-testing]
 
 ## Símptoma
 
-La CI dels runs `45446259997` i `45465198435` va donar `67,66 %` i `69,86 %`. El run més recent té 346 morts, 4 timeout, 145 supervivents, 6 sense cobertura i 0 errors: falta un mutant comptable per arribar al llindar del `70 %`. La CI ha resolt i utilitzat la base real `origin/feature/TG-65-front-conversation-core`.
+Els runs `45446259997` i `45465198435` van donar `67,66 %` i `69,86 %`. La CI final `45471190997` passa amb `71,26 %` (356 morts, 1 timeout, 138 supervivents, 6 sense cobertura i 0 errors), sobre la base real `origin/feature/TG-65-front-conversation-core`.
 
 ## Causa
 
@@ -28,11 +28,11 @@ Faltaven assertions sobre les previsualitzacions de missatge a la llista, l'esta
 
 ## Correcció
 
-El commit test-only `aa95385d` afegeix quatre regressions; les proves dirigides passen (2 suites, 23 tests), però la CI `45465198435` encara queda per sota del llindar. L'execució local de Stryker va fer servir `origin/develop` com a base perquè no va resoldre la base real de la PR, per tant el seu `77,29 %` no és comparable amb el diff apilat de #154. Cal un altre test-only canvi i una CI verda abans de tancar aquest error.
+Els commits test-only `aa95385d` i `569b9ab2` afegeixen regressions per a previsualitzacions, estat buit, neteja del typing i anuncis accessibles per plataforma. Les proves dirigides passen (3 suites, 29 tests). Stryker dirigit sobre les línies 67 i 114 de `ConversationsScreen.tsx` dona `94,74 %` (18 morts, 1 supervivent, 0 timeout i 0 sense cobertura) i mata 7 dels 8 supervivents inicials d'aquestes línies. El supervivent `total === 0 → true` no s'ha declarat equivalent ni exclòs. La CI completa `45471190997` passa el llindar de mutació i el SonarQube Quality Gate; l'execució local anterior amb `origin/develop` no és comparable amb el diff apilat de #154.
 
 ## Test de regressió
 
-`frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::shows the latest message preview from the other participant without a sender prefix`, `frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::prefixes the latest message preview when it was sent by the current user`, `frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::shows the empty-message state when the conversation has no latest message` i `frontend/src/features/direct-chat/hooks/useDirectTyping.lifecycle.test.tsx::does not send a stop signal on unmount if typing never started`.
+`frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::shows the latest message preview from the other participant without a sender prefix`, `frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::prefixes the latest message preview when it was sent by the current user`, `frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::shows the empty-message state when the conversation has no latest message`, `frontend/src/features/direct-chat/components/ConversationsScreen.announce.test.tsx::does not expose a zero announcement on the initial Android result` and `frontend/src/features/direct-chat/hooks/useDirectTyping.lifecycle.test.tsx::does not send a stop signal on unmount if typing never started`.
 
 ## Lliçó
 
