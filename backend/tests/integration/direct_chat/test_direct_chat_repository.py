@@ -43,7 +43,6 @@ from app.domain.direct_chat.ports import (
 from app.domain.shared.errors import (
     BusinessRuleViolation,
     NotFoundError,
-    ValidationError,
 )
 from app.domain.users.models import User
 from app.infrastructure.direct_chat.repository import (
@@ -614,7 +613,19 @@ async def test_tg65_c5_unread_counts_only_the_other_participant_after_since(
     assert await unread(grace, NOW + timedelta(minutes=3)) == 1
 
 
-# --- mark_read -----------------------------------------------------------------
+# --- mark_read through a persisted message ----------------------------------
+
+
+async def _read_target(
+    sessions: async_sessionmaker[AsyncSession],
+    conversation: DirectConversation,
+    at: datetime,
+) -> DirectMessage:
+    message = _message(conversation, conversation.user_a_id, at)
+    async with sessions() as session:
+        session.add(DirectMessageRow(**message.model_dump()))
+        await session.commit()
+    return message
 
 
 async def test_tg65_c6_the_read_mark_is_persisted_for_each_participant(
@@ -623,12 +634,10 @@ async def test_tg65_c6_the_read_mark_is_persisted_for_each_participant(
 ) -> None:
     ada, grace = await _pair(sessions)
     stored, _ = await conversations.get_or_create(ada.id, grace.id)
-
-    first = await conversations.mark_read(stored.id, stored.user_a_id, NOW)
-    both = await conversations.mark_read(
-        stored.id, stored.user_b_id, NOW + timedelta(minutes=1)
-    )
-
+    one = await _read_target(sessions, stored, NOW)
+    two = await _read_target(sessions, stored, NOW + timedelta(minutes=1))
+    first = await conversations.mark_read_through(stored.id, stored.user_a_id, one.id)
+    both = await conversations.mark_read_through(stored.id, stored.user_b_id, two.id)
     assert first.user_a_read_at == NOW and first.user_b_read_at is None
     assert both.user_a_read_at == NOW
     assert both.user_b_read_at == NOW + timedelta(minutes=1)
@@ -641,16 +650,14 @@ async def test_tg65_c6_the_read_mark_never_goes_backwards(
 ) -> None:
     ada, grace = await _pair(sessions)
     stored, _ = await conversations.get_or_create(ada.id, grace.id)
-    await conversations.mark_read(stored.id, stored.user_a_id, NOW)
-
-    earlier = await conversations.mark_read(
-        stored.id, stored.user_a_id, NOW - timedelta(hours=1)
-    )
-    same = await conversations.mark_read(stored.id, stored.user_a_id, NOW)
-
+    old = await _read_target(sessions, stored, NOW - timedelta(hours=1))
+    new = await _read_target(sessions, stored, NOW)
+    await conversations.mark_read_through(stored.id, stored.user_a_id, new.id)
+    earlier = await conversations.mark_read_through(stored.id, stored.user_a_id, old.id)
+    same = await conversations.mark_read_through(stored.id, stored.user_a_id, new.id)
     assert earlier.user_a_read_at == NOW
     assert same.user_a_read_at == NOW
-    assert (await conversations.get(stored.id)) == earlier
+    assert await conversations.get(stored.id) == earlier
 
 
 async def test_tg65_c6_concurrent_marks_keep_the_latest(
@@ -659,30 +666,30 @@ async def test_tg65_c6_concurrent_marks_keep_the_latest(
 ) -> None:
     ada, grace = await _pair(sessions)
     stored, _ = await conversations.get_or_create(ada.id, grace.id)
-    moments = [NOW + timedelta(minutes=minute) for minute in range(8)]
-    random.Random(65).shuffle(moments)
-
+    targets = [
+        await _read_target(sessions, stored, NOW + timedelta(minutes=i))
+        for i in range(8)
+    ]
+    random.Random(65).shuffle(targets)
     await asyncio.gather(
-        *(conversations.mark_read(stored.id, stored.user_b_id, at) for at in moments)
+        *(
+            conversations.mark_read_through(stored.id, stored.user_b_id, m.id)
+            for m in targets
+        )
     )
-
     final = await conversations.get(stored.id)
     assert final is not None
     assert final.user_b_read_at == NOW + timedelta(minutes=7)
 
 
-async def test_tg65_c6_a_naive_time_is_rejected_and_nothing_is_stored(
+async def test_tg65_c6_a_missing_message_is_rejected_and_nothing_is_stored(
     conversations: DirectConversationRepository,
     sessions: async_sessionmaker[AsyncSession],
 ) -> None:
     ada, grace = await _pair(sessions)
     stored, _ = await conversations.get_or_create(ada.id, grace.id)
-
-    with pytest.raises(ValidationError):
-        await conversations.mark_read(
-            stored.id, stored.user_a_id, datetime(2026, 11, 20, 21, 0)
-        )
-
+    with pytest.raises(NotFoundError):
+        await conversations.mark_read_through(stored.id, stored.user_a_id, uuid.uuid7())
     assert await conversations.get(stored.id) == stored
 
 
@@ -693,18 +700,14 @@ async def test_tg65_c6_a_stranger_or_a_missing_conversation_is_not_found(
     ada, grace = await _pair(sessions)
     stranger = await _user(sessions)
     stored, _ = await conversations.get_or_create(ada.id, grace.id)
-
+    message = await _read_target(sessions, stored, NOW)
     with pytest.raises(NotFoundError) as of_stranger:
-        await conversations.mark_read(stored.id, stranger.id, NOW)
+        await conversations.mark_read_through(stored.id, stranger.id, message.id)
     with pytest.raises(NotFoundError) as of_missing:
-        await conversations.mark_read(uuid.uuid7(), ada.id, NOW)
-
+        await conversations.mark_read_through(uuid.uuid7(), ada.id, message.id)
     assert of_stranger.value.code == CONVERSATION_NOT_FOUND
     assert of_missing.value.code == CONVERSATION_NOT_FOUND
     assert await conversations.get(stored.id) == stored
-
-
-# --- summaries_of: the inbox in one query --------------------------------------
 
 
 async def test_tg65_c7_summaries_are_by_last_message_with_preview_and_unread(
@@ -751,8 +754,9 @@ async def test_tg65_c7_unread_counts_only_messages_of_the_other_after_my_mark(
     quiet, silent = await _user(sessions), await _user(sessions)
     conversation, _ = await conversations.get_or_create(me.id, other.id)
     # 3 from the other (+1, +3, +5 min), 2 from me (+2, +4 min).
+    markers = {}
     for minutes, sender in ((1, other), (2, me), (3, other), (4, me), (5, other)):
-        await messages.add(
+        markers[minutes] = await messages.add(
             _message(conversation, sender.id, NOW + timedelta(minutes=minutes))
         )
     # A conversation where I wrote last: nothing unread; and an empty one.
@@ -767,9 +771,9 @@ async def test_tg65_c7_unread_counts_only_messages_of_the_other_after_my_mark(
         }
 
     before = await unread_by_conversation()
-    await conversations.mark_read(conversation.id, me.id, NOW + timedelta(minutes=3))
+    await conversations.mark_read_through(conversation.id, me.id, markers[3].id)
     after_mark = await unread_by_conversation()
-    await conversations.mark_read(conversation.id, me.id, NOW + timedelta(minutes=5))
+    await conversations.mark_read_through(conversation.id, me.id, markers[5].id)
     after_all = await unread_by_conversation()
 
     assert before[conversation.id] == 3
@@ -946,7 +950,9 @@ async def test_tg65_c9_a_deleted_user_does_not_exist_for_the_chat(
     [
         pytest.param(lambda r, u, m: r.get_or_create(u, m), id="get_or_create"),
         pytest.param(lambda r, u, m: r.get(u), id="get"),
-        pytest.param(lambda r, u, m: r.mark_read(u, m, NOW), id="mark_read"),
+        pytest.param(
+            lambda r, u, m: r.mark_read_through(u, m, uuid.uuid7()), id="mark_read"
+        ),
         pytest.param(lambda r, u, m: r.list_of(u), id="list_of"),
         pytest.param(lambda r, u, m: r.summaries_of(u), id="summaries_of"),
     ],

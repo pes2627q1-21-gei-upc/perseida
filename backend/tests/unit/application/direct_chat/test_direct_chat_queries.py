@@ -165,7 +165,9 @@ async def test_tg65_list_unread_counter_grows_and_mark_read_resets_it(
     (before,) = await service.list_conversations(ALICE)
     assert before.unread_count == 2
 
-    await service.mark_read(ALICE, conversation.id)
+    await service.mark_read_through(
+        ALICE, conversation.id, env.messages.messages[-1].id
+    )
     (after,) = await service.list_conversations(ALICE)
     assert after.unread_count == 0
 
@@ -398,10 +400,12 @@ async def test_tg65_mark_read_moves_the_mark_to_now_for_the_participant(
     conversation = await _conversation(env, ALICE, BOB)
     await _say(env, conversation, BOB, 1)
 
-    await service.mark_read(ALICE, conversation.id)
+    await service.mark_read_through(
+        ALICE, conversation.id, env.messages.messages[-1].id
+    )
 
     stored = env.conversations.conversations[conversation.id]
-    assert _mark_of(stored, ALICE) == clock.at
+    assert _mark_of(stored, ALICE) == env.messages.messages[-1].sent_at
     assert _mark_of(stored, BOB) is None
 
 
@@ -412,7 +416,9 @@ async def test_tg65_mark_read_does_not_affect_the_other_participant(
     await _say(env, conversation, ALICE, 1)
     await _say(env, conversation, BOB, 2)
 
-    await service.mark_read(ALICE, conversation.id)
+    await service.mark_read_through(
+        ALICE, conversation.id, env.messages.messages[-1].id
+    )
 
     (alice_view,) = await service.list_conversations(ALICE)
     (bob_view,) = await service.list_conversations(BOB)
@@ -425,12 +431,18 @@ async def test_tg65_mark_read_is_idempotent_and_never_goes_backwards(
 ) -> None:
     conversation = await _conversation(env, ALICE, BOB)
     await _say(env, conversation, BOB, 1)
-    await service.mark_read(ALICE, conversation.id)
-    later = clock.at
+    await service.mark_read_through(
+        ALICE, conversation.id, env.messages.messages[-1].id
+    )
+    later = env.messages.messages[-1].sent_at
 
     clock.at = later - timedelta(hours=1)
-    await service.mark_read(ALICE, conversation.id)
-    await service.mark_read(ALICE, conversation.id)
+    await service.mark_read_through(
+        ALICE, conversation.id, env.messages.messages[-1].id
+    )
+    await service.mark_read_through(
+        ALICE, conversation.id, env.messages.messages[-1].id
+    )
 
     stored = env.conversations.conversations[conversation.id]
     assert _mark_of(stored, ALICE) == later
@@ -448,7 +460,7 @@ async def test_tg65_mark_read_of_a_stranger_or_unknown_conversation_is_not_found
         (ALICE, uuid.uuid7()),
     ):
         with pytest.raises(NotFoundError) as caught:
-            await service.mark_read(user, conversation_id)
+            await service.mark_read_through(user, conversation_id, uuid.uuid7())
         assert caught.value.code == CONVERSATION_NOT_FOUND
 
     stored = env.conversations.conversations[conversation.id]
