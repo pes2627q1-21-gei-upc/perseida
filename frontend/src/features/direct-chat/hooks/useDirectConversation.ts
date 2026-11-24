@@ -86,6 +86,7 @@ export function useDirectConversation(conversationId: string, otherName?: string
       for (const message of page.messages) seenMessageIds.current.add(message.id);
     }
   }, [history.data]);
+  const refreshReadRef = useRef<() => void>(() => {});
   const markReadRef = useRef(markRead.mutate);
   useEffect(() => {
     markReadRef.current = markRead.mutate;
@@ -95,25 +96,25 @@ export function useDirectConversation(conversationId: string, otherName?: string
     historyReady.current = false;
     if (!conversationId || !isFocused || !isForeground) return;
     let cancelled = false;
-    // Read the latest history before advancing the read mark; Redis is not needed here.
-    void refetchHistory()
-      .then((result) => {
-        if (cancelled || result.isError || !result.data) return;
-        historyReady.current = true;
-        const newestMessage = result.data.pages[0]?.messages[0];
-        if (newestMessage) {
-          markReadRef.current({
-            conversationId,
-            lastMessageId: newestMessage.id,
-          });
-        }
-      })
-      .catch(() => {
-        // The query exposes its error and leaves unread messages intact.
-      });
+    // Only advance to a message returned by a successful history snapshot.
+    const refreshRead = () => {
+      void refetchHistory()
+        .then((result) => {
+          if (cancelled || result.isError || !result.data) return;
+          historyReady.current = true;
+          const newest = result.data.pages[0]?.messages[0];
+          if (newest) markReadRef.current({ conversationId, lastMessageId: newest.id });
+        })
+        .catch(() => {
+          // The query exposes its error and leaves unread messages intact.
+        });
+    };
+    refreshReadRef.current = refreshRead;
+    refreshRead();
     return () => {
       cancelled = true;
       historyReady.current = false;
+      refreshReadRef.current = () => {};
     };
   }, [conversationId, isFocused, isForeground, refetchHistory, socketStatus]);
 
@@ -132,12 +133,7 @@ export function useDirectConversation(conversationId: string, otherName?: string
       setArrived((current) =>
         current.some((item) => item.id === message.id) ? current : [...current, message],
       );
-      if (historyReady.current) {
-        markReadRef.current({
-          conversationId,
-          lastMessageId: message.id,
-        });
-      }
+      if (historyReady.current) refreshReadRef.current();
     });
   }, [conversationId, socketStatus, subscribePrivate, queryClient, myUserId, eventScope]);
 
