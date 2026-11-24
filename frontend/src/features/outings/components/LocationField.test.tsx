@@ -170,6 +170,60 @@ describe('LocationField', () => {
     });
   });
 
+  describe('the recommended local is forgotten when the place is chosen in another way (TG-661)', () => {
+    it('on choosing the centre of the map', async () => {
+      const onPlaceChange = jest.fn();
+      await render(
+        <LocationField value={null} onChange={jest.fn()} onPlaceChange={onPlaceChange} />,
+      );
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Tria aquest lloc' }));
+
+      expect(onPlaceChange).toHaveBeenCalledWith(null);
+    });
+
+    it('on using the location of the device', async () => {
+      permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
+      position.mockResolvedValue({
+        coords: { latitude: 41.5, longitude: 2.2 },
+      } as Location.LocationObject);
+      const onPlaceChange = jest.fn();
+      await render(
+        <LocationField value={null} onChange={jest.fn()} onPlaceChange={onPlaceChange} />,
+      );
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Usa la meva ubicació' }));
+
+      expect(onPlaceChange).toHaveBeenCalledWith(null);
+    });
+
+    it('on typing the coordinates', async () => {
+      const onPlaceChange = jest.fn();
+      await render(
+        <LocationField value={null} onChange={jest.fn()} onPlaceChange={onPlaceChange} />,
+      );
+      await fireEvent.changeText(screen.getByLabelText('Latitud'), '41.5');
+      await fireEvent.changeText(screen.getByLabelText('Longitud'), '2.2');
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Tria aquestes coordenades' }));
+
+      expect(onPlaceChange).toHaveBeenCalledWith(null);
+    });
+
+    it('and not when the coordinates typed are not valid', async () => {
+      const onPlaceChange = jest.fn();
+      await render(
+        <LocationField value={null} onChange={jest.fn()} onPlaceChange={onPlaceChange} />,
+      );
+      await fireEvent.changeText(screen.getByLabelText('Latitud'), '91');
+      await fireEvent.changeText(screen.getByLabelText('Longitud'), '2');
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Tria aquestes coordenades' }));
+
+      expect(onPlaceChange).not.toHaveBeenCalled();
+    });
+  });
+
   describe('my location', () => {
     it('chooses it and moves the map there when the person allows it', async () => {
       permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
@@ -477,6 +531,24 @@ describe('LocationField recommended places (TG-352, criterion 7; TG-661)', () =>
       longitude: unvotedCafe.location.longitude,
     });
     expect(mockMapProps.start).toMatchObject(unvotedCafe.location);
+  });
+
+  it('tells the name and address of the local chosen (TG-661)', async () => {
+    const onPlaceChange = jest.fn();
+    await render(
+      withProviders(
+        <LocationField value={CHOSEN} onChange={jest.fn()} onPlaceChange={onPlaceChange} />,
+      ),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: chooseName(unvotedCafe) }));
+
+    expect(onPlaceChange).toHaveBeenCalledTimes(1);
+    expect(onPlaceChange).toHaveBeenCalledWith({
+      name: unvotedCafe.name,
+      address: unvotedCafe.address,
+    });
   });
 
   it('fills the latitude and longitude fields with the place chosen', async () => {
