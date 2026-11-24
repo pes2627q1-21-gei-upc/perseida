@@ -81,6 +81,7 @@ it('announces only the changed unread total on iOS, not the initial total', asyn
 
 it('announces only changes to the total in an Android polite live region', async () => {
   jest.replaceProperty(Platform, 'OS', 'android');
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
   const { rerender } = await render(tree());
   const initialBadges = screen.getAllByTestId('unread-badge');
   expect(initialBadges.every((badge) => badge.props.accessibilityLiveRegion !== 'polite')).toBe(
@@ -92,6 +93,7 @@ it('announces only changes to the total in an Android polite live region', async
   const liveBadges = badges.filter((badge) => badge.props.accessibilityLiveRegion === 'polite');
   expect(liveBadges).toHaveLength(1);
   expect(liveBadges[0]).toHaveProp('accessibilityLabel', '5 missatges sense llegir');
+  expect(announce).not.toHaveBeenCalled();
   expect(
     screen.getByRole('button', { name: /conversa amb laia, 2 missatges sense llegir/i }),
   ).toBeOnTheScreen();
@@ -108,6 +110,7 @@ it('announces a change to zero on iOS even though the visible badge disappears',
   await rerender(tree());
   expect(announce).toHaveBeenCalledTimes(1);
   expect(announce).toHaveBeenCalledWith('0 missatges sense llegir');
+  expect(screen.queryByText('0 missatges sense llegir')).toBeNull();
 });
 
 it('exposes a polite zero announcement on Android after the badge disappears', async () => {
@@ -119,6 +122,15 @@ it('exposes a polite zero announcement on Android after the badge disappears', a
     'accessibilityLiveRegion',
     'polite',
   );
+});
+
+it('does not expose a zero announcement on the initial Android result', async () => {
+  jest.replaceProperty(Platform, 'OS', 'android');
+  mockList.mockReturnValue({ ...list(1), data: [] });
+
+  await render(tree());
+
+  expect(screen.queryByText('0 missatges sense llegir')).toBeNull();
 });
 
 it('does not announce the first result after loading', async () => {
