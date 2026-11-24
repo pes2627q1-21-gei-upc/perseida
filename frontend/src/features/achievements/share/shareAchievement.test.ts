@@ -17,7 +17,9 @@ describe('shareAchievement (TG-59 #579)', () => {
     ['en', 'I unlocked "7 dies de ratxa" on Perseida!'],
   ])('opens the share menu with the text in %s', async (language, message) => {
     await i18n.changeLanguage(language);
-    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction });
+    const share = jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: Share.sharedAction, activityType: undefined });
 
     await shareAchievement('7 dies de ratxa', i18n.t);
 
@@ -26,13 +28,17 @@ describe('shareAchievement (TG-59 #579)', () => {
   });
 
   it('does nothing else once the content is shared', async () => {
-    jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction });
+    jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: Share.sharedAction, activityType: undefined });
 
     await expect(shareAchievement('Lluna plena', i18n.t)).resolves.toBeUndefined();
   });
 
   it('is not an error when the user closes the menu without sending (iOS and Android)', async () => {
-    jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.dismissedAction });
+    jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: Share.dismissedAction, activityType: undefined });
 
     await expect(shareAchievement('Lluna plena', i18n.t)).resolves.toBeUndefined();
   });

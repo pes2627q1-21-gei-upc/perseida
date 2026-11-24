@@ -52,6 +52,7 @@
     "progressDays_other": "{{current}}/{{count}} days",
     "retry": "Try again",
     "retryHint": "Load the achievements again",
+    "shareText": "I unlocked \"{{name}}\" on Perseida!",
     "streakStart": "Open the astronomy picture of the day to start your streak.",
     "title": "Your next achievements"
   },
@@ -172,6 +173,7 @@
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
     "TOO_MANY_CONNECTIONS": "You have too many connections open at once (on other devices or tabs). Close one and try again.",
     "SEND_UNCERTAIN": "We couldn't confirm the message was sent. Please try again.",
+    "SHARE_FAILED": "We couldn't open the share menu. Please try again.",
     "OUTING_TITLE_EMPTY": "Give the outing a title.",
     "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
     "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",

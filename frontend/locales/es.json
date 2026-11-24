@@ -52,6 +52,7 @@
     "progressDays_other": "{{current}}/{{count}} días",
     "retry": "Vuelve a intentarlo",
     "retryHint": "Vuelve a cargar los logros",
+    "shareText": "¡He desbloqueado \"{{name}}\" en Perseida!",
     "streakStart": "Abre la imagen astronómica del día para empezar tu racha.",
     "title": "Tus próximos logros"
   },
@@ -172,6 +173,7 @@
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
     "TOO_MANY_CONNECTIONS": "Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo.",
     "SEND_UNCERTAIN": "No se ha podido confirmar el envío. Vuelve a intentarlo.",
+    "SHARE_FAILED": "No se ha podido abrir el menú de compartir. Vuelve a intentarlo.",
     "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
     "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",

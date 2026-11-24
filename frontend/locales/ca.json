@@ -52,6 +52,7 @@
     "progressDays_other": "{{current}}/{{count}} dies",
     "retry": "Torna-ho a provar",
     "retryHint": "Torna a carregar les fites",
+    "shareText": "He desbloquejat \"{{name}}\" a Perseida!",
     "streakStart": "Obre la imatge astronòmica del dia per començar la teva ratxa.",
     "title": "Les teves properes fites"
   },
@@ -172,6 +173,7 @@
     "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
     "TOO_MANY_CONNECTIONS": "Tens massa connexions obertes alhora (en altres dispositius o pestanyes). Tanca'n alguna i torna-ho a provar.",
     "SEND_UNCERTAIN": "No s'ha pogut confirmar l'enviament. Torna-ho a provar.",
+    "SHARE_FAILED": "No s'ha pogut obrir el menú de compartir. Torna-ho a provar.",
     "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
     "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripció pot tenir com a màxim 2.000 caràcters.",
