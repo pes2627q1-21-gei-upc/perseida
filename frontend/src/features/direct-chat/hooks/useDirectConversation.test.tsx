@@ -126,6 +126,53 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     expect(mockMarkRead).not.toHaveBeenCalled();
   });
 
+  it('TG-65 criteria 9 and 11 does not mark read for an empty history page array', async () => {
+    const data = { pages: [], pageParams: [] };
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      data,
+      refetch: jest.fn().mockResolvedValue({ data, isError: false }),
+    });
+
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await act(async () => {});
+
+    expect(mockMarkRead).not.toHaveBeenCalled();
+  });
+
+  it('TG-65 criterion 11 marks an incoming live message read by its ID after history loads', async () => {
+    const latestHistoryMessage = { ...message, id: 'latest-history-message' };
+    const data = {
+      pages: [{ messages: [latestHistoryMessage], next_cursor: null }],
+      pageParams: [undefined],
+    };
+    const liveMessage = { ...message, id: 'incoming-live-message', text: 'Nou' };
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      data,
+      refetch: jest.fn().mockResolvedValue({ data, isError: false }),
+    });
+
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() =>
+      expect(mockMarkRead).toHaveBeenCalledWith({
+        conversationId: CONVERSATION,
+        lastMessageId: latestHistoryMessage.id,
+      }),
+    );
+
+    mockMarkRead.mockClear();
+    await act(async () => {
+      mockListener?.({ type: 'dm.message', payload: liveMessage });
+    });
+
+    expect(mockMarkRead).toHaveBeenCalledTimes(1);
+    expect(mockMarkRead).toHaveBeenCalledWith({
+      conversationId: CONVERSATION,
+      lastMessageId: liveMessage.id,
+    });
+  });
+
   it('uses the other participant name for messages loaded from history', async () => {
     mockHistory.mockReturnValue({
       ...mockHistory(),
