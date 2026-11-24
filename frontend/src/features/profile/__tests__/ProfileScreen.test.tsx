@@ -11,6 +11,13 @@ import { ProfileScreen } from '../components/ProfileScreen';
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
 
+// The achievement cards (TG-57) load their own data and have their own tests: here they are a
+// stand-in, so these tests only see the profile request.
+jest.mock('../../achievements', () => {
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { AchievementProgressSection: () => <Text>achievement-progress-section</Text> };
+});
+
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
@@ -280,7 +287,7 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(screen.queryByText('fr')).not.toBeOnTheScreen();
   });
 
-  it('renders gamification reserved slots (streak #57, achievements #59, followers #62)', async () => {
+  it('shows the achievement cards (TG-57) and the slots still reserved (achievements #59, followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
     await renderProfile();
@@ -289,12 +296,12 @@ describe('ProfileScreen (TG-385 #517)', () => {
       expect(screen.getByText('Àlex García')).toBeOnTheScreen();
     });
 
-    expect(screen.getByRole('header', { name: "Ratxa d'observació" })).toBeOnTheScreen();
+    expect(screen.getByText('achievement-progress-section')).toBeOnTheScreen();
+    expect(screen.queryByRole('header', { name: "Ratxa d'observació" })).not.toBeOnTheScreen();
     expect(screen.getByText(/fites i assoliments/i)).toBeOnTheScreen();
-    expect(screen.getByText(/^Completa el qüestionari diari/)).toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Seguidors' })).toBeOnTheScreen();
     // Same «coming soon» badge as the tabs that are not built yet (comingSoon.badge).
-    expect(screen.getAllByText('Pròximament')).toHaveLength(3);
+    expect(screen.getAllByText('Pròximament')).toHaveLength(2);
   });
 
   it('shows error card with retry button when API fails', async () => {

@@ -1,4 +1,66 @@
 {
+  "achievements": {
+    "category": {
+      "events": "Events",
+      "minigame": "Minigame",
+      "quiz": "Quiz",
+      "social": "Social",
+      "streaks": "Streaks"
+    },
+    "completed": "Congratulations! You have completed every achievement in this category.",
+    "empty": "There are no achievements in this category yet.",
+    "loading": "Loading achievements...",
+    "names": {
+      "ambaixador_del_cosmos": "Cosmos ambassador",
+      "astrofisic": "Astrophysicist",
+      "astronom_aprenent": "Apprentice astronomer",
+      "cacador_d_eclipsis": "Eclipse hunter",
+      "calendari_celeste": "Celestial calendar",
+      "cartograf_celeste": "Celestial cartographer",
+      "cel_clar": "Clear sky",
+      "cicle_lunar": "Lunar cycle",
+      "colleccionista_d_aurores": "Aurora collector",
+      "comandant": "Commander",
+      "cumul_estellar": "Star cluster",
+      "eclipsi_total": "Total eclipse",
+      "efemerides": "Ephemerides",
+      "estrella_fixa": "Fixed star",
+      "estrella_polar": "North Star",
+      "galaxia": "Galaxy",
+      "gran_mestre_estellar": "Grand stellar master",
+      "llancament": "Liftoff",
+      "llegenda_cosmica": "Cosmic legend",
+      "lluna_plena": "Full moon",
+      "missio_complerta": "Mission accomplished",
+      "orbita_compartida": "Shared orbit",
+      "orbita_setmanal": "Weekly orbit",
+      "perseida": "Perseid",
+      "postal_de_l_espai": "Postcard from space",
+      "primer_senyal": "First signal",
+      "primera_alineacio": "First alignment",
+      "primera_llum": "First light",
+      "record_galactic": "Galactic record",
+      "record_orbital": "Orbital record",
+      "repte_llencat": "Challenge sent",
+      "satellit": "Satellite",
+      "senyal_de_radio": "Radio signal",
+      "telescopi_nou": "New telescope"
+    },
+    "progress": "{{current}}/{{goal}}",
+    "progressA11y": "{{name}}, {{current}} of {{goal}}",
+    "progressDays_one": "{{current}}/{{count}} day",
+    "progressDays_other": "{{current}}/{{count}} days",
+    "retry": "Try again",
+    "retryHint": "Load the achievements again",
+    "streakStart": "Open the astronomy picture of the day to start your streak.",
+    "title": "Your next achievements"
+  },
+  "admin": {
+    "noAccess": {
+      "message": "Your account doesn't have permission to open the admin panel.",
+      "title": "No access"
+    }
+  },
   "apod": {
     "loadingLabel": "Loading the APOD",
     "mediaError": "The image or video couldn't be loaded.",
@@ -313,10 +375,6 @@
       "admin": "Administrator",
       "moderator": "Moderator",
       "user": "Stargazer"
-    },
-    "streak": {
-      "desc": "Complete the daily quiz to keep your celestial streak alive.",
-      "title": "Stargazing streak"
     },
     "title": "Your profile"
   },
