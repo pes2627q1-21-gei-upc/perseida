@@ -52,9 +52,13 @@ export function LocationField({ value, onChange, error }: Props) {
     value ? formatCoordinate(value.longitude, i18n.language) : '',
   );
   const [invalidCoordinates, setInvalidCoordinates] = useState(false);
-  // Each press shows the recommended places afresh (asking for the location again); null hides
-  // them. They are mounted only then: they ask for the location and the API (TG-352).
-  const [recommendRun, setRecommendRun] = useState<number | null>(null);
+  // Each press shows the recommended places afresh, around the place of the outing at that
+  // moment: the chosen place or else the centre of the map (TG-661). null hides them. They are
+  // mounted only then: they ask the API (TG-352).
+  const [recommend, setRecommend] = useState<{
+    run: number;
+    near: { latitude: number; longitude: number };
+  } | null>(null);
 
   // The fields show the chosen place, however it was chosen: the map, the device or typing.
   // Adjusted while rendering, when the value changes (not in an effect: that would be a second
@@ -90,7 +94,7 @@ export function LocationField({ value, onChange, error }: Props) {
 
   function choosePlace({ location }: MeetingPoint) {
     const place = { latitude: location.latitude, longitude: location.longitude };
-    setRecommendRun(null);
+    setRecommend(null);
     setStart({ ...place, zoom: PLACE_ZOOM });
     onChange(place);
   }
@@ -134,10 +138,17 @@ export function LocationField({ value, onChange, error }: Props) {
         />
         <QuietButton
           label={t('outings.picker.recommend')}
-          onPress={() => setRecommendRun((run) => (run ?? 0) + 1)}
+          onPress={() =>
+            setRecommend((current) => ({
+              run: (current?.run ?? 0) + 1,
+              near: value ?? { latitude: center.latitude, longitude: center.longitude },
+            }))
+          }
         />
       </View>
-      {recommendRun !== null && <RecommendedPlaces key={recommendRun} onChoose={choosePlace} />}
+      {recommend !== null && (
+        <RecommendedPlaces key={recommend.run} near={recommend.near} onChoose={choosePlace} />
+      )}
       <View style={[styles.buttons, { gap: spacing.sm }]}>
         <View style={styles.coordinate}>
           <TextField
