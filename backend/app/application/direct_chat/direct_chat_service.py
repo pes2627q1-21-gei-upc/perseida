@@ -237,16 +237,14 @@ class DirectChatService:
             ),
         )
 
-    async def mark_read(self, user_id: uuid.UUID, conversation_id: uuid.UUID) -> None:
-        """Mark the conversation as read by ``user_id`` up to now.
-
-        Raises:
-            NotFoundError: CONVERSATION_NOT_FOUND if it does not exist or
-                ``user_id`` is not a participant.
-            ExternalServiceError: if the database is unavailable.
-        """
+    async def mark_read_through(
+        self, user_id: uuid.UUID, conversation_id: uuid.UUID, message_id: uuid.UUID
+    ) -> None:
+        """Mark only the messages through the one the participant has loaded."""
         await self._participant_conversation(user_id, conversation_id)
-        await self._conversations.mark_read(conversation_id, user_id, self._now())
+        await self._conversations.mark_read_through(
+            conversation_id, user_id, message_id
+        )
 
     async def block_user(self, user_id: uuid.UUID, other_user_id: uuid.UUID) -> None:
         """Block ``other_user_id``: idempotent; the history is kept.

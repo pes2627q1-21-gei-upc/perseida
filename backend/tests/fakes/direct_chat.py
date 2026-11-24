@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from app.application.shared.errors import ExternalServiceError
+from app.domain.direct_chat.errors import CONVERSATION_NOT_FOUND
 from app.domain.direct_chat.models import (
     ConversationSummary,
     DirectConversation,
@@ -14,6 +15,7 @@ from app.domain.direct_chat.models import (
     DirectMessagePage,
     UserBlock,
 )
+from app.domain.shared.errors import NotFoundError
 from app.domain.shared.moderation import ModerationResult
 from tests.fakes.chat import ChatFakes
 
@@ -41,10 +43,25 @@ class InMemoryDirectConversationRepository:
     async def get(self, conversation_id: uuid.UUID) -> DirectConversation | None:
         return self.conversations.get(conversation_id)
 
-    async def mark_read(
-        self, conversation_id: uuid.UUID, user_id: uuid.UUID, at: datetime
+    async def mark_read_through(
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, message_id: uuid.UUID
     ) -> DirectConversation:
-        updated = self.conversations[conversation_id].mark_read(user_id, at)
+        assert self.message_source is not None
+        message = next(
+            (
+                m
+                for m in self.message_source.messages
+                if m.id == message_id and m.conversation_id == conversation_id
+            ),
+            None,
+        )
+        if message is None:
+            raise NotFoundError(
+                CONVERSATION_NOT_FOUND, "The conversation or message does not exist"
+            )
+        updated = self.conversations[conversation_id].mark_read(
+            user_id, message.sent_at
+        )
         self.conversations[conversation_id] = updated
         return updated
 

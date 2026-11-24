@@ -1,6 +1,6 @@
 import uuid
 from collections.abc import Collection
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import case, delete, exists, func, or_, select, text, true, update
 from sqlalchemy.dialects.postgresql import insert
@@ -86,23 +86,43 @@ class SqlDirectConversationRepository:
                 row = await session.get(DirectConversationRow, conversation_id)
         return None if row is None else _conversation(row)
 
-    async def mark_read(
-        self, conversation_id: uuid.UUID, user_id: uuid.UUID, at: datetime
+    async def mark_read_through(
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, message_id: uuid.UUID
     ) -> DirectConversation:
-        _aware(at)
-        # Atomic update prevents concurrent requests from moving a mark backwards.
+        message_time = (
+            select(col(DirectMessageRow.sent_at))
+            .where(
+                col(DirectMessageRow.id) == message_id,
+                col(DirectMessageRow.conversation_id) == conversation_id,
+            )
+            .scalar_subquery()
+        )
         a = col(DirectConversationRow.user_a_id) == user_id
         b = col(DirectConversationRow.user_b_id) == user_id
         statement = (
             update(DirectConversationRow)
-            .where(col(DirectConversationRow.id) == conversation_id, or_(a, b))
+            .where(
+                col(DirectConversationRow.id) == conversation_id,
+                or_(a, b),
+                message_time.is_not(None),
+            )
             .values(
                 user_a_read_at=case(
-                    (a, func.greatest(col(DirectConversationRow.user_a_read_at), at)),
+                    (
+                        a,
+                        func.greatest(
+                            col(DirectConversationRow.user_a_read_at), message_time
+                        ),
+                    ),
                     else_=col(DirectConversationRow.user_a_read_at),
                 ),
                 user_b_read_at=case(
-                    (b, func.greatest(col(DirectConversationRow.user_b_read_at), at)),
+                    (
+                        b,
+                        func.greatest(
+                            col(DirectConversationRow.user_b_read_at), message_time
+                        ),
+                    ),
                     else_=col(DirectConversationRow.user_b_read_at),
                 ),
             )
@@ -114,7 +134,7 @@ class SqlDirectConversationRepository:
                 await session.commit()
         if row is None:
             raise NotFoundError(
-                CONVERSATION_NOT_FOUND, "The conversation does not exist"
+                CONVERSATION_NOT_FOUND, "The conversation or message does not exist"
             )
         return _conversation(row)
 
@@ -238,12 +258,6 @@ class SqlDirectMessageRepository:
     async def add(
         self, message: DirectMessage, *, origin: str | None = None
     ) -> DirectMessage:
-        statement = (
-            insert(DirectMessageRow)
-            .values(**message.model_dump())
-            .on_conflict_do_nothing(index_elements=["sender_id", "client_message_id"])
-            .returning(DirectMessageRow)
-        )
         find = select(DirectMessageRow).where(
             col(DirectMessageRow.sender_id) == message.sender_id,
             col(DirectMessageRow.client_message_id) == message.client_message_id,
@@ -274,6 +288,26 @@ class SqlDirectMessageRepository:
                 )
                 if blocked:
                     raise ForbiddenError(USER_BLOCKED, "The conversation is blocked")
+                latest = await session.scalar(
+                    select(col(DirectMessageRow.sent_at))
+                    .where(
+                        col(DirectMessageRow.conversation_id) == message.conversation_id
+                    )
+                    .order_by(col(DirectMessageRow.sent_at).desc())
+                    .limit(1)
+                )
+                if latest is not None and message.sent_at <= latest:
+                    message = message.model_copy(
+                        update={"sent_at": latest + timedelta(microseconds=1)}
+                    )
+                statement = (
+                    insert(DirectMessageRow)
+                    .values(**message.model_dump())
+                    .on_conflict_do_nothing(
+                        index_elements=["sender_id", "client_message_id"]
+                    )
+                    .returning(DirectMessageRow)
+                )
                 row = await session.scalar(statement)
                 if row is None:
                     row = (await session.scalars(find)).one()
