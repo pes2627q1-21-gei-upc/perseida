@@ -4,6 +4,7 @@ import { AccessibilityInfo, ActivityIndicator, Platform, Text, View } from 'reac
 
 import { errorMessage } from '../../../shared/errors';
 import { useTheme } from '../../../shared/theme';
+import { GlassPanel } from '../../../shared/ui';
 import { useDeviceLocation } from '../../events/hooks/useDeviceLocation';
 import type { MeetingPoint } from '../../meeting-points/api/meetingPoints';
 import { MeetingPointRow } from '../../meeting-points/components/MeetingPointRow';
@@ -70,12 +71,14 @@ export function RecommendedPlaces({ onChoose }: Props) {
   }
   if (!points.isSuccess) {
     return (
-      <ActivityIndicator
-        color={colors.text.primary}
-        accessibilityLabel={t(
-          status === 'granted' ? 'meetingPoints.loading' : 'meetingPoints.location.locating',
-        )}
-      />
+      <GlassPanel>
+        <ActivityIndicator
+          color={colors.text.primary}
+          accessibilityLabel={t(
+            status === 'granted' ? 'meetingPoints.loading' : 'meetingPoints.location.locating',
+          )}
+        />
+      </GlassPanel>
     );
   }
   if (empty) {
