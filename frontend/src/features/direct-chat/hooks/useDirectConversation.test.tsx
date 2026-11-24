@@ -284,14 +284,23 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     await rerender({ id: OTHER });
     await waitFor(() => expect(resolvers).toHaveLength(2));
     await act(async () => {
-      resolvers[0]?.({ data, isError: false });
+      resolvers[0]?.({
+        data: { pages: [{ messages: [message] }], pageParams: [] },
+        isError: false,
+      });
     });
     expect(mockMarkRead).not.toHaveBeenCalledWith({
       conversationId: CONVERSATION,
       lastMessageId: message.id,
     });
     await act(async () => {
-      resolvers[1]?.({ data, isError: false });
+      resolvers[1]?.({
+        data: {
+          pages: [{ messages: [{ ...message, conversation_id: OTHER }] }],
+          pageParams: [],
+        },
+        isError: false,
+      });
     });
     expect(mockMarkRead).toHaveBeenCalledWith({
       conversationId: OTHER,
