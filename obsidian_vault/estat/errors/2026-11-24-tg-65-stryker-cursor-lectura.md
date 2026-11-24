@@ -4,7 +4,7 @@ tipus: error-testing
 estat: corregit
 data: 2026-11-24
 us: [TG-65]
-font: "CI runs 45449386085 i 45453950290; commit 0dba3327"
+font: "CI runs 45449386085, 45453950290 i 45475096219; commit 0dba3327"
 fase: ci-mutants
 capa: frontend
 regressio: "frontend/src/features/direct-chat/hooks/useDirectConversation.test.tsx::TG-65 criteria 9 and 11 does not mark read for an empty history page array; TG-65 criterion 11 marks an incoming live message read by its ID after history loads"
@@ -20,7 +20,7 @@ etiquetes: [error-testing, tg-65, frontend, mutation-testing]
 
 ## Símptoma
 
-El run `45449386085` va donar `58,33 %`, per sota del llindar del `70 %`.
+El run `45449386085` va donar `58,33 %`, per sota del llindar del `70 %`. Després del rebase de #163, la CI `45475096219` ha verificat el canvi sobre la base real i ha passat amb `83,33 %`.
 
 ## Causa
 
@@ -28,7 +28,7 @@ Els tests no exercitaven una llista de pàgines buida ni el camí que marca com 
 
 ## Correcció
 
-El commit `0dba3327` afegeix regressions per als dos casos. La CI del run `45453950290` passa amb `91,67 %`: 7 mutants morts, 4 timeouts, 1 supervivent i cap mutant sense cobertura o amb error. El supervivent `if (newestMessage) → if (true)` és equivalent: amb l'historial buit, l'accés a `.id` rebutja la promesa i el `.catch` evita enviar la petició de lectura. La verificació local va donar `83,33 %` (10 morts i 2 supervivents equivalents).
+El commit `0dba3327` afegeix regressions per als dos casos. La CI original `45453950290` va passar amb `91,67 %` (7 morts, 4 timeouts, 1 supervivent). La CI post-rebase `45475096219` passa amb `83,33 %` (10 morts, 2 supervivents, 0 timeout, 0 sense cobertura/error); el backend i Sonar també passen. Els dos supervivents són la retirada de l'optional chaining i el canvi `if (newestMessage) → if (true)` quan `pages=[]`. En ambdós casos no s'arriba a cridar `markRead`: la fallada d'accés es captura a la cadena de promeses. No s'ha exclòs ni canviat cap mutant. La verificació local també va donar `83,33 %` (10 morts i 2 supervivents).
 
 ## Test de regressió
 
