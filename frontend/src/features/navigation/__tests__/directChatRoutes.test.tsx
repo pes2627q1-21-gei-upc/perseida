@@ -114,3 +114,29 @@ describe('direct chat routes (TG-65)', () => {
     expect(mockReplace).toHaveBeenCalledWith('/chat/direct');
   });
 });
+
+describe('TG-65 criterion 5: route isolation across conversations', () => {
+  it('opens the matching participant when a different conversation is listed first', async () => {
+    mockList.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: [
+        {
+          conversation_id: 'other-conversation',
+          other_user_id: 'other-user',
+          other_display_name: 'Marta',
+          blocked_by_me: false,
+        },
+        {
+          conversation_id: 'c-1',
+          other_user_id: 'u-1',
+          other_display_name: 'Laia',
+          blocked_by_me: true,
+        },
+      ],
+    });
+    await render(<DirectConversationRoute />, { wrapper });
+    expect(screen.getByText('Laia true')).toBeOnTheScreen();
+    expect(screen.queryByText('Marta false')).toBeNull();
+  });
+});

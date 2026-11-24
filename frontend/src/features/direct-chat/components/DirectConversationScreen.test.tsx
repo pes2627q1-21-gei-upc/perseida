@@ -130,3 +130,51 @@ describe('DirectConversationScreen (TG-65 criteria 9, 12, 15, 16)', () => {
     expect(screen.getByText(/laia.*escrivint/i)).toBeOnTheScreen();
   });
 });
+
+describe('TG-65 direct conversation safety and recovery', () => {
+  it('hides the composer when history fails', async () => {
+    mockLive.mockReturnValue({
+      ...mockLive(),
+      error: new AppError({
+        kind: 'http',
+        code: 'DATABASE_UNAVAILABLE',
+        status: 503,
+        retryable: true,
+      }),
+    });
+    await renderScreen();
+    expect(screen.getByRole('alert')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Escriu un missatge')).toBeNull();
+  });
+
+  it('prevents sending while reconnecting and reports why', async () => {
+    mockLive.mockReturnValue({ ...mockLive(), status: 'reconnecting' });
+    await renderScreen();
+    await fireEvent.changeText(screen.getByLabelText('Escriu un missatge'), 'Hola');
+    expect(screen.getByRole('button', { name: /envia/i })).toBeDisabled();
+    expect(screen.getByText(/perdut.*connexi/i)).toBeOnTheScreen();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('offers reconnection when the live session is closed', async () => {
+    const reconnect = jest.fn();
+    mockLive.mockReturnValue({ ...mockLive(), status: 'closed', reconnect });
+    await renderScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /connecta/i }));
+    expect(reconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('announces a failed block and clears the failure when a retry succeeds', async () => {
+    mockBlock
+      .mockRejectedValueOnce(
+        new AppError({ kind: 'http', code: 'DATABASE_UNAVAILABLE', status: 503, retryable: true }),
+      )
+      .mockResolvedValueOnce(undefined);
+    await renderScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /bloqueja/i }));
+    expect(await screen.findByRole('alert')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /bloqueja/i }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(mockBlock).toHaveBeenCalledTimes(2);
+  });
+});

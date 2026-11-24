@@ -138,3 +138,47 @@ describe('ConversationsScreen (TG-65 criteria 10, 11, 15, 16)', () => {
     expect(mockOpened).not.toHaveBeenCalled();
   });
 });
+
+describe('TG-65 conversation inbox validation and recovery', () => {
+  it('keeps the action disabled for a whitespace-only ID', async () => {
+    await renderScreen();
+    await fireEvent.changeText(screen.getByLabelText(/identificador d'usuari/i), '   ');
+    expect(screen.getByRole('button', { name: /inicia conversa/i })).toBeDisabled();
+    expect(mockOpen).not.toHaveBeenCalled();
+  });
+
+  it('trims surrounding whitespace from the entered ID', async () => {
+    await renderScreen();
+    await fireEvent.changeText(screen.getByLabelText(/identificador d'usuari/i), `  ${OTHER}  `);
+    await fireEvent.press(screen.getByRole('button', { name: /inicia conversa/i }));
+    await waitFor(() => expect(mockOpen).toHaveBeenCalledWith(OTHER));
+  });
+
+  it('keeps previously loaded conversations visible on a refresh failure', async () => {
+    const error = new AppError({
+      kind: 'http',
+      code: 'DATABASE_UNAVAILABLE',
+      status: 503,
+      retryable: true,
+    });
+    mockList.mockReturnValue({ data: [overview], isPending: false, error, refetch: mockRefresh });
+    await renderScreen();
+    expect(screen.getByRole('button', { name: /conversa amb laia/i })).toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('clears an earlier opening error after the next attempt succeeds', async () => {
+    mockOpen
+      .mockRejectedValueOnce(
+        new AppError({ kind: 'http', code: 'USER_NOT_FOUND', status: 404, retryable: false }),
+      )
+      .mockResolvedValueOnce({ id: CONVERSATION });
+    await renderScreen();
+    await fireEvent.changeText(screen.getByLabelText(/identificador d'usuari/i), OTHER);
+    await fireEvent.press(screen.getByRole('button', { name: /inicia conversa/i }));
+    expect(await screen.findByRole('alert')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /inicia conversa/i }));
+    await waitFor(() => expect(mockOpened).toHaveBeenCalledWith(CONVERSATION));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});

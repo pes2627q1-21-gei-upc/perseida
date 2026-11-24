@@ -439,3 +439,20 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     expect(mockSend.mock.calls[0]?.[0]).toEqual(mockSend.mock.calls[1]?.[0]);
   });
 });
+
+describe('TG-65 criterion 5: malformed private events', () => {
+  it.each(['id', 'conversation_id', 'sender_id', 'text', 'sent_at'] as const)(
+    'ignores a dm.message whose %s is not a string',
+    async (field) => {
+      const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+      await act(async () => {
+        mockListener?.({
+          type: 'dm.message',
+          payload: { ...message, [field]: null },
+        });
+      });
+      expect(result.current.items).toEqual([]);
+      expect(result.current.lastIncoming).toBeUndefined();
+    },
+  );
+});

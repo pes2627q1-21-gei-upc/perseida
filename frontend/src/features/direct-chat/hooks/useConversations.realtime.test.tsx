@@ -97,3 +97,22 @@ describe('TG-65 criterion 11: live conversation list', () => {
     await waitFor(() => expect(result.current.data).toEqual([row(B, 5), row(A, 1)]));
   });
 });
+
+describe('TG-65 criterion 11: ignore unrelated realtime events', () => {
+  it('does not invalidate or refetch the conversation list when someone is typing', async () => {
+    const spy = jest.spyOn(client, 'invalidateQueries');
+    const { result } = await renderHook(() => useConversations(), { wrapper });
+    await waitFor(() => expect(result.current.data).toEqual([row(A, 1), row(B, 2)]));
+    await waitFor(() => expect(mockListener).toEqual(expect.any(Function)));
+    spy.mockClear();
+    jest.mocked(listConversations).mockClear();
+    await act(async () =>
+      mockListener?.({
+        type: 'dm.typing',
+        payload: { conversation_id: A, is_typing: true },
+      }),
+    );
+    expect(spy).not.toHaveBeenCalled();
+    expect(listConversations).not.toHaveBeenCalled();
+  });
+});
