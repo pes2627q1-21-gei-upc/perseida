@@ -100,7 +100,13 @@ export function useDirectConversation(conversationId: string, otherName?: string
       .then((result) => {
         if (cancelled || result.isError || !result.data) return;
         historyReady.current = true;
-        markReadRef.current(conversationId);
+        const newestMessage = result.data.pages[0]?.messages[0];
+        if (newestMessage) {
+          markReadRef.current({
+            conversationId,
+            lastMessageId: newestMessage.id,
+          });
+        }
       })
       .catch(() => {
         // The query exposes its error and leaves unread messages intact.
@@ -126,7 +132,12 @@ export function useDirectConversation(conversationId: string, otherName?: string
       setArrived((current) =>
         current.some((item) => item.id === message.id) ? current : [...current, message],
       );
-      if (historyReady.current) markReadRef.current(conversationId);
+      if (historyReady.current) {
+        markReadRef.current({
+          conversationId,
+          lastMessageId: message.id,
+        });
+      }
     });
   }, [conversationId, socketStatus, subscribePrivate, queryClient, myUserId, eventScope]);
 

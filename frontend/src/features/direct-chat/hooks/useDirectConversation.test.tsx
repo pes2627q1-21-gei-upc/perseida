@@ -155,12 +155,12 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       );
     mockHistory.mockReturnValue({ ...mockHistory(), refetch });
     await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-      await waitFor(() =>
-        expect(mockMarkRead).toHaveBeenCalledWith({
-          conversationId: CONVERSATION,
-          lastMessageId: message.id,
-        }),
-      );
+    await waitFor(() =>
+      expect(mockMarkRead).toHaveBeenCalledWith({
+        conversationId: CONVERSATION,
+        lastMessageId: message.id,
+      }),
+    );
     mockMarkRead.mockClear();
     await act(async () => {
       appStateListeners.forEach((listener) => listener('background'));

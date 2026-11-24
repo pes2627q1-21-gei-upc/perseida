@@ -53,11 +53,15 @@ export async function fetchMessages(
   });
 }
 
-export async function markRead(conversationId: string): Promise<void> {
+export async function markRead(input: {
+  conversationId: string;
+  lastMessageId: string;
+}): Promise<void> {
   await withSession(async (headers) => {
     await api.POST('/api/direct-conversations/{conversation_id}/read', {
       headers,
-      params: { path: { conversation_id: conversationId } },
+      params: { path: { conversation_id: input.conversationId } },
+      body: { last_message_id: input.lastMessageId },
     });
   });
 }
