@@ -104,6 +104,28 @@ afterEach(() => {
 });
 
 describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
+  it('marks read only through the newest message returned by history', async () => {
+    const data = { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] };
+    mockHistory.mockReturnValue({
+      ...mockHistory(),
+      data,
+      refetch: jest.fn().mockResolvedValue({ data, isError: false }),
+    });
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() =>
+      expect(mockMarkRead).toHaveBeenCalledWith({
+        conversationId: CONVERSATION,
+        lastMessageId: message.id,
+      }),
+    );
+  });
+
+  it('does not mark read when history is empty', async () => {
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await act(async () => {});
+    expect(mockMarkRead).not.toHaveBeenCalled();
+  });
+
   it('uses the other participant name for messages loaded from history', async () => {
     mockHistory.mockReturnValue({
       ...mockHistory(),
@@ -122,7 +144,7 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
 
   it('does not mark messages read in background and reloads before marking on return', async () => {
     let finish!: (result: unknown) => void;
-    const data = { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] };
+    const data = { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] };
     const refetch = jest
       .fn()
       .mockResolvedValueOnce({ data, isError: false })
@@ -133,7 +155,12 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
       );
     mockHistory.mockReturnValue({ ...mockHistory(), refetch });
     await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+      await waitFor(() =>
+        expect(mockMarkRead).toHaveBeenCalledWith({
+          conversationId: CONVERSATION,
+          lastMessageId: message.id,
+        }),
+      );
     mockMarkRead.mockClear();
     await act(async () => {
       appStateListeners.forEach((listener) => listener('background'));
@@ -150,7 +177,12 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     await act(async () => {
       finish({ data, isError: false });
     });
-    await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+    await waitFor(() =>
+      expect(mockMarkRead).toHaveBeenCalledWith({
+        conversationId: CONVERSATION,
+        lastMessageId: message.id,
+      }),
+    );
   });
   it('does not mark read when a history request completes after focus was lost', async () => {
     let finish!: (result: unknown) => void;
@@ -172,6 +204,7 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
   });
 
   it('does not mark the old conversation read when its history completes after switching', async () => {
+    const data = { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] };
     const resolvers: ((result: unknown) => void)[] = [];
     const refetch = jest.fn(
       () =>
@@ -188,13 +221,19 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     await rerender({ id: OTHER });
     await waitFor(() => expect(resolvers).toHaveLength(2));
     await act(async () => {
-      resolvers[0]?.({ data: { pages: [], pageParams: [] }, isError: false });
+      resolvers[0]?.({ data, isError: false });
     });
-    expect(mockMarkRead).not.toHaveBeenCalledWith(CONVERSATION);
+    expect(mockMarkRead).not.toHaveBeenCalledWith({
+      conversationId: CONVERSATION,
+      lastMessageId: message.id,
+    });
     await act(async () => {
-      resolvers[1]?.({ data: { pages: [], pageParams: [] }, isError: false });
+      resolvers[1]?.({ data, isError: false });
     });
-    expect(mockMarkRead).toHaveBeenCalledWith(OTHER);
+    expect(mockMarkRead).toHaveBeenCalledWith({
+      conversationId: OTHER,
+      lastMessageId: message.id,
+    });
   });
 
   it('does not mark a background conversation read, including when a message arrives', async () => {
@@ -246,11 +285,16 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     expect(mockMarkRead).not.toHaveBeenCalled();
     await act(async () => {
       finish({
-        data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
+        data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
         isError: false,
       });
     });
-    await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+    await waitFor(() =>
+      expect(mockMarkRead).toHaveBeenCalledWith({
+        conversationId: CONVERSATION,
+        lastMessageId: message.id,
+      }),
+    );
   });
   it('exposes persisted history and marks the open conversation as read', async () => {
     mockHistory.mockReturnValue({
@@ -273,7 +317,12 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
         message: expect.objectContaining({ id: message.id, text: 'Hola' }),
       }),
     );
-    await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(CONVERSATION));
+    await waitFor(() =>
+      expect(mockMarkRead).toHaveBeenCalledWith({
+        conversationId: CONVERSATION,
+        lastMessageId: message.id,
+      }),
+    );
   });
 
   it('signals only new incoming websocket messages, not history, own events or duplicates', async () => {

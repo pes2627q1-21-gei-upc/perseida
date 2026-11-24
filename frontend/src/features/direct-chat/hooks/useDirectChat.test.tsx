@@ -107,10 +107,16 @@ describe('direct-chat queries (TG-65 criteria 9–11)', () => {
     jest.mocked(markRead).mockResolvedValue(undefined);
     const { result } = await renderHook(() => useMarkRead(), { wrapper });
     await act(async () => {
-      await result.current.mutateAsync(CONVERSATION);
+      await result.current.mutateAsync({
+        conversationId: CONVERSATION,
+        lastMessageId: 'message-1',
+      });
     });
     expect(markRead).toHaveBeenCalledTimes(1);
-    expect(jest.mocked(markRead).mock.calls[0]?.[0]).toBe(CONVERSATION);
+    expect(jest.mocked(markRead).mock.calls[0]?.[0]).toEqual({
+      conversationId: CONVERSATION,
+      lastMessageId: 'message-1',
+    });
     expect(client.getQueryState(directChatKeys.conversations)?.isInvalidated).toBe(true);
   });
 
@@ -125,7 +131,12 @@ describe('direct-chat queries (TG-65 criteria 9–11)', () => {
     jest.mocked(markRead).mockRejectedValue(error);
     const { result } = await renderHook(() => useMarkRead(), { wrapper });
     await act(async () => {
-      await expect(result.current.mutateAsync(CONVERSATION)).rejects.toBe(error);
+      await expect(
+        result.current.mutateAsync({
+          conversationId: CONVERSATION,
+          lastMessageId: 'message-1',
+        }),
+      ).rejects.toBe(error);
     });
     expect(client.getQueryState(directChatKeys.conversations)?.isInvalidated).toBe(false);
   });

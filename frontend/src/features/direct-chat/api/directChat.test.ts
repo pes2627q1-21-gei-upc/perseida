@@ -150,8 +150,14 @@ describe('direct chat API (TG-65)', () => {
     });
   });
 
+  it('sends the latest loaded message ID when marking a conversation read', async () => {
+    const calls = mockFetch(() => new Response(null, { status: 204 }));
+    await markRead({ conversationId: CONVERSATION, lastMessageId: message.id });
+    expect(calls[0]?.url.pathname).toBe(`/api/direct-conversations/${CONVERSATION}/read`);
+    expect(JSON.parse(calls[0]?.body ?? '')).toEqual({ last_message_id: message.id });
+  });
+
   it.each([
-    ['POST', `/api/direct-conversations/${CONVERSATION}/read`, () => markRead(CONVERSATION)],
     ['PUT', `/api/users/${OTHER}/block`, () => blockUser(OTHER)],
     ['DELETE', `/api/users/${OTHER}/block`, () => unblockUser(OTHER)],
   ] as const)('accepts a bodyless 204 for %s %s', async (method, path, request) => {
