@@ -16,26 +16,36 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 afterEach(() => client.clear());
-const error = (retryable: boolean) => new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable });
+const error = (retryable: boolean) =>
+  new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable });
 
 describe('TG-65 criteria 9 and 14: history retry boundary', () => {
   it('retries a transient failure once and can recover', async () => {
-    jest.mocked(fetchMessages).mockRejectedValueOnce(error(true)).mockResolvedValue({messages: [], next_cursor: null});
-    const { result, unmount } = await renderHook(() => useDirectMessages(CONVERSATION), { wrapper });
+    jest
+      .mocked(fetchMessages)
+      .mockRejectedValueOnce(error(true))
+      .mockResolvedValue({ messages: [], next_cursor: null });
+    const { result, unmount } = await renderHook(() => useDirectMessages(CONVERSATION), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(fetchMessages).toHaveBeenCalledTimes(2);
     await unmount();
   });
   it('stops after one retry when a transient failure persists', async () => {
     jest.mocked(fetchMessages).mockRejectedValue(error(true));
-    const { result, unmount } = await renderHook(() => useDirectMessages(CONVERSATION), { wrapper });
+    const { result, unmount } = await renderHook(() => useDirectMessages(CONVERSATION), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(fetchMessages).toHaveBeenCalledTimes(2);
     await unmount();
   });
   it('never retries a permanent failure', async () => {
     jest.mocked(fetchMessages).mockRejectedValue(error(false));
-    const { result, unmount } = await renderHook(() => useDirectMessages(CONVERSATION), { wrapper });
+    const { result, unmount } = await renderHook(() => useDirectMessages(CONVERSATION), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(fetchMessages).toHaveBeenCalledTimes(1);
     await unmount();
