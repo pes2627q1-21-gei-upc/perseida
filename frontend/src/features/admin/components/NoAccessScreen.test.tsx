@@ -1,0 +1,44 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { NoAccessScreen } from './NoAccessScreen';
+
+// Texts in Catalan, the language of the tests (jest.setup.js).
+const TEXT = {
+  title: 'Sense accés',
+  message: "El teu compte no té permís per entrar al panell d'administració.",
+  logout: 'Tanca la sessió',
+} as const;
+
+jest.mock('expo-router', () => ({ useRouter: () => ({ replace: jest.fn() }) }));
+
+const SAFE_AREA = {
+  frame: { x: 0, y: 0, width: 1280, height: 800 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
+
+function renderScreen() {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <SafeAreaProvider initialMetrics={SAFE_AREA}>
+        <NoAccessScreen />
+      </SafeAreaProvider>
+    </QueryClientProvider>,
+  );
+}
+
+describe('NoAccessScreen (TG-77 criteri 3)', () => {
+  it('tells the person, with a heading, that this account cannot use the panel', async () => {
+    await renderScreen();
+
+    expect(screen.getByRole('header', { name: TEXT.title })).toBeOnTheScreen();
+    expect(screen.getByText(TEXT.message)).toBeOnTheScreen();
+  });
+
+  it('offers to sign out, so the person can enter with another account', async () => {
+    await renderScreen();
+
+    expect(screen.getByRole('button', { name: TEXT.logout })).toBeOnTheScreen();
+  });
+});
