@@ -21,7 +21,7 @@ Reprendre la feina de TG-65 sense repetir canvis ja fets, resoldre el llindar de
 - #164: rebase `--onto` sobre #163 `bdf84e80`, preservant cinc commits de codi/proves i dos de documentació; publicat amb lease sobre el head original `4f1595b2`. Nou head del rebase `7c24a66e`; la nota de sessió es va publicar a `dc18cc58`. La CI `45475788186` passa sobre aquest head: 198 suites/2504 tests frontend, Stryker 88,24 % i Sonar Quality Gate verd. Les notes d'error publicades són [[2026-11-24-tg-65-client-no-enviava-cursor-lectura]], [[2026-11-24-tg-65-expectativa-obsoleta-historial-buit]], [[2026-11-24-tg-65-fixture-historial-desfasada-despres-de-rebase]], [[2026-11-24-tg-65-stryker-cursor-lectura]] i [[2026-11-24-tg-65-stryker-integra-xat]].
 - La pila nativa #165 conserva l'ordre complet `#148 → #149 → #150 → #151 → #153 → #158 → #160 → #162 → #154 → #163 → #164`. Totes les PR continuen drafts; no s'ha fusionat res ni s'han canviat estats a Taiga.
 - Després dels rebases passen localment: #163, 18 suites/165 tests frontend, typecheck, ESLint i Prettier; #164, 18 suites/167 tests, typecheck, ESLint, Prettier i `git diff --check`. Al backend de #163 passen 59 tests; 124 proves d'integració s'han omès perquè aquest entorn no defineix `POSTGRES_HOST` ni Redis.
-- La CI `45475096219` de #163 i la CI substitutiva `45475788186` de #164 passen. El run intermedi `45475332864` es va cancel·lar en publicar la nota de sessió. S'ha actualitzat localment la nota `stryker-cursor-lectura` amb els dos supervivents i el resultat post-rebase de #163; cal publicar aquesta correcció i confirmar els checks del nou head.
+- La CI `45475096219` de #163 i la CI substitutiva `45475788186` de #164 passen. El run intermedi `45475332864` es va cancel·lar en publicar la nota de sessió. La nota `stryker-cursor-lectura` s'ha actualitzat i publicat amb els dos supervivents i el resultat post-rebase de #163; els checks actuals de GitHub són la font autoritativa per al cap més recent.
 
 ## Decisions preses
 
@@ -31,12 +31,12 @@ Reprendre la feina de TG-65 sense repetir canvis ja fets, resoldre el llindar de
 
 ## Canvis al vault
 
-- Actualitzada i publicada la nota d'incidència de Stryker de #154; les cinc notes relacionades amb #163/#164 són publicades, amb una correcció nova de la nota de Stryker de #163 pendent d'incloure.
+- Actualitzada i publicada la nota d'incidència de Stryker de #154; publicades les cinc notes d'error de #163/#164 amb l'evidència post-rebase de #163.
 - Aquesta nota de sessió.
 
 ## Pendent / següents passos
 
-- [ ] Publicar la correcció de la nota Stryker de #163, verificar la CI del head documental resultant i reflectir l'evidència final a les descripcions.
+- [ ] Verificar els checks del cap resultant després de les actualitzacions documentals i reflectir l'evidència final a les descripcions.
 - [ ] Mantenir les PR com a drafts fins a revisió humana; no tancar Taiga ni fusionar.
 
 ## Verificat / no verificat
