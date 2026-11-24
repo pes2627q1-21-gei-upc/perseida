@@ -10,6 +10,8 @@ import { authErrorMessage } from '../strings';
 import i18n from '../../../shared/i18n';
 import { AppError, networkError } from '../../../shared/errors';
 import * as googleSignInModule from '../api/googleSignIn';
+import * as currentUserModule from '../api/getCurrentUser';
+import * as refreshTokenModule from '../api/refreshToken';
 import * as tokenStorage from '../tokenStorage';
 import LoginScreen from '../../../app/login';
 
@@ -204,6 +206,130 @@ describe('Login screen', () => {
     expect(googleSignInModule.signInWithGoogle).toHaveBeenCalledWith('id-token-valid');
     expect(saveSpy).toHaveBeenCalledWith({ accessToken: 'acc-1', refreshToken: 'ref-1' });
     expect(mockReplace).toHaveBeenCalledWith('/(app)');
+  });
+
+  describe('on the web, where the panel lives (TG-77 criteri 2)', () => {
+    const signInOk = async () => {
+      jest.spyOn(googleSignInModule, 'signInWithGoogle').mockResolvedValueOnce({
+        access_token: 'acc-1',
+        refresh_token: 'ref-1',
+        token_type: 'bearer' as const,
+        expires_in: 900,
+      });
+      jest.spyOn(tokenStorage, 'saveTokens').mockResolvedValueOnce();
+      let capturedOptions: googleAuthHook.UseGoogleAuthOptions | undefined;
+      jest.spyOn(googleAuthHook, 'useGoogleAuth').mockImplementation((opts) => {
+        capturedOptions = opts;
+        return {
+          signIn: jest.fn(async () => {
+            await capturedOptions?.onSuccess?.('id-token-valid');
+            return { type: 'success' as const, idToken: 'id-token-valid' };
+          }),
+          isAuthenticating: false,
+        };
+      });
+      await renderScreen();
+      await fireEvent.press(screen.getByRole('button', { name: TEXT.continueWithGoogle }));
+    };
+
+    const existingSession = async () => {
+      jest.spyOn(tokenStorage, 'getTokens').mockResolvedValueOnce({
+        accessToken: 'existing-acc',
+        refreshToken: 'existing-ref',
+      });
+      await renderScreen();
+    };
+
+    beforeEach(() => {
+      jest.replaceProperty(Platform, 'OS', 'web');
+    });
+
+    it.each(['admin', 'moderator'] as const)(
+      'takes a signed-in %s to the panel, not to the mobile app',
+      async (role) => {
+        jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role } as never);
+
+        await signInOk();
+
+        expect(mockReplace).toHaveBeenCalledWith('/panel');
+        expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
+      },
+    );
+
+    it('takes a signed-in plain user to the mobile app', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role: 'user' } as never);
+
+      await signInOk();
+
+      expect(mockReplace).toHaveBeenCalledWith('/(app)');
+      expect(mockReplace).not.toHaveBeenCalledWith('/panel');
+    });
+
+    it('takes a person whose profile cannot be read to the mobile app', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockRejectedValue(new Error('offline'));
+
+      await signInOk();
+
+      expect(mockReplace).toHaveBeenCalledWith('/(app)');
+    });
+
+    const expiredAccessToken = () =>
+      new AppError({ kind: 'http', code: 'INVALID_SESSION', status: 401, retryable: false });
+
+    it('renews the session and takes an admin with an expired access token to the panel', async () => {
+      const profile = jest
+        .spyOn(currentUserModule, 'getCurrentUser')
+        .mockRejectedValueOnce(expiredAccessToken())
+        .mockResolvedValueOnce({ role: 'admin' } as never);
+      const refresh = jest
+        .spyOn(refreshTokenModule, 'refreshSession')
+        .mockResolvedValue({ access_token: 'acc-2' } as never);
+
+      await existingSession();
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/panel'));
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(profile).toHaveBeenCalledTimes(2);
+      expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
+    });
+
+    it('takes a person whose session cannot be renewed to the mobile app', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockRejectedValue(expiredAccessToken());
+      jest.spyOn(refreshTokenModule, 'refreshSession').mockResolvedValue(null);
+
+      await existingSession();
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(app)'));
+      expect(mockReplace).not.toHaveBeenCalledWith('/panel');
+    });
+
+    it('does not renew the session when the profile is read at the first attempt', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role: 'admin' } as never);
+      const refresh = jest.spyOn(refreshTokenModule, 'refreshSession');
+
+      await existingSession();
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/panel'));
+      expect(refresh).not.toHaveBeenCalled();
+    });
+
+    it('takes an admin who already has a session to the panel', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role: 'admin' } as never);
+
+      await existingSession();
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/panel'));
+      expect(mockReplace).not.toHaveBeenCalledWith('/(app)');
+    });
+
+    it('takes a plain user who already has a session to the mobile app', async () => {
+      jest.spyOn(currentUserModule, 'getCurrentUser').mockResolvedValue({ role: 'user' } as never);
+
+      await existingSession();
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(app)'));
+      expect(mockReplace).not.toHaveBeenCalledWith('/panel');
+    });
   });
 
   it('TG-43 Criteri 5: handles cancellation from useGoogleAuth without error notice', async () => {

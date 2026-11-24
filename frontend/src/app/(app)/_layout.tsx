@@ -1,12 +1,10 @@
 import { BlurView } from 'expo-blur';
-import { Tabs, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Tabs, useSegments } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { refreshSession } from '../../features/auth/api/refreshToken';
-import { getTokens } from '../../features/auth/tokenStorage';
+import { useSessionGuard } from '../../features/auth/hooks/useSessionGuard';
 import {
   HIDDEN_NESTED_ROUTES,
   HIDDEN_ROUTES,
@@ -15,8 +13,7 @@ import {
 import { useTheme } from '../../shared/theme';
 import { useReduceTransparency } from '../../shared/ui';
 
-/** Periodically renew tokens before the 15-minute access token expires (TG-43 #233). */
-export const SESSION_REFRESH_INTERVAL_MS = 14 * 60 * 1000;
+export { SESSION_REFRESH_INTERVAL_MS } from '../../features/auth/hooks/useSessionGuard';
 
 // Floating glass bar over the scene: purely visual, left out of mutation testing on purpose
 // (convencions/testing.md, «Mutation testing»). Screens keep clear of it with useTabBarInset.
@@ -41,7 +38,6 @@ function accessibleName(title: string, short: string | undefined): string {
 }
 
 export default function AppLayout() {
-  const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
   const reduceTransparency = useReduceTransparency();
@@ -52,66 +48,7 @@ export default function AppLayout() {
     segments[1] === 'chat' &&
     (segments[2] === '[eventId]' ||
       (segments[2] === 'direct' && segments[3] === '[conversationId]'));
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function checkSession() {
-      try {
-        const tokens = await getTokens();
-        if (!mounted) return;
-        if (!tokens) {
-          router.replace('/login');
-          return;
-        }
-
-        // Renew session on startup (TG-43 #233)
-        // If refresh token is expired or revoked (401), clearSession() clears local tokens
-        await refreshSession();
-        if (!mounted) return;
-
-        const currentTokens = await getTokens();
-        if (!mounted) return;
-        if (!currentTokens) {
-          router.replace('/login');
-        } else {
-          setIsReady(true);
-        }
-      } catch {
-        if (mounted) {
-          router.replace('/login');
-        }
-      }
-    }
-
-    void checkSession();
-
-    async function renewSession() {
-      try {
-        const tokens = await getTokens();
-        if (!mounted || !tokens) return;
-        const renewed = await refreshSession();
-        if (!mounted || renewed) return;
-        const currentTokens = await getTokens();
-        if (!mounted) return;
-        if (!currentTokens) {
-          router.replace('/login');
-        }
-      } catch {
-        // A transient failure must not invalidate the session; retry at the next interval.
-      }
-    }
-
-    const interval = setInterval(() => {
-      void renewSession();
-    }, SESSION_REFRESH_INTERVAL_MS);
-
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const isReady = useSessionGuard();
 
   if (!isReady) {
     return null;
