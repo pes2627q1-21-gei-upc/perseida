@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
 import { type ReactElement, useState } from 'react';
-import { AccessibilityInfo, AppState, type AppStateStatus, Platform } from 'react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
@@ -37,12 +37,10 @@ jest.mock('./LocationMap', () => ({
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
-  getForegroundPermissionsAsync: jest.fn(),
 }));
 
 const permission = jest.mocked(Location.requestForegroundPermissionsAsync);
 const position = jest.mocked(Location.getCurrentPositionAsync);
-const currentPermission = jest.mocked(Location.getForegroundPermissionsAsync);
 
 afterEach(() => jest.clearAllMocks());
 
@@ -295,11 +293,14 @@ describe('LocationField', () => {
   });
 });
 
-// TG-352 criterion 7: creating or editing an outing, the watch party places near the person,
-// and choosing one makes its coordinates the place of the outing.
-describe('LocationField recommended places (TG-352, criterion 7)', () => {
-  /** Where the person is: synthetic coordinates in Barcelona. */
-  const DEVICE = { latitude: 41.4036, longitude: 2.1744 };
+// TG-352 criterion 7, changed by TG-661: creating or editing an outing, the watch party places
+// near the place of the outing (the chosen place, or else the centre of the map), and choosing
+// one makes its coordinates the place of the outing. The device location plays no part.
+describe('LocationField recommended places (TG-352, criterion 7; TG-661)', () => {
+  /** The place the outing already has: synthetic coordinates in Barcelona. */
+  const CHOSEN = { latitude: 41.4036, longitude: 2.1744 };
+  /** Where the reticle of the map is: synthetic coordinates elsewhere in Barcelona. */
+  const CENTRE = { latitude: 41.39, longitude: 2.17, zoom: 14 };
   const SAFE_AREA = {
     frame: { x: 0, y: 0, width: 390, height: 844 },
     insets: { top: 0, left: 0, right: 0, bottom: 0 },
@@ -348,11 +349,6 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
       .map((url) => url.searchParams);
   }
 
-  function grantAt(latitude: number, longitude: number) {
-    permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
-    position.mockResolvedValue({ coords: { latitude, longitude } } as Location.LocationObject);
-  }
-
   /** The providers the form has in the app: the queries and the safe areas. */
   function withProviders(element: ReactElement) {
     return (
@@ -362,9 +358,14 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     );
   }
 
-  async function renderField(onChange = jest.fn()) {
-    await render(withProviders(<LocationField value={null} onChange={onChange} />));
+  async function renderField(onChange = jest.fn(), value: typeof CHOSEN | null = null) {
+    await render(withProviders(<LocationField value={value} onChange={onChange} />));
     return onChange;
+  }
+
+  /** The person moves the map until the reticle is on `camera`. */
+  async function moveMapTo(camera: typeof CENTRE) {
+    await act(async () => mockMapProps.onCameraChange(camera));
   }
 
   beforeEach(async () => {
@@ -389,13 +390,11 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
 
     expect(recommend()).not.toBe('outings.picker.recommend');
     expect(screen.getByRole('button', { name: recommend() })).toBeTruthy();
-    expect(permission).not.toHaveBeenCalled();
     expect(pointRequests()).toEqual([]);
   });
 
-  it('asks for the location and shows the first five watch party places around the person', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
-    await renderField();
+  it('shows the first five watch party places around the chosen place', async () => {
+    await renderField(jest.fn(), CHOSEN);
 
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
@@ -403,17 +402,60 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
       expect(await screen.findByRole('button', { name: chooseName(point) })).toBeTruthy();
     }
     expect(screen.queryByText(sixPoints[5].name)).toBeNull();
-    expect(permission).toHaveBeenCalledTimes(1);
     expect(pointRequests()).toHaveLength(1);
     const [search] = pointRequests();
     expect(search.get('profile')).toBe('watch_party');
-    expect(Number(search.get('lat'))).toBe(DEVICE.latitude);
-    expect(Number(search.get('lon'))).toBe(DEVICE.longitude);
+    expect(Number(search.get('lat'))).toBe(CHOSEN.latitude);
+    expect(Number(search.get('lon'))).toBe(CHOSEN.longitude);
   });
 
-  it('does not choose the location of the person by itself', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
-    const onChange = await renderField();
+  it('searches around the centre of the map when no place is chosen yet', async () => {
+    await renderField();
+    await moveMapTo(CENTRE);
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    expect(await screen.findByRole('button', { name: chooseName(spotwiseLibrary) })).toBeTruthy();
+    const [search] = pointRequests();
+    expect(Number(search.get('lat'))).toBe(CENTRE.latitude);
+    expect(Number(search.get('lon'))).toBe(CENTRE.longitude);
+  });
+
+  it('prefers the chosen place to the centre of the map', async () => {
+    await renderField(jest.fn(), CHOSEN);
+    await moveMapTo(CENTRE);
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
+    const [search] = pointRequests();
+    expect(Number(search.get('lat'))).toBe(CHOSEN.latitude);
+    expect(Number(search.get('lon'))).toBe(CHOSEN.longitude);
+  });
+
+  it('does not ask for the location of the device', async () => {
+    await renderField(jest.fn(), CHOSEN);
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+    await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
+
+    expect(permission).not.toHaveBeenCalled();
+    expect(position).not.toHaveBeenCalled();
+  });
+
+  it('keeps the places of the search when the map is moved afterwards', async () => {
+    await renderField(jest.fn(), CHOSEN);
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+    await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
+
+    await moveMapTo(CENTRE);
+
+    expect(screen.getByRole('button', { name: chooseName(spotwiseLibrary) })).toBeTruthy();
+    expect(pointRequests()).toHaveLength(1);
+  });
+
+  it('does not choose a place by itself', async () => {
+    const onChange = await renderField(jest.fn(), CHOSEN);
 
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
     await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
@@ -422,8 +464,8 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
   });
 
   it('chooses only the coordinates of the place and moves the map there', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
     const onChange = await renderField();
+    await moveMapTo(CENTRE);
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
     await fireEvent.press(await screen.findByRole('button', { name: chooseName(unvotedCafe) }));
@@ -438,12 +480,12 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
   });
 
   it('fills the latitude and longitude fields with the place chosen', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
     function Controlled() {
       const [value, setValue] = useState<{ latitude: number; longitude: number } | null>(null);
       return <LocationField value={value} onChange={setValue} />;
     }
     await render(withProviders(<Controlled />));
+    await moveMapTo(CENTRE);
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
     await fireEvent.press(await screen.findByRole('button', { name: chooseName(otherSpace) }));
@@ -457,7 +499,6 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
   });
 
   it('replaces the place the outing already has when editing it', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
     const existing = { latitude: 42.05, longitude: 0.73 };
     const onChange = jest.fn();
     function Controlled() {
@@ -480,6 +521,10 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: chooseName(unvotedCafe) }));
 
+    // The search was around the place the outing already had.
+    const [search] = pointRequests();
+    expect(Number(search.get('lat'))).toBe(existing.latitude);
+    expect(Number(search.get('lon'))).toBe(existing.longitude);
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith({
       latitude: unvotedCafe.location.latitude,
@@ -494,36 +539,9 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     expect(mockMapProps.start).toMatchObject(unvotedCafe.location);
   });
 
-  it('explains it and asks the API nothing when the person denies the location', async () => {
-    permission.mockResolvedValue({ status: 'denied' } as Location.LocationPermissionResponse);
-    const onChange = await renderField();
-
-    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
-
-    // The same text as «Use my location»: the place can still be chosen on the map.
-    expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t('outings.picker.denied'));
-    expect(position).not.toHaveBeenCalled();
-    expect(pointRequests()).toEqual([]);
-    expect(onChange).not.toHaveBeenCalled();
-    expect(screen.queryByText(spotwiseLibrary.name)).toBeNull();
-  });
-
-  it('explains it and asks the API nothing when the device cannot find the location', async () => {
-    permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
-    position.mockRejectedValue(new Error('Location services are disabled'));
-    const onChange = await renderField();
-
-    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
-
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(pointRequests()).toEqual([]);
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
   it('shows the message of unavailability when Spotwise does not answer', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
     meetingPoints = () => problemResponse(503, 'MEETING_POINTS_UNAVAILABLE');
-    const onChange = await renderField();
+    const onChange = await renderField(jest.fn(), CHOSEN);
 
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
@@ -535,21 +553,9 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('says it is locating while the position comes', async () => {
-    permission.mockResolvedValue({ status: 'granted' } as Location.LocationPermissionResponse);
-    position.mockReturnValue(new Promise(() => undefined));
-    await renderField();
-
-    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
-
-    expect(await screen.findByLabelText(i18n.t('meetingPoints.location.locating'))).toBeTruthy();
-    expect(screen.queryByLabelText(i18n.t('meetingPoints.loading'))).toBeNull();
-  });
-
-  it('says the places are loading once the position is here and the API answers', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
+  it('says the places are loading while the API answers', async () => {
     meetingPoints = () => new Promise(() => undefined);
-    await renderField();
+    await renderField(jest.fn(), CHOSEN);
 
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
@@ -558,9 +564,8 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
   });
 
   it('says there are no places nearby when the API finds none', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
     meetingPoints = () => jsonResponse([]);
-    await renderField();
+    await renderField(jest.fn(), CHOSEN);
 
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
@@ -581,12 +586,11 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     }
 
     beforeEach(() => {
-      grantAt(DEVICE.latitude, DEVICE.longitude);
       meetingPoints = () => jsonResponse([]);
     });
 
     it('reads it in a polite live region', async () => {
-      await renderField();
+      await renderField(jest.fn(), CHOSEN);
 
       await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
@@ -599,7 +603,7 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     it('announces it on iOS', async () => {
       // jest-expo runs as iOS, where a status is announced explicitly.
       const announce = announceSpy();
-      await renderField();
+      await renderField(jest.fn(), CHOSEN);
 
       await fireEvent.press(screen.getByRole('button', { name: recommend() }));
       await screen.findByText(i18n.t('meetingPoints.empty'));
@@ -612,7 +616,7 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
       async (os) => {
         jest.replaceProperty(Platform, 'OS', os);
         const announce = announceSpy();
-        await renderField();
+        await renderField(jest.fn(), CHOSEN);
 
         await fireEvent.press(screen.getByRole('button', { name: recommend() }));
         await screen.findByText(i18n.t('meetingPoints.empty'));
@@ -624,7 +628,7 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     it('does not announce it while there are places', async () => {
       meetingPoints = () => jsonResponse([spotwiseLibrary]);
       const announce = announceSpy();
-      await renderField();
+      await renderField(jest.fn(), CHOSEN);
 
       await fireEvent.press(screen.getByRole('button', { name: recommend() }));
       await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
@@ -634,8 +638,7 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
   });
 
   it('gives the places as a named list', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
-    await renderField();
+    await renderField(jest.fn(), CHOSEN);
 
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
@@ -646,8 +649,7 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
   });
 
   it('hides the places once one is chosen', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
-    await renderField();
+    await renderField(jest.fn(), CHOSEN);
     await fireEvent.press(screen.getByRole('button', { name: recommend() }));
 
     await fireEvent.press(await screen.findByRole('button', { name: chooseName(unvotedCafe) }));
@@ -656,40 +658,20 @@ describe('LocationField recommended places (TG-352, criterion 7)', () => {
     expect(screen.queryByRole('button', { name: chooseName(spotwiseLibrary) })).toBeNull();
   });
 
-  it('asks for the location again each time the button is pressed', async () => {
-    grantAt(DEVICE.latitude, DEVICE.longitude);
+  it('searches again around the new centre of the map each time the button is pressed', async () => {
     await renderField();
+    await moveMapTo({ latitude: 41.4, longitude: 2.15, zoom: 14 });
     const button = screen.getByRole('button', { name: recommend() });
     await fireEvent.press(button);
     await screen.findByRole('button', { name: chooseName(spotwiseLibrary) });
 
+    await moveMapTo(CENTRE);
     await fireEvent.press(button);
 
-    await waitFor(() => expect(permission).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(pointRequests()).toHaveLength(2));
+    const [, second] = pointRequests();
+    expect(Number(second.get('lat'))).toBe(CENTRE.latitude);
+    expect(Number(second.get('lon'))).toBe(CENTRE.longitude);
     expect(await screen.findByRole('button', { name: chooseName(spotwiseLibrary) })).toBeTruthy();
-  });
-
-  it('asks for the location again by itself when the permission is given in the settings', async () => {
-    const appStateListeners: ((state: AppStateStatus) => void)[] = [];
-    jest.spyOn(AppState, 'addEventListener').mockImplementation((type, listener) => {
-      if (type === 'change') appStateListeners.push(listener as (state: AppStateStatus) => void);
-      return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
-    });
-    grantAt(DEVICE.latitude, DEVICE.longitude);
-    permission.mockResolvedValueOnce({ status: 'denied' } as Location.LocationPermissionResponse);
-    await renderField();
-    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
-    await screen.findByRole('alert');
-
-    // The person gives the permission in the settings and comes back to the app.
-    currentPermission.mockResolvedValue({
-      status: 'granted',
-    } as Location.LocationPermissionResponse);
-    await act(async () => {
-      for (const listener of appStateListeners) listener('active');
-    });
-
-    expect(await screen.findByRole('button', { name: chooseName(spotwiseLibrary) })).toBeTruthy();
-    expect(permission).toHaveBeenCalledTimes(2);
   });
 });
