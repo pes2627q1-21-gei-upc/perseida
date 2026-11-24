@@ -173,6 +173,22 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     });
   });
 
+  it('reloads history before marking a newly received message as read', async () => {
+    const initial = { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] };
+    let finish!: (result: unknown) => void;
+    const refetch = jest.fn().mockResolvedValueOnce({ data: initial, isError: false }).mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    mockHistory.mockReturnValue({ ...mockHistory(), data: initial, refetch });
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(mockMarkRead).toHaveBeenCalled());
+    mockMarkRead.mockClear();
+    const newMessage = { ...message, id: 'message-2', sent_at: '2026-11-22T12:01:00Z' };
+    await act(async () => mockListener?.({ type: 'dm.message', payload: newMessage }));
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(2));
+    expect(mockMarkRead).not.toHaveBeenCalled();
+    await act(async () => finish({ data: { pages: [{ messages: [newMessage, message] }] }, isError: false }));
+    expect(mockMarkRead).toHaveBeenCalledWith({ conversationId: CONVERSATION, lastMessageId: newMessage.id });
+  });
+
   it('uses the other participant name for messages loaded from history', async () => {
     mockHistory.mockReturnValue({
       ...mockHistory(),
