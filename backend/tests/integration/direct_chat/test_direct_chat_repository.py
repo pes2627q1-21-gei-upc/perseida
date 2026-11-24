@@ -1011,3 +1011,31 @@ async def test_tg65_message_commit_order_survives_clock_skew(
     )
     second = await messages.add(_message(conversation, grace.id, NOW, "second"))
     assert second.sent_at > first.sent_at
+
+
+async def test_tg65_read_does_not_hide_a_send_waiting_for_the_pair_lock(
+    conversations: DirectConversationRepository,
+    messages: DirectMessageRepository,
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    from app.infrastructure.direct_chat.repository import lock_pair
+
+    ada, grace = await _pair(sessions)
+    conversation, _ = await conversations.get_or_create(ada.id, grace.id)
+    first = await messages.add(
+        _message(conversation, grace.id, NOW + timedelta(hours=1), "loaded")
+    )
+    async with sessions() as blocker:
+        await lock_pair(blocker, ada.id, grace.id)
+        pending = asyncio.create_task(
+            messages.add(_message(conversation, grace.id, NOW, "not loaded"))
+        )
+        try:
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(asyncio.shield(pending), timeout=0.2)
+            await conversations.mark_read_through(conversation.id, ada.id, first.id)
+        finally:
+            await blocker.commit()
+        second = await pending
+    assert second.sent_at > first.sent_at
+    assert (await conversations.summaries_of(ada.id))[0].unread_count == 1
