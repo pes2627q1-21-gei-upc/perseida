@@ -2960,6 +2960,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkDirectReadRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -3971,6 +3981,20 @@
         ],
         "title": "Language",
         "description": "The languages of the app. Shared by several features (users, quiz)."
+      },
+      "MarkDirectReadRequest": {
+        "properties": {
+          "last_message_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Last Message Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "last_message_id"
+        ],
+        "title": "MarkDirectReadRequest"
       },
       "MediaType": {
         "type": "string",

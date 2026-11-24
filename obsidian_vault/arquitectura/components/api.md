@@ -151,7 +151,7 @@ A la branca de treball TG-65 els endpoints són privats i requereixen sessió. E
 | `POST /api/direct-conversations` | Cos `{user_id}`; crea (201) o recupera (200) la conversa de la parella |
 | `GET /api/direct-conversations` | Converses amb perfil de l'altre usuari, vista prèvia i no llegits |
 | `GET /api/direct-conversations/{id}/messages` | Historial amb `before` i `limit` (50 per defecte) |
-| `POST /api/direct-conversations/{id}/read` | Marca de llegit del participant (204) |
+| `POST /api/direct-conversations/{id}/read` | Cos `{last_message_id}`; avança la marca del participant fins al missatge carregat (204); un missatge aliè o inexistent retorna 404 |
 | `PUT` / `DELETE /api/users/{id}/block` | Bloqueig i desbloqueig idempotents (204) |
 
 A `/api/ws`, `dm.send` porta `conversation_id`, `text` i `client_message_id`; l'ack correlacionat retorna `id` i `sent_at` i confirma acceptació durable, no entrega. `dm.message` comunica el missatge; `dm.typing` és efímer i no es desa. Les connexions autenticades escolten un canal intern per usuari, no una sala subscrita arbitràriament pel client. Flux i límits a [[chat]] i [[0034-outbox-xat-directe]].

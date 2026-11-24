@@ -1047,6 +1047,14 @@ export interface components {
      * @enum {string}
      */
     Language: 'ca' | 'es' | 'en';
+    /** MarkDirectReadRequest */
+    MarkDirectReadRequest: {
+      /**
+       * Last Message Id
+       * Format: uuid
+       */
+      last_message_id: string;
+    };
     /**
      * MediaType
      * @enum {string}
@@ -3646,7 +3654,11 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MarkDirectReadRequest'];
+      };
+    };
     responses: {
       /** @description Successful Response */
       204: {
