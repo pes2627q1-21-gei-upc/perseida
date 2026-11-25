@@ -20,7 +20,8 @@ Portar la PR 1 de TG-70: entitat, port, taula amb índex GiST, migració reversi
 - **Domini** (`app/domain/observation_zones`): `ObservationZone`, `ZoneProximity`, `ZoneDistance`, port `ObservationZoneRepository` i els tres codis `OBSERVATION_ZONE_*_INVALID`. Tests en vermell (`b2f78c4d`) abans del codi (`ef3f8849`) (ADR-0028).
 - **Infraestructura:** taula `observation_zones` (`5b8d2f6e9a14`), índex GiST sobre la mateixa expressió que `astronomical_events` (`LOCATION_GEOGRAPHY`, TG-50) i `SqlObservationZoneRepository`. Tests d'integració en vermell (`204744d5`) abans del codi (`839e42a6`); un comprova amb `EXPLAIN` que la cerca és un `Index Cond` de l'índex.
 - **Verificació local:** ruff, mypy, lint-imports i suite completa (2608 passats); cobertura del 100 % als fitxers nous i 99 % global. mutmut no s'executa a Windows natiu: queda per a la CI.
-- **Error de testing:** [[2026-11-25-tg-70-tests-spotwise-llegeixen-env-local]] (`roig-inesperat`, aliè a TG-70).
+- **Revisió de `reviewer-arquitectura`:** cap troballa crítica ni alta. Aplicades: el nom rebutja NUL (test `7ebe222b` abans de `55001794`), contracte d'import-linter de `observation_zones` (`8e6be31c`), fora un test tautològic.
+- **Errors de testing:** [[2026-11-25-tg-70-tests-spotwise-llegeixen-env-local]] (`roig-inesperat`, aliè a TG-70) i [[2026-11-25-tg-70-nom-de-zona-amb-nul]] (`review`).
 
 ## Decisions preses
 
@@ -40,4 +41,5 @@ Cap ADR nova.
 ## Pendent / següents passos
 
 - [ ] Obrir la PR 1 a `develop` quan Raquel ho demani (no s'ha fet push).
+- [ ] Decidir si `radius_km = inf` s'accepta i si TG-71 posa un `LIMIT` (pregunta de la revisió).
 - [ ] PR 2: llista de zones amb fonts, migració de seed i test del JSON.
