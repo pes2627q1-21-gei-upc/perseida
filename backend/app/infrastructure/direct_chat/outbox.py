@@ -102,6 +102,11 @@ class DirectOutboxDispatcher:
                 progressed += int(await self._dispatch_one(message_id, a, b))
             except Exception:
                 logger.exception("Could not process a direct message outbox item")
+        if len(candidates) < BATCH_SIZE:
+            # The scan reached the end of the queue. Restart it: a failing item
+            # raises its attempts and would otherwise leave new items (attempts
+            # 0) below the cursor forever.
+            self._cursor = None
         return progressed
 
     async def _dispatch_one(

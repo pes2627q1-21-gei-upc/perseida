@@ -84,6 +84,18 @@ describe('ConversationRow (TG-65)', () => {
     expect(screen.queryByText(timeOf(SENT_TODAY))).toBeNull();
   });
 
+  it('has an avatar that grows with the text scale, without clipping the initial', async () => {
+    await renderRow({ conversation: conversation() });
+
+    const avatar = StyleSheet.flatten(screen.getByTestId('direct-conversation-avatar').props.style);
+    expect(avatar.width).toBeUndefined();
+    expect(avatar.height).toBeUndefined();
+    expect(avatar.minWidth).toBeGreaterThan(0);
+    expect(avatar.minHeight).toBeGreaterThan(0);
+    expect(avatar.aspectRatio).toBe(1);
+    expect(avatar.overflow).not.toBe('hidden');
+  });
+
   it('shows the initial of the name when there is no avatar', async () => {
     await renderRow({ conversation: conversation() });
 

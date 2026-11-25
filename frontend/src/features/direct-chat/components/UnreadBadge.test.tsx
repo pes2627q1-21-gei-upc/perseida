@@ -86,6 +86,27 @@ describe('UnreadBadge (TG-65)', () => {
     expect(StyleSheet.flatten(screen.getByText('5').props.style).color).toBe(colors.dia.gel.text);
   });
 
+  it('is a flat pill: gel is only for actions, so no gradient and no rim', async () => {
+    await render(<UnreadBadge count={5} />);
+
+    const badge = screen.getByTestId('unread-badge');
+    expect(badge.children).toHaveLength(1);
+    const pill = StyleSheet.flatten(badge.props.style);
+    expect(pill.borderColor).not.toBe(colors.dia.gel.rim);
+  });
+
+  it('grows with the text scale: no fixed height and nothing clipped (WCAG 1.4.4)', async () => {
+    await render(<UnreadBadge count={5} />);
+
+    const pill = StyleSheet.flatten(screen.getByTestId('unread-badge').props.style);
+    expect(pill.height).toBeUndefined();
+    expect(pill.minHeight).toBeGreaterThan(0);
+    expect(pill.minWidth).toBeGreaterThan(0);
+    expect(pill.paddingVertical).toBeGreaterThan(0);
+    expect(pill.overflow).not.toBe('hidden');
+    expect(screen.getByText('5').props.maxFontSizeMultiplier).toBeUndefined();
+  });
+
   it.each(['dia', 'posta', 'nit', 'vermell'] as const)(
     '%s: the number reads on the fill at 4.5:1 or more (WCAG AA)',
     (name) => {
