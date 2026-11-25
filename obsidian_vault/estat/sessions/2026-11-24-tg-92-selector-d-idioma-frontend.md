@@ -19,7 +19,7 @@ Segona PR de la TG-92: que la persona triï l'idioma al perfil, que els textos c
 - **Crida (#593):** `updateLanguage` (`PATCH /api/users/me` amb `authHeaders`). L'idioma del compte es llegeix amb el `getUserProfile` que ja hi havia, sense duplicar-lo.
 - **Canvi, desat i arrencada (#594):** `languageStorage` (SecureStore; `localStorage` a web), `useChangeLanguage` (canvi immediat, desat al mòbil i a l'API, error i reintent sense desfer el canvi) i `useStartupLanguage` (idioma desat, després el del compte), connectat a `(app)/_layout.tsx`. `isLanguage` s'exporta de `shared/i18n`.
 - **Desplegable (#595):** `LanguageMenu` (globus i codi `CA`/`ES`/`EN`; obert, els tres idiomes pel seu nom) a dalt a la dreta de la targeta d'identitat del perfil. S'ha tret la pastilla d'idioma antiga.
-- **Textos i accessibilitat (#596):** `profile.language.*` passen a autònims (Català, Castellano, English) i claus noves `profile.languageMenu.*` als tres idiomes; anunci del canvi per al lector de pantalla; etiquetes, estats i *live regions*. Contrast mesurat amb `contrast.py` sobre `glassSolid` als quatre temes (5,8:1 a 15,2:1).
+- **Textos i accessibilitat (#596):** `profile.language.*` passen a autònims (Català, Español, English) i claus noves `profile.languageMenu.*` als tres idiomes; anunci del canvi per al lector de pantalla; etiquetes, estats i *live regions*. Contrast mesurat amb `contrast.py` sobre `glassSolid` als quatre temes (5,8:1 a 15,2:1).
 - **Revisió (#597):** `reviewer-arquitectura` no va trobar cap troballa crítica ni alta. S'han corregit les tres mitjanes de comportament amb TDD: la cursa entre l'arrencada i una elecció de la persona, el desat local que fallava i bloquejava l'API, i l'ordre de dos canvis ràpids (`scope` de la mutació).
 
 - **Mutation testing (Stryker, línies canviades):** 105 mutants, puntuació **80,95 %** (llindar 70 %). 13 supervivents: 4 al càlcul del rol de `ProfileScreen` (test existent massa feble davant d'un rol desconegut), 6 a `LanguageMenu` (la ✓ de l'opció triada i l'anunci amb idioma explícit), 2 a la guarda de `useStartupLanguage` i 1 equivalent (`id` del `scope`). `languageStorage.web.ts` surt sense cobertura a Stryker però té el 100 % a Jest. Després s'han afegit tests per a la ✓ de l'opció triada, el rol desconegut i la guarda d'arrencada (comprovat a mà que cada test mata el seu mutant) i s'ha tret l'`accessibilityLabel` redundant de les opcions; no s'ha tornat a passar tota la mutació.
@@ -47,6 +47,13 @@ Cap error de producció. Al llarg de la sessió, tres errors d'ús de les eines 
 - [ ] A web: tancar el desplegable amb Escape i fletxes; verificar que `announceForAccessibility` sona.
 - [ ] Tancar el desplegable amb un toc fora o amb Enrere d'Android.
 - [ ] PR 2: obrir-la, revisió d'una persona que no sigui l'autora, CI i SonarQube Cloud; subtasques #593-#597 a Taiga i la US a `Done` (només les persones).
+
+## Revisió de la PR 157
+
+- L'autònim de `es` passa a «Español» (decisió de l'autora, a petició de la revisora).
+- L'error del desplegable s'anuncia a iOS amb `announceForAccessibility` (WCAG 4.1.3); «Desant» no, perquè el canvi ja s'anuncia.
+- `maxWidth` i `minWidth` passen a múltiples de `spacing.xxl`; `zIndex` i `borderWidth: 1` es queden (no hi ha token, com a la resta de targetes).
+- La llista segueix `absolute`: la comprovació al dispositiu a 360 px, lletra gran i apaïsat continua pendent.
 
 ## US de Taiga
 
