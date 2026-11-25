@@ -68,6 +68,19 @@ describe('AchievementDialog (TG-59 #578)', () => {
     i18n.removeResourceBundle('es', 'translation');
   });
 
+  it('criterion 7: the window follows the language of the app, with the text of the app', async () => {
+    const { rerender, onClose } = await renderDialog(other);
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+    await rerender(<AchievementDialog achievement={other} onClose={onClose} />);
+
+    expect(screen.getByRole('header', { name: 'Weekly orbit' })).toBeOnTheScreen();
+    expect(screen.getByText('Keep your streak going for 7 days in a row.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Share' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeOnTheScreen();
+  });
+
   it('shows nothing without an achievement', async () => {
     await renderDialog(null);
 
