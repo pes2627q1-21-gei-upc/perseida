@@ -71,9 +71,7 @@ export function AchievementTrophy({ achievement, onPress }: Props) {
               weight="fill"
             />
           </View>
-          <Text numberOfLines={2} style={styles.name}>
-            {name}
-          </Text>
+          <Text style={styles.name}>{name}</Text>
         </>
       )}
     </Pressable>
