@@ -11,11 +11,14 @@ import { ProfileScreen } from '../components/ProfileScreen';
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
 
-// The achievement cards (TG-57) load their own data and have their own tests: here they are a
-// stand-in, so these tests only see the profile request.
+// The achievement cards (TG-57) and the trophies (TG-59) load their own data and have their own
+// tests: here they are stand-ins, so these tests only see the profile request.
 jest.mock('../../achievements', () => {
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-  return { AchievementProgressSection: () => <Text>achievement-progress-section</Text> };
+  return {
+    AchievementProgressSection: () => <Text>achievement-progress-section</Text>,
+    AchievementsSection: () => <Text>achievements-section</Text>,
+  };
 });
 
 const SAFE_AREA = {
@@ -287,7 +290,7 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(screen.queryByText('fr')).not.toBeOnTheScreen();
   });
 
-  it('shows the achievement cards (TG-57) and the slots still reserved (achievements #59, followers #62)', async () => {
+  it('shows the achievement cards (TG-57), the trophies (TG-59) and the slot still reserved (followers #62)', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
     await renderProfile();
@@ -298,10 +301,11 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
     expect(screen.getByText('achievement-progress-section')).toBeOnTheScreen();
     expect(screen.queryByRole('header', { name: "Ratxa d'observació" })).not.toBeOnTheScreen();
-    expect(screen.getByText(/fites i assoliments/i)).toBeOnTheScreen();
+    expect(screen.getByText('achievements-section')).toBeOnTheScreen();
+    expect(screen.queryByText(/fites i assoliments/i)).not.toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Seguidors' })).toBeOnTheScreen();
     // Same «coming soon» badge as the tabs that are not built yet (comingSoon.badge).
-    expect(screen.getAllByText('Pròximament')).toHaveLength(2);
+    expect(screen.getAllByText('Pròximament')).toHaveLength(1);
   });
 
   it('shows error card with retry button when API fails', async () => {
