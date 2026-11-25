@@ -1,7 +1,7 @@
 import { Check, Globe } from 'phosphor-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   DEFAULT_LANGUAGE,
@@ -27,6 +27,15 @@ export function LanguageMenu() {
 
   const current: Language = isLanguage(i18n.language) ? i18n.language : DEFAULT_LANGUAGE;
   const code = current.toUpperCase();
+  const hasError = Boolean(error);
+
+  useEffect(() => {
+    // Android reads the live region by itself; iOS ignores it and needs an explicit
+    // announcement (WCAG 4.1.3). «Saving» needs none: the change is already announced.
+    if (hasError && Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(t('profile.languageMenu.error'));
+    }
+  }, [hasError, t]);
 
   const choose = (language: Language) => {
     setOpen(false);
@@ -114,6 +123,7 @@ export function LanguageMenu() {
 // purpose (convencions/testing.md, «Mutation testing»); behaviour stays in the JSX above.
 // Stryker disable all
 function createStyles({ colors, radii, spacing, typography, touch }: Theme) {
+  // No theme token for the border width yet: 1 is what the glass cards use everywhere.
   const solidGlass = {
     borderWidth: 1,
     borderColor: colors.surface.glassBorder,
@@ -126,7 +136,7 @@ function createStyles({ colors, radii, spacing, typography, touch }: Theme) {
       top: 0,
       right: 0,
       zIndex: 1,
-      maxWidth: 220,
+      maxWidth: spacing.xxl * 5,
       alignItems: 'flex-end',
       gap: spacing.xs,
     },
@@ -140,7 +150,7 @@ function createStyles({ colors, radii, spacing, typography, touch }: Theme) {
       borderRadius: radii.pill,
     },
     code: { ...typography.bodyStrong, color: colors.text.primary },
-    list: { ...solidGlass, borderRadius: radii.lg, overflow: 'hidden', minWidth: 160 },
+    list: { ...solidGlass, borderRadius: radii.lg, overflow: 'hidden', minWidth: spacing.xxl * 3 },
     option: {
       minHeight: touch.min,
       flexDirection: 'row',
