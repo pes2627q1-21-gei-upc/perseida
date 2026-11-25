@@ -63,8 +63,10 @@ def test_tg70_c4_a_longitude_out_of_range_is_rejected(longitude: float) -> None:
     assert query_error.value.code == OBSERVATION_ZONE_LONGITUDE_INVALID
 
 
-@pytest.mark.parametrize("radius_km", [0.0, -0.0, -1.0, math.nan])
-def test_tg70_c4_a_radius_not_greater_than_zero_is_rejected(radius_km: float) -> None:
+@pytest.mark.parametrize("radius_km", [0.0, -0.0, -1.0, math.nan, math.inf])
+def test_tg70_c4_a_radius_not_greater_than_zero_nor_finite_is_rejected(
+    radius_km: float,
+) -> None:
     with pytest.raises(ValidationError) as error:
         ZoneProximity.create(latitude=41.39, longitude=2.17, radius_km=radius_km)
 
