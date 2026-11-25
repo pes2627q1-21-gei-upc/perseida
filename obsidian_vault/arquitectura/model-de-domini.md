@@ -302,10 +302,10 @@ Entitat a `app/domain/observation_zones/models.py`, port a `ports.py` i codis a 
 | Classe | Atributs |
 |---|---|
 | `ObservationZone` | `id: UUID`, `name: str` (no buit), `location: Location` |
-| `ZoneProximity` | `location: Location`, `radius_km: float` (> 0, sense màxim) |
+| `ZoneProximity` | `location: Location`, `radius_km: float` (> 0 i finit, sense màxim) |
 | `ZoneDistance` | `zone: ObservationZone`, `distance_km: float` |
 
-`ObservationZone.create(name, latitude, longitude)` i `ZoneProximity.create(latitude, longitude, radius_km)` validen i llancen `ValidationError` amb `OBSERVATION_ZONE_LATITUDE_INVALID` (fora de [-90, 90]), `OBSERVATION_ZONE_LONGITUDE_INVALID` (fora de [-180, 180]) o `OBSERVATION_ZONE_RADIUS_INVALID` (radi ≤ 0); també rebutgen `NaN`.
+`ObservationZone.create(name, latitude, longitude)` i `ZoneProximity.create(latitude, longitude, radius_km)` validen i llancen `ValidationError` amb `OBSERVATION_ZONE_LATITUDE_INVALID` (fora de [-90, 90]), `OBSERVATION_ZONE_LONGITUDE_INVALID` (fora de [-180, 180]) o `OBSERVATION_ZONE_RADIUS_INVALID` (radi ≤ 0 o infinit); també rebutgen `NaN`.
 
 Port `ObservationZoneRepository`: `save(zone)` i `find_within(near) -> list[ZoneDistance]`, de la més propera a la més llunyana (empat per `id`). L'implementa `SqlObservationZoneRepository` sobre la taula `observation_zones` ([[postgres#Taules]]). Encara no hi ha endpoint: el consumirà TG-71.
 

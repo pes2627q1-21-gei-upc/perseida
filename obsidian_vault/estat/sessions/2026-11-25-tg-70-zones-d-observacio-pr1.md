@@ -27,7 +27,8 @@ Portar la PR 1 de TG-70: entitat, port, taula amb índex GiST, migració reversi
 
 Cap ADR nova.
 
-- **Sense radi màxim** (decisió de Raquel, 25/11/2026): només es rebutja un radi ≤ 0.
+- **Sense radi màxim** (decisió de Raquel, 25/11/2026): només es rebutja un radi ≤ 0, `NaN` o infinit (l'infinit, decisió de Raquel després de la revisió; test abans del `fix:` `4cfc6411`).
+- **`LOCATION_GEOGRAPHY` es queda a `infrastructure/events/tables.py`** i zones l'importa (decisió de Raquel, 25/11/2026): no viola cap regla i evita un refactor fora de la US.
 - **Font de la càrrega inicial:** llista curada a mà de zones de Catalunya, amb l'URL de la font de cada zona (decisió de Raquel, 25/11/2026). Va a la PR 2.
 - **Dues PR apilades** (decisió de Raquel, 25/11/2026).
 - **Sense endpoint:** cap criteri en demana; el consumirà TG-71.
@@ -41,5 +42,5 @@ Cap ADR nova.
 ## Pendent / següents passos
 
 - [ ] Obrir la PR 1 a `develop` quan Raquel ho demani (no s'ha fet push).
-- [ ] Decidir si `radius_km = inf` s'accepta i si TG-71 posa un `LIMIT` (pregunta de la revisió).
+- [ ] TG-71: decidir si la consulta necessita un `LIMIT` (pregunta de la revisió).
 - [ ] PR 2: llista de zones amb fonts, migració de seed i test del JSON.
