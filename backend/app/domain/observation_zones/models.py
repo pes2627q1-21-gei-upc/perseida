@@ -4,6 +4,7 @@ The weather and the score of a zone (``cloudCoverage``, ``lightPollution``,
 ``recommendationScore`` in the domain model) belong to TG-71.
 """
 
+import math
 import uuid
 from typing import Annotated, Self
 
@@ -66,9 +67,10 @@ class ZoneProximity(BaseModel):
     @classmethod
     def create(cls, *, latitude: float, longitude: float, radius_km: float) -> Self:
         location = _location(latitude, longitude)
-        if not radius_km > 0:
+        # Rejects 0, negatives, NaN and infinity; no finite maximum (TG-70).
+        if not (radius_km > 0 and math.isfinite(radius_km)):
             raise ValidationError(
-                OBSERVATION_ZONE_RADIUS_INVALID, "Radius must be greater than 0 km"
+                OBSERVATION_ZONE_RADIUS_INVALID, "Radius must be finite and over 0 km"
             )
         return cls(location=location, radius_km=radius_km)
 
