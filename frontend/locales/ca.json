@@ -56,9 +56,19 @@
     "title": "Les teves properes fites"
   },
   "admin": {
+    "home": {
+      "welcome": "Benvinguda al panell d'administració de Perseida"
+    },
+    "main": {
+      "label": "Contingut del panell"
+    },
     "noAccess": {
       "message": "El teu compte no té permís per entrar al panell d'administració.",
       "title": "Sense accés"
+    },
+    "skipToContent": "Salta al contingut",
+    "topBar": {
+      "label": "Barra superior del panell"
     }
   },
   "apod": {

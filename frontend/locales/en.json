@@ -56,9 +56,19 @@
     "title": "Your next achievements"
   },
   "admin": {
+    "home": {
+      "welcome": "Welcome to the Perseida admin panel"
+    },
+    "main": {
+      "label": "Panel content"
+    },
     "noAccess": {
       "message": "Your account doesn't have permission to open the admin panel.",
       "title": "No access"
+    },
+    "skipToContent": "Skip to content",
+    "topBar": {
+      "label": "Panel top bar"
     }
   },
   "apod": {

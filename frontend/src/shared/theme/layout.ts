@@ -26,5 +26,16 @@ export const duration = { fast: 120, base: 220, slow: 420, ambient: 6000 } as co
 /** Blur intensity of glass layers (expo-blur, 1-100). */
 export const blur = { glassLight: 40, glassStrong: 70 } as const;
 
+/**
+ * Width of the keyboard focus ring (WCAG 2.2 AA 2.4.7 and 2.4.13 ask for at least 2 px). The
+ * colour is the `focusRing` of each theme.
+ */
+export const focusRingWidth = 3;
+
+/** The focus ring as a `boxShadow`, around any focusable element. */
+export function focusRingShadow(color: string) {
+  return `0 0 0 ${focusRingWidth}px ${color}`;
+}
+
 /** Readable line length on wide screens. */
 export const readingMaxWidth = 720;
