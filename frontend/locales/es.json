@@ -54,7 +54,11 @@
     "retryHint": "Vuelve a cargar los logros",
     "shareText": "¡He desbloqueado \"{{name}}\" en Perseida!",
     "streakStart": "Abre la imagen astronómica del día para empezar tu racha.",
-    "title": "Tus próximos logros"
+    "title": "Tus próximos logros",
+    "trophy": {
+      "openHint": "Abre la descripción",
+      "pending": "Logro pendiente"
+    }
   },
   "admin": {
     "noAccess": {

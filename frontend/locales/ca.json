@@ -54,7 +54,11 @@
     "retryHint": "Torna a carregar les fites",
     "shareText": "He desbloquejat \"{{name}}\" a Perseida!",
     "streakStart": "Obre la imatge astronòmica del dia per començar la teva ratxa.",
-    "title": "Les teves properes fites"
+    "title": "Les teves properes fites",
+    "trophy": {
+      "openHint": "Obre la descripció",
+      "pending": "Fita pendent"
+    }
   },
   "admin": {
     "noAccess": {

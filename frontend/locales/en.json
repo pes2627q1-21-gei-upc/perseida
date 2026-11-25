@@ -54,7 +54,11 @@
     "retryHint": "Load the achievements again",
     "shareText": "I unlocked \"{{name}}\" on Perseida!",
     "streakStart": "Open the astronomy picture of the day to start your streak.",
-    "title": "Your next achievements"
+    "title": "Your next achievements",
+    "trophy": {
+      "openHint": "Opens the description",
+      "pending": "Pending achievement"
+    }
   },
   "admin": {
     "noAccess": {
