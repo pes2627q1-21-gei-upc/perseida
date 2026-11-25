@@ -18,7 +18,12 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from alembic import command
-from app.domain.outings.models import Outing, OutingAuthor, OutingChanges
+from app.domain.outings.models import (
+    Outing,
+    OutingAuthor,
+    OutingChanges,
+    OutingPlace,
+)
 from app.domain.shared.location import Location
 from app.domain.users.models import User
 from app.infrastructure.outings.repository import SqlOutingRepository
@@ -96,6 +101,7 @@ def _outing(
     *,
     starts_in: timedelta = timedelta(days=1),
     event_id: uuid.UUID | None = None,
+    place: OutingPlace | None = None,
 ) -> Outing:
     return Outing.create(
         author_id=author.id,
@@ -105,6 +111,7 @@ def _outing(
         ends_at=NOW + starts_in + timedelta(hours=3),
         location=MONTSEC,
         event_id=event_id,
+        place=place,
         now=NOW,
     )
 
@@ -271,3 +278,47 @@ async def test_outing_server_defaults(
     for value in (row.created_at, row.updated_at):
         assert value.tzinfo is not None
         assert abs(datetime.now(UTC) - value) < timedelta(minutes=5)
+
+
+# TG-661: the place (name and address) the outing meets at, when it is a recommended
+# one.
+LIBRARY = OutingPlace(
+    name="Biblioteca Sant Pau - Santa Creu", address="Carrer del Carme, 47"
+)
+
+
+async def test_the_place_round_trips_and_is_none_when_there_is_not_one(
+    repo: SqlOutingRepository, factory: async_sessionmaker[AsyncSession]
+) -> None:
+    anna = await _user(factory, "Anna")
+    with_place = _outing(anna, place=LIBRARY)
+    without_place = _outing(anna)
+
+    await repo.add(with_place)
+    await repo.add(without_place)
+
+    first = await repo.get(with_place.id)
+    second = await repo.get(without_place.id)
+    assert first is not None
+    assert second is not None
+    assert first.outing.place == LIBRARY
+    assert second.outing.place is None
+
+
+async def test_save_changes_and_clears_the_place(
+    repo: SqlOutingRepository, factory: async_sessionmaker[AsyncSession]
+) -> None:
+    anna = await _user(factory, "Anna")
+    outing = _outing(anna, place=LIBRARY)
+    await repo.add(outing)
+    cafe = OutingPlace(name="Cafeteria La Pausa", address="Ronda de Sant Antoni, 60")
+
+    await repo.save(outing.update(OutingChanges(place=cafe), now=NOW))
+    changed = await repo.get(outing.id)
+    await repo.save(outing.update(OutingChanges(place=None), now=NOW))
+    cleared = await repo.get(outing.id)
+
+    assert changed is not None
+    assert changed.outing.place == cafe
+    assert cleared is not None
+    assert cleared.outing.place is None

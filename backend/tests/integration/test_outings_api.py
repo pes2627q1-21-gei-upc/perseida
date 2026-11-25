@@ -35,6 +35,7 @@ from app.domain.outings.errors import (
     OUTING_EVENT_NOT_FOUND,
     OUTING_FORBIDDEN,
     OUTING_NOT_FOUND,
+    OUTING_PLACE_INVALID,
     OUTING_STARTS_IN_PAST,
     OUTING_TITLE_EMPTY,
     OUTING_TITLE_TOO_LONG,
@@ -483,3 +484,125 @@ async def test_outings_do_not_appear_in_the_events_endpoints(
     listed = [event["id"] for event in active.json() + upcoming.json()]
     assert created["id"] not in listed
     assert all(event["title"] != created["title"] for event in upcoming.json())
+
+
+# --- place (TG-661) -------------------------------------------------------------
+
+LIBRARY = {
+    "name": "Biblioteca Sant Pau - Santa Creu",
+    "address": "Carrer del Carme, 47",
+}
+SAN_ANTONIO = {"latitude": 41.3826, "longitude": 2.166}
+
+
+async def test_create_without_a_place_answers_a_null_place(
+    client: AsyncClient,
+) -> None:
+    headers = await login_headers(client)
+
+    created = await _create(client, headers)
+
+    assert created["place"] is None
+
+
+async def test_create_keeps_the_place_and_get_returns_it(client: AsyncClient) -> None:
+    headers = await login_headers(client)
+
+    created = await _create(client, headers, place=LIBRARY)
+    fetched = await client.get(f"{OUTINGS}/{created['id']}", headers=headers)
+
+    assert created["place"] == LIBRARY
+    assert fetched.json()["place"] == LIBRARY
+
+
+async def test_the_list_shows_the_place(client: AsyncClient) -> None:
+    headers = await login_headers(client)
+    created = await _create(client, headers, place=LIBRARY)
+
+    response = await client.get(OUTINGS, params={"mine": "true"}, headers=headers)
+
+    shown = [item for item in response.json() if item["id"] == created["id"]]
+    assert [item["place"] for item in shown] == [LIBRARY]
+
+
+async def test_create_with_an_address_left_out_stores_an_empty_one(
+    client: AsyncClient,
+) -> None:
+    headers = await login_headers(client)
+
+    created = await _create(client, headers, place={"name": "Espai d'estudi"})
+
+    assert created["place"] == {"name": "Espai d'estudi", "address": ""}
+
+
+@pytest.mark.parametrize(
+    "place",
+    [
+        {"name": "   ", "address": "Carrer del Carme, 47"},
+        {"name": "n" * 121, "address": ""},
+        {"name": "Biblioteca", "address": "a" * 201},
+    ],
+    ids=["no-name", "name-too-long", "address-too-long"],
+)
+async def test_create_with_an_invalid_place_is_422(
+    client: AsyncClient, place: dict[str, str]
+) -> None:
+    headers = await login_headers(client)
+
+    response = await client.post(OUTINGS, json=body(place=place), headers=headers)
+
+    assert_problem(response, 422, OUTING_PLACE_INVALID)
+
+
+async def test_patch_sets_the_place(client: AsyncClient) -> None:
+    anna = await login_headers(client)
+    created = await _create(client, anna)
+
+    response = await client.patch(
+        f"{OUTINGS}/{created['id']}",
+        json={"location": SAN_ANTONIO, "place": LIBRARY},
+        headers=anna,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["place"] == LIBRARY
+    assert response.json()["location"] == SAN_ANTONIO
+
+
+async def test_patch_with_a_null_place_clears_it(client: AsyncClient) -> None:
+    anna = await login_headers(client)
+    created = await _create(client, anna, place=LIBRARY)
+
+    response = await client.patch(
+        f"{OUTINGS}/{created['id']}", json={"place": None}, headers=anna
+    )
+
+    assert response.status_code == 200
+    assert response.json()["place"] is None
+
+
+async def test_patch_of_other_fields_keeps_the_place(client: AsyncClient) -> None:
+    anna = await login_headers(client)
+    created = await _create(client, anna, place=LIBRARY)
+
+    response = await client.patch(
+        f"{OUTINGS}/{created['id']}", json={"title": "Nou títol"}, headers=anna
+    )
+
+    assert response.json()["place"] == LIBRARY
+
+
+async def test_patch_of_the_location_alone_clears_the_place(
+    client: AsyncClient,
+) -> None:
+    # The name would not match the new coordinates any more.
+    anna = await login_headers(client)
+    created = await _create(client, anna, place=LIBRARY)
+
+    response = await client.patch(
+        f"{OUTINGS}/{created['id']}", json={"location": SAN_ANTONIO}, headers=anna
+    )
+    fetched = await client.get(f"{OUTINGS}/{created['id']}", headers=anna)
+
+    assert response.json()["place"] is None
+    assert fetched.json()["place"] is None

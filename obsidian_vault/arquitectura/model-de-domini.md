@@ -240,12 +240,14 @@ Entitat `Outing` a `app/domain/outings/models.py` (la ubicació és el `Location
 | `description` | 0-2.000 caràcters; conserva salts de línia i tabuladors |
 | `starts_at`, `ends_at` | `timestamptz`; `CHECK ends_at >= starts_at` |
 | `latitude`, `longitude` | obligatòries; `CHECK` de rang −90..90 i −180..180 |
+| `place_name`, `place_address` | `varchar(120)` i `varchar(200)`, o null: el local recomanat triat com a lloc (TG-661). O les dues són null o cap; `CHECK` perquè el nom no sigui buit. L'adreça pot ser buida. Al domini és el value object `OutingPlace` |
 | `created_at`, `updated_at` | les posa el servei amb el rellotge injectat; per defecte `now()` al servidor |
 
 Regles:
 
 - **Crear:** l'inici no pot ser abans d'ara (`OUTING_STARTS_IN_PAST`) i la fi no pot ser anterior a l'inici (`OUTING_ENDS_BEFORE_START`). Un text massa llarg és un error, mai es retalla.
 - **Editar** (`Outing.update` amb `OutingChanges`): només canvien els camps enviats; `event_id: null` treu l'esdeveniment. La regla de l'inici futur només s'aplica si canvien `starts_at` o `ends_at`: es pot corregir el títol d'una sortida que ja ha començat (decisió de Raquel, 17/11/2026).
+- **Local triat** (TG-661, decisió de Raquel, 24/11/2026): si el lloc és un local recomanat, la sortida en desa el nom i l'adreça (`place`) perquè el detall els mostri; les coordenades segueixen sent `location`. Canviar només `location` esborra el `place`, perquè el nom ja no coincidiria; `place: null` l'esborra explícitament. Un nom buit o massa llarg, o una adreça massa llarga, és `OUTING_PLACE_INVALID` (422). No es desa l'identificador de Spotwise: la sortida no queda lligada al servei.
 - **Permisos** (`OutingService`): qualsevol sessió llegeix; només l'autora edita o esborra (`ForbiddenError` `OUTING_FORBIDDEN`, 403). Una sortida que no existeix és `NotFoundError` `OUTING_NOT_FOUND` (404).
 - **Esdeveniment relacionat:** si se'n dona un que no existeix, `ValidationError` `OUTING_EVENT_NOT_FOUND` (422): és un camp del cos, no la URL (decisió de Raquel, 17/11/2026). La FK n'és la defensa en profunditat.
 - **Autora a la resposta:** `OutingDetails` porta l'`OutingAuthor` (`id`, `display_name`, `avatar_url`) amb un join a `users`; mai el correu.
