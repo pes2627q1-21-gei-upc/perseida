@@ -23,7 +23,7 @@ interface Props {
  * every platform: the focus goes into it, and the back button or Escape close it.
  */
 export function AchievementDialog({ achievement, onClose }: Props) {
-  const { colors, spacing } = useTheme();
+  const styles = createStyles(useTheme());
 
   return (
     <Modal
@@ -33,11 +33,8 @@ export function AchievementDialog({ achievement, onClose }: Props) {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View
-        accessibilityViewIsModal
-        style={[styles.veil, { backgroundColor: colors.surface.scrim, padding: spacing.md }]}
-      >
-        <View style={[styles.panel, { maxWidth: readingMaxWidth }]}>
+      <View accessibilityViewIsModal style={styles.veil}>
+        <View style={styles.panel}>
           {/* Keyed by code: the error of one achievement never follows the next one. */}
           {achievement ? (
             <DialogContent key={achievement.code} achievement={achievement} onClose={onClose} />
@@ -99,7 +96,7 @@ function DialogContent({
         </Text>
         <Text style={styles.description}>{achievementDescription(achievement)}</Text>
         {failed ? (
-          <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          <Text accessibilityRole="alert" style={styles.error}>
             {errorMessage(t, 'SHARE_FAILED', false)}
           </Text>
         ) : null}
@@ -117,16 +114,18 @@ function DialogContent({
   );
 }
 
-// Layout of the veil and the panel, as in ConfirmDialog.
-// Stryker disable all
-const styles = StyleSheet.create({
-  veil: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  panel: { width: '100%' },
-});
-
 // Purely visual styles from theme tokens, left out of mutation testing (convencions/testing.md).
+// Stryker disable all
 function createStyles({ colors, radii, spacing, typography }: Theme) {
   return StyleSheet.create({
+    veil: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface.scrim,
+      padding: spacing.md,
+    },
+    panel: { width: '100%', maxWidth: readingMaxWidth },
     content: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
     trophy: {
       alignItems: 'center',

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { touch, useTheme } from '../../../shared/theme';
-import { StatusPanel } from '../../../shared/ui';
+import { type Theme, touch, useTheme } from '../../../shared/theme';
+import { GlassPanel, StatusPanel } from '../../../shared/ui';
 import type { Achievement } from '../api/getMyAchievements';
 import { useMyAchievements } from '../hooks/useMyAchievements';
 import { AchievementDialog } from './AchievementDialog';
@@ -17,7 +17,7 @@ import { AchievementTrophy } from './AchievementTrophy';
  */
 export function AchievementsSection() {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useTheme();
+  const styles = createStyles(useTheme());
   const { data, isLoading, isError, error, refetch } = useMyAchievements();
   const [selected, setSelected] = useState<Achievement | null>(null);
   const texts = {
@@ -41,22 +41,22 @@ export function AchievementsSection() {
     );
   } else {
     content = (
-      <View style={[styles.grid, { gap: spacing.md }]}>
-        {data.map((achievement) => (
-          <View key={achievement.code} style={styles.cell}>
-            <AchievementTrophy achievement={achievement} onPress={setSelected} />
-          </View>
-        ))}
-      </View>
+      // On glass, not on the sky: the names stay legible over the orange of the sunset.
+      <GlassPanel>
+        <View style={styles.grid}>
+          {data.map((achievement) => (
+            <View key={achievement.code} style={styles.cell}>
+              <AchievementTrophy achievement={achievement} onPress={setSelected} />
+            </View>
+          ))}
+        </View>
+      </GlassPanel>
     );
   }
 
   return (
-    <View style={[styles.section, { gap: spacing.md }]}>
-      <Text
-        accessibilityRole="header"
-        style={[typography.title, styles.title, { color: colors.text.primary }]}
-      >
+    <View style={styles.section}>
+      <Text accessibilityRole="header" style={styles.title}>
         {t('achievements.gallery.title')}
       </Text>
       {content}
@@ -65,11 +65,14 @@ export function AchievementsSection() {
   );
 }
 
-// Stryker disable all: layout only.
-const styles = StyleSheet.create({
-  section: { width: '100%' },
-  title: { alignSelf: 'flex-start' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-  cell: { width: touch.min * 2, alignItems: 'center' },
-});
+// Purely visual styles from theme tokens, left out of mutation testing (convencions/testing.md).
+// Stryker disable all
+function createStyles({ colors, spacing, typography }: Theme) {
+  return StyleSheet.create({
+    section: { width: '100%', gap: spacing.md },
+    title: { ...typography.title, alignSelf: 'flex-start', color: colors.text.primary },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.md },
+    cell: { width: touch.min * 2, alignItems: 'center' },
+  });
+}
 // Stryker restore all

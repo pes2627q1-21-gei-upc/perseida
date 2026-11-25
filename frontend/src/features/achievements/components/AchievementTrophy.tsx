@@ -1,4 +1,5 @@
 import { LockSimpleIcon } from 'phosphor-react-native';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -24,6 +25,7 @@ export function AchievementTrophy({ achievement, onPress }: Props) {
   const theme = useTheme();
   const styles = createStyles(theme);
   const achievementName = useAchievementName();
+  const [focused, setFocused] = useState(false);
 
   if (!achievement.unlocked) {
     return (
@@ -53,15 +55,20 @@ export function AchievementTrophy({ achievement, onPress }: Props) {
       accessibilityLabel={name}
       accessibilityHint={t('achievements.trophy.openHint')}
       onPress={() => onPress(achievement)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       style={styles.trophy}
     >
       {({ pressed }) => (
         <>
           <View
+            testID="achievement-trophy-circle"
             style={[
               styles.circle,
               styles.circleUnlocked,
-              pressed && { backgroundColor: theme.colors.surface.onGlass },
+              pressed && styles.circlePressed,
+              // Keyboard focus, visible on the web (WCAG 2.4.7), as in the other fields.
+              focused && styles.circleFocused,
             ]}
           >
             <CategoryIcon
@@ -94,6 +101,8 @@ function createStyles({ colors, radii, spacing, typography }: Theme) {
     },
     circleUnlocked: { backgroundColor: colors.surface.glassSolid },
     circlePending: { backgroundColor: colors.surface.onGlass },
+    circlePressed: { backgroundColor: colors.surface.onGlass },
+    circleFocused: { boxShadow: `0 0 0 2px ${colors.focusRing}` },
     name: { ...typography.caption, color: colors.text.primary, textAlign: 'center' },
   });
 }
