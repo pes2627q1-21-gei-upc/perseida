@@ -65,7 +65,8 @@ describe('AchievementsSection (TG-59 #580)', () => {
 
     await renderSection();
 
-    expect(await screen.findByRole('header', { name: 'Les teves insígnies' })).toBeOnTheScreen();
+    await screen.findByText('Primera llum');
+    expect(screen.getByRole('header', { name: 'Les teves insígnies' })).toBeOnTheScreen();
     // The four unlocked ones are buttons; the other five are padlocks, not buttons.
     const unlocked = screen.getAllByRole('button').map((button) => button.props.accessibilityLabel);
     expect(unlocked).toEqual([
@@ -82,7 +83,8 @@ describe('AchievementsSection (TG-59 #580)', () => {
 
     await renderSection();
 
-    const card = within(await screen.findByTestId('glass-panel'));
+    await screen.findByText('Primera llum');
+    const card = within(screen.getByTestId('glass-panel'));
     expect(card.getAllByRole('button')).toHaveLength(4);
     expect(card.getAllByLabelText('Fita pendent')).toHaveLength(5);
     expect(card.queryByRole('header')).not.toBeOnTheScreen();
