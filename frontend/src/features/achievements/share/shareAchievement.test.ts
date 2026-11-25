@@ -58,7 +58,7 @@ describe('shareAchievement (TG-59 #579)', () => {
     const failure = await shareAchievement('Lluna plena', i18n.t).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(AppError);
-    expect(failure).toMatchObject({ code: 'SHARE_FAILED', retryable: false });
+    expect(failure).toMatchObject({ kind: 'network', code: 'SHARE_FAILED', retryable: false });
     // The text of the system error is technical: it never reaches the user.
     expect((failure as AppError).message).toBe('SHARE_FAILED');
   });

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { achievement } from '../../../../__mocks__/achievements';
 import { AppError } from '../../../shared/errors';
@@ -79,6 +79,70 @@ describe('AchievementDialog (TG-59 #578)', () => {
     expect(screen.getByText('Keep your streak going for 7 days in a row.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Share' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Close' })).toBeOnTheScreen();
+  });
+
+  it('an achievement the app does not know yet shows the description the server sends', async () => {
+    await renderDialog(
+      achievement({
+        code: 'nova_fita',
+        name: 'Nova fita',
+        description: 'Una fita nova.',
+        unlocked: true,
+      }),
+    );
+
+    expect(screen.getByRole('header', { name: 'Nova fita' })).toBeOnTheScreen();
+    expect(screen.getByText('Una fita nova.')).toBeOnTheScreen();
+  });
+
+  it('the share button is busy while the menu is open and free again afterwards', async () => {
+    let finish!: () => void;
+    shareMock.mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)));
+    await renderDialog();
+    const busy = (value: boolean) =>
+      expect(screen.getByRole('button', { name: 'Compartir' })).toHaveProp(
+        'accessibilityState',
+        expect.objectContaining({ busy: value }),
+      );
+    busy(false);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Compartir' }));
+    busy(true);
+    await act(async () => finish());
+
+    await waitFor(() => busy(false));
+  });
+
+  it('the share button is free again after a failure, so it can be tried once more', async () => {
+    shareMock.mockRejectedValue(
+      new AppError({ kind: 'network', code: 'SHARE_FAILED', retryable: false }),
+    );
+    await renderDialog();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Compartir' }));
+
+    await screen.findByRole('alert');
+    expect(screen.getByRole('button', { name: 'Compartir' })).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ busy: false }),
+    );
+  });
+
+  it('the error is announced once, as an alert, without a second live region', async () => {
+    shareMock.mockRejectedValue(
+      new AppError({ kind: 'network', code: 'SHARE_FAILED', retryable: false }),
+    );
+    await renderDialog();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Compartir' }));
+
+    expect(await screen.findByRole('alert')).not.toHaveProp('accessibilityLiveRegion');
+  });
+
+  it('the window is closed while there is no achievement', async () => {
+    await renderDialog(null);
+
+    expect(screen.queryByTestId('achievement-dialog-modal')).not.toBeOnTheScreen();
   });
 
   it('shows nothing without an achievement', async () => {

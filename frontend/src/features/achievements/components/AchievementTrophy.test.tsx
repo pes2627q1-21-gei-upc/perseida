@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { achievement } from '../../../../__mocks__/achievements';
 import '../../../shared/i18n';
+import { colors } from '../../../shared/theme';
 import { AchievementTrophy } from './AchievementTrophy';
 
 const unlocked = achievement({
@@ -49,5 +50,23 @@ describe('AchievementTrophy (TG-59 #578)', () => {
 
     // Nothing to press: no button for the screen reader and none for the touch.
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
+  });
+
+  it('criterion 8: with the keyboard the trophy shows the focus ring, and loses it on leaving', async () => {
+    await render(<AchievementTrophy achievement={unlocked} onPress={jest.fn()} />);
+    const circle = screen.getByTestId('achievement-trophy-circle');
+    const ring = `0 0 0 2px ${colors.dia.focusRing}`;
+
+    expect(circle).not.toHaveStyle({ boxShadow: ring });
+    await fireEvent(screen.getByRole('button'), 'focus');
+    expect(circle).toHaveStyle({ boxShadow: ring });
+    await fireEvent(screen.getByRole('button'), 'blur');
+    expect(circle).not.toHaveStyle({ boxShadow: ring });
+  });
+
+  it('criterion 8: a long name is not cut when the text of the system is large', async () => {
+    await render(<AchievementTrophy achievement={unlocked} onPress={jest.fn()} />);
+
+    expect(screen.getByText('Primera llum')).not.toHaveProp('numberOfLines');
   });
 });

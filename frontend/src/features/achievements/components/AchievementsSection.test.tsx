@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import { achievement, mockAchievements } from '../../../../__mocks__/achievements';
 import { deferredResponse } from '../../../../__mocks__/pendingResponses';
@@ -7,6 +7,17 @@ import { jsonResponse, problemResponse } from '../../../../__mocks__/profile';
 import i18n from '../../../shared/i18n';
 import * as tokenStorage from '../../auth/tokenStorage';
 import { AchievementsSection } from './AchievementsSection';
+
+// The glass panel draws a blur that has no meaning in the tests: a view with a name says where it is.
+jest.mock('../../../shared/ui', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    ...jest.requireActual<typeof import('../../../shared/ui')>('../../../shared/ui'),
+    GlassPanel: ({ children }: { children: React.ReactNode }) => (
+      <View testID="glass-panel">{children}</View>
+    ),
+  };
+});
 
 let queryClient: QueryClient;
 
@@ -64,6 +75,18 @@ describe('AchievementsSection (TG-59 #580)', () => {
       "Caçador d'eclipsis",
     ]);
     expect(screen.getAllByLabelText('Fita pendent')).toHaveLength(5);
+  });
+
+  it('criterion 8: the trophies sit on a glass card, the title on the sky, so the names are legible', async () => {
+    answerWith(mockAchievements);
+
+    await renderSection();
+
+    const card = within(await screen.findByTestId('glass-panel'));
+    expect(card.getAllByRole('button')).toHaveLength(4);
+    expect(card.getAllByLabelText('Fita pendent')).toHaveLength(5);
+    expect(card.queryByRole('header')).not.toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Les teves insígnies' })).toBeOnTheScreen();
   });
 
   it('criterion 3: the pending ones show no name, so the unlocked ones are told apart without colour', async () => {
