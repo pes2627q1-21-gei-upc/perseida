@@ -14,6 +14,9 @@
       "shareHint": "Comparteix la fita \"{{name}}\""
     },
     "empty": "Encara no hi ha fites en aquesta categoria.",
+    "gallery": {
+      "title": "Les teves insígnies"
+    },
     "loading": "Carregant les fites...",
     "names": {
       "ambaixador_del_cosmos": "Ambaixador del cosmos",
@@ -356,10 +359,6 @@
     }
   },
   "profile": {
-    "achievements": {
-      "desc": "Desbloqueja insígnies observant pluges d'estels i participant a la comunitat.",
-      "title": "Fites i assoliments"
-    },
     "followers": {
       "desc": "Quantes persones segueixen les teves observacions i quantes en segueixes tu.",
       "title": "Seguidors"

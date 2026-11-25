@@ -1,5 +1,5 @@
 import type { Icon } from 'phosphor-react-native';
-import { Trophy, User, Users } from 'phosphor-react-native';
+import { User, Users } from 'phosphor-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -9,7 +9,7 @@ import { AppError, errorMessage } from '../../../shared/errors';
 import { safeHttpsUrl } from '../../../shared/security/safeUrl';
 import { breakpoints, fontFamilies, type Theme, touch, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../../../shared/ui';
-import { AchievementProgressSection } from '../../achievements';
+import { AchievementProgressSection, AchievementsSection } from '../../achievements';
 import { LogoutButton } from '../../auth/components/LogoutButton';
 import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -168,7 +168,10 @@ export function ProfileScreen() {
               {/* Progress towards the next achievement of each category (TG-57). */}
               <AchievementProgressSection />
 
-              {/* Gamification slots still to build: achievements (#59), followers (#62) */}
+              {/* The badges, unlocked and pending, with the window to share them (TG-59). */}
+              <AchievementsSection />
+
+              {/* Gamification slot still to build: followers (#62) */}
               {SLOTS.map((slot) => (
                 <ProfileSlot key={slot.key} i18nKey={slot.key} icon={slot.icon} />
               ))}
@@ -185,10 +188,10 @@ export function ProfileScreen() {
 }
 
 /** Reserved gamification slots; the owning US replaces each one with real data. */
-const SLOTS = [
-  { key: 'achievements', icon: Trophy },
-  { key: 'followers', icon: Users },
-] as const satisfies readonly { key: string; icon: Icon }[];
+const SLOTS = [{ key: 'followers', icon: Users }] as const satisfies readonly {
+  key: string;
+  icon: Icon;
+}[];
 
 function ProfileSlot({
   i18nKey,

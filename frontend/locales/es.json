@@ -14,6 +14,9 @@
       "shareHint": "Comparte el logro \"{{name}}\""
     },
     "empty": "Todavía no hay logros en esta categoría.",
+    "gallery": {
+      "title": "Tus insignias"
+    },
     "loading": "Cargando los logros...",
     "names": {
       "ambaixador_del_cosmos": "Embajador del cosmos",
@@ -356,10 +359,6 @@
     }
   },
   "profile": {
-    "achievements": {
-      "desc": "Desbloquea insignias observando lluvias de estrellas y participando en la comunidad.",
-      "title": "Logros e insignias"
-    },
     "followers": {
       "desc": "Cuántas personas siguen tus observaciones y a cuántas sigues tú.",
       "title": "Seguidores"

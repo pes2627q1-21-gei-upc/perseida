@@ -14,6 +14,9 @@
       "shareHint": "Share the achievement \"{{name}}\""
     },
     "empty": "There are no achievements in this category yet.",
+    "gallery": {
+      "title": "Your badges"
+    },
     "loading": "Loading achievements...",
     "names": {
       "ambaixador_del_cosmos": "Cosmos ambassador",
@@ -356,10 +359,6 @@
     }
   },
   "profile": {
-    "achievements": {
-      "desc": "Unlock badges by observing meteor showers and engaging with the community.",
-      "title": "Badges & achievements"
-    },
     "followers": {
       "desc": "How many people follow your observations and how many you follow.",
       "title": "Followers"

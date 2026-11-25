@@ -5,6 +5,7 @@ export {
 } from './api/getMyAchievements';
 export { AchievementProgressBar } from './components/AchievementProgressBar';
 export { AchievementProgressSection } from './components/AchievementProgressSection';
+export { AchievementsSection } from './components/AchievementsSection';
 export { useAchievementName } from './components/useAchievementName';
 export {
   achievementKeys,
