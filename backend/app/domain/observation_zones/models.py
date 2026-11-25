@@ -17,7 +17,11 @@ from app.domain.observation_zones.errors import (
 from app.domain.shared.errors import ValidationError
 from app.domain.shared.location import Location
 
-ZoneName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+# Without NUL: PostgreSQL rejects it in TEXT (as the event texts).
+ZoneName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, pattern=r"^[^\x00]*$"),
+]
 
 
 def _location(latitude: float, longitude: float) -> Location:
