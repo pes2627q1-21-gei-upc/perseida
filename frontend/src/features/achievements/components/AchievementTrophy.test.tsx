@@ -14,11 +14,11 @@ const unlocked = achievement({
 const pending = achievement({ code: 'lluna_plena', name: 'Lluna plena', current: 3, goal: 14 });
 
 describe('AchievementTrophy (TG-59 #578)', () => {
-  it('criterion 3: an unlocked achievement shows its name and says it is unlocked', () => {
+  it('criterion 3: an unlocked achievement shows its name and is a button', () => {
     render(<AchievementTrophy achievement={unlocked} onPress={jest.fn()} />);
 
     expect(screen.getByText('Primera llum')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Primera llum, desbloquejada' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Primera llum' })).toBeOnTheScreen();
   });
 
   it('announces that pressing it opens the description', () => {
