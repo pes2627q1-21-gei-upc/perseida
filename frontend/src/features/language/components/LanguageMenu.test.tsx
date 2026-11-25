@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
 import i18n from '../../../shared/i18n';
@@ -69,7 +69,7 @@ describe('LanguageMenu (TG-92)', () => {
     expect(screen.getByRole('button', { name: 'Idioma: CA, Català' })).toBeExpanded();
     expect(screen.getByLabelText('Idioma').props.accessibilityRole).toBe('radiogroup');
     expect(screen.getByRole('radio', { name: 'Català' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Castellano' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Español' })).not.toBeChecked();
     expect(screen.getByRole('radio', { name: 'English' })).not.toBeChecked();
   });
 
@@ -88,7 +88,7 @@ describe('LanguageMenu (TG-92)', () => {
     const tick = 'phosphor-react-native-check-bold';
     expect(within(screen.getByRole('radio', { name: 'Català' })).getByTestId(tick)).toBeTruthy();
     expect(
-      within(screen.getByRole('radio', { name: 'Castellano' })).queryByTestId(tick),
+      within(screen.getByRole('radio', { name: 'Español' })).queryByTestId(tick),
     ).not.toBeOnTheScreen();
     expect(
       within(screen.getByRole('radio', { name: 'English' })).queryByTestId(tick),
@@ -109,12 +109,12 @@ describe('LanguageMenu (TG-92)', () => {
     await renderMenu();
     await openMenu();
 
-    await fireEvent.press(screen.getByRole('radio', { name: 'Castellano' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Español' }));
 
     expect(i18n.language).toBe('es');
     expect(screen.queryByRole('radio')).not.toBeOnTheScreen();
     expect(screen.getByText('ES')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Idioma: ES, Castellano' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Idioma: ES, Español' })).toBeOnTheScreen();
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
     const request = fetchSpy.mock.calls[0][0] as Request;
     expect(request.method).toBe('PATCH');
@@ -128,9 +128,9 @@ describe('LanguageMenu (TG-92)', () => {
     await renderMenu();
     await openMenu();
 
-    await fireEvent.press(screen.getByRole('radio', { name: 'Castellano' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Español' }));
 
-    expect(announce).toHaveBeenCalledWith('Idioma cambiado a Castellano');
+    expect(announce).toHaveBeenCalledWith('Idioma cambiado a Español');
   });
 
   it('does not announce anything when the current language is chosen again', async () => {
@@ -190,7 +190,7 @@ describe('LanguageMenu (TG-92)', () => {
       );
     await renderMenu();
     await openMenu();
-    await fireEvent.press(screen.getByRole('radio', { name: 'Castellano' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Español' }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(i18n.t('profile.languageMenu.error'));
@@ -202,5 +202,36 @@ describe('LanguageMenu (TG-92)', () => {
 
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeOnTheScreen());
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('TG-92 Criteri 9 (WCAG 4.1.3): on iOS the error is announced once, since iOS ignores live regions', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(503, 'DATABASE_UNAVAILABLE'));
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+    await renderMenu();
+    await openMenu();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Español' }));
+    await screen.findByRole('alert');
+
+    expect(announce).toHaveBeenCalledWith(i18n.t('profile.languageMenu.error'));
+    expect(announce).toHaveBeenCalledTimes(2); // the change and the error
+  });
+
+  it('on Android the error is not announced by hand, the live region does it', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(503, 'DATABASE_UNAVAILABLE'));
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
+    await renderMenu();
+    await openMenu();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Español' }));
+    await screen.findByRole('alert');
+
+    expect(announce).toHaveBeenCalledTimes(1); // only the change
   });
 });
