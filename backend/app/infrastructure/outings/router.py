@@ -15,11 +15,12 @@ from app.domain.outings.errors import (
     OUTING_EVENT_NOT_FOUND,
     OUTING_FORBIDDEN,
     OUTING_NOT_FOUND,
+    OUTING_PLACE_INVALID,
     OUTING_STARTS_IN_PAST,
     OUTING_TITLE_EMPTY,
     OUTING_TITLE_TOO_LONG,
 )
-from app.domain.outings.models import OutingChanges
+from app.domain.outings.models import OutingChanges, OutingPlace
 from app.domain.shared.location import Location
 from app.infrastructure.api.schemas import PROBLEM_CONTENT, ProblemDetails
 from app.infrastructure.auth.dependencies import CurrentSessionDep
@@ -54,7 +55,8 @@ _SESSION: dict[int | str, dict[str, Any]] = {
 _INVALID = _problem(
     "Dades no vàlides: `VALIDATION_ERROR` (format) o "
     f"`{OUTING_TITLE_EMPTY}`, `{OUTING_TITLE_TOO_LONG}`, "
-    f"`{OUTING_DESCRIPTION_TOO_LONG}`, `{OUTING_ENDS_BEFORE_START}`, "
+    f"`{OUTING_DESCRIPTION_TOO_LONG}`, `{OUTING_PLACE_INVALID}`, "
+    f"`{OUTING_ENDS_BEFORE_START}`, "
     f"`{OUTING_STARTS_IN_PAST}` o `{OUTING_EVENT_NOT_FOUND}`."
 )
 _NOT_FOUND = _problem(f"La sortida no existeix (`{OUTING_NOT_FOUND}`).")
@@ -98,6 +100,11 @@ async def create_outing(
         ends_at=payload.ends_at,
         location=Location.model_validate(payload.location.model_dump()),
         event_id=payload.event_id,
+        place=(
+            OutingPlace.model_validate(payload.place.model_dump())
+            if payload.place
+            else None
+        ),
     )
     response.headers["Location"] = str(
         request.app.url_path_for("get_outing", outing_id=str(details.outing.id))

@@ -12,18 +12,31 @@ export interface OutingLocation {
   longitude: number;
 }
 
-/** What the form edits. The location is null until the person chooses one. */
+/** The recommended local the outing meets at (TG-661): what the detail shows. */
+export interface OutingPlace {
+  name: string;
+  address: string;
+}
+
+/**
+ * What the form edits. The location is null until the person chooses one; the place is null
+ * unless the location is a recommended local.
+ */
 export interface OutingFormValues {
   title: string;
   description: string;
   startsAt: Date;
   endsAt: Date;
   location: OutingLocation | null;
+  place: OutingPlace | null;
   eventId: string | null;
 }
 
 const sameDates = (a: OutingFormValues, b: OutingFormValues) =>
   a.startsAt.getTime() === b.startsAt.getTime() && a.endsAt.getTime() === b.endsAt.getTime();
+
+const samePlace = (a: OutingPlace | null, b: OutingPlace | null) =>
+  a === b || (a !== null && b !== null && a.name === b.name && a.address === b.address);
 
 /**
  * Validation of convenience (instant feedback, no network); the valid one is the backend's.
@@ -39,6 +52,7 @@ export function outingFormSchema(initial?: OutingFormValues) {
       startsAt: z.date(),
       endsAt: z.date(),
       location: z.object({ latitude: z.number(), longitude: z.number() }).nullable(),
+      place: z.object({ name: z.string(), address: z.string() }).nullable(),
       eventId: z.string().nullable(),
     })
     .superRefine((values, context) => {
@@ -69,6 +83,7 @@ export function newOutingValues(eventId: string | null = null): OutingFormValues
     startsAt,
     endsAt: new Date(startsAt.getTime() + 2 * HOUR_MS),
     location: null,
+    place: null,
     eventId,
   };
 }
@@ -80,6 +95,7 @@ export function outingToValues(outing: Outing): OutingFormValues {
     startsAt: new Date(outing.starts_at),
     endsAt: new Date(outing.ends_at),
     location: { ...outing.location },
+    place: outing.place ? { ...outing.place } : null,
     eventId: outing.event_id,
   };
 }
@@ -97,6 +113,7 @@ export function toDraft(values: OutingFormValues): OutingDraft {
     starts_at: values.startsAt.toISOString(),
     ends_at: values.endsAt.toISOString(),
     location: chosenLocation(values),
+    place: values.place,
     event_id: values.eventId,
   };
 }
@@ -119,6 +136,10 @@ export function toChanges(values: OutingFormValues, initial: OutingFormValues): 
   ) {
     changes.location = location;
   }
+  // A new location without a place makes the server forget the old one; a null place says it
+  // out loud when there was one.
+  if (!samePlace(values.place, initial.place)) changes.place = values.place;
+  else if (changes.location && values.place) changes.place = values.place;
   if (values.eventId !== initial.eventId) changes.event_id = values.eventId;
   return changes;
 }
