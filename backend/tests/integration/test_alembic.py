@@ -234,7 +234,7 @@ def test_tg53_c1_migration_creates_event_subscriptions_and_undoes_it() -> None:
         command.upgrade(config, "head")
 
 
-# Columns, CHECKs and the GiST index on the geography expression (TG-70, criteri 2).
+# The GiST index on the geography expression (TG-70, criteri 2).
 OBSERVATION_ZONE_INDEXES = """
     SELECT indexname, indexdef FROM pg_indexes
     WHERE schemaname = 'public' AND tablename = 'observation_zones'

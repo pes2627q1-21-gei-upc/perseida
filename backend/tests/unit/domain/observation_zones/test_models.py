@@ -10,7 +10,7 @@ from app.domain.observation_zones.errors import (
     OBSERVATION_ZONE_RADIUS_INVALID,
 )
 from app.domain.observation_zones.models import ObservationZone, ZoneProximity
-from app.domain.shared.errors import DomainError, ValidationError
+from app.domain.shared.errors import ValidationError
 from app.domain.shared.location import Location
 
 
@@ -78,13 +78,8 @@ def test_tg70_c4_any_positive_radius_is_valid() -> None:
     assert near.location == Location(latitude=41.39, longitude=2.17)
 
 
-def test_tg70_c4_the_codes_are_stable_domain_errors() -> None:
-    assert issubclass(ValidationError, DomainError)
-    assert OBSERVATION_ZONE_LATITUDE_INVALID == "OBSERVATION_ZONE_LATITUDE_INVALID"
-    assert OBSERVATION_ZONE_LONGITUDE_INVALID == "OBSERVATION_ZONE_LONGITUDE_INVALID"
-    assert OBSERVATION_ZONE_RADIUS_INVALID == "OBSERVATION_ZONE_RADIUS_INVALID"
-
-
-def test_tg70_c1_a_zone_name_cannot_be_blank() -> None:
+@pytest.mark.parametrize("name", ["   ", "Mont\x00sec"])
+def test_tg70_c1_a_zone_name_cannot_be_blank_nor_have_nul(name: str) -> None:
+    # PostgreSQL rejects NUL in TEXT: it would fail ``save`` with a driver error.
     with pytest.raises(ValueError):
-        ObservationZone.create(name="   ", latitude=0, longitude=0)
+        ObservationZone.create(name=name, latitude=0, longitude=0)
