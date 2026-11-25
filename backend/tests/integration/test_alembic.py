@@ -232,3 +232,30 @@ def test_tg53_c1_migration_creates_event_subscriptions_and_undoes_it() -> None:
         ) == [(None,)]
     finally:
         command.upgrade(config, "head")
+
+
+# Columns, CHECKs and the GiST index on the geography expression (TG-70, criteri 2).
+OBSERVATION_ZONE_INDEXES = """
+    SELECT indexname, indexdef FROM pg_indexes
+    WHERE schemaname = 'public' AND tablename = 'observation_zones'
+      AND indexname = 'ix_observation_zones_location'"""
+
+
+@pytest.mark.skipif(
+    not os.getenv("POSTGRES_HOST"),
+    reason="PostgreSQL integration test requires POSTGRES_HOST",
+)
+def test_tg70_c2_migration_creates_observation_zones_and_undoes_it() -> None:
+    config = _alembic_config()
+    command.upgrade(config, "head")
+    try:
+        [(name, definition)] = asyncio.run(_fetch(OBSERVATION_ZONE_INDEXES))
+        assert "USING gist" in str(definition)
+        assert "geography" in str(definition)
+
+        command.downgrade(config, _revision_before("observation_zones"))
+        assert asyncio.run(
+            _fetch("SELECT to_regclass('public.observation_zones')")
+        ) == [(None,)]
+    finally:
+        command.upgrade(config, "head")
