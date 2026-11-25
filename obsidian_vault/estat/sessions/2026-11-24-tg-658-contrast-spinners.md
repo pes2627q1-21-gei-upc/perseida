@@ -32,3 +32,8 @@ L'spinner de `StatusPanel` anava directament sobre el cel i, al tema posta, feia
 ## Decisions preses
 
 Cap ADR nova. Un únic criteri: tot spinner de càrrega va sobre vidre.
+
+## Review de la PR #167 (2026-11-25)
+
+- **Conflictes amb la #166 (TG-661):** fusionada `develop`. A `RecommendedPlaces` l'spinner torna a anar dins del `GlassPanel`, ara amb l'única etiqueta `meetingPoints.loading`, perquè la #166 va treure `useDeviceLocation`.
+- **Test de `LocationField`:** el test TG-658 ja no depèn del permís d'ubicació: obre el camp amb un lloc triat, espera `meetingPoints.loading` i comprova `isOnGlass`. Falla si es treu el `GlassPanel`.
