@@ -8,6 +8,11 @@
       "streaks": "Rachas"
     },
     "completed": "¡Enhorabuena! Has completado todos los logros de esta categoría.",
+    "dialog": {
+      "close": "Cerrar",
+      "share": "Compartir",
+      "shareHint": "Comparte el logro \"{{name}}\""
+    },
     "empty": "Todavía no hay logros en esta categoría.",
     "loading": "Cargando los logros...",
     "names": {

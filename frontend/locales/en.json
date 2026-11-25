@@ -8,6 +8,11 @@
       "streaks": "Streaks"
     },
     "completed": "Congratulations! You have completed every achievement in this category.",
+    "dialog": {
+      "close": "Close",
+      "share": "Share",
+      "shareHint": "Share the achievement \"{{name}}\""
+    },
     "empty": "There are no achievements in this category yet.",
     "loading": "Loading achievements...",
     "names": {

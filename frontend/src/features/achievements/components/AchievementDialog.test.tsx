@@ -35,7 +35,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  jest.resetAllMocks();
+  shareMock.mockReset();
   await act(async () => {
     await i18n.changeLanguage('ca');
   });

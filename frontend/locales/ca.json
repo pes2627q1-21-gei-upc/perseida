@@ -8,6 +8,11 @@
       "streaks": "Ratxes"
     },
     "completed": "Enhorabona! Has completat totes les fites d'aquesta categoria.",
+    "dialog": {
+      "close": "Tancar",
+      "share": "Compartir",
+      "shareHint": "Comparteix la fita \"{{name}}\""
+    },
     "empty": "Encara no hi ha fites en aquesta categoria.",
     "loading": "Carregant les fites...",
     "names": {
