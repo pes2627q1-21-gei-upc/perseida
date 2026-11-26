@@ -1,8 +1,8 @@
 ---
 titol: "Outbox transaccional per al xat directe"
 tipus: adr
-estat: proposada
-data: "2026-11-22"
+estat: acceptada
+data: "2026-11-26"
 us: ["TG-65"]
 font: "TG-65 i decisions de la persona responsable durant la sessió del 2026-11-22"
 etiquetes: [adr, xat, postgres, redis, outbox]
@@ -35,6 +35,15 @@ Desar el missatge i una entrada de sortida en una mateixa transacció PostgreSQL
 
 - Publicar abans o després de desar sense outbox: una caiguda entre operacions pot deixar-les inconsistents sense recuperació durable.
 - Exigir atomicitat entre PostgreSQL i Redis Pub/Sub: no està disponible amb les interfícies actuals.
+
+## Actualització (revisió de la PR 151)
+
+- **Cursor del despachador.** L'escaneig pagina per `(attempts, message_id)`; en arribar al final de la cua (lot més curt que `BATCH_SIZE`) el cursor es reinicia, de manera que un missatge nou (`attempts = 0`) no queda mai per sota del cursor d'un missatge que falla sempre.
+- **`dm.typing` a l'abast de TG-65.** L'indicador d'escriptura efímer entra a l'abast de TG-65 per acceptació del PO. L'autorització (participant i bloqueig en tots dos sentits) és al cas d'ús `DirectChatService.typing_recipient`; el handler WebSocket només valida el frame, aplica el límit propi (`ratelimit:dm-typing:<user_id>`) i publica. No pren el pair lock: és un senyal efímer i una cursa amb un bloqueig deixa passar, com a molt, un frame.
+- **Criteri 14 amb Redis caigut:** el missatge es desa i l'outbox el difon quan Redis torna; el REST demana Redis per validar la sessió ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]), de manera que sense Redis no s'hi pot enviar res.
+
+> [!warning] Pendent de confirmar amb el PO
+> L'acceptació de `dm.typing` dins de TG-65 ha de ser confirmada amb el PO per la persona responsable.
 
 ## US de Taiga relacionades
 

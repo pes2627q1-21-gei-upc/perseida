@@ -22,6 +22,17 @@ const message = (id: string) => ({
 });
 const first = { messages: [message('new')], next_cursor: 'cursor-1' };
 const second = { messages: [message('older')], next_cursor: null };
+// The cache keeps the history as the chat core reads it (ChatHistory), not as the API sends it.
+const asChat = (page: { messages: (typeof first)['messages']; next_cursor: string | null }) => ({
+  next_cursor: page.next_cursor,
+  messages: page.messages.map((m) => ({
+    id: m.id,
+    room_id: m.conversation_id,
+    author: { id: m.sender_id, name: null },
+    text: m.text,
+    sent_at: m.sent_at,
+  })),
+});
 let client: QueryClient;
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -77,7 +88,7 @@ describe('direct-chat queries (TG-65 criteria 9–11)', () => {
     expect(result.current.data).toBeUndefined();
   });
 
-  it('loads history pages using the next cursor and stops at null', async () => {
+  it('loads history pages as ChatHistory using the next cursor and stops at null', async () => {
     jest.mocked(fetchMessages).mockResolvedValueOnce(first).mockResolvedValueOnce(second);
     const { result } = await renderHook(() => useDirectMessages(CONVERSATION), {
       wrapper,
@@ -89,7 +100,7 @@ describe('direct-chat queries (TG-65 criteria 9–11)', () => {
     expect(fetchMessages).toHaveBeenNthCalledWith(1, CONVERSATION, undefined);
     expect(fetchMessages).toHaveBeenNthCalledWith(2, CONVERSATION, 'cursor-1');
     await waitFor(() => {
-      expect(result.current.data?.pages).toEqual([first, second]);
+      expect(result.current.data?.pages).toEqual([asChat(first), asChat(second)]);
       expect(result.current.hasNextPage).toBe(false);
     });
   });

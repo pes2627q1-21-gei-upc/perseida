@@ -19,7 +19,8 @@ import { MessageList } from '../../chat/components/MessageList';
 import { ActionSurface } from '../../chat/components/ActionSurface';
 import { useAnnounceOnIos } from '../../chat/useAnnounceOnIos';
 import { useBlockUser, useUnblockUser } from '../hooks/useDirectChat';
-import { type DirectEvent, useDirectConversation } from '../hooks/useDirectConversation';
+import type { DirectMessage } from '../api/directChat';
+import { useDirectConversation } from '../hooks/useDirectConversation';
 import { useDirectTyping } from '../hooks/useDirectTyping';
 
 interface Props {
@@ -48,7 +49,7 @@ function useKeyboardShown() {
 }
 
 /** Announce only a verified live event, never history or pagination. */
-function useArrivalNotice(message: DirectEvent | undefined, name: string) {
+function useArrivalNotice(message: DirectMessage | undefined, name: string) {
   const { t } = useTranslation();
   const notice = useMemo(
     () =>

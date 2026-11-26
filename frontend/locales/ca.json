@@ -210,10 +210,10 @@
     "VALIDATION_ERROR": "Revisa les dades introduïdes.",
     "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
     "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
-    "USER_NOT_FOUND": "No s'ha trobat aquest usuari.",
-    "CANNOT_MESSAGE_SELF": "No pots obrir una conversa amb tu mateix.",
-    "CONVERSATION_NOT_FOUND": "No s'ha trobat aquesta conversa.",
-    "USER_BLOCKED": "No es pot enviar el missatge.",
+    "USER_NOT_FOUND": "No hem trobat aquest usuari.",
+    "CANNOT_MESSAGE_SELF": "No et pots enviar missatges a tu mateix.",
+    "CONVERSATION_NOT_FOUND": "Aquesta conversa no existeix.",
+    "USER_BLOCKED": "Ara no pots enviar missatges en aquesta conversa.",
     "DIRECT_IDEMPOTENCY_CONFLICT": "Aquest missatge ja existeix amb un altre contingut."
   },
   "events": {

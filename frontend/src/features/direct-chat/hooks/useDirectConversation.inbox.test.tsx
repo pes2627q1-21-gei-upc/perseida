@@ -10,6 +10,16 @@ jest.mock('expo-router', () => ({ useIsFocused: () => true }));
 const mockMarkRead = jest.fn();
 const originalAppState = Object.getOwnPropertyDescriptor(AppState, 'currentState')!;
 const mockRefetch = jest.fn();
+const mockHistory = {
+  data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
+  isPending: false,
+  isFetching: false,
+  error: null,
+  hasNextPage: false,
+  isFetchingNextPage: false,
+  refetch: mockRefetch,
+  fetchNextPage: jest.fn(),
+};
 let mockListener: ((frame: ServerFrame) => void) | undefined;
 const mockSubscribe = (listener: (frame: ServerFrame) => void) => {
   mockListener = listener;
@@ -35,15 +45,8 @@ jest.mock('./useDirectChat', () => ({
     conversations: ['direct-chat', 'conversations'],
     messages: (id: string) => ['direct-chat', 'messages', id],
   },
-  useDirectMessages: () => ({
-    data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
-    isPending: false,
-    error: null,
-    hasNextPage: false,
-    isFetchingNextPage: false,
-    refetch: mockRefetch,
-    fetchNextPage: jest.fn(),
-  }),
+  // Stable, like a query's: the chat core reacts to a new `data` on every render.
+  useDirectMessages: () => mockHistory,
   useMarkRead: () => ({ mutate: mockMarkRead }),
 }));
 

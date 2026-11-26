@@ -4,50 +4,52 @@ import * as Crypto from 'expo-crypto';
 import type { ReactNode } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
+import { mockUserProfile } from '../../../../__mocks__/profile';
 import { AppError } from '../../../shared/errors';
 import type { ServerFrame } from '../../../shared/realtime';
+import { getCurrentUser } from '../../auth/api/getCurrentUser';
+import { currentUserKeys } from '../../auth/hooks/useCurrentUser';
+import { fetchMessages, markRead } from '../api/directChat';
+import { directChatKeys } from './useDirectChat';
 import { useDirectConversation } from './useDirectConversation';
 
-const mockSend = jest.fn();
-const mockHistory = jest.fn();
-const mockMarkRead = jest.fn();
 let mockIsFocused = true;
-let appStateListeners: ((state: AppStateStatus) => void)[] = [];
-const originalAppState = Object.getOwnPropertyDescriptor(AppState, 'currentState')!;
-let mockListener: ((frame: ServerFrame) => void) | undefined;
 jest.mock('expo-router', () => ({ useIsFocused: () => mockIsFocused }));
+jest.mock('expo-secure-store', () => ({
+  setItemAsync: jest.fn(),
+  getItemAsync: jest.fn(async () => null),
+  deleteItemAsync: jest.fn(),
+}));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'client-id-1') }));
 jest.mock('expo-haptics', () => ({
-  impactAsync: jest.fn(),
-  notificationAsync: jest.fn(),
+  impactAsync: jest.fn(async () => undefined),
+  notificationAsync: jest.fn(async () => undefined),
   ImpactFeedbackStyle: { Light: 'light' },
   NotificationFeedbackType: { Error: 'error' },
 }));
+jest.mock('../api/directChat', () => ({ fetchMessages: jest.fn(), markRead: jest.fn() }));
+jest.mock('../../auth/api/getCurrentUser', () => ({ getCurrentUser: jest.fn() }));
+jest.mock('../../auth/socketAuth', () => ({ socketAuth: {} }));
+const mockSocket = {
+  status: 'open' as 'open' | 'reconnecting',
+  send: jest.fn(),
+  reconnect: jest.fn(),
+  listeners: new Set<(frame: ServerFrame) => void>(),
+  // Stable, like the real one: the hooks re-subscribe whenever its identity changes.
+  subscribePrivate: (listener: (frame: ServerFrame) => void) => {
+    mockSocket.listeners.add(listener);
+    return () => mockSocket.listeners.delete(listener);
+  },
+};
 jest.mock('../../../shared/realtime', () => ({
   useSocket: () => ({
-    status: 'open',
+    status: mockSocket.status,
     error: null,
-    reconnect: jest.fn(),
-    send: mockSend,
-    subscribePrivate: (listener: (frame: ServerFrame) => void) => {
-      mockListener = listener;
-      return () => {
-        mockListener = undefined;
-      };
-    },
+    reconnect: mockSocket.reconnect,
+    send: (...args: unknown[]) => mockSocket.send(...args),
+    sendEphemeral: jest.fn(),
+    subscribePrivate: mockSocket.subscribePrivate,
   }),
-}));
-jest.mock('../../auth/socketAuth', () => ({ socketAuth: {} }));
-jest.mock('../../auth/hooks/useCurrentUser', () => ({
-  useCurrentUser: () => ({ data: { id: 'me', display_name: 'Jo' }, isPending: false, error: null }),
-}));
-jest.mock('./useDirectChat', () => ({
-  directChatKeys: {
-    conversations: ['direct-chat', 'conversations'],
-    messages: (id: string) => ['direct-chat', 'messages', id],
-  },
-  useDirectMessages: () => mockHistory(),
-  useMarkRead: () => ({ mutate: mockMarkRead }),
 }));
 
 const CONVERSATION = '01900000-0000-7000-8000-000000000003';
@@ -59,16 +61,46 @@ const message = {
   text: 'Hola',
   sent_at: '2026-11-22T12:00:00Z',
 };
+const page = (messages: (typeof message)[], next_cursor: string | null = null) => ({
+  messages,
+  next_cursor,
+});
 let client: QueryClient;
 function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
+const emit = (frame: ServerFrame) => mockSocket.listeners.forEach((listener) => listener(frame));
+const messageIds = (items: { kind: string; message?: { id: string } }[]) =>
+  items.flatMap((item) => (item.kind === 'message' && item.message ? [item.message.id] : []));
+
+async function mount(id = CONVERSATION, otherName?: string) {
+  const hook = await renderHook(
+    ({ id: current }: { id: string }) => useDirectConversation(current, otherName),
+    { wrapper, initialProps: { id } },
+  );
+  await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+  return hook;
+}
+
+let appStateListeners: ((state: AppStateStatus) => void)[] = [];
+const originalAppState = Object.getOwnPropertyDescriptor(AppState, 'currentState')!;
+/** A history request that stays on its way until the test lets it answer. */
+let held: (() => void)[] = [];
+const holdHistory = () => {
+  held = [];
+  jest.mocked(fetchMessages).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        held.push(() => resolve(page([message])));
+      }),
+  );
+};
+/** The conversations the API was asked to mark as read. */
+const markedRead = () => jest.mocked(markRead).mock.calls.map(([input]) => input.conversationId);
+const answerHeld = () => act(async () => held.splice(0).forEach((answer) => answer()));
 
 beforeEach(() => {
   mockIsFocused = true;
-  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
-  mockListener = undefined;
-  jest.clearAllMocks();
   appStateListeners = [];
   Object.defineProperty(AppState, 'currentState', {
     configurable: true,
@@ -79,461 +111,117 @@ beforeEach(() => {
     if (type === 'change') appStateListeners.push(listener as (state: AppStateStatus) => void);
     return { remove: jest.fn() } as never;
   });
-  mockHistory.mockReturnValue({
-    data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
-    isPending: false,
-    error: null,
-    isFetching: false,
-    hasNextPage: false,
-    isFetchingNextPage: false,
-    refetch: jest.fn().mockResolvedValue({
-      data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
-      isError: false,
-    }),
-    fetchNextPage: jest.fn(),
-  });
-  mockSend.mockResolvedValue({
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  client.setQueryData(currentUserKeys.me(), mockUserProfile);
+  mockSocket.status = 'open';
+  mockSocket.listeners.clear();
+  jest.clearAllMocks();
+  jest.mocked(Crypto.randomUUID).mockReturnValue('client-id-1');
+  jest.mocked(fetchMessages).mockResolvedValue(page([]));
+  jest.mocked(markRead).mockResolvedValue(undefined);
+  mockSocket.send.mockResolvedValue({
     type: 'dm.send',
     payload: { id: 'message-2', sent_at: '2026-11-22T12:01:00Z' },
   });
 });
 afterEach(() => {
   client.clear();
-  jest.restoreAllMocks();
+  jest.mocked(AppState.addEventListener).mockRestore();
   Object.defineProperty(AppState, 'currentState', originalAppState);
 });
 
-describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
-  it('marks read only through the newest message returned by history', async () => {
-    const data = { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] };
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      data,
-      refetch: jest.fn().mockResolvedValue({ data, isError: false }),
-    });
-    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await waitFor(() =>
-      expect(mockMarkRead).toHaveBeenCalledWith({
-        conversationId: CONVERSATION,
-        lastMessageId: message.id,
-      }),
-    );
-  });
+describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
+  it('exposa l’històric persistit i marca la conversa oberta com a llegida', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
 
-  it('does not mark read when history is empty', async () => {
-    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await act(async () => {});
-    expect(mockMarkRead).not.toHaveBeenCalled();
-  });
+    const { result } = await mount();
 
-  it('TG-65 criteria 9 and 11 does not mark read for an empty history page array', async () => {
-    const data = { pages: [], pageParams: [] };
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      data,
-      refetch: jest.fn().mockResolvedValue({ data, isError: false }),
-    });
-
-    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await act(async () => {});
-
-    expect(mockMarkRead).not.toHaveBeenCalled();
-  });
-
-  it('TG-65 criterion 11 marks an incoming live message read by its ID after history loads', async () => {
-    const latestHistoryMessage = { ...message, id: 'latest-history-message' };
-    const data = {
-      pages: [{ messages: [latestHistoryMessage], next_cursor: null }],
-      pageParams: [undefined],
-    };
-    const liveMessage = { ...message, id: 'incoming-live-message', text: 'Nou' };
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      data,
-      refetch: jest.fn().mockResolvedValue({ data, isError: false }),
-    });
-
-    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await waitFor(() =>
-      expect(mockMarkRead).toHaveBeenCalledWith({
-        conversationId: CONVERSATION,
-        lastMessageId: latestHistoryMessage.id,
-      }),
-    );
-
-    mockMarkRead.mockClear();
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: liveMessage });
-    });
-
-    expect(mockMarkRead).toHaveBeenCalledTimes(1);
-    expect(mockMarkRead).toHaveBeenCalledWith({
-      conversationId: CONVERSATION,
-      lastMessageId: liveMessage.id,
-    });
-  });
-
-  it('uses the other participant name for messages loaded from history', async () => {
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-    });
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION, 'Anna'), {
-      wrapper,
-    });
     expect(result.current.items).toContainEqual(
       expect.objectContaining({
         kind: 'message',
-        message: expect.objectContaining({ author: { id: 'other', name: 'Anna' } }),
+        message: expect.objectContaining({ id: message.id, text: 'Hola', room_id: CONVERSATION }),
+        mine: false,
       }),
     );
-  });
-
-  it('does not mark messages read in background and reloads before marking on return', async () => {
-    let finish!: (result: unknown) => void;
-    const data = { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] };
-    const refetch = jest
-      .fn()
-      .mockResolvedValueOnce({ data, isError: false })
-      .mockReturnValueOnce(
-        new Promise((resolve) => {
-          finish = resolve;
-        }),
-      );
-    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
-    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
     await waitFor(() =>
-      expect(mockMarkRead).toHaveBeenCalledWith({
-        conversationId: CONVERSATION,
-        lastMessageId: message.id,
-      }),
-    );
-    mockMarkRead.mockClear();
-    await act(async () => {
-      appStateListeners.forEach((listener) => listener('background'));
-    });
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: message });
-    });
-    expect(mockMarkRead).not.toHaveBeenCalled();
-    await act(async () => {
-      appStateListeners.forEach((listener) => listener('active'));
-    });
-    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(2));
-    expect(mockMarkRead).not.toHaveBeenCalled();
-    await act(async () => {
-      finish({ data, isError: false });
-    });
-    await waitFor(() =>
-      expect(mockMarkRead).toHaveBeenCalledWith({
+      expect(jest.mocked(markRead).mock.calls[0]?.[0]).toEqual({
         conversationId: CONVERSATION,
         lastMessageId: message.id,
       }),
     );
   });
-  it('does not mark read when a history request completes after focus was lost', async () => {
-    let finish!: (result: unknown) => void;
-    const refetch = jest.fn(
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        }),
+
+  it('manté l’ordre del servidor i hi col·loca els missatges en directe pel seu moment i id', async () => {
+    const timestamp = '2026-11-22T12:00:00Z';
+    jest.mocked(fetchMessages).mockResolvedValue(
+      page([
+        { ...message, id: 'tie-b', sent_at: timestamp },
+        { ...message, id: 'older', sent_at: '2026-11-22T11:00:00Z' },
+      ]),
     );
-    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
-    const { rerender } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await waitFor(() => expect(refetch).toHaveBeenCalled());
-    mockIsFocused = false;
-    await rerender(undefined);
-    await act(async () => {
-      finish({ data: { pages: [], pageParams: [] }, isError: false });
-    });
-    expect(mockMarkRead).not.toHaveBeenCalled();
-  });
+    const { result } = await mount();
 
-  it('does not mark the old conversation read when its history completes after switching', async () => {
-    const data = { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] };
-    const resolvers: ((result: unknown) => void)[] = [];
-    const refetch = jest.fn(
-      () =>
-        new Promise((resolve) => {
-          resolvers.push(resolve);
-        }),
-    );
-    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
-    const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
-      wrapper,
-      initialProps: { id: CONVERSATION },
-    });
-    await waitFor(() => expect(resolvers).toHaveLength(1));
-    await rerender({ id: OTHER });
-    await waitFor(() => expect(resolvers).toHaveLength(2));
     await act(async () => {
-      resolvers[0]?.({ data, isError: false });
-    });
-    expect(mockMarkRead).not.toHaveBeenCalledWith({
-      conversationId: CONVERSATION,
-      lastMessageId: message.id,
-    });
-    await act(async () => {
-      resolvers[1]?.({ data, isError: false });
-    });
-    expect(mockMarkRead).toHaveBeenCalledWith({
-      conversationId: OTHER,
-      lastMessageId: message.id,
-    });
-  });
-
-  it('does not mark a background conversation read, including when a message arrives', async () => {
-    mockIsFocused = false;
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      refetch: jest.fn().mockResolvedValue({
-        data: { pages: [{ messages: [], next_cursor: null }], pageParams: [undefined] },
-        isError: false,
-      }),
-    });
-    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: message });
-    });
-    expect(mockMarkRead).not.toHaveBeenCalled();
-  });
-
-  it('does not mark the conversation read when fetching history fails', async () => {
-    const error = new AppError({
-      kind: 'http',
-      code: 'DATABASE_UNAVAILABLE',
-      status: 503,
-      retryable: true,
-    });
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      data: undefined,
-      error,
-      isPending: false,
-      refetch: jest.fn().mockResolvedValue({ data: undefined, error, isError: true }),
-    });
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    expect(result.current.error).toBe(error);
-    expect(mockMarkRead).not.toHaveBeenCalled();
-  });
-
-  it('waits for history to reload successfully before marking read on connection', async () => {
-    let finish!: (result: unknown) => void;
-    const refetch = jest.fn(
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        }),
-    );
-    mockHistory.mockReturnValue({ ...mockHistory(), refetch });
-    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    await waitFor(() => expect(refetch).toHaveBeenCalled());
-    expect(mockMarkRead).not.toHaveBeenCalled();
-    await act(async () => {
-      finish({
-        data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-        isError: false,
+      emit({ type: 'dm.message', payload: { ...message, id: 'tie-z', sent_at: timestamp } });
+      emit({
+        type: 'dm.message',
+        payload: { ...message, id: 'latest', sent_at: '2026-11-22T13:00:00Z' },
       });
     });
-    await waitFor(() =>
-      expect(mockMarkRead).toHaveBeenCalledWith({
-        conversationId: CONVERSATION,
-        lastMessageId: message.id,
-      }),
-    );
-  });
-  it('exposes persisted history and marks the open conversation as read', async () => {
-    mockHistory.mockReturnValue({
-      data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-      isPending: false,
-      error: null,
-      isFetching: false,
-      hasNextPage: false,
-      isFetchingNextPage: false,
-      refetch: jest.fn().mockResolvedValue({
-        data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-        isError: false,
-      }),
-      fetchNextPage: jest.fn(),
-    });
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    expect(result.current.items).toContainEqual(
-      expect.objectContaining({
-        kind: 'message',
-        message: expect.objectContaining({ id: message.id, text: 'Hola' }),
-      }),
-    );
-    await waitFor(() =>
-      expect(mockMarkRead).toHaveBeenCalledWith({
-        conversationId: CONVERSATION,
-        lastMessageId: message.id,
-      }),
-    );
+
+    expect(messageIds(result.current.items)).toEqual(['latest', 'tie-z', 'tie-b', 'older']);
   });
 
-  it('signals only new incoming websocket messages, not history, own events or duplicates', async () => {
-    mockHistory.mockReturnValue({
-      data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-      isPending: false,
-      error: null,
-      isFetching: false,
-      hasNextPage: false,
-      isFetchingNextPage: false,
-      refetch: jest.fn().mockResolvedValue({
-        data: { pages: [{ messages: [message], next_cursor: null }], pageParams: [undefined] },
-        isError: false,
-      }),
-      fetchNextPage: jest.fn(),
-    });
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-    expect(result.current.lastIncoming).toBeUndefined();
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: message });
-    });
-    expect(result.current.lastIncoming).toBeUndefined();
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: { ...message, id: 'own', sender_id: 'me' } });
-    });
-    expect(result.current.lastIncoming).toBeUndefined();
-    const live = { ...message, id: 'fresh', text: 'Nou' };
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: live });
-    });
-    expect(result.current.lastIncoming).toEqual(live);
-    const reference = result.current.lastIncoming;
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: live });
-    });
-    expect(result.current.lastIncoming).toBe(reference);
+  it('no marca com a llegida una conversa amb l’històric buit', async () => {
+    await mount();
+    await act(async () => {});
+
+    expect(markRead).not.toHaveBeenCalled();
   });
 
-  it('does not reannounce an old event after leaving and returning to a conversation', async () => {
-    const { result, rerender } = await renderHook(
-      ({ id }: { id: string }) => useDirectConversation(id),
-      { wrapper, initialProps: { id: CONVERSATION } },
-    );
-    await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: message });
-    });
-    expect(result.current.lastIncoming).toEqual(message);
-    await rerender({ id: OTHER });
-    expect(result.current.lastIncoming).toBeUndefined();
-    await rerender({ id: CONVERSATION });
-    expect(result.current.lastIncoming).toBeUndefined();
-  });
+  it('envia un dm.send amb la conversa, el text i un id generat pel client', async () => {
+    const { result } = await mount();
 
-  it('keeps history safe when no page data is available', async () => {
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      data: undefined,
-    });
-
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-
-    expect(result.current.items).toEqual([]);
-  });
-
-  it('orders history newest first and uses descending message ids for equal timestamps', async () => {
-    const timestamp = '2026-11-22T12:00:00Z';
-    const historyMessages = [
-      { ...message, id: 'tie-a', sent_at: timestamp },
-      { ...message, id: 'older', sent_at: '2026-11-22T11:00:00Z' },
-      { ...message, id: 'tie-z', sent_at: timestamp },
-    ];
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      data: {
-        pages: [{ messages: historyMessages, next_cursor: null }],
-        pageParams: [undefined],
-      },
-    });
-
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-
-    expect(
-      result.current.items.filter((item) => item.kind === 'message').map((item) => item.message.id),
-    ).toEqual(['tie-z', 'tie-a', 'older']);
-  });
-
-  it('sends dm.send with conversation, text and a client-generated id', async () => {
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
     await act(async () => {
       await result.current.send('Hola');
     });
+
     await waitFor(() =>
-      expect(mockSend).toHaveBeenCalledWith({
+      expect(mockSocket.send).toHaveBeenCalledWith({
         type: 'dm.send',
         payload: { conversation_id: CONVERSATION, text: 'Hola', client_message_id: 'client-id-1' },
       }),
     );
-    await waitFor(() =>
-      expect(
-        result.current.items.some(
-          (item) => item.kind === 'message' && item.message.id === 'message-2',
-        ),
-      ).toBe(true),
+    await waitFor(() => expect(messageIds(result.current.items)).toContain('message-2'));
+    expect(result.current.items).toContainEqual(
+      expect.objectContaining({ kind: 'message', mine: true }),
     );
   });
 
-  it('shows a private event only in its own conversation and deduplicates it', async () => {
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+  it('mostra un missatge privat només a la seva conversa i sense duplicar-lo', async () => {
+    const { result } = await mount();
+
     await act(async () => {
-      mockListener?.({ type: 'dm.message', payload: { ...message, conversation_id: OTHER } });
-      mockListener?.({ type: 'dm.message', payload: message });
-      mockListener?.({ type: 'dm.message', payload: message });
+      emit({ type: 'dm.message', payload: { ...message, conversation_id: OTHER } });
+      emit({ type: 'dm.message', payload: message });
+      emit({ type: 'dm.message', payload: message });
     });
+
     const messages = result.current.items.filter((item) => item.kind === 'message');
     expect(messages).toHaveLength(1);
     expect(messages[0]).toMatchObject({ message: { id: message.id, text: 'Hola' }, mine: false });
   });
 
-  it('never shows an earlier conversation send in the new conversation after a late ack', async () => {
-    let resolveSend!: (value: { type: string; payload: { id: string; sent_at: string } }) => void;
-    mockSend.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveSend = resolve;
-      }),
-    );
-    const { result, rerender } = await renderHook(
-      ({ id }: { id: string }) => useDirectConversation(id),
-      { wrapper, initialProps: { id: CONVERSATION } },
-    );
-    let pendingSend!: Promise<unknown>;
-    await act(async () => {
-      pendingSend = result.current.send('Només a A');
-    });
-    expect(result.current.items).toContainEqual(
-      expect.objectContaining({ kind: 'pending', text: 'Només a A' }),
-    );
-
-    await rerender({ id: OTHER });
-    expect(result.current.items).not.toContainEqual(
-      expect.objectContaining({ kind: 'pending', text: 'Només a A' }),
-    );
-    await act(async () => {
-      resolveSend({ type: 'dm.send', payload: { id: 'late-message-a', sent_at: message.sent_at } });
-      await pendingSend;
-    });
-    expect(result.current.items).not.toContainEqual(
-      expect.objectContaining({
-        kind: 'message',
-        message: expect.objectContaining({ id: 'late-message-a' }),
-      }),
-    );
-    expect(result.current.items).not.toContainEqual(
-      expect.objectContaining({ kind: 'pending', text: 'Només a A' }),
-    );
-  });
-
-  it('keeps a refused send as a failed message with the server error', async () => {
-    mockSend.mockRejectedValue(
+  it('un enviament refusat queda com a fallit amb l’error del servidor', async () => {
+    mockSocket.send.mockRejectedValue(
       new AppError({ kind: 'http', code: 'USER_BLOCKED', status: 403, retryable: false }),
     );
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    const { result } = await mount();
+
     await act(async () => {
       await result.current.send('Hola');
     });
+
     await waitFor(() =>
       expect(result.current.items).toContainEqual(
         expect.objectContaining({
@@ -545,8 +233,8 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     );
   });
 
-  it('uses the same client id when retrying an uncertain send', async () => {
-    mockSend
+  it('en reintentar un enviament incert reutilitza el mateix id de client', async () => {
+    mockSocket.send
       .mockRejectedValueOnce(
         new AppError({ kind: 'network', code: 'SEND_UNCERTAIN', retryable: true }),
       )
@@ -554,7 +242,8 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
         type: 'dm.send',
         payload: { id: 'message-2', sent_at: '2026-11-22T12:01:00Z' },
       });
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    const { result } = await mount();
+
     await act(async () => {
       await result.current.send('Hola');
     });
@@ -566,42 +255,17 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     await act(async () => {
       await result.current.retry('client-id-1');
     });
-    expect(mockSend.mock.calls[0]?.[0]).toEqual(mockSend.mock.calls[1]?.[0]);
+
+    expect(mockSocket.send.mock.calls[0]?.[0]).toEqual(mockSocket.send.mock.calls[1]?.[0]);
   });
 
-  it('does not retry a pending send after switching to another conversation', async () => {
-    mockSend.mockRejectedValueOnce(
-      new AppError({ kind: 'network', code: 'SEND_UNCERTAIN', retryable: true }),
-    );
-    const { result, rerender } = await renderHook(
-      ({ id }: { id: string }) => useDirectConversation(id),
-      { wrapper, initialProps: { id: CONVERSATION } },
-    );
-
-    await act(async () => {
-      await result.current.send('Només a aquesta conversa');
-    });
-    await waitFor(() =>
-      expect(result.current.items).toContainEqual(
-        expect.objectContaining({ kind: 'pending', status: 'uncertain' }),
-      ),
-    );
-
-    await rerender({ id: OTHER });
-    await act(async () => {
-      await result.current.retry('client-id-1');
-    });
-
-    expect(mockSend).toHaveBeenCalledTimes(1);
-  });
-
-  it('discards only the pending message with the requested client id', async () => {
+  it('descarta només el missatge pendent amb l’id de client demanat', async () => {
     jest
       .mocked(Crypto.randomUUID)
       .mockReturnValueOnce('client-id-1')
       .mockReturnValueOnce('client-id-2');
-    mockSend.mockReturnValue(new Promise(() => undefined));
-    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    mockSocket.send.mockReturnValue(new Promise(() => undefined));
+    const { result } = await mount();
 
     await act(async () => {
       await result.current.send('Primer');
@@ -619,63 +283,256 @@ describe('useDirectConversation (TG-65 criteria 5, 9, 11)', () => {
     );
   });
 
-  it('loads older history only when another page is available and no fetch is active', async () => {
-    const fetchNextPage = jest.fn();
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      hasNextPage: true,
-      isFetchingNextPage: false,
-      fetchNextPage,
+  it('carrega l’històric antic només si hi ha pàgina i no n’hi ha una en curs', async () => {
+    // Connecting asks for the history again, so the answer depends on the cursor, not on the order.
+    jest
+      .mocked(fetchMessages)
+      .mockImplementation(async (_id, before) =>
+        before ? page([{ ...message, id: 'older' }]) : page([message], 'cursor-1'),
+      );
+    const { result } = await mount();
+    expect(result.current.hasMore).toBe(true);
+
+    await act(async () => {
+      result.current.loadOlder();
     });
-    const { result, rerender } = await renderHook(
-      ({ id }: { id: string }) => useDirectConversation(id),
-      { wrapper, initialProps: { id: CONVERSATION } },
+
+    expect(fetchMessages).toHaveBeenCalledWith(CONVERSATION, 'cursor-1');
+    await waitFor(() => expect(result.current.hasMore).toBe(false));
+    const calls = jest.mocked(fetchMessages).mock.calls.length;
+    await act(async () => {
+      result.current.loadOlder();
+    });
+    expect(fetchMessages).toHaveBeenCalledTimes(calls);
+  });
+
+  it('marca la conversa com a llegida també quan hi arriba un missatge', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+    await mount();
+    await waitFor(() => expect(markRead).toHaveBeenCalledTimes(1));
+
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+
+    await waitFor(() => expect(markRead).toHaveBeenCalledTimes(2));
+  });
+
+  it.each(['id', 'conversation_id', 'sender_id', 'text', 'sent_at'] as const)(
+    'ignora un dm.message amb %s que no és text',
+    async (field) => {
+      const { result } = await mount();
+
+      await act(async () => emit({ type: 'dm.message', payload: { ...message, [field]: null } }));
+
+      expect(result.current.items).toEqual([]);
+    },
+  );
+});
+
+describe('useDirectConversation: errors i reconnexió (review de TG-65)', () => {
+  it('[ALTA] un error en refrescar l’històric no amaga una conversa que ja es veu', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+    const { result } = await mount();
+    jest
+      .mocked(fetchMessages)
+      .mockRejectedValue(new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable: true }));
+
+    await act(async () => {
+      await client.refetchQueries({ queryKey: directChatKeys.messages(CONVERSATION) });
+      // TanStack notifies the observers on a timer: let it deliver the failure.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(client.getQueryState(directChatKeys.messages(CONVERSATION))?.status).toBe('error');
+    expect(result.current.error).toBeNull();
+    expect(messageIds(result.current.items)).toEqual([message.id]);
+  });
+
+  it('[ALTA] un error en refrescar qui ets no amaga la conversa si ja ho sap', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+    jest
+      .mocked(getCurrentUser)
+      .mockRejectedValue(new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable: true }));
+    const { result } = await mount();
+
+    await act(async () => {
+      await client.refetchQueries({ queryKey: currentUserKeys.me() });
+      // TanStack notifies the observers on a timer: let it deliver the failure.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(client.getQueryState(currentUserKeys.me())?.status).toBe('error');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('[MITJANA] en connectar cancel·la la petició en curs de l’històric abans de tornar-la a demanar', async () => {
+    const cancel = jest.spyOn(client, 'cancelQueries');
+    await mount();
+
+    await waitFor(() =>
+      expect(cancel).toHaveBeenCalledWith({ queryKey: directChatKeys.messages(CONVERSATION) }),
     );
+  });
 
-    await act(async () => {
-      result.current.loadOlder();
-    });
-    expect(fetchNextPage).toHaveBeenCalledWith({ cancelRefetch: false });
+  it('[MITJANA] en tornar a connectar recupera el que s’ha publicat mentre era fora', async () => {
+    const { result, rerender } = await mount();
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
 
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      hasNextPage: true,
-      isFetchingNextPage: true,
-      fetchNextPage,
-    });
-    await rerender({ id: OTHER });
-    await act(async () => {
-      result.current.loadOlder();
-    });
-    expect(fetchNextPage).toHaveBeenCalledTimes(1);
-
-    mockHistory.mockReturnValue({
-      ...mockHistory(),
-      hasNextPage: false,
-      isFetchingNextPage: false,
-      fetchNextPage,
-    });
+    mockSocket.status = 'reconnecting';
     await rerender({ id: CONVERSATION });
-    await act(async () => {
-      result.current.loadOlder();
-    });
-    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+    mockSocket.status = 'open';
+    await rerender({ id: CONVERSATION });
+
+    await waitFor(() => expect(messageIds(result.current.items)).toEqual([message.id]));
+  });
+
+  it('[MITJANA] recarregar també torna a demanar qui ets si havia fallat', async () => {
+    client.clear();
+    jest
+      .mocked(getCurrentUser)
+      .mockRejectedValueOnce(
+        new AppError({ kind: 'http', code: 'ACCOUNT_SUSPENDED', status: 403, retryable: false }),
+      )
+      .mockResolvedValue(mockUserProfile);
+    const hook = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(hook.result.current.error).toBeTruthy());
+
+    await act(async () => hook.result.current.reload());
+
+    await waitFor(() => expect(hook.result.current.error).toBeNull());
+    expect(getCurrentUser).toHaveBeenCalledTimes(2);
+  });
+
+  it('mentre carrega qui ets o l’històric, està carregant', async () => {
+    jest.mocked(fetchMessages).mockReturnValue(new Promise(() => undefined));
+
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+
+    expect(result.current.isLoading).toBe(true);
   });
 });
 
-describe('TG-65 criterion 5: malformed private events', () => {
-  it.each(['id', 'conversation_id', 'sender_id', 'text', 'sent_at'] as const)(
-    'ignores a dm.message whose %s is not a string',
-    async (field) => {
-      const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
-      await act(async () => {
-        mockListener?.({
-          type: 'dm.message',
-          payload: { ...message, [field]: null },
-        });
-      });
-      expect(result.current.items).toEqual([]);
-      expect(result.current.lastIncoming).toBeUndefined();
-    },
-  );
+describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () => {
+  it('mostra el nom de l’altre participant als missatges de l’històric', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+
+    const { result } = await mount(CONVERSATION, 'Anna');
+
+    expect(result.current.items).toContainEqual(
+      expect.objectContaining({
+        kind: 'message',
+        message: expect.objectContaining({ author: { id: 'other', name: 'Anna' } }),
+      }),
+    );
+  });
+
+  it('no marca com a llegit en segon pla i recarrega l’històric abans de marcar en tornar', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+    await mount();
+    await waitFor(() => expect(markRead).toHaveBeenCalledTimes(1));
+    jest.mocked(markRead).mockClear();
+
+    await act(async () => appStateListeners.forEach((listener) => listener('background')));
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+    expect(markRead).not.toHaveBeenCalled();
+
+    holdHistory();
+    await act(async () => appStateListeners.forEach((listener) => listener('active')));
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+    expect(markRead).not.toHaveBeenCalled();
+    await answerHeld();
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
+  });
+
+  it('no marca com a llegit si l’històric respon quan ja s’ha perdut el focus', async () => {
+    holdHistory();
+    const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
+      wrapper,
+      initialProps: { id: CONVERSATION },
+    });
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+
+    mockIsFocused = false;
+    await rerender({ id: CONVERSATION });
+    await answerHeld();
+
+    expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('no marca com a llegida l’antiga conversa si l’històric respon després de canviar', async () => {
+    holdHistory();
+    const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
+      wrapper,
+      initialProps: { id: CONVERSATION },
+    });
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+    await rerender({ id: OTHER });
+    await answerHeld();
+
+    await waitFor(() => expect(markedRead()).toContain(OTHER));
+    expect(markedRead()).not.toContain(CONVERSATION);
+  });
+
+  it('no marca com a llegida una conversa sense focus, tampoc quan hi arriba un missatge', async () => {
+    mockIsFocused = false;
+    await mount();
+
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+
+    expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('no marca com a llegida si l’històric no es pot carregar', async () => {
+    const error = new AppError({ kind: 'http', code: 'FORBIDDEN', status: 403, retryable: false });
+    jest.mocked(fetchMessages).mockRejectedValue(error);
+
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(result.current.error).toBe(error));
+
+    expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('espera que l’històric es recarregui bé abans de marcar com a llegida en connectar', async () => {
+    holdHistory();
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+    expect(markRead).not.toHaveBeenCalled();
+
+    await answerHeld();
+
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
+  });
+
+  it('només anuncia els missatges nous en directe, no l’històric, els propis ni els duplicats', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+    const { result } = await mount();
+    expect(result.current.lastIncoming).toBeUndefined();
+
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+    expect(result.current.lastIncoming).toBeUndefined();
+    await act(async () =>
+      emit({
+        type: 'dm.message',
+        payload: { ...message, id: 'own', sender_id: mockUserProfile.id },
+      }),
+    );
+    expect(result.current.lastIncoming).toBeUndefined();
+
+    const fresh = { ...message, id: 'fresh', text: 'Nou' };
+    await act(async () => emit({ type: 'dm.message', payload: fresh }));
+    expect(result.current.lastIncoming).toEqual(fresh);
+    const announced = result.current.lastIncoming;
+    await act(async () => emit({ type: 'dm.message', payload: fresh }));
+    expect(result.current.lastIncoming).toBe(announced);
+  });
+
+  it('no torna a anunciar un missatge antic en sortir d’una conversa i tornar-hi', async () => {
+    const { result, rerender } = await mount();
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+    expect(result.current.lastIncoming).toEqual(message);
+
+    await rerender({ id: OTHER });
+    expect(result.current.lastIncoming).toBeUndefined();
+    await rerender({ id: CONVERSATION });
+    expect(result.current.lastIncoming).toBeUndefined();
+  });
 });
