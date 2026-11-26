@@ -53,6 +53,12 @@ export function OutingDetail({ outing, isAuthor, onEdit, onDelete }: Props) {
         label={t('outings.detail.end')}
         value={formatDateTime(outing.ends_at, i18n.language)}
       />
+      {outing.place ? (
+        <DetailRow
+          label={t('outings.detail.place')}
+          value={[outing.place.name, outing.place.address].filter(Boolean).join(', ')}
+        />
+      ) : null}
       <DetailRow
         label={t('outings.detail.where')}
         value={`${formatCoordinate(latitude, i18n.language)} · ${formatCoordinate(longitude, i18n.language)}`}

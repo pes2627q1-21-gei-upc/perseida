@@ -3,6 +3,8 @@ export {
   blur,
   breakpoints,
   duration,
+  focusRingShadow,
+  focusRingWidth,
   iconSizes,
   radii,
   readingMaxWidth,
