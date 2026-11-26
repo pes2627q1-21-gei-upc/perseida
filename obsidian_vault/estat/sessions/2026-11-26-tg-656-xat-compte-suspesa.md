@@ -22,7 +22,7 @@ L'autor va triar l'opció **(c)**: tancar la sessió i anar a `/login`, **només
 
 - **Tests en vermell abans del codi (ADR-0028):** a `useLiveConversation.test.tsx` (enviament, reintent i guardes de `FORBIDDEN`, 429, 422 i 5xx) i `LoginScreen.test.tsx`.
 - **`useLiveConversation`:** en un d'aquests dos codis la bombolla queda `failed`, es crida `clearSession` i després `router.replace` a `/login` amb `notice=<codi>`. Cobreix el xat d'esdeveniment i el directe, que comparteixen el hook.
-- **`login.tsx`:** el `notice` amb aquests codis mostra el text traduït que ja existia (`auth.errors.*`); cap text nou. `ACCOUNT_BLOCKED_CODES` viu a `useLogout.ts`, al costat de `LOGOUT_NOTICE`.
+- **`login.tsx`:** el `notice` amb aquests codis mostra el text traduït que ja existia (`errors.ACCOUNT_SUSPENDED` i `errors.ACCOUNT_DELETED`, via `authErrorMessage` i `errorMessage`); cap text nou. `ACCOUNT_BLOCKED_CODES` viu a `features/auth/accountBlocked.ts`.
 - **Backend:** sense canvis. El handshake del WebSocket només valida el token (ADR-0030); el 403 `ACCOUNT_*` el donen els handlers en enviar.
 - **Vault:** actualitzada la nota «Límits coneguts» d'[[frontend]].
 
