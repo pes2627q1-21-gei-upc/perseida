@@ -53,7 +53,7 @@ flowchart TB
 - **CI** en cada PR hacia `develop`/`main`, con filtros por ruta y caché de dependencias `uv`/`pnpm`: formato, linters y tipos → tests con cobertura → SonarQube Cloud → Quality Gate. Obligatorio para fusionar.
 - **CD** en cada push a `main` (fusión de release o hotfix):
   1. Construye la imagen del backend (el job `image` reutiliza `backend-docker.yml`), la etiqueta con el `git-sha` (`sha-<7 caracteres>`) y la sube a **GHCR**, aunque no haya cambiado ningún fichero del backend.
-  2. Se conecta al servidor de Virtech por **SSH**, copia `docker-compose.yml` y `deploy.sh`, renderiza el `.env` desde los secretos y variables de GitHub (`chmod 600`) y ejecuta `deploy.sh`: descarga la imagen, hace `docker compose up` y comprueba el healthcheck con un tiempo de espera.
+  2. Se conecta al servidor de Virtech por **SSH**, copia `docker-compose.yml`, `deploy.sh` y `backup-db.sh`, renderiza el `.env` desde los secretos y variables de GitHub (`chmod 600`) y ejecuta `deploy.sh`: descarga la imagen, hace `docker compose up` y comprueba el healthcheck con un tiempo de espera.
   3. Si el healthcheck falla, hace rollback automático a la versión anterior y el job termina en error.
   4. Publica el **APK** del frontend en una release de GitHub.
 - Versionado: SemVer a partir de `0.1.0`, una release por sprint, automatizado por el pipeline.
@@ -165,6 +165,7 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 | `NASA_API_KEY` | Secreto | Clave de la API de la NASA para el APOD (<https://api.nasa.gov>) |
 | `SPOTWISE_API_TOKEN` | Secreto | Token del servicio de espacios de Spotwise para los puntos de encuentro (TG-352); Spotwise lo pasa por privado |
 | `POSTGRES_PORT` | Variable | Puerto de la base de datos |
+| `BACKUP_KEEP` | Variable | Copias de la base de datos que se conservan antes de borrar la más antigua (entero >= 1, `5`); véase *Copias de seguridad de la base de datos* |
 | `POSTGRES_HOST` | Variable | `postgres` (alias de red del servicio de base de datos) |
 | `REDIS_HOST` | Variable | `redis` (alias de red del servicio de caché) |
 | `REDIS_PORT`, `CACHE_DEFAULT_TTL_SECONDS` | Variable | Puerto de Redis y TTL por defecto de la caché |
@@ -174,7 +175,7 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 | `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS` | Variable | Duraciones de la sesión (`15` y `30`) |
 | `HTTP_PORT`, `HTTPS_PORT` | Variable | Puertos que publica nginx-proxy-manager en la VM (`8080` y `8081`; solo el `8080`–`8088` es accesible desde fuera) |
 
-No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `NPM_ADMIN_PORT` (por defecto `81`, solo en `127.0.0.1`), `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
+No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `BACKUP_DIR` (opcional; por defecto `~/perseida/backups`, véase *Copias de seguridad de la base de datos*), `NPM_ADMIN_PORT` (por defecto `81`, solo en `127.0.0.1`), `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
 
 Requisitos del servidor: Docker Engine con Compose 2.22 o superior (`pull --policy`), `flock` (de `util-linux`), el usuario SSH en el grupo `docker` y `/opt/perseida` con permiso de escritura para ese usuario.
 
@@ -188,16 +189,18 @@ Requisitos del servidor: Docker Engine con Compose 2.22 o superior (`pull --poli
 
 El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`docker login` por stdin y `docker logout` al final), de modo que el paquete puede seguir siendo privado.
 
+`BACKUP_KEEP` se renderiza en el `.env` como cualquier otra variable; `BACKUP_DIR` no (se excluye en `cd.yml`, porque GitHub no admite variables vacías). `deploy.sh` solo lee esos dos nombres del `.env`, nunca los secretos.
+
 ### Rollback automático
 
-`deploy.sh <tag>` descarga la imagen si falta, ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok` (el propio Compose puede rendirse antes, cuando se rinde el healthcheck del contenedor, unos 65 s con la configuración actual; el resultado es el mismo). Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
+`deploy.sh <tag>` descarga la imagen si falta, hace una copia de la base de datos si hay migraciones pendientes (véase *Copias de seguridad de la base de datos*), ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok` (el propio Compose puede rendirse antes, cuando se rinde el healthcheck del contenedor, unos 65 s con la configuración actual; el resultado es el mismo). Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
 
 1. Se detiene la API.
 2. **Sonda:** se arranca la imagen anterior (el tag de `.deployed-tag`) **sin migraciones** y con el mismo `.env`, en un contenedor temporal.
    - Si no responde, la causa es la configuración o la infraestructura, no el código nuevo: **no se deshace nada** (los datos se conservan), la API queda parada y el job falla diciéndote que corrijas el secreto o la variable y vuelvas a ejecutar el CD.
    - Si responde, la causa es el código nuevo o sus migraciones y el rollback continúa.
    - Aunque responda, si los nombres de variable del `.env` difieren de los del último despliegue bueno (`.deployed-env`, solo nombres), tampoco se deshace nada: una variable nueva que falta o es errónea hace fallar la versión nueva pero no la sonda. La API queda parada y el job falla diciendo que revises los secretos y las variables. Sin `.deployed-env` (primer despliegue tras esta comprobación) se considera que han cambiado, que es el caso seguro.
-3. Se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
+3. Primero se hace una copia de la base de datos (véase *Copias de seguridad de la base de datos*); si falla, no se deshace nada y la API queda parada. Después se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
 4. Se arranca la imagen anterior con normalidad y se vuelve a comprobar el healthcheck.
 5. El job **siempre termina en error**, aunque el rollback haya funcionado.
 
@@ -217,7 +220,24 @@ docker images ghcr.io/pes2627q1-21-gei-upc/perseida-api    # versiones que aún 
 
 Si la imagen de destino ya no está en el servidor, hay que hacer antes `docker login ghcr.io -u <usuario-github>` con un token con `read:packages`. El script deshace las migraciones hasta la revisión de esa versión con la imagen del último intento fallido (`.attempted-tag`) si lo hay, y si no con la de `.deployed-tag`; la arranca, comprueba el healthcheck, actualiza `.deployed-tag` y borra `.attempted-tag`.
 
-> **Aviso sobre los datos:** deshacer una migración elimina las tablas y columnas que había creado, con sus datos. No hay copias de seguridad. Volver a una versión muy antigua solo debe hacerse sabiéndolo.
+> **Aviso sobre los datos:** deshacer una migración elimina las tablas y columnas que había creado, con sus datos. Antes del downgrade, el script hace una copia de la base de datos (véase *Copias de seguridad de la base de datos*) y, si falla, no deshace nada; restaurar esa copia es manual y los datos escritos después se pierden. Volver a una versión muy antigua solo debe hacerse sabiéndolo.
+
+### Copias de seguridad de la base de datos
+
+Antes de que la imagen nueva migre la base de datos, y antes de cualquier `alembic downgrade`, `deploy.sh` ejecuta `infra/scripts/backup-db.sh` (el CD lo copia a `/opt/perseida/` junto a `deploy.sh`), que hace un `pg_dump -Fc` de la base de datos de producción dentro del contenedor `db`. Decisión y alternativas descartadas: [ADR-0035](../obsidian_vault/decisions/0035-copies-de-seguretat-de-postgresql-al-cd.md).
+
+- **Dónde:** `~/perseida/backups/` del usuario del despliegue, o el directorio de `BACKUP_DIR`; debe estar fuera del volumen `perseida_pgdata`. El directorio se crea con modo 700 y los ficheros con 600.
+- **Nombre:** `perseida-<UTC AAAAMMDDTHHMMSSZ>-<git-sha sin el prefijo sha->[-<revisión de Alembic>].dump`. La revisión es la que tenía la base de datos cuando se hizo la copia.
+- **Verificación:** el dump se escribe en un fichero temporal, no debe estar vacío y `pg_restore --list` debe poder leerlo; solo entonces toma el nombre definitivo.
+- **Rotación:** se conservan las `BACKUP_KEEP` más recientes (5 por defecto) y se borran las demás, solo después de una copia buena.
+- **Cuándo se hace:**
+  - Antes de arrancar una versión nueva, **solo si hay migraciones pendientes**: la revisión actual de la base de datos (`alembic_version`) es distinta del `head` de la imagen nueva. Si no se puede saber el `head`, la copia se hace igualmente.
+  - **Siempre antes de un `alembic downgrade`**: el rollback automático y `deploy.sh --rollback`. Si la copia falla, el downgrade no se ejecuta y la API queda parada.
+- **Cuándo se omite (con un aviso):** si no hay contenedor `db` en marcha o la base de datos no tiene `alembic_version` (el primer despliegue).
+- **Si falla** (`pg_dump` sale con error, el fichero está vacío, la verificación falla o no hay espacio): el despliegue se detiene **antes de arrancar la imagen nueva**; no se aplica ninguna migración, no se toca `.deployed-tag` y el job falla. Las copias anteriores se conservan.
+- **Variables:** `BACKUP_KEEP` es una variable de GitHub (`5`) que se renderiza en el `.env`. `BACKUP_DIR` **no** se renderiza (GitHub no admite variables vacías, y sin valor el script usa el directorio por defecto); para cambiarlo, ponlo en el `/opt/perseida/.env` del servidor. `deploy.sh` solo lee esos dos nombres del `.env`. El script nunca imprime contraseñas ni contenido de la base de datos: los logs del workflow son públicos.
+
+Las copias están en la misma VM: no protegen contra la pérdida del servidor ni de su disco. La restauración es manual (sección siguiente).
 
 ### Restaurar una copia de seguridad
 
@@ -230,7 +250,7 @@ Las copias son ficheros `pg_dump -Fc` en `~/perseida/backups` (o `BACKUP_DIR`), 
 3. **Vuelve a crear la base de datos vacía** (`dropdb --force` y `createdb`). Las credenciales salen del entorno del contenedor `db` (`$POSTGRES_USER`, `$POSTGRES_DB`): no las escribas nunca.
 4. **Restaura** con `pg_restore --no-owner`, pasando el dump por entrada estándar.
 5. **Verifica:** la revisión que imprime `psql` debe ser la del nombre del fichero (mira también tablas y filas si puedes).
-6. **Arranca la API y comprueba el healthcheck:** `docker compose ps api` debe acabar en `healthy` (el check del propio contenedor, el mismo que `GET /api/health`). El entrypoint ejecuta las migraciones al arrancar: con una imagen más nueva que la revisión del dump, actualiza el esquema restaurado; con una más antigua, falla, así que usa una imagen cuya revisión coincida con la del dump.
+6. **Arranca la API con una imagen concreta y comprueba el healthcheck:** `API_IMAGE_TAG=<tag> docker compose up -d api`, con un tag cuya revisión de Alembic sea igual o posterior a la del dump (el nombre del fichero lleva el git-sha, así que `sha-<git-sha>` es la imagen que se desplegaba, y la revisión). Sin `API_IMAGE_TAG`, Compose usa `latest`. El entrypoint ejecuta `alembic upgrade` al arrancar: con una imagen más nueva que la revisión del dump, actualiza el esquema restaurado; con una más antigua **falla**, así que no uses nunca una imagen anterior a la revisión del dump. **No** uses `deploy.sh --rollback` para restaurar: deshace migraciones. Después, `docker compose ps api` debe acabar en `healthy` (el check del propio contenedor, el mismo que `GET /api/health`).
 
 ```bash
 ssh -p <port> <user>@<host>
@@ -240,7 +260,7 @@ docker compose stop api
 docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --force "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
 docker compose exec -T db sh -c 'pg_restore --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < ~/perseida/backups/perseida-<UTC>-<sha>-<revision>.dump
 docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"'
-docker compose up -d api
+API_IMAGE_TAG=sha-<git-sha> docker compose up -d api
 docker compose ps api
 ```
 
@@ -283,7 +303,8 @@ infra/
 ├── nginx-proxy-manager/        # configuración del proxy
 ├── moderation/                 # imagen/configuración del servicio Kev-4B
 └── scripts/
-    ├── deploy.sh                # se ejecuta en el servidor: pull, up, healthcheck, rollback
+    ├── deploy.sh                # se ejecuta en el servidor: pull, copia, up, healthcheck, rollback
+    ├── backup-db.sh             # se ejecuta en el servidor: pg_dump -Fc antes de migrar, con rotación
     ├── render_env.py            # CD: comprueba secretos/variables y renderiza el .env
     ├── add-team-key.sh          # añade la clave SSH pública de un compañero a la VM
     └── test-backend-docker.sh   # validación local y smoke test de perseida-api
@@ -316,7 +337,7 @@ docker compose down           # detiene los contenedores preservando los volúme
 
 ## Limitaciones conocidas (asumidas en un proyecto académico)
 
-Sin escalado horizontal ni copias de seguridad automáticas; el servidor es un punto único de fallo.
+Sin escalado horizontal; el servidor es un punto único de fallo. Las únicas copias son las que hace el CD antes de migrar o de deshacer migraciones ([ADR-0035](../obsidian_vault/decisions/0035-copies-de-seguretat-de-postgresql-al-cd.md)), en la misma VM: no hay copias periódicas ni fuera del servidor.
 
 ## Relacionado
 
