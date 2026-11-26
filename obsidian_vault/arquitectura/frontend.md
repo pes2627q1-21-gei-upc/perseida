@@ -215,8 +215,8 @@ El xat de sala i el xat directe comparteixen el mateix nucli, **`useLiveConversa
 - **Frames del client directe:** `dm.send` (amb ack, com `message`) i, del servidor, `dm.message` i `dm.typing` privats, **sense `room` ni `id`**. `dm.typing {conversation_id, is_typing}` surt per `sendEphemeral`.
 - **Avís d'escriptura (`useDirectTyping`):** `isTyping` i `setTyping(bool)`; l'avís caduca als 5 s (`TYPING_TIMEOUT_MS`) o amb un `is_typing: false`, i es descarta en canviar de conversa o de connexió.
 
-> [!question] Decisió pendent de confirmar
-> L'avís d'escriptura (`dm.typing`) és una ampliació de l'abast de TG-65 que ha acceptat el PO; falta que la persona responsable ho confirmi amb ell.
+> [!note] Abast confirmat
+> L'avís d'escriptura (`dm.typing`) és una ampliació de l'abast de TG-65, acceptada pel PO i confirmada el 26/11/2026 per la persona responsable (vegeu [[0034-outbox-xat-directe]]).
 
 ### Sala de xat: peces de la pantalla (TG-469)
 
