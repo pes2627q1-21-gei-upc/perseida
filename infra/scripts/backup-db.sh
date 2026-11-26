@@ -10,9 +10,9 @@
 # `<head>` és la revisió d'Alembic que porta la imatge nova; `<git-sha>` arriba sense
 # el prefix `sha-`. La revisió actual es llegeix de `alembic_version` dins del
 # contenidor `db`, amb les credencials del seu entorn (mai per arguments ni sortida).
-# Si no hi ha contenidor `db` en marxa o la taula `alembic_version` no existeix
+# Si no hi ha cap contenidor `db` (ni aturat) o la taula `alembic_version` no existeix
 # (base de dades buida, primer desplegament), s'avisa i no es fa cap còpia (surt amb 0).
-# Qualsevol altre error en llegir-la (psql no s'executa, connexió, recuperació, auth)
+# Un contenidor `db` que existeix però està aturat també fa fallar el script. Qualsevol altre error en llegir-la (psql no s'executa, connexió, recuperació, auth)
 # fa fallar el script (sortida != 0) perquè el desplegament no migri sense còpia.
 #
 # La còpia (`pg_dump -Fc`) s'escriu a un fitxer temporal, es verifica
@@ -64,7 +64,11 @@ if [ "$BACKUP_KEEP" -lt 1 ]; then
 fi
 
 if [ -z "$(docker compose ps -q db 2>/dev/null)" ]; then
-  warn "AVÍS: el contenidor db no està en marxa; no es fa cap còpia."
+  if [ -n "$(docker compose ps -aq db 2>/dev/null)" ]; then
+    warn "ERROR: el contenidor db existeix però està aturat; no es pot fer la còpia i no s'ha de migrar. Arrenca'l (\`docker compose up -d db\`) i torna a executar."
+    exit 1
+  fi
+  warn "AVÍS: no hi ha contenidor db (primer desplegament); no es fa cap còpia."
   exit 0
 fi
 
