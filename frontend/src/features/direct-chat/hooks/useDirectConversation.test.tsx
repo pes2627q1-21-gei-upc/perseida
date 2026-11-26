@@ -310,10 +310,16 @@ describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
     jest.mocked(fetchMessages).mockResolvedValue(page([message]));
     await mount();
     await waitFor(() => expect(markRead).toHaveBeenCalledTimes(1));
+    const next = { ...message, id: 'message-2', sent_at: '2026-11-22T12:05:00Z' };
+    jest.mocked(fetchMessages).mockResolvedValue(page([next, message]));
 
-    await act(async () => emit({ type: 'dm.message', payload: message }));
+    await act(async () => emit({ type: 'dm.message', payload: next }));
 
     await waitFor(() => expect(markRead).toHaveBeenCalledTimes(2));
+    expect(jest.mocked(markRead).mock.calls[1]?.[0]).toEqual({
+      conversationId: CONVERSATION,
+      lastMessageId: 'message-2',
+    });
   });
 
   it.each(['id', 'conversation_id', 'sender_id', 'text', 'sent_at'] as const)(
@@ -478,13 +484,12 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
     const live = { ...message, id: 'm6', sent_at: '2026-11-22T13:00:00Z' };
     const older = { ...message, id: 'm1', sent_at: '2026-11-22T10:00:00Z' };
     let answerOlder: (() => void) | undefined;
-    jest.mocked(fetchMessages).mockImplementation(
-      (_id: string, cursor?: string) =>
-        cursor
-          ? new Promise((resolve) => {
-              answerOlder = () => resolve(page([older]));
-            })
-          : Promise.resolve(page([newest], 'cursor-1')),
+    jest.mocked(fetchMessages).mockImplementation((_id: string, cursor?: string) =>
+      cursor
+        ? new Promise((resolve) => {
+            answerOlder = () => resolve(page([older]));
+          })
+        : Promise.resolve(page([newest], 'cursor-1')),
     );
     const { result } = await mount();
     await waitFor(() => expect(markRead).toHaveBeenCalled());

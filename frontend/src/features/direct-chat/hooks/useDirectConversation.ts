@@ -6,9 +6,10 @@ import { AppState } from 'react-native';
 import { useSocket } from '../../../shared/realtime';
 import { socketAuth } from '../../auth/socketAuth';
 import { useCurrentUser } from '../../auth/hooks/useCurrentUser';
+import { addMessage, type ChatHistoryData } from '../../chat/chatCache';
 import { useLiveConversation } from '../../chat/hooks/useLiveConversation';
-import type { DirectMessage } from '../api/directChat';
-import { directEvent } from '../directMessages';
+import { type DirectMessage, fetchMessages } from '../api/directChat';
+import { asChatHistory, directEvent } from '../directMessages';
 import { directChatKeys, useDirectMessages, useMarkRead } from './useDirectChat';
 import { useDirectTransport } from './useDirectTransport';
 
@@ -30,9 +31,10 @@ export function useDirectConversation(conversationId: string, otherName?: string
   const queryClient = useQueryClient();
   const myUserId = useCurrentUser().data?.id;
   const history = useDirectMessages(conversationId, { meId: myUserId, otherName });
+  const historyKey = useMemo(() => directChatKeys.messages(conversationId), [conversationId]);
   const conversation = useLiveConversation({
     history,
-    historyKey: directChatKeys.messages(conversationId),
+    historyKey,
     useTransport: useDirectTransport,
     transportTarget: conversationId,
   });
@@ -45,39 +47,62 @@ export function useDirectConversation(conversationId: string, otherName?: string
   const { status, subscribePrivate } = useSocket(socketAuth);
   const isFocused = useIsFocused();
   const [isForeground, setIsForeground] = useState(AppState.currentState === 'active');
-  // Whether the latest history has been read: only then may a new message advance the read mark.
-  const historyReady = useRef(false);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') historyReady.current = false;
       setIsForeground(state === 'active');
     });
     return () => subscription.remove();
   }, []);
 
-  const { refetch: refetchHistory } = history;
+  // The refresh of the history that precedes every read mark. It lives with the effect below,
+  // which is active only while the conversation is on screen; a frame asks for another one.
+  const refreshRef = useRef<(() => void) | undefined>(undefined);
   useEffect(() => {
-    historyReady.current = false;
     if (!conversationId || !isFocused || !isForeground) return;
     let cancelled = false;
-    // Read the latest history before advancing the read mark.
-    void refetchHistory()
-      .then((result) => {
-        if (cancelled || result.isError || !result.data) return;
-        historyReady.current = true;
-        // The cursor is the newest message of the snapshot just read: what was never loaded is
-        // not marked.
-        const newest = result.data.pages[0]?.messages[0];
-        if (newest) markReadRef.current({ conversationId, lastMessageId: newest.id });
-      })
-      .catch(() => {
+    // One refresh at a time: what arrives meanwhile sets `dirty`, which reads the history once
+    // more, so the mark never stops short of a message that is already on screen.
+    let running = false;
+    let dirty = false;
+    let lastMarked: string | undefined;
+    const refresh = async () => {
+      if (running) {
+        dirty = true;
+        return;
+      }
+      running = true;
+      try {
+        let newest: { id: string } | undefined;
+        do {
+          dirty = false;
+          // Only the first page: it is merged into the cache, so an older page that is on its
+          // way (fetchNextPage) is neither cancelled nor asked for again.
+          const latest = asChatHistory(await fetchMessages(conversationId));
+          if (cancelled) return;
+          queryClient.setQueryData<ChatHistoryData>(historyKey, (cached) =>
+            [...latest.messages].reverse().reduce(addMessage, cached),
+          );
+          // The server's first page is contiguous from its newest message: that is the cursor,
+          // so nothing that was never loaded is marked.
+          newest = latest.messages[0];
+        } while (dirty);
+        if (newest && newest.id !== lastMarked) {
+          lastMarked = newest.id;
+          markReadRef.current({ conversationId, lastMessageId: newest.id });
+        }
+      } catch {
         // The query exposes its error and leaves unread messages intact.
-      });
+      } finally {
+        running = false;
+      }
+    };
+    refreshRef.current = () => void refresh();
+    void refresh();
     return () => {
       cancelled = true;
-      historyReady.current = false;
+      refreshRef.current = undefined;
     };
-  }, [conversationId, isFocused, isForeground, refetchHistory, status]);
+  }, [conversationId, historyKey, isFocused, isForeground, queryClient, status]);
 
   // What the history already has is not news, and neither is a message seen twice: a replayed
   // outbox event must not be announced if it is already visible.
@@ -103,8 +128,9 @@ export function useDirectConversation(conversationId: string, otherName?: string
       seenMessageIds.current.add(message.id);
       if (!alreadySeen && message.sender_id !== myUserId)
         setLastIncoming({ scope: eventScope, message });
-      if (historyReady.current)
-        markReadRef.current({ conversationId, lastMessageId: message.id });
+      // Marked once the history, read again, has it: never a message whose predecessors are not
+      // loaded.
+      refreshRef.current?.();
     });
   }, [conversationId, status, subscribePrivate, queryClient, myUserId, eventScope]);
 
