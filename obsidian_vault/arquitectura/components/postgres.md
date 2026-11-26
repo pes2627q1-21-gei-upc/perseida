@@ -40,7 +40,7 @@ Segueix [[0023-convencions-del-model-de-dades]]: clau `uuid` generada per `uuidv
 
 ## Zones d'observació: càrrega inicial
 
-La taula `observation_zones` es omple amb 9 zones de Catalunya (TG-70, criteri 5). Són al fitxer editable `backend/app/infrastructure/observation_zones/zones.json`, dins d'`app/` perquè el Dockerfile ja el copia a la imatge.
+La taula `observation_zones` s'omple amb 9 zones de Catalunya (TG-70, criteri 5). Són al fitxer editable `backend/app/infrastructure/observation_zones/zones.json`, dins d'`app/` perquè el Dockerfile ja el copia a la imatge.
 
 - **Com es carrega:** `backend/entrypoint.sh` executa `python -m app.infrastructure.observation_zones.load_zones` després d'`alembic upgrade head`, a cada arrencada i només si `RUN_MIGRATIONS` no és `false`. La càrrega és idempotent: `INSERT ... ON CONFLICT (id) DO UPDATE` de nom i coordenades. Una migració de seed no serveix, perquè només s'executa una vegada i les zones afegides més endavant al fitxer no arribarien a la BD.
 - **Validació:** `read_zones` construeix cada entrada amb les entitats del domini; una edició fora de rang fa fallar la càrrega en lloc de deixar dades brutes. El test `test_zones_file.py` valida el fitxer real (ids uuid7 únics, noms únics, font https, dins de Catalunya).

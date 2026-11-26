@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from app.infrastructure.observation_zones import load_zones
 from app.infrastructure.observation_zones.load_zones import read_zones
 
 ZONES = (
@@ -65,3 +66,36 @@ def test_tg70_c5_a_zone_out_of_range_fails_the_load(tmp_path: Path) -> None:
 
     with pytest.raises(ValidationError):
         read_zones(bad)
+
+
+async def test_tg70_c5_main_loads_the_file_in_one_transaction_and_disposes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events: list[str] = []
+    loaded: list[object] = []
+
+    class FakeTransaction:
+        async def __aenter__(self) -> str:
+            events.append("begin")
+            return "connection"
+
+        async def __aexit__(self, *exc: object) -> None:
+            events.append("commit")
+
+    class FakeEngine:
+        def begin(self) -> FakeTransaction:
+            return FakeTransaction()
+
+        async def dispose(self) -> None:
+            events.append("dispose")
+
+    async def fake_load(connection: object, zones: list[object]) -> None:
+        loaded.extend([connection, len(zones)])
+
+    monkeypatch.setattr(load_zones, "create_async_engine", lambda url: FakeEngine())
+    monkeypatch.setattr(load_zones, "load_zones", fake_load)
+
+    await load_zones.main()
+
+    assert loaded == ["connection", 9]
+    assert events == ["begin", "commit", "dispose"]
