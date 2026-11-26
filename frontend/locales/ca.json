@@ -154,7 +154,21 @@
     "noMessages": "Encara no hi ha missatges",
     "unread_one": "{{count}} missatge sense llegir",
     "unread_other": "{{count}} missatges sense llegir",
-    "you": "Tu: {{text}}"
+    "you": "Tu: {{text}}",
+    "list": {
+      "title": "Converses",
+      "loading": "Carregant converses",
+      "userId": "Identificador d'usuari",
+      "open": "Inicia conversa",
+      "empty": "Encara no tens converses",
+      "unknownUser": "Usuari"
+    },
+    "room": {
+      "loading": "Carregant conversa",
+      "block": "Bloqueja",
+      "unblock": "Desbloqueja",
+      "typing": "{{name}} està escrivint"
+    }
   },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
@@ -206,7 +220,12 @@
     "PUBSUB_UNAVAILABLE": "El xat no està disponible ara mateix. Torna-ho a provar.",
     "VALIDATION_ERROR": "Revisa les dades introduïdes.",
     "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
-    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala."
+    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
+    "USER_NOT_FOUND": "No hem trobat aquest usuari.",
+    "CANNOT_MESSAGE_SELF": "No et pots enviar missatges a tu mateix.",
+    "CONVERSATION_NOT_FOUND": "Aquesta conversa no existeix.",
+    "USER_BLOCKED": "Ara no pots enviar missatges en aquesta conversa.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "Aquest missatge ja existeix amb un altre contingut."
   },
   "events": {
     "category": {

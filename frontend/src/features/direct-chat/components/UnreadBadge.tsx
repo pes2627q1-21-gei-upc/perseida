@@ -15,6 +15,8 @@ import { formatUnreadCount, hasUnread } from '../unreadCount';
 interface Props {
   /** How many messages are unread. 0 shows nothing. */
   count: number;
+  /** Announce changes only when used as the inbox total on Android. */
+  live?: boolean;
 }
 
 // Pop details: purely visual, left out of mutation testing on purpose
@@ -31,12 +33,12 @@ const POP_FROM = 0.6;
  * Contrast: the number is `gel.text` on `brandFill`: white on #5B5BF0 is 5.0:1 on dia, posta
  * and nit; #1A0508 on #FF6B5E is 7.0:1 on vermell. All above 4.5:1 (WCAG 2.2 AA).
  */
-export function UnreadBadge({ count }: Props) {
+export function UnreadBadge({ count, live = false }: Props) {
   if (!hasUnread(count)) return null;
-  return <Pill count={count} />;
+  return <Pill count={count} live={live} />;
 }
 
-function Pill({ count }: { count: number }) {
+function Pill({ count, live }: { count: number; live: boolean }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = createStyles(theme);
@@ -61,6 +63,7 @@ function Pill({ count }: { count: number }) {
         testID="unread-badge"
         accessible
         accessibilityLabel={t('directChat.unread', { count })}
+        accessibilityLiveRegion={live ? 'polite' : undefined}
         style={styles.pill}
       >
         <Text style={styles.number}>{formatUnreadCount(count)}</Text>

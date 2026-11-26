@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import * as Crypto from 'expo-crypto';
 import type { ReactNode } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { mockUserProfile } from '../../../../__mocks__/profile';
 import { AppError } from '../../../shared/errors';
@@ -12,6 +13,8 @@ import { fetchMessages, markRead } from '../api/directChat';
 import { directChatKeys } from './useDirectChat';
 import { useDirectConversation } from './useDirectConversation';
 
+let mockIsFocused = true;
+jest.mock('expo-router', () => ({ useIsFocused: () => mockIsFocused }));
 jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(),
   getItemAsync: jest.fn(async () => null),
@@ -70,16 +73,44 @@ const emit = (frame: ServerFrame) => mockSocket.listeners.forEach((listener) => 
 const messageIds = (items: { kind: string; message?: { id: string } }[]) =>
   items.flatMap((item) => (item.kind === 'message' && item.message ? [item.message.id] : []));
 
-async function mount(id = CONVERSATION) {
+async function mount(id = CONVERSATION, otherName?: string) {
   const hook = await renderHook(
-    ({ id: current }: { id: string }) => useDirectConversation(current),
+    ({ id: current }: { id: string }) => useDirectConversation(current, otherName),
     { wrapper, initialProps: { id } },
   );
   await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
   return hook;
 }
 
+let appStateListeners: ((state: AppStateStatus) => void)[] = [];
+const originalAppState = Object.getOwnPropertyDescriptor(AppState, 'currentState')!;
+/** A history request that stays on its way until the test lets it answer. */
+let held: (() => void)[] = [];
+const holdHistory = () => {
+  held = [];
+  jest.mocked(fetchMessages).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        held.push(() => resolve(page([])));
+      }),
+  );
+};
+/** The conversations the API was asked to mark as read. */
+const markedRead = () => jest.mocked(markRead).mock.calls.map(([id]) => id);
+const answerHeld = () => act(async () => held.splice(0).forEach((answer) => answer()));
+
 beforeEach(() => {
+  mockIsFocused = true;
+  appStateListeners = [];
+  Object.defineProperty(AppState, 'currentState', {
+    configurable: true,
+    writable: true,
+    value: 'active',
+  });
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((type, listener) => {
+    if (type === 'change') appStateListeners.push(listener as (state: AppStateStatus) => void);
+    return { remove: jest.fn() } as never;
+  });
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   client.setQueryData(currentUserKeys.me(), mockUserProfile);
   mockSocket.status = 'open';
@@ -93,7 +124,11 @@ beforeEach(() => {
     payload: { id: 'message-2', sent_at: '2026-11-22T12:01:00Z' },
   });
 });
-afterEach(() => client.clear());
+afterEach(() => {
+  client.clear();
+  jest.mocked(AppState.addEventListener).mockRestore();
+  Object.defineProperty(AppState, 'currentState', originalAppState);
+});
 
 describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
   it('exposa l’històric persistit i marca la conversa oberta com a llegida', async () => {
@@ -360,5 +395,130 @@ describe('useDirectConversation: errors i reconnexió (review de TG-65)', () => 
     const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
 
     expect(result.current.isLoading).toBe(true);
+  });
+});
+
+describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () => {
+  it('mostra el nom de l’altre participant als missatges de l’històric', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+
+    const { result } = await mount(CONVERSATION, 'Anna');
+
+    expect(result.current.items).toContainEqual(
+      expect.objectContaining({
+        kind: 'message',
+        message: expect.objectContaining({ author: { id: 'other', name: 'Anna' } }),
+      }),
+    );
+  });
+
+  it('no marca com a llegit en segon pla i recarrega l’històric abans de marcar en tornar', async () => {
+    await mount();
+    await waitFor(() => expect(markRead).toHaveBeenCalledTimes(1));
+    jest.mocked(markRead).mockClear();
+
+    await act(async () => appStateListeners.forEach((listener) => listener('background')));
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+    expect(markRead).not.toHaveBeenCalled();
+
+    holdHistory();
+    await act(async () => appStateListeners.forEach((listener) => listener('active')));
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+    expect(markRead).not.toHaveBeenCalled();
+    await answerHeld();
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
+  });
+
+  it('no marca com a llegit si l’històric respon quan ja s’ha perdut el focus', async () => {
+    holdHistory();
+    const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
+      wrapper,
+      initialProps: { id: CONVERSATION },
+    });
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+
+    mockIsFocused = false;
+    await rerender({ id: CONVERSATION });
+    await answerHeld();
+
+    expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('no marca com a llegida l’antiga conversa si l’històric respon després de canviar', async () => {
+    holdHistory();
+    const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
+      wrapper,
+      initialProps: { id: CONVERSATION },
+    });
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+    await rerender({ id: OTHER });
+    await answerHeld();
+
+    await waitFor(() => expect(markedRead()).toContain(OTHER));
+    expect(markedRead()).not.toContain(CONVERSATION);
+  });
+
+  it('no marca com a llegida una conversa sense focus, tampoc quan hi arriba un missatge', async () => {
+    mockIsFocused = false;
+    await mount();
+
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+
+    expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('no marca com a llegida si l’històric no es pot carregar', async () => {
+    const error = new AppError({ kind: 'http', code: 'FORBIDDEN', status: 403, retryable: false });
+    jest.mocked(fetchMessages).mockRejectedValue(error);
+
+    const { result } = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(result.current.error).toBe(error));
+
+    expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('espera que l’històric es recarregui bé abans de marcar com a llegida en connectar', async () => {
+    holdHistory();
+    await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+    expect(markRead).not.toHaveBeenCalled();
+
+    await answerHeld();
+
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
+  });
+
+  it('només anuncia els missatges nous en directe, no l’històric, els propis ni els duplicats', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+    const { result } = await mount();
+    expect(result.current.lastIncoming).toBeUndefined();
+
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+    expect(result.current.lastIncoming).toBeUndefined();
+    await act(async () =>
+      emit({
+        type: 'dm.message',
+        payload: { ...message, id: 'own', sender_id: mockUserProfile.id },
+      }),
+    );
+    expect(result.current.lastIncoming).toBeUndefined();
+
+    const fresh = { ...message, id: 'fresh', text: 'Nou' };
+    await act(async () => emit({ type: 'dm.message', payload: fresh }));
+    expect(result.current.lastIncoming).toEqual(fresh);
+    const announced = result.current.lastIncoming;
+    await act(async () => emit({ type: 'dm.message', payload: fresh }));
+    expect(result.current.lastIncoming).toBe(announced);
+  });
+
+  it('no torna a anunciar un missatge antic en sortir d’una conversa i tornar-hi', async () => {
+    const { result, rerender } = await mount();
+    await act(async () => emit({ type: 'dm.message', payload: message }));
+    expect(result.current.lastIncoming).toEqual(message);
+
+    await rerender({ id: OTHER });
+    expect(result.current.lastIncoming).toBeUndefined();
+    await rerender({ id: CONVERSATION });
+    expect(result.current.lastIncoming).toBeUndefined();
   });
 });

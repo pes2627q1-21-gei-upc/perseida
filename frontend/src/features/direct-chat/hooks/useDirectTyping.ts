@@ -4,6 +4,7 @@ import { type ServerFrame, useSocket } from '../../../shared/realtime';
 import { socketAuth } from '../../auth/socketAuth';
 
 const TYPING_TIMEOUT_MS = 5000;
+const TYPING_REFRESH_MS = 4000;
 
 /** Typing is private, transient and scoped to the conversation on screen. */
 export function useDirectTyping(conversationId: string) {
@@ -42,15 +43,54 @@ export function useDirectTyping(conversationId: string) {
     };
   }, [conversationId, status, scope]);
 
+  const lastSent = useRef<number | null>(null);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   const setTyping = useCallback(
     (isTyping: boolean) => {
-      if (!conversationId) return;
-      sendEphemeral({
-        type: 'dm.typing',
-        payload: { conversation_id: conversationId, is_typing: isTyping },
-      });
+      clearTimeout(idleTimer.current);
+      if (!conversationId || status !== 'open') return;
+      if (!isTyping) {
+        if (lastSent.current !== null) {
+          sendEphemeral({
+            type: 'dm.typing',
+            payload: { conversation_id: conversationId, is_typing: false },
+          });
+          lastSent.current = null;
+        }
+        return;
+      }
+      const now = Date.now();
+      if (lastSent.current === null || now - lastSent.current >= TYPING_REFRESH_MS) {
+        sendEphemeral({
+          type: 'dm.typing',
+          payload: { conversation_id: conversationId, is_typing: true },
+        });
+        lastSent.current = now;
+      }
+      idleTimer.current = setTimeout(() => {
+        sendEphemeral({
+          type: 'dm.typing',
+          payload: { conversation_id: conversationId, is_typing: false },
+        });
+        lastSent.current = null;
+      }, TYPING_TIMEOUT_MS);
     },
-    [conversationId, sendEphemeral],
+    [conversationId, sendEphemeral, status],
+  );
+
+  useEffect(
+    () => () => {
+      clearTimeout(idleTimer.current);
+      if (lastSent.current !== null && status === 'open') {
+        sendEphemeral({
+          type: 'dm.typing',
+          payload: { conversation_id: conversationId, is_typing: false },
+        });
+      }
+      lastSent.current = null;
+    },
+    [conversationId, sendEphemeral, status],
   );
 
   return { isTyping: status === 'open' && typingScope === scope, setTyping };
