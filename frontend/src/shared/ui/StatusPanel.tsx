@@ -45,11 +45,13 @@ export function StatusPanel(props: StatusPanelProps) {
   return (
     <View style={[styles.center, { padding: spacing.md }]}>
       {props.state === 'loading' ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.text.primary}
-          accessibilityLabel={props.texts.loadingLabel}
-        />
+        <GlassPanel>
+          <ActivityIndicator
+            size="large"
+            color={colors.text.primary}
+            accessibilityLabel={props.texts.loadingLabel}
+          />
+        </GlassPanel>
       ) : (
         <View style={[styles.column, { maxWidth: readingMaxWidth }]}>
           <GlassPanel>
