@@ -71,7 +71,7 @@ describe('useDirectTransport (TG-65): canal privat de la conversa directa', () =
   it('lliura un dm.message de la seva conversa com a ChatMessage', async () => {
     await mount();
 
-    act(() => emit({ type: 'dm.message', payload: dm }));
+    await act(async () => emit({ type: 'dm.message', payload: dm }));
 
     expect(handlers.onMessage).toHaveBeenCalledWith({
       id: 'message-1',
@@ -92,7 +92,7 @@ describe('useDirectTransport (TG-65): canal privat de la conversa directa', () =
     ]);
     await mount();
 
-    act(() => emit({ type: 'dm.message', payload: dm }));
+    await act(async () => emit({ type: 'dm.message', payload: dm }));
 
     expect(handlers.onMessage).toHaveBeenCalledWith(
       expect.objectContaining({ author: { id: 'other-user', name: 'Pau' } }),
@@ -102,7 +102,7 @@ describe('useDirectTransport (TG-65): canal privat de la conversa directa', () =
   it('ignora els missatges d’una altra conversa i els altres tipus de frame', async () => {
     await mount();
 
-    act(() => {
+    await act(async () => {
       emit({ type: 'dm.message', payload: { ...dm, conversation_id: OTHER } });
       emit({ type: 'dm.typing', payload: { conversation_id: CONVERSATION, is_typing: true } });
     });
@@ -115,7 +115,7 @@ describe('useDirectTransport (TG-65): canal privat de la conversa directa', () =
     async (field) => {
       await mount();
 
-      act(() => emit({ type: 'dm.message', payload: { ...dm, [field]: null } }));
+      await act(async () => emit({ type: 'dm.message', payload: { ...dm, [field]: null } }));
 
       expect(handlers.onMessage).not.toHaveBeenCalled();
     },
@@ -125,7 +125,7 @@ describe('useDirectTransport (TG-65): canal privat de la conversa directa', () =
     client.setQueryData(directChatKeys.conversations, []);
     await mount();
 
-    act(() => emit({ type: 'dm.message', payload: dm }));
+    await act(async () => emit({ type: 'dm.message', payload: dm }));
 
     expect(client.getQueryState(directChatKeys.conversations)?.isInvalidated).toBe(true);
   });

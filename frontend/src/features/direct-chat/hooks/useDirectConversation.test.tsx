@@ -111,19 +111,25 @@ describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
     await waitFor(() => expect(jest.mocked(markRead).mock.calls[0]?.[0]).toBe(CONVERSATION));
   });
 
-  it('ordena de més nou a més antic i desempata per id descendent', async () => {
+  it('manté l’ordre del servidor i hi col·loca els missatges en directe pel seu moment i id', async () => {
     const timestamp = '2026-11-22T12:00:00Z';
     jest.mocked(fetchMessages).mockResolvedValue(
       page([
-        { ...message, id: 'tie-a', sent_at: timestamp },
+        { ...message, id: 'tie-b', sent_at: timestamp },
         { ...message, id: 'older', sent_at: '2026-11-22T11:00:00Z' },
-        { ...message, id: 'tie-z', sent_at: timestamp },
       ]),
     );
-
     const { result } = await mount();
 
-    expect(messageIds(result.current.items)).toEqual(['tie-z', 'tie-a', 'older']);
+    await act(async () => {
+      emit({ type: 'dm.message', payload: { ...message, id: 'tie-z', sent_at: timestamp } });
+      emit({
+        type: 'dm.message',
+        payload: { ...message, id: 'latest', sent_at: '2026-11-22T13:00:00Z' },
+      });
+    });
+
+    expect(messageIds(result.current.items)).toEqual(['latest', 'tie-z', 'tie-b', 'older']);
   });
 
   it('envia un dm.send amb la conversa, el text i un id generat pel client', async () => {
@@ -231,10 +237,12 @@ describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
   });
 
   it('carrega l’històric antic només si hi ha pàgina i no n’hi ha una en curs', async () => {
+    // Connecting asks for the history again, so the answer depends on the cursor, not on the order.
     jest
       .mocked(fetchMessages)
-      .mockResolvedValueOnce(page([message], 'cursor-1'))
-      .mockResolvedValueOnce(page([{ ...message, id: 'older' }]));
+      .mockImplementation(async (_id, before) =>
+        before ? page([{ ...message, id: 'older' }]) : page([message], 'cursor-1'),
+      );
     const { result } = await mount();
     expect(result.current.hasMore).toBe(true);
 
@@ -242,12 +250,13 @@ describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
       result.current.loadOlder();
     });
 
-    expect(jest.mocked(fetchMessages).mock.calls[1]).toEqual([CONVERSATION, 'cursor-1']);
+    expect(fetchMessages).toHaveBeenCalledWith(CONVERSATION, 'cursor-1');
     await waitFor(() => expect(result.current.hasMore).toBe(false));
+    const calls = jest.mocked(fetchMessages).mock.calls.length;
     await act(async () => {
       result.current.loadOlder();
     });
-    expect(fetchMessages).toHaveBeenCalledTimes(2);
+    expect(fetchMessages).toHaveBeenCalledTimes(calls);
   });
 
   it('marca la conversa com a llegida també quan hi arriba un missatge', async () => {
@@ -333,7 +342,7 @@ describe('useDirectConversation: errors i reconnexió (review de TG-65)', () => 
     jest
       .mocked(getCurrentUser)
       .mockRejectedValueOnce(
-        new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable: true }),
+        new AppError({ kind: 'http', code: 'ACCOUNT_SUSPENDED', status: 403, retryable: false }),
       )
       .mockResolvedValue(mockUserProfile);
     const hook = await renderHook(() => useDirectConversation(CONVERSATION), { wrapper });
