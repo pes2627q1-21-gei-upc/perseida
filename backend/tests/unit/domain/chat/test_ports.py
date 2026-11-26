@@ -4,9 +4,8 @@ from app.domain.chat.models import ChatAuthor, ChatMessage
 from app.domain.chat.ports import (
     ChatRepository,
     EventSubscriptions,
-    MessageModerator,
-    SendRateLimiter,
 )
+from app.domain.shared.ports import MessageModerator, SendRateLimiter
 from tests.unit.domain.chat.fakes import (
     ApprovingModerator,
     CountingRateLimiter,

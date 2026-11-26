@@ -136,9 +136,43 @@ class UserBlockRepository(Protocol):
         ...
 
 
+class ChatUserDirectory(Protocol):
+    """Which users exist, as the direct chat sees them (only ids)."""
+
+    async def exists(self, user_id: uuid.UUID) -> bool:
+        """Return whether ``user_id`` is a live user (not deleted).
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+
+class DirectMessageBroadcaster(Protocol):
+    """Fans a stored message out to the recipient's live connections."""
+
+    async def deliver(
+        self, message: DirectMessage, *, recipient_id: uuid.UUID, origin: str | None
+    ) -> int:
+        """Send ``message`` to every connection of ``recipient_id``.
+
+        ``origin`` is the id of the sender's connection, so its own session does
+        not echo it back. Return how many connections of the recipient received it
+        (0 if they are offline).
+
+        Raises:
+            ExternalServiceError: if the pub/sub bus is unavailable.
+        """
+        ...
+
+
 class PushNotifier(Protocol):
     """Tells a recipient who is not connected that a message arrived."""
 
     async def notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
-        """Notify ``recipient_id`` of ``message``."""
+        """Notify ``recipient_id`` of ``message``.
+
+        Best effort: it must not raise to the service; if it does, the service
+        logs the error and carries on (the message is already stored).
+        """
         ...
