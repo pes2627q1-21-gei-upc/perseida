@@ -6,12 +6,15 @@ import {
 } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { type AppError, NETWORK_ERROR_CODE } from '../../../shared/errors';
 import type { SocketStatus } from '../../../shared/realtime';
 import type { CurrentUser } from '../../auth/api/getCurrentUser';
+import { ACCOUNT_BLOCKED_CODES } from '../../auth/hooks/useLogout';
 import { useCurrentUser } from '../../auth/hooks/useCurrentUser';
+import { clearSession } from '../../auth/session';
 import type { ChatMessage, ChatRoom } from '../api/chat';
 import { addMessage, type ChatHistoryData, flattenMessages } from '../chatCache';
 import { buildChatItems, type OutgoingMessage, type SendFailure } from '../chatItems';
@@ -109,6 +112,7 @@ export function useLiveConversation({
   transportTarget,
 }: LiveConversationSource) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const currentUser = useCurrentUser();
   const me = currentUser.data;
   const [pending, setPending] = useState<OutgoingMessage[]>([]);
@@ -239,8 +243,14 @@ export function useLiveConversation({
       }
       mark(clientMessageId, 'failed', { code: error.code, retryable: error.retryable });
       if (error.code === FORBIDDEN) takeOut();
+      if (ACCOUNT_BLOCKED_CODES.includes(error.code)) {
+        // The account was suspended or deleted: end the session, then tell why at /login.
+        void clearSession(queryClient).then(() =>
+          router.replace({ pathname: '/login', params: { notice: error.code } }),
+        );
+      }
     },
-    [mark, rejoin, takeOut],
+    [mark, queryClient, rejoin, router, takeOut],
   );
 
   const deliver = useCallback(
