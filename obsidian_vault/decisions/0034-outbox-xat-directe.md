@@ -42,8 +42,8 @@ Desar el missatge i una entrada de sortida en una mateixa transacció PostgreSQL
 - **`dm.typing` a l'abast de TG-65.** L'indicador d'escriptura efímer entra a l'abast de TG-65 per acceptació del PO. L'autorització (participant i bloqueig en tots dos sentits) és al cas d'ús `DirectChatService.typing_recipient`; el handler WebSocket només valida el frame, aplica el límit propi (`ratelimit:dm-typing:<user_id>`) i publica. No pren el pair lock: és un senyal efímer i una cursa amb un bloqueig deixa passar, com a molt, un frame.
 - **Criteri 14 amb Redis caigut:** el missatge es desa i l'outbox el difon quan Redis torna; el REST demana Redis per validar la sessió ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]), de manera que sense Redis no s'hi pot enviar res.
 
-> [!warning] Pendent de confirmar amb el PO
-> L'acceptació de `dm.typing` dins de TG-65 ha de ser confirmada amb el PO per la persona responsable.
+> [!note] Abast confirmat
+> L'abast de `dm.typing` dins de TG-65 queda confirmat (26/11/2026) per la persona responsable.
 
 ## US de Taiga relacionades
 

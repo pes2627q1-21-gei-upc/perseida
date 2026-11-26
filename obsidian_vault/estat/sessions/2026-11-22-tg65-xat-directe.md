@@ -29,7 +29,7 @@ Continuar el xat directe preservant els worktrees i els commits existents.
 
 ## Canvis al vault
 
-- [[0034-outbox-xat-directe]]: decisió acceptada; `dm.typing` registrat com a abast de TG-65 acceptat pel PO (cal confirmar-ho amb ell).
+- [[0034-outbox-xat-directe]]: decisió acceptada; `dm.typing` registrat com a abast de TG-65 acceptat pel PO i confirmat el 26/11/2026.
 - [[0030-protocol-websocket-i-revocacio-per-pub-sub]], [[redis]], [[postgres]], [[chat]], [[api]] i [[model-de-domini]] posats al dia.
 
 ## Pendent / següents passos
