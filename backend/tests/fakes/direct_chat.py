@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Collection
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from app.application.shared.errors import ExternalServiceError
@@ -125,6 +125,19 @@ class InMemoryDirectMessageRepository:
         )
         if existing is not None:
             return existing
+        # Like the real repository: ``sent_at`` is strictly increasing per conversation.
+        latest = max(
+            (
+                m.sent_at
+                for m in self.messages
+                if m.conversation_id == message.conversation_id
+            ),
+            default=None,
+        )
+        if latest is not None and message.sent_at <= latest:
+            message = message.model_copy(
+                update={"sent_at": latest + timedelta(microseconds=1)}
+            )
         self.messages.append(message)
         self.outbox.append((message, origin))
         return message
