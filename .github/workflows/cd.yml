@@ -23,11 +23,13 @@ permissions: {}
 # El `.env` del servidor té les variables d'`infra/.env.example`, menys les que
 # no cal definir a GitHub: `API_IMAGE_TAG` el posa `deploy.sh` (git-sha del
 # commit), `NPM_ADMIN_PORT` usa el 81 per defecte (només a 127.0.0.1), `PORT`
-# només és del Compose local i `BACKUP_DIR` (GitHub no admet variables buides)
-# usa el valor per defecte de `backup-db.sh` (`~/perseida/backups`).
+# només és del Compose local. `BACKUP_DIR` és opcional (GitHub no admet variables
+# buides): si hi ha una variable amb una ruta absoluta, es renderitza al `.env`; si
+# no, `backup-db.sh` usa el valor per defecte (`~/perseida/backups`).
 env:
   ENV_TEMPLATE: infra/.env.example
-  ENV_EXCLUDE: API_IMAGE_TAG BACKUP_DIR NPM_ADMIN_PORT PORT
+  ENV_EXCLUDE: API_IMAGE_TAG NPM_ADMIN_PORT PORT
+  ENV_OPTIONAL: BACKUP_DIR
   # Han d'existir però no van al `.env`: són per a la connexió SSH.
   ENV_EXTRA_REQUIRED: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS
   # Només poden ser secrets (mai variables): una variable es veuria sense
