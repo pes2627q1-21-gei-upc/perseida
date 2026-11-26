@@ -506,6 +506,48 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
     expect(messageIds(result.current.items)).toContain('m6');
   });
 
+  it('[ALTA] un error en refrescar la primera pàgina en arribar un missatge no amaga la conversa', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
+    const { result } = await mount();
+    await waitFor(() => expect(markRead).toHaveBeenCalled());
+    jest.mocked(markRead).mockClear();
+    jest
+      .mocked(fetchMessages)
+      .mockRejectedValue(new AppError({ kind: 'network', code: 'NETWORK_ERROR', retryable: true }));
+    const next = { ...message, id: 'message-2', sent_at: '2026-11-22T12:05:00Z' };
+
+    await act(async () => emit({ type: 'dm.message', payload: next }));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+
+    expect(result.current.error).toBeNull();
+    expect(messageIds(result.current.items)).toEqual([next.id, message.id]);
+    expect(markRead).not.toHaveBeenCalled();
+  });
+
+  it('[MITJANA] quatre missatges en directe costen com a molt una primera pàgina cadascun i cap pàgina antiga', async () => {
+    const newest = { ...message, id: 'm9', sent_at: '2026-11-22T12:00:00Z' };
+    const older = { ...message, id: 'm1', sent_at: '2026-11-22T10:00:00Z' };
+    jest
+      .mocked(fetchMessages)
+      .mockImplementation(async (_id: string, cursor?: string) =>
+        cursor ? page([older]) : page([newest], 'cursor-1'),
+      );
+    const { result } = await mount();
+    await act(async () => result.current.loadOlder());
+    await waitFor(() => expect(messageIds(result.current.items)).toContain('m1'));
+    jest.mocked(fetchMessages).mockClear();
+
+    for (const n of [1, 2, 3, 4]) {
+      const live = { ...message, id: `live-${n}`, sent_at: `2026-11-22T13:0${n}:00Z` };
+      await act(async () => emit({ type: 'dm.message', payload: live }));
+    }
+
+    await waitFor(() => expect(jest.mocked(fetchMessages).mock.calls.length).toBeGreaterThan(0));
+    const calls = jest.mocked(fetchMessages).mock.calls;
+    expect(calls.length).toBeLessThanOrEqual(4);
+    expect(calls.every(([, cursor]) => cursor === undefined)).toBe(true);
+  });
+
   it('no marca com a llegit si l’històric respon quan ja s’ha perdut el focus', async () => {
     holdHistory();
     const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
