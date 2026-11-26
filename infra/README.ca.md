@@ -219,6 +219,33 @@ Si la imatge de destí ja no és al servidor, cal fer abans `docker login ghcr.i
 
 > **Avís sobre les dades:** desfer una migració elimina les taules i columnes que havia creat, amb les seves dades. No hi ha còpies de seguretat. Tornar a una versió molt antiga només s'ha de fer sabent-ho.
 
+### Restaurar una còpia de seguretat
+
+> **Això és manual, mai automàtic, i destructiu.** Res no restaura una còpia pel seu compte. Es fa a mà al servidor, sobre la base de dades de producció, que s'esborra i es torna a crear **buida** abans de restaurar: tot el que s'hi hagi escrit després de la còpia es perd. Fes-ho només quan sàpigues quina còpia vols.
+
+Les còpies són fitxers `pg_dump -Fc` a `~/perseida/backups` (o `BACKUP_DIR`), amb el nom `perseida-<UTC>-<git-sha>-<revisió>.dump`: data, versió desplegada i revisió d'Alembic de l'esquema. La restauració s'ha provat en local amb Docker Compose (dump llegit del host per entrada estàndard, `pg_restore` al contenidor `db`): mateixes taules, mateix nombre de files i dades PostGIS intactes.
+
+1. **Connecta't i tria la còpia** (`ls`), anotant la revisió del seu nom.
+2. **Atura l'API**, perquè res no escrigui mentre es canvia la base de dades.
+3. **Torna a crear la base de dades buida** (`dropdb --force` i `createdb`). Les credencials surten de l'entorn del contenidor `db` (`$POSTGRES_USER`, `$POSTGRES_DB`): no les escriguis mai.
+4. **Restaura** amb `pg_restore --no-owner`, passant el dump per entrada estàndard.
+5. **Verifica:** la revisió que imprimeix `psql` ha de ser la del nom del fitxer (mira també taules i files si pots).
+6. **Arrenca l'API i comprova el healthcheck:** `docker compose ps api` ha d'acabar en `healthy` (el check del propi contenidor, el mateix que `GET /api/health`). L'entrypoint executa les migracions en arrencar: amb una imatge més nova que la revisió del dump, actualitza l'esquema restaurat; amb una de més antiga, falla, així que fes servir una imatge la revisió de la qual coincideixi amb la del dump.
+
+```bash
+ssh -p <port> <user>@<host>
+cd /opt/perseida
+ls -1 ~/perseida/backups
+docker compose stop api
+docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --force "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
+docker compose exec -T db sh -c 'pg_restore --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < ~/perseida/backups/perseida-<UTC>-<sha>-<revision>.dump
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"'
+docker compose up -d api
+docker compose ps api
+```
+
+Per inspeccionar una còpia sense tocar producció, restaura-la en una altra base de dades (`createdb ... perseida_restore`, i el mateix `pg_restore` amb `-d perseida_restore`) i compara.
+
 ### Accés SSH de l'equip
 
 La VM només accepta claus (l'accés per contrasenya està desactivat). Qui ja hi té accés afegeix la clau **pública** d'un company amb `infra/scripts/add-team-key.sh`: demana un nom i la clau pública, rebutja claus privades i claus RSA de menys de 3072 bits i l'afegeix a `authorized_keys` sense duplicar. La clau de desplegament (`SSH_PRIVATE_KEY`) és independent de les claus personals.

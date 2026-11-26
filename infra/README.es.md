@@ -219,6 +219,33 @@ Si la imagen de destino ya no está en el servidor, hay que hacer antes `docker 
 
 > **Aviso sobre los datos:** deshacer una migración elimina las tablas y columnas que había creado, con sus datos. No hay copias de seguridad. Volver a una versión muy antigua solo debe hacerse sabiéndolo.
 
+### Restaurar una copia de seguridad
+
+> **Esto es manual, nunca automático, y destructivo.** Nada restaura una copia por su cuenta. Se hace a mano en el servidor, sobre la base de datos de producción, que se borra y se vuelve a crear **vacía** antes de restaurar: todo lo escrito después de la copia se pierde. Hazlo solo cuando sepas qué copia quieres.
+
+Las copias son ficheros `pg_dump -Fc` en `~/perseida/backups` (o `BACKUP_DIR`), con el nombre `perseida-<UTC>-<git-sha>-<revisión>.dump`: fecha, versión desplegada y revisión de Alembic del esquema. La restauración se ha probado en local con Docker Compose (dump leído del host por entrada estándar, `pg_restore` en el contenedor `db`): mismas tablas, mismo número de filas y datos PostGIS intactos.
+
+1. **Conéctate y elige la copia** (`ls`), anotando la revisión de su nombre.
+2. **Para la API**, para que nada escriba mientras se cambia la base de datos.
+3. **Vuelve a crear la base de datos vacía** (`dropdb --force` y `createdb`). Las credenciales salen del entorno del contenedor `db` (`$POSTGRES_USER`, `$POSTGRES_DB`): no las escribas nunca.
+4. **Restaura** con `pg_restore --no-owner`, pasando el dump por entrada estándar.
+5. **Verifica:** la revisión que imprime `psql` debe ser la del nombre del fichero (mira también tablas y filas si puedes).
+6. **Arranca la API y comprueba el healthcheck:** `docker compose ps api` debe acabar en `healthy` (el check del propio contenedor, el mismo que `GET /api/health`). El entrypoint ejecuta las migraciones al arrancar: con una imagen más nueva que la revisión del dump, actualiza el esquema restaurado; con una más antigua, falla, así que usa una imagen cuya revisión coincida con la del dump.
+
+```bash
+ssh -p <port> <user>@<host>
+cd /opt/perseida
+ls -1 ~/perseida/backups
+docker compose stop api
+docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --force "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
+docker compose exec -T db sh -c 'pg_restore --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < ~/perseida/backups/perseida-<UTC>-<sha>-<revision>.dump
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"'
+docker compose up -d api
+docker compose ps api
+```
+
+Para inspeccionar una copia sin tocar producción, restáurala en otra base de datos (`createdb ... perseida_restore`, y el mismo `pg_restore` con `-d perseida_restore`) y compara.
+
 ### Acceso SSH del equipo
 
 La VM solo acepta claves (el acceso por contraseña está desactivado). Quien ya tiene acceso añade la clave **pública** de un compañero con `infra/scripts/add-team-key.sh`: pide un nombre y la clave pública, rechaza claves privadas y claves RSA de menos de 3072 bits y la añade a `authorized_keys` sin duplicar. La clave de despliegue (`SSH_PRIVATE_KEY`) es independiente de las claves personales.

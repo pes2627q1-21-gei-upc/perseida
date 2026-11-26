@@ -219,6 +219,33 @@ If the target image is no longer on the server, log in to GHCR first (`docker lo
 
 > **Data warning:** undoing a migration drops the tables and columns it created, together with their data. There are no backups. Roll back to a version far behind only knowing that.
 
+### Restore a backup
+
+> **This is manual, never automatic, and destructive.** Nothing restores a backup on its own. You do it by hand on the server, over the production database, which is dropped and recreated **empty** before restoring: everything written after the backup is lost. Use it only when you know which backup you want.
+
+The backups are `pg_dump -Fc` files in `~/perseida/backups` (or `BACKUP_DIR`), named `perseida-<UTC>-<git-sha>-<revision>.dump`: date, deployed version and the Alembic revision of the schema. The restore was tried locally with Docker Compose (dump read from the host through standard input, `pg_restore` in the `db` container): same tables, same row counts and the PostGIS data intact.
+
+1. **Connect and choose the backup** (`ls`), noting the revision in its name.
+2. **Stop the API**, so nothing writes while the database is replaced.
+3. **Recreate the database empty** (`dropdb --force` and `createdb`). The credentials come from the `db` container's environment (`$POSTGRES_USER`, `$POSTGRES_DB`): never type them.
+4. **Restore** with `pg_restore --no-owner`, feeding the dump by standard input.
+5. **Check:** the revision printed by `psql` must be the one in the file name (check tables and rows too if you can).
+6. **Start the API and check the healthcheck:** `docker compose ps api` must end up `healthy` (the container's own check, the same as `GET /api/health`). The entrypoint runs the migrations on start: with a newer image than the dump's revision it upgrades the restored schema; with an older one it fails, so run an image whose revision matches the dump.
+
+```bash
+ssh -p <port> <user>@<host>
+cd /opt/perseida
+ls -1 ~/perseida/backups
+docker compose stop api
+docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --force "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
+docker compose exec -T db sh -c 'pg_restore --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < ~/perseida/backups/perseida-<UTC>-<sha>-<revision>.dump
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"'
+docker compose up -d api
+docker compose ps api
+```
+
+To inspect a backup without touching production, restore it into another database (`createdb ... perseida_restore`, then the same `pg_restore` with `-d perseida_restore`) and compare.
+
 ### SSH access for the team
 
 The VM only accepts keys (password login is disabled). Everyone who has access adds a teammate's **public** key with `infra/scripts/add-team-key.sh`: it asks for a name and the public key, rejects private keys and RSA keys below 3072 bits and appends it to `authorized_keys` without duplicates. The deploy key (`SSH_PRIVATE_KEY`) is separate from personal keys.
