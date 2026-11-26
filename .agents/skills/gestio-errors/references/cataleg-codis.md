@@ -46,8 +46,13 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `USER_EMAIL_INVALID` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users (correu massa llarg o amb espais o caràcters de control) |
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
-| `CANNOT_MESSAGE_SELF` | 422 | `BusinessRuleViolation` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa o bloqueig amb un mateix usuari; TG-400) |
-| `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; TG-400) |
+| `CANNOT_MESSAGE_SELF` | 422 | `BusinessRuleViolation` | Sí | No et pots enviar missatges a tu mateix. | No puedes enviarte mensajes a ti mismo. | You can't message yourself. | domain/direct_chat (conversa o bloqueig amb un mateix usuari; TG-400). Text aprovat per Oriol Orbea (22/11/2026, TG-65) |
+| `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta conversa no existeix. | Esta conversación no existe. | This conversation doesn't exist. | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; també un `last_message_id` desconegut o d'una altra conversa en marcar com a llegit; TG-400, TG-65). Text aprovat per Oriol Orbea (22/11/2026, TG-65) |
+| `USER_NOT_FOUND` | 404 | `NotFoundError` | No | No hem trobat aquest usuari. | No hemos encontrado a este usuario. | We couldn't find this user. | application/direct_chat (obrir una conversa amb un usuari inexistent o esborrat; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
+| `USER_BLOCKED` | 403 | `ForbiddenError` | No | Ara no pots enviar missatges en aquesta conversa. | Ahora no puedes enviar mensajes en esta conversación. | You can't send messages in this conversation right now. | application/direct_chat (algun dels dos usuaris bloqueja l'altre; el text no revela qui bloqueja; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
+| `DIRECT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/direct_chat (`send_message` amb un `client_message_id` ja usat amb una altra conversa o un altre text; TG-65) |
+
+Textos de `CANNOT_MESSAGE_SELF`, `CONVERSATION_NOT_FOUND`, `USER_NOT_FOUND`, `USER_BLOCKED` i `DIRECT_IDEMPOTENCY_CONFLICT` (xat directe, TG-65) aprovats per Oriol Orbea (26/11/2026).
 
 ## Codis dels esdeveniments (TG-351)
 
@@ -69,6 +74,9 @@ Textos aprovats per Raquel (17/11/2026). Textos de `RATE_LIMITED`, `CHAT_INVALID
 | `OUTING_ENDS_BEFORE_START` | 422 | `ValidationError` | Sí | La sortida no pot acabar abans de començar. | La salida no puede terminar antes de empezar. | The outing can't end before it starts. | domain/outings (`ends_at` anterior a `starts_at`) |
 | `OUTING_STARTS_IN_PAST` | 422 | `ValidationError` | Sí | La sortida no pot començar en el passat. | La salida no puede empezar en el pasado. | The outing can't start in the past. | domain/outings (en crear, o en editar si canvien les dates) |
 | `OUTING_EVENT_NOT_FOUND` | 422 | `ValidationError` | Sí | Aquest esdeveniment ja no existeix. | Este evento ya no existe. | This event no longer exists. | domain/outings (`event_id` del cos que no existeix; application/outings) |
+| `OBSERVATION_ZONE_LATITUDE_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (latitud fora de [-90, 90] o NaN; TG-70, encara sense endpoint) |
+| `OBSERVATION_ZONE_LONGITUDE_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (longitud fora de [-180, 180] o NaN; TG-70, encara sense endpoint) |
+| `OBSERVATION_ZONE_RADIUS_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (radi ≤ 0 km o NaN; TG-70, encara sense endpoint) |
 | `OUTING_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta sortida no existeix o s'ha esborrat. | Esta salida no existe o se ha borrado. | This outing doesn't exist or was deleted. | domain/outings (application/outings) |
 | `OUTING_FORBIDDEN` | 403 | `ForbiddenError` | No | Només qui ha creat la sortida la pot canviar. | Solo quien ha creado la salida puede cambiarla. | Only the person who created the outing can change it. | domain/outings (PATCH o DELETE d'una altra persona; application/outings) |
 

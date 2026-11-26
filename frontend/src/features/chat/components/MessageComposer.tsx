@@ -26,6 +26,8 @@ interface Props {
    * of the message is where the outcome of the send lives.
    */
   onSend: (text: string) => Promise<unknown> | void;
+  /** Optional transient typing signal for direct conversations. */
+  onTyping?: (isTyping: boolean) => void;
   /** The parent is busy (e.g. joining the room): nothing can be sent. */
   busy?: boolean;
   /** Why nothing can be sent now (e.g. offline). The person can keep writing. */
@@ -47,6 +49,7 @@ interface Props {
  */
 export function MessageComposer({
   onSend,
+  onTyping,
   busy = false,
   disabledReason,
   bottomInset = 0,
@@ -62,6 +65,7 @@ export function MessageComposer({
   const field = fieldRef ?? ownField;
   const inFlight = useRef(false);
   const [text, setText] = useState('');
+  const textRef = useRef('');
   const [sending, setSending] = useState(false);
   const [focused, setFocused] = useState(false);
 
@@ -86,9 +90,11 @@ export function MessageComposer({
       // The field stays editable while the send is on its way. Takes out the text that was sent
       // from the start of the field and keeps what was added after it, so it is neither lost nor
       // sent twice. If the sent text was edited, the field is kept whole: nothing is thrown away.
-      setText((current) =>
-        current.startsWith(sent) ? current.slice(sent.length).trimStart() : current,
-      );
+      const current = textRef.current;
+      const next = current.startsWith(sent) ? current.slice(sent.length).trimStart() : current;
+      textRef.current = next;
+      setText(next);
+      onTyping?.(next.length > 0);
       // Keeps the keyboard up for the next message (checked on a device, not in a unit test).
       field.current?.focus();
     } finally {
@@ -131,7 +137,11 @@ export function MessageComposer({
             submitBehavior="newline"
             scrollEnabled
             value={text}
-            onChangeText={setText}
+            onChangeText={(next) => {
+              textRef.current = next;
+              setText(next);
+              onTyping?.(next.length > 0);
+            }}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             style={[styles.field, focused && styles.fieldFocused]}

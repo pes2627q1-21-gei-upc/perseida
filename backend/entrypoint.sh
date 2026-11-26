@@ -17,8 +17,10 @@ fi
 if [ "$1" = "uvicorn" ] && [ "${RUN_MIGRATIONS:-true}" != "false" ] && [ "${RUN_MIGRATIONS:-true}" != "0" ]; then
     if command -v uv >/dev/null 2>&1; then
         uv run alembic upgrade head
+        uv run python -m app.infrastructure.observation_zones.load_zones
     else
         alembic upgrade head
+        python -m app.infrastructure.observation_zones.load_zones
     fi
 fi
 

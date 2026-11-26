@@ -35,6 +35,7 @@ from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
+from app.infrastructure.realtime.dependencies import get_direct_handler
 from app.infrastructure.realtime.router import router
 from tests.fakes.auth import FakeAccountGateway, FakeGoogleTokenVerifier
 
@@ -249,6 +250,7 @@ def build_app(proxy: TcpProxy) -> FastAPI:
 
     app = FastAPI(lifespan=lifespan)
     app.include_router(router, prefix="/api")
+    app.dependency_overrides[get_direct_handler] = lambda: None
     return app
 
 

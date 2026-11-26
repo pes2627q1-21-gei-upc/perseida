@@ -13,6 +13,8 @@ Entrada (variables d'entorn):
     VARS_JSON      `toJSON(vars)` del workflow
     ENV_TEMPLATE   plantilla amb els noms requerits (per defecte `.env.example`)
     ENV_EXCLUDE    noms de la plantilla que no van al servidor, separats per espais
+    ENV_OPTIONAL   noms de la plantilla que només es renderitzen si hi ha un secret o una
+                   variable definits; `check` no els exigeix (p. ex. `BACKUP_DIR`)
     ENV_EXTRA_REQUIRED  noms que han d'existir però no van al `.env` (p. ex. els
                    `SSH_*` de la connexió), separats per espais
     ENV_SECRET_ONLY  noms que només poden ser secrets: si n'hi ha cap com a variable,
@@ -35,7 +37,16 @@ def required_names() -> list[str]:
     excluded = set(os.environ.get("ENV_EXCLUDE", "").split())
     with open(template, encoding="utf-8") as f:
         names = NAME.findall(f.read())
-    return [n for n in dict.fromkeys(names) if n not in excluded]
+    optional = set(optional_names())
+    return [n for n in dict.fromkeys(names) if n not in excluded and n not in optional]
+
+
+def optional_names() -> list[str]:
+    return os.environ.get("ENV_OPTIONAL", "").split()
+
+
+def defined_optional(secrets: dict[str, str], variables: dict[str, str]) -> list[str]:
+    return [n for n in optional_names() if n in secrets or n in variables]
 
 
 def extra_required_names() -> list[str]:
@@ -69,7 +80,9 @@ def check() -> int:
     ]
     # Es valida aquí perquè falli abans de tocar el servidor, no al render.
     invalid = [
-        n for n in names if not is_renderable(secrets.get(n, variables.get(n, "")))
+        n
+        for n in [*names, *defined_optional(secrets, variables)]
+        if not is_renderable(secrets.get(n, variables.get(n, "")))
     ]
     # Un nom sensible creat per error com a variable es veuria en clar als logs.
     as_variable = [n for n in secret_only_names() if n in variables and n not in secrets]
@@ -100,8 +113,8 @@ def check() -> int:
 
 
 def mask() -> int:
-    secrets, _ = load_context()
-    for name in required_names():
+    secrets, variables = load_context()
+    for name in [*required_names(), *defined_optional(secrets, variables)]:
         if name in secrets:
             print(f"::add-mask::{secrets[name]}")
     return 0
@@ -110,7 +123,7 @@ def mask() -> int:
 def render() -> int:
     secrets, variables = load_context()
     lines = []
-    for name in required_names():
+    for name in [*required_names(), *defined_optional(secrets, variables)]:
         value = secrets.get(name, variables.get(name))
         if value is None:
             print(f"Falta {name}", file=sys.stderr)

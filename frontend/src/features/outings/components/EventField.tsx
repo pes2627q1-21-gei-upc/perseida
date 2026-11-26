@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { errorMessage } from '../../../shared/errors';
 import { useTheme } from '../../../shared/theme';
-import { QuietButton } from '../../../shared/ui';
+import { GlassPanel, QuietButton } from '../../../shared/ui';
 import { useMapEvents } from '../../events/hooks/useEvents';
 import { formatDateTime } from '../formatOuting';
 
@@ -96,7 +96,9 @@ export function EventField({ value, onChange }: Props) {
         </ScrollView>
       </View>
       {events.isLoading ? (
-        <ActivityIndicator color={colors.text.primary} accessibilityLabel={t('events.loading')} />
+        <GlassPanel>
+          <ActivityIndicator color={colors.text.primary} accessibilityLabel={t('events.loading')} />
+        </GlassPanel>
       ) : null}
       {events.error ? (
         <View style={{ gap: spacing.sm }}>

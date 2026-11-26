@@ -267,3 +267,40 @@ forbidden_modules = [
     "app.application.streaks",
     "app.application.users",
 ]
+[[tool.importlinter.contracts]]
+# TG-70: the observation zones keep their own entity; Location lives in
+# app.domain.shared. TG-71 will add app.application.observation_zones here.
+name = "The observation zones do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.observation_zones"]
+forbidden_modules = [
+    "app.domain.achievements",
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.chat",
+    "app.domain.direct_chat",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.meeting_points",
+    "app.domain.outings",
+    "app.domain.posts",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.achievements",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.chat",
+    "app.application.direct_chat",
+    "app.application.events",
+    "app.application.health",
+    "app.application.meeting_points",
+    "app.application.outings",
+    "app.application.posts",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
+    "app.application.users",
+]

@@ -2,9 +2,9 @@
 titol: "Model de domini"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-22"
-us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51", "TG-399", "TG-400", "TG-469", "TG-470"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-399 i TG-400 (domini del xat directe, 2026-11-21); TG-469 (autor {id, name} al missatge del xat, 2026-11-21); TG-470 (autor als missatges, ADR-0033, 2026-11-20)"
+data: "2026-11-26"
+us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51", "TG-399", "TG-400", "TG-469", "TG-470", "TG-65"]
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-399 i TG-400 (domini del xat directe, 2026-11-21); TG-469 (autor {id, name} al missatge del xat, 2026-11-21); TG-470 (autor als missatges, ADR-0033, 2026-11-20); TG-65 i backend/app/infrastructure/direct_chat (23/11/2026); TG-70, tasques #495, #496, #498 i #499 (zones d'observació, 2026-11-25)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -26,6 +26,9 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!info] Implementat: fites
 > `Achievement` i `UserAchievement` ja tenen entitats, taules, catàleg de 34 fites i el motor que les desbloqueja (TG-58); vegeu [[#Fites (implementat)]].
+
+> [!info] Implementat: zones d'observació
+> `ObservationZone` ja té entitat, taula i consulta per proximitat (TG-70), amb `name` afegit al diagrama; vegeu [[#Zona d'observació (implementat al backend)]].
 
 ## Gamificació
 
@@ -131,7 +134,7 @@ Taules a `app/infrastructure/chat/tables.py` (migració `b3e9a6d2c581_create_cha
 
 ## Xat directe (domini implementat)
 
-Entitats a `app/domain/direct_chat/models.py`, ports a `ports.py` i codis a `errors.py` (US #65, tasques #399 i #400). Només el domini: serveis, persistència i API vindran amb les tasques #401 a #408. El mòdul no importa cap altra feature ([[backend-hexagonal]]; contracte d'import-linter «The direct chat does not import other features»), per això no reutilitza `ChatMessage` ni els ports de `app/domain/chat`.
+Entitats a `app/domain/direct_chat/models.py`, ports a `ports.py` i codis a `errors.py` (US #65, tasques #399 i #400). El servei, la persistència, els endpoints REST i el WebSocket són a la pila de PR de TG-65. El mòdul no importa cap altra feature ([[backend-hexagonal]]; contracte d'import-linter «The direct chat does not import other features»), per això no reutilitza `ChatMessage` ni els ports de `app/domain/chat`.
 
 | Entitat | Camps | Notes |
 |---|---|---|
@@ -139,13 +142,22 @@ Entitats a `app/domain/direct_chat/models.py`, ports a `ports.py` i codis a `err
 | `DirectMessage` | `id` (UUIDv7), `conversation_id`, `sender_id`, `text`, `sent_at`, `client_message_id` | immutable; el servidor assigna `id` i `sent_at` (UTC); `client_message_id` és la clau d'idempotència, com al xat d'esdeveniment ([[0030-protocol-websocket-i-revocacio-per-pub-sub]]) |
 | `UserBlock` | `blocker_id`, `blocked_id`, `created_at` | direccional: que A bloquegi B no implica que B bloquegi A |
 
-- **Una conversa per parella:** la parella es desa ordenada (`user_a_id < user_b_id`), de manera que (A, B) i (B, A) són la mateixa clau. `DirectConversation.create(a, b)` ordena els ids; el constructor rebutja una parella desordenada. És una regla del domini; la restricció única de la base de dades la reforçarà a #406.
+- **Una conversa per parella:** la parella es desa ordenada (`user_a_id < user_b_id`), de manera que (A, B) i (B, A) són la mateixa clau. `DirectConversation.create(a, b)` ordena els ids; el constructor rebutja una parella desordenada. La base de dades reforça la regla amb una restricció única sobre la parella ordenada.
 - **No llegits:** cada participant té una marca de llegit (`*_read_at`, buida al principi). `mark_read(user_id, at)` retorna una conversa nova i la marca no retrocedeix. Un missatge és no llegit per a un usuari si és de l'altre participant i posterior a la seva marca; `is_unread_for` rebutja (`VALIDATION_ERROR`) un missatge d'una altra conversa, i `mark_read` una data sense zona horària. El recompte és un `COUNT` agregat al repositori, sense comptadors desnormalitzats.
 - **Text:** mateixes regles de neteja que el xat d'esdeveniment (`clean_user_text` i `has_visible_text` de `app/domain/shared/text.py`, vegeu [[#Xat d'esdeveniment (domini implementat)]]). Buit o de més de 1000 caràcters (`MESSAGE_MAX_LENGTH`) dona `VALIDATION_ERROR` (criteri 7 de #65); mai es trunca.
-- **Errors del domini:** `CANNOT_MESSAGE_SELF` (parella amb un mateix usuari, també en bloquejar), `VALIDATION_ERROR` i `CONVERSATION_NOT_FOUND` ([[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]); qui no és participant rep `CONVERSATION_NOT_FOUND` (404) perquè no se li reveli que la conversa existeix. `USER_NOT_FOUND` i `USER_BLOCKED` són dels serveis i s'afegiran amb ells.
-- **Ports:** `DirectConversationRepository` (`get_or_create` per parella, `get`, `mark_read`, `list_of`), `DirectMessageRepository` (`find_by_client_id`, `add` idempotent, `page` amb cursor exclusiu `(sent_at, id)`, `count_unread`), `UserBlockRepository` (`block` i `unblock` idempotents, `is_blocked`) i `PushNotifier` (`notify(recipient_id, message)`).
+- **Errors del domini:** `CANNOT_MESSAGE_SELF` (parella amb un mateix usuari, també en bloquejar), `VALIDATION_ERROR` i `CONVERSATION_NOT_FOUND` ([[0018-errors-rfc-9457-amb-codis-estables|ADR-0018]]); qui no és participant rep `CONVERSATION_NOT_FOUND` (404) perquè no se li reveli que la conversa existeix. `DIRECT_IDEMPOTENCY_CONFLICT` (409, mateix `client_message_id` amb una altra conversa o un altre text; mateix patró que `CHAT_IDEMPOTENCY_CONFLICT` del xat d'esdeveniment), `USER_NOT_FOUND` (404, l'altre usuari no existeix o està esborrat) i `USER_BLOCKED` (403) s'han afegit amb el servei (TG-65, tasca #402); els textos ca/es/en són al catàleg de `gestio-errors`.
+- **Ports:** `DirectConversationRepository` (`get_or_create` per parella, `get`, `mark_read_through`, `list_of`), `DirectMessageRepository` (`find_by_client_id`, `add` idempotent, que pot ajustar el `sent_at` retornat perquè sigui estrictament creixent per conversa, `page` amb cursor exclusiu `(sent_at, id)`, `count_unread`), `UserBlockRepository` (`block` i `unblock` idempotents, `is_blocked`) i `PushNotifier` (`notify(recipient_id, message)`).
 - **Push:** `NoopPushNotifier` (`app/infrastructure/direct_chat/push_notifier.py`) no fa res i porta `TODO(TG-73)`: les notificacions reals (FCM) són de la US #73 i no afegeixen dependències aquí.
-- **Per a #402:** `MessageModerator`, `SendRateLimiter` i `PubSub` són a `app/domain/chat` i `app/domain/shared`; quan el servei del xat directe els necessiti, els ports del xat es mouran a `app/domain/shared` en aquella PR.
+- **Ports compartits (#402):** `MessageModerator`, `SendRateLimiter` i `ModerationResult` viuen a `app/domain/shared` (abans a `domain/chat`) i el cursor opac a `app/application/shared/cursor.py`. `CHAT_MESSAGE_REJECTED` és a `domain/shared/moderation.py` i `PUBSUB_UNAVAILABLE` a `application/shared/error_codes.py`; el xat d'esdeveniment els reexporta.
+- **Ports nous del servei:** `ChatUserDirectory.exists(user_id) -> bool` (només usuaris vius, `deleted_at` buit) i `DirectMessageBroadcaster.deliver(message, *, recipient_id, origin) -> int` (nombre de subscripcions al canal del destinatari en el moment de publicar; no confirma recepció; `ExternalServiceError` si el pub/sub cau).
+- **`DirectChatService`** (`app/application/direct_chat/direct_chat_service.py`): comprova participant, bloqueig en tots dos sentits, text i idempotència; després aplica límit i moderació abans de desar. La clau `(sender_id, client_message_id)` és única; reutilitzar-la amb una altra conversa o text dona `DIRECT_IDEMPOTENCY_CONFLICT`.
+- **Outbox:** el missatge i `direct_message_outbox` es confirmen en una mateixa transacció. L'ack confirma acceptació durable, no entrega. Un despachador prova les entrades pendents i les reintenta; l'entrega és com a mínim una vegada i el client deduplica per id. La decisió i el compromís respecte al criteri 14 de TG-65 són a [[0034-outbox-xat-directe]] (acceptada). El limitador Redis caigut rebutja abans del desat; un bloqueig completat abans del despatx evita publicar la sortida pendent, però conserva l'historial.
+- **Persistència:** `direct_conversations` té parella única ordenada i marques de lectura; `direct_messages` té `UNIQUE(sender_id, client_message_id)` i índex d'històric `(conversation_id, sent_at DESC, id DESC)`; `user_blocks` desa els bloquejos direccionals. `direct_message_outbox` registra la sortida pendent del missatge.
+- **Consultes i bloqueig (#404):** `ConversationSummary` (domini, immutable: `conversation`, `last_message` o `None`, `unread_count >= 0`) i els ports `DirectConversationRepository.summaries_of(user_id)` (una sola crida; ordre: `sent_at` del darrer missatge descendent, o `created_at` de la conversa si no en té, desempat per id descendent) i `UserBlockRepository.blocked_among(blocker_id, user_ids) -> set[UUID]` (una sola consulta).
+  - `list_conversations(user_id) -> list[ConversationOverview]`: dues crides als ports sigui quin sigui el nombre de converses (cap N+1). Cada fila (`application/direct_chat/models.py`) porta `conversation_id`, `other_user_id`, `other_display_name`, `other_avatar_url`, `last_message_preview` (truncada a 100 caràcters: 99 més «…»), `last_message_at`, `last_message_sender_id`, `unread_count`, `blocked_by_me` (només per a qui bloqueja) i `created_at`.
+  - `get_history(user_id, conversation_id, *, before=None, limit=50) -> DirectHistoryPage`: participant (si no, `CONVERSATION_NOT_FOUND`), `limit` d'1 a 50 i cursor opac (`encode_cursor`/`decode_cursor`, `VALIDATION_ERROR`; `before=""` és invàlid). Els elements van del més nou al més antic i `next_cursor` és `None` a l'últim. Bloquejar no amaga l'historial.
+  - `mark_read_through(user_id, conversation_id, last_message_id)`: només participants; avança la marca fins al missatge carregat i no retrocedeix. El missatge ha de pertànyer a la conversa; l'historial buit no avança la marca. Els enviaments se serialitzen per conversa i reben un `sent_at` estrictament creixent en l'ordre d'inserció, fins i tot amb rellotges desfasats.
+  - `block_user`/`unblock_user`: idempotents. Bloquejar-se a un mateix dona `CANNOT_MESSAGE_SELF`, bloquejar un usuari inexistent `USER_NOT_FOUND`; desbloquejar no comprova l'existència. Desbloquejar conserva l'historial.
 
 ## Esdeveniment astronòmic (implementat)
 
@@ -293,6 +305,20 @@ A l'app (`src/features/posts/`), la secció `EventPosts` va al final de la fitxa
 
 > [!todo] Pendent
 > - Moderació del text (TG-81) i imatges (TG-68).
+
+## Zona d'observació (implementat al backend)
+
+Entitat a `app/domain/observation_zones/models.py`, port a `ports.py` i codis a `errors.py` (TG-70). Concreta `ObservationZone` del diagrama: `zoneId` és `id` (UUIDv7) i s'hi afegeix `name`; la ubicació és el `Location` compartit (`app/domain/shared/location.py`). `cloudCoverage`, `lightPollution` i `recommendationScore` no hi són: els calcula TG-71.
+
+| Classe | Atributs |
+|---|---|
+| `ObservationZone` | `id: UUID`, `name: str` (no buit), `location: Location` |
+| `ZoneProximity` | `location: Location`, `radius_km: float` (> 0 i finit, sense màxim) |
+| `ZoneDistance` | `zone: ObservationZone`, `distance_km: float` |
+
+`ObservationZone.create(name, latitude, longitude)` i `ZoneProximity.create(latitude, longitude, radius_km)` validen i llancen `ValidationError` amb `OBSERVATION_ZONE_LATITUDE_INVALID` (fora de [-90, 90]), `OBSERVATION_ZONE_LONGITUDE_INVALID` (fora de [-180, 180]) o `OBSERVATION_ZONE_RADIUS_INVALID` (radi ≤ 0 o infinit); també rebutgen `NaN`.
+
+Port `ObservationZoneRepository`: `save(zone)` i `find_within(near) -> list[ZoneDistance]`, de la més propera a la més llunyana (empat per `id`). L'implementa `SqlObservationZoneRepository` sobre la taula `observation_zones` ([[postgres#Taules]]). Encara no hi ha endpoint: el consumirà TG-71.
 
 ## Subscripció a un esdeveniment (implementat al backend)
 

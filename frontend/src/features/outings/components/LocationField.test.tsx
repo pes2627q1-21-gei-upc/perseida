@@ -6,6 +6,7 @@ import { AccessibilityInfo, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, problemResponse } from '../../../../__mocks__/apod';
+import { isOnGlass } from '../../../../__mocks__/onGlass';
 import { otherSpace, spotwiseLibrary, unvotedCafe } from '../../../../__mocks__/meetingPoints';
 import i18n from '../../../shared/i18n';
 import { saveTokens } from '../../auth/tokenStorage';
@@ -623,6 +624,16 @@ describe('LocationField recommended places (TG-352, criterion 7; TG-661)', () =>
       ),
     );
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('draws the spinner of the places on glass, not straight on the sky (TG-658)', async () => {
+    meetingPoints = () => new Promise(() => undefined);
+    await renderField(jest.fn(), CHOSEN);
+
+    await fireEvent.press(screen.getByRole('button', { name: recommend() }));
+
+    const spinner = await screen.findByLabelText(i18n.t('meetingPoints.loading'));
+    expect(isOnGlass(spinner)).toBe(true);
   });
 
   it('says the places are loading while the API answers', async () => {
