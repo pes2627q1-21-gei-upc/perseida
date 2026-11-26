@@ -28,14 +28,6 @@ EVE = uuid.uuid7()
 T0 = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
 
 
-class Clock:
-    def __init__(self, at: datetime = T0 + timedelta(days=1)) -> None:
-        self.at = at
-
-    def __call__(self) -> datetime:
-        return self.at
-
-
 @pytest.fixture
 def env() -> DirectChatHarness:
     harness = DirectChatHarness()
@@ -44,12 +36,7 @@ def env() -> DirectChatHarness:
 
 
 @pytest.fixture
-def clock() -> Clock:
-    return Clock()
-
-
-@pytest.fixture
-def service(env: DirectChatHarness, clock: Clock) -> DirectChatService:
+def service(env: DirectChatHarness) -> DirectChatService:
     return DirectChatService(
         env.conversations,
         env.messages,
@@ -59,7 +46,6 @@ def service(env: DirectChatHarness, clock: Clock) -> DirectChatService:
         env.chat,
         env.broadcaster,
         env.push,
-        now=clock,
     )
 
 
@@ -156,7 +142,7 @@ async def test_tg65_list_keeps_a_preview_of_exactly_100_characters(
 
 
 async def test_tg65_list_unread_counter_grows_and_mark_read_resets_it(
-    env: DirectChatHarness, service: DirectChatService, clock: Clock
+    env: DirectChatHarness, service: DirectChatService
 ) -> None:
     conversation = await _conversation(env, ALICE, BOB)
     await _say(env, conversation, BOB, 1)
@@ -394,8 +380,8 @@ async def test_tg65_blocking_does_not_hide_the_history(
 # --- mark_read ---------------------------------------------------------------
 
 
-async def test_tg65_mark_read_moves_the_mark_to_now_for_the_participant(
-    env: DirectChatHarness, service: DirectChatService, clock: Clock
+async def test_tg65_mark_read_moves_the_mark_to_the_message_for_the_participant(
+    env: DirectChatHarness, service: DirectChatService
 ) -> None:
     conversation = await _conversation(env, ALICE, BOB)
     await _say(env, conversation, BOB, 1)
@@ -427,7 +413,7 @@ async def test_tg65_mark_read_does_not_affect_the_other_participant(
 
 
 async def test_tg65_mark_read_is_idempotent_and_never_goes_backwards(
-    env: DirectChatHarness, service: DirectChatService, clock: Clock
+    env: DirectChatHarness, service: DirectChatService
 ) -> None:
     conversation = await _conversation(env, ALICE, BOB)
     await _say(env, conversation, BOB, 1)
@@ -436,7 +422,6 @@ async def test_tg65_mark_read_is_idempotent_and_never_goes_backwards(
     )
     later = env.messages.messages[-1].sent_at
 
-    clock.at = later - timedelta(hours=1)
     await service.mark_read_through(
         ALICE, conversation.id, env.messages.messages[-1].id
     )

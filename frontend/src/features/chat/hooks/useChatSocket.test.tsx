@@ -697,46 +697,25 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
   });
 
   describe('sala agnòstica (TG-65): la sala és un paràmetre, no un eventId', () => {
-    const DM_ROOM = 'dm:user:u-1';
+    const OTHER_ROOM = 'chat:event:e-2';
 
     it('se subscriu a la sala que rep, sigui quina sigui, i en lliura els missatges', async () => {
-      await renderHook(() => useChatSocket(DM_ROOM, handlers));
+      await renderHook(() => useChatSocket(OTHER_ROOM, handlers));
       await flush();
       await serverOpens();
       await serverSends(AUTH_ACK);
 
       expect(lastSocket().sentOfType('subscribe')).toEqual([
-        { type: 'subscribe', room: DM_ROOM, id: expect.any(String) },
+        { type: 'subscribe', room: OTHER_ROOM, id: expect.any(String) },
       ]);
 
-      await serverSends({ type: 'message', room: DM_ROOM, payload: OTHERS_MESSAGE });
+      await serverSends({ type: 'message', room: OTHER_ROOM, payload: OTHERS_MESSAGE });
 
       expect(handlers.onMessage).toHaveBeenCalledWith(OTHERS_MESSAGE);
     });
 
-    it('sendMessage envia a la sala rebuda, amb el payload extra fusionat', async () => {
-      const { result } = await renderHook(() => useChatSocket(DM_ROOM, handlers));
-      await flush();
-      await serverOpens();
-      await serverSends(AUTH_ACK);
-
-      await act(async () => {
-        result.current
-          .sendMessage('Hola', 'cid-1', { conversation_id: 'c-1' })
-          .catch(() => undefined);
-      });
-      await flush();
-
-      expect(lastSent()).toEqual({
-        type: 'message',
-        room: DM_ROOM,
-        id: expect.any(String),
-        payload: { text: 'Hola', client_message_id: 'cid-1', conversation_id: 'c-1' },
-      });
-    });
-
-    it('sense payload extra, el payload és només el text i la clau d’idempotència', async () => {
-      const { result } = await renderHook(() => useChatSocket(DM_ROOM, handlers));
+    it('el payload és només el text i la clau d’idempotència', async () => {
+      const { result } = await renderHook(() => useChatSocket(OTHER_ROOM, handlers));
       await flush();
       await serverOpens();
       await serverSends(AUTH_ACK);
@@ -748,7 +727,7 @@ describe('useChatSocket: the room is joined (TG-469)', () => {
 
       expect(lastSent()).toEqual({
         type: 'message',
-        room: DM_ROOM,
+        room: OTHER_ROOM,
         id: expect.any(String),
         payload: { text: 'Hola', client_message_id: 'cid-1' },
       });

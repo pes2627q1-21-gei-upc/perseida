@@ -10,6 +10,8 @@ const mockReplace = jest.fn();
 const mockBack = jest.fn();
 const mockCanGoBack = jest.fn(() => false);
 const mockList = jest.fn();
+const mockMounted = jest.fn();
+let mockConversationId = 'c-1';
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
@@ -24,7 +26,7 @@ jest.mock('expo-router', () => ({
     back: mockBack,
     canGoBack: mockCanGoBack,
   }),
-  useLocalSearchParams: () => ({ conversationId: 'c-1' }),
+  useLocalSearchParams: () => ({ conversationId: mockConversationId }),
 }));
 jest.mock('../../direct-chat/components/ConversationsScreen', () => {
   const { Text: MockText } = jest.requireActual('react-native');
@@ -36,20 +38,28 @@ jest.mock('../../direct-chat/components/ConversationsScreen', () => {
 });
 jest.mock('../../direct-chat/components/DirectConversationScreen', () => {
   const { Text: MockText } = jest.requireActual('react-native');
+  const { useEffect: mockUseEffect } = jest.requireActual('react');
   return {
     DirectConversationScreen: ({
+      conversationId,
       otherUser,
       blockedByMe,
       onBack,
     }: {
+      conversationId: string;
       otherUser: { displayName: string };
       blockedByMe: boolean;
       onBack: () => void;
-    }) => (
-      <MockText onPress={onBack}>
-        {otherUser.displayName} {String(blockedByMe)}
-      </MockText>
-    ),
+    }) => {
+      mockUseEffect(() => {
+        mockMounted(conversationId);
+      }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      return (
+        <MockText onPress={onBack}>
+          {otherUser.displayName} {String(blockedByMe)}
+        </MockText>
+      );
+    },
   };
 });
 jest.mock('../../direct-chat/hooks/useDirectChat', () => ({ useConversations: () => mockList() }));
@@ -57,6 +67,7 @@ jest.mock('../../direct-chat/hooks/useDirectChat', () => ({ useConversations: ()
 beforeEach(() => {
   jest.clearAllMocks();
   mockCanGoBack.mockReturnValue(false);
+  mockConversationId = 'c-1';
 });
 
 describe('direct chat routes (TG-65)', () => {
@@ -138,5 +149,42 @@ describe('TG-65 criterion 5: route isolation across conversations', () => {
     await render(<DirectConversationRoute />, { wrapper });
     expect(screen.getByText('Laia true')).toBeOnTheScreen();
     expect(screen.queryByText('Marta false')).toBeNull();
+  });
+});
+
+const ROW = (id: string, name: string) => ({
+  conversation_id: id,
+  other_user_id: `user-${id}`,
+  other_display_name: name,
+  blocked_by_me: false,
+});
+
+describe('TG-65 review: the open conversation survives its list', () => {
+  it('[ALTA] keeps the open conversation when a refresh of the list fails but it has data', async () => {
+    mockList.mockReturnValue({
+      isPending: false,
+      isFetching: false,
+      error: { code: 'NETWORK_ERROR', retryable: true },
+      data: [ROW('c-1', 'Laia')],
+    });
+    await render(<DirectConversationRoute />, { wrapper });
+    expect(screen.getByText('Laia false')).toBeOnTheScreen();
+  });
+
+  it('[ALTA] resets the conversation screen when the conversation id changes', async () => {
+    mockList.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: [ROW('c-1', 'Laia'), ROW('c-2', 'Marta')],
+    });
+    const { rerender } = await render(<DirectConversationRoute />, { wrapper });
+    expect(mockMounted).toHaveBeenCalledTimes(1);
+
+    mockConversationId = 'c-2';
+    await rerender(<DirectConversationRoute />);
+
+    expect(screen.getByText('Marta false')).toBeOnTheScreen();
+    expect(mockMounted).toHaveBeenCalledTimes(2);
+    expect(mockMounted).toHaveBeenLastCalledWith('c-2');
   });
 });

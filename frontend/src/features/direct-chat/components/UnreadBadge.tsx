@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
@@ -27,7 +26,7 @@ const POP_FROM = 0.6;
 // Stryker restore all
 
 /**
- * The unread-messages pill (TG-65): gel in the brand colour with the number on it, «99+» from
+ * The unread-messages pill (TG-65): flat pill in the brand colour with the number on it (gel is only for actions), «99+» from
  * 100. It is read as one element with the real count («137 missatges sense llegir»), never
  * «99+». It pops in softly (120 ms) unless the person asked for reduced motion.
  *
@@ -42,7 +41,6 @@ export function UnreadBadge({ count, live = false }: Props) {
 function Pill({ count, live }: { count: number; live: boolean }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { colors } = theme;
   const styles = createStyles(theme);
   const reduceMotion = useReducedMotion();
 
@@ -68,13 +66,6 @@ function Pill({ count, live }: { count: number; live: boolean }) {
         accessibilityLiveRegion={live ? 'polite' : undefined}
         style={styles.pill}
       >
-        <LinearGradient
-          colors={colors.gel.highlight}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          pointerEvents="none"
-          style={styles.highlight}
-        />
         <Text style={styles.number}>{formatUnreadCount(count)}</Text>
       </View>
     </Animated.View>
@@ -90,18 +81,15 @@ function createStyles({ colors, spacing, radii, typography, touch }: Theme) {
     pill: {
       alignItems: 'center',
       justifyContent: 'center',
-      overflow: 'hidden',
+      // It grows with the text scale (WCAG 1.4.4): a minimum, never a fixed height or a clip.
       minWidth: size,
-      height: size,
+      minHeight: size,
       paddingHorizontal: spacing.sm,
-      borderWidth: 1,
+      paddingVertical: spacing.xs,
       borderRadius: radii.pill,
-      borderColor: colors.gel.rim,
       backgroundColor: colors.brandFill,
       boxShadow: `0 2px 8px ${colors.brandFill}66`,
     },
-    // A thin line of light at the top edge, like the rows: it never lightens the number.
-    highlight: { position: 'absolute', top: 0, left: spacing.sm, right: spacing.sm, height: 1 },
     number: { ...typography.caption, color: colors.gel.text, fontVariant: ['tabular-nums'] },
   });
 }

@@ -90,6 +90,11 @@ class DirectMessageRepository(Protocol):
         If the sender already stored a message with the same ``client_message_id``
         (a concurrent retry), nothing is inserted and that one is returned.
 
+        The returned message may differ from ``message`` in ``sent_at``: the
+        repository keeps it strictly increasing per conversation, so a message
+        sent at or before the latest stored one gets a moment just after it. That
+        is what makes ``(sent_at, id)`` order, cursors and read marks unambiguous.
+
         Raises:
             ExternalServiceError: if the database is unavailable.
         """

@@ -2,7 +2,7 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-23"
+data: "2026-11-26"
 us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470", "TG-65", "TG-352"]
 font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51; TG-65 i backend/app/infrastructure/direct_chat (23/11/2026)"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
@@ -144,7 +144,7 @@ Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS
 
 ## Xat directe (TG-65)
 
-A la branca de treball TG-65 els endpoints són privats i requereixen sessió. Errors RFC 9457 amb `code`; la integració i la revisió de la pila encara estan pendents.
+Els endpoints del xat directe (TG-65) són privats i requereixen sessió. Errors RFC 9457 amb `code`.
 
 | Endpoint | Funció |
 |---|---|

@@ -1,8 +1,6 @@
 """Application use cases for the direct chat between two users (US #65)."""
 
 import uuid
-from collections.abc import Callable
-from datetime import UTC, datetime
 
 from app.application.direct_chat.models import (
     ConversationOverview,
@@ -51,10 +49,6 @@ HISTORY_DEFAULT_LIMIT = 50
 HISTORY_MAX_LIMIT = 50
 
 
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
 def _preview(text: str) -> str:
     if len(text) <= PREVIEW_MAX_LENGTH:
         return text
@@ -72,7 +66,6 @@ class DirectChatService:
         moderator: MessageModerator,
         broadcaster: DirectMessageBroadcaster,
         push: PushNotifier,
-        now: Callable[[], datetime] = _utc_now,
     ) -> None:
         self._conversations = conversations
         self._messages = messages
@@ -82,7 +75,6 @@ class DirectChatService:
         self._moderator = moderator
         self._broadcaster = broadcaster
         self._push = push
-        self._now = now
 
     async def open_conversation(
         self, user_id: uuid.UUID, other_user_id: uuid.UUID
@@ -132,11 +124,7 @@ class DirectChatService:
         """
         conversation = await self._participant_conversation(user_id, conversation_id)
         recipient_id = conversation.other_participant(user_id)
-        # Either direction blocks the conversation; the history is kept.
-        if await self._blocks.is_blocked(
-            recipient_id, user_id
-        ) or await self._blocks.is_blocked(user_id, recipient_id):
-            raise ForbiddenError(USER_BLOCKED, "The conversation is blocked")
+        await self._ensure_not_blocked(user_id, recipient_id)
         message = DirectMessage.create(
             conversation_id=conversation.id,
             sender_id=user_id,
@@ -152,6 +140,34 @@ class DirectChatService:
         ):
             raise ConflictError(DIRECT_IDEMPOTENCY_CONFLICT)
         return stored
+
+    async def typing_recipient(
+        self, user_id: uuid.UUID, conversation_id: uuid.UUID
+    ) -> uuid.UUID:
+        """Return who must be told that ``user_id`` is typing.
+
+        Ephemeral signal: nothing is stored, so it takes no pair lock; a block
+        racing with it at worst lets one frame through.
+
+        Raises:
+            NotFoundError: CONVERSATION_NOT_FOUND if it does not exist or
+                ``user_id`` is not a participant.
+            ForbiddenError: USER_BLOCKED if either user blocks the other.
+            ExternalServiceError: if the database is unavailable.
+        """
+        conversation = await self._participant_conversation(user_id, conversation_id)
+        recipient_id = conversation.other_participant(user_id)
+        await self._ensure_not_blocked(user_id, recipient_id)
+        return recipient_id
+
+    async def _ensure_not_blocked(
+        self, user_id: uuid.UUID, recipient_id: uuid.UUID
+    ) -> None:
+        # Either direction blocks the conversation; the history is kept.
+        if await self._blocks.is_blocked(
+            recipient_id, user_id
+        ) or await self._blocks.is_blocked(user_id, recipient_id):
+            raise ForbiddenError(USER_BLOCKED, "The conversation is blocked")
 
     async def _store(
         self, message: DirectMessage, *, origin: str | None
