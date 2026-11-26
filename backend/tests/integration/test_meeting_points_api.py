@@ -37,6 +37,7 @@ from app.infrastructure.auth.google_verifier import (
 from app.infrastructure.auth.jwt_codec import JwtTokenCodec
 from app.infrastructure.auth.redis_session_store import RedisSessionStore
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
+from app.infrastructure.meeting_points.config import SpotwiseSettings
 from app.infrastructure.meeting_points.examples import ExampleSpaceSearch
 from app.infrastructure.meeting_points.spotwise_client import SpotwiseSpaceClient
 from app.infrastructure.persistence.config import DatabaseSettings
@@ -94,6 +95,9 @@ def _env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("NASA_API_KEY", "it-nasa-key")
     monkeypatch.setenv("SPOTWISE_URL", SPOTWISE_URL)
     monkeypatch.setenv("SPOTWISE_API_TOKEN", SPOTWISE_TOKEN)
+    # Do not read a local backend/.env: with a token there, the test without
+    # token would call Spotwise.
+    monkeypatch.setitem(SpotwiseSettings.model_config, "env_file", None)
     get_scheduler_settings.cache_clear()
     yield
     get_scheduler_settings.cache_clear()
