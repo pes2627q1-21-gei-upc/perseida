@@ -12,7 +12,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { type AppError, NETWORK_ERROR_CODE } from '../../../shared/errors';
 import type { SocketStatus } from '../../../shared/realtime';
 import type { CurrentUser } from '../../auth/api/getCurrentUser';
-import { ACCOUNT_BLOCKED_CODES } from '../../auth/hooks/useLogout';
+import { isAccountBlocked } from '../../auth/accountBlocked';
 import { useCurrentUser } from '../../auth/hooks/useCurrentUser';
 import { clearSession } from '../../auth/session';
 import type { ChatMessage, ChatRoom } from '../api/chat';
@@ -123,6 +123,8 @@ export function useLiveConversation({
   const [joinAttempt, setJoinAttempt] = useState(0);
   // A NOT_SUBSCRIBED send joins again by itself once, until a message goes through.
   const rejoinedBySend = useRef(false);
+  // Several bubbles can be refused for the same blocked account: the session ends only once.
+  const endingSession = useRef(false);
 
   const rejoin = useCallback(() => setJoinAttempt((attempt) => attempt + 1), []);
 
@@ -243,11 +245,13 @@ export function useLiveConversation({
       }
       mark(clientMessageId, 'failed', { code: error.code, retryable: error.retryable });
       if (error.code === FORBIDDEN) takeOut();
-      if (ACCOUNT_BLOCKED_CODES.includes(error.code)) {
-        // The account was suspended or deleted: end the session, then tell why at /login.
-        void clearSession(queryClient).then(() =>
-          router.replace({ pathname: '/login', params: { notice: error.code } }),
-        );
+      if (isAccountBlocked(error.code) && !endingSession.current) {
+        // The account was suspended or deleted: end the session, then tell why at /login,
+        // even if wiping the session fails.
+        endingSession.current = true;
+        void clearSession(queryClient)
+          .catch(() => undefined)
+          .finally(() => router.replace({ pathname: '/login', params: { notice: error.code } }));
       }
     },
     [mark, queryClient, rejoin, router, takeOut],

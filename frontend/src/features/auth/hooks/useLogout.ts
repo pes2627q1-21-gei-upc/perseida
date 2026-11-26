@@ -9,9 +9,6 @@ import { getTokens } from '../tokenStorage';
 /** Route param that makes the sign-in screen explain that the server did not confirm. */
 export const LOGOUT_NOTICE = 'logout-unconfirmed';
 
-/** Codes of an account that can no longer use the app: the session ends and /login says why. */
-export const ACCOUNT_BLOCKED_CODES: readonly string[] = ['ACCOUNT_SUSPENDED', 'ACCOUNT_DELETED'];
-
 /**
  * Signs out: closes the session on the server, wipes the tokens and goes to /login.
  * The device is signed out even if the server call fails (offline, expired session):

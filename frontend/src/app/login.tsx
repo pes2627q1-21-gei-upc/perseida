@@ -11,7 +11,8 @@ import { refreshSession } from '../features/auth/api/refreshToken';
 import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
 import { useGoogleAuth } from '../features/auth/hooks/useGoogleAuth';
-import { ACCOUNT_BLOCKED_CODES, LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
+import { isAccountBlocked } from '../features/auth/accountBlocked';
+import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
 import { isAppError } from '../shared/errors';
 import { authErrorMessage, toAuthErrorMessage } from '../features/auth/strings';
 import { getTokens, saveTokens } from '../features/auth/tokenStorage';
@@ -53,8 +54,7 @@ export default function LoginScreen() {
   const [pressedNotice, setPressedNotice] = useState<string | null>(null);
   let paramNotice: string | null = null;
   if (noticeParam === LOGOUT_NOTICE) paramNotice = t('auth.logoutNotConfirmed');
-  else if (noticeParam && ACCOUNT_BLOCKED_CODES.includes(noticeParam))
-    paramNotice = authErrorMessage(noticeParam, false);
+  else if (isAccountBlocked(noticeParam)) paramNotice = authErrorMessage(noticeParam, false);
   const notice = pressedNotice ?? paramNotice;
 
   const { signIn, isAuthenticating } = useGoogleAuth({
