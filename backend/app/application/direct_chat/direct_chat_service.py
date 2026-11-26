@@ -1,8 +1,6 @@
 """Application use cases for the direct chat between two users (US #65)."""
 
 import uuid
-from collections.abc import Callable
-from datetime import UTC, datetime
 
 from app.application.direct_chat.models import (
     ConversationOverview,
@@ -51,10 +49,6 @@ HISTORY_DEFAULT_LIMIT = 50
 HISTORY_MAX_LIMIT = 50
 
 
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
 def _preview(text: str) -> str:
     if len(text) <= PREVIEW_MAX_LENGTH:
         return text
@@ -72,7 +66,6 @@ class DirectChatService:
         moderator: MessageModerator,
         broadcaster: DirectMessageBroadcaster,
         push: PushNotifier,
-        now: Callable[[], datetime] = _utc_now,
     ) -> None:
         self._conversations = conversations
         self._messages = messages
@@ -82,7 +75,6 @@ class DirectChatService:
         self._moderator = moderator
         self._broadcaster = broadcaster
         self._push = push
-        self._now = now
 
     async def open_conversation(
         self, user_id: uuid.UUID, other_user_id: uuid.UUID
