@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 from sqlalchemy import bindparam, text
 
+from app.infrastructure.chat.dependencies import get_chat_settings
 from tests.integration.chat.test_chat_ws import (
     RATE_LIMIT_MESSAGES,
     Harness,
@@ -271,7 +272,13 @@ def test_tg65_dm_send_with_an_invalid_conversation_id_is_a_validation_error(
         assert_alive(sender)
 
 
-def test_tg65_dm_send_over_the_rate_limit_is_rate_limited(dm_env: Harness) -> None:
+def test_tg65_dm_send_over_the_rate_limit_is_rate_limited(
+    dm_env: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A direct send is slower than an event-chat one (it stores an outbox row), so the
+    # shared 3 s test window can expire before the eleventh frame on a busy runner.
+    monkeypatch.setenv("CHAT_RATE_LIMIT_WINDOW_SECONDS", "30")
+    get_chat_settings.cache_clear()
     for user in ("sender", "recipient"):
         dm_env.login(user)
     conversation_id = open_conversation(dm_env, "sender", "recipient")
