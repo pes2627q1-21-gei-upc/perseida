@@ -23,6 +23,14 @@
 # d'un `--rollback` posterior (si no, la imatge anterior no coneixeria les
 # revisions noves). S'esborra quan un desplegament o un rollback acaben bé.
 #
+# Còpia de seguretat (TG-386): abans d'arrencar la imatge nova (que és qui migra) es
+# crida `backup-db.sh --if-pending <head> <git-sha>` (`--always` si no es sap el head),
+# i abans de qualsevol `alembic downgrade` (rollback manual o automàtic),
+# `backup-db.sh --always <git-sha>`. Si la còpia falla no s'arrenca la imatge nova ni
+# es desfà res: l'API queda com estava (o aturada, en un rollback) i el script surt
+# amb error. Del `.env` només es llegeixen `BACKUP_DIR` i `BACKUP_KEEP` (la resta són
+# secrets i no es carreguen); si no hi són, `backup-db.sh` usa els seus valors per defecte.
+#
 # `API_IMAGE_TAG` a l'entorn té prioritat sobre el del `.env`, així el tag només
 # viu en aquesta execució. `HEALTH_TIMEOUT` (segons, 120 per defecte) és l'espera
 # màxima perquè l'API respongui bé al healthcheck; `PROBE_TIMEOUT` (60), la de la
@@ -135,10 +143,32 @@ rollback_to() {
     warn "No es pot saber la revisió d'Alembic de $to: no es desfan les migracions."
   fi
   docker compose stop api
+  # Còpia abans de desfer migracions (n'esborra dades). Si falla, no es desfà res.
+  if [ -n "$rev" ] && ! ./backup-db.sh --always "${from#sha-}"; then
+    rollback_error=backup
+    warn "ERROR: no s'ha pogut fer la còpia de seguretat de la base de dades abans del downgrade: no es desfan les migracions i l'API queda aturada."
+    return 1
+  fi
   if [ -n "$rev" ] && ! API_IMAGE_TAG=$from docker compose run --rm -T --no-deps api alembic downgrade "$rev"; then
     warn "ATENCIÓ: el downgrade a $rev ha fallat; l'esquema pot no coincidir amb $to."
   fi
   API_IMAGE_TAG=$to docker compose up -d --remove-orphans && wait_healthy
+}
+
+# Carrega del `.env` NOMÉS `BACKUP_DIR` i `BACKUP_KEEP` (sense fer `source` del fitxer,
+# que té secrets) i els exporta si hi són i no són buits. `render_env.py` escriu els
+# valors entre cometes simples; es treuen. Sense `.env` no passa res.
+load_backup_env() {
+  [ -f .env ] || return 0
+  quote="'"
+  for name in BACKUP_DIR BACKUP_KEEP; do
+    value=$(grep -E "^$name=" .env | tail -n 1 | cut -d= -f2-) || value=""
+    value=${value#"$quote"}
+    value=${value%"$quote"}
+    if [ -n "$value" ]; then
+      export "$name=$value"
+    fi
+  done
 }
 
 # Noms (no valors) de les variables del `.env`, ordenats.
@@ -163,6 +193,8 @@ env_names_unchanged() {
 }
 
 cd "$(dirname "$0")"
+load_backup_env
+rollback_error=""
 
 # Un sol desplegament o rollback alhora: el CD ja serialitza els seus runs
 # (`concurrency`), però un `--rollback` manual per SSH podria coincidir amb un.
@@ -196,7 +228,11 @@ if [ "${1:-}" = "--rollback" ]; then
     say "Rollback fet: $from -> $target."
     exit 0
   fi
-  warn "El rollback a $target no ha superat el healthcheck."
+  if [ "$rollback_error" = backup ]; then
+    warn "El rollback a $target no s'ha fet: ha fallat la còpia de seguretat prèvia (no s'ha desfet res)."
+  else
+    warn "El rollback a $target no ha superat el healthcheck."
+  fi
   exit 1
 fi
 
@@ -208,6 +244,21 @@ export API_IMAGE_TAG="$tag"
 # Els tags per git-sha són immutables: només es baixa la imatge si falta. Si el
 # pull falla no s'ha tocat res i el desplegament s'atura aquí.
 docker compose pull --policy missing api
+
+# Còpia de la base de dades abans que la imatge nova migri. Si falla, no s'arrenca res.
+head=$(head_of "$tag") || head=""
+sha=${tag#sha-}
+if [ -n "$head" ]; then
+  backup_ok=0
+  ./backup-db.sh --if-pending "$head" "$sha" || backup_ok=$?
+else
+  backup_ok=0
+  ./backup-db.sh --always "$sha" || backup_ok=$?
+fi
+if [ "$backup_ok" -ne 0 ]; then
+  warn "ERROR: ha fallat la còpia de seguretat de la base de dades: no es desplega $tag i l'API queda com estava."
+  exit 1
+fi
 
 # L'entrypoint de la imatge nova migra en arrencar: des d'aquí l'esquema pot ser més nou que `previous`.
 printf '%s\n' "$tag" > "$ATTEMPT_FILE" ||
@@ -252,6 +303,8 @@ fi
 warn "$previous arrenca bé: el fallo és del codi o de les migracions de $tag. Rollback automàtic a $previous..."
 if rollback_to "$tag" "$previous"; then
   warn "Rollback fet: l'API torna a respondre amb $previous. El desplegament de $tag ha fallat."
+elif [ "$rollback_error" = backup ]; then
+  warn "EL ROLLBACK AUTOMÀTIC A $previous NO S'HA FET: ha fallat la còpia de seguretat prèvia; cal intervenir al servidor."
 else
   warn "EL ROLLBACK A $previous TAMPOC HA SUPERAT EL HEALTHCHECK: cal intervenir al servidor."
 fi

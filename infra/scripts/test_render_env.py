@@ -45,6 +45,14 @@ class CheckTest(unittest.TestCase):
         required = re.findall(r"^([A-Z][A-Z0-9_]*)=", template.read_text(encoding="utf-8"), re.MULTILINE)
         self.assertTrue(set(names).isdisjoint(required))
 
+    def test_real_template_includes_backup_settings(self) -> None:
+        import re
+
+        template = SCRIPT.parents[1] / ".env.example"
+        required = re.findall(r"^([A-Z][A-Z0-9_]*)=", template.read_text(encoding="utf-8"), re.MULTILINE)
+        self.assertIn("BACKUP_DIR", required)
+        self.assertIn("BACKUP_KEEP", required)
+
     def test_everything_defined_passes(self) -> None:
         code, _ = run_check({"DB_PASSWORD": "x"}, {"DB_PORT": "5432"}, "DB_PASSWORD")
         self.assertEqual(code, 0)
