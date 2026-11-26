@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessionGuard } from '../../features/auth/hooks/useSessionGuard';
+import { useStartupLanguage } from '../../features/language';
 import {
   HIDDEN_NESTED_ROUTES,
   HIDDEN_ROUTES,
@@ -49,6 +50,7 @@ export default function AppLayout() {
     (segments[2] === '[eventId]' ||
       (segments[2] === 'direct' && segments[3] === '[conversationId]'));
   const isReady = useSessionGuard();
+  useStartupLanguage(isReady);
 
   if (!isReady) {
     return null;

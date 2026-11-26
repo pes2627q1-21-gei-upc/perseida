@@ -439,9 +439,17 @@
       "title": "Followers"
     },
     "language": {
-      "ca": "Catalan",
+      "ca": "Català",
       "en": "English",
-      "es": "Spanish"
+      "es": "Español"
+    },
+    "languageMenu": {
+      "changed": "Language changed to {{name}}",
+      "error": "The language could not be saved to your account. The change stays here.",
+      "hint": "Opens the list of languages",
+      "label": "Language: {{code}}, {{name}}",
+      "saving": "Saving the language...",
+      "title": "Language"
     },
     "loading": "Loading profile...",
     "memberSince": "Member since {{date}}",

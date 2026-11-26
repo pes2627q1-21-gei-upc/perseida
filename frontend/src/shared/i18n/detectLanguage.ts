@@ -5,14 +5,14 @@ export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 
 export const DEFAULT_LANGUAGE: Language = 'ca';
 
-function isSupported(code: string | null): code is Language {
+export function isLanguage(code: string | null): code is Language {
   return SUPPORTED_LANGUAGES.some((language) => language === code);
 }
 
 /** First supported language in the device's preference order, or Catalan if none is. */
 export function detectLanguage(): Language {
   for (const { languageCode } of getLocales()) {
-    if (isSupported(languageCode)) return languageCode;
+    if (isLanguage(languageCode)) return languageCode;
   }
   return DEFAULT_LANGUAGE;
 }

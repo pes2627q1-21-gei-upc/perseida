@@ -457,10 +457,20 @@ Després, respon la petició des del correu d'equip.
 3. *Audience → Publish app*: l'estat passa a *In production*. Amb els àmbits `openid`, `email` i `profile`, Google no demana verificació.
 4. Inicia sessió a l'app amb un compte de Google que no sigui usuari de test.
 
+### Panell d'administració (TG-77)
+
+El CD compila el panell i el deixa al volum `admin_dist`; no es fa res a mà.
+
+1. El job `admin-bundle` de `.github/workflows/cd.yml` executa `expo export --platform web` a `frontend/`, amb `EXPO_PUBLIC_API_BASE_URL` i `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: variables públiques (mai secrets) de l'environment `production` de GitHub: les de l'APK viuen a `android-release` i aquí no es resolen, així que cal definir-les també a `production`. `frontend/app.json` té `experiments.baseUrl: "/admin"`, així que tots els fitxers es demanen sota `/admin/`. Si no hi ha `index.html`, o els fitxers no es demanen sota `/admin/`, el job falla i **no es desplega res**.
+2. El job `deploy`, després de `deploy.sh` i de recarregar el proxy (si el panell falla, la configuració del proxy ja s'ha aplicat), envia el paquet per SSH a `install-admin-dist.sh`. L'extreu a una carpeta temporal del volum i canvia el contingut d'un cop, amb un contenidor d'un sol ús de la mateixa imatge que el proxy (el proxy munta el volum només en lectura). L'API i el proxy no s'aturen. Un paquet dolent (que no és un `.tar.gz`, o sense `index.html`) es rebutja amb un missatge clar i es queda el panell que hi havia.
+3. Comprova-ho després d'un desplegament: `curl -sI https://<host>/admin/` respon 200, i `curl -s https://<host>/admin/panel` torna el mateix `index.html` (el proxy hi cau per a les rutes de la SPA).
+
+Test: `bash infra/scripts/test-admin-dist.sh` (cal Docker; la CI l'executa al job `proxy`). Fa servir un volum de prova i no toca mai el de producció.
+
 ### Volums
 
 - `media_data` és compartit: `api` hi escriu la multimèdia dels usuaris i NPM el munta en lectura a `/media`.
-- `admin_dist` conté el panell d'administració compilat (TG-77), muntat en lectura a `/admin`. Com `media_data`, és un volum nomenat: sobreviu a `docker compose down` i als redesplegaments, no depèn d'on sigui el repositori al servidor i NPM només el pot llegir.
+- `admin_dist` conté el panell d'administració compilat (TG-77), muntat en lectura a `/admin`; el CD l'omple (vegeu «Panell d'administració»). Com `media_data`, és un volum nomenat: sobreviu a `docker compose down` i als redesplegaments, no depèn d'on sigui el repositori al servidor i NPM només el pot llegir.
 
 ## Capçaleres de seguretat
 
