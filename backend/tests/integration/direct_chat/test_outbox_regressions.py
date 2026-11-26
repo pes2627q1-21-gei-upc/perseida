@@ -133,3 +133,23 @@ async def test_tg65_worker_drains_pending_items_before_sleeping(
     }
     for message in messages:
         assert await pending(connection, message.id) == 0
+
+
+async def test_tg65_a_message_sent_after_a_failing_one_is_still_delivered(
+    connection: AsyncConnection, factory: async_sessionmaker[AsyncSession]
+) -> None:
+    failed, late = await make_message(factory), await make_message(factory)
+    messages = SqlDirectMessageRepository(factory)
+    await messages.add(failed)
+    broadcaster = SelectivelyFailingBroadcaster(failed.id)
+    dispatcher = DirectOutboxDispatcher(factory, broadcaster)
+    for _ in range(3):
+        await dispatcher.dispatch_once()  # the failing item now has attempts > 0
+
+    await messages.add(late)  # attempts == 0, below the failing item's key
+    for _ in range(3):
+        await dispatcher.dispatch_once()
+
+    assert [message.id for message in broadcaster.delivered] == [late.id]
+    assert await pending(connection, late.id) == 0
+    assert await pending(connection, failed.id) == 1

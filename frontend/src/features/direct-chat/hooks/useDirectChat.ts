@@ -4,16 +4,18 @@ import { useEffect, useRef } from 'react';
 import type { AppError } from '../../../shared/errors';
 import { useSocket } from '../../../shared/realtime';
 import { socketAuth } from '../../auth/socketAuth';
+import type { ChatHistory } from '../../chat/api/chat';
+import type { ChatHistoryData } from '../../chat/chatCache';
 import {
   blockUser,
   type ConversationOverview,
-  type DirectHistory,
   fetchMessages,
   listConversations,
   markRead,
   openConversation,
   unblockUser,
 } from '../api/directChat';
+import { asChatHistory } from '../directMessages';
 
 export const directChatKeys = {
   all: ['direct-chat'] as const,
@@ -51,16 +53,20 @@ export function useConversations() {
   });
 }
 
+/**
+ * History of a direct conversation, newest first, one page per cursor. It is cached as
+ * `ChatHistory` (the shape the chat core reads and adds live messages to), not as the API sends it.
+ */
 export function useDirectMessages(conversationId: string) {
   return useInfiniteQuery<
-    DirectHistory,
+    ChatHistory,
     AppError,
-    { pages: DirectHistory[]; pageParams: (string | undefined)[] },
+    ChatHistoryData,
     ReturnType<typeof directChatKeys.messages>,
     string | undefined
   >({
     queryKey: directChatKeys.messages(conversationId),
-    queryFn: ({ pageParam }) => fetchMessages(conversationId, pageParam),
+    queryFn: async ({ pageParam }) => asChatHistory(await fetchMessages(conversationId, pageParam)),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.next_cursor ?? undefined,
     enabled: !!conversationId,

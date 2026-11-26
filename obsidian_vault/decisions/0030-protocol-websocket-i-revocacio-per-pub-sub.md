@@ -2,7 +2,7 @@
 titol: "ADR-0030: Protocol WebSocket i revocació de sessió per pub/sub"
 tipus: adr
 estat: acceptada
-data: "2026-11-21"
+data: "2026-11-26"
 us: ["TG-63", "TG-64", "TG-654", "TG-469"]
 font: "US TG-63 de Taiga i tasques #420-#432; backend/app/domain/realtime; backend/app/application/realtime; aprovació de la PR 78; Taiga: issue TG-654 (idempotència i reintents del xat, 2026-11-19); TG-469 (autor {id, name} al missatge del xat, 2026-11-21)"
 etiquetes: [adr, backend, websocket, redis, pubsub, seguretat]
@@ -63,6 +63,13 @@ El client reintenta els `message` sense ack (caiguda, connexió morta, timeout) 
 - **Cursa de reenviaments.** `add_message` fa `INSERT ... ON CONFLICT (author_id, client_message_id) DO NOTHING RETURNING` i, si no insereix, rellegeix i retorna el desat; el servei publica i respon amb aquest. Si el desat que guanya la cursa té una altra sala o un altre text, el resultat és el mateix 409 que en seqüència (el límit i la moderació ja s'han gastat). Un `id` de PK repetit continua sent un `IntegrityError`.
 - **La clau no s'exposa:** el frame que reben els altres subscriptors no porta `client_message_id` (`message.model_dump(exclude={"client_message_id"})`); tampoc l'ack ni el REST.
 - **Client** (vegeu [[frontend#Temps real: connexió WebSocket compartida (TG-64)]]): cua de reintents en memòria (tres intents) i `SEND_UNCERTAIN` si no hi ha cap resposta. Una cua persistent que sobrevisqui al tancament de l'app (outbox, [[0011-client-offline-sqlite-last-write-wins]]) queda fora d'abast.
+
+## Actualització (TG-65)
+
+El xat directe afegeix frames i un canal sense canviar l'embolcall:
+
+- **Frames `dm.*`.** El catàleg de `type` admet `dm.send` (client a servidor; ack amb `{id, sent_at}`), `dm.message` (servidor a client, el DTO del missatge) i `dm.typing` (en tots dos sentits, `{conversation_id, is_typing}`, efímer). Els errors són els del catàleg (`VALIDATION_ERROR`, `RATE_LIMITED`, `USER_BLOCKED`, `CONVERSATION_NOT_FOUND`, ...) i la connexió continua oberta.
+- **Canal fix per usuari.** Cada connexió s'hi subscriu en autenticar-se a `direct-user:<user_id>`, intern i fora del protocol de sales. Per tant el màxim de canals per socket passa a ser `WS_MAX_ROOMS + 3`: sales, revocació de sessió, revocació de sala i `direct-user`. El límit de sales (`WS_MAX_ROOMS`) no el compta.
 
 ## Conseqüències
 

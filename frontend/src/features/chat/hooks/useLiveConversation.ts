@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { type AppError, NETWORK_ERROR_CODE } from '../../../shared/errors';
+import type { SocketStatus } from '../../../shared/realtime';
 import type { CurrentUser } from '../../auth/api/getCurrentUser';
 import { useCurrentUser } from '../../auth/hooks/useCurrentUser';
 import type { ChatMessage, ChatRoom } from '../api/chat';
@@ -16,7 +17,7 @@ import { addMessage, type ChatHistoryData, flattenMessages } from '../chatCache'
 import { buildChatItems, type OutgoingMessage, type SendFailure } from '../chatItems';
 import { eventKeys } from '../../events/hooks/useEvents';
 import { chatKeys } from './useChat';
-import { type SentChatMessage, useChatSocket } from './useChatSocket';
+import type { ChatSocketHandlers, SentChatMessage } from './useChatSocket';
 
 /** Refused to join the live room or to write in it: the same as being taken out of it. */
 const FORBIDDEN = 'FORBIDDEN';
@@ -46,10 +47,38 @@ async function haptic(play: () => Promise<void>) {
   }
 }
 
+/** What the core needs from the live channel of a conversation, whatever carries it. */
+export interface LiveTransport {
+  status: SocketStatus;
+  /**
+   * Sends a message and resolves with the server's ack; it only rejects with an `AppError`. A
+   * retry passes the SAME `clientMessageId`, so the server does not store it twice.
+   */
+  sendMessage: (text: string, clientMessageId: string) => Promise<SentChatMessage>;
+  reconnect: () => void;
+}
+
+/**
+ * The live channel of a conversation: a hook that listens (calling `handlers` for what arrives)
+ * and returns how to send. A new `joinAttempt` leaves and joins again. `target` is whatever the
+ * transport listens to (`chat:event:<id>` for an event's room; the conversation id for a private
+ * channel). It must be a stable function (a module-level hook), because the core calls it on every
+ * render.
+ */
+export type UseLiveTransport = (
+  handlers: ChatSocketHandlers,
+  joinAttempt: number,
+  target: string,
+) => LiveTransport;
+
 /** What a conversation needs from its consumer: where its data comes from and where it lives. */
 export interface LiveConversationSource {
-  /** The room of the conversation, opened (an event's PUT, a direct conversation...). */
-  room: Pick<
+  /**
+   * The room of the conversation, opened (an event's PUT...). A conversation without one (the
+   * direct chat) leaves it out: its history is not gated by it and its messages carry
+   * `transportTarget` as room id.
+   */
+  room?: Pick<
     UseQueryResult<ChatRoom, AppError>,
     'data' | 'error' | 'isPending' | 'isSuccess' | 'refetch'
   >;
@@ -57,12 +86,10 @@ export interface LiveConversationSource {
   history: UseInfiniteQueryResult<ChatHistoryData, AppError>;
   /** The key of `history` in the cache: what arrives live is added to it. */
   historyKey: QueryKey;
-  /** The live room of the socket to join (`chat:event:<id>`, `dm:user:<id>`). */
-  socketRoom: string;
-  /** Merged into the payload of every message sent (e.g. `{ conversation_id }`). */
-  sendExtra?: Record<string, unknown>;
-  /** Filters what arrives live: a room that carries several conversations drops the others. */
-  accepts?: (message: ChatMessage) => boolean;
+  /** The live channel: `useChatSocket` for an event's room, a private channel for a direct chat. */
+  useTransport: UseLiveTransport;
+  /** What `useTransport` listens to (e.g. `chat:event:<id>`, a conversation id). */
+  transportTarget: string;
 }
 
 /**
@@ -78,9 +105,8 @@ export function useLiveConversation({
   room,
   history,
   historyKey,
-  socketRoom,
-  sendExtra,
-  accepts,
+  useTransport,
+  transportTarget,
 }: LiveConversationSource) {
   const queryClient = useQueryClient();
   const currentUser = useCurrentUser();
@@ -107,7 +133,7 @@ export function useLiveConversation({
   // asks for each one again from the newest, so the list does not jump). What arrived live is in
   // the history by id.
   const { refetch: refetchHistory } = history;
-  const roomOpen = room.isSuccess;
+  const roomOpen = room ? room.isSuccess : true;
   const onJoined = useCallback(() => {
     // Before the room is open there is no history yet: its first page comes after this join.
     if (!roomOpen) return;
@@ -122,7 +148,6 @@ export function useLiveConversation({
   const [arrived, setArrived] = useState<ChatMessage[]>([]);
   const addLive = useCallback(
     (message: ChatMessage) => {
-      if (accepts && !accepts(message)) return;
       queryClient.setQueryData<ChatHistoryData>(historyKey, (cached) =>
         addMessage(cached, message),
       );
@@ -130,7 +155,7 @@ export function useLiveConversation({
         current.some((kept) => kept.id === message.id) ? current : [...current, message],
       );
     },
-    [accepts, historyKey, queryClient],
+    [historyKey, queryClient],
   );
   const merged = useMemo(
     () =>
@@ -164,8 +189,7 @@ export function useLiveConversation({
     void queryClient.invalidateQueries({ queryKey: eventKeys.subscriptions() });
   }, [queryClient]);
 
-  const socket = useChatSocket(
-    socketRoom,
+  const socket = useTransport(
     {
       onMessage: addLive,
       onRevoked: takeOut,
@@ -176,9 +200,10 @@ export function useLiveConversation({
       onJoined,
     },
     joinAttempt,
+    transportTarget,
   );
 
-  const roomId = room.data?.id;
+  const roomId = room?.data?.id ?? transportTarget;
   const { sendMessage } = socket;
 
   /** The new state of a bubble: its status and, when it failed, why. */
@@ -222,9 +247,7 @@ export function useLiveConversation({
     async (author: CurrentUser, text: string, clientMessageId: string) => {
       let ack: SentChatMessage;
       try {
-        ack = sendExtra
-          ? await sendMessage(text, clientMessageId, sendExtra)
-          : await sendMessage(text, clientMessageId);
+        ack = await sendMessage(text, clientMessageId);
       } catch (caught) {
         // The socket client only rejects with an AppError (socketClient.send).
         refused(clientMessageId, caught as AppError);
@@ -233,7 +256,7 @@ export function useLiveConversation({
       rejoinedBySend.current = false;
       const message: ChatMessage = {
         id: ack.id,
-        room_id: roomId ?? '',
+        room_id: roomId,
         author: { id: author.id, name: author.display_name },
         text,
         sent_at: ack.sent_at,
@@ -244,7 +267,7 @@ export function useLiveConversation({
       );
       void haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
     },
-    [addLive, refused, roomId, sendExtra, sendMessage],
+    [addLive, refused, roomId, sendMessage],
   );
 
   /**
@@ -284,7 +307,8 @@ export function useLiveConversation({
     if (socketError) rejoin();
     setSocketError(null);
     if (currentUser.isError) void currentUser.refetch();
-    void room.refetch().then(() => history.refetch());
+    if (room) void room.refetch().then(() => history.refetch());
+    else void history.refetch();
   }, [currentUser, history, rejoin, room, socketError]);
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = history;
@@ -304,13 +328,13 @@ export function useLiveConversation({
   // room from opening is an error of the room.
   const error =
     (me ? null : currentUser.error) ??
-    (room.data ? null : room.error) ??
+    (room && !room.data ? room.error : null) ??
     (history.data ? null : history.error) ??
     socketError;
 
   return {
     items,
-    isLoading: !error && (currentUser.isPending || room.isPending || history.isPending),
+    isLoading: !error && (currentUser.isPending || room?.isPending || history.isPending),
     error,
     revoked,
     status: socket.status,
