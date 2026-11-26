@@ -26,8 +26,12 @@ class RedisPubSub:
         self._redis = redis
 
     async def publish(self, channel: str, message: str) -> None:
+        await self.publish_counted(channel, message)
+
+    async def publish_counted(self, channel: str, message: str) -> int:
+        """Publish and return the number of subscribers at publication time."""
         try:
-            await self._redis.publish(channel, message)
+            return int(await self._redis.publish(channel, message))
         except RedisError as exc:
             raise _unavailable(exc) from exc
 

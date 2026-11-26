@@ -27,6 +27,7 @@ from app.infrastructure.cache.dependencies import get_pubsub
 from app.infrastructure.chat.config import ChatSettings
 from app.infrastructure.chat.ws_handler import CHAT_ROOM_PREFIX, ChatWsHandler
 from app.infrastructure.realtime.dependencies import (
+    get_direct_handler,
     get_realtime_config,
     get_room_handlers,
 )
@@ -101,6 +102,7 @@ def client() -> Iterator[tuple[TestClient, FakeRoomHandler, str]]:
     )
     handlers: dict[str, RoomHandler] = {"talk:": handler}
     app.dependency_overrides[get_room_handlers] = lambda: handlers
+    app.dependency_overrides[get_direct_handler] = lambda: None
     with TestClient(app) as test_client:
         token = test_client.portal.call(auth.login, "google-id-token")  # type: ignore[union-attr]
         yield test_client, handler, token.access_token

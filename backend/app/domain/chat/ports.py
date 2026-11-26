@@ -7,7 +7,6 @@ from app.domain.chat.models import (
     ChatRepositoryPage,
     ChatRoomSummary,
     EventChatRoom,
-    ModerationResult,
 )
 
 
@@ -63,26 +62,6 @@ class ChatRepository(Protocol):
     async def list_rooms_of(self, user_id: uuid.UUID) -> list[ChatRoomSummary]:
         """Return the rooms of the events ``user_id`` is subscribed to, each
         with its latest message."""
-        ...
-
-
-class MessageModerator(Protocol):
-    """Decides whether a text may be published (ADR-0007)."""
-
-    async def moderate(self, text: str) -> ModerationResult:
-        """Return the verdict on ``text``."""
-        ...
-
-
-class SendRateLimiter(Protocol):
-    """Limits how often a user may send messages."""
-
-    async def hit(self, user_id: uuid.UUID) -> bool:
-        """Count one send of ``user_id``. Return False if the limit is exceeded.
-
-        Raises:
-            ExternalServiceError: if the counter is unavailable.
-        """
         ...
 
 

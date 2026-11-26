@@ -1,8 +1,10 @@
 import uuid
+from collections.abc import Collection
 from datetime import datetime
 from typing import Protocol
 
 from app.domain.direct_chat.models import (
+    ConversationSummary,
     DirectConversation,
     DirectCursor,
     DirectMessage,
@@ -35,22 +37,31 @@ class DirectConversationRepository(Protocol):
         """
         ...
 
-    async def mark_read(
-        self, conversation_id: uuid.UUID, user_id: uuid.UUID, at: datetime
+    async def mark_read_through(
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, message_id: uuid.UUID
     ) -> DirectConversation:
-        """Move the read mark of ``user_id`` to ``at`` (never backwards).
+        """Advance through a message in this conversation, never beyond it or backwards.
 
-        ``at`` must be timezone-aware.
-
-        Raises:
-            NotFoundError: CONVERSATION_NOT_FOUND if the conversation does not
-                exist or ``user_id`` is a stranger.
-            ExternalServiceError: if the database is unavailable.
+        Raises NotFoundError if the conversation, participant or message is invalid.
         """
         ...
 
     async def list_of(self, user_id: uuid.UUID) -> list[DirectConversation]:
         """Return the conversations ``user_id`` takes part in.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def summaries_of(self, user_id: uuid.UUID) -> list[ConversationSummary]:
+        """Return the conversations of ``user_id`` with last message and unread count.
+
+        One call, whatever the number of conversations. Newest activity first: by
+        the last message's ``sent_at`` (descending), or by the conversation's
+        ``created_at`` if it has no messages, ties broken by id descending.
+        ``unread_count`` is the number of messages of the other participant sent
+        after the read mark of ``user_id``.
 
         Raises:
             ExternalServiceError: if the database is unavailable.
@@ -71,11 +82,18 @@ class DirectMessageRepository(Protocol):
         """
         ...
 
-    async def add(self, message: DirectMessage) -> DirectMessage:
-        """Store ``message`` and return the stored one.
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
+        """Store ``message`` and its delivery intent atomically.
 
         If the sender already stored a message with the same ``client_message_id``
         (a concurrent retry), nothing is inserted and that one is returned.
+
+        The returned message may differ from ``message`` in ``sent_at``: the
+        repository keeps it strictly increasing per conversation, so a message
+        sent at or before the latest stored one gets a moment just after it. That
+        is what makes ``(sent_at, id)`` order, cursors and read marks unambiguous.
 
         Raises:
             ExternalServiceError: if the database is unavailable.
@@ -135,10 +153,54 @@ class UserBlockRepository(Protocol):
         """
         ...
 
+    async def blocked_among(
+        self, blocker_id: uuid.UUID, user_ids: Collection[uuid.UUID]
+    ) -> set[uuid.UUID]:
+        """Return which of ``user_ids`` are blocked by ``blocker_id`` (one query).
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+
+class ChatUserDirectory(Protocol):
+    """Which users exist, as the direct chat sees them (only ids)."""
+
+    async def exists(self, user_id: uuid.UUID) -> bool:
+        """Return whether ``user_id`` is a live user (not deleted).
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+
+class DirectMessageBroadcaster(Protocol):
+    """Fans a stored message out to the recipient's live connections."""
+
+    async def deliver(
+        self, message: DirectMessage, *, recipient_id: uuid.UUID, origin: str | None
+    ) -> int:
+        """Send ``message`` to every connection of ``recipient_id``.
+
+        ``origin`` is the id of the sender's connection, so its own session does
+        not echo it back. Return how many connections of the recipient received it
+        (0 if they are offline).
+
+        Raises:
+            ExternalServiceError: if the pub/sub bus is unavailable.
+        """
+        ...
+
 
 class PushNotifier(Protocol):
     """Tells a recipient who is not connected that a message arrived."""
 
     async def notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
-        """Notify ``recipient_id`` of ``message``."""
+        """Notify ``recipient_id`` of ``message``.
+
+        Best effort: it must not raise to the service; if it does, the service
+        logs the error and carries on (the message is already stored).
+        """
         ...

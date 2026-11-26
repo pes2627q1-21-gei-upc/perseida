@@ -582,6 +582,76 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/direct-conversations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Direct Conversations */
+    get: operations['list_direct_conversations_api_direct_conversations_get'];
+    put?: never;
+    /** Open Direct Conversation */
+    post: operations['open_direct_conversation_api_direct_conversations_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/direct-conversations/{conversation_id}/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Direct History */
+    get: operations['direct_history_api_direct_conversations__conversation_id__messages_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/direct-conversations/{conversation_id}/read': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mark Direct Read */
+    post: operations['mark_direct_read_api_direct_conversations__conversation_id__read_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users/{user_id}/block': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Block User */
+    put: operations['block_user_api_users__user_id__block_put'];
+    post?: never;
+    /** Unblock User */
+    delete: operations['unblock_user_api_users__user_id__block_delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/meeting-points': {
     parameters: {
       query?: never;
@@ -767,6 +837,96 @@ export interface components {
       last_message?: components['schemas']['ChatMessageResponse'] | null;
     };
     /**
+     * ConversationOverview
+     * @description One row of the conversation list of a user.
+     */
+    ConversationOverview: {
+      /**
+       * Conversation Id
+       * Format: uuid
+       */
+      conversation_id: string;
+      /**
+       * Other User Id
+       * Format: uuid
+       */
+      other_user_id: string;
+      /** Other Display Name */
+      other_display_name?: string | null;
+      /** Other Avatar Url */
+      other_avatar_url?: string | null;
+      /** Last Message Preview */
+      last_message_preview: string | null;
+      /** Last Message At */
+      last_message_at: string | null;
+      /** Last Message Sender Id */
+      last_message_sender_id: string | null;
+      /** Unread Count */
+      unread_count: number;
+      /** Blocked By Me */
+      blocked_by_me: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** DirectConversationResponse */
+    DirectConversationResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * User A Id
+       * Format: uuid
+       */
+      user_a_id: string;
+      /**
+       * User B Id
+       * Format: uuid
+       */
+      user_b_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** DirectHistoryResponse */
+    DirectHistoryResponse: {
+      /** Messages */
+      messages: components['schemas']['DirectMessageResponse'][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /** DirectMessageResponse */
+    DirectMessageResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Conversation Id
+       * Format: uuid
+       */
+      conversation_id: string;
+      /**
+       * Sender Id
+       * Format: uuid
+       */
+      sender_id: string;
+      /** Text */
+      text: string;
+      /**
+       * Sent At
+       * Format: date-time
+       */
+      sent_at: string;
+    };
+    /**
      * EventCategory
      * @description Kinds of astronomical event, fixed by TG-50 (task #387).
      * @enum {string}
@@ -887,6 +1047,14 @@ export interface components {
      * @enum {string}
      */
     Language: 'ca' | 'es' | 'en';
+    /** MarkDirectReadRequest */
+    MarkDirectReadRequest: {
+      /**
+       * Last Message Id
+       * Format: uuid
+       */
+      last_message_id: string;
+    };
     /**
      * MediaType
      * @enum {string}
@@ -943,6 +1111,14 @@ export interface components {
        * @description Si és obert ara; null si no se'n sap l'horari
        */
       open_now: boolean | null;
+    };
+    /** OpenDirectConversationRequest */
+    OpenDirectConversationRequest: {
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string;
     };
     /** OutingAuthorResponse */
     OutingAuthorResponse: {
@@ -3262,6 +3438,429 @@ export interface operations {
         };
       };
       /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_direct_conversations_api_direct_conversations_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConversationOverview'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  open_direct_conversation_api_direct_conversations_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OpenDirectConversationRequest'];
+      };
+    };
+    responses: {
+      /** @description Conversa existent. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DirectConversationResponse'];
+        };
+      };
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DirectConversationResponse'];
+        };
+      };
+      /** @description Invalid request body encoding (HTTP_400). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  direct_history_api_direct_conversations__conversation_id__messages_get: {
+    parameters: {
+      query?: {
+        /** @description Cursor opac de la pàgina anterior. */
+        before?: string | null;
+        /** @description Missatges per pàgina (1 a 50). */
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        conversation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DirectHistoryResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  mark_direct_read_api_direct_conversations__conversation_id__read_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        conversation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MarkDirectReadRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  block_user_api_users__user_id__block_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  unblock_user_api_users__user_id__block_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
       503: {
         headers: {
           [name: string]: unknown;

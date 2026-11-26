@@ -12,15 +12,15 @@ runs them from ``mutants/`` without ``alembic.ini``) never connect nor migrate.
 
 import asyncio
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from alembic.config import Config
 from redis.asyncio import Redis
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import event, text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from alembic import command
 from tests.integration.workers import BASE_DATABASE, worker_redis_db
@@ -98,3 +98,18 @@ async def redis(worker_id: str) -> AsyncIterator[Redis]:
     finally:
         await client.flushdb()
         await client.aclose()
+
+
+@pytest.fixture
+def captured_sql(engine: AsyncEngine) -> Iterator[list[tuple[str, Any]]]:
+    """Every statement the module's ``engine`` fixture sends, with its parameters."""
+    statements: list[tuple[str, Any]] = []
+
+    def capture(
+        conn: Any, cursor: Any, statement: str, parameters: Any, *args: Any
+    ) -> None:
+        statements.append((statement, parameters))
+
+    event.listen(engine.sync_engine, "before_cursor_execute", capture)
+    yield statements
+    event.remove(engine.sync_engine, "before_cursor_execute", capture)

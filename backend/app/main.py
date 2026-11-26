@@ -1,5 +1,6 @@
+import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 import httpx
 from fastapi import FastAPI
@@ -18,7 +19,12 @@ from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
 from app.infrastructure.auth.router import router as auth_router
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.chat.router import router as chat_router
+from app.infrastructure.direct_chat.broadcaster import DirectMessagePubSubBroadcaster
+from app.infrastructure.direct_chat.outbox import DirectOutboxDispatcher
+from app.infrastructure.direct_chat.push_notifier import NoopPushNotifier
+from app.infrastructure.direct_chat.router import router as direct_chat_router
 from app.infrastructure.events.config import EventsSettings
 from app.infrastructure.events.launch_library import LaunchLibraryEventSource
 from app.infrastructure.events.meteor_catalog import MeteorShowerCatalogSource
@@ -129,12 +135,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     app.state.nasa_timeout_seconds = nasa_timeout
                     app.state.nasa_apod_feed_url = nasa_settings.nasa_apod_feed_url
                     app.state.nasa_apod_api_url = nasa_settings.nasa_apod_api_url
+                    dispatcher = DirectOutboxDispatcher(
+                        session_factory,
+                        DirectMessagePubSubBroadcaster(
+                            RedisPubSub(redis), timeout_seconds=timeout
+                        ),
+                        NoopPushNotifier(),
+                    )
+                    outbox_task = asyncio.create_task(dispatcher.run())
                     try:
                         if scheduler:
                             register_jobs(scheduler)
                             scheduler.start()
                         yield
                     finally:
+                        outbox_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await outbox_task
                         if scheduler:
                             await scheduler.shutdown()
             finally:
@@ -173,6 +190,7 @@ def create_app() -> FastAPI:
     app.include_router(outings_router, prefix="/api")
     app.include_router(posts_router, prefix="/api")
     app.include_router(chat_router, prefix="/api")
+    app.include_router(direct_chat_router, prefix="/api")
     app.include_router(meeting_points_router, prefix="/api")
     install_openapi_cleanup(app)
     return app
