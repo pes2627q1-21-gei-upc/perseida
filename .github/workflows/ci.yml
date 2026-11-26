@@ -46,6 +46,8 @@ jobs:
               - "infra/scripts/test-rate-limit.sh"
               - "infra/scripts/test-npm-startup.sh"
               - "infra/scripts/test-public-pages.sh"
+              - "infra/scripts/test-admin-dist.sh"
+              - "infra/scripts/install-admin-dist.sh"
               - ".github/workflows/cd.yml"
               - "infra/scripts/install-http-top.sh"
               - "infra/docker-compose.yml"
@@ -73,6 +75,9 @@ jobs:
       # Pàgines públiques per a Google Auth Platform (TG-343): 200, tres idiomes i CSP.
       - name: Pàgines públiques (/, /privacy i /terms)
         run: bash infra/scripts/test-public-pages.sh
+      # Publicació del panell d'administració al volum admin_dist (TG-77, #589).
+      - name: Publicació del panell d'administració (admin_dist)
+        run: bash infra/scripts/test-admin-dist.sh
 
   backend:
     needs: changes
