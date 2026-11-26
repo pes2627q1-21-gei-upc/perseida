@@ -56,9 +56,19 @@
     "title": "Tus próximos logros"
   },
   "admin": {
+    "home": {
+      "welcome": "Bienvenida al panel de administración de Perseida"
+    },
+    "main": {
+      "label": "Contenido del panel"
+    },
     "noAccess": {
       "message": "Tu cuenta no tiene permiso para entrar al panel de administración.",
       "title": "Sin acceso"
+    },
+    "skipToContent": "Salta al contenido",
+    "topBar": {
+      "label": "Barra superior del panel"
     }
   },
   "apod": {
@@ -184,6 +194,7 @@
     "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
     "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
+    "OUTING_PLACE_INVALID": "El local elegido no es válido: hace falta un nombre de 1 a 120 caracteres y una dirección de 200 como máximo.",
     "OUTING_ENDS_BEFORE_START": "La salida no puede terminar antes de empezar.",
     "OUTING_STARTS_IN_PAST": "La salida no puede empezar en el pasado.",
     "OUTING_EVENT_NOT_FOUND": "Este evento ya no existe.",
@@ -445,6 +456,7 @@
       "unknownAuthor": "Una usuaria de Perseida",
       "start": "Inicio",
       "end": "Fin",
+      "place": "Local",
       "where": "Lugar",
       "event": "Evento",
       "edit": "Edita",

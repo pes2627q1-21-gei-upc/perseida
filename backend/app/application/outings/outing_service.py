@@ -8,7 +8,12 @@ from app.domain.outings.errors import (
     OUTING_FORBIDDEN,
     OUTING_NOT_FOUND,
 )
-from app.domain.outings.models import Outing, OutingChanges, OutingDetails
+from app.domain.outings.models import (
+    Outing,
+    OutingChanges,
+    OutingDetails,
+    OutingPlace,
+)
 from app.domain.outings.ports import EventLookup, OutingRepository
 from app.domain.shared.errors import NotFoundError, ValidationError
 from app.domain.shared.location import Location
@@ -44,8 +49,10 @@ class OutingService:
         ends_at: datetime,
         location: Location,
         event_id: uuid.UUID | None,
+        place: OutingPlace | None = None,
     ) -> OutingDetails:
-        """Create an outing of ``author_id``, optionally for ``event_id``."""
+        """Create an outing of ``author_id``, optionally for ``event_id`` and at
+        the recommended local ``place``."""
         outing = Outing.create(
             author_id=author_id,
             title=title,
@@ -54,6 +61,7 @@ class OutingService:
             ends_at=ends_at,
             location=location,
             event_id=event_id,
+            place=place,
             now=self._now(),
         )
         await self._check_event(event_id)
