@@ -7,7 +7,7 @@ us: [TG-65]
 font: "CI run 45448437393"
 fase: ci-mutants
 capa: frontend
-regressio: "frontend/src/features/direct-chat/hooks/useDirectConversation.test.tsx::does not mark read when history is empty"
+regressio: "frontend/src/features/direct-chat/hooks/useDirectConversation.test.tsx::no marca com a llegida una conversa amb l’històric buit"
 commit:
 llico: cap
 etiquetes: [error-testing, tg-65, frontend]

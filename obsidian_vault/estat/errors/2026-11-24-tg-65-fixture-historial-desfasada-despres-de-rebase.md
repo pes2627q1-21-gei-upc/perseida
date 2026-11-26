@@ -7,8 +7,8 @@ us: [TG-65]
 font: "Verificació local de #164 després del rebase sobre #163"
 fase: roig-inesperat
 capa: frontend
-regressio: "frontend/src/features/direct-chat/hooks/useDirectConversation.test.tsx::TG-65 criterion 11 marks an incoming live message read by its ID after history loads"
-commit: 4f1595b2
+regressio: "frontend/src/features/direct-chat/hooks/useDirectConversation.test.tsx::marca la conversa com a llegida també quan hi arriba un missatge"
+commit: ed69991a
 llico: cap
 etiquetes: [error-testing, tg-65, frontend]
 ---
@@ -32,7 +32,7 @@ El fixture del refetch ara inclou el missatge en viu ja persistit al principi de
 
 ## Test de regressió
 
-`frontend/src/features/direct-chat/hooks/useDirectConversation.test.tsx::TG-65 criterion 11 marks an incoming live message read by its ID after history loads`.
+`frontend/src/features/direct-chat/hooks/useDirectConversation.test.tsx::marca la conversa com a llegida també quan hi arriba un missatge`. El test original (basat en `history.refetch()`) es va substituir en integrar #163, on el hook llegeix només la primera pàgina amb `fetchMessages`; el fixture continua representant l'historial refrescat.
 
 ## Lliçó
 

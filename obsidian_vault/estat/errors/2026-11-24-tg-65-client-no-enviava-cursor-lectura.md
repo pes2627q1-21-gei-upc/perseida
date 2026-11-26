@@ -8,7 +8,7 @@ font: "CI run 45446260760"
 fase: ci-mutants
 capa: frontend
 regressio: "frontend/src/features/direct-chat/api/directChat.test.ts::sends the latest loaded message ID when marking a conversation read"
-commit:
+commit: 5a975272
 llico: cap
 etiquetes: [error-testing, tg-65, frontend]
 ---
@@ -20,7 +20,7 @@ etiquetes: [error-testing, tg-65, frontend]
 
 ## Símptoma
 
-La CI del run `45446260760` va fallar en compilar el frontend: el contracte de `markRead` exigia `last_message_id`, però la crida del client no enviava el body.
+El client amb `last_message_id` pertany a la PR #163 (no a #164). La CI del run `45446260760` va fallar en compilar el frontend: el contracte de `markRead` exigia `last_message_id`, però la crida del client no enviava el body.
 
 ## Causa
 

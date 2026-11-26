@@ -7,7 +7,7 @@ us: [TG-65]
 font: "CI runs 45446259997, 45465198435 i 45471190997; commits aa95385d i 569b9ab2"
 fase: ci-mutants
 capa: frontend
-regressio: "frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::latest message previews and empty-message state; frontend/src/features/direct-chat/components/ConversationsScreen.announce.test.tsx::does not expose a zero announcement on the initial Android result; frontend/src/features/direct-chat/hooks/useDirectTyping.lifecycle.test.tsx::does not send a stop signal on unmount if typing never started"
+regressio: "frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::shows the latest message preview from the other participant without a sender prefix; frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::prefixes the latest message preview when it was sent by the current user; frontend/src/features/direct-chat/components/ConversationsScreen.test.tsx::shows the empty-message state when the conversation has no latest message; frontend/src/features/direct-chat/components/ConversationsScreen.announce.test.tsx::does not expose a zero announcement on the initial Android result; frontend/src/features/direct-chat/hooks/useDirectTyping.lifecycle.test.tsx::does not send a stop signal on unmount if typing never started"
 commit: 569b9ab2
 llico: skill
 etiquetes: [error-testing, tg-65, frontend, mutation-testing]
@@ -36,4 +36,6 @@ Els commits test-only `aa95385d` i `569b9ab2` afegeixen regressions per a previs
 
 ## Lliçó
 
-`skill`: abans de validar Stryker en una PR apilada, confirmar que el diff es calcula contra la base real de la PR; no acceptar el resultat d'una comparació contra `develop`.
+`skill`: abans de validar Stryker en una PR apilada, confirmar que el diff es calcula contra la base real de la PR; no acceptar el resultat d'una comparació contra `develop`. Recollida a la skill `testing-mutation` (secció «Frontend en PR apilades»).
+
+Relacionada: [[2026-11-24-tg-65-stryker-cursor-lectura]]. No és la mateixa causa (aquí faltaven assertions de previsualització i typing; allà, límits del marcador de lectura), però el context i la lliçó de la skill són comuns: PR apilades i score sobre la base real.
