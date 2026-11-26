@@ -38,6 +38,20 @@ Variables de `.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 
 Segueix [[0023-convencions-del-model-de-dades]]: clau `uuid` generada per `uuidv7()` i `media_type` com a `VARCHAR` amb `CHECK`. El model és `ApodTable` (`app/infrastructure/persistence/apod_table.py`), d'infraestructura; l'entitat `Apod` del domini continua sent Pydantic pura ([[0016-ports-i-entitats-riques-al-domini]]). `SqlApodRepository` desa amb `ON CONFLICT (apod_date) DO NOTHING`: si la data ja hi és, es queda la primera fila. Si la NASA cau, `latest(until)` dona l'últim APOD desat per servir-lo com a APOD d'avui ([[serveis-externs]]).
 
+## Zones d'observació: càrrega inicial
+
+La taula `observation_zones` es omple amb 9 zones de Catalunya (TG-70, criteri 5). Són al fitxer editable `backend/app/infrastructure/observation_zones/zones.json`, dins d'`app/` perquè el Dockerfile ja el copia a la imatge.
+
+- **Com es carrega:** `backend/entrypoint.sh` executa `python -m app.infrastructure.observation_zones.load_zones` després d'`alembic upgrade head`, a cada arrencada i només si `RUN_MIGRATIONS` no és `false`. La càrrega és idempotent: `INSERT ... ON CONFLICT (id) DO UPDATE` de nom i coordenades. Una migració de seed no serveix, perquè només s'executa una vegada i les zones afegides més endavant al fitxer no arribarien a la BD.
+- **Validació:** `read_zones` construeix cada entrada amb les entitats del domini; una edició fora de rang fa fallar la càrrega en lloc de deixar dades brutes. El test `test_zones_file.py` valida el fitxer real (ids uuid7 únics, noms únics, font https, dins de Catalunya).
+- **Font:** coordenades de la infotaula de la Viquipèdia en català (CC BY-SA), amb l'URL de cada zona al camp `source_url` del JSON. No hi ha columna de font a la BD.
+- **Criteri de selecció:** segell Starlight del Montsec, Pirineu i Aigüestortes, muntanyes de Prades i Montsant, i la ruta d'observatoris de femturisme.cat. Abast: Catalunya.
+- **Afegir una zona:** afegeix una entrada al JSON amb un uuid7 nou, `name`, `latitude`, `longitude` i `source_url`, i desplega. Corregir el nom o les coordenades d'una zona existent l'actualitza.
+- **Treure una zona del JSON no l'esborra de la BD**, a propòsit, per evitar esborrats accidentals.
+
+> [!warning] Precisió de les coordenades
+> Pujalt té només 2 decimals (uns 1 km). Saldes, Prades i La Morera de Montsant són el poble, no el punt d'observació. El Garraf té més contaminació lumínica que la resta.
+
 ## Decisions relacionades
 
 - [[0006-postgresql-postgis-font-de-veritat]]
