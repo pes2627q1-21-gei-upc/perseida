@@ -21,7 +21,7 @@ pytestmark = pytest.mark.skipif(
 
 TABLES = ("direct_conversations", "direct_messages", "user_blocks")
 # The revision the direct chat migration builds on (the head when it was written).
-PREVIOUS_HEAD = "e7a3c5b9d104"
+PREVIOUS_HEAD = "a1c4e9b27d03"
 
 # Primary, foreign and unique keys of a table (a foreign key with its ON DELETE).
 KEYS = """

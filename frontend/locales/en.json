@@ -56,9 +56,19 @@
     "title": "Your next achievements"
   },
   "admin": {
+    "home": {
+      "welcome": "Welcome to the Perseida admin panel"
+    },
+    "main": {
+      "label": "Panel content"
+    },
     "noAccess": {
       "message": "Your account doesn't have permission to open the admin panel.",
       "title": "No access"
+    },
+    "skipToContent": "Skip to content",
+    "topBar": {
+      "label": "Panel top bar"
     }
   },
   "apod": {
@@ -184,6 +194,7 @@
     "OUTING_TITLE_EMPTY": "Give the outing a title.",
     "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
     "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
+    "OUTING_PLACE_INVALID": "The chosen place is not valid: it needs a name of 1 to 120 characters and an address of at most 200.",
     "OUTING_ENDS_BEFORE_START": "The outing can't end before it starts.",
     "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
     "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
@@ -445,6 +456,7 @@
       "unknownAuthor": "A Perseida user",
       "start": "Start",
       "end": "End",
+      "place": "Venue",
       "where": "Place",
       "event": "Event",
       "edit": "Edit",
