@@ -4,12 +4,23 @@ import { BottomTabBarHeightContext } from 'expo-router/tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { jsonResponse, mockUserProfile, problemResponse } from '../../../../__mocks__/profile';
+import i18n from '../../../shared/i18n';
 import { spacing } from '../../../shared/theme';
 import * as tokenStorage from '../../auth/tokenStorage';
 import { ProfileScreen } from '../components/ProfileScreen';
 
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
+
+// SecureStore is native: an in-memory map stands in for the device storage (language dropdown).
+jest.mock('expo-secure-store', () => {
+  const store = new Map<string, string>();
+  return {
+    setItemAsync: jest.fn(async (key: string, value: string) => void store.set(key, value)),
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    deleteItemAsync: jest.fn(async (key: string) => void store.delete(key)),
+  };
+});
 
 // The achievement cards (TG-57) load their own data and have their own tests: here they are a
 // stand-in, so these tests only see the profile request.
@@ -166,13 +177,44 @@ describe('ProfileScreen (TG-385 #517)', () => {
     expect(screen.queryByTestId('profile-avatar')).not.toBeOnTheScreen();
   });
 
-  it('shows the role and the preferred language of the user', async () => {
+  it('shows the role of the user', async () => {
     jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
 
     await renderProfile();
 
     expect(await screen.findByText('Observador')).toBeOnTheScreen();
-    expect(screen.getByText('Català')).toBeOnTheScreen();
+  });
+
+  it('TG-92 Criteri 3: the identity card has the language dropdown instead of the old language chip', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+
+    await renderProfile();
+
+    expect(await screen.findByRole('button', { name: 'Idioma: CA, Català' })).toBeOnTheScreen();
+    // Closed, the name of the language is not on the screen: the old chip would show it.
+    expect(screen.queryByText('Català')).not.toBeOnTheScreen();
+  });
+
+  it('TG-92 Criteri 4: choosing a language in the profile changes the texts of the screen at once', async () => {
+    jest.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(mockUserProfile));
+    await renderProfile();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Idioma: CA, Català' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'English' }));
+
+    expect(await screen.findByText('Stargazer')).toBeOnTheScreen();
+    await i18n.changeLanguage('ca');
+  });
+
+  it('does not show the language dropdown while the profile is not loaded', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => problemResponse(503, 'DATABASE_UNAVAILABLE'));
+
+    await renderProfile();
+
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('button', { name: /^Idioma/ })).not.toBeOnTheScreen();
   });
 
   it.each([
@@ -284,6 +326,8 @@ describe('ProfileScreen (TG-385 #517)', () => {
 
     await screen.findByText('alex@example.com');
     expect(screen.queryByText('astronomer')).not.toBeOnTheScreen();
+    // Nor the translation key, which is what i18next gives back for a text it does not have.
+    expect(screen.queryByText('profile.role.astronomer')).not.toBeOnTheScreen();
     expect(screen.queryByText('fr')).not.toBeOnTheScreen();
   });
 
