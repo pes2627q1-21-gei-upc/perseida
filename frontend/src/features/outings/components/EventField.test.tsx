@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
+import { isOnGlass } from '../../../../__mocks__/onGlass';
 import { AppError } from '../../../shared/errors';
 import { classifyEvents } from '../../events/classifyEvents';
 import { formatDateTime } from '../formatOuting';
@@ -113,6 +114,14 @@ describe('EventField', () => {
 
     expect(screen.getByLabelText('Carregant esdeveniments')).toBeOnTheScreen();
     expect(screen.getAllByRole('radio')).toHaveLength(1);
+  });
+
+  it('draws the spinner on glass, not straight on the sky (TG-658)', async () => {
+    mockEvents = { data: undefined, isLoading: true, error: null, refetch: jest.fn() };
+
+    await render(<EventField value={null} onChange={jest.fn()} />);
+
+    expect(isOnGlass(screen.getByLabelText('Carregant esdeveniments'))).toBe(true);
   });
 
   it('keeps the selected event while the events load', async () => {

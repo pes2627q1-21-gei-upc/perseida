@@ -87,15 +87,6 @@ class ChatMessage(BaseModel):
         )
 
 
-class ModerationResult(BaseModel):
-    """What a moderator decided about a text."""
-
-    model_config = ConfigDict(frozen=True)
-
-    approved: bool
-    reason: str | None = None
-
-
 class ChatCursor(BaseModel):
     """Exclusive history position, ordered by timestamp and id."""
 

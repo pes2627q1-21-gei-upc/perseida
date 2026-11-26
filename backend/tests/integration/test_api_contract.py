@@ -28,6 +28,7 @@ from app.infrastructure.auth.google_verifier import GOOGLE_CERTS_URL
 from app.infrastructure.cache.config import RedisSettings
 from app.infrastructure.events.launch_library import LAUNCH_LIBRARY_URL
 from app.infrastructure.events.usno import USNO_SOLAR_URL
+from app.infrastructure.meeting_points.config import SpotwiseSettings
 from app.infrastructure.persistence.config import DatabaseSettings
 from app.infrastructure.posts.dependencies import get_posts_settings
 from app.infrastructure.scheduler.dependencies import get_scheduler_settings
@@ -102,6 +103,10 @@ def api_schema() -> Iterator[Any]:
     mp.setenv("GOOGLE_CLIENT_IDS", CLIENT_ID)
     mp.setenv("JWT_SECRET", "c" * 32)
     mp.setenv("NASA_API_KEY", "contract-test-key")
+    # Do not read a local backend/.env: a Spotwise token there would make the
+    # meeting points call Spotwise instead of serving the examples.
+    mp.setitem(SpotwiseSettings.model_config, "env_file", None)
+    mp.delenv("SPOTWISE_API_TOKEN", raising=False)
     # Every fuzzed PATCH/DELETE comes from the same session: the per-user write
     # limit (TG-645) would turn them into 429 and hide the contract. Its 429 is
     # covered by the posts router and service tests.

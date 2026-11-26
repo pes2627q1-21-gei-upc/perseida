@@ -56,9 +56,19 @@
     "title": "Les teves properes fites"
   },
   "admin": {
+    "home": {
+      "welcome": "Benvinguda al panell d'administració de Perseida"
+    },
+    "main": {
+      "label": "Contingut del panell"
+    },
     "noAccess": {
       "message": "El teu compte no té permís per entrar al panell d'administració.",
       "title": "Sense accés"
+    },
+    "skipToContent": "Salta al contingut",
+    "topBar": {
+      "label": "Barra superior del panell"
     }
   },
   "apod": {
@@ -137,6 +147,29 @@
     "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
     "gamificationTitle": "Gamificació i reptes"
   },
+  "directChat": {
+    "blocked": "Bloquejat",
+    "conversationWith": "Conversa amb {{name}}",
+    "lastMessage": "últim missatge: {{text}}",
+    "noMessages": "Encara no hi ha missatges",
+    "unread_one": "{{count}} missatge sense llegir",
+    "unread_other": "{{count}} missatges sense llegir",
+    "you": "Tu: {{text}}",
+    "list": {
+      "title": "Converses",
+      "loading": "Carregant converses",
+      "userId": "Identificador d'usuari",
+      "open": "Inicia conversa",
+      "empty": "Encara no tens converses",
+      "unknownUser": "Usuari"
+    },
+    "room": {
+      "loading": "Carregant conversa",
+      "block": "Bloqueja",
+      "unblock": "Desbloqueja",
+      "typing": "{{name}} està escrivint"
+    }
+  },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
@@ -175,6 +208,7 @@
     "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
     "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripció pot tenir com a màxim 2.000 caràcters.",
+    "OUTING_PLACE_INVALID": "El local triat no és vàlid: cal un nom d'1 a 120 caràcters i una adreça de com a màxim 200.",
     "OUTING_ENDS_BEFORE_START": "La sortida no pot acabar abans de començar.",
     "OUTING_STARTS_IN_PAST": "La sortida no pot començar en el passat.",
     "OUTING_EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
@@ -186,7 +220,12 @@
     "PUBSUB_UNAVAILABLE": "El xat no està disponible ara mateix. Torna-ho a provar.",
     "VALIDATION_ERROR": "Revisa les dades introduïdes.",
     "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
-    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala."
+    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
+    "USER_NOT_FOUND": "No hem trobat aquest usuari.",
+    "CANNOT_MESSAGE_SELF": "No et pots enviar missatges a tu mateix.",
+    "CONVERSATION_NOT_FOUND": "Aquesta conversa no existeix.",
+    "USER_BLOCKED": "Ara no pots enviar missatges en aquesta conversa.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "Aquest missatge ja existeix amb un altre contingut."
   },
   "events": {
     "category": {
@@ -436,6 +475,7 @@
       "unknownAuthor": "Una usuària de Perseida",
       "start": "Inici",
       "end": "Fi",
+      "place": "Local",
       "where": "Lloc",
       "event": "Esdeveniment",
       "edit": "Edita",

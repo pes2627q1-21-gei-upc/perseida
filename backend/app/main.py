@@ -1,5 +1,6 @@
+import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 import httpx
 from fastapi import FastAPI
@@ -9,7 +10,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.infrastructure.achievements.router import router as achievements_router
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.cors import add_cors
-from app.infrastructure.api.error_handlers import register_error_handlers
+from app.infrastructure.api.error_handlers import (
+    UnexpectedErrorMiddleware,
+    register_error_handlers,
+)
 from app.infrastructure.api.openapi import install_openapi_cleanup
 from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
 from app.infrastructure.apod.config import NasaSettings
@@ -18,7 +22,12 @@ from app.infrastructure.auth.config import AuthSettings
 from app.infrastructure.auth.dependencies import build_auth_service
 from app.infrastructure.auth.router import router as auth_router
 from app.infrastructure.cache.config import RedisSettings
+from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.chat.router import router as chat_router
+from app.infrastructure.direct_chat.broadcaster import DirectMessagePubSubBroadcaster
+from app.infrastructure.direct_chat.outbox import DirectOutboxDispatcher
+from app.infrastructure.direct_chat.push_notifier import NoopPushNotifier
+from app.infrastructure.direct_chat.router import router as direct_chat_router
 from app.infrastructure.events.config import EventsSettings
 from app.infrastructure.events.launch_library import LaunchLibraryEventSource
 from app.infrastructure.events.meteor_catalog import MeteorShowerCatalogSource
@@ -129,12 +138,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     app.state.nasa_timeout_seconds = nasa_timeout
                     app.state.nasa_apod_feed_url = nasa_settings.nasa_apod_feed_url
                     app.state.nasa_apod_api_url = nasa_settings.nasa_apod_api_url
+                    dispatcher = DirectOutboxDispatcher(
+                        session_factory,
+                        DirectMessagePubSubBroadcaster(
+                            RedisPubSub(redis), timeout_seconds=timeout
+                        ),
+                        NoopPushNotifier(),
+                    )
+                    outbox_task = asyncio.create_task(dispatcher.run())
                     try:
                         if scheduler:
                             register_jobs(scheduler)
                             scheduler.start()
                         yield
                     finally:
+                        outbox_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await outbox_task
                         if scheduler:
                             await scheduler.shutdown()
             finally:
@@ -156,7 +176,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     register_error_handlers(app)
-    # Reverse wrap (Security > Correlation > CORS): preflights get both headers.
+    # Reverse wrap (Security > Correlation > CORS > errors): preflights get both
+    # headers and an unexpected 500 crosses all three (TG-599).
+    app.add_middleware(UnexpectedErrorMiddleware)
     add_cors(app)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
@@ -173,6 +195,7 @@ def create_app() -> FastAPI:
     app.include_router(outings_router, prefix="/api")
     app.include_router(posts_router, prefix="/api")
     app.include_router(chat_router, prefix="/api")
+    app.include_router(direct_chat_router, prefix="/api")
     app.include_router(meeting_points_router, prefix="/api")
     install_openapi_cleanup(app)
     return app

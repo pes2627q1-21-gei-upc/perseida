@@ -11,9 +11,10 @@ import { refreshSession } from '../features/auth/api/refreshToken';
 import { GoogleLogo } from '../features/auth/components/GoogleLogo';
 import { PerseidShower } from '../features/auth/components/PerseidShower';
 import { useGoogleAuth } from '../features/auth/hooks/useGoogleAuth';
+import { isAccountBlocked } from '../features/auth/accountBlocked';
 import { LOGOUT_NOTICE } from '../features/auth/hooks/useLogout';
 import { isAppError } from '../shared/errors';
-import { toAuthErrorMessage } from '../features/auth/strings';
+import { authErrorMessage, toAuthErrorMessage } from '../features/auth/strings';
 import { getTokens, saveTokens } from '../features/auth/tokenStorage';
 import { useTheme } from '../shared/theme';
 import { GelButton, GlassPanel, SkyBackground } from '../shared/ui';
@@ -51,8 +52,10 @@ export default function LoginScreen() {
   const { notice: noticeParam } = useLocalSearchParams<{ notice?: string }>();
   // A sign-out that the server could not confirm sends us here with a notice param.
   const [pressedNotice, setPressedNotice] = useState<string | null>(null);
-  const notice =
-    pressedNotice ?? (noticeParam === LOGOUT_NOTICE ? t('auth.logoutNotConfirmed') : null);
+  let paramNotice: string | null = null;
+  if (noticeParam === LOGOUT_NOTICE) paramNotice = t('auth.logoutNotConfirmed');
+  else if (isAccountBlocked(noticeParam)) paramNotice = authErrorMessage(noticeParam, false);
+  const notice = pressedNotice ?? paramNotice;
 
   const { signIn, isAuthenticating } = useGoogleAuth({
     onSuccess: async (idToken) => {

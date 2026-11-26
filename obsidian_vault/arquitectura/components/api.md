@@ -2,9 +2,9 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-22"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470", "TG-352"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51"
+data: "2026-11-26"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470", "TG-65", "TG-352", "TG-599"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51; TG-65 i backend/app/infrastructure/direct_chat (23/11/2026); backend/app/infrastructure/api/error_handlers.py (issue TG-599)"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -41,6 +41,8 @@ Estructura hexagonal: [[backend-hexagonal]].
 
 Tot error surt com a `application/problem+json` (RFC 9457) amb `code` estable i `correlation_id`; el 500 no exposa detalls interns. Cada resposta porta la capçalera `X-Correlation-ID` (generada amb `uuid4` o reutilitzada si el valor entrant és vàlid). Jerarquia a `app/domain/shared/errors.py` i `app/application/shared/errors.py`; handlers i middleware a `app/infrastructure/api/`. Detall a [[0018-errors-rfc-9457-amb-codis-estables]].
 
+Una excepció no controlada la converteix en el 500 `INTERNAL_ERROR` `UnexpectedErrorMiddleware`, el middleware més intern (TG-599). Starlette respondria el 500 des de `ServerErrorMiddleware`, per fora de tots els middlewares, i el navegador el veuria com un error de xarxa CORS. Així, el 500 torna a passar per CORS, Correlation i Security i l'app en pot llegir el problem+json. Si la resposta ja ha començat (streaming), torna a llançar l'excepció. El handler d'`Exception` de `register_error_handlers` es queda per a les fallades dels middlewares de fora.
+
 ## Autenticació i usuaris (TG-44, TG-45)
 
 Valida el token de Google via JWKS i emet una sessió pròpia (dos JWT HS256: *access* 15 min i *refresh* 30 dies), registrada a [[redis]] com a `session:<type>:<jti>` (i indexada per usuari a `user_sessions:<sub>`, amb un `sid` comú a l'access i al refresh) perquè es pugui revocar a l'instant, per sessió o per usuari. Endpoints:
@@ -69,17 +71,17 @@ Privats, amb sessió; l'usuària s'obté de la sessió com a `GET /api/users/me`
 
 | Endpoint | Què fa |
 |---|---|
-| `POST /api/outings` | Crea una sortida de la usuària de la sessió. `201` amb la sortida i la capçalera `Location`; `422` si les dades no són vàlides |
+| `POST /api/outings` | Crea una sortida de la usuària de la sessió. `201` amb la sortida i la capçalera `Location`; `422` si les dades no són vàlides. `place` (`name`, `address`) és opcional: el local recomanat triat |
 | `GET /api/outings` | Sortides que encara no han començat, per `starts_at` i `id`. Filtres opcionals `event_id` i `mine=true` («les meves sortides», decisió de Raquel, 17/11/2026) |
 | `GET /api/outings/{id}` | Detall amb l'autora (`id`, `display_name`, `avatar_url`); `404 OUTING_NOT_FOUND` |
-| `PATCH /api/outings/{id}` | Només l'autora (`403 OUTING_FORBIDDEN`). Canvien només els camps enviats; només `event_id` pot ser null |
+| `PATCH /api/outings/{id}` | Només l'autora (`403 OUTING_FORBIDDEN`). Canvien només els camps enviats; només `event_id` i `place` poden ser null. Canviar `location` sense `place` esborra el `place` (TG-661) |
 | `DELETE /api/outings/{id}` | Només l'autora; `204` |
 
-Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
+Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zona, camp que no pot ser null), `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` i `OUTING_EVENT_NOT_FOUND`. La longitud dels textos la mira només el domini, un cop netejats, perquè l'app rebi el codi concret (decisió de Raquel, 17/11/2026).
 
 ## Punts de trobada (TG-352)
 
-`GET /api/meeting-points?profile=watch_party|study&lat=&lon=`: privat, amb sessió (mateixos 401, 403 i 503 que `/api/users/me`). Recomana biblioteques i cafeteries a prop de la ubicació de la usuària (no de l'esdeveniment) amb el servei d'espais de Spotwise ([[contracte-spotwise#Servei consumit per Perseida]]). No està lligat a cap esdeveniment, perquè també el fa servir el formulari de sortides (decisió de Raquel, 22/11/2026).
+`GET /api/meeting-points?profile=watch_party|study&lat=&lon=`: privat, amb sessió (mateixos 401, 403 i 503 que `/api/users/me`). Recomana biblioteques i cafeteries a prop de la ubicació que rep (`lat`, `lon`): la de la usuària a la pantalla d'un esdeveniment, o el lloc de la sortida al formulari de sortides (TG-661), amb el servei d'espais de Spotwise ([[contracte-spotwise#Servei consumit per Perseida]]). No està lligat a cap esdeveniment, perquè també el fa servir el formulari de sortides (decisió de Raquel, 22/11/2026).
 
 - `422 VALIDATION_ERROR` si falta un paràmetre, el perfil no existeix o la ubicació és fora de rang.
 - `503 MEETING_POINTS_UNAVAILABLE` si Spotwise falla (timeout de 5 s, error de connexió, 4xx, 5xx o resposta il·legible); mai `500`.
@@ -89,7 +91,7 @@ Codis de `422`: `VALIDATION_ERROR` (format: rang de la ubicació, data sense zon
 
 Cada resposta porta capçaleres de seguretat (`SecurityHeadersMiddleware`: `nosniff`, CSP `default-src 'none'`, `X-Frame-Options`, `no-store` a `/api/auth` i `/api/users`, HSTS darrere HTTPS); tot l'accés a dades usa paràmetres lligats i un test d'arquitectura prohibeix SQL fet amb cadenes; les entrades externes (nom, avatar, correu, URL de l'APOD) es netegen i es validen al domini. Regles, estat de les dependències i llista de comprovació a [[seguretat]]; decisió a [[0024-defensa-en-profunditat-contra-injeccio-sql-i-xss]].
 
-CORS (TG-363): `CORSMiddleware` amb orígens explícits, mai `*` (`app/infrastructure/api/cors.py`). Per defecte admet els orígens HTTPS de DuckDNS (`https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org`; mai `http://…:40430`, que *Force SSL* redirigeix i que una pàgina manipulada a la xarxa podria fer servir amb la sessió de l'usuari) i els ports locals d'Expo i de l'API (`8081`, `19006` i `8000` a `localhost`/`127.0.0.1`); `CORS_ALLOWED_ORIGINS` els substitueix i `CORS_ALLOWED_ORIGIN_REGEX` n'hi afegeix. Admet credencials, els mètodes `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` i `HEAD`, les capçaleres `Authorization` i `Content-Type`, i exposa `X-Correlation-ID`. És el middleware més intern (Security → Correlation → CORS → routers): el preflight es respon abans dels routers i porta el correlation id i les capçaleres de seguretat.
+CORS (TG-363): `CORSMiddleware` amb orígens explícits, mai `*` (`app/infrastructure/api/cors.py`). Per defecte admet els orígens HTTPS de DuckDNS (`https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org`; mai `http://…:40430`, que *Force SSL* redirigeix i que una pàgina manipulada a la xarxa podria fer servir amb la sessió de l'usuari) i els ports locals d'Expo i de l'API (`8081`, `19006` i `8000` a `localhost`/`127.0.0.1`); `CORS_ALLOWED_ORIGINS` els substitueix i `CORS_ALLOWED_ORIGIN_REGEX` n'hi afegeix. Admet credencials, els mètodes `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` i `HEAD`, les capçaleres `Authorization` i `Content-Type`, i exposa `X-Correlation-ID`. Ordre dels middlewares: Security → Correlation → CORS → `UnexpectedErrorMiddleware` → routers (TG-599). El preflight es respon abans dels routers i porta el correlation id i les capçaleres de seguretat.
 
 ## Configuració
 
@@ -141,6 +143,20 @@ Privats, amb sessió (401, 403 i 503 com `GET /api/users/me`). Només subscripto
 | `WS /api/ws`, sala `chat:event:<event_id>` | Subscripció i enviament de missatges (`client_message_id` obligatori); errors `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG`, `CHAT_MESSAGE_REJECTED`, `CHAT_IDEMPOTENCY_CONFLICT`, `RATE_LIMITED`, `PUBSUB_UNAVAILABLE` |
 
 Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS` i `CHAT_MESSAGE_MAX_LENGTH` (vegeu [[chat]]).
+
+## Xat directe (TG-65)
+
+Els endpoints del xat directe (TG-65) són privats i requereixen sessió. Errors RFC 9457 amb `code`.
+
+| Endpoint | Funció |
+|---|---|
+| `POST /api/direct-conversations` | Cos `{user_id}`; crea (201) o recupera (200) la conversa de la parella |
+| `GET /api/direct-conversations` | Converses amb perfil de l'altre usuari, vista prèvia i no llegits |
+| `GET /api/direct-conversations/{id}/messages` | Historial amb `before` i `limit` (50 per defecte) |
+| `POST /api/direct-conversations/{id}/read` | Cos `{last_message_id}`; avança la marca del participant fins al missatge carregat (204); un missatge aliè o inexistent retorna 404 |
+| `PUT` / `DELETE /api/users/{id}/block` | Bloqueig i desbloqueig idempotents (204) |
+
+A `/api/ws`, `dm.send` porta `conversation_id`, `text` i `client_message_id`; l'ack correlacionat retorna `id` i `sent_at` i confirma acceptació durable, no entrega. `dm.message` comunica el missatge; `dm.typing` és efímer i no es desa. Les connexions autenticades escolten un canal intern per usuari, no una sala subscrita arbitràriament pel client. Flux i límits a [[chat]] i [[0034-outbox-xat-directe]].
 
 ## US de Taiga relacionades
 

@@ -6,7 +6,9 @@ import {
   releaseSocket,
   retainSocket,
   send,
+  sendEphemeral,
   subscribe,
+  subscribePrivate,
   subscribeToSocketState,
   type SocketAuth,
   type SocketState,
@@ -14,7 +16,9 @@ import {
 
 export interface UseSocketResult extends SocketState {
   subscribe: typeof subscribe;
+  subscribePrivate: typeof subscribePrivate;
   send: typeof send;
+  sendEphemeral: typeof sendEphemeral;
   reconnect: typeof reconnect;
 }
 
@@ -29,5 +33,5 @@ export function useSocket(auth: SocketAuth): UseSocketResult {
     return releaseSocket;
   }, [auth]);
   const { status, error } = useSyncExternalStore(subscribeToSocketState, getSocketState);
-  return { status, error, subscribe, send, reconnect };
+  return { status, error, subscribe, subscribePrivate, send, sendEphemeral, reconnect };
 }

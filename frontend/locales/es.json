@@ -56,9 +56,19 @@
     "title": "Tus próximos logros"
   },
   "admin": {
+    "home": {
+      "welcome": "Bienvenida al panel de administración de Perseida"
+    },
+    "main": {
+      "label": "Contenido del panel"
+    },
     "noAccess": {
       "message": "Tu cuenta no tiene permiso para entrar al panel de administración.",
       "title": "Sin acceso"
+    },
+    "skipToContent": "Salta al contenido",
+    "topBar": {
+      "label": "Barra superior del panel"
     }
   },
   "apod": {
@@ -137,6 +147,29 @@
     "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
     "gamificationTitle": "Gamificación y retos"
   },
+  "directChat": {
+    "blocked": "Bloqueado",
+    "conversationWith": "Conversación con {{name}}",
+    "lastMessage": "último mensaje: {{text}}",
+    "noMessages": "Aún no hay mensajes",
+    "unread_one": "{{count}} mensaje sin leer",
+    "unread_other": "{{count}} mensajes sin leer",
+    "you": "Tú: {{text}}",
+    "list": {
+      "title": "Conversaciones",
+      "loading": "Cargando conversaciones",
+      "userId": "Identificador de usuario",
+      "open": "Iniciar conversación",
+      "empty": "Aún no tienes conversaciones",
+      "unknownUser": "Usuario"
+    },
+    "room": {
+      "loading": "Cargando conversación",
+      "block": "Bloquear",
+      "unblock": "Desbloquear",
+      "typing": "{{name}} está escribiendo"
+    }
+  },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
@@ -175,6 +208,7 @@
     "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
     "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
+    "OUTING_PLACE_INVALID": "El local elegido no es válido: hace falta un nombre de 1 a 120 caracteres y una dirección de 200 como máximo.",
     "OUTING_ENDS_BEFORE_START": "La salida no puede terminar antes de empezar.",
     "OUTING_STARTS_IN_PAST": "La salida no puede empezar en el pasado.",
     "OUTING_EVENT_NOT_FOUND": "Este evento ya no existe.",
@@ -186,7 +220,12 @@
     "PUBSUB_UNAVAILABLE": "El chat no está disponible ahora mismo. Inténtalo de nuevo.",
     "VALIDATION_ERROR": "Revisa los datos introducidos.",
     "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
-    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala."
+    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
+    "USER_NOT_FOUND": "No hemos encontrado a este usuario.",
+    "CANNOT_MESSAGE_SELF": "No puedes enviarte mensajes a ti mismo.",
+    "CONVERSATION_NOT_FOUND": "Esta conversación no existe.",
+    "USER_BLOCKED": "Ahora no puedes enviar mensajes en esta conversación.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "Este mensaje ya existe con otro contenido."
   },
   "events": {
     "category": {
@@ -436,6 +475,7 @@
       "unknownAuthor": "Una usuaria de Perseida",
       "start": "Inicio",
       "end": "Fin",
+      "place": "Local",
       "where": "Lugar",
       "event": "Evento",
       "edit": "Edita",

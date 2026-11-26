@@ -1,0 +1,65 @@
+[
+  {
+    "id": "01a216f3-9aea-7637-a7ce-849f35f0c0b8",
+    "name": "Observatori del Montsec",
+    "latitude": 42.051897,
+    "longitude": 0.729644,
+    "source_url": "https://ca.wikipedia.org/wiki/Observatori_del_Montsec"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a0525e2af0",
+    "name": "Parc Astronòmic Montsec",
+    "latitude": 42.0250993,
+    "longitude": 0.7377033,
+    "source_url": "https://ca.wikipedia.org/wiki/Parc_Astronòmic_Montsec"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a11c237acb",
+    "name": "Parc Nacional d'Aigüestortes i Estany de Sant Maurici",
+    "latitude": 42.5772,
+    "longitude": 0.9478,
+    "source_url": "https://ca.wikipedia.org/wiki/Parc_Nacional_d'Aigüestortes_i_Estany_de_Sant_Maurici"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a2d27736a0",
+    "name": "Saldes (Pedraforca)",
+    "latitude": 42.231388888889,
+    "longitude": 1.7380555555556,
+    "source_url": "https://ca.wikipedia.org/wiki/Saldes"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a33f72aee2",
+    "name": "Observatori Astronòmic de Castelltallat",
+    "latitude": 41.793932,
+    "longitude": 1.632386,
+    "source_url": "https://ca.wikipedia.org/wiki/Observatori_Astronòmic_de_Castelltallat"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a422a12c32",
+    "name": "Observatori de Pujalt",
+    "latitude": 41.72,
+    "longitude": 1.42,
+    "source_url": "https://ca.wikipedia.org/wiki/Observatori_de_Pujalt"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a51236164d",
+    "name": "Prades (Muntanyes de Prades)",
+    "latitude": 41.30954,
+    "longitude": 0.98771,
+    "source_url": "https://ca.wikipedia.org/wiki/Prades"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a69b00a0ce",
+    "name": "La Morera de Montsant (Serra de Montsant)",
+    "latitude": 41.264976,
+    "longitude": 0.841747,
+    "source_url": "https://ca.wikipedia.org/wiki/La_Morera_de_Montsant"
+  },
+  {
+    "id": "01a216f3-9aea-7637-a7ce-84a7ac2a4392",
+    "name": "Observatori Astronòmic del Garraf",
+    "latitude": 41.3066,
+    "longitude": 1.8383,
+    "source_url": "https://ca.wikipedia.org/wiki/Observatori_Astronòmic_del_Garraf"
+  }
+]

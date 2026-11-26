@@ -39,6 +39,11 @@ Preguntes d'aquesta skill:
 
 Frontend: Stryker (`@stryker-mutator/core` amb el runner `@stryker-mutator/jest-runner`) configurat a `frontend/stryker.config.json` sobre els fitxers de lògica canviats (`pnpm test:mutation` que executa `node scripts/run-stryker-diff.mjs`), mateix llindar (score >= 70 %).
 
+## Frontend en PR apilades
+
+- El diff de Stryker s'ha de calcular contra la base real de la PR (la branca anterior de la pila), no contra `develop`: una comparació contra `develop` mesura codi que no és d'aquesta PR i el score no és comparable. Abans de donar per bo un score, confirma la base.
+- Els casos límit d'una lògica de lectura/estat (llista buida, missatge en directe) s'assegren amb l'ID exacte enviat o amb l'absència de la petició, no només que "es cridi".
+
 ## Interpretar supervivents
 
 | Patró del mutant | Probable causa | Acció |

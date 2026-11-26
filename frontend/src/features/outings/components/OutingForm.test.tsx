@@ -42,17 +42,32 @@ jest.mock('./LocationField', () => {
     LocationField: ({
       error,
       onChange,
+      onPlaceChange,
     }: {
       error?: string;
       onChange: (location: { latitude: number; longitude: number }) => void;
+      onPlaceChange?: (place: { name: string; address: string } | null) => void;
     }) => (
       <>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="choose place"
-          onPress={() => onChange({ latitude: 1, longitude: 2 })}
+          onPress={() => {
+            onChange({ latitude: 1, longitude: 2 });
+            onPlaceChange?.(null);
+          }}
         >
           <Text>lloc</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="choose local"
+          onPress={() => {
+            onChange({ latitude: 3, longitude: 4 });
+            onPlaceChange?.({ name: 'Biblioteca Sant Pau', address: 'Carrer del Carme, 47' });
+          }}
+        >
+          <Text>local</Text>
         </Pressable>
         {error ? <Text accessibilityRole="alert">{error}</Text> : null}
       </>
@@ -180,6 +195,33 @@ describe('OutingForm', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0].location).toEqual({ latitude: 1, longitude: 2 });
+  });
+
+  it('takes the recommended local the person chooses, with its name and address', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await render(<OutingForm initial={filled({ location: null })} onSubmit={onSubmit} />);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'choose local' }));
+    await save();
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].location).toEqual({ latitude: 3, longitude: 4 });
+    expect(onSubmit.mock.calls[0][0].place).toEqual({
+      name: 'Biblioteca Sant Pau',
+      address: 'Carrer del Carme, 47',
+    });
+  });
+
+  it('forgets the local when the person then chooses another kind of place', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await render(<OutingForm initial={filled({ location: null })} onSubmit={onSubmit} />);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'choose local' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'choose place' }));
+    await save();
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].place).toBeNull();
   });
 
   it('says that a new outing cannot start in the past, next to the start', async () => {
