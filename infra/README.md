@@ -189,7 +189,7 @@ Server prerequisites: Docker Engine with Compose 2.22 or later (`pull --policy`)
 
 The server pulls the image from GHCR with the job's temporary `GITHUB_TOKEN` (`docker login` over stdin, `docker logout` at the end), so the package can stay private.
 
-`BACKUP_KEEP` is rendered into the `.env` like any other variable; `BACKUP_DIR` is not (it is excluded in `cd.yml`, because GitHub does not accept empty variables). `deploy.sh` reads only those two names from the `.env`, never the secrets.
+`BACKUP_KEEP` is rendered into the `.env` like any other variable; `BACKUP_DIR` is optional (`ENV_OPTIONAL` in `cd.yml`): it is rendered only if a GitHub variable with an absolute path exists, because GitHub does not accept empty variables. `deploy.sh` reads only those two names from the `.env`, never the secrets.
 
 ### Automatic rollback
 
@@ -235,7 +235,7 @@ Before the new image migrates the database, and before any `alembic downgrade`, 
   - **Always before an `alembic downgrade`**: the automatic rollback and `deploy.sh --rollback`. If the copy fails, the downgrade is not run and the API stays stopped.
 - **When it is skipped (with a warning):** if there is no running `db` container or the `alembic_version` table does not exist (empty database, the first deployment). If it **exists but cannot be read** (psql fails: connection, recovery, authentication), that is not an empty database: the copy fails.
 - **If it fails** (the revision cannot be read, `pg_dump` exits with an error, the file is empty, the check fails or there is no space): the deployment stops **before starting the new image**; no migration is applied, `.deployed-tag` is not touched and the job fails. The previous copies are kept.
-- **Variables:** `BACKUP_KEEP` is a GitHub variable (`5`) rendered into `.env`. `BACKUP_DIR` is **not** rendered (GitHub does not accept empty variables, and without a value the script uses the default directory); to change it, set it in the server's `/opt/perseida/.env`. `deploy.sh` only reads these two names from the `.env`. If you set `BACKUP_DIR` in the server's `.env`, it must be an **absolute path** (`~` is not expanded there). The script never prints passwords or database contents: the workflow logs are public.
+- **Variables:** `BACKUP_KEEP` is a GitHub variable (`5`) rendered into `.env`. `BACKUP_DIR` is optional: create a GitHub variable `BACKUP_DIR` with an **absolute path** (`~` is not expanded) and the CD renders it into `.env` on every deploy; without it (GitHub does not accept empty variables) the script uses the default directory. Do not edit the server's `.env` by hand: each deploy rewrites it. `deploy.sh` only reads these two names from the `.env`. The script never prints passwords or database contents: the workflow logs are public.
 
 The copies are on the same VM: they do not protect against losing the server or its disk. Restoring is manual (next section).
 

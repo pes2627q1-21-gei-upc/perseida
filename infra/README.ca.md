@@ -189,7 +189,7 @@ Requisits del servidor: Docker Engine amb Compose 2.22 o superior (`pull --polic
 
 El servidor baixa la imatge de GHCR amb el `GITHUB_TOKEN` temporal del job (`docker login` per stdin i `docker logout` al final), de manera que el paquet pot continuar privat.
 
-`BACKUP_KEEP` es renderitza al `.env` com qualsevol altra variable; `BACKUP_DIR` no (s'exclou a `cd.yml`, perquè GitHub no admet variables buides). `deploy.sh` només llegeix aquests dos noms del `.env`, mai els secrets.
+`BACKUP_KEEP` es renderitza al `.env` com qualsevol altra variable; `BACKUP_DIR` és opcional (`ENV_OPTIONAL` a `cd.yml`): només es renderitza si hi ha una variable de GitHub amb una ruta absoluta, perquè GitHub no admet variables buides. `deploy.sh` només llegeix aquests dos noms del `.env`, mai els secrets.
 
 ### Rollback automàtic
 
@@ -235,7 +235,7 @@ Abans que la imatge nova migri la base de dades, i abans de qualsevol `alembic d
   - **Sempre abans d'un `alembic downgrade`**: el rollback automàtic i `deploy.sh --rollback`. Si la còpia falla, el downgrade no s'executa i l'API queda aturada.
 - **Quan s'omet (amb un avís):** si no hi ha contenidor `db` en marxa o la taula `alembic_version` no existeix (base de dades buida, el primer desplegament). Si **existeix però no es pot llegir** (psql falla: connexió, recuperació, autenticació), no és una base de dades buida: la còpia falla.
 - **Si falla** (no es pot llegir la revisió, `pg_dump` surt amb error, el fitxer és buit, la verificació falla o no hi ha espai): el desplegament s'atura **abans d'arrencar la imatge nova**; no s'aplica cap migració, no es toca `.deployed-tag` i el job falla. Les còpies anteriors es conserven.
-- **Variables:** `BACKUP_KEEP` és una variable de GitHub (`5`) que es renderitza al `.env`. `BACKUP_DIR` **no** es renderitza (GitHub no admet variables buides, i sense valor l'script usa el directori per defecte); per canviar-lo, posa'l al `/opt/perseida/.env` del servidor. `deploy.sh` només llegeix aquests dos noms del `.env`. Si poses `BACKUP_DIR` al `.env` del servidor, ha de ser una **ruta absoluta** (el `~` no s'hi expandeix). L'script mai imprimeix contrasenyes ni contingut de la base de dades: els logs del workflow són públics.
+- **Variables:** `BACKUP_KEEP` és una variable de GitHub (`5`) que es renderitza al `.env`. `BACKUP_DIR` és opcional: crea una variable de GitHub `BACKUP_DIR` amb una **ruta absoluta** (el `~` no s'hi expandeix) i el CD la renderitza al `.env` a cada desplegament; sense ella (GitHub no admet variables buides) l'script usa el directori per defecte. No editis el `.env` del servidor a mà: cada desplegament el reescriu. `deploy.sh` només llegeix aquests dos noms del `.env`. L'script mai imprimeix contrasenyes ni contingut de la base de dades: els logs del workflow són públics.
 
 Les còpies són a la mateixa VM: no protegeixen contra la pèrdua del servidor ni del seu disc. La restauració és manual (secció següent).
 

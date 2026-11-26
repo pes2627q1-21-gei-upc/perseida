@@ -38,7 +38,7 @@ Qualsevol fallada (no poder llegir la revisió d'`alembic_version`, `pg_dump` am
 ### Variables
 
 - `BACKUP_KEEP`: nombre de còpies que es conserven (enter ≥ 1). És una variable de GitHub (`BACKUP_KEEP=5`) que es renderitza al `.env`.
-- `BACKUP_DIR`: directori de les còpies. **No es renderitza al `.env`** (`cd.yml` l'exclou amb `ENV_EXCLUDE`) perquè GitHub no admet variables buides; sense valor, l'script usa `~/perseida/backups`. Es pot posar al `.env` del servidor, amb una **ruta absoluta** (el `~` no s'hi expandeix).
+- `BACKUP_DIR`: directori de les còpies. És **opcional** (`cd.yml` la declara a `ENV_OPTIONAL`, i `render_env.py` la renderitza al `.env` només si hi ha una variable de GitHub definida, amb una **ruta absoluta**; el `~` no s'hi expandeix). GitHub no admet variables buides: sense variable, l'script usa `~/perseida/backups`. No s'ha d'editar a mà el `.env` del servidor, perquè cada desplegament el reescriu.
 - `deploy.sh` només carrega del `.env` aquestes dues variables (la resta són secrets). `cd.yml` copia `backup-db.sh` a `/opt/perseida/` juntament amb `deploy.sh`.
 
 ## Conseqüències
