@@ -6,7 +6,8 @@ L'script s'executa amb un `docker` FALS al `PATH` que simula el contenidor `db`
 (`pg_dump -Fc`, `pg_restore --list` i la lectura d'`alembic_version`). Es controla
 amb variables d'entorn de la prova:
 
-    FAKE_REVISION      revisió d'Alembic actual; buida = `alembic_version` il·legible
+    FAKE_REVISION      revisió d'Alembic actual; buida = la taula `alembic_version` no existeix
+    FAKE_PSQL_EXIT     si no és 0, psql falla amb aquest codi (connexió, auth, recuperació...)
     FAKE_DUMP_EXIT     codi de sortida de pg_dump (0 per defecte)
     FAKE_DUMP_EMPTY    si és 1, pg_dump surt bé però no escriu res
     FAKE_DUMP_PARTIAL  si és 1, pg_dump escriu uns bytes i falla (disc ple)
@@ -66,7 +67,22 @@ case "$args" in
     printf 'PGDMP-contingut-sintetic-de-la-prova\n'
     exit 0
     ;;
+  *to_regclass*)
+    if [ "${FAKE_PSQL_EXIT:-0}" != 0 ]; then
+      echo "psql: error: connection failed: password authentication failed (password $POSTGRES_PASSWORD)" >&2
+      exit "${FAKE_PSQL_EXIT}"
+    fi
+    if [ -z "${FAKE_REVISION:-}" ]; then
+      exit 0
+    fi
+    printf 'alembic_version\n'
+    exit 0
+    ;;
   *alembic_version*)
+    if [ "${FAKE_PSQL_EXIT:-0}" != 0 ]; then
+      echo "psql: error: connection failed: password authentication failed (password $POSTGRES_PASSWORD)" >&2
+      exit "${FAKE_PSQL_EXIT}"
+    fi
     if [ -z "${FAKE_REVISION:-}" ]; then
       echo 'ERROR:  relation "alembic_version" does not exist' >&2
       exit 1
@@ -245,6 +261,34 @@ class SkippedBackupTest(BackupDbBase):
                 self.assertTrue(self.output(done).strip(), "cal un avís")
 
 
+class UnreadableRevisionTest(BackupDbBase):
+    """Un error de psql no és una BD buida: la còpia falla i no es migra."""
+
+    def test_psql_failure_fails_without_backup(self) -> None:
+        for args in (("--always", SHA), ("--if-pending", HEAD, SHA)):
+            for code in ("1", "2"):
+                with self.subTest(args=args, code=code):
+                    done = self.run_script(*args, FAKE_PSQL_EXIT=code)
+                    self.assertNotEqual(done.returncode, 0, self.output(done))
+                    self.assertEqual(self.listing(), [])
+                    self.assertTrue(self.output(done).strip(), "cal un missatge d'error")
+                    self.assertNotIn(SENTINEL, self.output(done))
+
+    def test_psql_failure_does_not_touch_existing_backups(self) -> None:
+        prior = self.seed(3)
+        done = self.run_script("--always", SHA, FAKE_PSQL_EXIT="2")
+        self.assertNotEqual(done.returncode, 0, self.output(done))
+        self.assertEqual(self.listing(), sorted(prior))
+
+    def test_missing_table_skips_with_warning_and_exit_zero(self) -> None:
+        for args in (("--always", SHA), ("--if-pending", HEAD, SHA)):
+            with self.subTest(args=args):
+                done = self.run_script(*args, FAKE_REVISION="")
+                self.assertEqual(done.returncode, 0, self.output(done))
+                self.assertEqual(self.listing(), [])
+                self.assertIn("AVÍS", self.output(done))
+
+
 class RotationTest(BackupDbBase):
     def test_default_keeps_five_most_recent(self) -> None:
         prior = self.seed(8)
@@ -280,6 +324,36 @@ class RotationTest(BackupDbBase):
         names = self.listing(default_dir)
         self.assertEqual(len(names), 5, names)
         self.assertEqual(names[:4], prior[-4:])
+
+
+class RotationSafetyTest(BackupDbBase):
+    def test_failed_delete_of_old_backup_is_not_fatal(self) -> None:
+        real_rm = shutil.which("rm")
+        self.assertIsNotNone(real_rm)
+        fake_rm = self.bin / "rm"
+        fake_rm.write_text(
+            '#!/bin/sh\n'
+            'case "$*" in *oldsha*) echo "rm: cannot remove: Permission denied" >&2; exit 1 ;; esac\n'
+            f'exec "{Path(real_rm).as_posix()}" "$@"\n',
+            encoding="utf-8",
+            newline="\n",
+        )
+        fake_rm.chmod(0o755)
+        self.seed(3)
+        done = self.run_script("--always", SHA, BACKUP_KEEP="1")
+        self.assertEqual(done.returncode, 0, self.output(done))
+        self.assertTrue(any(f"-{SHA}-" in n for n in self.listing()), self.listing())
+        self.assertTrue(self.output(done).strip())
+
+    def test_new_backup_is_never_rotated_out_even_with_future_dated_files(self) -> None:
+        self.backups.mkdir()
+        future = self.backups / f"perseida-29990101T000000Z-futursha-{CURRENT}.dump"
+        future.write_bytes(b"PGDMP-futur")
+        done = self.run_script("--always", SHA, BACKUP_KEEP="1")
+        self.assertEqual(done.returncode, 0, self.output(done))
+        names = self.listing()
+        self.assertEqual(len(names), 1, names)
+        self.assertIn(f"-{SHA}-", names[0])
 
 
 class FailureTest(BackupDbBase):
