@@ -1,14 +1,12 @@
 """Application use cases for event chats."""
 
-import base64
-import binascii
 import json
 import logging
 import uuid
-from datetime import datetime
 
 from app.application.chat.errors import RateLimitedError
 from app.application.realtime.errors import PUBSUB_UNAVAILABLE, RATE_LIMITED
+from app.application.shared.cursor import decode_cursor, encode_cursor
 from app.application.shared.errors import ExternalServiceError, ForbiddenError
 from app.domain.chat.errors import (
     CHAT_IDEMPOTENCY_CONFLICT,
@@ -30,9 +28,7 @@ from app.domain.chat.models import (
 from app.domain.chat.ports import (
     ChatRepository,
     EventSubscriptions,
-    MessageModerator,
     RepublishGuard,
-    SendRateLimiter,
 )
 from app.domain.realtime.models import Frame, FrameType, room_channel
 from app.domain.shared.errors import (
@@ -40,52 +36,13 @@ from app.domain.shared.errors import (
     ConflictError,
     ValidationError,
 )
-from app.domain.shared.ports import PubSub
+from app.domain.shared.ports import MessageModerator, PubSub, SendRateLimiter
 
 logger = logging.getLogger(__name__)
 
 # A retry of an already published message is republished only after this long
 # since the last publish: a client retrying in a loop does not flood the room.
 REPUBLISH_COOLDOWN_SECONDS = 10
-
-
-def _encode(cursor: ChatCursor) -> str:
-    raw = json.dumps(
-        [cursor.sent_at.isoformat(), str(cursor.id)], separators=(",", ":")
-    ).encode()
-    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
-
-
-def _decode(value: str) -> ChatCursor:
-    try:
-        if len(value) > 256:
-            raise ValueError
-        raw = base64.b64decode(
-            value + "=" * (-len(value) % 4), altchars=b"-_", validate=True
-        )
-        data = json.loads(raw)
-        if (
-            not isinstance(data, list)
-            or len(data) != 2
-            or not all(isinstance(x, str) for x in data)
-        ):
-            raise ValueError
-        date = datetime.fromisoformat(data[0])
-        if date.utcoffset() is None:
-            raise ValueError
-        cursor = ChatCursor(sent_at=date, id=uuid.UUID(data[1]))
-        if _encode(cursor) != value:
-            raise ValueError
-        return cursor
-    except (
-        ValueError,
-        TypeError,
-        UnicodeError,
-        binascii.Error,
-        OverflowError,
-        RecursionError,
-    ) as exc:
-        raise ValidationError(CHAT_INVALID_CURSOR) from exc
 
 
 class ChatService:
@@ -228,11 +185,18 @@ class ChatService:
         room = await self.get_or_create_room(user_id, event_id)
         if not 1 <= limit <= PAGE_MAX_LIMIT:
             raise ValidationError(CHAT_INVALID_LIMIT)
-        cursor = _decode(before) if before is not None else None
+        cursor = None
+        if before is not None:
+            sent_at, message_id = decode_cursor(before, CHAT_INVALID_CURSOR)
+            cursor = ChatCursor(sent_at=sent_at, id=message_id)
         page = await self._repository.page(room.id, cursor, limit)
         return ChatMessagePage(
             messages=page.messages,
-            next_cursor=_encode(page.next_cursor) if page.next_cursor else None,
+            next_cursor=(
+                encode_cursor(page.next_cursor.sent_at, page.next_cursor.id)
+                if page.next_cursor
+                else None
+            ),
         )
 
     async def list_rooms(self, user_id: uuid.UUID) -> list[ChatRoomSummary]:

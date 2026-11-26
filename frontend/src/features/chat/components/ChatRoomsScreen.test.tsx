@@ -178,6 +178,14 @@ describe('ChatRoomsScreen (TG-469)', () => {
     expect(screen.getByLabelText('Sales de xat')).toBeOnTheScreen();
   });
 
+  it('opens the direct conversation list from the chat screen (TG-65)', async () => {
+    await renderScreen();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Converses' }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith('/chat/direct');
+  });
+
   it('opens the room of an event when its row is tapped (US TG-64 criteri 14)', async () => {
     await renderScreen();
 

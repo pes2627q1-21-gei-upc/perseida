@@ -1,4 +1,4 @@
-from app.domain.chat.models import ModerationResult
+from app.domain.shared.moderation import ModerationResult
 
 
 class ApproveAllModerator:

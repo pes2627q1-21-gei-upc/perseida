@@ -28,13 +28,12 @@ export interface ChatSocketHandlers {
 const SEEN_IDS_LIMIT = 200;
 
 /**
- * Live chat of an event over the shared WebSocket: room `chat:event:<eventId>`. A new
- * `joinAttempt` leaves the room and joins it again (e.g. after the server refused to join it: the
- * connection does not retry a refused join by itself).
+ * Live chat over the shared WebSocket, in a `room` (`chat:event:<eventId>` for an event). A new `joinAttempt` leaves the room and joins it
+ * again (e.g. after the server refused to join it: the connection does not retry a refused join
+ * by itself).
  */
-export function useChatSocket(eventId: string, handlers: ChatSocketHandlers, joinAttempt = 0) {
+export function useChatSocket(room: string, handlers: ChatSocketHandlers, joinAttempt = 0) {
   const { status, error, subscribe, send, reconnect } = useSocket(socketAuth);
-  const room = `chat:event:${eventId}`;
 
   // The latest handlers, without leaving and joining the room again on every render.
   const handlersRef = useRef(handlers);

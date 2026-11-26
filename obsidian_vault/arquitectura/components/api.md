@@ -2,9 +2,9 @@
 titol: "Component: api"
 tipus: component
 estat: vigent
-data: "2026-11-22"
-us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470", "TG-352"]
-font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51"
+data: "2026-11-26"
+us: ["TG-85", "TG-36", "TG-37", "TG-39", "TG-40", "TG-41", "TG-44", "TG-45", "TG-46", "TG-88", "TG-304", "TG-38", "TG-63", "TG-60", "TG-628", "TG-629", "TG-363", "TG-49", "TG-53", "TG-51", "TG-64", "TG-470", "TG-65", "TG-352"]
+font: "infra/README.md, backend/Dockerfile, .github/workflows/backend-docker.yml, backend/README.md, memòria §3.4.1, .env.example; Taiga: US TG-44; Taiga: US TG-628; backend/app/infrastructure/api/cors.py (TG-363); Taiga: US TG-53; Taiga: US TG-51; TG-65 i backend/app/infrastructure/direct_chat (23/11/2026)"
 etiquetes: [component, api, fastapi, backend, docker, ghcr]
 ---
 
@@ -141,6 +141,20 @@ Privats, amb sessió (401, 403 i 503 com `GET /api/users/me`). Només subscripto
 | `WS /api/ws`, sala `chat:event:<event_id>` | Subscripció i enviament de missatges (`client_message_id` obligatori); errors `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG`, `CHAT_MESSAGE_REJECTED`, `CHAT_IDEMPOTENCY_CONFLICT`, `RATE_LIMITED`, `PUBSUB_UNAVAILABLE` |
 
 Variables opcionals: `CHAT_RATE_LIMIT_MESSAGES`, `CHAT_RATE_LIMIT_WINDOW_SECONDS` i `CHAT_MESSAGE_MAX_LENGTH` (vegeu [[chat]]).
+
+## Xat directe (TG-65)
+
+Els endpoints del xat directe (TG-65) són privats i requereixen sessió. Errors RFC 9457 amb `code`.
+
+| Endpoint | Funció |
+|---|---|
+| `POST /api/direct-conversations` | Cos `{user_id}`; crea (201) o recupera (200) la conversa de la parella |
+| `GET /api/direct-conversations` | Converses amb perfil de l'altre usuari, vista prèvia i no llegits |
+| `GET /api/direct-conversations/{id}/messages` | Historial amb `before` i `limit` (50 per defecte) |
+| `POST /api/direct-conversations/{id}/read` | Cos `{last_message_id}`; avança la marca del participant fins al missatge carregat (204); un missatge aliè o inexistent retorna 404 |
+| `PUT` / `DELETE /api/users/{id}/block` | Bloqueig i desbloqueig idempotents (204) |
+
+A `/api/ws`, `dm.send` porta `conversation_id`, `text` i `client_message_id`; l'ack correlacionat retorna `id` i `sent_at` i confirma acceptació durable, no entrega. `dm.message` comunica el missatge; `dm.typing` és efímer i no es desa. Les connexions autenticades escolten un canal intern per usuari, no una sala subscrita arbitràriament pel client. Flux i límits a [[chat]] i [[0034-outbox-xat-directe]].
 
 ## US de Taiga relacionades
 
