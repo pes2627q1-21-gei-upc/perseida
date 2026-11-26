@@ -443,6 +443,64 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
     await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
   });
 
+  it('marca fins al darrer missatge carregat si en arriba un mentre es refresca l’històric', async () => {
+    const m4 = { ...message, id: 'm4', sent_at: '2026-11-22T11:00:00Z' };
+    const m5 = { ...message, id: 'm5', sent_at: '2026-11-22T12:00:00Z' };
+    jest.mocked(fetchMessages).mockResolvedValue(page([m4]));
+    const { result } = await mount();
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
+    jest.mocked(markRead).mockClear();
+
+    await act(async () => appStateListeners.forEach((listener) => listener('background')));
+    let answer: (() => void) | undefined;
+    jest.mocked(fetchMessages).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve(page([m4]));
+        }),
+    );
+    await act(async () => appStateListeners.forEach((listener) => listener('active')));
+    await waitFor(() => expect(answer).toBeDefined());
+    // m5 arrives while the refresh is on its way; the next read of the history already has it.
+    jest.mocked(fetchMessages).mockResolvedValue(page([m5, m4]));
+    await act(async () => emit({ type: 'dm.message', payload: m5 }));
+    await act(async () => answer?.());
+
+    await waitFor(() => expect(messageIds(result.current.items)).toEqual(['m5', 'm4']));
+    await waitFor(() => expect(markRead).toHaveBeenCalled());
+    const marked = jest.mocked(markRead).mock.calls.map(([input]) => input.lastMessageId);
+    expect(marked.at(-1)).toBe('m5');
+    expect(marked).not.toContain('m4');
+  });
+
+  it('no perd la pàgina d’antics que es carrega quan hi arriba un missatge en directe', async () => {
+    const newest = { ...message, id: 'm5', sent_at: '2026-11-22T12:00:00Z' };
+    const live = { ...message, id: 'm6', sent_at: '2026-11-22T13:00:00Z' };
+    const older = { ...message, id: 'm1', sent_at: '2026-11-22T10:00:00Z' };
+    let answerOlder: (() => void) | undefined;
+    jest.mocked(fetchMessages).mockImplementation(
+      (_id: string, cursor?: string) =>
+        cursor
+          ? new Promise((resolve) => {
+              answerOlder = () => resolve(page([older]));
+            })
+          : Promise.resolve(page([newest], 'cursor-1')),
+    );
+    const { result } = await mount();
+    await waitFor(() => expect(markRead).toHaveBeenCalled());
+
+    await act(async () => result.current.loadOlder());
+    await waitFor(() => expect(answerOlder).toBeDefined());
+    // Returning to the app refreshes the history while the older page is on its way.
+    await act(async () => appStateListeners.forEach((listener) => listener('background')));
+    await act(async () => appStateListeners.forEach((listener) => listener('active')));
+    await act(async () => emit({ type: 'dm.message', payload: live }));
+    await act(async () => answerOlder?.());
+
+    await waitFor(() => expect(messageIds(result.current.items)).toContain('m1'));
+    expect(messageIds(result.current.items)).toContain('m6');
+  });
+
   it('no marca com a llegit si l’històric respon quan ja s’ha perdut el focus', async () => {
     holdHistory();
     const { rerender } = await renderHook(({ id }: { id: string }) => useDirectConversation(id), {
