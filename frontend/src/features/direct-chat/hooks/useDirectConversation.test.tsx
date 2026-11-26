@@ -95,6 +95,8 @@ const holdHistory = () => {
       }),
   );
 };
+/** The conversations the API was asked to mark as read. */
+const markedRead = () => jest.mocked(markRead).mock.calls.map(([id]) => id);
 const answerHeld = () => act(async () => held.splice(0).forEach((answer) => answer()));
 
 beforeEach(() => {
@@ -424,7 +426,7 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
     await waitFor(() => expect(held.length).toBeGreaterThan(0));
     expect(markRead).not.toHaveBeenCalled();
     await answerHeld();
-    await waitFor(() => expect(markRead).toHaveBeenCalledWith(CONVERSATION));
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
   });
 
   it('no marca com a llegit si l’històric respon quan ja s’ha perdut el focus', async () => {
@@ -452,8 +454,8 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
     await rerender({ id: OTHER });
     await answerHeld();
 
-    await waitFor(() => expect(markRead).toHaveBeenCalledWith(OTHER));
-    expect(markRead).not.toHaveBeenCalledWith(CONVERSATION);
+    await waitFor(() => expect(markedRead()).toContain(OTHER));
+    expect(markedRead()).not.toContain(CONVERSATION);
   });
 
   it('no marca com a llegida una conversa sense focus, tampoc quan hi arriba un missatge', async () => {
@@ -483,7 +485,7 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
 
     await answerHeld();
 
-    await waitFor(() => expect(markRead).toHaveBeenCalledWith(CONVERSATION));
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
   });
 
   it('només anuncia els missatges nous en directe, no l’històric, els propis ni els duplicats', async () => {
