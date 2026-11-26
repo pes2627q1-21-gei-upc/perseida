@@ -24,7 +24,7 @@ Atendre els comentaris de review de les PR #163 i #164 i integrar el disseny nou
 ## Decisions preses
 
 - Refactor al nucli compartit: la lògica de marcatge del directe viu a `useDirectConversation`; la resta és al nucli genèric.
-- L'avís d'escriptura (typing) es manté tal com està, pendent de la confirmació del PO.
+- L'avís d'escriptura (typing) es manté i entra a l'abast de TG-65: confirmat el 26/11/2026 per la persona responsable.
 - Catàleg d'errors ampliat: `CONVERSATION_NOT_FOUND` cobreix també un `last_message_id` desconegut o aliè, i els errors del xat directe usen els textos aprovats del catàleg.
 
 ## Canvis al vault
