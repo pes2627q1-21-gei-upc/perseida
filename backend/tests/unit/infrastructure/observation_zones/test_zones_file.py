@@ -6,8 +6,8 @@ import uuid
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from app.domain.shared.errors import DomainError
 from app.infrastructure.observation_zones.load_zones import read_zones
 
 ZONES = (
@@ -63,5 +63,5 @@ def test_tg70_c5_a_zone_out_of_range_fails_the_load(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    with pytest.raises(DomainError):
+    with pytest.raises(ValidationError):
         read_zones(bad)
