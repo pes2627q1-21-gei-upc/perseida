@@ -12,6 +12,7 @@ import { makeMessage, makePage, makeRoom, PAU } from '../../../../__mocks__/chat
 import { mockUserProfile } from '../../../../__mocks__/profile';
 import type { AppError } from '../../../shared/errors';
 import { currentUserKeys } from '../../auth/hooks/useCurrentUser';
+import { clearSession } from '../../auth/session';
 import type { ChatHistory, ChatRoom } from '../api/chat';
 import type { ChatHistoryData } from '../chatCache';
 import type { ChatListItem } from '../chatItems';
@@ -28,6 +29,9 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
+const mockReplace = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
+jest.mock('../../auth/session', () => ({ clearSession: jest.fn(async () => undefined) }));
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(async () => undefined),
   notificationAsync: jest.fn(async () => undefined),
@@ -118,6 +122,8 @@ beforeEach(() => {
   mockSocket.status = 'open';
   mockSocket.reconnect.mockReset();
   mockSocket.handlers = undefined;
+  mockReplace.mockReset();
+  jest.mocked(clearSession).mockClear();
   mockSocket.sendMessage.mockReset().mockResolvedValue(ACK);
   jest.mocked(Crypto.randomUUID).mockReset().mockReturnValue('uuid-1');
   fetchHistory = jest.fn(async () => makePage([makeMessage(2, { author: PAU })]) as ChatHistory);
@@ -190,6 +196,77 @@ describe('useLiveConversation (TG-65): nucli genèric', () => {
     await act(async () => result.current.send('Hola'));
 
     expect(Math.max(...mockSocket.attempts)).toBe(1);
+  });
+
+  describe('TG-656: compte suspesa o esborrada en enviar', () => {
+    it.each(['ACCOUNT_SUSPENDED', 'ACCOUNT_DELETED'])(
+      'un 403 %s deixa la bombolla failed, tanca la sessió i va a /login amb l’avís',
+      async (code) => {
+        mockSocket.sendMessage.mockRejectedValueOnce({ code, status: 403, retryable: false });
+        const { result } = await mount();
+
+        await act(async () => result.current.send('Hola'));
+
+        await waitFor(() => expect(clearSession).toHaveBeenCalledWith(client));
+        expect(mockReplace).toHaveBeenCalledTimes(1);
+        expect(mockReplace).toHaveBeenCalledWith({
+          pathname: '/login',
+          params: { notice: code },
+        });
+        expect(result.current.items).toContainEqual(
+          expect.objectContaining({
+            kind: 'pending',
+            status: 'failed',
+            error: expect.objectContaining({ code }) as unknown,
+          }),
+        );
+      },
+    );
+
+    it.each([
+      ['FORBIDDEN', 403],
+      ['RATE_LIMITED', 429],
+      ['VALIDATION_ERROR', 422],
+    ])('un refús %s (%i) no tanca la sessió ni navega', async (code, status) => {
+      mockSocket.sendMessage.mockRejectedValueOnce({ code, status, retryable: false });
+      const { result } = await mount();
+
+      await act(async () => result.current.send('Hola'));
+
+      expect(clearSession).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('un 5xx incert no tanca la sessió', async () => {
+      mockSocket.sendMessage.mockRejectedValueOnce({
+        code: 'PUBSUB_UNAVAILABLE',
+        status: 503,
+        retryable: true,
+      });
+      const { result } = await mount();
+
+      await act(async () => result.current.send('Hola'));
+
+      expect(clearSession).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('en reintentar un missatge refusat amb ACCOUNT_SUSPENDED també tanca la sessió', async () => {
+      mockSocket.sendMessage
+        .mockRejectedValueOnce({ code: 'RATE_LIMITED', status: 429, retryable: true })
+        .mockRejectedValueOnce({ code: 'ACCOUNT_SUSPENDED', status: 403, retryable: false });
+      const { result } = await mount();
+      await act(async () => result.current.send('Hola'));
+      expect(mockReplace).not.toHaveBeenCalled();
+
+      await act(async () => result.current.retry('uuid-1'));
+
+      await waitFor(() => expect(clearSession).toHaveBeenCalledTimes(1));
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/login',
+        params: { notice: 'ACCOUNT_SUSPENDED' },
+      });
+    });
   });
 
   describe('sense sala pròpia (la conversa directa no en té)', () => {
