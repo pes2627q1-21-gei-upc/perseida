@@ -86,6 +86,7 @@ class InMemoryDirectConversationRepository:
 class InMemoryDirectMessageRepository:
     def __init__(self) -> None:
         self.messages: list[DirectMessage] = []
+        self.outbox: list[tuple[DirectMessage, str | None]] = []
 
     async def find_by_client_id(
         self, sender_id: uuid.UUID, client_message_id: uuid.UUID
@@ -99,13 +100,16 @@ class InMemoryDirectMessageRepository:
             None,
         )
 
-    async def add(self, message: DirectMessage) -> DirectMessage:
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
         existing = await self.find_by_client_id(
             message.sender_id, message.client_message_id
         )
         if existing is not None:
             return existing
         self.messages.append(message)
+        self.outbox.append((message, origin))
         return message
 
     async def page(
@@ -217,7 +221,9 @@ class _LoggedMessages(InMemoryDirectMessageRepository):
         self.log.append("find")
         return await super().find_by_client_id(sender_id, client_message_id)
 
-    async def add(self, message: DirectMessage) -> DirectMessage:
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
         self.log.append("save")
         # The base ``add`` would go through the overridden ``find_by_client_id``
         # and log a second "find": call the base lookup explicitly.
@@ -227,6 +233,7 @@ class _LoggedMessages(InMemoryDirectMessageRepository):
         if existing is not None:
             return existing
         self.messages.append(message)
+        self.outbox.append((message, origin))
         return message
 
 

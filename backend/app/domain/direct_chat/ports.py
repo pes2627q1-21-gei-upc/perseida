@@ -87,8 +87,10 @@ class DirectMessageRepository(Protocol):
         """
         ...
 
-    async def add(self, message: DirectMessage) -> DirectMessage:
-        """Store ``message`` and return the stored one.
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
+        """Store ``message`` and its delivery intent atomically.
 
         If the sender already stored a message with the same ``client_message_id``
         (a concurrent retry), nothing is inserted and that one is returned.

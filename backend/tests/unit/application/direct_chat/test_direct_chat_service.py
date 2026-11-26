@@ -28,7 +28,6 @@ from app.domain.shared.errors import (
 from tests.fakes.direct_chat import DirectChatHarness
 
 CHAT_MESSAGE_REJECTED = "CHAT_MESSAGE_REJECTED"
-PUBSUB_UNAVAILABLE = "PUBSUB_UNAVAILABLE"
 RATE_LIMITED = "RATE_LIMITED"
 
 ALICE = uuid.uuid7()
@@ -64,6 +63,7 @@ async def _conversation(env: DirectChatHarness) -> DirectConversation:
 
 def _no_side_effects(env: DirectChatHarness) -> None:
     assert env.messages.messages == []
+    assert env.messages.outbox == []
     assert env.broadcaster.calls == []
     assert env.push.sent == []
 
@@ -125,7 +125,7 @@ async def test_tg65_open_with_oneself_fails_without_asking_the_directory(
 # --- send_message: happy path -------------------------------------------------
 
 
-async def test_tg65_send_stores_and_delivers_to_the_recipient(
+async def test_tg65_send_stores_and_enqueues_with_origin(
     service: DirectChatService, env: DirectChatHarness
 ) -> None:
     conversation = await _conversation(env)
@@ -138,11 +138,12 @@ async def test_tg65_send_stores_and_delivers_to_the_recipient(
     assert message.sender_id == ALICE
     assert message.conversation_id == conversation.id
     assert env.messages.messages == [message]
-    assert env.broadcaster.calls == [(message, BOB, "o1")]
+    assert env.messages.outbox == [(message, "o1")]
+    assert env.broadcaster.calls == []
     assert env.push.sent == []
 
 
-async def test_tg65_send_without_origin_delivers_with_none(
+async def test_tg65_send_without_origin_enqueues_with_none(
     service: DirectChatService, env: DirectChatHarness
 ) -> None:
     conversation = await _conversation(env)
@@ -151,7 +152,7 @@ async def test_tg65_send_without_origin_delivers_with_none(
         BOB, conversation.id, "hi", client_message_id=uuid.uuid4()
     )
 
-    assert env.broadcaster.calls == [(message, ALICE, None)]
+    assert env.messages.outbox == [(message, None)]
 
 
 async def test_tg65_send_checks_in_the_documented_order(
@@ -163,8 +164,8 @@ async def test_tg65_send_checks_in_the_documented_order(
         ALICE, conversation.id, "hola", client_message_id=uuid.uuid4()
     )
 
-    # blocks (both ways) -> idempotency -> rate limit -> moderator -> store -> deliver
-    assert env.log == ["block", "block", "find", "rate", "moderate", "save", "deliver"]
+    # Blocks, idempotency, rate limit, moderation and atomic persistence.
+    assert env.log == ["block", "block", "find", "rate", "moderate", "save"]
 
 
 # --- moderation (criteri 8) ---------------------------------------------------
@@ -359,22 +360,16 @@ async def test_tg65_unknown_conversation_is_not_found(
 # --- pub/sub down and idempotency (criteris 6, 10) ----------------------------
 
 
-async def test_tg65_pubsub_down_keeps_the_stored_message_and_the_retry_redelivers(
+async def test_tg65_repeated_acceptance_reuses_the_outbox_entry(
     service: DirectChatService, env: DirectChatHarness
 ) -> None:
     conversation = await _conversation(env)
     client_id = uuid.uuid4()
     env.broadcaster.fail = True
 
-    with pytest.raises(ExternalServiceError) as exc_info:
-        await service.send_message(
-            ALICE, conversation.id, "hola", client_message_id=client_id
-        )
-
-    assert exc_info.value.code == PUBSUB_UNAVAILABLE
-    assert len(env.messages.messages) == 1
-    stored = env.messages.messages[0]
-    env.broadcaster.fail = False
+    stored = await service.send_message(
+        ALICE, conversation.id, "hola", client_message_id=client_id
+    )
     env.log.clear()
 
     retried = await service.send_message(
@@ -383,7 +378,8 @@ async def test_tg65_pubsub_down_keeps_the_stored_message_and_the_retry_redeliver
 
     assert retried == stored
     assert env.messages.messages == [stored]
-    assert env.broadcaster.calls == [(stored, BOB, None)]
+    assert env.messages.outbox == [(stored, None)]
+    assert env.broadcaster.calls == []
     assert "moderate" not in env.log
     assert "rate" not in env.log
     assert "save" not in env.log
@@ -443,7 +439,7 @@ async def test_tg65_a_reused_client_message_id_with_other_content_is_a_conflict(
 # --- offline recipient (criteri 5) --------------------------------------------
 
 
-async def test_tg65_recipient_without_connections_gets_a_push(
+async def test_tg65_push_is_deferred_until_dispatch(
     service: DirectChatService, env: DirectChatHarness
 ) -> None:
     conversation = await _conversation(env)
@@ -453,10 +449,11 @@ async def test_tg65_recipient_without_connections_gets_a_push(
         ALICE, conversation.id, "hola", client_message_id=uuid.uuid4()
     )
 
-    assert env.push.sent == [(BOB, message)]
+    assert env.messages.outbox == [(message, None)]
+    assert env.push.sent == []
 
 
-async def test_tg65_a_failing_push_does_not_fail_the_send(
+async def test_tg65_push_is_not_called_during_acceptance(
     service: DirectChatService, env: DirectChatHarness
 ) -> None:
     conversation = await _conversation(env)
@@ -468,7 +465,7 @@ async def test_tg65_a_failing_push_does_not_fail_the_send(
     )
 
     assert env.messages.messages == [message]
-    assert env.broadcaster.calls == [(message, BOB, None)]
+    assert env.broadcaster.calls == []
     assert env.log.count("save") == 1
-    assert env.log.count("deliver") == 1
+    assert env.log.count("deliver") == 0
     assert env.push.sent == []

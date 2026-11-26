@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     Table,
     UniqueConstraint,
@@ -135,4 +136,37 @@ class UserBlockRow(SQLModel, table=True):
         sa_column=Column(
             DateTime(timezone=True), nullable=False, server_default=sa_text("now()")
         )
+    )
+
+
+class DirectMessageOutboxRow(SQLModel, table=True):
+    """Durable publication intent, one per message."""
+
+    __tablename__ = "direct_message_outbox"
+    __table__: ClassVar[Table]
+    __table_args__ = (
+        Index(
+            "ix_direct_message_outbox_pending",
+            "attempts",
+            "message_id",
+            postgresql_where=sa_text("delivered_at IS NULL"),
+        ),
+    )
+
+    message_id: uuid.UUID = Field(
+        sa_column=Column(
+            Uuid(),
+            ForeignKey("direct_messages.id", ondelete="CASCADE"),
+            primary_key=True,
+        )
+    )
+    origin: str | None = Field(
+        default=None, sa_column=Column(String(128), nullable=True)
+    )
+    delivered_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    attempts: int = Field(
+        default=0,
+        sa_column=Column(Integer, nullable=False, server_default=sa_text("0")),
     )

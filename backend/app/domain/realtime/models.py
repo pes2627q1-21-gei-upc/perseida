@@ -20,6 +20,9 @@ class FrameType(StrEnum):
     ERROR = "error"
     PING = "ping"
     PONG = "pong"
+    DM_SEND = "dm.send"
+    DM_MESSAGE = "dm.message"
+    DM_TYPING = "dm.typing"
 
 
 class Frame(BaseModel):
@@ -38,6 +41,11 @@ class Frame(BaseModel):
 def room_channel(room: str) -> str:
     """Pub/sub channel of a room; the prefix keeps it apart from internal channels."""
     return f"{ROOM_CHANNEL_PREFIX}{room}"
+
+
+def direct_user_channel(user_id: uuid.UUID) -> str:
+    """Internal channel; clients can never subscribe using the room protocol."""
+    return f"direct-user:{user_id}"
 
 
 def revocation_channel(sub: str) -> str:

@@ -14,6 +14,8 @@ class ConversationOverview(BaseModel):
 
     conversation_id: uuid.UUID
     other_user_id: uuid.UUID
+    other_display_name: str | None = None
+    other_avatar_url: str | None = None
     last_message_preview: str | None
     last_message_at: AwareDatetime | None
     last_message_sender_id: uuid.UUID | None

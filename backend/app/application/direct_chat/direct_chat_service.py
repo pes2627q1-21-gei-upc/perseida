@@ -1,6 +1,5 @@
 """Application use cases for the direct chat between two users (US #65)."""
 
-import logging
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -10,9 +9,8 @@ from app.application.direct_chat.models import (
     DirectHistoryPage,
 )
 from app.application.shared.cursor import decode_cursor, encode_cursor
-from app.application.shared.error_codes import PUBSUB_UNAVAILABLE, RATE_LIMITED
+from app.application.shared.error_codes import RATE_LIMITED
 from app.application.shared.errors import (
-    ExternalServiceError,
     ForbiddenError,
     RateLimitedError,
 )
@@ -47,8 +45,6 @@ from app.domain.shared.errors import (
 )
 from app.domain.shared.moderation import CHAT_MESSAGE_REJECTED
 from app.domain.shared.ports import MessageModerator, SendRateLimiter
-
-logger = logging.getLogger(__name__)
 
 PREVIEW_MAX_LENGTH = 100
 HISTORY_DEFAULT_LIMIT = 50
@@ -114,14 +110,12 @@ class DirectChatService:
         client_message_id: uuid.UUID,
         origin: str | None = None,
     ) -> DirectMessage:
-        """Store, moderate and deliver a message, idempotently.
+        """Validate and accept a message and its delivery intent atomically.
 
         Order: participant, blocks (both ways), text validation, idempotency, rate
-        limit, moderation, store, deliver. A retry with the same
-        ``client_message_id`` returns the stored message (no rate limit, no
-        moderation, no new row) and delivers it again; the same key for another
-        conversation or text is a conflict. If the recipient has no live
-        connection, a best-effort push is sent instead (a failing push is logged).
+        limit, moderation, then atomically store the message and delivery intent.
+        A retry with the same ``client_message_id`` returns the stored message;
+        the outbox worker retries pending delivery independently.
 
         ``origin`` is the id of the sender's connection (not echoed back to it).
 
@@ -134,17 +128,11 @@ class DirectChatService:
                 another conversation or text.
             RateLimitedError: RATE_LIMITED if the sender sent too much.
             BusinessRuleViolation: CHAT_MESSAGE_REJECTED if moderation refuses it.
-            ExternalServiceError: if the limiter or a store is unavailable
-                (nothing is stored), or PUBSUB_UNAVAILABLE if the delivery failed
-                (the message is already stored; a retry delivers it).
+            ExternalServiceError: if the limiter or a store is unavailable.
         """
         conversation = await self._participant_conversation(user_id, conversation_id)
         recipient_id = conversation.other_participant(user_id)
-        # Either direction blocks the conversation; the history is kept.
-        if await self._blocks.is_blocked(
-            recipient_id, user_id
-        ) or await self._blocks.is_blocked(user_id, recipient_id):
-            raise ForbiddenError(USER_BLOCKED, "The conversation is blocked")
+        await self._ensure_not_blocked(user_id, recipient_id)
         message = DirectMessage.create(
             conversation_id=conversation.id,
             sender_id=user_id,
@@ -153,41 +141,51 @@ class DirectChatService:
         )
         stored = await self._messages.find_by_client_id(user_id, client_message_id)
         if stored is None:
-            stored = await self._store(message)
-        elif (
+            stored = await self._store(message, origin=origin)
+        if (
             stored.conversation_id != message.conversation_id
             or stored.text != message.text
         ):
             raise ConflictError(DIRECT_IDEMPOTENCY_CONFLICT)
-        await self._deliver(stored, recipient_id, origin)
         return stored
 
-    async def _store(self, message: DirectMessage) -> DirectMessage:
+    async def typing_recipient(
+        self, user_id: uuid.UUID, conversation_id: uuid.UUID
+    ) -> uuid.UUID:
+        """Return who must be told that ``user_id`` is typing.
+
+        Ephemeral signal: nothing is stored, so it takes no pair lock; a block
+        racing with it at worst lets one frame through.
+
+        Raises:
+            NotFoundError: CONVERSATION_NOT_FOUND if it does not exist or
+                ``user_id`` is not a participant.
+            ForbiddenError: USER_BLOCKED if either user blocks the other.
+            ExternalServiceError: if the database is unavailable.
+        """
+        conversation = await self._participant_conversation(user_id, conversation_id)
+        recipient_id = conversation.other_participant(user_id)
+        await self._ensure_not_blocked(user_id, recipient_id)
+        return recipient_id
+
+    async def _ensure_not_blocked(
+        self, user_id: uuid.UUID, recipient_id: uuid.UUID
+    ) -> None:
+        # Either direction blocks the conversation; the history is kept.
+        if await self._blocks.is_blocked(
+            recipient_id, user_id
+        ) or await self._blocks.is_blocked(user_id, recipient_id):
+            raise ForbiddenError(USER_BLOCKED, "The conversation is blocked")
+
+    async def _store(
+        self, message: DirectMessage, *, origin: str | None
+    ) -> DirectMessage:
         # Fail closed: a limiter that is down propagates before anything is stored.
         if not await self._limiter.hit(message.sender_id):
             raise RateLimitedError(RATE_LIMITED)
         if not (await self._moderator.moderate(message.text)).approved:
             raise BusinessRuleViolation(CHAT_MESSAGE_REJECTED)
-        return await self._messages.add(message)
-
-    async def _deliver(
-        self, message: DirectMessage, recipient_id: uuid.UUID, origin: str | None
-    ) -> None:
-        try:
-            receivers = await self._broadcaster.deliver(
-                message, recipient_id=recipient_id, origin=origin
-            )
-        except ExternalServiceError as exc:
-            raise ExternalServiceError(PUBSUB_UNAVAILABLE) from exc
-        if receivers == 0:
-            await self._notify(recipient_id, message)
-
-    async def _notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
-        """Best effort: the message is already stored and delivered."""
-        try:
-            await self._push.notify(recipient_id, message)
-        except Exception:
-            logger.warning("Could not push the direct message", exc_info=True)
+        return await self._messages.add(message, origin=origin)
 
     async def list_conversations(
         self, user_id: uuid.UUID
@@ -215,6 +213,8 @@ class DirectChatService:
         return ConversationOverview(
             conversation_id=conversation.id,
             other_user_id=other_id,
+            other_display_name=summary.other_display_name,
+            other_avatar_url=summary.other_avatar_url,
             last_message_preview=_preview(last.text) if last else None,
             last_message_at=last.sent_at if last else None,
             last_message_sender_id=last.sender_id if last else None,
