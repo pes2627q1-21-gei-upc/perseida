@@ -6,14 +6,14 @@ points are far from the edge of each radius.
 """
 
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 from alembic.config import Config
-from sqlalchemy import event, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -273,21 +273,6 @@ async def test_tg51_c4_near_returns_each_event_once(
     found = await repository.search(search_query(near=BARCELONA, radius_km=20_000))
 
     assert found == [located]
-
-
-@pytest.fixture
-def captured_sql(engine: AsyncEngine) -> Iterator[list[tuple[str, Any]]]:
-    """Every statement the engine sends, with its parameters."""
-    statements: list[tuple[str, Any]] = []
-
-    def capture(
-        conn: Any, cursor: Any, statement: str, parameters: Any, *args: Any
-    ) -> None:
-        statements.append((statement, parameters))
-
-    event.listen(engine.sync_engine, "before_cursor_execute", capture)
-    yield statements
-    event.remove(engine.sync_engine, "before_cursor_execute", capture)
 
 
 async def test_tg51_c5_the_proximity_query_uses_the_spatial_index(
