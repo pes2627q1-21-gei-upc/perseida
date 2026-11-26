@@ -10,8 +10,10 @@
 # `<head>` és la revisió d'Alembic que porta la imatge nova; `<git-sha>` arriba sense
 # el prefix `sha-`. La revisió actual es llegeix de `alembic_version` dins del
 # contenidor `db`, amb les credencials del seu entorn (mai per arguments ni sortida).
-# Si no hi ha contenidor `db` en marxa o la revisió no es pot llegir (base de dades
-# buida o inexistent), s'avisa i no es fa cap còpia (surt amb 0).
+# Si no hi ha contenidor `db` en marxa o la taula `alembic_version` no existeix
+# (base de dades buida, primer desplegament), s'avisa i no es fa cap còpia (surt amb 0).
+# Qualsevol altre error en llegir-la (psql no s'executa, connexió, recuperació, auth)
+# fa fallar el script (sortida != 0) perquè el desplegament no migri sense còpia.
 #
 # La còpia (`pg_dump -Fc`) s'escriu a un fitxer temporal, es verifica
 # (`pg_restore --list`) i només llavors agafa el nom definitiu
@@ -67,10 +69,28 @@ if [ -z "$(docker compose ps -q db 2>/dev/null)" ]; then
 fi
 
 # Credencials de l'entorn del contenidor: l'únic `$` entre cometes simples s'expandeix allà.
-revision=$(docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"' 2>/dev/null) || revision=""
+# Primer es mira si la taula existeix: un error de psql (connexió, recuperació, auth...) NO és
+# una base de dades buida i atura el desplegament (sortida != 0); no se'n mostra el text, que
+# podria portar secrets.
+table=$(docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select to_regclass('"'"'public.alembic_version'"'"')"' 2>/dev/null) && rc=0 || rc=$?
+if [ "$rc" -ne 0 ]; then
+  warn "ERROR: no es pot consultar la base de dades (psql ha sortit amb codi $rc); no es pot fer la còpia i no s'ha de migrar."
+  exit 1
+fi
+table=$(printf '%s' "$table" | tr -d '[:space:]')
+if [ -z "$table" ]; then
+  warn "AVÍS: la taula alembic_version no existeix (base de dades buida, primer desplegament); no es fa cap còpia."
+  exit 0
+fi
+
+revision=$(docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"' 2>/dev/null) && rc=0 || rc=$?
+if [ "$rc" -ne 0 ]; then
+  warn "ERROR: no es pot llegir la revisió d'Alembic (psql ha sortit amb codi $rc); no es pot fer la còpia i no s'ha de migrar."
+  exit 1
+fi
 revision=$(printf '%s' "$revision" | tr -d '[:space:]')
 if [ -z "$revision" ]; then
-  warn "AVÍS: no es pot llegir la revisió d'Alembic (base de dades buida o inexistent); no es fa cap còpia."
+  warn "AVÍS: alembic_version és buida (cap migració aplicada); no es fa cap còpia."
   exit 0
 fi
 
