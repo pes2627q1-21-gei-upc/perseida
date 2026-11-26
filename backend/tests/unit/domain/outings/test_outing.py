@@ -10,15 +10,19 @@ from pydantic import ValidationError as PydanticValidationError
 from app.domain.outings.errors import (
     OUTING_DESCRIPTION_TOO_LONG,
     OUTING_ENDS_BEFORE_START,
+    OUTING_PLACE_INVALID,
     OUTING_STARTS_IN_PAST,
     OUTING_TITLE_EMPTY,
     OUTING_TITLE_TOO_LONG,
 )
 from app.domain.outings.models import (
     DESCRIPTION_MAX_LENGTH,
+    PLACE_ADDRESS_MAX_LENGTH,
+    PLACE_NAME_MAX_LENGTH,
     TITLE_MAX_LENGTH,
     Outing,
     OutingChanges,
+    OutingPlace,
 )
 from app.domain.shared.errors import ValidationError
 from app.domain.shared.location import Location
@@ -313,3 +317,114 @@ def test_update_does_not_change_the_original() -> None:
     outing.update(OutingChanges(title="Nou títol"), now=LATER)
 
     assert outing.title == "Perseides al Montsec"
+
+
+# --- place (TG-661) -------------------------------------------------------------
+
+LIBRARY = OutingPlace(
+    name="Biblioteca Sant Pau - Santa Creu", address="Carrer del Carme, 47"
+)
+
+
+def test_place_is_optional() -> None:
+    assert _create().place is None
+
+
+def test_create_keeps_the_place() -> None:
+    outing = _create(place=LIBRARY)
+
+    assert outing.place == LIBRARY
+
+
+def test_place_is_cleaned_like_the_other_texts() -> None:
+    place = OutingPlace(
+        name="  Cafeteria\x00 La Pausa \n", address=" Ronda de Sant Antoni, 60\t"
+    )
+
+    assert place.name == "Cafeteria La Pausa"
+    assert place.address == "Ronda de Sant Antoni, 60"
+
+
+def test_place_address_may_be_empty() -> None:
+    # Spotwise says the address may be empty.
+    assert OutingPlace(name="Espai d'estudi").address == ""
+
+
+@pytest.mark.parametrize("name", ["", "   ", "\x00\n"])
+def test_place_with_no_name_is_rejected(name: str) -> None:
+    with pytest.raises(ValidationError) as error:
+        OutingPlace(name=name, address="Carrer del Carme, 47")
+
+    assert error.value.code == OUTING_PLACE_INVALID
+
+
+def test_place_limits_are_accepted() -> None:
+    place = OutingPlace(
+        name="n" * PLACE_NAME_MAX_LENGTH, address="a" * PLACE_ADDRESS_MAX_LENGTH
+    )
+
+    assert len(place.name) == PLACE_NAME_MAX_LENGTH
+    assert len(place.address) == PLACE_ADDRESS_MAX_LENGTH
+
+
+@pytest.mark.parametrize(
+    ("name", "address"),
+    [
+        ("n" * (PLACE_NAME_MAX_LENGTH + 1), ""),
+        ("Biblioteca", "a" * (PLACE_ADDRESS_MAX_LENGTH + 1)),
+    ],
+)
+def test_place_over_max_length_is_rejected_not_cut(name: str, address: str) -> None:
+    with pytest.raises(ValidationError) as error:
+        OutingPlace(name=name, address=address)
+
+    assert error.value.code == OUTING_PLACE_INVALID
+
+
+def test_update_sets_the_place() -> None:
+    outing = _create()
+
+    updated = outing.update(OutingChanges(place=LIBRARY), now=NOW)
+
+    assert updated.place == LIBRARY
+    assert updated.location == MONTSEC
+
+
+def test_update_with_a_null_place_clears_it() -> None:
+    outing = _create(place=LIBRARY)
+
+    updated = outing.update(OutingChanges(place=None), now=NOW)
+
+    assert updated.place is None
+
+
+def test_update_of_other_fields_keeps_the_place() -> None:
+    outing = _create(place=LIBRARY)
+
+    updated = outing.update(OutingChanges(title="Altre títol"), now=NOW)
+
+    assert updated.place == LIBRARY
+
+
+def test_update_of_the_location_alone_clears_the_place() -> None:
+    # The name would not match the new coordinates any more.
+    outing = _create(place=LIBRARY)
+
+    updated = outing.update(
+        OutingChanges(location=Location(latitude=41.39, longitude=2.17)), now=NOW
+    )
+
+    assert updated.location == Location(latitude=41.39, longitude=2.17)
+    assert updated.place is None
+
+
+def test_update_of_the_location_with_a_place_sets_both() -> None:
+    outing = _create(place=LIBRARY)
+    cafe = OutingPlace(name="Cafeteria La Pausa", address="Ronda de Sant Antoni, 60")
+
+    updated = outing.update(
+        OutingChanges(location=Location(latitude=41.3826, longitude=2.166), place=cafe),
+        now=NOW,
+    )
+
+    assert updated.place == cafe
