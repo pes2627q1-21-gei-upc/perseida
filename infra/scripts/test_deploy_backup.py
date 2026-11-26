@@ -276,6 +276,22 @@ class BackupBeforeDowngradeTest(DeployBackupBase):
         self.assertRegex(done.stderr.lower(), r"c[òo]pia|backup", done.stderr)
         self.assertEqual(self.read(".deployed-tag"), NEW_TAG)
 
+    def test_manual_rollback_with_failed_backup_leaves_api_running(self) -> None:
+        self.seed_state(deployed=NEW_TAG)
+        done = self.run_deploy("--rollback", OLD_TAG, FAKE_HEALTHY=OLD_TAG, FAKE_BACKUP_EXIT_ALWAYS="1")
+        self.assertNotEqual(done.returncode, 0, self.output(done))
+        self.assertEqual(self.index_of("compose stop"), -1, self.calls())
+
+    def test_manual_rollback_backs_up_before_stopping_api(self) -> None:
+        self.seed_state(deployed=NEW_TAG)
+        done = self.run_deploy("--rollback", OLD_TAG, FAKE_HEALTHY=OLD_TAG)
+        self.assertEqual(done.returncode, 0, self.output(done))
+        backup_at = self.index_of("backup --always")
+        stop_at = self.index_of("compose stop")
+        self.assertGreaterEqual(backup_at, 0, self.calls())
+        self.assertGreaterEqual(stop_at, 0, self.calls())
+        self.assertLess(backup_at, stop_at, self.calls())
+
     def test_automatic_rollback_with_failed_backup_does_not_downgrade(self) -> None:
         self.seed_state(deployed=OLD_TAG, env_names=True)
         done = self.run_deploy(
