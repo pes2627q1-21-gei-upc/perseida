@@ -27,7 +27,7 @@
 # crida `backup-db.sh --if-pending <head> <git-sha>` (`--always` si no es sap el head),
 # i abans de qualsevol `alembic downgrade` (rollback manual o automàtic),
 # `backup-db.sh --always <git-sha>`. Si la còpia falla no s'arrenca la imatge nova ni
-# es desfà res: l'API queda com estava (o aturada, en un rollback) i el script surt
+# es desfà res: l'API queda com estava (al rollback automàtic ja estava aturada) i el script surt
 # amb error. Del `.env` només es llegeixen `BACKUP_DIR` i `BACKUP_KEEP` (la resta són
 # secrets i no es carreguen); si no hi són, `backup-db.sh` usa els seus valors per defecte.
 #
@@ -142,13 +142,14 @@ rollback_to() {
   if [ -z "$rev" ]; then
     warn "No es pot saber la revisió d'Alembic de $to: no es desfan les migracions."
   fi
-  docker compose stop api
-  # Còpia abans de desfer migracions (n'esborra dades). Si falla, no es desfà res.
+  # Còpia abans d'aturar l'API i de desfer migracions (n'esborra dades). Si falla, no es
+  # desfà res i l'API no s'ha tocat (al rollback automàtic ja estava aturada).
   if [ -n "$rev" ] && ! ./backup-db.sh --always "${from#sha-}"; then
     rollback_error=backup
-    warn "ERROR: no s'ha pogut fer la còpia de seguretat de la base de dades abans del downgrade: no es desfan les migracions i l'API queda aturada."
+    warn "ERROR: no s'ha pogut fer la còpia de seguretat de la base de dades abans del downgrade: no es desfan les migracions i l'API no es toca (queda com estava)."
     return 1
   fi
+  docker compose stop api
   if [ -n "$rev" ] && ! API_IMAGE_TAG=$from docker compose run --rm -T --no-deps api alembic downgrade "$rev"; then
     warn "ATENCIÓ: el downgrade a $rev ha fallat; l'esquema pot no coincidir amb $to."
   fi
