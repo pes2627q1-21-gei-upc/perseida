@@ -22,7 +22,7 @@ El CD ([[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]) aplica les mi
 
 - **Abans de desplegar:** només si hi ha migracions pendents, és a dir, si la revisió actual de la base de dades (`alembic_version`) és diferent del `head` d'Alembic de la imatge nova (`deploy.sh` el calcula amb `head_of`). Si no es pot saber el `head`, es fa la còpia sempre (`--always`).
 - **Abans de qualsevol `alembic downgrade`:** sempre, tant en el rollback automàtic com en `deploy.sh --rollback`. Si la còpia falla, el downgrade no s'executa i l'API queda aturada.
-- **S'omet amb un avís** (i el desplegament continua) si no hi ha contenidor `db` en marxa o la taula `alembic_version` no existeix (el primer desplegament: no hi ha res a copiar). Si la taula **existeix però no es pot llegir** (psql falla per connexió, recuperació, autenticació o temps d'espera), no es tracta com a base de dades buida: és una còpia fallida.
+- **S'omet amb un avís** (i el desplegament continua) si no hi ha cap contenidor `db` o la taula `alembic_version` no existeix (el primer desplegament: no hi ha res a copiar). Si el contenidor `db` **existeix però està aturat** (`docker compose ps -aq db`), o la taula **existeix però no es pot llegir** (psql falla per connexió, recuperació, autenticació o temps d'espera), no es tracta com a base de dades buida: és una còpia fallida.
 
 ### Ubicació, nom i rotació
 
@@ -58,7 +58,6 @@ Qualsevol fallada (no poder llegir la revisió d'`alembic_version`, `pg_dump` am
 - **La restauració és manual** i destructiva (esborra i recrea la base de dades): ningú no restaura una còpia pel seu compte.
 - **Una base de dades gran faria tardar:** un dump lògic bloqueja el desplegament durant el temps que triga; amb les dades actuals és assumible.
 - Una còpia d'abans d'una migració no inclou el que s'hagi escrit després: restaurar-la perd aquestes dades.
-- **Contenidor `db` aturat amb dades al volum:** si el contenidor `db` no està en marxa, la còpia s'omet amb un avís i el `docker compose up` el pot arrencar i migrar sense còpia. No es detecta si el volum té dades.
 - **Còpia fallida en el rollback automàtic:** quan es vol fer el downgrade, l'API ja s'ha aturat; si la còpia falla, el downgrade no s'executa i l'API queda aturada fins que algú hi intervingui a mà. És coherent amb «no es desfà res» i s'accepta.
 
 ## Alternatives descartades
