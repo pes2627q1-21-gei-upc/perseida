@@ -52,6 +52,8 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `USER_BLOCKED` | 403 | `ForbiddenError` | No | Ara no pots enviar missatges en aquesta conversa. | Ahora no puedes enviar mensajes en esta conversación. | You can't send messages in this conversation right now. | application/direct_chat (algun dels dos usuaris bloqueja l'altre; el text no revela qui bloqueja; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
 | `DIRECT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/direct_chat (`send_message` amb un `client_message_id` ja usat amb una altra conversa o un altre text; TG-65) |
 
+Textos de `CANNOT_MESSAGE_SELF`, `CONVERSATION_NOT_FOUND`, `USER_NOT_FOUND`, `USER_BLOCKED` i `DIRECT_IDEMPOTENCY_CONFLICT` (xat directe, TG-65) aprovats per Oriol Orbea (26/11/2026).
+
 ## Codis dels esdeveniments (TG-351)
 
 | Code | Status | Classe | Recuperable | ca | es | en | Origen |
