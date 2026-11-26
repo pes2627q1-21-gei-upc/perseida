@@ -25,3 +25,13 @@ L'autor va triar l'opció **(c)**: tancar la sessió i anar a `/login`, **només
 - **`login.tsx`:** el `notice` amb aquests codis mostra el text traduït que ja existia (`auth.errors.*`); cap text nou. `ACCOUNT_BLOCKED_CODES` viu a `useLogout.ts`, al costat de `LOGOUT_NOTICE`.
 - **Backend:** sense canvis. El handshake del WebSocket només valida el token (ADR-0030); el 403 `ACCOUNT_*` el donen els handlers en enviar.
 - **Vault:** actualitzada la nota «Límits coneguts» d'[[frontend]].
+
+## Review prèvia (reviewer-arquitectura)
+
+- Dues troballes ALTA corregides amb test en vermell abans: els mocks d'`expo-router` de `direct-chat` no tenien `useRouter` (35 tests fallits) i el tancament no navegava si `clearSession` rebutjava; a més, un guard perquè diverses bombolles no repeteixin el tancament. Notes: [[2026-11-26-tg-656-mocks-d-expo-router-sense-userouter]] i [[2026-11-26-tg-656-tancament-de-sessio-sense-guard-ni-catch]].
+- `ACCOUNT_BLOCKED_CODES` i `isAccountBlocked` són a `features/auth/accountBlocked.ts` (sense dependència d'expo-router).
+
+## Límits coneguts (a propòsit)
+
+- Només es tanca la sessió en enviar: un 403 `ACCOUNT_*` en carregar el xat no té tractament (decisió de producte: només al xat, enviament).
+- Les bombolles refusades queden `failed` (el reintent tornaria a fallar); `clearSession` buida la memòria cau abans que `replace` desmunti la pantalla.
