@@ -223,6 +223,9 @@ function handleFrame(data: unknown): void {
     return;
   }
   if (frame.id && !joins.delete(frame.id)) return;
+  // A frame with neither `id` nor room is dropped on purpose. It includes the `error` the server
+  // sends for a rejected `dm.typing` (RATE_LIMITED, USER_BLOCKED...): `sendEphemeral` has no queue
+  // or retry, so a lost typing signal is harmless.
   if (!frame.room) return;
   const handlers = rooms.get(frame.room);
   // An `unsubscribe` the client did not ask for (no `id`) means the server revoked the room.

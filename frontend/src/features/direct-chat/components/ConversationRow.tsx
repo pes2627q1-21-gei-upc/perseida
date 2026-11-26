@@ -52,7 +52,7 @@ export function ConversationRow({ conversation, now, onPress }: Props) {
         pointerEvents="none"
         style={styles.highlight}
       />
-      <View style={styles.avatar}>
+      <View testID="direct-conversation-avatar" style={styles.avatar}>
         {otherUser.avatarUrl ? (
           <Image
             testID="direct-conversation-avatar-image"
@@ -121,15 +121,21 @@ function createStyles(
     avatar: {
       alignItems: 'center',
       justifyContent: 'center',
-      overflow: 'hidden',
-      width: AVATAR_SIZE,
-      height: AVATAR_SIZE,
+      // A minimum that grows with the text scale (WCAG 1.4.4); only the picture is clipped.
+      minWidth: AVATAR_SIZE,
+      minHeight: AVATAR_SIZE,
+      aspectRatio: 1,
       borderRadius: radii.pill,
       borderWidth: 1,
       borderColor: colors.surface.glassBorder,
       backgroundColor: colors.surface.glassSolid,
     },
-    avatarImage: { width: AVATAR_SIZE, height: AVATAR_SIZE },
+    avatarImage: {
+      width: AVATAR_SIZE,
+      height: AVATAR_SIZE,
+      borderRadius: radii.pill,
+      overflow: 'hidden',
+    },
     initial: { ...typography.bodyStrong, color: colors.text.primary },
     text: { flex: 1, gap: spacing.xs },
     head: {

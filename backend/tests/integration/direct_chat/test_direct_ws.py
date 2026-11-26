@@ -17,6 +17,7 @@ import pytest
 from sqlalchemy import bindparam, text
 
 from tests.integration.chat.test_chat_ws import (
+    RATE_LIMIT_MESSAGES,
     Harness,
     sql,
 )
@@ -229,3 +230,87 @@ def test_tg65_typing_denied_for_outsider_or_blocked_user(
             "USER_BLOCKED" if is_blocked else "CONVERSATION_NOT_FOUND"
         )
         assert_alive(listener)
+
+
+@pytest.mark.parametrize(
+    "body",
+    ["", "   " + chr(10) + chr(9) + " ", "x" * 1001],
+    ids=["empty", "whitespace", "too-long"],
+)
+def test_tg65_dm_send_with_an_invalid_text_is_a_validation_error(
+    dm_env: Harness, body: str
+) -> None:
+    for user in ("sender", "recipient"):
+        dm_env.login(user)
+    conversation_id = open_conversation(dm_env, "sender", "recipient")
+    with ExitStack() as stack:
+        sender = dm_env.connect("sender", stack)
+        recipient = dm_env.connect("recipient", stack)
+
+        error = send_dm(sender, conversation_id, body, "bad")
+
+        assert error["type"] == "error"
+        assert error["id"] == "bad"
+        assert error["payload"]["code"] == "VALIDATION_ERROR"
+        assert_alive(sender)
+        assert_alive(recipient)  # nothing was delivered
+
+
+def test_tg65_dm_send_with_an_invalid_conversation_id_is_a_validation_error(
+    dm_env: Harness,
+) -> None:
+    dm_env.login("sender")
+    with ExitStack() as stack:
+        sender = dm_env.connect("sender", stack)
+
+        error = send_dm(sender, "not-a-uuid", "hello", "bad")
+
+        assert error["type"] == "error"
+        assert error["id"] == "bad"
+        assert error["payload"]["code"] == "VALIDATION_ERROR"
+        assert_alive(sender)
+
+
+def test_tg65_dm_send_over_the_rate_limit_is_rate_limited(dm_env: Harness) -> None:
+    for user in ("sender", "recipient"):
+        dm_env.login(user)
+    conversation_id = open_conversation(dm_env, "sender", "recipient")
+    with ExitStack() as stack:
+        sender = dm_env.connect("sender", stack)
+        recipient = dm_env.connect("recipient", stack)
+        for index in range(RATE_LIMIT_MESSAGES):
+            ack = send_dm(sender, conversation_id, f"m{index}", f"m{index}")
+            assert ack["type"] == "dm.send"
+            assert receive_json(recipient)["type"] == "dm.message"
+
+        error = send_dm(sender, conversation_id, "one too many", "m10")
+
+        assert error["type"] == "error"
+        assert error["id"] == "m10"
+        assert error["payload"]["code"] == "RATE_LIMITED"
+        assert_alive(sender)
+        assert_alive(recipient)  # the extra message was not delivered
+
+
+def test_tg65_dm_send_to_a_blocked_conversation_is_user_blocked(
+    dm_env: Harness,
+) -> None:
+    for user in ("sender", "recipient"):
+        dm_env.login(user)
+    conversation_id = open_conversation(dm_env, "sender", "recipient")
+    response = dm_env.client.put(
+        f"/api/users/{dm_env.users['sender']}/block",
+        headers={"Authorization": f"Bearer {dm_env.tokens['recipient']}"},
+    )
+    assert response.status_code == 204
+    with ExitStack() as stack:
+        sender = dm_env.connect("sender", stack)
+        recipient = dm_env.connect("recipient", stack)
+
+        error = send_dm(sender, conversation_id, "hello", "blocked")
+
+        assert error["type"] == "error"
+        assert error["id"] == "blocked"
+        assert error["payload"]["code"] == "USER_BLOCKED"
+        assert_alive(sender)
+        assert_alive(recipient)  # nothing was delivered

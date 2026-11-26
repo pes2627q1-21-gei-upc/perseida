@@ -57,7 +57,6 @@ def get_direct_handler(
     return DirectWsHandler(
         lambda: get_direct_chat_service(conn, settings),
         lambda: get_user_service(conn),
-        conn.app.state.session_factory,
         RedisPubSub(conn.app.state.redis),
         RedisSendRateLimiter(
             conn.app.state.redis,

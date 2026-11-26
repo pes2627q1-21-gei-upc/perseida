@@ -28,8 +28,7 @@ export interface ChatSocketHandlers {
 const SEEN_IDS_LIMIT = 200;
 
 /**
- * Live chat over the shared WebSocket, in any `room` (`chat:event:<eventId>` for an event,
- * `dm:user:<userId>` for the direct messages). A new `joinAttempt` leaves the room and joins it
+ * Live chat over the shared WebSocket, in a `room` (`chat:event:<eventId>` for an event). A new `joinAttempt` leaves the room and joins it
  * again (e.g. after the server refused to join it: the connection does not retry a refused join
  * by itself).
  */
@@ -72,19 +71,14 @@ export function useChatSocket(room: string, handlers: ChatSocketHandlers, joinAt
   /**
    * Sends a message and resolves with the server's ack. After a SEND_UNCERTAIN the server may have
    * stored it: the UI's manual retry must pass the SAME `clientMessageId` so the server does not
-   * duplicate the message. `extra` is merged into the payload (e.g. the conversation of a
-   * direct message).
+   * duplicate the message.
    */
   const sendMessage = useCallback(
-    async (
-      text: string,
-      clientMessageId = Crypto.randomUUID(),
-      extra?: Record<string, unknown>,
-    ): Promise<SentChatMessage> => {
+    async (text: string, clientMessageId = Crypto.randomUUID()): Promise<SentChatMessage> => {
       const ack = await send({
         type: 'message',
         room,
-        payload: { text, client_message_id: clientMessageId, ...extra },
+        payload: { text, client_message_id: clientMessageId },
       });
       const { id, sent_at } = ack.payload as SentChatMessage;
       return { id, sent_at };
