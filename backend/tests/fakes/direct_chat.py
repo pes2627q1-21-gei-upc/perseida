@@ -1,10 +1,13 @@
 """In-memory ports of the direct chat, for the tests of the service and the domain."""
 
 import uuid
+from collections.abc import Collection
 from datetime import datetime
+from typing import Any
 
 from app.application.shared.errors import ExternalServiceError
 from app.domain.direct_chat.models import (
+    ConversationSummary,
     DirectConversation,
     DirectCursor,
     DirectMessage,
@@ -18,6 +21,9 @@ from tests.fakes.chat import ChatFakes
 class InMemoryDirectConversationRepository:
     def __init__(self) -> None:
         self.conversations: dict[uuid.UUID, DirectConversation] = {}
+        # Wired by the harness: the summaries need the messages of every conversation.
+        self.message_source: InMemoryDirectMessageRepository | None = None
+        self.summaries_calls = 0
 
     async def get_or_create(
         self, user_a_id: uuid.UUID, user_b_id: uuid.UUID
@@ -44,6 +50,37 @@ class InMemoryDirectConversationRepository:
 
     async def list_of(self, user_id: uuid.UUID) -> list[DirectConversation]:
         return [c for c in self.conversations.values() if c.has_participant(user_id)]
+
+    async def summaries_of(self, user_id: uuid.UUID) -> list[Any]:
+        self.summaries_calls += 1
+        assert self.message_source is not None
+        summaries = []
+        for conversation in await self.list_of(user_id):
+            own = sorted(
+                (
+                    m
+                    for m in self.message_source.messages
+                    if m.conversation_id == conversation.id
+                ),
+                key=lambda m: (m.sent_at, m.id),
+            )
+            summaries.append(
+                ConversationSummary(
+                    conversation=conversation,
+                    last_message=own[-1] if own else None,
+                    unread_count=sum(
+                        conversation.is_unread_for(user_id, m) for m in own
+                    ),
+                )
+            )
+        return sorted(
+            summaries,
+            key=lambda s: (
+                s.last_message.sent_at if s.last_message else s.conversation.created_at,
+                s.last_message.id if s.last_message else s.conversation.id,
+            ),
+            reverse=True,
+        )
 
 
 class InMemoryDirectMessageRepository:
@@ -109,6 +146,7 @@ class InMemoryDirectMessageRepository:
 class InMemoryUserBlockRepository:
     def __init__(self) -> None:
         self.blocks: set[tuple[uuid.UUID, uuid.UUID]] = set()
+        self.blocked_among_calls = 0
 
     async def block(self, user_block: UserBlock) -> None:
         self.blocks.add((user_block.blocker_id, user_block.blocked_id))
@@ -118,6 +156,12 @@ class InMemoryUserBlockRepository:
 
     async def is_blocked(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> bool:
         return (blocker_id, blocked_id) in self.blocks
+
+    async def blocked_among(
+        self, blocker_id: uuid.UUID, user_ids: Collection[uuid.UUID]
+    ) -> set[uuid.UUID]:
+        self.blocked_among_calls += 1
+        return {u for u in user_ids if (blocker_id, u) in self.blocks}
 
 
 class RecordingPushNotifier:
@@ -224,6 +268,7 @@ class DirectChatHarness:
         self.log: list[str] = []
         self.conversations = InMemoryDirectConversationRepository()
         self.messages = _LoggedMessages(self.log)
+        self.conversations.message_source = self.messages
         self.blocks = _LoggedBlocks(self.log)
         self.users = FakeChatUserDirectory(self.log)
         self.broadcaster = FakeDirectMessageBroadcaster(self.log)

@@ -6,6 +6,7 @@ from pydantic import (
     AwareDatetime,
     BaseModel,
     ConfigDict,
+    Field,
     field_validator,
     model_validator,
 )
@@ -169,6 +170,16 @@ class DirectMessage(BaseModel):
             sent_at=datetime.now(UTC),
             client_message_id=client_message_id,
         )
+
+
+class ConversationSummary(BaseModel):
+    """A conversation with its last message and the unread count of one participant."""
+
+    model_config = ConfigDict(frozen=True)
+
+    conversation: DirectConversation
+    last_message: DirectMessage | None = None
+    unread_count: int = Field(ge=0)
 
 
 class UserBlock(BaseModel):
