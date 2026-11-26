@@ -132,9 +132,15 @@ if ! mv "$tmp" "$final"; then
 fi
 say "Còpia feta: $(basename "$final")"
 
-# Rotació: només després d'una còpia bona. Els noms porten la data UTC al davant.
-old=$(cd "$BACKUP_DIR" && ls -1 perseida-*.dump | LC_ALL=C sort -r | tail -n +"$((BACKUP_KEEP + 1))") || old=""
+# Rotació: només després d'una còpia bona. Els noms porten la data UTC al davant. La còpia
+# acabada de fer queda sempre fora de la llista d'esborrat (compta dins de BACKUP_KEEP) i
+# una fallada en esborrar una còpia antiga és només un avís.
+base=$(basename "$final")
+old=$(cd "$BACKUP_DIR" && ls -1 perseida-*.dump | awk -v b="$base" '$0 != b' | LC_ALL=C sort -r | tail -n +"$BACKUP_KEEP") || old=""
 for name in $old; do
-  rm -f "$BACKUP_DIR/$name"
-  say "Còpia antiga esborrada: $name"
+  if rm -f "$BACKUP_DIR/$name"; then
+    say "Còpia antiga esborrada: $name"
+  else
+    warn "AVÍS: no s'ha pogut esborrar la còpia antiga $name."
+  fi
 done
