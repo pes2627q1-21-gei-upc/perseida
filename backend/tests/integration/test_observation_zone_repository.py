@@ -2,7 +2,9 @@
 criteris 2, 3 i 6).
 
 Distances are measured by PostGIS on ``geography``; the points are far from the
-edge of each radius. Every test runs in a transaction that is rolled back.
+edge of each radius, except in the test of the edge itself, which measures the
+distance first and searches one metre beyond and short of it. Every test runs
+in a transaction that is rolled back.
 """
 
 import os
@@ -11,10 +13,6 @@ from pathlib import Path
 
 import pytest
 from alembic.config import Config
-from app.infrastructure.observation_zones.repository import (
-    SqlObservationZoneRepository,
-    find_within_statement,
-)
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -25,6 +23,10 @@ from sqlalchemy.ext.asyncio import (
 
 from alembic import command
 from app.domain.observation_zones.models import ObservationZone, ZoneProximity
+from app.infrastructure.observation_zones.repository import (
+    SqlObservationZoneRepository,
+    find_within_statement,
+)
 from app.infrastructure.persistence.config import DatabaseSettings
 from tests.integration.isolation import row_counts
 
@@ -138,6 +140,22 @@ async def test_tg70_c3_a_zone_at_the_point_is_at_distance_zero(
 
     assert hit.zone == here
     assert hit.distance_km == pytest.approx(0, abs=1e-6)
+
+
+async def test_tg70_c6_a_zone_just_at_the_edge_of_the_radius_is_returned(
+    repo: SqlObservationZoneRepository,
+) -> None:
+    montsec = _zone("Montsec", MONTSEC)
+    await repo.save(montsec)
+    [measured] = await repo.find_within(_near_barcelona(300))
+    one_metre = 0.001
+
+    [hit] = await repo.find_within(_near_barcelona(measured.distance_km + one_metre))
+
+    assert hit.zone == montsec
+    assert (
+        await repo.find_within(_near_barcelona(measured.distance_km - one_metre)) == []
+    )
 
 
 async def test_tg70_c3_zones_at_the_same_distance_are_sorted_by_id(
