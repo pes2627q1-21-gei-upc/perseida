@@ -16,3 +16,7 @@ DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
 
 # RateLimitedError (429): a user exceeded a per-user rate limit (chat, posts).
 RATE_LIMITED = "RATE_LIMITED"
+
+# ExternalServiceError (503): the pub/sub bus (Redis) is unreachable. A message may
+# already be stored when it is raised (chat, direct chat); a retry redelivers it.
+PUBSUB_UNAVAILABLE = "PUBSUB_UNAVAILABLE"

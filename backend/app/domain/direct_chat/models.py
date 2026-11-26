@@ -6,6 +6,7 @@ from pydantic import (
     AwareDatetime,
     BaseModel,
     ConfigDict,
+    Field,
     field_validator,
     model_validator,
 )
@@ -47,9 +48,7 @@ class DirectConversation(BaseModel):
                 CANNOT_MESSAGE_SELF, "A user cannot talk to themselves"
             )
         if self.user_a_id > self.user_b_id:
-            raise BusinessRuleViolation(
-                VALIDATION_ERROR, "The pair of users must be ordered"
-            )
+            raise ValidationError(VALIDATION_ERROR, "The pair of users must be ordered")
         return self
 
     @classmethod
@@ -106,12 +105,12 @@ class DirectConversation(BaseModel):
 
         Raises:
             NotFoundError: CONVERSATION_NOT_FOUND if ``user_id`` is a stranger.
-            BusinessRuleViolation: VALIDATION_ERROR if ``message`` belongs to
+            ValidationError: VALIDATION_ERROR if ``message`` belongs to
                 another conversation.
         """
         self._require_participant(user_id)
         if message.conversation_id != self.id:
-            raise BusinessRuleViolation(
+            raise ValidationError(
                 VALIDATION_ERROR, "The message is not of this conversation"
             )
         if message.sender_id == user_id:
@@ -171,6 +170,18 @@ class DirectMessage(BaseModel):
             sent_at=datetime.now(UTC),
             client_message_id=client_message_id,
         )
+
+
+class ConversationSummary(BaseModel):
+    """A conversation with its last message and the unread count of one participant."""
+
+    model_config = ConfigDict(frozen=True)
+
+    conversation: DirectConversation
+    last_message: DirectMessage | None = None
+    unread_count: int = Field(ge=0)
+    other_display_name: str | None = None
+    other_avatar_url: str | None = None
 
 
 class UserBlock(BaseModel):

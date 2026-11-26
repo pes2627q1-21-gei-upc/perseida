@@ -105,9 +105,19 @@
     }
   },
   "admin": {
+    "home": {
+      "welcome": "Welcome to the Perseida admin panel"
+    },
+    "main": {
+      "label": "Panel content"
+    },
     "noAccess": {
       "message": "Your account doesn't have permission to open the admin panel.",
       "title": "No access"
+    },
+    "skipToContent": "Skip to content",
+    "topBar": {
+      "label": "Panel top bar"
     }
   },
   "apod": {
@@ -186,6 +196,29 @@
     "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
     "gamificationTitle": "Gamification & challenges"
   },
+  "directChat": {
+    "blocked": "Blocked",
+    "conversationWith": "Conversation with {{name}}",
+    "lastMessage": "last message: {{text}}",
+    "noMessages": "No messages yet",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages",
+    "you": "You: {{text}}",
+    "list": {
+      "title": "Conversations",
+      "loading": "Loading conversations",
+      "userId": "User ID",
+      "open": "Start conversation",
+      "empty": "You have no conversations yet",
+      "unknownUser": "User"
+    },
+    "room": {
+      "loading": "Loading conversation",
+      "block": "Block",
+      "unblock": "Unblock",
+      "typing": "{{name}} is typing"
+    }
+  },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
@@ -225,6 +258,7 @@
     "OUTING_TITLE_EMPTY": "Give the outing a title.",
     "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
     "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
+    "OUTING_PLACE_INVALID": "The chosen place is not valid: it needs a name of 1 to 120 characters and an address of at most 200.",
     "OUTING_ENDS_BEFORE_START": "The outing can't end before it starts.",
     "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
     "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
@@ -236,7 +270,12 @@
     "PUBSUB_UNAVAILABLE": "Chat is unavailable right now. Please try again.",
     "VALIDATION_ERROR": "Please check the data you entered.",
     "CHAT_INVALID_CURSOR": "We couldn't load the history. Please reopen the room.",
-    "CHAT_INVALID_LIMIT": "We couldn't load the history. Please reopen the room."
+    "CHAT_INVALID_LIMIT": "We couldn't load the history. Please reopen the room.",
+    "USER_NOT_FOUND": "We couldn't find this user.",
+    "CANNOT_MESSAGE_SELF": "You can't message yourself.",
+    "CONVERSATION_NOT_FOUND": "This conversation doesn't exist.",
+    "USER_BLOCKED": "You can't send messages in this conversation right now.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "This message already exists with different content."
   },
   "events": {
     "category": {
@@ -482,6 +521,7 @@
       "unknownAuthor": "A Perseida user",
       "start": "Start",
       "end": "End",
+      "place": "Venue",
       "where": "Place",
       "event": "Event",
       "edit": "Edit",

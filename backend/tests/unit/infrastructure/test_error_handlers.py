@@ -291,3 +291,58 @@ async def test_405_keeps_its_own_allow_when_no_route_matches() -> None:
     )
 
     assert response.headers["Allow"] == "GET"
+
+
+async def test_unexpected_error_middleware_passes_through_non_http_scopes() -> None:
+    seen: list[str] = []
+
+    async def inner(scope: Any, receive: Any, send: Any) -> None:
+        seen.append(scope["type"])
+
+    middleware = error_handlers.UnexpectedErrorMiddleware(inner)
+    await middleware({"type": "lifespan"}, None, None)  # type: ignore[arg-type]
+
+    assert seen == ["lifespan"]
+
+
+async def test_unexpected_error_middleware_answers_500_problem() -> None:
+    sent: list[dict[str, Any]] = []
+
+    async def inner(scope: Any, receive: Any, send: Any) -> None:
+        raise RuntimeError("secret")
+
+    async def send(message: Any) -> None:
+        sent.append(message)
+
+    scope: dict[str, Any] = {
+        "type": "http",
+        "method": "GET",
+        "path": "/x",
+        "headers": [],
+        "query_string": b"",
+    }
+    middleware = error_handlers.UnexpectedErrorMiddleware(inner)
+    await middleware(scope, None, send)  # type: ignore[arg-type]
+
+    assert sent[0]["status"] == 500
+    body = json.loads(sent[1]["body"])
+    assert body["code"] == "INTERNAL_ERROR"
+    assert "secret" not in sent[1]["body"].decode()
+
+
+async def test_unexpected_error_middleware_reraises_once_the_response_started() -> None:
+    sent: list[dict[str, Any]] = []
+
+    async def inner(scope: Any, receive: Any, send: Any) -> None:
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        raise RuntimeError("mid-stream")
+
+    async def send(message: Any) -> None:
+        sent.append(message)
+
+    scope: dict[str, Any] = {"type": "http", "path": "/x", "headers": []}
+    middleware = error_handlers.UnexpectedErrorMiddleware(inner)
+    with pytest.raises(RuntimeError, match="mid-stream"):
+        await middleware(scope, None, send)  # type: ignore[arg-type]
+
+    assert [message["status"] for message in sent] == [200]

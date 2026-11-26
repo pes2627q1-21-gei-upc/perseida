@@ -10,6 +10,7 @@ from uuid import uuid4
 from app.application.auth.auth_service import AuthService
 from app.application.realtime import errors
 from app.application.realtime.connection_limiter import ConnectionLimiter
+from app.application.realtime.direct_handler import DirectHandler
 from app.application.realtime.errors import error_frame
 from app.application.realtime.room_handler import RoomHandler, RoomRequest
 from app.application.shared.errors import (
@@ -22,6 +23,7 @@ from app.domain.auth.ports import SessionStore
 from app.domain.realtime.models import (
     Frame,
     FrameType,
+    direct_user_channel,
     revocation_channel,
     room_channel,
     room_revocation_channel,
@@ -69,6 +71,7 @@ class RealtimeSession:
         correlation_id: str | None = None,
         limiter: ConnectionLimiter | None = None,
         handlers: Mapping[str, RoomHandler] | None = None,
+        direct_handler: DirectHandler | None = None,
     ) -> None:
         self._conn = conn
         self._auth = auth
@@ -82,6 +85,7 @@ class RealtimeSession:
         self._handlers = sorted(
             (handlers or {}).items(), key=lambda item: len(item[0]), reverse=True
         )
+        self._direct_handler = direct_handler
         self._sub = ""
         self._slot: str | None = None
         self._send_lock = asyncio.Lock()
@@ -149,6 +153,11 @@ class RealtimeSession:
         if not await self._store.exists(TokenType.ACCESS, claims.jti):
             await self._close(errors.CLOSE_UNAUTHENTICATED)
             return
+        if self._direct_handler is not None:
+            user_id = await self._direct_handler.user_id(claims.sub)
+            await self._start_subscription(
+                direct_user_channel(user_id), self._on_room_message
+            )
         self._spawn(self._heartbeat(claims))
         await self._send(Frame(type=FrameType.AUTH))
         while True:
@@ -212,6 +221,8 @@ class RealtimeSession:
                 self._pong_pending = False
             case FrameType.SUBSCRIBE | FrameType.UNSUBSCRIBE | FrameType.MESSAGE:
                 await self._room_frame(frame)
+            case FrameType.DM_SEND | FrameType.DM_TYPING:
+                await self._direct_frame(frame)
             case _:
                 await self._send(
                     self._error(
@@ -234,7 +245,10 @@ class RealtimeSession:
         await self._send(reply)
 
     def _room_error(
-        self, exc: DomainError | ApplicationError, frame_id: str | None, room: str
+        self,
+        exc: DomainError | ApplicationError,
+        frame_id: str | None,
+        room: str | None,
     ) -> Frame:
         """Error frame of a refusal: its own code if known, a safe one otherwise.
 
@@ -254,6 +268,29 @@ class RealtimeSession:
         if code == errors.PUBSUB_UNAVAILABLE:
             detail = "Real-time bus unavailable."
         return self._error(code, detail, frame_id, room)
+
+    async def _direct_frame(self, frame: Frame) -> None:
+        if self._direct_handler is None:
+            await self._send(
+                self._error(
+                    errors.VALIDATION_ERROR, "Direct chat unavailable.", frame.id
+                )
+            )
+            return
+        try:
+            if frame.type == FrameType.DM_SEND:
+                payload = await self._guarded(
+                    self._direct_handler.send(self._sub, self._conn_id, frame.payload)
+                )
+                await self._send(
+                    Frame(type=FrameType.DM_SEND, id=frame.id, payload=payload)
+                )
+            else:
+                await self._guarded(
+                    self._direct_handler.typing(self._sub, frame.payload)
+                )
+        except (DomainError, ApplicationError) as exc:
+            await self._send(self._room_error(exc, frame.id, None))
 
     @staticmethod
     async def _guarded[T](call: Awaitable[T]) -> T:

@@ -51,15 +51,14 @@ const mockSocket = {
 jest.mock('../hooks/useChatSocket', () => {
   const { useEffect } = jest.requireActual<typeof import('react')>('react');
   return {
-    useChatSocket: (eventId: string, handlers: ChatSocketHandlers, joinAttempt = 0) => {
+    useChatSocket: (room: string, handlers: ChatSocketHandlers, joinAttempt = 0) => {
       mockSocket.handlers = handlers;
       useEffect(() => {
-        const room = `chat:event:${eventId}`;
         mockSocket.joins.push(room);
         return () => {
           mockSocket.leaves.push(room);
         };
-      }, [eventId, joinAttempt]);
+      }, [room, joinAttempt]);
       return {
         status: 'open',
         error: null,

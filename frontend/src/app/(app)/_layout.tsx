@@ -44,7 +44,10 @@ export default function AppLayout() {
   const insets = useSafeAreaInsets();
   // In the room of an event the composer takes the bottom of the screen: no tab bar there.
   const segments: string[] = useSegments();
-  const inChatRoom = segments[1] === 'chat' && segments[2] === '[eventId]';
+  const inChatRoom =
+    segments[1] === 'chat' &&
+    (segments[2] === '[eventId]' ||
+      (segments[2] === 'direct' && segments[3] === '[conversationId]'));
   const isReady = useSessionGuard();
 
   if (!isReady) {

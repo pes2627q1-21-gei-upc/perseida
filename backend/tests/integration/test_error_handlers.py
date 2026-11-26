@@ -357,3 +357,18 @@ async def test_correlation_id_on_unknown_route(client: AsyncClient) -> None:
 
     assert response.headers[HEADER] == "keep-me"
     assert response.json()["correlation_id"] == "keep-me"
+
+
+async def test_unexpected_exception_crosses_cors_and_security_headers(
+    client: AsyncClient,
+) -> None:
+    # TG-599: the 500 used to skip every middleware, so the browser saw a CORS
+    # network error and could not read the problem+json.
+    origin = "https://perseida.duckdns.org:40431"
+
+    response = await client.get("/_test/crash", headers={"Origin": origin})
+
+    assert_problem(response, 500, "INTERNAL_ERROR", "/_test/crash")
+    assert response.headers["access-control-allow-origin"] == origin
+    assert "Origin" in response.headers["vary"]
+    assert response.headers["x-content-type-options"] == "nosniff"
