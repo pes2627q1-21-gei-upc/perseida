@@ -8,6 +8,8 @@ ForbiddenError 403.
 OUTING_TITLE_EMPTY = "OUTING_TITLE_EMPTY"
 OUTING_TITLE_TOO_LONG = "OUTING_TITLE_TOO_LONG"
 OUTING_DESCRIPTION_TOO_LONG = "OUTING_DESCRIPTION_TOO_LONG"
+# The place (name and address of a recommended local) is empty or too long (TG-661).
+OUTING_PLACE_INVALID = "OUTING_PLACE_INVALID"
 OUTING_ENDS_BEFORE_START = "OUTING_ENDS_BEFORE_START"
 OUTING_STARTS_IN_PAST = "OUTING_STARTS_IN_PAST"
 # The related astronomical event does not exist: a field of the body, not the URL.

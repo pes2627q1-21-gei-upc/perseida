@@ -1511,7 +1511,7 @@
             }
           },
           "422": {
-            "description": "Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`.",
+            "description": "Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1813,7 +1813,7 @@
             }
           },
           "422": {
-            "description": "Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`.",
+            "description": "Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4176,6 +4176,17 @@
             "$ref": "#/components/schemas/EventLocation",
             "description": "Lloc de trobada"
           },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutingPlaceBody"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra."
+          },
           "event_id": {
             "anyOf": [
               {
@@ -4199,6 +4210,34 @@
           "location"
         ],
         "title": "OutingCreate"
+      },
+      "OutingPlaceBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nom del local, d'1 a 120 caràcters",
+            "examples": [
+              "Biblioteca Sant Pau - Santa Creu"
+            ]
+          },
+          "address": {
+            "type": "string",
+            "title": "Address",
+            "description": "Adreça, de 0 a 200 caràcters",
+            "default": "",
+            "examples": [
+              "Carrer del Carme, 47"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "OutingPlaceBody",
+        "description": "Name and address of a recommended local (TG-661). Like the title, the\nlength is measured by the domain after cleaning (OUTING_PLACE_INVALID)."
       },
       "OutingResponse": {
         "properties": {
@@ -4233,6 +4272,17 @@
           "location": {
             "$ref": "#/components/schemas/EventLocation",
             "description": "Lloc de trobada"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutingPlaceBody"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra."
           },
           "event_id": {
             "anyOf": [
@@ -4273,6 +4323,7 @@
           "starts_at",
           "ends_at",
           "location",
+          "place",
           "event_id",
           "author",
           "created_at",
@@ -4308,6 +4359,17 @@
             "$ref": "#/components/schemas/EventLocation",
             "description": "Lloc de trobada"
           },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutingPlaceBody"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra."
+          },
           "event_id": {
             "anyOf": [
               {
@@ -4325,7 +4387,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "OutingUpdate",
-        "description": "Only the fields sent change. ``event_id: null`` unlinks the event; the other\nfields may be left out but never be null."
+        "description": "Only the fields sent change. ``event_id: null`` unlinks the event and\n``place: null`` clears the place; the other fields may be left out but never be\nnull."
       },
       "PlugLevel": {
         "type": "string",

@@ -93,6 +93,7 @@ const values: OutingFormValues = {
   startsAt: new Date('2099-08-12T20:00:00Z'),
   endsAt: new Date('2099-08-13T02:00:00Z'),
   location: { latitude: 42.05, longitude: 0.73 },
+  place: null,
   eventId: 'event-1',
 };
 
@@ -151,6 +152,7 @@ describe('NewOutingScreen', () => {
       starts_at: '2099-08-12T20:00:00.000Z',
       ends_at: '2099-08-13T02:00:00.000Z',
       location: { latitude: 42.05, longitude: 0.73 },
+      place: null,
       event_id: 'event-1',
     });
   });
