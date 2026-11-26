@@ -267,6 +267,60 @@ describe('useLiveConversation (TG-65): nucli genèric', () => {
         params: { notice: 'ACCOUNT_SUSPENDED' },
       });
     });
+
+    it('si clearSession rebutja, navega igualment a /login amb l’avís', async () => {
+      (clearSession as jest.Mock).mockRejectedValueOnce(new Error('secure-store caigut'));
+      mockSocket.sendMessage.mockRejectedValueOnce({
+        code: 'ACCOUNT_SUSPENDED',
+        status: 403,
+        retryable: false,
+      });
+      const { result } = await mount();
+
+      await act(async () => result.current.send('Hola'));
+
+      await waitFor(() =>
+        expect(mockReplace).toHaveBeenCalledWith({
+          pathname: '/login',
+          params: { notice: 'ACCOUNT_SUSPENDED' },
+        }),
+      );
+    });
+
+    it('dues bombolles refusades a la vegada tanquen la sessió i naveguen una sola vegada', async () => {
+      mockSocket.sendMessage
+        .mockRejectedValueOnce({ code: 'ACCOUNT_SUSPENDED', status: 403, retryable: false })
+        .mockRejectedValueOnce({ code: 'ACCOUNT_SUSPENDED', status: 403, retryable: false });
+      const { result } = await mount();
+
+      await act(async () => {
+        await Promise.all([result.current.send('Hola'), result.current.send('Hola de nou')]);
+      });
+
+      await waitFor(() => expect(clearSession).toHaveBeenCalled());
+      expect(clearSession).toHaveBeenCalledTimes(1);
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+    });
+
+    it('primer tanca la sessió i després navega a /login', async () => {
+      const order: string[] = [];
+      (clearSession as jest.Mock).mockImplementationOnce(async () => {
+        order.push('clearSession');
+      });
+      mockReplace.mockImplementationOnce(() => {
+        order.push('replace');
+      });
+      mockSocket.sendMessage.mockRejectedValueOnce({
+        code: 'ACCOUNT_DELETED',
+        status: 403,
+        retryable: false,
+      });
+      const { result } = await mount();
+
+      await act(async () => result.current.send('Hola'));
+
+      await waitFor(() => expect(order).toEqual(['clearSession', 'replace']));
+    });
   });
 
   describe('sense sala pròpia (la conversa directa no en té)', () => {
