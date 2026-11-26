@@ -147,6 +147,15 @@
     "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
     "gamificationTitle": "Gamification & challenges"
   },
+  "directChat": {
+    "blocked": "Blocked",
+    "conversationWith": "Conversation with {{name}}",
+    "lastMessage": "last message: {{text}}",
+    "noMessages": "No messages yet",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages",
+    "you": "You: {{text}}"
+  },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
