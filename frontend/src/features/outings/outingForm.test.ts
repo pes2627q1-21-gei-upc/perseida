@@ -1,4 +1,4 @@
-import { myOuting } from '../../../__mocks__/outings';
+import { libraryOuting, myOuting } from '../../../__mocks__/outings';
 import {
   newOutingValues,
   type OutingFormValues,
@@ -23,6 +23,7 @@ const valid: OutingFormValues = {
   startsAt: new Date('2099-08-12T20:00:00Z'),
   endsAt: new Date('2099-08-13T02:00:00Z'),
   location: { latitude: 42.05, longitude: 0.73 },
+  place: null,
   eventId: null,
 };
 
@@ -121,8 +122,13 @@ describe('outingToValues', () => {
       startsAt: new Date(myOuting.starts_at),
       endsAt: new Date(myOuting.ends_at),
       location: myOuting.location,
+      place: null,
       eventId: myOuting.event_id,
     });
+  });
+
+  it('keeps the place of the outing: the name and the address', () => {
+    expect(outingToValues(libraryOuting).place).toEqual(libraryOuting.place);
   });
 });
 
@@ -136,8 +142,15 @@ describe('toDraft', () => {
       starts_at: '2099-08-12T20:00:00.000Z',
       ends_at: '2099-08-13T02:00:00.000Z',
       location: { latitude: 42.05, longitude: 0.73 },
+      place: null,
       event_id: 'e1',
     });
+  });
+
+  it('sends the place when the outing meets at a recommended local', () => {
+    const place = { name: 'Biblioteca Sant Pau', address: 'Carrer del Carme, 47' };
+
+    expect(toDraft({ ...valid, place }).place).toEqual(place);
   });
 
   it('refuses a form without a location', () => {
@@ -169,6 +182,39 @@ describe('toChanges', () => {
   it('sends the new location', () => {
     expect(toChanges({ ...initial, location: { latitude: 1, longitude: 2 } }, initial)).toEqual({
       location: { latitude: 1, longitude: 2 },
+    });
+  });
+
+  describe('the place (TG-661)', () => {
+    const library = { name: 'Biblioteca Sant Pau', address: 'Carrer del Carme, 47' };
+    const atLibrary = outingToValues(libraryOuting);
+
+    it('sends nothing when the local does not change', () => {
+      expect(toChanges(atLibrary, atLibrary)).toEqual({});
+    });
+
+    it('sends the local with its new location', () => {
+      const location = { latitude: 1, longitude: 2 };
+
+      expect(toChanges({ ...initial, location, place: library }, initial)).toEqual({
+        location,
+        place: library,
+      });
+    });
+
+    it('sends place null when a recommended local is replaced by another kind of place', () => {
+      const location = { latitude: 1, longitude: 2 };
+
+      expect(toChanges({ ...atLibrary, location, place: null }, atLibrary)).toEqual({
+        location,
+        place: null,
+      });
+    });
+
+    it('sends no place when there was none and there is none', () => {
+      const changes = toChanges({ ...initial, location: { latitude: 1, longitude: 2 } }, initial);
+
+      expect(changes).not.toHaveProperty('place');
     });
   });
 

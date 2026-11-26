@@ -1159,11 +1159,33 @@ export interface components {
       ends_at: string;
       /** @description Lloc de trobada */
       location: components['schemas']['EventLocation'];
+      /** @description Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra. */
+      place?: components['schemas']['OutingPlaceBody'] | null;
       /**
        * Event Id
        * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
        */
       event_id?: string | null;
+    };
+    /**
+     * OutingPlaceBody
+     * @description Name and address of a recommended local (TG-661). Like the title, the
+     *     length is measured by the domain after cleaning (OUTING_PLACE_INVALID).
+     */
+    OutingPlaceBody: {
+      /**
+       * Name
+       * @description Nom del local, d'1 a 120 caràcters
+       * @example Biblioteca Sant Pau - Santa Creu
+       */
+      name: string;
+      /**
+       * Address
+       * @description Adreça, de 0 a 200 caràcters
+       * @default
+       * @example Carrer del Carme, 47
+       */
+      address: string;
     };
     /** OutingResponse */
     OutingResponse: {
@@ -1197,6 +1219,8 @@ export interface components {
       ends_at: string;
       /** @description Lloc de trobada */
       location: components['schemas']['EventLocation'];
+      /** @description Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra. */
+      place: components['schemas']['OutingPlaceBody'] | null;
       /**
        * Event Id
        * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
@@ -1219,8 +1243,9 @@ export interface components {
     };
     /**
      * OutingUpdate
-     * @description Only the fields sent change. ``event_id: null`` unlinks the event; the other
-     *     fields may be left out but never be null.
+     * @description Only the fields sent change. ``event_id: null`` unlinks the event and
+     *     ``place: null`` clears the place; the other fields may be left out but never be
+     *     null.
      */
     OutingUpdate: {
       /**
@@ -1247,6 +1272,8 @@ export interface components {
       ends_at?: string;
       /** @description Lloc de trobada */
       location?: components['schemas']['EventLocation'];
+      /** @description Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra. */
+      place?: components['schemas']['OutingPlaceBody'] | null;
       /**
        * Event Id
        * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
@@ -2659,7 +2686,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
+      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
       422: {
         headers: {
           [name: string]: unknown;
@@ -2874,7 +2901,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
+      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
       422: {
         headers: {
           [name: string]: unknown;

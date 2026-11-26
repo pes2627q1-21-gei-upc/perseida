@@ -9,6 +9,7 @@ from pydantic import (
     AwareDatetime,
     BaseModel,
     ConfigDict,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
@@ -16,6 +17,7 @@ from pydantic import (
 from app.domain.outings.errors import (
     OUTING_DESCRIPTION_TOO_LONG,
     OUTING_ENDS_BEFORE_START,
+    OUTING_PLACE_INVALID,
     OUTING_STARTS_IN_PAST,
     OUTING_TITLE_EMPTY,
     OUTING_TITLE_TOO_LONG,
@@ -26,6 +28,9 @@ from app.domain.shared.location import Location
 # TG-629, criterion 1. Same limits as the columns of ``outings``.
 TITLE_MAX_LENGTH = 120
 DESCRIPTION_MAX_LENGTH = 2000
+# TG-661. Same limits as the columns ``place_name`` and ``place_address``.
+PLACE_NAME_MAX_LENGTH = 120
+PLACE_ADDRESS_MAX_LENGTH = 200
 
 # Control characters, surrogates and private or unassigned code points: no title or
 # description needs them, and NUL would make PostgreSQL fail.
@@ -40,6 +45,35 @@ def _clean(value: str, keep: str = "") -> str:
         for char in value
         if char in keep or unicodedata.category(char) not in _DROPPED_CATEGORIES
     ).strip()
+
+
+class OutingPlace(BaseModel):
+    """The local an outing meets at, when it was chosen from the recommended ones
+    (TG-661): its name and address. The coordinates stay in ``Outing.location``.
+
+    The address may be empty (Spotwise says it can be); the name may not.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    address: str = ""
+
+    @field_validator("name", "address")
+    @classmethod
+    def _check_text(cls, value: str, info: ValidationInfo) -> str:
+        cleaned = _clean(value)
+        if info.field_name == "name":
+            limit, required = PLACE_NAME_MAX_LENGTH, True
+        else:
+            limit, required = PLACE_ADDRESS_MAX_LENGTH, False
+        if (required and not cleaned) or len(cleaned) > limit:
+            raise ValidationError(
+                OUTING_PLACE_INVALID,
+                f"Outing place {info.field_name} must have "
+                f"{'1' if required else '0'} to {limit} characters",
+            )
+        return cleaned
 
 
 class Outing(BaseModel):
@@ -58,6 +92,8 @@ class Outing(BaseModel):
     starts_at: AwareDatetime
     ends_at: AwareDatetime
     location: Location
+    # The recommended local chosen as ``location``; None for any other place.
+    place: OutingPlace | None = None
     event_id: uuid.UUID | None = None
     created_at: AwareDatetime
     updated_at: AwareDatetime
@@ -112,6 +148,7 @@ class Outing(BaseModel):
         location: Location,
         event_id: uuid.UUID | None,
         now: datetime,
+        place: OutingPlace | None = None,
     ) -> Outing:
         """Build a new outing of ``author_id``; it may not start before ``now``."""
         outing = cls(
@@ -122,6 +159,7 @@ class Outing(BaseModel):
             starts_at=starts_at,
             ends_at=ends_at,
             location=location,
+            place=place,
             event_id=event_id,
             created_at=now,
             updated_at=now,
@@ -133,13 +171,19 @@ class Outing(BaseModel):
         """Return a copy with ``changes`` applied and validated again.
 
         Only the fields set in ``changes`` change; ``event_id=None`` unlinks the
-        event. When the dates change, the start may not be before ``now``; when they
+        event and ``place=None`` clears the place. A new ``location`` without a
+        ``place`` clears the old one: its name would not match the coordinates.
+        When the dates change, the start may not be before ``now``; when they
         do not, an outing that already started can still be edited.
         """
         fields: dict[str, Any] = self.model_dump()
         fields.update(
             {name: getattr(changes, name) for name in changes.model_fields_set}
         )
+        if "location" in changes.model_fields_set and "place" not in (
+            changes.model_fields_set
+        ):
+            fields["place"] = None
         fields["updated_at"] = now
         updated = Outing.model_validate(fields)
         if changes.model_fields_set & {"starts_at", "ends_at"}:
@@ -157,6 +201,7 @@ class OutingChanges(BaseModel):
     starts_at: AwareDatetime | None = None
     ends_at: AwareDatetime | None = None
     location: Location | None = None
+    place: OutingPlace | None = None
     event_id: uuid.UUID | None = None
 
 
