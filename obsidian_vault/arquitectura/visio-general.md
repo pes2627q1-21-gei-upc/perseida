@@ -72,7 +72,7 @@ flowchart LR
 ## Limitacions acceptades
 
 > [!note]
-> Dins l'abast d'un projecte acadèmic: un sol servidor és un punt únic de fallada, sense escalat horitzontal ni còpies de seguretat automàtiques. iOS és compatible (React Native) però no es desplega: caldria un Mac, un compte Apple Developer i una clau APNs.
+> Dins l'abast d'un projecte acadèmic: un sol servidor és un punt únic de fallada, sense escalat horitzontal ni còpies de seguretat fora del servidor (només les del CD abans de migrar, a la mateixa VM, [[0035-copies-de-seguretat-de-postgresql-al-cd]]). iOS és compatible (React Native) però no es desplega: caldria un Mac, un compte Apple Developer i una clau APNs.
 
 ## Enllaços
 

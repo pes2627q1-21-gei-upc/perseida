@@ -29,7 +29,7 @@ Tots els components s'orquestren amb Docker Compose, que permet declarar i despl
 ### Negatives (assumides)
 
 - El servidor continua sent un punt únic de fallada.
-- No hi ha escalat horitzontal ni còpies de seguretat automàtiques (limitació acceptada dins l'abast d'un projecte acadèmic).
+- No hi ha escalat horitzontal ni còpies de seguretat periòdiques (limitació acceptada dins l'abast d'un projecte acadèmic); el CD només en fa una abans de migrar, a la mateixa VM ([[0035-copies-de-seguretat-de-postgresql-al-cd]]).
 
 ## Alternatives descartades
 
