@@ -457,10 +457,20 @@ Después, responde la petición desde el correo del equipo.
 3. *Audience → Publish app*: el estado pasa a *In production*. Con los ámbitos `openid`, `email` y `profile`, Google no pide verificación.
 4. Inicia sesión en la app con una cuenta de Google que no sea usuaria de test.
 
+### Panel de administración (TG-77)
+
+El CD compila el panel y lo deja en el volumen `admin_dist`; no se hace nada a mano.
+
+1. El job `admin-bundle` de `.github/workflows/cd.yml` ejecuta `expo export --platform web` en `frontend/`, con `EXPO_PUBLIC_API_BASE_URL` y `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: variables públicas (nunca secretos) del environment `production` de GitHub: las del APK viven en `android-release` y aquí no se resuelven, así que hay que definirlas también en `production`. `frontend/app.json` tiene `experiments.baseUrl: "/admin"`, así que todos los archivos se piden bajo `/admin/`. Si no hay `index.html`, o los archivos no se piden bajo `/admin/`, el job falla y **no se despliega nada**.
+2. El job `deploy`, después de `deploy.sh` y de recargar el proxy (si el panel falla, la configuración del proxy ya se ha aplicado), envía el paquete por SSH a `install-admin-dist.sh`. Lo extrae a una carpeta temporal del volumen y cambia el contenido de golpe, con un contenedor de un solo uso de la misma imagen que el proxy (el proxy monta el volumen solo en lectura). La API y el proxy no se paran. Un paquete malo (que no es un `.tar.gz`, o sin `index.html`) se rechaza con un mensaje claro y se queda el panel que había.
+3. Compruébalo tras un despliegue: `curl -sI https://<host>/admin/` responde 200, y `curl -s https://<host>/admin/panel` devuelve el mismo `index.html` (el proxy cae en él para las rutas de la SPA).
+
+Test: `bash infra/scripts/test-admin-dist.sh` (necesita Docker; la CI lo ejecuta en el job `proxy`). Usa un volumen de prueba y nunca toca el de producción.
+
 ### Volúmenes
 
 - `media_data` es compartido: `api` escribe en él la multimedia de los usuarios y NPM lo monta en lectura en `/media`.
-- `admin_dist` contiene el panel de administración compilado (TG-77), montado en lectura en `/admin`. Como `media_data`, es un volumen nombrado: sobrevive a `docker compose down` y a los redespliegues, no depende de dónde esté el repositorio en el servidor y NPM solo puede leerlo.
+- `admin_dist` contiene el panel de administración compilado (TG-77), montado en lectura en `/admin`; el CD lo llena (véase «Panel de administración»). Como `media_data`, es un volumen nombrado: sobrevive a `docker compose down` y a los redespliegues, no depende de dónde esté el repositorio en el servidor y NPM solo puede leerlo.
 
 ## Cabeceras de seguridad
 

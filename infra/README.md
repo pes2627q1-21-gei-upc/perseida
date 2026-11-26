@@ -457,10 +457,20 @@ Then answer the request from the team email.
 3. *Audience → Publish app*: the status changes to *In production*. With the `openid`, `email` and `profile` scopes Google does not ask for verification.
 4. Sign in to the app with a Google account that is not a test user.
 
+### Admin panel (TG-77)
+
+The CD builds the panel and puts it in the `admin_dist` volume; nothing is done by hand.
+
+1. The `admin-bundle` job of `.github/workflows/cd.yml` runs `expo export --platform web` in `frontend/`, with `EXPO_PUBLIC_API_BASE_URL` and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: public variables (never secrets) from the GitHub `production` environment: the APK ones live in `android-release` and do not resolve here, so they must also be defined in `production`. `frontend/app.json` has `experiments.baseUrl: "/admin"`, so every file is requested under `/admin/`. If there is no `index.html`, or the files are not requested under `/admin/`, the job fails and **nothing is deployed**.
+2. The `deploy` job, after `deploy.sh` and the proxy reload (if the panel fails, the proxy configuration has already been applied), sends the package over SSH to `install-admin-dist.sh`. It extracts it to a temporary folder of the volume and swaps the content in one go, in a one-off container with the same image as the proxy (the proxy mounts the volume read-only). The API and the proxy do not stop. A bad package (not a `.tar.gz`, or without `index.html`) is rejected with a clear message and the panel that was there stays.
+3. Check it after a deploy: `curl -sI https://<host>/admin/` answers 200, and `curl -s https://<host>/admin/panel` returns the same `index.html` (the proxy falls back to it for the routes of the SPA).
+
+Test: `bash infra/scripts/test-admin-dist.sh` (needs Docker; the CI runs it in the `proxy` job). It uses a test volume and never touches the production one.
+
 ### Volumes
 
 - `media_data` is shared: `api` writes user media to it, and NPM mounts it read-only at `/media`.
-- `admin_dist` holds the built admin panel (TG-77), mounted read-only at `/admin`. Like `media_data`, it is a named volume: it survives `docker compose down` and redeploys, does not depend on where the repository is on the server, and NPM can only read it.
+- `admin_dist` holds the built admin panel (TG-77), mounted read-only at `/admin`; the CD fills it (see «Admin panel»). Like `media_data`, it is a named volume: it survives `docker compose down` and redeploys, does not depend on where the repository is on the server, and NPM can only read it.
 
 ## Security headers
 
