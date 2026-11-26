@@ -47,7 +47,7 @@ export function OutingForm({ initial, editing = false, onSubmit }: Props) {
   const { colors, spacing, typography } = useTheme();
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const schema = useMemo(() => outingFormSchema(editing ? initial : undefined), [editing, initial]);
-  const { control, handleSubmit, setError, formState } = useForm<OutingFormValues>({
+  const { control, handleSubmit, setError, setValue, formState } = useForm<OutingFormValues>({
     resolver: zodResolver(schema),
     defaultValues: initial,
   });
@@ -130,6 +130,7 @@ export function OutingForm({ initial, editing = false, onSubmit }: Props) {
           <LocationField
             value={field.value}
             onChange={field.onChange}
+            onPlaceChange={(place) => setValue('place', place)}
             error={message(errors.location?.message)}
           />
         )}

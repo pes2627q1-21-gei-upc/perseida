@@ -4,33 +4,29 @@ import { AccessibilityInfo, ActivityIndicator, Platform, Text, View } from 'reac
 
 import { errorMessage } from '../../../shared/errors';
 import { useTheme } from '../../../shared/theme';
-import { useDeviceLocation } from '../../events/hooks/useDeviceLocation';
 import type { MeetingPoint } from '../../meeting-points/api/meetingPoints';
 import { MeetingPointRow } from '../../meeting-points/components/MeetingPointRow';
-import { useMeetingPoints } from '../../meeting-points/hooks/useMeetingPoints';
+import { type Position, useMeetingPoints } from '../../meeting-points/hooks/useMeetingPoints';
 
 /** The form offers only the closest few: the full list is on the meeting points screen. */
 const MAX_PLACES = 5;
 
 interface Props {
+  /** The place of the outing the places are searched around (not the device's location). */
+  near: Position;
   onChoose: (point: MeetingPoint) => void;
 }
 
 /**
- * The watch party places near the person, to choose where an outing meets (TG-352,
- * criterion 7). It asks for the location as soon as it is shown, so the field mounts it only
- * when the person asks for it. The rows are not a FlatList: they go inside the scroll of the form.
+ * The watch party places near the place of the outing, to choose where it meets (TG-352,
+ * criterion 7; TG-661). The field mounts it only when the person asks for it, with the place it
+ * was asked for: the places do not move when the map does. The rows are not a FlatList: they go
+ * inside the scroll of the form.
  */
-export function RecommendedPlaces({ onChoose }: Props) {
+export function RecommendedPlaces({ near, onChoose }: Props) {
   const { t } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
-  const location = useDeviceLocation();
-  const { status, request } = location;
-  const points = useMeetingPoints('watch_party', location.position);
-
-  useEffect(() => {
-    if (status === 'idle') void request();
-  }, [status, request]);
+  const points = useMeetingPoints('watch_party', near);
 
   const empty = points.data?.length === 0 ? t('meetingPoints.empty') : undefined;
   useEffect(() => {
@@ -54,17 +50,10 @@ export function RecommendedPlaces({ onChoose }: Props) {
   };
   // Stryker restore all
 
-  let problem: string | null = null;
-  if (status === 'denied') problem = t('outings.picker.denied');
-  else if (status === 'unavailable') problem = t('meetingPoints.location.unavailable');
-  else if (points.isError) {
-    problem = errorMessage(t, points.error.code, points.error.retryable);
-  }
-
-  if (problem) {
+  if (points.isError) {
     return (
       <Text accessibilityRole="alert" style={look.problem}>
-        {problem}
+        {errorMessage(t, points.error.code, points.error.retryable)}
       </Text>
     );
   }
@@ -72,9 +61,7 @@ export function RecommendedPlaces({ onChoose }: Props) {
     return (
       <ActivityIndicator
         color={colors.text.primary}
-        accessibilityLabel={t(
-          status === 'granted' ? 'meetingPoints.loading' : 'meetingPoints.location.locating',
-        )}
+        accessibilityLabel={t('meetingPoints.loading')}
       />
     );
   }

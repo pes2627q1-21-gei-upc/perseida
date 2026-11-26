@@ -15,6 +15,8 @@ from pydantic import (
 
 from app.domain.outings.models import (
     DESCRIPTION_MAX_LENGTH,
+    PLACE_ADDRESS_MAX_LENGTH,
+    PLACE_NAME_MAX_LENGTH,
     TITLE_MAX_LENGTH,
     OutingDetails,
 )
@@ -35,6 +37,29 @@ _DESCRIPTION = f"Descripció, de 0 a {DESCRIPTION_MAX_LENGTH} caràcters"
 _STARTS_AT = "Inici (ISO 8601 amb zona horària); no pot ser en el passat"
 _ENDS_AT = "Fi (ISO 8601 amb zona horària); no pot ser anterior a l'inici"
 _EVENT_ID = "Esdeveniment astronòmic relacionat; null si no n'hi ha"
+_PLACE = (
+    "Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc "
+    "s'ha triat d'una altra manera. Si es canvia `location` sense `place`, "
+    "s'esborra."
+)
+
+
+class OutingPlaceBody(BaseModel):
+    """Name and address of a recommended local (TG-661). Like the title, the
+    length is measured by the domain after cleaning (OUTING_PLACE_INVALID)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(
+        ...,
+        description=f"Nom del local, d'1 a {PLACE_NAME_MAX_LENGTH} caràcters",
+        examples=["Biblioteca Sant Pau - Santa Creu"],
+    )
+    address: str = Field(
+        "",
+        description=f"Adreça, de 0 a {PLACE_ADDRESS_MAX_LENGTH} caràcters",
+        examples=["Carrer del Carme, 47"],
+    )
 
 
 class OutingCreate(BaseModel):
@@ -45,6 +70,7 @@ class OutingCreate(BaseModel):
     starts_at: AwareDatetime = Field(..., description=_STARTS_AT)
     ends_at: AwareDatetime = Field(..., description=_ENDS_AT)
     location: EventLocation = Field(..., description="Lloc de trobada")
+    place: OutingPlaceBody | None = Field(None, description=_PLACE)
     event_id: SentEventId | None = Field(None, description=_EVENT_ID)
 
 
@@ -63,8 +89,9 @@ def _publish_not_null(schema: dict[str, Any]) -> None:
 
 
 class OutingUpdate(BaseModel):
-    """Only the fields sent change. ``event_id: null`` unlinks the event; the other
-    fields may be left out but never be null."""
+    """Only the fields sent change. ``event_id: null`` unlinks the event and
+    ``place: null`` clears the place; the other fields may be left out but never be
+    null."""
 
     model_config = ConfigDict(extra="forbid", json_schema_extra=_publish_not_null)
 
@@ -73,6 +100,7 @@ class OutingUpdate(BaseModel):
     starts_at: AwareDatetime | None = Field(None, description=_STARTS_AT)
     ends_at: AwareDatetime | None = Field(None, description=_ENDS_AT)
     location: EventLocation | None = Field(None, description="Lloc de trobada")
+    place: OutingPlaceBody | None = Field(None, description=_PLACE)
     event_id: SentEventId | None = Field(None, description=_EVENT_ID)
 
     @model_validator(mode="after")
@@ -100,6 +128,7 @@ class OutingResponse(BaseModel):
     starts_at: UtcDatetime = Field(..., description="Inici (ISO 8601, UTC)")
     ends_at: UtcDatetime = Field(..., description="Fi (ISO 8601, UTC)")
     location: EventLocation = Field(..., description="Lloc de trobada")
+    place: OutingPlaceBody | None = Field(..., description=_PLACE)
     event_id: Uuid7 | None = Field(..., description=_EVENT_ID)
     author: OutingAuthorResponse = Field(..., description="Qui ha creat la sortida")
     created_at: UtcDatetime = Field(..., description="Creació (ISO 8601, UTC)")
