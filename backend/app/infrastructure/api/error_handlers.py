@@ -7,6 +7,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Match
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.application.shared.errors import (
     ApplicationError,
@@ -193,6 +194,39 @@ async def _handle_unexpected_error(request: Request, exc: Exception) -> Response
         "INTERNAL_ERROR",
         "Unexpected error",
     )
+
+
+class UnexpectedErrorMiddleware:
+    """Turn an unhandled exception into the 500 problem+json (TG-599).
+
+    Starlette answers it from ``ServerErrorMiddleware``, outside every user
+    middleware, so the 500 had no CORS nor security headers. This one is the
+    innermost, so the 500 goes back through CORS, Correlation and Security.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        started = False
+
+        async def send_tracking(message: Message) -> None:
+            nonlocal started
+            if message["type"] == "http.response.start":
+                started = True
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_tracking)
+        except Exception as exc:
+            if started:
+                raise
+            response = await _handle_unexpected_error(Request(scope), exc)
+            await response(scope, receive, send)
 
 
 def register_error_handlers(app: FastAPI) -> None:

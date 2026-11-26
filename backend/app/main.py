@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.infrastructure.achievements.router import router as achievements_router
 from app.infrastructure.api.correlation import CorrelationIdMiddleware
 from app.infrastructure.api.cors import add_cors
-from app.infrastructure.api.error_handlers import register_error_handlers
+from app.infrastructure.api.error_handlers import (
+    UnexpectedErrorMiddleware,
+    register_error_handlers,
+)
 from app.infrastructure.api.openapi import install_openapi_cleanup
 from app.infrastructure.api.security_headers import SecurityHeadersMiddleware
 from app.infrastructure.apod.config import NasaSettings
@@ -173,7 +176,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     register_error_handlers(app)
-    # Reverse wrap (Security > Correlation > CORS): preflights get both headers.
+    # Reverse wrap (Security > Correlation > CORS > errors): preflights get both
+    # headers and an unexpected 500 crosses all three (TG-599).
+    app.add_middleware(UnexpectedErrorMiddleware)
     add_cors(app)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)

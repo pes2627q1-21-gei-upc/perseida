@@ -43,6 +43,7 @@ Es fixen quatre capes, per ordre de preferència.
 - Els tokens del panell web viuen a `sessionStorage` ([[0008-google-oauth2-pkce-jwks-i-sessio-propia]]): un XSS que s'escapés de totes les capes els podria llegir. La CSP estricta del proxy és la mitigació; la galeta `httpOnly` seria més segura i queda per quan s'implementi el panell.
 - La CSP de la documentació de l'API admet `unsafe-inline` perquè Swagger UI arrenca amb un script en línia; la documentació es podria desactivar en producció si es vol evitar-ho (avui no hi ha cap interruptor).
 - Les respostes 500 d'una excepció no controlada no passen pel middleware (les genera `ServerErrorMiddleware`, per fora) i no porten les capçaleres; el cos és un JSON genèric.
+  - **Resolt a TG-599 (2026-11-25):** `UnexpectedErrorMiddleware`, el middleware més intern, converteix l'excepció en el problem+json 500 abans d'arribar a `ServerErrorMiddleware`. Ara el 500 porta CORS, `X-Correlation-ID` i les capçaleres de seguretat. Vegeu [[api#Errors i correlació]].
 - Vulnerabilitats de dependències sense versió arreglada (eines de compilació d'Expo, Jest) queden acceptades i documentades.
 - El validador d'URL és deliberadament estricte: un avatar o un vídeo que no sigui `https` ja no es mostra.
 
