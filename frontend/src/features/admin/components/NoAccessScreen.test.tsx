@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { NoAccessScreen } from './NoAccessScreen';
@@ -28,11 +28,17 @@ function renderScreen() {
   );
 }
 
+// Fake timers: each test decides when the tick that brings the message in goes by.
+beforeEach(() => jest.useFakeTimers());
+afterEach(() => jest.useRealTimers());
+
 describe('NoAccessScreen (TG-77 criteri 3)', () => {
   it('tells the person, with a heading, that this account cannot use the panel', async () => {
     await renderScreen();
 
     expect(screen.getByRole('header', { name: TEXT.title })).toBeOnTheScreen();
+    // The message comes in right after the mount (see the live region test).
+    await act(() => jest.runOnlyPendingTimers());
     expect(screen.getByText(TEXT.message)).toBeOnTheScreen();
   });
 
@@ -40,5 +46,30 @@ describe('NoAccessScreen (TG-77 criteri 3)', () => {
     await renderScreen();
 
     expect(screen.getByRole('button', { name: TEXT.logout })).toBeOnTheScreen();
+  });
+
+  it('announces the message politely to a screen reader (decided with the person, WCAG 4.1.3)', async () => {
+    await renderScreen();
+
+    // A screen reader only announces a change inside a live region that already existed: the
+    // region is a container that mounts empty and gets the message after, not the text itself.
+    const region = screen.getByTestId('no-access-live-region');
+    expect(region).toHaveProp('accessibilityLiveRegion', 'polite');
+    expect(region).toHaveProp('aria-live', 'polite');
+    expect(within(region).queryByText(TEXT.message)).toBeNull();
+
+    await act(() => jest.runOnlyPendingTimers());
+    expect(within(region).getByText(TEXT.message)).toBeOnTheScreen();
+    expect(screen.getByText(TEXT.message)).not.toHaveProp('accessibilityLiveRegion');
+  });
+
+  it('cancels the pending tick when it goes away before the message comes in', async () => {
+    const clear = jest.spyOn(globalThis, 'clearTimeout');
+    const view = await renderScreen();
+
+    await view.unmount();
+
+    expect(clear).toHaveBeenCalled();
+    clear.mockRestore();
   });
 });

@@ -306,3 +306,20 @@ describe('Locales of the meeting points (TG-352)', () => {
     expect(keys('en')).toEqual(keys('ca'));
   });
 });
+
+describe('Labels of the outing detail (TG-661)', () => {
+  const languages = { ca, es, en } as unknown as Record<
+    'ca' | 'es' | 'en',
+    { outings: { detail: Record<string, string> } }
+  >;
+
+  // The detail shows the chosen venue and the coordinates one after the other:
+  // equal labels cannot be told apart by sight or by a screen reader (WCAG 2.4.6).
+  (['ca', 'es', 'en'] as const).forEach((language) => {
+    it(`uses different labels for the venue and the coordinates in ${language}`, () => {
+      const { place, where } = languages[language].outings.detail;
+
+      expect(place).not.toEqual(where);
+    });
+  });
+});

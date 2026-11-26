@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { launchEvent, lunarEvent, meteorShowerEvent } from '../../../../__mocks__/events';
 import { classifyEvents } from '../../events/classifyEvents';
-import { myOuting, otherOuting } from '../../../../__mocks__/outings';
+import { libraryOuting, myOuting, otherOuting } from '../../../../__mocks__/outings';
 import type { Outing } from '../api/outings';
 import { formatCoordinate, formatDateTime } from '../formatOuting';
 import { OutingDetail } from './OutingDetail';
@@ -100,5 +100,39 @@ describe('OutingDetail', () => {
 
     expect(screen.queryByText('Esdeveniment')).toBeNull();
     expect(screen.queryByText('Sortida lligada a un esdeveniment')).toBeNull();
+  });
+
+  describe('the recommended local (TG-661)', () => {
+    it('shows its name and address as the place of the outing', async () => {
+      await renderDetail(libraryOuting);
+
+      expect(screen.getByText('Local')).toBeOnTheScreen();
+      expect(
+        screen.getByText('Biblioteca Sant Pau - Santa Creu, Carrer del Carme, 47'),
+      ).toBeOnTheScreen();
+    });
+
+    it('shows only the name when the address is empty', async () => {
+      await renderDetail({ ...libraryOuting, place: { name: "Espai d'estudi", address: '' } });
+
+      expect(screen.getByText("Espai d'estudi")).toBeOnTheScreen();
+    });
+
+    it('still shows the coordinates', async () => {
+      await renderDetail(libraryOuting);
+
+      const { latitude, longitude } = libraryOuting.location;
+      expect(
+        screen.getByText(
+          `${formatCoordinate(latitude, 'ca')} · ${formatCoordinate(longitude, 'ca')}`,
+        ),
+      ).toBeOnTheScreen();
+    });
+
+    it('has no row for it when the outing has no local', async () => {
+      await renderDetail(myOuting);
+
+      expect(screen.queryByText('Local')).toBeNull();
+    });
   });
 });
