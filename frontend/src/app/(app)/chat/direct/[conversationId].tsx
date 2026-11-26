@@ -20,11 +20,14 @@ export default function DirectConversationRoute() {
     retryHint: t('chat.retryHint'),
   };
   const conversation = conversations.data?.find((row) => row.conversation_id === conversationId);
+  const failure = conversations.data ? null : conversations.error;
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace('/chat/direct');
   }
-  if (conversations.isPending || conversations.error || !conversation)
+  // A refresh of the list that fails keeps what it already has: the open chat stays (every
+  // message and every mark as read refreshes the list). The error is for when there is no data.
+  if (conversations.isPending || failure || !conversation)
     return (
       <SkyBackground>
         <TopBar
@@ -39,10 +42,8 @@ export default function DirectConversationRoute() {
           ) : (
             <StatusPanel
               state="error"
-              code={conversations.error?.code ?? 'CONVERSATION_NOT_FOUND'}
-              onRetry={
-                conversations.error?.retryable ? () => void conversations.refetch() : undefined
-              }
+              code={failure?.code ?? 'CONVERSATION_NOT_FOUND'}
+              onRetry={failure?.retryable ? () => void conversations.refetch() : undefined}
               texts={texts}
             />
           )}
@@ -51,6 +52,7 @@ export default function DirectConversationRoute() {
     );
   return (
     <DirectConversationScreen
+      key={conversation.conversation_id}
       conversationId={conversation.conversation_id}
       otherUser={{
         id: conversation.other_user_id,
