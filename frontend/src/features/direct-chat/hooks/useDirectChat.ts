@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import type { AppError } from '../../../shared/errors';
 import { useSocket } from '../../../shared/realtime';
@@ -53,11 +53,38 @@ export function useConversations() {
   });
 }
 
+/** Who is who in a conversation, so that the history can name the other participant. */
+export interface DirectParticipants {
+  /** The signed-in user: their messages keep no name (the bubble says "you"). */
+  meId?: string;
+  /** The other participant's display name, put on the messages the signed-in user did not write. */
+  otherName?: string;
+}
+
 /**
  * History of a direct conversation, newest first, one page per cursor. It is cached as
- * `ChatHistory` (the shape the chat core reads and adds live messages to), not as the API sends it.
+ * `ChatHistory` (the shape the chat core reads and adds live messages to), not as the API sends it:
+ * the API does not carry names, so `participants` gives the other one's to what they wrote.
  */
-export function useDirectMessages(conversationId: string) {
+export function useDirectMessages(conversationId: string, participants?: DirectParticipants) {
+  const { meId, otherName } = participants ?? {};
+  const select = useCallback(
+    (data: ChatHistoryData): ChatHistoryData =>
+      !otherName || !meId
+        ? data
+        : {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              messages: page.messages.map((message) =>
+                message.author.id === meId
+                  ? message
+                  : { ...message, author: { ...message.author, name: otherName } },
+              ),
+            })),
+          },
+    [meId, otherName],
+  );
   return useInfiniteQuery<
     ChatHistory,
     AppError,
@@ -69,6 +96,7 @@ export function useDirectMessages(conversationId: string) {
     queryFn: async ({ pageParam }) => asChatHistory(await fetchMessages(conversationId, pageParam)),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.next_cursor ?? undefined,
+    select,
     enabled: !!conversationId,
     retry: retryOnceIfTransient,
   });
