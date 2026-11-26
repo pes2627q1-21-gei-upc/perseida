@@ -41,6 +41,13 @@ if [ "${FAKE_DB_MISSING:-0}" = 1 ]; then
   echo "Error response from daemon: service \"db\" is not running" >&2
   exit 1
 fi
+if [ "${FAKE_DB_STOPPED:-0}" = 1 ]; then
+  # contenidor `db` existent però aturat: només `ps -a` el veu
+  case "$args" in
+    *"ps -a"*) echo fakecontainerid; exit 0 ;;
+    *"ps"*) exit 0 ;;
+  esac
+fi
 case "$args" in
   *pg_restore*)
     cat >/dev/null
@@ -259,6 +266,14 @@ class SkippedBackupTest(BackupDbBase):
                 self.assertEqual(done.returncode, 0, self.output(done))
                 self.assertEqual(self.listing(), [])
                 self.assertTrue(self.output(done).strip(), "cal un avís")
+
+    def test_stopped_db_container_fails_without_backup(self) -> None:
+        for args in (("--always", SHA), ("--if-pending", HEAD, SHA)):
+            with self.subTest(args=args):
+                done = self.run_script(*args, FAKE_DB_STOPPED="1")
+                self.assertNotEqual(done.returncode, 0, self.output(done))
+                self.assertEqual(self.listing(), [])
+                self.assertIn("aturat", self.output(done))
 
 
 class UnreadableRevisionTest(BackupDbBase):
