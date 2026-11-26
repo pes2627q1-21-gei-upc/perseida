@@ -79,7 +79,7 @@ implementat
 > TG-40 incorpora la configuració, l'engine i les sessions asíncrones de SQLModel/SQLAlchemy. TG-41 incorpora Alembic amb migracions asíncrones i activa PostGIS amb una migració reversible. La prova d'integració amb PostgreSQL/PostGIS real s'ha executat localment i passa; la suite completa passa amb 224 tests i 5 omesos. La validació dins del contenidor queda pendent de la infraestructura de la TG-36.
 
 > [!note]
-> No hi ha còpies de seguretat automàtiques (limitació acceptada, vegeu [[arquitectura-fisica]]).
+> El CD fa un `pg_dump -Fc` abans de migrar (si hi ha migracions pendents) i abans de cada `alembic downgrade`, a la mateixa VM; la restauració és manual ([[0035-copies-de-seguretat-de-postgresql-al-cd]]). No hi ha còpies periòdiques ni fora de la VM (limitació acceptada, vegeu [[arquitectura-fisica]]).
 
 ## Enllaços
 

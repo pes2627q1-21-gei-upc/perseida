@@ -3,7 +3,7 @@ titol: "CD per SSH amb rollback automàtic i downgrade de migracions"
 tipus: adr
 estat: acceptada
 data: "2026-10-22"
-us: ["TG-38", "TG-49"]
+us: ["TG-38", "TG-49", "TG-386"]
 font: "Taiga: US TG-38 (criteris d'acceptació); decisions de la persona responsable (2026-10-22) en implementar la US; .github/workflows/cd.yml i infra/scripts/deploy.sh"
 etiquetes: [adr, cd, desplegament, rollback, alembic, ghcr, infra]
 ---
@@ -12,7 +12,7 @@ etiquetes: [adr, cd, desplegament, rollback, alembic, ghcr, infra]
 
 ## Context
 
-La US TG-38 demana que cada fusió a `main` desplegui el backend a la VM de Virtech per SSH i que, si el desplegament falla, el servei torni a la versió anterior. La imatge porta migracions d'Alembic que s'apliquen en arrencar ([[api]]): tornar només a la imatge anterior pot deixar l'esquema de la base de dades en una revisió que aquella imatge no coneix. No hi ha còpies de seguretat ([[arquitectura-fisica]]), el paquet de GHCR és privat i el workflow de la imatge només s'executava si canviava `backend/**`.
+La US TG-38 demana que cada fusió a `main` desplegui el backend a la VM de Virtech per SSH i que, si el desplegament falla, el servei torni a la versió anterior. La imatge porta migracions d'Alembic que s'apliquen en arrencar ([[api]]): tornar només a la imatge anterior pot deixar l'esquema de la base de dades en una revisió que aquella imatge no coneix. Inicialment no hi havia còpies de seguretat ([[arquitectura-fisica]]; vegeu l'actualització de TG-386 més avall), el paquet de GHCR és privat i el workflow de la imatge només s'executava si canviava `backend/**`.
 
 ## Decisió
 
@@ -29,10 +29,13 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 
 ### Negatives (assumides)
 
-- Desfer una migració elimina les taules i columnes que havia creat, amb les seves dades, i no hi ha còpies de seguretat. El README d'`infra/` ho avisa. La sonda evita el downgrade quan la causa és la configuració, però no distingeix una base de dades caiguda perquè el healthcheck no la consulta. Tampoc no desfà res quan els noms de variable del `.env` han canviat respecte del darrer desplegament bo (`.deployed-env`): si no es poden comparar, es considera que han canviat. El cost és que un error de codi coincident amb una variable nova deixa l'API aturada fins a una intervenció manual, sense perdre dades.
+- Desfer una migració elimina les taules i columnes que havia creat, amb les seves dades. Des de TG-386 el desplegament fa abans una còpia de la base de dades ([[0035-copies-de-seguretat-de-postgresql-al-cd]]), però la restauració és manual i la còpia és a la mateixa VM. El README d'`infra/` ho avisa. La sonda evita el downgrade quan la causa és la configuració, però no distingeix una base de dades caiguda perquè el healthcheck no la consulta. Tampoc no desfà res quan els noms de variable del `.env` han canviat respecte del darrer desplegament bo (`.deployed-env`): si no es poden comparar, es considera que han canviat. El cost és que un error de codi coincident amb una variable nova deixa l'API aturada fins a una intervenció manual, sense perdre dades.
 
 > [!info] Actualització 2026-11-15 (TG-49): el healthcheck consulta PostgreSQL
 > `/api/health` ara comprova PostgreSQL i Redis amb un límit de 2 s cadascun. Si PostgreSQL és caigut, `status` és `down`: la sonda també falla i no es desfà cap migració. Redis no és crític i no fa fallar la sonda. Val a partir del desplegament següent al que porta TG-49, perquè la sonda arrenca la imatge anterior. Detall a [[api#Healthcheck (TG-49)]].
+
+> [!info] Actualització 2026-11-26 (TG-386): còpia de la base de dades abans de migrar i de fer el downgrade
+> `deploy.sh` fa un `pg_dump -Fc` abans d'arrencar la imatge nova si hi ha migracions pendents, i sempre abans d'un `alembic downgrade` (rollback automàtic i `--rollback`). Si la còpia falla, no s'arrenca la imatge nova ni es desfà res. La restauració és manual i les còpies són a la mateixa VM. Detall a [[0035-copies-de-seguretat-de-postgresql-al-cd]].
 
 - Si el `downgrade` falla, es redesplega igualment la imatge anterior (es prefereix un servei amb un esquema possiblement desquadrat que un servei caigut) i el job falla amb un avís explícit.
 - El primer desplegament no té versió anterior: només pot fallar.
@@ -42,7 +45,7 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 
 - **Tornar només a la imatge anterior, sense downgrade:** exigiria que cada migració fos compatible cap enrere amb la versió anterior; la persona responsable va demanar explícitament desfer les migracions.
 - **Provar la imatge anterior amb el seu entrypoint (amb migracions) abans del downgrade:** no serveix, perquè no arrenca mai contra un esquema més nou (`Can't locate revision identified by ...`, comprovat); per això la sonda arrenca la imatge anterior sense migracions (`-e RUN_MIGRATIONS=false`).
-- **`pg_dump` abans de cada desplegament amb migracions:** es deixa per a més endavant (espai a la VM i procediment de restauració); ara no hi ha còpies.
+- **`pg_dump` abans de cada desplegament amb migracions:** es va deixar per a més endavant (espai a la VM i procediment de restauració); ara s'ha fet a TG-386, vegeu [[0035-copies-de-seguretat-de-postgresql-al-cd]].
 - **Fer el paquet de GHCR públic:** continua sent possible, però no cal i exposa les imatges.
 - **Un PAT de lectura com a secret per al `docker pull`:** un secret més a rotar; el `GITHUB_TOKEN` del job ja ho cobreix.
 - **Publicar la imatge de `main` amb `backend-docker.yml` en paral·lel al CD:** no garanteix que `sha-<commit>` existeixi quan el CD el necessita, ni quan no canvia el backend.
@@ -50,6 +53,8 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 ## US de Taiga relacionades
 
 - TG-38 (desplegament automàtic a Virtech per SSH amb el `.env` des dels secrets de GitHub)
+- TG-49 (el healthcheck consulta PostgreSQL)
+- TG-386 (còpia de la base de dades abans de migrar i de fer el downgrade)
 
 ## Enllaços
 
@@ -57,3 +62,4 @@ El CD publica la imatge `sha-<commit>` de `main` amb el mateix workflow que la C
 - [[api]]
 - [[0002-docker-compose-en-lloc-de-kubernetes]]
 - [[0010-gitflow-i-politica-de-pull-requests]]
+- [[0035-copies-de-seguretat-de-postgresql-al-cd]]

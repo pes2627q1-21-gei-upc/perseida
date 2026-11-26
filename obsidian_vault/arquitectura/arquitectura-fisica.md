@@ -70,7 +70,7 @@ flowchart TB
   3. `deploy` (entorn `production`): es connecta per **SSH** amb clau (secret de GitHub) i verificació estricta de la clau del servidor, copia `docker-compose.yml` i `infra/scripts/deploy.sh` a `/opt/perseida`, renderitza el `.env` des dels secrets i variables (`chmod 600`; viatja per stdin, mai surt als logs), fa `docker login` a GHCR amb el `GITHUB_TOKEN` temporal del job (el paquet pot continuar privat) i executa `deploy.sh <tag>`.
   - Publicar l'**APK** del frontend en una release de GitHub encara no hi és.
 - **Healthcheck i rollback automàtic** ([[0025-cd-per-ssh-amb-rollback-i-downgrade-de-migracions]]): `deploy.sh` fa `docker compose up -d` i espera fins a 120 s que `GET /api/health` respongui 200 amb `status: ok`. Si ho fa, desa el tag a `/opt/perseida/.deployed-tag`. Si no, atura l'API i fa una sonda amb la imatge anterior sense migracions i amb el mateix `.env`: si tampoc respon (o els noms de variable han canviat), el fallo és de configuració o d'infraestructura i no es desfà res; si respon i els noms de variable del `.env` no han canviat respecte del darrer desplegament bo (`.deployed-env`), desfà les migracions d'Alembic fins a la revisió de la imatge anterior (`alembic downgrade`, amb la imatge nova, que és la que les té), arrenca la imatge anterior, comprova el healthcheck i **el job acaba sempre en error**. El primer desplegament no té versió anterior. Els logs dels contenidors no es mostren al workflow perquè són públics.
-- **Rollback manual**: `./deploy.sh --rollback sha-<commit>` al servidor, per SSH ([[api]]); fa el downgrade amb la imatge de l'últim intent fallit (`.attempted-tag`) si n'hi ha. Desfer migracions elimina les dades de les taules i columnes que havien creat, i no hi ha còpies de seguretat.
+- **Rollback manual**: `./deploy.sh --rollback sha-<commit>` al servidor, per SSH ([[api]]); fa el downgrade amb la imatge de l'últim intent fallit (`.attempted-tag`) si n'hi ha. Desfer migracions elimina les dades de les taules i columnes que havien creat; abans, el desplegament en fa una còpia ([[0035-copies-de-seguretat-de-postgresql-al-cd]]).
 - Versionat SemVer des de `0.1.0`, una release per sprint.
 
 ## Servidor de Virtech (VM)
@@ -113,7 +113,7 @@ Els secrets i variables viuen a GitHub *Secrets and variables*; el `.env` mai es
 
 ## Limitacions acceptades
 
-Sense escalat horitzontal ni còpies de seguretat automàtiques; el servidor és un punt únic de fallada.
+Sense escalat horitzontal; el servidor és un punt únic de fallada. Les còpies de la base de dades (abans de migrar i de fer un downgrade, [[0035-copies-de-seguretat-de-postgresql-al-cd]]) són a la mateixa VM: no protegeixen contra la seva pèrdua.
 
 ## Enllaços
 

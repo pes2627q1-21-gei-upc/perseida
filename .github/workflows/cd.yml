@@ -22,11 +22,14 @@ permissions: {}
 
 # El `.env` del servidor té les variables d'`infra/.env.example`, menys les que
 # no cal definir a GitHub: `API_IMAGE_TAG` el posa `deploy.sh` (git-sha del
-# commit), `NPM_ADMIN_PORT` usa el 81 per defecte (només a 127.0.0.1) i `PORT`
-# només és del Compose local.
+# commit), `NPM_ADMIN_PORT` usa el 81 per defecte (només a 127.0.0.1), `PORT`
+# només és del Compose local. `BACKUP_DIR` és opcional (GitHub no admet variables
+# buides): si hi ha una variable amb una ruta absoluta, es renderitza al `.env`; si
+# no, `backup-db.sh` usa el valor per defecte (`~/perseida/backups`).
 env:
   ENV_TEMPLATE: infra/.env.example
   ENV_EXCLUDE: API_IMAGE_TAG NPM_ADMIN_PORT PORT
+  ENV_OPTIONAL: BACKUP_DIR
   # Han d'existir però no van al `.env`: són per a la connexió SSH.
   ENV_EXTRA_REQUIRED: SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS
   # Només poden ser secrets (mai variables): una variable es veuria sense
@@ -138,7 +141,7 @@ jobs:
       - name: Copiar el Compose, la zona del proxy i el script de desplegament
         shell: bash
         run: |
-          scp -q infra/docker-compose.yml infra/scripts/deploy.sh infra/scripts/install-http-top.sh virtech:/opt/perseida/
+          scp -q infra/docker-compose.yml infra/scripts/deploy.sh infra/scripts/backup-db.sh infra/scripts/install-http-top.sh virtech:/opt/perseida/
           # NPM fa `chown` a root d'`http_top.conf` en arrencar: `scp` no el pot sobreescriure i
           # `install-http-top.sh` l'escriu amb un contenidor d'un sol ús de la imatge d'NPM si cal,
           # estigui el proxy en marxa o no (hotfix 0.2.2).
@@ -147,7 +150,7 @@ jobs:
           # Pàgines públiques que el Compose munta a NPM a /public (TG-343).
           ssh virtech 'mkdir -p /opt/perseida/nginx-proxy-manager/public'
           scp -q infra/nginx-proxy-manager/public/*.html virtech:/opt/perseida/nginx-proxy-manager/public/
-          ssh virtech 'chmod 755 /opt/perseida/deploy.sh'
+          ssh virtech 'chmod 755 /opt/perseida/deploy.sh /opt/perseida/backup-db.sh'
 
       # El servidor baixa la imatge de GHCR (paquet privat) amb el token efímer
       # del job, que viatja per stdin i es revoca en acabar; `docker logout` el
