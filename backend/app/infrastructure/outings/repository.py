@@ -6,10 +6,21 @@ from sqlalchemy import Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import col
 
-from app.domain.outings.models import Outing, OutingAuthor, OutingDetails
+from app.domain.outings.models import (
+    Outing,
+    OutingAuthor,
+    OutingDetails,
+    OutingPlace,
+)
 from app.domain.shared.location import Location
 from app.infrastructure.outings.tables import OutingRow
 from app.infrastructure.users.tables import UserRow
+
+
+def _to_place(row: OutingRow) -> OutingPlace | None:
+    if row.place_name is None:
+        return None
+    return OutingPlace(name=row.place_name, address=row.place_address or "")
 
 
 def _to_details(row: OutingRow, author: UserRow) -> OutingDetails:
@@ -22,6 +33,7 @@ def _to_details(row: OutingRow, author: UserRow) -> OutingDetails:
             starts_at=row.starts_at,
             ends_at=row.ends_at,
             location=Location(latitude=row.latitude, longitude=row.longitude),
+            place=_to_place(row),
             event_id=row.event_id,
             created_at=row.created_at,
             updated_at=row.updated_at,
@@ -44,6 +56,8 @@ def _to_values(outing: Outing) -> dict[str, Any]:
         "ends_at": outing.ends_at,
         "latitude": outing.location.latitude,
         "longitude": outing.location.longitude,
+        "place_name": outing.place.name if outing.place else None,
+        "place_address": outing.place.address if outing.place else None,
         "created_at": outing.created_at,
         "updated_at": outing.updated_at,
     }

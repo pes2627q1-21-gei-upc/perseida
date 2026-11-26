@@ -9,7 +9,7 @@ import { useTheme } from '../../../shared/theme';
 import { QuietButton } from '../../../shared/ui';
 import type { MeetingPoint } from '../../meeting-points/api/meetingPoints';
 import { formatCoordinate } from '../formatOuting';
-import { type OutingLocation, parseCoordinates } from '../outingForm';
+import { type OutingLocation, type OutingPlace, parseCoordinates } from '../outingForm';
 import { LocationMap } from './LocationMap';
 import { RecommendedPlaces } from './RecommendedPlaces';
 import { TextField } from './TextField';
@@ -22,6 +22,11 @@ interface Props {
   /** The chosen place; null until the person chooses one. */
   value: OutingLocation | null;
   onChange: (location: OutingLocation) => void;
+  /**
+   * The recommended local chosen as the place, or null when the place is chosen in any other
+   * way: its name would not match the new coordinates (TG-661).
+   */
+  onPlaceChange?: (place: OutingPlace | null) => void;
   /** Already translated message of the field. */
   error?: string;
 }
@@ -38,7 +43,7 @@ function startOf(value: OutingLocation | null): MapCamera {
  * for people who cannot drag it (WCAG 2.5.7). Moving the map is not choosing: the value
  * only changes when the person chooses.
  */
-export function LocationField({ value, onChange, error }: Props) {
+export function LocationField({ value, onChange, onPlaceChange, error }: Props) {
   const { t, i18n } = useTranslation();
   const { colors, radii, spacing, typography } = useTheme();
   const [start, setStart] = useState(() => startOf(value));
@@ -52,9 +57,13 @@ export function LocationField({ value, onChange, error }: Props) {
     value ? formatCoordinate(value.longitude, i18n.language) : '',
   );
   const [invalidCoordinates, setInvalidCoordinates] = useState(false);
-  // Each press shows the recommended places afresh (asking for the location again); null hides
-  // them. They are mounted only then: they ask for the location and the API (TG-352).
-  const [recommendRun, setRecommendRun] = useState<number | null>(null);
+  // Each press shows the recommended places afresh, around the place of the outing at that
+  // moment: the chosen place or else the centre of the map (TG-661). null hides them. They are
+  // mounted only then: they ask the API (TG-352).
+  const [recommend, setRecommend] = useState<{
+    run: number;
+    near: { latitude: number; longitude: number };
+  } | null>(null);
 
   // The fields show the chosen place, however it was chosen: the map, the device or typing.
   // Adjusted while rendering, when the value changes (not in an effect: that would be a second
@@ -81,6 +90,7 @@ export function LocationField({ value, onChange, error }: Props) {
       setDenied(false);
       setStart({ ...place, zoom: PLACE_ZOOM });
       onChange(place);
+      onPlaceChange?.(null);
     } catch {
       setDenied(true);
     } finally {
@@ -88,11 +98,12 @@ export function LocationField({ value, onChange, error }: Props) {
     }
   }
 
-  function choosePlace({ location }: MeetingPoint) {
+  function choosePlace({ location, name, address }: MeetingPoint) {
     const place = { latitude: location.latitude, longitude: location.longitude };
-    setRecommendRun(null);
+    setRecommend(null);
     setStart({ ...place, zoom: PLACE_ZOOM });
     onChange(place);
+    onPlaceChange?.({ name, address });
   }
 
   function chooseCoordinates() {
@@ -101,6 +112,7 @@ export function LocationField({ value, onChange, error }: Props) {
     if (!place) return;
     setStart({ ...place, zoom: PLACE_ZOOM });
     onChange(place);
+    onPlaceChange?.(null);
   }
 
   return (
@@ -125,7 +137,10 @@ export function LocationField({ value, onChange, error }: Props) {
       <View style={[styles.buttons, { gap: spacing.sm }]}>
         <QuietButton
           label={t('outings.picker.choose')}
-          onPress={() => onChange({ latitude: center.latitude, longitude: center.longitude })}
+          onPress={() => {
+            onChange({ latitude: center.latitude, longitude: center.longitude });
+            onPlaceChange?.(null);
+          }}
         />
         <QuietButton
           label={t('outings.picker.useMine')}
@@ -134,10 +149,17 @@ export function LocationField({ value, onChange, error }: Props) {
         />
         <QuietButton
           label={t('outings.picker.recommend')}
-          onPress={() => setRecommendRun((run) => (run ?? 0) + 1)}
+          onPress={() =>
+            setRecommend((current) => ({
+              run: (current?.run ?? 0) + 1,
+              near: value ?? { latitude: center.latitude, longitude: center.longitude },
+            }))
+          }
         />
       </View>
-      {recommendRun !== null && <RecommendedPlaces key={recommendRun} onChoose={choosePlace} />}
+      {recommend !== null && (
+        <RecommendedPlaces key={recommend.run} near={recommend.near} onChoose={choosePlace} />
+      )}
       <View style={[styles.buttons, { gap: spacing.sm }]}>
         <View style={styles.coordinate}>
           <TextField
