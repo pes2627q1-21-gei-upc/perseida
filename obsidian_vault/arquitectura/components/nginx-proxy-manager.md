@@ -80,7 +80,7 @@ Variables a `.env.example`: `HTTP_PORT`, `HTTPS_PORT` i `NPM_ADMIN_PORT`. El tok
 
 ## Estat d'implementació
 
-implementat (TG-89): en local i a producció. El panell d'administració el publica el CD (TG-77, tasca #589): el job `admin-bundle` de `.github/workflows/cd.yml` el compila amb `expo export --platform web` i, després de `deploy.sh`, `infra/scripts/install-admin-dist.sh` el deixa al volum `admin_dist` amb un contenidor d'un sol ús de la imatge d'NPM (el proxy munta el volum només en lectura), sense aturar ni l'API ni el proxy. Un paquet sense `index.html` es rebutja i es queda el panell anterior. Fins al primer desplegament amb aquest pas, `/admin/` dona 404 a producció. Detall a la secció «Panell d'administració» del README d'`infra/`.
+implementat (TG-89): en local i a producció. El panell d'administració el publica el CD (TG-77, tasca #589): el job `admin-bundle` de `.github/workflows/cd.yml` el compila amb `expo export --platform web` i, després de `deploy.sh` i de recarregar el proxy, `infra/scripts/install-admin-dist.sh` el deixa al volum `admin_dist` amb un contenidor d'un sol ús de la imatge d'NPM (el proxy munta el volum només en lectura), sense aturar ni l'API ni el proxy. Un paquet sense `index.html` es rebutja i es queda el panell anterior. Fins al primer desplegament amb aquest pas, `/admin/` dona 404 a producció. Detall a la secció «Panell d'administració» del README d'`infra/`.
 
 `/api/ws` ja té endpoint (TG-63): amb `websocket.conf` el handshake arriba a l'API i dona `101 Switching Protocols`. El primer frame ha de ser `auth` i el `proxy_read_timeout` de 3600 s és molt superior al heartbeat de l'app (30 s). Vegeu [[0030-protocol-websocket-i-revocacio-per-pub-sub]].
 

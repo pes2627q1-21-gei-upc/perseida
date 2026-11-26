@@ -53,14 +53,16 @@ jobs:
         run: python3 infra/scripts/render_env.py check
 
   # Compila el panell d'administració (TG-77, ADR-0009) abans de tocar el servidor: si l'export
-  # falla, el desplegament s'atura aquí amb l'error clar. Les variables són les mateixes
-  # (públiques, mai secrets) que fa servir l'APK a `android-release.yml`; Expo les incrusta al
-  # paquet en compilar. `baseUrl` `/admin` ve de `frontend/app.json`.
+  # falla, el desplegament s'atura aquí amb l'error clar. Les variables són públiques (mai
+  # secrets) i Expo les incrusta al paquet en compilar; es llegeixen de l'environment
+  # `production` (les de l'APK viuen a `android-release`, que és un altre environment i no es
+  # resol aquí). `baseUrl` `/admin` ve de `frontend/app.json`.
   admin-bundle:
     needs: verify-config
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: production
     permissions:
       contents: read
     env:
@@ -77,7 +79,7 @@ jobs:
           missing=0
           for name in EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID; do
             if [ -z "${!name}" ]; then
-              echo "::error::Falta la variable de GitHub $name (Settings, Variables)"
+              echo "::error::Falta la variable $name a l'environment production (Settings, Environments)"
               missing=1
             fi
           done
@@ -232,21 +234,6 @@ jobs:
           # shellcheck disable=SC2029  # el tag s'expandeix al runner a propòsit
           ssh virtech /opt/perseida/deploy.sh "$tag"
 
-      # El panell (TG-77): es copia al volum `perseida_admin_dist`, que NPM serveix a /admin/.
-      # Va després de `deploy.sh`, quan el volum ja existeix, i no atura l'API ni el proxy: els
-      # fitxers es canvien al volum i nginx els llegeix a cada petició. Si el paquet no és bo,
-      # `install-admin-dist.sh` falla i no toca el que hi havia.
-      - name: Baixar el paquet del panell
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: admin-dist
-
-      - name: Publicar el panell d'administració
-        shell: bash
-        run: |
-          scp -q infra/scripts/install-admin-dist.sh virtech:/opt/perseida/
-          ssh virtech 'cd /opt/perseida && sh install-admin-dist.sh' < admin-dist.tar.gz
-
       # `docker compose up` no recrea el proxy si només canvia el contingut
       # d'`http_top.conf` (límit de peticions, TG-351): es valida i es recarrega.
       # Si el desplegament l'ha recreat, NPM tarda a arrencar: fins que no genera
@@ -264,6 +251,22 @@ jobs:
             echo "nginx-proxy-manager no ha arrencat o no ha recarregat la configuració en 180 s" >&2
             docker compose exec -T reverse-proxy nginx -t
             exit 1'
+
+      # El panell (TG-77): es copia al volum `perseida_admin_dist`, que NPM serveix a /admin/.
+      # Va després de `deploy.sh` (el volum ja existeix) i de la recàrrega del proxy: si la
+      # publicació falla, la configuració de TG-351 ja s'ha aplicat. No atura l'API ni el proxy:
+      # els fitxers es canvien al volum i nginx els llegeix a cada petició. Si el paquet no és
+      # bo, `install-admin-dist.sh` falla i no toca el que hi havia.
+      - name: Baixar el paquet del panell
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: admin-dist
+
+      - name: Publicar el panell d'administració
+        shell: bash
+        run: |
+          scp -q infra/scripts/install-admin-dist.sh virtech:/opt/perseida/
+          ssh virtech 'cd /opt/perseida && sh install-admin-dist.sh' < admin-dist.tar.gz
 
       - name: Tancar la sessió de GHCR al servidor
         if: always()
