@@ -4,7 +4,7 @@ tipus: arquitectura
 estat: vigent
 data: "2026-11-26"
 us: ["TG-85", "TG-40", "TG-70", "TG-113", "TG-45", "TG-135", "TG-351", "TG-60", "TG-56", "TG-628", "TG-629", "TG-53", "TG-64", "TG-58", "TG-654", "TG-51", "TG-399", "TG-400", "TG-469", "TG-470", "TG-65"]
-font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-399 i TG-400 (domini del xat directe, 2026-11-21); TG-469 (autor {id, name} al missatge del xat, 2026-11-21); TG-470 (autor als missatges, ADR-0033, 2026-11-20); TG-65 i backend/app/infrastructure/direct_chat (23/11/2026)"
+font: "incepció 2 §7 (diagrama de classes UML, inc2_18.png); Taiga: backlog (llistat de US, 2026-10-07); decisions de Raquel a TG-351, tasca #474 (09/11/2026); TG-50 i ADR-0031 (10/11/2026); TG-56, tasques #537 a #541 (decisió de l'equip: el dia de la ratxa és UTC, 11/11/2026); TG-628, tasques #630 a #635 (17/11/2026); TG-53, tasques #557 a #560 i decisions de la persona responsable (17/11/2026); TG-64, tasques #448 i #450 (persistència del xat, 18/11/2026); TG-58, tasques #570 a #573 (motor de fites, 18/11/2026); TG-654 (client_message_id a chat_messages, 2026-11-19); TG-51, tasques #549 a #551 (llistat filtrable, 19/11/2026); TG-399 i TG-400 (domini del xat directe, 2026-11-21); TG-469 (autor {id, name} al missatge del xat, 2026-11-21); TG-470 (autor als missatges, ADR-0033, 2026-11-20); TG-65 i backend/app/infrastructure/direct_chat (23/11/2026); TG-70, tasques #495, #496, #498 i #499 (zones d'observació, 2026-11-25)"
 etiquetes: [arquitectura, domini, uml, model]
 ---
 
@@ -26,6 +26,9 @@ Classes del diagrama UML de la incepció 2 (§7), agrupades pels seus quatre paq
 
 > [!info] Implementat: fites
 > `Achievement` i `UserAchievement` ja tenen entitats, taules, catàleg de 34 fites i el motor que les desbloqueja (TG-58); vegeu [[#Fites (implementat)]].
+
+> [!info] Implementat: zones d'observació
+> `ObservationZone` ja té entitat, taula i consulta per proximitat (TG-70), amb `name` afegit al diagrama; vegeu [[#Zona d'observació (implementat al backend)]].
 
 ## Gamificació
 
@@ -300,6 +303,20 @@ A l'app (`src/features/posts/`), la secció `EventPosts` va al final de la fitxa
 
 > [!todo] Pendent
 > - Moderació del text (TG-81) i imatges (TG-68).
+
+## Zona d'observació (implementat al backend)
+
+Entitat a `app/domain/observation_zones/models.py`, port a `ports.py` i codis a `errors.py` (TG-70). Concreta `ObservationZone` del diagrama: `zoneId` és `id` (UUIDv7) i s'hi afegeix `name`; la ubicació és el `Location` compartit (`app/domain/shared/location.py`). `cloudCoverage`, `lightPollution` i `recommendationScore` no hi són: els calcula TG-71.
+
+| Classe | Atributs |
+|---|---|
+| `ObservationZone` | `id: UUID`, `name: str` (no buit), `location: Location` |
+| `ZoneProximity` | `location: Location`, `radius_km: float` (> 0 i finit, sense màxim) |
+| `ZoneDistance` | `zone: ObservationZone`, `distance_km: float` |
+
+`ObservationZone.create(name, latitude, longitude)` i `ZoneProximity.create(latitude, longitude, radius_km)` validen i llancen `ValidationError` amb `OBSERVATION_ZONE_LATITUDE_INVALID` (fora de [-90, 90]), `OBSERVATION_ZONE_LONGITUDE_INVALID` (fora de [-180, 180]) o `OBSERVATION_ZONE_RADIUS_INVALID` (radi ≤ 0 o infinit); també rebutgen `NaN`.
+
+Port `ObservationZoneRepository`: `save(zone)` i `find_within(near) -> list[ZoneDistance]`, de la més propera a la més llunyana (empat per `id`). L'implementa `SqlObservationZoneRepository` sobre la taula `observation_zones` ([[postgres#Taules]]). Encara no hi ha endpoint: el consumirà TG-71.
 
 ## Subscripció a un esdeveniment (implementat al backend)
 

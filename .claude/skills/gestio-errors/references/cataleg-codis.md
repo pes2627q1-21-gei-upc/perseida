@@ -74,6 +74,9 @@ Textos aprovats per Raquel (17/11/2026). Textos de `RATE_LIMITED`, `CHAT_INVALID
 | `OUTING_ENDS_BEFORE_START` | 422 | `ValidationError` | Sí | La sortida no pot acabar abans de començar. | La salida no puede terminar antes de empezar. | The outing can't end before it starts. | domain/outings (`ends_at` anterior a `starts_at`) |
 | `OUTING_STARTS_IN_PAST` | 422 | `ValidationError` | Sí | La sortida no pot començar en el passat. | La salida no puede empezar en el pasado. | The outing can't start in the past. | domain/outings (en crear, o en editar si canvien les dates) |
 | `OUTING_EVENT_NOT_FOUND` | 422 | `ValidationError` | Sí | Aquest esdeveniment ja no existeix. | Este evento ya no existe. | This event no longer exists. | domain/outings (`event_id` del cos que no existeix; application/outings) |
+| `OBSERVATION_ZONE_LATITUDE_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (latitud fora de [-90, 90] o NaN; TG-70, encara sense endpoint) |
+| `OBSERVATION_ZONE_LONGITUDE_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (longitud fora de [-180, 180] o NaN; TG-70, encara sense endpoint) |
+| `OBSERVATION_ZONE_RADIUS_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (radi ≤ 0 km o NaN; TG-70, encara sense endpoint) |
 | `OUTING_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta sortida no existeix o s'ha esborrat. | Esta salida no existe o se ha borrado. | This outing doesn't exist or was deleted. | domain/outings (application/outings) |
 | `OUTING_FORBIDDEN` | 403 | `ForbiddenError` | No | Només qui ha creat la sortida la pot canviar. | Solo quien ha creado la salida puede cambiarla. | Only the person who created the outing can change it. | domain/outings (PATCH o DELETE d'una altra persona; application/outings) |
 
