@@ -53,6 +53,17 @@ class CheckTest(unittest.TestCase):
         self.assertIn("BACKUP_DIR", required)
         self.assertIn("BACKUP_KEEP", required)
 
+    def test_cd_workflow_makes_backup_dir_optional_not_excluded(self) -> None:
+        import re
+
+        cd = (SCRIPT.parents[2] / ".github" / "workflows" / "cd.yml").read_text(encoding="utf-8")
+        exclude = re.search(r"^\s*ENV_EXCLUDE:(.*)$", cd, re.MULTILINE)
+        optional = re.search(r"^\s*ENV_OPTIONAL:(.*)$", cd, re.MULTILINE)
+        self.assertIsNotNone(exclude)
+        self.assertIsNotNone(optional)
+        self.assertNotIn("BACKUP_DIR", exclude.group(1).split())
+        self.assertIn("BACKUP_DIR", optional.group(1).split())
+
     def test_everything_defined_passes(self) -> None:
         code, _ = run_check({"DB_PASSWORD": "x"}, {"DB_PORT": "5432"}, "DB_PASSWORD")
         self.assertEqual(code, 0)
@@ -87,6 +98,59 @@ class CheckTest(unittest.TestCase):
         )
         self.assertEqual(code, 1)
         self.assertIn("SSH_HOST", err)
+
+
+def run_with_optional(
+    command: str, secrets: dict, variables: dict
+) -> tuple[int, str, str]:
+    """Plantilla amb `BACKUP_DIR` declarat opcional (`ENV_OPTIONAL`)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        template = Path(tmp, ".env.example")
+        template.write_text("DB_PORT=\nBACKUP_DIR=\n", encoding="utf-8")
+        env = {
+            **os.environ,
+            "ENV_TEMPLATE": str(template),
+            "ENV_OPTIONAL": "BACKUP_DIR",
+            "SECRETS_JSON": json.dumps(secrets),
+            "VARS_JSON": json.dumps(variables),
+        }
+        done = subprocess.run(
+            [sys.executable, str(SCRIPT), command], env=env, capture_output=True
+        )
+    return done.returncode, done.stdout.decode("utf-8"), done.stderr.decode("utf-8")
+
+
+class OptionalNamesTest(unittest.TestCase):
+    def test_check_passes_without_the_optional_name(self) -> None:
+        code, _, err = run_with_optional("check", {}, {"DB_PORT": "5432"})
+        self.assertEqual(code, 0, err)
+
+    def test_check_still_requires_the_other_names(self) -> None:
+        code, _, err = run_with_optional("check", {}, {})
+        self.assertEqual(code, 1)
+        self.assertIn("DB_PORT", err)
+        self.assertNotIn("BACKUP_DIR", err)
+
+    def test_check_rejects_an_optional_value_that_cannot_be_rendered(self) -> None:
+        code, _, err = run_with_optional(
+            "check", {}, {"DB_PORT": "5432", "BACKUP_DIR": "/a'b"}
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("BACKUP_DIR", err)
+
+    def test_render_writes_the_optional_name_when_defined(self) -> None:
+        code, out, err = run_with_optional(
+            "render", {}, {"DB_PORT": "5432", "BACKUP_DIR": "/srv/backups"}
+        )
+        self.assertEqual(code, 0, err)
+        self.assertIn("BACKUP_DIR='/srv/backups'\n", out)
+        self.assertIn("DB_PORT='5432'\n", out)
+
+    def test_render_skips_the_optional_name_when_undefined(self) -> None:
+        code, out, err = run_with_optional("render", {}, {"DB_PORT": "5432"})
+        self.assertEqual(code, 0, err)
+        self.assertNotIn("BACKUP_DIR", out)
+        self.assertEqual(out, "DB_PORT='5432'\n")
 
 
 if __name__ == "__main__":
