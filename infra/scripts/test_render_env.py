@@ -117,7 +117,7 @@ def run_with_optional(
         done = subprocess.run(
             [sys.executable, str(SCRIPT), command], env=env, capture_output=True
         )
-    return done.returncode, done.stdout.decode("utf-8"), done.stderr.decode("utf-8")
+    return done.returncode, done.stdout.decode("utf-8", "replace"), done.stderr.decode("utf-8", "replace")
 
 
 class OptionalNamesTest(unittest.TestCase):
