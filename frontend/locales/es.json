@@ -210,10 +210,10 @@
     "VALIDATION_ERROR": "Revisa los datos introducidos.",
     "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
     "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
-    "USER_NOT_FOUND": "No se ha encontrado este usuario.",
-    "CANNOT_MESSAGE_SELF": "No puedes abrir una conversación contigo mismo.",
-    "CONVERSATION_NOT_FOUND": "No se ha encontrado esta conversación.",
-    "USER_BLOCKED": "No se puede enviar el mensaje.",
+    "USER_NOT_FOUND": "No hemos encontrado a este usuario.",
+    "CANNOT_MESSAGE_SELF": "No puedes enviarte mensajes a ti mismo.",
+    "CONVERSATION_NOT_FOUND": "Esta conversación no existe.",
+    "USER_BLOCKED": "Ahora no puedes enviar mensajes en esta conversación.",
     "DIRECT_IDEMPOTENCY_CONFLICT": "Este mensaje ya existe con otro contenido."
   },
   "events": {
