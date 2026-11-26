@@ -78,11 +78,17 @@ async def test_get_returns_the_conversation_or_none() -> None:
 
 async def test_mark_read_persists_and_returns_the_updated_conversation() -> None:
     # TG-65 criteri 11
-    repository: DirectConversationRepository = InMemoryDirectConversationRepository()
+    fake = InMemoryDirectConversationRepository()
+    fake.message_source = InMemoryDirectMessageRepository()
+    repository: DirectConversationRepository = fake
     conversation, _ = await repository.get_or_create(USER_1, USER_2)
     at = datetime.now(UTC)
+    message = _message(conversation.id, sent_at=at)
+    await fake.message_source.add(message)
 
-    updated = await repository.mark_read(conversation.id, conversation.user_a_id, at)
+    updated = await repository.mark_read_through(
+        conversation.id, conversation.user_a_id, message.id
+    )
 
     assert updated.user_a_read_at == at
     assert updated.user_b_read_at is None

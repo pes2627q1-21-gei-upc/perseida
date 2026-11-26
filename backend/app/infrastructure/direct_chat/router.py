@@ -13,6 +13,7 @@ from app.infrastructure.direct_chat.schemas import (
     DirectConversationResponse,
     DirectHistoryResponse,
     DirectMessageResponse,
+    MarkDirectReadRequest,
     OpenDirectConversationRequest,
 )
 from app.infrastructure.users.dependencies import UserServiceDep
@@ -109,12 +110,13 @@ async def direct_history(
 )
 async def mark_direct_read(
     conversation_id: uuid.UUID,
+    body: MarkDirectReadRequest,
     session: CurrentSessionDep,
     users: UserServiceDep,
     chat: DirectChatServiceDep,
 ) -> Response:
     user = await users.get_profile(session.sub)
-    await chat.mark_read(user.id, conversation_id)
+    await chat.mark_read_through(user.id, conversation_id, body.last_message_id)
     return Response(status_code=204)
 
 

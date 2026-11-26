@@ -80,7 +80,7 @@ afterEach(() => {
 it('TG-65 criterion 11 invalidates the inbox for a message in another conversation without marking it read', async () => {
   const { result } = await renderHook(() => useDirectConversation(OPEN), { wrapper });
   await waitFor(() => expect(mockListener).toEqual(expect.any(Function)));
-  await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith(OPEN));
+  await waitFor(() => expect(mockRefetch).toHaveBeenCalled());
   mockMarkRead.mockClear();
 
   await act(async () =>

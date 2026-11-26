@@ -91,12 +91,12 @@ const holdHistory = () => {
   jest.mocked(fetchMessages).mockImplementation(
     () =>
       new Promise((resolve) => {
-        held.push(() => resolve(page([])));
+        held.push(() => resolve(page([message])));
       }),
   );
 };
 /** The conversations the API was asked to mark as read. */
-const markedRead = () => jest.mocked(markRead).mock.calls.map(([id]) => id);
+const markedRead = () => jest.mocked(markRead).mock.calls.map(([input]) => input.conversationId);
 const answerHeld = () => act(async () => held.splice(0).forEach((answer) => answer()));
 
 beforeEach(() => {
@@ -143,7 +143,12 @@ describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
         mine: false,
       }),
     );
-    await waitFor(() => expect(jest.mocked(markRead).mock.calls[0]?.[0]).toBe(CONVERSATION));
+    await waitFor(() =>
+      expect(jest.mocked(markRead).mock.calls[0]?.[0]).toEqual({
+        conversationId: CONVERSATION,
+        lastMessageId: message.id,
+      }),
+    );
   });
 
   it('manté l’ordre del servidor i hi col·loca els missatges en directe pel seu moment i id', async () => {
@@ -165,6 +170,13 @@ describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
     });
 
     expect(messageIds(result.current.items)).toEqual(['latest', 'tie-z', 'tie-b', 'older']);
+  });
+
+  it('no marca com a llegida una conversa amb l’històric buit', async () => {
+    await mount();
+    await act(async () => {});
+
+    expect(markRead).not.toHaveBeenCalled();
   });
 
   it('envia un dm.send amb la conversa, el text i un id generat pel client', async () => {
@@ -295,12 +307,19 @@ describe('useDirectConversation (TG-65 criteris 5, 9, 11)', () => {
   });
 
   it('marca la conversa com a llegida també quan hi arriba un missatge', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
     await mount();
     await waitFor(() => expect(markRead).toHaveBeenCalledTimes(1));
+    const next = { ...message, id: 'message-2', sent_at: '2026-11-22T12:05:00Z' };
+    jest.mocked(fetchMessages).mockResolvedValue(page([next, message]));
 
-    await act(async () => emit({ type: 'dm.message', payload: message }));
+    await act(async () => emit({ type: 'dm.message', payload: next }));
 
     await waitFor(() => expect(markRead).toHaveBeenCalledTimes(2));
+    expect(jest.mocked(markRead).mock.calls[1]?.[0]).toEqual({
+      conversationId: CONVERSATION,
+      lastMessageId: 'message-2',
+    });
   });
 
   it.each(['id', 'conversation_id', 'sender_id', 'text', 'sent_at'] as const)(
@@ -413,6 +432,7 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
   });
 
   it('no marca com a llegit en segon pla i recarrega l’històric abans de marcar en tornar', async () => {
+    jest.mocked(fetchMessages).mockResolvedValue(page([message]));
     await mount();
     await waitFor(() => expect(markRead).toHaveBeenCalledTimes(1));
     jest.mocked(markRead).mockClear();
@@ -427,6 +447,63 @@ describe('useDirectConversation: nom, lectura i anuncis (review de TG-65)', () =
     expect(markRead).not.toHaveBeenCalled();
     await answerHeld();
     await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
+  });
+
+  it('marca fins al darrer missatge carregat si en arriba un mentre es refresca l’històric', async () => {
+    const m4 = { ...message, id: 'm4', sent_at: '2026-11-22T11:00:00Z' };
+    const m5 = { ...message, id: 'm5', sent_at: '2026-11-22T12:00:00Z' };
+    jest.mocked(fetchMessages).mockResolvedValue(page([m4]));
+    const { result } = await mount();
+    await waitFor(() => expect(markedRead()).toContain(CONVERSATION));
+    jest.mocked(markRead).mockClear();
+
+    await act(async () => appStateListeners.forEach((listener) => listener('background')));
+    let answer: (() => void) | undefined;
+    jest.mocked(fetchMessages).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve(page([m4]));
+        }),
+    );
+    await act(async () => appStateListeners.forEach((listener) => listener('active')));
+    await waitFor(() => expect(answer).toBeDefined());
+    // m5 arrives while the refresh is on its way; the next read of the history already has it.
+    jest.mocked(fetchMessages).mockResolvedValue(page([m5, m4]));
+    await act(async () => emit({ type: 'dm.message', payload: m5 }));
+    await act(async () => answer?.());
+
+    await waitFor(() => expect(messageIds(result.current.items)).toEqual(['m5', 'm4']));
+    await waitFor(() => expect(markRead).toHaveBeenCalled());
+    const marked = jest.mocked(markRead).mock.calls.map(([input]) => input.lastMessageId);
+    expect(marked.at(-1)).toBe('m5');
+    expect(marked).not.toContain('m4');
+  });
+
+  it('no perd la pàgina d’antics que es carrega quan hi arriba un missatge en directe', async () => {
+    const newest = { ...message, id: 'm5', sent_at: '2026-11-22T12:00:00Z' };
+    const live = { ...message, id: 'm6', sent_at: '2026-11-22T13:00:00Z' };
+    const older = { ...message, id: 'm1', sent_at: '2026-11-22T10:00:00Z' };
+    let answerOlder: (() => void) | undefined;
+    jest.mocked(fetchMessages).mockImplementation((_id: string, cursor?: string) =>
+      cursor
+        ? new Promise((resolve) => {
+            answerOlder = () => resolve(page([older]));
+          })
+        : Promise.resolve(page([newest], 'cursor-1')),
+    );
+    const { result } = await mount();
+    await waitFor(() => expect(markRead).toHaveBeenCalled());
+
+    await act(async () => result.current.loadOlder());
+    await waitFor(() => expect(answerOlder).toBeDefined());
+    // Returning to the app refreshes the history while the older page is on its way.
+    await act(async () => appStateListeners.forEach((listener) => listener('background')));
+    await act(async () => appStateListeners.forEach((listener) => listener('active')));
+    await act(async () => emit({ type: 'dm.message', payload: live }));
+    await act(async () => answerOlder?.());
+
+    await waitFor(() => expect(messageIds(result.current.items)).toContain('m1'));
+    expect(messageIds(result.current.items)).toContain('m6');
   });
 
   it('no marca com a llegit si l’històric respon quan ja s’ha perdut el focus', async () => {

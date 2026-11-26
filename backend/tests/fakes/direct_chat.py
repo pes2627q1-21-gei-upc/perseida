@@ -2,10 +2,10 @@
 
 import uuid
 from collections.abc import Collection
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timedelta
 
 from app.application.shared.errors import ExternalServiceError
+from app.domain.direct_chat.errors import CONVERSATION_NOT_FOUND
 from app.domain.direct_chat.models import (
     ConversationSummary,
     DirectConversation,
@@ -14,6 +14,7 @@ from app.domain.direct_chat.models import (
     DirectMessagePage,
     UserBlock,
 )
+from app.domain.shared.errors import NotFoundError
 from app.domain.shared.moderation import ModerationResult
 from tests.fakes.chat import ChatFakes
 
@@ -41,17 +42,32 @@ class InMemoryDirectConversationRepository:
     async def get(self, conversation_id: uuid.UUID) -> DirectConversation | None:
         return self.conversations.get(conversation_id)
 
-    async def mark_read(
-        self, conversation_id: uuid.UUID, user_id: uuid.UUID, at: datetime
+    async def mark_read_through(
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, message_id: uuid.UUID
     ) -> DirectConversation:
-        updated = self.conversations[conversation_id].mark_read(user_id, at)
+        assert self.message_source is not None
+        message = next(
+            (
+                m
+                for m in self.message_source.messages
+                if m.id == message_id and m.conversation_id == conversation_id
+            ),
+            None,
+        )
+        if message is None:
+            raise NotFoundError(
+                CONVERSATION_NOT_FOUND, "The conversation or message does not exist"
+            )
+        updated = self.conversations[conversation_id].mark_read(
+            user_id, message.sent_at
+        )
         self.conversations[conversation_id] = updated
         return updated
 
     async def list_of(self, user_id: uuid.UUID) -> list[DirectConversation]:
         return [c for c in self.conversations.values() if c.has_participant(user_id)]
 
-    async def summaries_of(self, user_id: uuid.UUID) -> list[Any]:
+    async def summaries_of(self, user_id: uuid.UUID) -> list[ConversationSummary]:
         self.summaries_calls += 1
         assert self.message_source is not None
         summaries = []
@@ -108,6 +124,19 @@ class InMemoryDirectMessageRepository:
         )
         if existing is not None:
             return existing
+        # Like the real repository: ``sent_at`` is strictly increasing per conversation.
+        latest = max(
+            (
+                m.sent_at
+                for m in self.messages
+                if m.conversation_id == message.conversation_id
+            ),
+            default=None,
+        )
+        if latest is not None and message.sent_at <= latest:
+            message = message.model_copy(
+                update={"sent_at": latest + timedelta(microseconds=1)}
+            )
         self.messages.append(message)
         self.outbox.append((message, origin))
         return message

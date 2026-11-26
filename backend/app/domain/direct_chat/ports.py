@@ -37,17 +37,12 @@ class DirectConversationRepository(Protocol):
         """
         ...
 
-    async def mark_read(
-        self, conversation_id: uuid.UUID, user_id: uuid.UUID, at: datetime
+    async def mark_read_through(
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, message_id: uuid.UUID
     ) -> DirectConversation:
-        """Move the read mark of ``user_id`` to ``at`` (never backwards).
+        """Advance through a message in this conversation, never beyond it or backwards.
 
-        ``at`` must be timezone-aware.
-
-        Raises:
-            NotFoundError: CONVERSATION_NOT_FOUND if the conversation does not
-                exist or ``user_id`` is a stranger.
-            ExternalServiceError: if the database is unavailable.
+        Raises NotFoundError if the conversation, participant or message is invalid.
         """
         ...
 
@@ -94,6 +89,11 @@ class DirectMessageRepository(Protocol):
 
         If the sender already stored a message with the same ``client_message_id``
         (a concurrent retry), nothing is inserted and that one is returned.
+
+        The returned message may differ from ``message`` in ``sent_at``: the
+        repository keeps it strictly increasing per conversation, so a message
+        sent at or before the latest stored one gets a moment just after it. That
+        is what makes ``(sent_at, id)`` order, cursors and read marks unambiguous.
 
         Raises:
             ExternalServiceError: if the database is unavailable.

@@ -27,3 +27,7 @@ class DirectMessageResponse(BaseModel):
 class DirectHistoryResponse(BaseModel):
     messages: list[DirectMessageResponse]
     next_cursor: str | None
+
+
+class MarkDirectReadRequest(BaseModel):
+    last_message_id: uuid.UUID

@@ -1,8 +1,6 @@
 """Application use cases for the direct chat between two users (US #65)."""
 
 import uuid
-from collections.abc import Callable
-from datetime import UTC, datetime
 
 from app.application.direct_chat.models import (
     ConversationOverview,
@@ -51,10 +49,6 @@ HISTORY_DEFAULT_LIMIT = 50
 HISTORY_MAX_LIMIT = 50
 
 
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
 def _preview(text: str) -> str:
     if len(text) <= PREVIEW_MAX_LENGTH:
         return text
@@ -72,7 +66,6 @@ class DirectChatService:
         moderator: MessageModerator,
         broadcaster: DirectMessageBroadcaster,
         push: PushNotifier,
-        now: Callable[[], datetime] = _utc_now,
     ) -> None:
         self._conversations = conversations
         self._messages = messages
@@ -82,7 +75,6 @@ class DirectChatService:
         self._moderator = moderator
         self._broadcaster = broadcaster
         self._push = push
-        self._now = now
 
     async def open_conversation(
         self, user_id: uuid.UUID, other_user_id: uuid.UUID
@@ -261,16 +253,14 @@ class DirectChatService:
             ),
         )
 
-    async def mark_read(self, user_id: uuid.UUID, conversation_id: uuid.UUID) -> None:
-        """Mark the conversation as read by ``user_id`` up to now.
-
-        Raises:
-            NotFoundError: CONVERSATION_NOT_FOUND if it does not exist or
-                ``user_id`` is not a participant.
-            ExternalServiceError: if the database is unavailable.
-        """
+    async def mark_read_through(
+        self, user_id: uuid.UUID, conversation_id: uuid.UUID, message_id: uuid.UUID
+    ) -> None:
+        """Mark only the messages through the one the participant has loaded."""
         await self._participant_conversation(user_id, conversation_id)
-        await self._conversations.mark_read(conversation_id, user_id, self._now())
+        await self._conversations.mark_read_through(
+            conversation_id, user_id, message_id
+        )
 
     async def block_user(self, user_id: uuid.UUID, other_user_id: uuid.UUID) -> None:
         """Block ``other_user_id``: idempotent; the history is kept.
