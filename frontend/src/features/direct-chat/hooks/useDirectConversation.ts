@@ -80,7 +80,9 @@ export function useDirectConversation(conversationId: string, otherName?: string
           const latest = asChatHistory(await fetchMessages(conversationId));
           if (cancelled) return;
           queryClient.setQueryData<ChatHistoryData>(historyKey, (cached) =>
-            [...latest.messages].reverse().reduce(addMessage, cached),
+            [...latest.messages]
+              .reverse()
+              .reduce((history, message) => addMessage(history, message), cached),
           );
           // The server's first page is contiguous from its newest message: that is the cursor,
           // so nothing that was never loaded is marked.
