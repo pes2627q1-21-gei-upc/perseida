@@ -505,6 +505,18 @@ describe('Login screen', () => {
     expect(screen.getByText(TEXT.logoutNotConfirmed)).toBeOnTheScreen();
   });
 
+  it.each(['ACCOUNT_SUSPENDED', 'ACCOUNT_DELETED'])(
+    'TG-656: shows the translated %s message when it comes from the chat',
+    async (code) => {
+      mockParams = { notice: code };
+
+      await renderScreen();
+
+      expect(screen.getByText(authErrorMessage(code))).toBeOnTheScreen();
+      expect(screen.queryByText(TEXT.logoutNotConfirmed)).not.toBeOnTheScreen();
+    },
+  );
+
   it('shows no notice for an unknown notice param', async () => {
     mockParams = { notice: 'something-else' };
 

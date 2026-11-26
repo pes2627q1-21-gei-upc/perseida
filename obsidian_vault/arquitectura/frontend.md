@@ -248,7 +248,8 @@ La pantalla és `ChatRoomScreen` (`features/chat/components/`), a la ruta `src/a
 - **Proves (TG-469):** `jest.setup.js` fa que els temporitzadors de TanStack Query (`timeoutManager`) siguin `unref`, i `__mocks__/pendingResponses.ts` substitueix els mocks de `fetch` que no es resolien mai; així la suite ja no mostra «worker failed to exit gracefully».
 - **Límits coneguts:**
   - `DATABASE_UNAVAILABLE` i `INTERNAL_ERROR` en enviar es tracten com a incerts (`uncertain`: status 5xx): és segur gràcies a la idempotència per `client_message_id`, i no ofereixen «Descarta».
-  - `ACCOUNT_SUSPENDED` i `ACCOUNT_DELETED` en enviar són una bombolla `failed` normal; no es tracten de manera especial.
+  - `ACCOUNT_SUSPENDED` i `ACCOUNT_DELETED` en enviar (TG-656): la bombolla queda `failed` i `useLiveConversation` tanca la sessió (`clearSession`) i porta a `/login` amb `notice=<codi>`, que mostra el text traduït (`errors.ACCOUNT_SUSPENDED` i `errors.ACCOUNT_DELETED`, via `authErrorMessage`). Val per al xat d'esdeveniment i el directe. Només al xat: les altres pantalles no tenen un tractament global d'aquests codis.
+  - El handshake del WebSocket només valida el token (ADR-0030); el 403 `ACCOUNT_*` el donen els handlers en enviar.
   - Una primera obertura costa una petició extra de l'historial si ja havia arribat abans de l'ack del `subscribe`.
 - **A comprovar al dispositiu (pendent):** teclat a iOS (`padding`) i a Android (redimensionament de la finestra); l'ordre de lectura de VoiceOver i TalkBack a la llista invertida; que TalkBack torni a llegir la regió viva tornada a muntar; el cost de les ombres en llistes llargues a Android; i que amb una mida de lletra per sobre d'1,4 aprox. les etiquetes curtes de la barra facin salt de línia.
 

@@ -14,7 +14,10 @@ import { directChatKeys } from './useDirectChat';
 import { useDirectConversation } from './useDirectConversation';
 
 let mockIsFocused = true;
-jest.mock('expo-router', () => ({ useIsFocused: () => mockIsFocused }));
+jest.mock('expo-router', () => ({
+  useIsFocused: () => mockIsFocused,
+  useRouter: () => ({ replace: jest.fn() }),
+}));
 jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(),
   getItemAsync: jest.fn(async () => null),

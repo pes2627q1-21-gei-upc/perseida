@@ -6,7 +6,10 @@ import { AppState } from 'react-native';
 import type { ServerFrame } from '../../../shared/realtime';
 import { useDirectConversation } from './useDirectConversation';
 
-jest.mock('expo-router', () => ({ useIsFocused: () => true }));
+jest.mock('expo-router', () => ({
+  useIsFocused: () => true,
+  useRouter: () => ({ replace: jest.fn() }),
+}));
 const mockMarkRead = jest.fn();
 const originalAppState = Object.getOwnPropertyDescriptor(AppState, 'currentState')!;
 const mockRefetch = jest.fn();
