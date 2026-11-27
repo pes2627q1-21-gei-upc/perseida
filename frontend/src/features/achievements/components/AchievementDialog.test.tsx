@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 
 import { achievement } from '../../../../__mocks__/achievements';
 import { AppError } from '../../../shared/errors';
@@ -115,7 +116,7 @@ describe('AchievementDialog (TG-59 #578)', () => {
 
   it('the share button is free again after a failure, so it can be tried once more', async () => {
     shareMock.mockRejectedValue(
-      new AppError({ kind: 'network', code: 'SHARE_FAILED', retryable: false }),
+      new AppError({ kind: 'http', code: 'SHARE_FAILED', status: 0, retryable: true }),
     );
     await renderDialog();
 
@@ -128,15 +129,46 @@ describe('AchievementDialog (TG-59 #578)', () => {
     );
   });
 
-  it('the error is announced once, as an alert, without a second live region', async () => {
-    shareMock.mockRejectedValue(
-      new AppError({ kind: 'network', code: 'SHARE_FAILED', retryable: false }),
-    );
-    await renderDialog();
+  describe('the share error is announced once, whatever the platform (WCAG 4.1.3)', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Compartir' }));
+    const failShare = async () => {
+      shareMock.mockRejectedValue(
+        new AppError({ kind: 'http', code: 'SHARE_FAILED', status: 0, retryable: true }),
+      );
+      await renderDialog();
+      await fireEvent.press(screen.getByRole('button', { name: 'Compartir' }));
+      return screen.findByRole('alert');
+    };
 
-    expect(await screen.findByRole('alert')).not.toHaveProp('accessibilityLiveRegion');
+    it('on Android the alert is a polite live region and nothing is announced by hand', async () => {
+      jest.replaceProperty(Platform, 'OS', 'android');
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockClear();
+
+      expect(await failShare()).toHaveProp('accessibilityLiveRegion', 'polite');
+      expect(announce).not.toHaveBeenCalled();
+    });
+
+    it('on iOS it is announced by hand, since the live region is not enough', async () => {
+      jest.replaceProperty(Platform, 'OS', 'ios');
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockClear();
+
+      await failShare();
+
+      expect(announce).toHaveBeenCalledWith(
+        "No s'ha pogut obrir el menú de compartir. Torna-ho a provar.",
+      );
+    });
+
+    it('on the web the role alert is enough: no second live region, no announcement', async () => {
+      jest.replaceProperty(Platform, 'OS', 'web');
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockClear();
+
+      expect(await failShare()).not.toHaveProp('accessibilityLiveRegion');
+      expect(announce).not.toHaveBeenCalled();
+    });
   });
 
   it('the window is closed while there is no achievement', async () => {
@@ -181,7 +213,7 @@ describe('AchievementDialog (TG-59 #578)', () => {
 
   it('a real failure of the share menu is explained inside the dialog', async () => {
     shareMock.mockRejectedValue(
-      new AppError({ kind: 'network', code: 'SHARE_FAILED', retryable: false }),
+      new AppError({ kind: 'http', code: 'SHARE_FAILED', status: 0, retryable: true }),
     );
     await renderDialog();
 
@@ -194,7 +226,7 @@ describe('AchievementDialog (TG-59 #578)', () => {
 
   it('the error of an achievement does not follow the next one that is opened', async () => {
     shareMock.mockRejectedValue(
-      new AppError({ kind: 'network', code: 'SHARE_FAILED', retryable: false }),
+      new AppError({ kind: 'http', code: 'SHARE_FAILED', status: 0, retryable: true }),
     );
     const { rerender, onClose } = await renderDialog();
     await fireEvent.press(screen.getByRole('button', { name: 'Compartir' }));
