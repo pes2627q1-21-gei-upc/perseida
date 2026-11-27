@@ -34,10 +34,10 @@ Totes acordades amb la Simona durant la sessió.
 - **Compartir només text**, sense imatge ni dependència nova.
 - **Títol de la secció:** «Les teves insígnies» (es «Tus insignias», en «Your badges»).
 - **Contrast:** el nom del trofeu sobre el cel donava 2,33:1 al tema `posta`; la quadrícula va dins d'un `GlassPanel` i el títol es queda sobre el cel, com a TG-57.
-- **`SHARE_FAILED` amb `kind: 'network'`:** `AppErrorKind` només té `http` i `network`. Queda com a decisió d'equip pendent.
+- **`SHARE_FAILED`:** després de la review de la PR #168 és `kind: 'http'`, `status: 0` i `retryable: true` (com `GOOGLE_SIGN_IN_*`), i és al catàleg de codis.
 
 > [!warning] Desviacions dels criteris de la US a Taiga
-> Els criteris 1 a 4 diuen files amb icona, nom, descripció i barra, i un missatge si no n'hi ha cap de desbloquejada. El que s'ha fet és una quadrícula de trofeus, sense barra a les pendents i sense missatge. El criteri 5 (compartir) i el 7 (idiomes) es compleixen. Cal actualitzar els criteris a Taiga abans de la review.
+> Els criteris 1 a 4 diuen files amb icona, nom, descripció i barra, i un missatge si no n'hi ha cap de desbloquejada. El que s'ha fet és una quadrícula de trofeus, sense barra a les pendents i sense missatge. El criteri 5 (compartir) i el 7 (idiomes) es compleixen. Els criteris ja estan actualitzats a Taiga.
 
 ## Verificació
 
@@ -49,7 +49,8 @@ Totes acordades amb la Simona durant la sessió.
 | Tipus (`tsc`) i ESLint | sense errors |
 | Contrast (`contrast.py`) | candau pendent 5,3 a 9,3:1 als quatre temes; nom sobre el cel 2,33:1 a la posta (corregit amb el vidre) |
 
-- **Pendent de mesurar** el contrast del nom dins de la targeta de vidre als quatre temes, i la prova manual al mòbil i a la web (aspecte, foco en obrir i tancar la finestra, menú de compartir).
+- **Contrast dins el `GlassPanel`** (`contrast.py`, sobre el pitjor cel de cada tema; mesurat a la review de la PR #168): nom i descripció (`text.primary`) 13,8 (`dia`), 8,3 (`posta`), 15,7 (`nit`) i 11,4:1 (`vermell`); text secundari 7,2, 5,3, 10,1 i 7,5:1. Tot ≥ 4,5:1.
+- **Pendent:** la prova manual al mòbil i a la web (aspecte, focus en obrir i tancar la finestra, menú de compartir).
 - **Estètica** («Frutiger Cosmo»): comprovada només per codi i tokens; no s'ha vist en pantalla.
 
 ## Errors de testing trobats
@@ -64,10 +65,11 @@ Totes acordades amb la Simona durant la sessió.
 
 ## Pendent / següents passos
 
-- [ ] Actualitzar els criteris de la US a Taiga (disseny de trofeus, sense barra a les pendents, sense missatge buit).
-- [ ] Prova manual a mòbil i web, i mesurar el contrast dins la targeta de vidre.
+- [x] Actualitzar els criteris de la US a Taiga.
+- [ ] Prova manual a mòbil i web.
 - [ ] Obrir la PR, CI verda i aprovació d'una persona que no sigui l'autora.
-- [ ] Decidir `AppErrorKind` per als errors del client (`SHARE_FAILED`) i què fer al web sense `navigator.share`.
+- [x] `AppErrorKind` de `SHARE_FAILED`: `http` amb `status: 0`.
+- [ ] Decidir què fer al web sense `navigator.share`.
 - [ ] Portar la lliçó de «test en vermell per motiu correcte» a la skill `testing-tdd`.
 - [ ] Icones pròpies per a les fites (ara es fa servir la de la categoria).
 
