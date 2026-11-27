@@ -70,7 +70,7 @@ Totes acordades amb la Simona durant la sessió.
 - [ ] Obrir la PR, CI verda i aprovació d'una persona que no sigui l'autora.
 - [x] `AppErrorKind` de `SHARE_FAILED`: `http` amb `status: 0`.
 - [ ] Decidir què fer al web sense `navigator.share`.
-- [ ] Portar la lliçó de «test en vermell per motiu correcte» a la skill `testing-tdd`.
+- [x] Portar la lliçó de «test en vermell per motiu correcte» a la skill `testing-tdd`.
 - [ ] Icones pròpies per a les fites (ara es fa servir la de la categoria).
 
 ## US de Taiga
