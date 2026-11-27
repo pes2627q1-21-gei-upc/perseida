@@ -36,4 +36,4 @@ Els mateixos tests, `AchievementsSection.test.tsx`, repetits tres cops amb Jest 
 
 ## Lliçó
 
-Convenció: en un test d'una pantalla que carrega dades, l'espera (`findBy*`) ha de ser sobre contingut que només apareix amb les dades, mai sobre el títol, el contenidor ni el panell de càrrega. Si es repeteix, s'afegeix a [[testing]].
+Convenció: en un test d'una pantalla que carrega dades, l'espera (`findBy*`) ha de ser sobre contingut que només apareix amb les dades, mai sobre el títol, el contenidor ni el panell de càrrega. Aplicada a [[testing]].

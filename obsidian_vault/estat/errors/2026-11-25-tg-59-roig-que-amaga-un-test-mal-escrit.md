@@ -40,4 +40,4 @@ Els mateixos tests, ja en verd, a `AchievementTrophy.test.tsx` i `AchievementDia
 
 ## Lliçó
 
-Skill `testing-tdd`: un test en vermell només és bo si falla pel motiu correcte. Quan el vermell és «mòdul inexistent», el test pot tenir errors que no es veuen fins al verd; cal crear primer un component buit que exporti el nom i comprovar que el test falla per l'aserció, no per l'import. Pendent de portar-ho a la skill.
+Skill `testing-tdd`: un test en vermell només és bo si falla pel motiu correcte. Quan el vermell és «mòdul inexistent», el test pot tenir errors que no es veuen fins al verd; cal crear primer un component buit que exporti el nom i comprovar que el test falla per l'aserció, no per l'import. Aplicat a la skill `testing-tdd` i a [[testing]].

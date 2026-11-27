@@ -3,7 +3,7 @@ titol: "Estratègia de proves"
 tipus: convencio
 estat: vigent
 data: "2026-11-21"
-us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362", "TG-383", "TG-384", "TG-657"]
+us: ["TG-85", "TG-35", "TG-353", "TG-360", "TG-359", "TG-628", "TG-450", "TG-652", "TG-385", "TG-362", "TG-383", "TG-384", "TG-657", "TG-59"]
 font: "TG-657 (retroalimentació de testing, 22/11/2026); memòria §2.5, §2.9.3; .github/workflows/ci.yml (PR #24, PR #80); ADR-0028 (TG-353); TG-359; decisió de la persona responsable a TG-628 (17/11/2026); review de la PR #109 (TG-64, tasca #450, 2026-11-18); TG-652; TG-385 (exclusió dels estils de Stryker, aprovada per la persona responsable el 18/11/2026); TG-362 (tasca TG-381: pytest-randomly i pytest-xdist; tasca TG-382: quarantena sense reintents, 20/11/2026; tasca TG-383: bandit i pip-audit, 21/11/2026; tasca TG-384: `pnpm audit`, 21/11/2026; `pnpm audit` bloquejant per decisió de l'equip al xat de l'equip, 21/11/2026)"
 etiquetes: [convencio, testing, tdd, cobertura, mutation, nfr]
 ---
@@ -75,6 +75,8 @@ TDD estricte a tot el backend i el frontend ([[0028-tdd-estricte-i-politica-de-t
 Cada error trobat en testing o verificació (vermell inesperat, prova manual, CI i mutants, review) es registra a `estat/errors/` amb la plantilla `error-de-testing` i es mira a [[errors-de-testing.base]]; el procediment és a [[retroalimentacio-de-testing]]. Lliçons ja recollides:
 
 - **Un test que simula la navegació no prova que la ruta existeixi.** Les rutes i els botons de navegació es proven amb el router real, no amb un `push` simulat ([[2026-11-18-tg-385-href-null-amaga-la-ruta]]).
+- **Un vermell per «mòdul inexistent» amaga errors del propi test.** Es crea abans un component o funció buit que exporti el nom, perquè el test falli per l'aserció ([[2026-11-25-tg-59-roig-que-amaga-un-test-mal-escrit]]). Aquesta lliçó és també a la skill `testing-tdd`.
+- **En un test d'una pantalla que carrega dades, l'espera (`findBy*`) és sobre contingut que només apareix amb les dades**, mai sobre el títol, el contenidor ni el panell de càrrega; si no, el test passa per sort de temps i falla sota Stryker ([[2026-11-25-tg-59-test-que-busca-abans-que-acabi-la-carrega]]).
 
 ### Tests inestables
 
