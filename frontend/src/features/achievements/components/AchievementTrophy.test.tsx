@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { achievement } from '../../../../__mocks__/achievements';
 import '../../../shared/i18n';
-import { colors } from '../../../shared/theme';
+import { colors, focusRingShadow } from '../../../shared/theme';
 import { AchievementTrophy } from './AchievementTrophy';
 
 const unlocked = achievement({
@@ -55,7 +55,7 @@ describe('AchievementTrophy (TG-59 #578)', () => {
   it('criterion 8: with the keyboard the trophy shows the focus ring, and loses it on leaving', async () => {
     await render(<AchievementTrophy achievement={unlocked} onPress={jest.fn()} />);
     const circle = screen.getByTestId('achievement-trophy-circle');
-    const ring = `0 0 0 2px ${colors.dia.focusRing}`;
+    const ring = focusRingShadow(colors.dia.focusRing);
 
     expect(circle).not.toHaveStyle({ boxShadow: ring });
     await fireEvent(screen.getByRole('button'), 'focus');
