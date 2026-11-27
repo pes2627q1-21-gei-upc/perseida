@@ -250,11 +250,22 @@ jobs:
       # En una PR apilada (stacked PRs de GitHub) `github.base_ref` val el tronc de la pila (`develop`) i no la
       # branca pare: mutaria tota la pila a cada capa (27 fitxers i 1224 mutants a la #130, 56 de 60 min). Amb
       # `--pr-number` l'script demana la base real de la PR a l'API REST i, si no la pot saber, usa `--base-branch`.
+      # Una PR `release/*` -> `main` diffeja contra `develop` i sense `--pr-number` (l'API donaria `main`): contra
+      # `main` mutaria tot l'sprint (176 fitxers a la #176, cancel·lada als 60 min, TG-664), i aquelles línies ja es van
+      # mutar a cada PR `feature/*` -> `develop`. Així només es muten els bugfixes fets a la mateixa release.
       - name: Mutation testing al frontend (Stryker >= 70%)
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: pnpm test:mutation --base-branch origin/${{ github.base_ref }} --pr-number ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ "$HEAD_REF" == release/* ]]; then
+            pnpm test:mutation --base-branch origin/develop
+          else
+            pnpm test:mutation --base-branch "origin/$BASE_REF" --pr-number "$PR_NUMBER"
+          fi
       - name: Publicar informe de cobertura
         uses: actions/upload-artifact@v7.0.1
         with:

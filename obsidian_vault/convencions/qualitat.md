@@ -2,9 +2,9 @@
 titol: "Qualitat del codi i Quality Gate"
 tipus: convencio
 estat: vigent
-data: "2026-10-28"
-us: ["TG-85", "TG-34", "TG-35", "TG-194", "TG-342", "TG-359"]
-font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24, PR #79, PR #82); frontend/package.json (script typecheck, TG-342); TG-194; TG-359"
+data: "2026-11-27"
+us: ["TG-85", "TG-34", "TG-35", "TG-194", "TG-342", "TG-359", "TG-664"]
+font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24, PR #79, PR #82); frontend/package.json (script typecheck, TG-342); TG-194; TG-359; TG-664 (PR #176, release 0.3.0: Stryker cancel·lat als 60 min, 27/11/2026)"
 etiquetes: [convencio, qualitat, ruff, mypy, eslint, sonarqube]
 ---
 
@@ -39,7 +39,7 @@ Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada pu
 
 Des de TG-359 (US #359), s'activen comprovacions de cobertura i mutation testing:
 - **Cobertura global:** `pnpm test --coverage --ci` fa complir el `coverageThreshold` del 80 % (línies, sentències, funcions i branques) definit a `jest.config.js`.
-- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament. En una PR apilada, la base del diff és la branca pare de la PR (l'script la consulta a l'API REST), no el tronc que dona `github.base_ref` (vegeu [[pr-apilades-amb-gh-stack]]).
+- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament. En una PR apilada, la base del diff és la branca pare de la PR (l'script la consulta a l'API REST), no el tronc que dona `github.base_ref` (vegeu [[pr-apilades-amb-gh-stack]]). En una PR `release/*` → `main`, la base és `origin/develop` (sense consultar l'API): contra `main` es mutaria tot l'sprint, que ja es va mutar a cada PR `feature/*` → `develop`, i el job passava dels 60 min (176 fitxers a la PR #176, TG-664). Així només es muten els bugfixes fets a la mateixa release.
 
 ## SonarQube Cloud (implementat a TG-194)
 
