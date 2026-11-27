@@ -10,7 +10,7 @@ import { useTabBarInset } from '../../navigation/useTabBarInset';
 import { useMySubscriptions } from '../../events/hooks/useSubscriptions';
 import { useRooms } from '../hooks/useChat';
 import { buildRoomList } from '../roomList';
-import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { useAnnounceOnIos } from '../../../shared/a11y/useAnnounceOnIos';
 import { ActionSurface } from './ActionSurface';
 import { ReloadFailedAlert } from './ReloadFailedAlert';
 import { RoomListItem } from './RoomListItem';

@@ -8,7 +8,51 @@
       "streaks": "Rachas"
     },
     "completed": "¡Enhorabuena! Has completado todos los logros de esta categoría.",
+    "descriptions": {
+      "ambaixador_del_cosmos": "Comparte 25 logros.",
+      "astrofisic": "Completa 100 quizzes.",
+      "astronom_aprenent": "Completa 10 quizzes.",
+      "cacador_d_eclipsis": "Suscríbete a 10 eventos.",
+      "calendari_celeste": "Exporta 10 eventos al calendario.",
+      "cartograf_celeste": "Completa 50 quizzes.",
+      "cel_clar": "Responde bien todas las preguntas de un quiz.",
+      "cicle_lunar": "Mantén la racha 30 días seguidos, un ciclo lunar entero.",
+      "colleccionista_d_aurores": "Suscríbete a 25 eventos.",
+      "comandant": "Gana 10 partidas al minijuego.",
+      "cumul_estellar": "Llega a 100 seguidores.",
+      "eclipsi_total": "Suscríbete a 50 eventos.",
+      "efemerides": "Exporta un evento al calendario.",
+      "estrella_fixa": "Mantén la racha 100 días seguidos.",
+      "estrella_polar": "Llega a 1.000 seguidores.",
+      "galaxia": "Llega a 500 seguidores.",
+      "gran_mestre_estellar": "Gana 50 partidas al minijuego.",
+      "llancament": "Juega tu primera partida al minijuego.",
+      "llegenda_cosmica": "Gana 100 partidas al minijuego.",
+      "lluna_plena": "Mantén la racha 14 días seguidos.",
+      "missio_complerta": "Gana una partida al minijuego.",
+      "orbita_compartida": "Sigue a otra persona por primera vez.",
+      "orbita_setmanal": "Mantén la racha 7 días seguidos.",
+      "perseida": "Mantén la racha 365 días seguidos, un año entero como la lluvia de estrellas.",
+      "postal_de_l_espai": "Comparte 10 logros.",
+      "primer_senyal": "Comparte un logro por primera vez.",
+      "primera_alineacio": "Suscríbete a tu primer evento.",
+      "primera_llum": "Entra en la app un día y abre la imagen astronómica del día.",
+      "record_galactic": "Supera tu récord personal 10 veces.",
+      "record_orbital": "Supera tu récord personal.",
+      "repte_llencat": "Reta a un amigo por primera vez.",
+      "satellit": "Consigue tu primer seguidor.",
+      "senyal_de_radio": "Envía tu primer mensaje en el chat.",
+      "telescopi_nou": "Completa tu primer quiz diario."
+    },
+    "dialog": {
+      "close": "Cerrar",
+      "share": "Compartir",
+      "shareHint": "Comparte el logro \"{{name}}\""
+    },
     "empty": "Todavía no hay logros en esta categoría.",
+    "gallery": {
+      "title": "Tus insignias"
+    },
     "loading": "Cargando los logros...",
     "names": {
       "ambaixador_del_cosmos": "Embajador del cosmos",
@@ -52,8 +96,13 @@
     "progressDays_other": "{{current}}/{{count}} días",
     "retry": "Vuelve a intentarlo",
     "retryHint": "Vuelve a cargar los logros",
+    "shareText": "¡He desbloqueado \"{{name}}\" en Perseida!",
     "streakStart": "Abre la imagen astronómica del día para empezar tu racha.",
-    "title": "Tus próximos logros"
+    "title": "Tus próximos logros",
+    "trophy": {
+      "openHint": "Abre la descripción",
+      "pending": "Logro pendiente"
+    }
   },
   "admin": {
     "home": {
@@ -205,6 +254,7 @@
     "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
     "TOO_MANY_CONNECTIONS": "Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo.",
     "SEND_UNCERTAIN": "No se ha podido confirmar el envío. Vuelve a intentarlo.",
+    "SHARE_FAILED": "No se ha podido abrir el menú de compartir. Vuelve a intentarlo.",
     "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
     "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
     "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
@@ -384,10 +434,6 @@
     }
   },
   "profile": {
-    "achievements": {
-      "desc": "Desbloquea insignias observando lluvias de estrellas y participando en la comunidad.",
-      "title": "Logros e insignias"
-    },
     "followers": {
       "desc": "Cuántas personas siguen tus observaciones y a cuántas sigues tú.",
       "title": "Seguidores"

@@ -1,28 +1,12 @@
-import type { Icon } from 'phosphor-react-native';
-import {
-  CalendarStarIcon,
-  FlameIcon,
-  GameControllerIcon,
-  QuestionIcon,
-  UsersThreeIcon,
-} from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { type Theme, useTheme } from '../../../shared/theme';
 import { GlassPanel } from '../../../shared/ui';
-import type { AchievementCategory } from '../api/getMyAchievements';
 import type { CategoryProgress } from '../model/categoryProgress';
 import { AchievementProgressBar } from './AchievementProgressBar';
+import { CATEGORY_ICONS } from './categoryIcons';
 import { useAchievementName } from './useAchievementName';
-
-const CATEGORY_ICONS: Record<AchievementCategory, Icon> = {
-  streaks: FlameIcon,
-  quiz: QuestionIcon,
-  events: CalendarStarIcon,
-  social: UsersThreeIcon,
-  minigame: GameControllerIcon,
-};
 
 /**
  * Card of one category of achievements on the profile (TG-57 criterion 2): its icon, the

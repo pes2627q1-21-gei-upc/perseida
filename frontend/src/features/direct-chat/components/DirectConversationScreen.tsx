@@ -17,7 +17,7 @@ import { GlassPanel, QuietButton, SkyBackground, StatusPanel, TopBar } from '../
 import { MessageComposer } from '../../chat/components/MessageComposer';
 import { MessageList } from '../../chat/components/MessageList';
 import { ActionSurface } from '../../chat/components/ActionSurface';
-import { useAnnounceOnIos } from '../../chat/useAnnounceOnIos';
+import { useAnnounceOnIos } from '../../../shared/a11y/useAnnounceOnIos';
 import { useBlockUser, useUnblockUser } from '../hooks/useDirectChat';
 import type { DirectMessage } from '../api/directChat';
 import { useDirectConversation } from '../hooks/useDirectConversation';

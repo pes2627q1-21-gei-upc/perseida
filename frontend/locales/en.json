@@ -8,7 +8,51 @@
       "streaks": "Streaks"
     },
     "completed": "Congratulations! You have completed every achievement in this category.",
+    "descriptions": {
+      "ambaixador_del_cosmos": "Share 25 achievements.",
+      "astrofisic": "Complete 100 quizzes.",
+      "astronom_aprenent": "Complete 10 quizzes.",
+      "cacador_d_eclipsis": "Subscribe to 10 events.",
+      "calendari_celeste": "Export 10 events to your calendar.",
+      "cartograf_celeste": "Complete 50 quizzes.",
+      "cel_clar": "Answer every question of a quiz correctly.",
+      "cicle_lunar": "Keep your streak going for 30 days in a row, a whole lunar cycle.",
+      "colleccionista_d_aurores": "Subscribe to 25 events.",
+      "comandant": "Win 10 games of the minigame.",
+      "cumul_estellar": "Reach 100 followers.",
+      "eclipsi_total": "Subscribe to 50 events.",
+      "efemerides": "Export an event to your calendar.",
+      "estrella_fixa": "Keep your streak going for 100 days in a row.",
+      "estrella_polar": "Reach 1,000 followers.",
+      "galaxia": "Reach 500 followers.",
+      "gran_mestre_estellar": "Win 50 games of the minigame.",
+      "llancament": "Play your first game of the minigame.",
+      "llegenda_cosmica": "Win 100 games of the minigame.",
+      "lluna_plena": "Keep your streak going for 14 days in a row.",
+      "missio_complerta": "Win a game of the minigame.",
+      "orbita_compartida": "Follow another person for the first time.",
+      "orbita_setmanal": "Keep your streak going for 7 days in a row.",
+      "perseida": "Keep your streak going for 365 days in a row, a whole year like the meteor shower.",
+      "postal_de_l_espai": "Share 10 achievements.",
+      "primer_senyal": "Share an achievement for the first time.",
+      "primera_alineacio": "Subscribe to your first event.",
+      "primera_llum": "Open the app one day and view the astronomy picture of the day.",
+      "record_galactic": "Beat your personal record 10 times.",
+      "record_orbital": "Beat your personal record.",
+      "repte_llencat": "Challenge a friend for the first time.",
+      "satellit": "Get your first follower.",
+      "senyal_de_radio": "Send your first message in the chat.",
+      "telescopi_nou": "Complete your first daily quiz."
+    },
+    "dialog": {
+      "close": "Close",
+      "share": "Share",
+      "shareHint": "Share the achievement \"{{name}}\""
+    },
     "empty": "There are no achievements in this category yet.",
+    "gallery": {
+      "title": "Your badges"
+    },
     "loading": "Loading achievements...",
     "names": {
       "ambaixador_del_cosmos": "Cosmos ambassador",
@@ -52,8 +96,13 @@
     "progressDays_other": "{{current}}/{{count}} days",
     "retry": "Try again",
     "retryHint": "Load the achievements again",
+    "shareText": "I unlocked \"{{name}}\" on Perseida!",
     "streakStart": "Open the astronomy picture of the day to start your streak.",
-    "title": "Your next achievements"
+    "title": "Your next achievements",
+    "trophy": {
+      "openHint": "Opens the description",
+      "pending": "Pending achievement"
+    }
   },
   "admin": {
     "home": {
@@ -205,6 +254,7 @@
     "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
     "TOO_MANY_CONNECTIONS": "You have too many connections open at once (on other devices or tabs). Close one and try again.",
     "SEND_UNCERTAIN": "We couldn't confirm the message was sent. Please try again.",
+    "SHARE_FAILED": "We couldn't open the share menu. Please try again.",
     "OUTING_TITLE_EMPTY": "Give the outing a title.",
     "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
     "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
@@ -384,10 +434,6 @@
     }
   },
   "profile": {
-    "achievements": {
-      "desc": "Unlock badges by observing meteor showers and engaging with the community.",
-      "title": "Badges & achievements"
-    },
     "followers": {
       "desc": "How many people follow your observations and how many you follow.",
       "title": "Followers"

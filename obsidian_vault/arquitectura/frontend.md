@@ -178,6 +178,19 @@ Codi a `src/features/achievements/`; dades de `GET /api/users/me/achievements` (
 - **Targetes:** `AchievementProgressSection` es col·loca al perfil a l'espai que TG-385 reservava per a la ratxa (l'espai `streak` desapareix de `ProfileScreen`). Cada `AchievementCategoryCard` mostra la icona, el nom de la fita i la barra; la ratxa porta «X/Y dies» amb plural i, a 0, una invitació a començar; una categoria completada, la barra plena i un text d'enhorabona.
 - **Noms traduïts per codi:** el catàleg del servidor només té el nom en català. L'app el tradueix amb `achievements.names.<code>` (`useAchievementName`); una fita nova que l'app encara no coneix mostra el nom del servidor. Una fita nova al catàleg, doncs, necessita la seva clau als tres locales.
 
+## Fites: insígnies i compartir (TG-59)
+
+Codi a `src/features/achievements/`; reutilitza `useMyAchievements` de TG-57 (una sola petició en memòria cau per a les targetes i les insígnies).
+
+- **Secció:** `AchievementsSection` (títol «Les teves insígnies» sobre el cel) i, dins d'un `GlassPanel` perquè els noms es llegeixin també sobre el taronja de la posta, una quadrícula amb una cel·la per fita del catàleg, en l'ordre de l'API. Substitueix el forat «Fites i assoliments» del perfil. Estats: càrrega i error amb reintent (`StatusPanel`); sense cap fita desbloquejada es veuen només els candaus, sense missatge.
+- **Trofeu:** `AchievementTrophy`. Desbloquejada: icona de la categoria (`categoryIcons`, provisional fins que hi hagi icones pròpies) i nom; és un botó (etiqueta = nom, pista «Obre la descripció») amb anell de focus visible per a teclat. Pendent: candau gris sense nom, descripció ni barra, que el lector anuncia com «Fita pendent» i que no es pot prémer, per tant tampoc compartir.
+- **Finestra:** `AchievementDialog`, un `Modal` com `ConfirmDialog` amb la imatge del trofeu, el títol, la descripció i els botons «Compartir» i «Tancar». Es reinicia per fita (`key`), de manera que l'error d'una no passa a la següent.
+- **Descripcions traduïdes per codi:** com els noms, el servidor només les té en català; l'app les tradueix amb `achievements.descriptions.<code>` (`useAchievementDescription`) i una fita nova mostra la descripció del servidor. Una fita nova al catàleg necessita la clau de nom i la de descripció als tres locales (ho comprova `locales/locales.test.ts`).
+- **Compartir:** `share/shareAchievement` obre el menú del mòbil amb l'API `Share` de React Native, amb text i en l'idioma de l'app (`achievements.shareText`), sense imatge. Tancar el menú sense enviar (`dismissedAction` o `AbortError` al web) no és un error; un altre error és `AppError` amb codi `SHARE_FAILED`. Al web sense `navigator.share` surt aquest error, sense alternativa: és un **límit conegut** (reintentar no hi serveix, perquè el navegador no canvia). Una alternativa (p. ex. copiar el text al porta-retalls) quedaria per a una subtasca nova, fora de la US. L'error de compartir s'anuncia amb `useAnnounceOnIos` (`src/shared/a11y`, compartit amb el xat i el xat directe).
+
+> [!warning] Desviacions dels criteris de la US
+> El disseny acordat amb la persona s'aparta dels criteris 1 a 4 de la TG-59: quadrícula de trofeus en lloc de files amb barra, sense barra, nom ni descripció a les pendents i sense missatge si no n'hi ha cap de desbloquejada. La barra de progrés continua a les targetes de TG-57.
+
 ## Xat d'esdeveniment: API i hooks (TG-64)
 
 Codi a `src/features/chat/`; el contracte REST i el protocol WebSocket són els del backend ([[0030-protocol-websocket-i-revocacio-per-pub-sub]]). La connexió en temps real és a [[#Temps real: connexió WebSocket compartida (TG-64)]]; la pantalla de la sala i els textos de la UI són de TG-469 ([[#Sala de xat: pantalla i hook de la sala (TG-469)]]).

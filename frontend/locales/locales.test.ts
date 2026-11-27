@@ -307,6 +307,30 @@ describe('Locales of the meeting points (TG-352)', () => {
   });
 });
 
+describe('Locales of the achievements (TG-59 #581)', () => {
+  const names = Object.keys(ca.achievements.names).sort();
+  const texts = { ca, es, en };
+
+  it.each(['ca', 'es', 'en'] as const)(
+    'has a description for every achievement that has a name in %s',
+    (language) => {
+      const { descriptions } = texts[language].achievements as {
+        descriptions?: Record<string, string>;
+      };
+
+      expect(Object.keys(descriptions ?? {}).sort()).toEqual(names);
+      for (const description of Object.values(descriptions ?? {})) {
+        expect(description.trim().length).toBeGreaterThan(0);
+      }
+    },
+  );
+
+  it('has the same achievements with a name in the three languages', () => {
+    expect(Object.keys(es.achievements.names).sort()).toEqual(names);
+    expect(Object.keys(en.achievements.names).sort()).toEqual(names);
+  });
+});
+
 describe('Labels of the outing detail (TG-661)', () => {
   const languages = { ca, es, en } as unknown as Record<
     'ca' | 'es' | 'en',

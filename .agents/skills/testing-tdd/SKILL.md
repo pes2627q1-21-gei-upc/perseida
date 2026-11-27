@@ -32,7 +32,7 @@ Preguntes d'aquesta skill:
 ## El cicle
 
 1. **Tria el criteri** i el nivell més baix de la piràmide que el pot verificar (unitari abans que integració, integració abans que E2E).
-2. **ROIG:** escriu el test; executa'l i **comprova que falla pel motiu correcte** (una assertion o l'import d'una API que encara no existeix, no un error de sintaxi ni de configuració). Un test que passa a la primera no demostra res: o el comportament ja existia o el test no comprova res.
+2. **ROIG:** escriu el test; executa'l i **comprova que falla pel motiu correcte** (una assertion o l'import d'una API que encara no existeix, no un error de sintaxi ni de configuració). Si el vermell és «mòdul inexistent», el test pot amagar errors propis que no es veuen fins al verd: crea primer un fitxer buit que exporti el nom, perquè el test falli per l'aserció i no per l'import. Un test que passa a la primera no demostra res: o el comportament ja existia o el test no comprova res.
 3. **Commit `test:`** amb el test en vermell (`TG-NN test(àmbit): resum`). Va **abans** del commit `feat:` o `fix:`.
 4. **VERD:** escriu el codi mínim perquè passi. **No toquis el test per fer-lo passar**; si el test era incorrecte, explica per què i canvia'l en un commit a part.
 5. **Commit `feat:`/`fix:`** amb el codi (el test ja és al commit anterior).
