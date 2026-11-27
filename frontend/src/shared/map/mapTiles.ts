@@ -1,4 +1,6 @@
-import type { EventCategory } from '../api/getEvents';
+import type { components } from '../api/schema';
+
+type EventCategory = components['schemas']['EventCategory'];
 
 /**
  * Base map of the events map (TG-52, ADR-0032): Esri World Dark Gray raster tiles, which need
@@ -29,15 +31,17 @@ export interface MapCamera {
   zoom: number;
 }
 
-/** One point on the map: an event with a location. */
+/** One point on the map: an event with a location, or an outing (TG-646). */
 export interface MapMarker {
   id: string;
   latitude: number;
   longitude: number;
-  /** Accessible name of the marker (title, category and state of the event). */
+  /** Accessible name of the marker (title, category and state of the event; for an outing, title, kind and date). */
   label: string;
-  /** Chooses the icon inside the orb. */
-  category: EventCategory;
+  /** An outing has its own icon and rim, whatever its category. */
+  kind: 'event' | 'outing';
+  /** Chooses the icon inside the orb of an event; an outing has none. */
+  category?: EventCategory;
   /** Happening now: the orb has a pulsing halo. */
   active: boolean;
 }

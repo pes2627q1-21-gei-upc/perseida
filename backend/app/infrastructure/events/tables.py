@@ -1,19 +1,27 @@
 import uuid
 from datetime import datetime
+from typing import ClassVar
 
 from sqlalchemy import (
     CheckConstraint,
     Column,
     DateTime,
     Double,
+    ForeignKey,
     Index,
     String,
+    Table,
     Text,
     UniqueConstraint,
     Uuid,
     text,
 )
 from sqlmodel import Field, SQLModel
+
+# The location as a PostGIS ``geography``. The spatial index is built on this
+# exact expression, so a proximity query must use it verbatim to be served by
+# the index (TG-51).
+LOCATION_GEOGRAPHY = "(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography)"
 
 
 def _timestamptz(*, index: bool = False) -> Column[datetime]:
@@ -50,7 +58,7 @@ class AstronomicalEventRow(SQLModel, table=True):
         # migration so that ``alembic check`` sees no difference.
         Index(
             "ix_astronomical_events_location",
-            text("(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography)"),
+            text(LOCATION_GEOGRAPHY),
             postgresql_using="gist",
             postgresql_where=text("latitude IS NOT NULL"),
         ),
@@ -78,3 +86,35 @@ class AstronomicalEventRow(SQLModel, table=True):
     # Filled in by PostgreSQL.
     created_at: datetime | None = Field(default=None, sa_column=_timestamptz_now())
     updated_at: datetime | None = Field(default=None, sa_column=_timestamptz_now())
+
+
+class EventSubscriptionRow(SQLModel, table=True):
+    """Table ``event_subscriptions`` (TG-53). The domain entity is
+    ``EventSubscription``; deleting the user or the event deletes it."""
+
+    __tablename__ = "event_subscriptions"
+    # Set by SQLModel; declared so that type checkers see the table.
+    __table__: ClassVar[Table]
+    # One subscription per user and event; it also serves the queries by user
+    # (``is_subscribed``, ``list_events_of``), which lead with ``user_id``.
+    __table_args__ = (UniqueConstraint("user_id", "event_id"),)
+
+    id: uuid.UUID = Field(
+        sa_column=Column(Uuid(), primary_key=True, server_default=text("uuidv7()"))
+    )
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            Uuid(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        )
+    )
+    # Index: the cascade on deleting an event, and the subscribers of an event
+    # (the chat, #64), look up by ``event_id`` alone.
+    event_id: uuid.UUID = Field(
+        sa_column=Column(
+            Uuid(),
+            ForeignKey("astronomical_events.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    created_at: datetime = Field(sa_column=_timestamptz_now())

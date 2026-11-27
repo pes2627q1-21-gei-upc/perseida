@@ -1,6 +1,8 @@
 allowBuilds:
   '@parcel/watcher': false
   unrs-resolver: false
+overrides:
+  typed-rest-client>qs: 6.17.1
 minimumReleaseAgeExclude:
   - '@expo/cli@58.1.15'
   - '@expo/config@58.0.8'

@@ -1,30 +1,281 @@
 {
+  "achievements": {
+    "category": {
+      "events": "Esdeveniments",
+      "minigame": "Minijoc",
+      "quiz": "Quiz",
+      "social": "Social",
+      "streaks": "Ratxes"
+    },
+    "completed": "Enhorabona! Has completat totes les fites d'aquesta categoria.",
+    "descriptions": {
+      "ambaixador_del_cosmos": "Comparteix 25 fites.",
+      "astrofisic": "Completa 100 quizzes.",
+      "astronom_aprenent": "Completa 10 quizzes.",
+      "cacador_d_eclipsis": "Subscriu-te a 10 esdeveniments.",
+      "calendari_celeste": "Exporta 10 esdeveniments al calendari.",
+      "cartograf_celeste": "Completa 50 quizzes.",
+      "cel_clar": "Respon bé totes les preguntes d'un quiz.",
+      "cicle_lunar": "Mantén la ratxa 30 dies seguits, un cicle lunar sencer.",
+      "colleccionista_d_aurores": "Subscriu-te a 25 esdeveniments.",
+      "comandant": "Guanya 10 partides al minijoc.",
+      "cumul_estellar": "Arriba a 100 seguidors.",
+      "eclipsi_total": "Subscriu-te a 50 esdeveniments.",
+      "efemerides": "Exporta un esdeveniment al calendari.",
+      "estrella_fixa": "Mantén la ratxa 100 dies seguits.",
+      "estrella_polar": "Arriba a 1.000 seguidors.",
+      "galaxia": "Arriba a 500 seguidors.",
+      "gran_mestre_estellar": "Guanya 50 partides al minijoc.",
+      "llancament": "Juga la teva primera partida al minijoc.",
+      "llegenda_cosmica": "Guanya 100 partides al minijoc.",
+      "lluna_plena": "Mantén la ratxa 14 dies seguits.",
+      "missio_complerta": "Guanya una partida al minijoc.",
+      "orbita_compartida": "Segueix una altra persona per primer cop.",
+      "orbita_setmanal": "Mantén la ratxa 7 dies seguits.",
+      "perseida": "Mantén la ratxa 365 dies seguits, un any sencer com la pluja d'estels.",
+      "postal_de_l_espai": "Comparteix 10 fites.",
+      "primer_senyal": "Comparteix una fita per primer cop.",
+      "primera_alineacio": "Subscriu-te al teu primer esdeveniment.",
+      "primera_llum": "Entra a l'app un dia i obre la imatge astronòmica del dia.",
+      "record_galactic": "Supera el teu rècord personal 10 cops.",
+      "record_orbital": "Supera el teu rècord personal.",
+      "repte_llencat": "Repta un amic per primer cop.",
+      "satellit": "Aconsegueix el teu primer seguidor.",
+      "senyal_de_radio": "Envia el teu primer missatge al xat.",
+      "telescopi_nou": "Completa el teu primer quiz diari."
+    },
+    "dialog": {
+      "close": "Tancar",
+      "share": "Compartir",
+      "shareHint": "Comparteix la fita \"{{name}}\""
+    },
+    "empty": "Encara no hi ha fites en aquesta categoria.",
+    "gallery": {
+      "title": "Les teves insígnies"
+    },
+    "loading": "Carregant les fites...",
+    "names": {
+      "ambaixador_del_cosmos": "Ambaixador del cosmos",
+      "astrofisic": "Astrofísic",
+      "astronom_aprenent": "Astrònom aprenent",
+      "cacador_d_eclipsis": "Caçador d'eclipsis",
+      "calendari_celeste": "Calendari celeste",
+      "cartograf_celeste": "Cartògraf celeste",
+      "cel_clar": "Cel clar",
+      "cicle_lunar": "Cicle lunar",
+      "colleccionista_d_aurores": "Col·leccionista d'aurores",
+      "comandant": "Comandant",
+      "cumul_estellar": "Cúmul estel·lar",
+      "eclipsi_total": "Eclipsi total",
+      "efemerides": "Efemèrides",
+      "estrella_fixa": "Estrella fixa",
+      "estrella_polar": "Estrella polar",
+      "galaxia": "Galàxia",
+      "gran_mestre_estellar": "Gran mestre estel·lar",
+      "llancament": "Llançament",
+      "llegenda_cosmica": "Llegenda còsmica",
+      "lluna_plena": "Lluna plena",
+      "missio_complerta": "Missió complerta",
+      "orbita_compartida": "Òrbita compartida",
+      "orbita_setmanal": "Òrbita setmanal",
+      "perseida": "Perseida",
+      "postal_de_l_espai": "Postal de l'espai",
+      "primer_senyal": "Primer senyal",
+      "primera_alineacio": "Primera alineació",
+      "primera_llum": "Primera llum",
+      "record_galactic": "Rècord galàctic",
+      "record_orbital": "Rècord orbital",
+      "repte_llencat": "Repte llençat",
+      "satellit": "Satèl·lit",
+      "senyal_de_radio": "Senyal de ràdio",
+      "telescopi_nou": "Telescopi nou"
+    },
+    "progress": "{{current}}/{{goal}}",
+    "progressA11y": "{{name}}, {{current}} de {{goal}}",
+    "progressDays_one": "{{current}}/{{count}} dia",
+    "progressDays_other": "{{current}}/{{count}} dies",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les fites",
+    "shareText": "He desbloquejat \"{{name}}\" a Perseida!",
+    "streakStart": "Obre la imatge astronòmica del dia per començar la teva ratxa.",
+    "title": "Les teves properes fites",
+    "trophy": {
+      "openHint": "Obre la descripció",
+      "pending": "Fita pendent"
+    }
+  },
+  "admin": {
+    "home": {
+      "welcome": "Benvinguda al panell d'administració de Perseida"
+    },
+    "main": {
+      "label": "Contingut del panell"
+    },
+    "noAccess": {
+      "message": "El teu compte no té permís per entrar al panell d'administració.",
+      "title": "Sense accés"
+    },
+    "skipToContent": "Salta al contingut",
+    "topBar": {
+      "label": "Barra superior del panell"
+    }
+  },
   "apod": {
     "loadingLabel": "Carregant l'APOD",
     "mediaError": "No s'ha pogut carregar la imatge o el vídeo.",
     "retry": "Torna-ho a provar",
     "retryHint": "Torna a carregar l'APOD",
+    "title": "Imatge del dia",
     "videoLabel": "Vídeo de l'APOD"
+  },
+  "auth": {
+    "continueWithGoogle": "Continua amb Google",
+    "logout": "Tanca la sessió",
+    "logoutHint": "Tanca la sessió d'aquest dispositiu i torna a la pantalla d'inici de sessió",
+    "logoutNotConfirmed": "S'ha tancat la sessió en aquest dispositiu, però no s'ha pogut confirmar al servidor.",
+    "tagline": "Mira cap amunt"
+  },
+  "chat": {
+    "title": "Xat",
+    "loading": "Carregant sales de xat",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les sales de xat",
+    "refresh": "Actualitza",
+    "noMessages": "Encara no hi ha missatges",
+    "unknownAuthor": "Una usuària de Perseida",
+    "list": {
+      "label": "Sales de xat"
+    },
+    "empty": {
+      "message": "Encara no t'has subscrit a cap esdeveniment. Subscriu-te'n a un per xerrar amb la comunitat.",
+      "cta": "Explora els esdeveniments"
+    },
+    "you": "Tu",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Enviant",
+      "sending": "Enviant",
+      "failed": "No s'ha pogut enviar el missatge.",
+      "uncertain": "És possible que el missatge ja s'hagi enviat. Si el reintentes, no es duplicarà.",
+      "retry": "Reintenta",
+      "discard": "Descarta"
+    },
+    "composer": {
+      "label": "Escriu un missatge",
+      "send": "Envia",
+      "counter": "{{count}} de {{max}} caràcters",
+      "tooLong": "El missatge pot tenir com a màxim {{max}} caràcters."
+    },
+    "messages": {
+      "label": "Missatges del xat",
+      "loadingOlder": "Carregant missatges anteriors"
+    },
+    "room": {
+      "title": "Xat de l'esdeveniment",
+      "loading": "Carregant missatges",
+      "retryHint": "Torna a obrir la sala de xat",
+      "empty": "Encara no hi ha missatges. Sigues la primera persona a escriure!",
+      "revoked": "Ja no formes part d'aquest xat. Subscriu-te a l'esdeveniment per tornar-hi a escriure.",
+      "backToRooms": "Torna a les sales",
+      "reconnecting": "Reconnectant…",
+      "reconnect": "Reconnecta",
+      "newMessage": "Missatge nou de {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Connectant amb el xat…",
+        "reconnecting": "S'ha perdut la connexió. Podràs enviar quan es recuperi.",
+        "closed": "No hi ha connexió amb el xat."
+      }
+    }
   },
   "common": {
     "back": "Torna"
+  },
+  "comingSoon": {
+    "badge": "Pròximament",
+    "gamificationDesc": "Completa qüestionaris diaris, aconsegueix assoliments i millora la teva ratxa d'observador.",
+    "gamificationTitle": "Gamificació i reptes"
+  },
+  "directChat": {
+    "blocked": "Bloquejat",
+    "conversationWith": "Conversa amb {{name}}",
+    "lastMessage": "últim missatge: {{text}}",
+    "noMessages": "Encara no hi ha missatges",
+    "unread_one": "{{count}} missatge sense llegir",
+    "unread_other": "{{count}} missatges sense llegir",
+    "you": "Tu: {{text}}",
+    "list": {
+      "title": "Converses",
+      "loading": "Carregant converses",
+      "userId": "Identificador d'usuari",
+      "open": "Inicia conversa",
+      "empty": "Encara no tens converses",
+      "unknownUser": "Usuari"
+    },
+    "room": {
+      "loading": "Carregant conversa",
+      "block": "Bloqueja",
+      "unblock": "Desbloqueja",
+      "typing": "{{name}} està escrivint"
+    }
   },
   "errors": {
     "ACCOUNT_DELETED": "Aquest compte s'ha eliminat.",
     "ACCOUNT_SUSPENDED": "El teu compte està suspès.",
     "APOD_UNAVAILABLE": "Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona.",
+    "CHAT_ROOM_NOT_FOUND": "Aquesta sala de xat ja no existeix.",
+    "CHAT_MESSAGE_EMPTY": "El missatge no pot estar buit.",
+    "CHAT_MESSAGE_TOO_LONG": "El missatge és massa llarg (màxim 1000 caràcters).",
+    "CHAT_MESSAGE_REJECTED": "Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "Aquest missatge ja existeix amb un altre contingut.",
+    "DATABASE_UNAVAILABLE": "El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "EMAIL_ALREADY_REGISTERED": "Aquest correu ja està associat a un altre compte.",
+    "EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
+    "EVENT_ALREADY_ENDED": "Aquest esdeveniment ja ha acabat.",
     "GENERIC_FINAL": "Alguna cosa ha anat malament.",
     "GOOGLE_SIGN_IN_EXPO_GO": "L'inici de sessió amb Google no funciona a Expo Go. Usa l'app instal·lada (build de desenvolupament).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "L'inici de sessió amb Google encara no està disponible.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona.",
     "INTERNAL_ERROR": "Alguna cosa ha anat malament. Torna-ho a provar.",
+    "INVALID_CURSOR": "No s'han pogut carregar més publicacions. Torna-ho a provar.",
     "INVALID_GOOGLE_TOKEN": "No hem pogut verificar el teu compte de Google. Torna a iniciar sessió.",
     "INVALID_RESPONSE": "Alguna cosa ha anat malament. No s'ha pogut carregar el contingut.",
     "INVALID_SESSION": "La teva sessió ha caducat. Torna a iniciar sessió.",
+    "MEETING_POINTS_UNAVAILABLE": "Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona.",
     "NETWORK_ERROR": "No hi ha connexió. Comprova la xarxa i torna-ho a provar.",
     "NOT_FOUND": "No s'ha trobat el que busques.",
-    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona."
+    "POST_FORBIDDEN": "Només qui ha escrit aquesta publicació la pot editar o esborrar.",
+    "POST_NOT_FOUND": "Aquesta publicació ja no existeix.",
+    "POST_TEXT_EMPTY": "Escriu alguna cosa abans de publicar.",
+    "POST_TEXT_TOO_LONG": "El text pot tenir com a màxim 1.000 caràcters.",
+    "QUIZ_ALREADY_ANSWERED": "Ja has respost la pregunta d'avui.",
+    "QUIZ_EXPIRED": "Aquesta pregunta ja no es pot respondre: ha canviat el dia.",
+    "QUIZ_QUESTION_MISMATCH": "Aquesta ja no és la pregunta d'avui.",
+    "SESSION_UNAVAILABLE": "No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona.",
+    "TOO_MANY_CONNECTIONS": "Tens massa connexions obertes alhora (en altres dispositius o pestanyes). Tanca'n alguna i torna-ho a provar.",
+    "SEND_UNCERTAIN": "No s'ha pogut confirmar l'enviament. Torna-ho a provar.",
+    "SHARE_FAILED": "No s'ha pogut obrir el menú de compartir. Torna-ho a provar.",
+    "OUTING_TITLE_EMPTY": "Posa un títol a la sortida.",
+    "OUTING_TITLE_TOO_LONG": "El títol pot tenir com a màxim 120 caràcters.",
+    "OUTING_DESCRIPTION_TOO_LONG": "La descripció pot tenir com a màxim 2.000 caràcters.",
+    "OUTING_PLACE_INVALID": "El local triat no és vàlid: cal un nom d'1 a 120 caràcters i una adreça de com a màxim 200.",
+    "OUTING_ENDS_BEFORE_START": "La sortida no pot acabar abans de començar.",
+    "OUTING_STARTS_IN_PAST": "La sortida no pot començar en el passat.",
+    "OUTING_EVENT_NOT_FOUND": "Aquest esdeveniment ja no existeix.",
+    "OUTING_NOT_FOUND": "Aquesta sortida no existeix o s'ha esborrat.",
+    "OUTING_FORBIDDEN": "Només qui ha creat la sortida la pot canviar.",
+    "FORBIDDEN": "No tens permís per fer això.",
+    "RATE_LIMITED": "Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar.",
+    "NOT_SUBSCRIBED": "Primer t'has d'unir a la sala.",
+    "PUBSUB_UNAVAILABLE": "El xat no està disponible ara mateix. Torna-ho a provar.",
+    "VALIDATION_ERROR": "Revisa les dades introduïdes.",
+    "CHAT_INVALID_CURSOR": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
+    "CHAT_INVALID_LIMIT": "No s'ha pogut carregar l'historial. Torna a obrir la sala.",
+    "USER_NOT_FOUND": "No hem trobat aquest usuari.",
+    "CANNOT_MESSAGE_SELF": "No et pots enviar missatges a tu mateix.",
+    "CONVERSATION_NOT_FOUND": "Aquesta conversa no existeix.",
+    "USER_BLOCKED": "Ara no pots enviar missatges en aquesta conversa.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "Aquest missatge ja existeix amb un altre contingut."
   },
   "events": {
     "category": {
@@ -38,13 +289,15 @@
       "all": "No hi ha esdeveniments actius ni en els pròxims 30 dies.",
       "noLocation": "Cap d'aquests esdeveniments té una ubicació al mapa.",
       "showList": "Veure la llista",
-      "upcoming": "No hi ha esdeveniments en els pròxims 30 dies."
+      "upcoming": "No hi ha esdeveniments en els pròxims 30 dies.",
+      "outings": "No hi ha sortides properes."
     },
     "filter": {
       "active": "Actius",
       "all": "Tots",
       "label": "Mostra",
-      "upcoming": "Futurs"
+      "upcoming": "Futurs",
+      "outings": "Sortides"
     },
     "list": {
       "label": "Llista d'esdeveniments"
@@ -71,7 +324,9 @@
       "end": "Fi",
       "moreInfo": "Més informació",
       "openHint": "Obre la fitxa de l'esdeveniment",
-      "start": "Inici"
+      "start": "Inici",
+      "outings": "Sortides d'aquest esdeveniment",
+      "meetingPoints": "Punts de trobada"
     },
     "status": {
       "active": "Actiu ara"
@@ -80,10 +335,237 @@
       "label": "Vista",
       "list": "Llista",
       "map": "Mapa"
+    },
+    "outings": {
+      "kind": "Sortida",
+      "open": "Obre la sortida",
+      "linkedEvent": "Esdeveniment relacionat"
+    },
+    "search": {
+      "categories": "Categories",
+      "range": {
+        "label": "Període",
+        "days7": "7 dies",
+        "days30": "30 dies",
+        "days90": "90 dies"
+      },
+      "near": {
+        "label": "A prop meu",
+        "locating": "Buscant la teva ubicació…",
+        "denied": "Sense permís d'ubicació no es pot filtrar per proximitat. El pots activar a la configuració del dispositiu.",
+        "unavailable": "No s'ha pogut obtenir la teva ubicació. Comprova que la localització està activada i torna-ho a provar."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} esdeveniment",
+      "results_other": "{{count}} esdeveniments",
+      "empty": "No hi ha esdeveniments amb aquests filtres.",
+      "openMap": "Obre el mapa"
+    },
+    "tabs": {
+      "label": "Vista",
+      "all": "Tots",
+      "mine": "Els meus"
+    },
+    "subscription": {
+      "follow": "Segueix {{title}}",
+      "unavailable": "No s'han pogut carregar els esdeveniments que segueixes: les estrelles es tornaran a activar quan es carreguin."
+    },
+    "mine": {
+      "empty": "Encara no segueixes cap esdeveniment. Toca l'estrella d'un esdeveniment per seguir-lo."
     }
   },
   "home": {
     "apodLink": "Imatge del dia",
-    "mapLink": "Mapa d'esdeveniments"
+    "mapLink": "Mapa d'esdeveniments",
+    "quizLink": "Pregunta del dia",
+    "outingsLink": "Les meves sortides"
+  },
+  "meetingPoints": {
+    "title": "Punts de trobada",
+    "loading": "Carregant punts de trobada",
+    "empty": "No hi ha locals recomanats a prop.",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a demanar els punts de trobada",
+    "choose": "Tria {{name}}",
+    "list": {
+      "label": "Punts de trobada recomanats"
+    },
+    "location": {
+      "locating": "Buscant la teva ubicació",
+      "denied": "Sense permís d'ubicació no et podem recomanar locals. El pots activar a la configuració del dispositiu.",
+      "unavailable": "No trobem la teva ubicació. Comprova que la ubicació del dispositiu està activada.",
+      "retry": "Torna a buscar la ubicació"
+    },
+    "profile": {
+      "label": "Per a què us trobeu",
+      "watch_party": "Observació",
+      "study": "Estudi"
+    },
+    "type": {
+      "library": "Biblioteca",
+      "cafe": "Cafeteria",
+      "other": "Altre espai"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silenciós",
+        "murmur": "Murmuri",
+        "noisy": "Sorollós"
+      },
+      "plugs": {
+        "many": "Molts endolls",
+        "few": "Pocs endolls",
+        "none": "Sense endolls"
+      },
+      "groupFriendly": "Bo per a grups",
+      "notGroupFriendly": "Millor sense grups"
+    }
+  },
+  "nav": {
+    "chat": "Xat",
+    "events": "Esdeveniments",
+    "gamification": "Gamificació",
+    "home": "Inici",
+    "profile": "Perfil",
+    "short": {
+      "events": "Agenda",
+      "gamification": "Fites"
+    }
+  },
+  "profile": {
+    "followers": {
+      "desc": "Quantes persones segueixen les teves observacions i quantes en segueixes tu.",
+      "title": "Seguidors"
+    },
+    "language": {
+      "ca": "Català",
+      "en": "English",
+      "es": "Español"
+    },
+    "languageMenu": {
+      "changed": "Idioma canviat a {{name}}",
+      "error": "No s'ha pogut desar l'idioma al teu compte. Aquí es manté el canvi.",
+      "hint": "Obre la llista d'idiomes",
+      "label": "Idioma: {{code}}, {{name}}",
+      "saving": "Desant l'idioma...",
+      "title": "Idioma"
+    },
+    "loading": "Carregant el perfil...",
+    "memberSince": "Membre des de {{date}}",
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar les dades del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "title": "El teu perfil"
+  },
+  "posts": {
+    "form": {
+      "cancel": "Cancel·la",
+      "counter": "{{count}} de {{max}} caràcters",
+      "hint": "Comparteix observacions i consells amb la comunitat.",
+      "label": "La teva publicació",
+      "publish": "Publica",
+      "save": "Desa"
+    },
+    "item": {
+      "anonymous": "Usuari/a #{{tag}}",
+      "confirmDelete": "Vols esborrar aquesta publicació? No es pot desfer.",
+      "delete": "Esborra",
+      "deleteHint": "Demana confirmació abans d'esborrar la publicació",
+      "edit": "Edita",
+      "editHint": "Edita el text de la teva publicació",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Encara no hi ha publicacions. Comparteix la primera!",
+      "loading": "Carregant les publicacions",
+      "more": "Carrega'n més",
+      "retry": "Torna-ho a provar",
+      "retryHint": "Torna a carregar les publicacions",
+      "title": "Publicacions"
+    }
+  },
+  "quiz": {
+    "backHome": "Torna a l'inici",
+    "loadingLabel": "Carregant la pregunta del dia",
+    "optionsLabel": "Opcions de resposta",
+    "questionChanged": "La pregunta ha canviat perquè ja és un altre dia. Aquesta és la nova.",
+    "result": {
+      "comeBack": "Demà hi haurà una pregunta nova.",
+      "explanation": "Per què",
+      "right": "L'has encertada!",
+      "rightAndYours": "Resposta correcta i la teva resposta",
+      "rightAnswer": "Resposta correcta",
+      "source": "Llegeix la font",
+      "sourceHint": "Obre la font al navegador",
+      "wrong": "No l'has encertada",
+      "yourAnswer": "La teva resposta"
+    },
+    "retry": "Torna-ho a provar",
+    "retryHint": "Torna a carregar la pregunta del dia",
+    "submit": "Envia la resposta",
+    "submitHint": "Envia l'opció triada",
+    "title": "Pregunta del dia"
+  },
+  "outings": {
+    "myTitle": "Les meves sortides",
+    "eventTitle": "Sortides de l'esdeveniment",
+    "list": {
+      "label": "Llista de sortides"
+    },
+    "empty": {
+      "mine": "Encara no has creat cap sortida.",
+      "event": "Encara no hi ha cap sortida per a aquest esdeveniment."
+    },
+    "loading": "Carregant sortides",
+    "retry": "Torna-ho a provar",
+    "new": "Crea una sortida",
+    "detail": {
+      "author": "Organitza",
+      "unknownAuthor": "Una usuària de Perseida",
+      "start": "Inici",
+      "end": "Fi",
+      "place": "Local",
+      "where": "Lloc",
+      "event": "Esdeveniment",
+      "edit": "Edita",
+      "delete": "Esborra"
+    },
+    "delete": {
+      "title": "Vols esborrar aquesta sortida?",
+      "message": "No es pot desfer.",
+      "confirm": "Esborra",
+      "cancel": "Cancel·la"
+    },
+    "form": {
+      "newTitle": "Nova sortida",
+      "editTitle": "Edita la sortida",
+      "title": "Títol",
+      "description": "Descripció (opcional)",
+      "startsAt": "Inici",
+      "endsAt": "Fi",
+      "save": "Desa",
+      "saving": "Desant…",
+      "linkedEvent": "Sortida lligada a un esdeveniment",
+      "locationRequired": "Tria on us trobareu.",
+      "event": "Esdeveniment (opcional)",
+      "noEvent": "Cap esdeveniment"
+    },
+    "picker": {
+      "label": "Mapa per triar el lloc",
+      "hint": "Mou el mapa fins que la mira quedi sobre el lloc.",
+      "choose": "Tria aquest lloc",
+      "useMine": "Usa la meva ubicació",
+      "recommend": "Locals recomanats a prop",
+      "denied": "No hem pogut obtenir la teva ubicació. Mou el mapa per triar el lloc.",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useCoordinates": "Tria aquestes coordenades",
+      "invalidCoordinates": "La latitud ha d'estar entre −90 i 90, i la longitud entre −180 i 180."
+    }
   }
 }

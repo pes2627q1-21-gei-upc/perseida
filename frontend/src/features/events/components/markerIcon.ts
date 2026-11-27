@@ -1,6 +1,6 @@
 import { duration, iconSizes, type ThemeColors, touch } from '../../../shared/theme';
 import type { EventCategory } from '../api/getEvents';
-import type { MapMarker } from './mapTiles';
+import type { MapMarker } from '../../../shared/map/mapTiles';
 
 /**
  * Phosphor icons (regular weight) of each category, as SVG paths on a 256 grid. Leaflet draws
@@ -26,6 +26,12 @@ export const CATEGORY_ICON: Record<EventCategory, { name: string; path: string }
   },
 };
 
+/** The outings have their own icon (Phosphor Binoculars, regular, from the same package). */
+export const OUTING_ICON = {
+  name: 'Binoculars',
+  path: 'M237.2 151.87a47 47 0 0 0-2.35-5.45L193.26 51.8a7.8 7.8 0 0 0-1.66-2.44 32 32 0 0 0-45.26 0A8 8 0 0 0 144 55v25h-32V55a8 8 0 0 0-2.34-5.66 32 32 0 0 0-45.26 0 7.8 7.8 0 0 0-1.66 2.44L21.15 146.4a47 47 0 0 0-2.35 5.45A48 48 0 1 0 112 168V96h32v72a48 48 0 1 0 93.2-16.13M76.71 59.75a16 16 0 0 1 19.29-1v73.51a47.9 47.9 0 0 0-46.79-9.92ZM64 200a32 32 0 1 1 32-32 32 32 0 0 1-32 32m96-141.26a16 16 0 0 1 19.29 1l27.5 62.58a47.9 47.9 0 0 0-46.79 9.93ZM192 200a32 32 0 1 1 32-32 32 32 0 0 1-32 32',
+};
+
 /** The orb is the whole touch target. */
 export const MARKER_SIZE = touch.min;
 
@@ -42,6 +48,8 @@ export interface MarkerPalette {
   background: string;
   /** Gloss on the top of the orb. */
   gloss: [string, string];
+  /** Rim and glow of the outings (≥3:1 against the map on every theme). */
+  brand: string;
 }
 
 export function markerPalette(colors: ThemeColors): MarkerPalette {
@@ -52,16 +60,23 @@ export function markerPalette(colors: ThemeColors): MarkerPalette {
     glow: colors.accentGlow,
     background: colors.map.background,
     gloss: colors.map.gloss,
+    brand: colors.brand,
   };
 }
 
 /** Inside of a marker: the orb with its icon, plus the halo if the event is happening now. */
-export function markerIconHtml({ category, active }: Pick<MapMarker, 'category' | 'active'>) {
+export function markerIconHtml({
+  kind,
+  category,
+  active,
+}: Pick<MapMarker, 'kind' | 'category' | 'active'>) {
   const halo = active ? '<span class="pm-halo"></span>' : '';
+  const outing = kind === 'outing' || !category;
+  const path = outing ? OUTING_ICON.path : CATEGORY_ICON[category].path;
   const icon =
     `<svg viewBox="0 0 256 256" aria-hidden="true" focusable="false">` +
-    `<path d="${CATEGORY_ICON[category].path}"/></svg>`;
-  return `${halo}<span class="pm-orb">${icon}</span>`;
+    `<path d="${path}"/></svg>`;
+  return `${halo}<span class="pm-orb${outing ? ' pm-outing' : ''}">${icon}</span>`;
 }
 
 /**
@@ -82,6 +97,7 @@ export function markerCss(palette: MarkerPalette, { reduceMotion }: { reduceMoti
   return `.pm-marker { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; display: flex; align-items: center; justify-content: center; }
 .pm-marker:focus-visible { outline: 3px solid ${palette.rim}; outline-offset: 2px; border-radius: 50%; }
 .pm-orb { position: relative; width: ${orb}px; height: ${orb}px; border-radius: 50%; box-sizing: border-box; background: ${palette.orb}; border: 2px solid ${palette.rim}; box-shadow: 0 0 14px ${palette.glow}99; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pm-orb.pm-outing { border-color: ${palette.brand}; box-shadow: 0 0 14px ${palette.brand}99; }
 .pm-orb::before { content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 44%; border-radius: 0 0 50% 50%; background: linear-gradient(${palette.gloss[0]}, ${palette.gloss[1]}); pointer-events: none; }
 .pm-orb svg { width: ${iconSizes.md}px; height: ${iconSizes.md}px; fill: ${palette.icon}; }
 .pm-halo { position: absolute; width: ${orb}px; height: ${orb}px; border-radius: 50%; border: 2px solid ${palette.glow}; box-sizing: border-box; pointer-events: none; ${pulse} }${keyframes}

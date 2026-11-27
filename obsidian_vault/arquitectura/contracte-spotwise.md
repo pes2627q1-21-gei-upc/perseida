@@ -2,8 +2,8 @@
 titol: "Contracte de serveis amb Spotwise"
 tipus: arquitectura
 estat: vigent
-data: "2026-11-16"
-us: ["TG-85", "TG-50", "TG-351"]
+data: "2026-11-22"
+us: ["TG-85", "TG-50", "TG-351", "TG-643", "TG-352"]
 font: "README.md (arrel), backend/README.md, incepció 2 §8; Taiga TG-50, tasca #387 (31/10/2026); ADR-0031 (10/11/2026); TG-351, tasca #477 (10/11/2026); documents de Spotwise «Respostes de Spotwise sobre el servei d'esdeveniments» i «Servei d'espais de Spotwise per a Perseida» (novembre de 2026)"
 etiquetes: [arquitectura, integracions, spotwise, contracte]
 ---
@@ -16,7 +16,7 @@ Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren e
 
 - `GET /api/events/active` i `GET /api/events/upcoming`: esdeveniments astronòmics rellevants actius en una data concreta o durant els dies vinents (pluges d'estrelles, eclipsis, superlluna, llançaments espacials).
 - El JSON inclou metadades clau de cada fenomen: **títol**, **descripció breu** i **categoria** (p. ex. `lunar`, `solar`, `meteor_shower`). El format exacte de cada esdeveniment és a [[contracte-esdeveniments]] (TG-50, tasca #387).
-- **Límit de peticions:** els endpoints són públics i el proxy admet 60 peticions per minut i IP (ràfega de 20). Per sobre, respon `429` en problem+json amb `code: RATE_LIMITED` i `Retry-After` ([[nginx-proxy-manager]], TG-351). Spotwise ens crida des del seu backend, així que tot el seu trànsit compta com una sola IP (unes 2 peticions per hora). L'OpenAPI dels dos endpoints documenta aquest 429.
+- **Límit de peticions:** els endpoints són públics i el proxy admet 600 peticions per minut (ràfega de 100), compartides per tots els clients perquè el NAT de la UPC amaga la IP d'origen (TG-643). Per sobre, respon `429` en problem+json amb `code: RATE_LIMITED` i `Retry-After` ([[nginx-proxy-manager]], TG-351). Spotwise ens crida des del seu backend (unes 2 peticions per hora), i aquestes peticions comparteixen el comptador amb les de l'app: no tenen un límit reservat. L'OpenAPI dels dos endpoints documenta aquest 429.
 - Ús per a Spotwise: personalitzar la seva interfície segons el context astronòmic (temes visuals, petites notificacions o pop-ups mentre cerquen locals).
 - Les dades provenen de la base de dades de Perseida, que s'omple sota demanda amb Launch Library 2 (llançaments), l'USNO (eclipsis solars), Skyfield (lluna) i un catàleg de pluges d'estels de la IMO ([[0031-fonts-d-esdeveniments-sota-demanda]], [[serveis-externs]]). L'endpoint el serveix l'[[api]].
 
@@ -24,7 +24,7 @@ Perseida i Spotwise (aplicació de recomanació d'espais, grup 21B) s'integren e
 
 Spotwise accepta el format tal com està a [[contracte-esdeveniments]] i no demana cap camp més.
 
-- **Origen:** ens criden sempre des del seu backend, és a dir des d'una sola IP. El límit de 60 peticions per minut els va bé.
+- **Origen:** ens criden sempre des del seu backend, és a dir des d'una sola IP. El límit de 60 peticions per minut els anava bé. Ara és de 600 per minut, però compartit amb tots els clients de l'app, no per a ells sols (TG-643).
 - **Freqüència:** una tasca periòdica del seu backend consulta cada hora `/api/events/active` i `/api/events/upcoming?days=7` i en desa el resultat. Són unes 2 peticions per hora (unes 50 al dia). La seva app llegeix del seu backend, mai del nostre.
 - **Ús:** les categories `lunar` i `solar` canvien la temàtica visual de la seva app, i totes les categories serveixen per avisar dels esdeveniments propers. Accepten `location` i `launch`, tot i que de moment no fan servir la ubicació.
 - **Idioma:** l'anglès els serveix. Ells tradueixen la `category` al català, al castellà i a l'anglès, i mostren el `title` tal com arriba.
@@ -113,6 +113,29 @@ Els exemples de resposta del document de Spotwise (amb resultats, sense resultat
 
 - **Límit:** l'endpoint no en té, però demanen no passar de 60 peticions per minut i desar les respostes en cache uns minuts, perquè les dades canvien poc durant el dia ([[0005-redis-nomes-com-a-cache-lazy]]).
 - **Temps d'espera:** recomanen 5 segons; si se supera, es mostra el missatge d'indisponibilitat.
+
+### Integració a Perseida (TG-352)
+
+Perseida exposa `GET /api/meeting-points?profile=&lat=&lon=` ([[api#Punts de trobada (TG-352)]]). Decisions de Raquel (22/11/2026):
+
+| Perfil | Crida a Spotwise | Filtre a Perseida |
+|---|---|---|
+| `watch_party` | `lat`, `lon`, `grup=true` | `te_wifi = true`, `apte_grup = true`, `distancia_m` ≤ 1.500 m |
+| `study` | `lat`, `lon`, `silenci=silencios`, `endolls=molts&endolls=pocs` | `nivell_silenci = silencios`, `distancia_m` ≤ 1.500 m (els endolls no filtren) |
+
+- **Només confirmats:** els espais amb l'atribut del perfil a `null` (sense vots) es descarten.
+- **Sense filtre horari:** no s'envien `data`, `inici` ni `fi`.
+- **Ubicació:** la que envia el client. A la pantalla de punts de trobada d'un esdeveniment és la de la usuària, no la de l'esdeveniment. Al formulari de sortida és el lloc de la sortida que es crea: el ja triat o, si encara no n'hi ha, el centre del mapa en prémer «Recomana» (TG-661, decisió de Raquel, 24/11/2026). Sense ubicació no es recomana res.
+- **Mock:** sense `SPOTWISE_API_TOKEN` (buit o absent), el backend fa servir `ExampleSpaceSearch` amb la resposta d'exemple «amb resultats» del document de Spotwise (`app/infrastructure/meeting_points/spotwise_examples.json`). Amb token, `SpotwiseSpaceClient`.
+- **Errors:** qualsevol fallada de Spotwise és `503 MEETING_POINTS_UNAVAILABLE`.
+- **Cache:** 5 min a [[redis]], coordenades arrodonides a 3 decimals. Sense dades caducades: passat el TTL, si Spotwise cau, `503`.
+- **Límit:** com a molt 60 crides per minut a Spotwise (finestra lliscant al client, una instància per procés). La 61a respon `503 MEETING_POINTS_UNAVAILABLE` sense cridar-los (decisió de Raquel, 22/11/2026).
+- **Logs:** les URL de les peticions d'httpx no es registren, perquè porten la ubicació de la usuària.
+- **Configuració:** `SPOTWISE_URL`, `SPOTWISE_API_TOKEN` (secret de GitHub obligatori al CD) i `SPOTWISE_TIMEOUT_SECONDS` (5 s).
+- **Sortides:** una sortida ([[api#Sortides d'observació (TG-629)]]) que tria un local en desa les coordenades i el nom i l'adreça (`place`; TG-661, decisió de Raquel, 24/11/2026). No en desa l'identificador de Spotwise.
+
+> [!warning] HTTP sense xifrar
+> El servei de Spotwise només és accessible per HTTP, i el token viatja en clar entre els dos servidors. També hi viatja en clar la ubicació de la persona, arrodonida a 3 decimals (uns 100 m). Raquel ho accepta (22/11/2026), perquè l'endpoint només llegeix dades d'espais i la ubicació no s'hi envia exacta. Cal demanar HTTPS a Spotwise.
 
 ## Regla de canvis
 

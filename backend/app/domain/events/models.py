@@ -1,4 +1,6 @@
 import uuid
+from collections.abc import Iterable
+from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
 from typing import Annotated, Self
 
@@ -11,7 +13,9 @@ from pydantic import (
     model_validator,
 )
 
-from app.domain.shared.errors import ValidationError
+from app.domain.events.errors import EVENT_ALREADY_ENDED
+from app.domain.shared.errors import ConflictError, ValidationError
+from app.domain.shared.location import Location as Location
 
 
 class EventCategory(StrEnum):
@@ -21,15 +25,6 @@ class EventCategory(StrEnum):
     SOLAR = "solar"
     METEOR_SHOWER = "meteor_shower"
     LAUNCH = "launch"
-
-
-class Location(BaseModel):
-    """A point on Earth (WGS 84 degrees)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    latitude: float = Field(ge=-90, le=90)
-    longitude: float = Field(ge=-180, le=180)
 
 
 class EventSourceName(StrEnum):
@@ -81,6 +76,13 @@ class AstronomicalEvent(_EventData):
 
     id: uuid.UUID
 
+    def has_ended(self, now: datetime) -> bool:
+        """Return whether the event is over at ``now``: ``ends_at < now``.
+
+        An event that ends exactly at ``now`` has not ended yet (TG-53).
+        """
+        return self.ends_at < now
+
 
 class EventDraft(_EventData):
     """An event as a source gives it, before it is stored and gets an ``id``.
@@ -90,3 +92,112 @@ class EventDraft(_EventData):
 
     source: EventSourceName
     external_id: Annotated[NonBlank, Field(max_length=EXTERNAL_ID_MAX_LENGTH)]
+
+
+# Filters of GET /api/events (TG-51).
+DEFAULT_RANGE_DAYS = 30
+MAX_RANGE_DAYS = 90
+DEFAULT_RADIUS_KM = 500.0
+MIN_RADIUS_KM = 1.0
+MAX_RADIUS_KM = 20_000.0
+
+
+class Proximity(BaseModel):
+    """Events within ``radius_km`` of ``location``, measured on the Earth."""
+
+    model_config = ConfigDict(frozen=True)
+
+    location: Location
+    radius_km: float = Field(ge=MIN_RADIUS_KM, le=MAX_RADIUS_KM)
+
+
+def _utc_midnight(day: date) -> datetime:
+    return datetime.combine(day, time.min, tzinfo=UTC)
+
+
+def _proximity(
+    lat: float | None, lon: float | None, radius_km: float | None
+) -> Proximity | None:
+    if lat is None and lon is None and radius_km is None:
+        return None
+    if lat is None or lon is None:
+        raise ValidationError("VALIDATION_ERROR", "Proximity needs both lat and lon")
+    return Proximity(
+        location=Location(latitude=lat, longitude=lon),
+        radius_km=DEFAULT_RADIUS_KM if radius_km is None else radius_km,
+    )
+
+
+class EventQuery(BaseModel):
+    """What GET /api/events lists: the events that overlap ``[start, end)``.
+
+    An empty ``categories`` takes them all. With ``near``, located events must
+    be within its radius; events without a location are always included.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    start: AwareDatetime
+    end: AwareDatetime
+    categories: frozenset[EventCategory] = frozenset()
+    near: Proximity | None = None
+
+    @classmethod
+    def from_filters(
+        cls,
+        *,
+        today: date,
+        from_day: date | None,
+        to_day: date | None,
+        categories: Iterable[EventCategory],
+        lat: float | None,
+        lon: float | None,
+        radius_km: float | None,
+    ) -> Self:
+        """Build the query from the request filters (UTC days, ``to`` included).
+
+        By default ``from`` is ``today`` and ``to`` is 30 days after ``from``.
+
+        Raises:
+            ValidationError: ``from`` is after ``to``, the range spans more than
+                90 days, or the proximity is incomplete (``VALIDATION_ERROR``).
+        """
+        near = _proximity(lat, lon, radius_km)
+        first = today if from_day is None else from_day
+        last = first + timedelta(days=DEFAULT_RANGE_DAYS) if to_day is None else to_day
+        if first > last:
+            raise ValidationError("VALIDATION_ERROR", "'from' is after 'to'")
+        if (last - first).days > MAX_RANGE_DAYS:
+            raise ValidationError(
+                "VALIDATION_ERROR", f"The range spans more than {MAX_RANGE_DAYS} days"
+            )
+        return cls(
+            start=_utc_midnight(first),
+            end=_utc_midnight(last + timedelta(days=1)),
+            categories=frozenset(categories),
+            near=near,
+        )
+
+
+class EventSubscription(BaseModel):
+    """A user follows an event (TG-53): at most one per user and event."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    event_id: uuid.UUID
+    created_at: AwareDatetime
+
+    @classmethod
+    def create(
+        cls, user_id: uuid.UUID, event: AstronomicalEvent, now: datetime
+    ) -> Self:
+        """Subscribe ``user_id`` to ``event`` at ``now``.
+
+        Raises:
+            ConflictError: ``EVENT_ALREADY_ENDED`` if the event has ended.
+        """
+        if event.has_ended(now):
+            raise ConflictError(EVENT_ALREADY_ENDED, "Event has already ended")
+        return cls(id=uuid.uuid7(), user_id=user_id, event_id=event.id, created_at=now)

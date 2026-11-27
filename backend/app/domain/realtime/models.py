@@ -1,3 +1,4 @@
+import uuid
 from enum import StrEnum
 from typing import Any
 
@@ -7,6 +8,8 @@ ROOM_PATTERN = r"^[a-z0-9_-]+(:[a-z0-9_-]+)*$"
 ROOM_MAX_LENGTH = 64
 ROOM_CHANNEL_PREFIX = "room:"
 REVOCATION_CHANNEL_PREFIX = "session-revoked:"
+ROOM_REVOCATION_CHANNEL_PREFIX = "room-revoked:"
+CHAT_EVENT_ROOM_PREFIX = "chat:event:"
 
 
 class FrameType(StrEnum):
@@ -17,6 +20,9 @@ class FrameType(StrEnum):
     ERROR = "error"
     PING = "ping"
     PONG = "pong"
+    DM_SEND = "dm.send"
+    DM_MESSAGE = "dm.message"
+    DM_TYPING = "dm.typing"
 
 
 class Frame(BaseModel):
@@ -37,6 +43,21 @@ def room_channel(room: str) -> str:
     return f"{ROOM_CHANNEL_PREFIX}{room}"
 
 
+def direct_user_channel(user_id: uuid.UUID) -> str:
+    """Internal channel; clients can never subscribe using the room protocol."""
+    return f"direct-user:{user_id}"
+
+
 def revocation_channel(sub: str) -> str:
     """Channel where the session store announces that a user's sessions were revoked."""
     return f"{REVOCATION_CHANNEL_PREFIX}{sub}"
+
+
+def room_revocation_channel(sub: str) -> str:
+    """Channel announcing that a user lost a room (payload ``{room}``)."""
+    return ROOM_REVOCATION_CHANNEL_PREFIX + sub
+
+
+def chat_event_room(event_id: uuid.UUID) -> str:
+    """Room of the chat of an event."""
+    return CHAT_EVENT_ROOM_PREFIX + str(event_id)

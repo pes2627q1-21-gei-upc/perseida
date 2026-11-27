@@ -47,3 +47,15 @@ class ApodRepository(Protocol):
     async def save(self, apod: Apod) -> None:
         """Store ``apod``; if its date is already stored, keep the first one."""
         ...
+
+
+class DailyActivityRegistrar(Protocol):
+    """Records that a signed-in user opened the APOD today.
+
+    Who owns that record (the streak, through the user's account) is the
+    adapter's business: ``apod`` does not know the other features.
+    """
+
+    async def register(self, subject: str) -> None:
+        """Register the day activity of the user with Google subject ``subject``."""
+        ...

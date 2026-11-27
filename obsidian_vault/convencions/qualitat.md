@@ -2,9 +2,9 @@
 titol: "Qualitat del codi i Quality Gate"
 tipus: convencio
 estat: vigent
-data: "2026-10-28"
-us: ["TG-85", "TG-34", "TG-35", "TG-194", "TG-342", "TG-359"]
-font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24, PR #79, PR #82); frontend/package.json (script typecheck, TG-342); TG-194; TG-359"
+data: "2026-11-27"
+us: ["TG-85", "TG-34", "TG-35", "TG-194", "TG-342", "TG-359", "TG-664"]
+font: "memòria §2.4; .github/workflows/ci.yml (PR #18, PR #24, PR #79, PR #82); frontend/package.json (script typecheck, TG-342); TG-194; TG-359; TG-664 (PR #176, release 0.3.0: Stryker cancel·lat als 60 min, 27/11/2026)"
 etiquetes: [convencio, qualitat, ruff, mypy, eslint, sonarqube]
 ---
 
@@ -30,7 +30,7 @@ Des de TG-34, `.github/workflows/ci.yml` executa el job `backend` a cada PR i a 
 
 Des de TG-359 (US #359), la CI afegeix comprovacions bloquejants de cobertura i mutation testing:
 - **Cobertura global:** a la CI, el pas de `pytest` executa `uv run pytest --cov-fail-under=80` (falla si la cobertura global és inferior al 80 %; en local es pot verificar amb la mateixa ordre).
-- **Cobertura del codi nou:** a les PRs, `diff-cover` compara el diff (`uv run diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=90`) i falla si el codi nou no assoleix el 90 %.
+- **Cobertura del codi nou:** a les PRs, `diff-cover` compara el diff (`uv run diff-cover coverage.xml --compare-branch=<base real de la PR> --fail-under=90`) i falla si el codi nou no assoleix el 90 %. La base és la real de la PR, que `backend/scripts/pr_base.py` demana a l'API REST: en una PR apilada és la branca pare i no el tronc que dona `github.base_ref` (vegeu [[pr-apilades-amb-gh-stack]]); si l'API falla, s'usa `origin/${{ github.base_ref }}`.
 - **Mutation testing al domini:** `uv run python scripts/run_mutmut_diff.py` executa `mutmut` exclusivament sobre els fitxers modificats a `app/domain` respecte a la branca base i exigeix un mutation score ≥ 70 %. Si no s'ha tocat el domini, passa ràpidament.
 
 ## CI del frontend (implementada)
@@ -39,7 +39,7 @@ Des de TG-35, el mateix workflow executa el job `frontend` a cada PR i a cada pu
 
 Des de TG-359 (US #359), s'activen comprovacions de cobertura i mutation testing:
 - **Cobertura global:** `pnpm test --coverage --ci` fa complir el `coverageThreshold` del 80 % (línies, sentències, funcions i branques) definit a `jest.config.js`.
-- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament.
+- **Mutation testing a la lògica:** `pnpm test:mutation` (`node scripts/run-stryker-diff.mjs`) executa Stryker exclusivament sobre els fitxers de lògica modificats a la PR (`src/**/*.{ts,tsx}`, excloent tests, `.d.ts`, `index.ts` i `src/shared/ui/`) amb llindar `break: 70`. Si no hi ha canvis de lògica, el pas finalitza amb èxit immediatament. En una PR apilada, la base del diff és la branca pare de la PR (l'script la consulta a l'API REST), no el tronc que dona `github.base_ref` (vegeu [[pr-apilades-amb-gh-stack]]). En una PR `release/*` → `main`, la base és `origin/develop` (sense consultar l'API): contra `main` es mutaria tot l'sprint, que ja es va mutar a cada PR `feature/*` → `develop`, i el job passava dels 60 min (176 fitxers a la PR #176, TG-664). Així només es muten els bugfixes fets a la mateixa release.
 
 ## SonarQube Cloud (implementat a TG-194)
 
@@ -58,7 +58,7 @@ Aplicat al codi nou (**New Code**) de cada PR:
 - **Seguretat (Vulnerabilitats):** Qualificació **A** (0 vulnerabilitats noves).
 - **Mantenibilitat (Code Smells):** Qualificació **A**.
 - **Security Hotspots:** 100 % revisats.
-- **Duplicació de línies:** ≤ 3.0 %.
+- **Duplicació de línies:** ≤ 3.0 % (excloent del càlcul `frontend/src/shared/theme/colors.ts`: els quatre temes de tokens tenen la mateixa forma per disseny i qualsevol token nou hi compta com a duplicat; TG-650).
 - **Cobertura en codi nou:** ≥ 90 % (d'acord amb [[0028-tdd-estricte-i-politica-de-testing-avancada]] i [[testing]]; excloent només components purament visuals: `frontend/src/shared/ui/**`).
 
 ### Com interpretar fallades i analitzar línies no cobertes

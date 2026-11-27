@@ -6,7 +6,7 @@ import { colors } from '../../../shared/theme';
 import { EventMap } from './EventMap';
 import { buildLeafletHtml } from './leafletHtml';
 import { markerPalette } from './markerIcon';
-import type { MapMarker } from './mapTiles';
+import type { MapMarker } from '../../../shared/map/mapTiles';
 
 // The native WebView does not run under Jest: a plain View keeps its props for the assertions.
 jest.mock('react-native-webview', () => {
@@ -20,6 +20,7 @@ const MARKERS: MapMarker[] = [
     latitude: 28.5618,
     longitude: -80.577,
     label: 'Falcon 9 launch',
+    kind: 'event',
     category: 'launch',
     active: true,
   },

@@ -240,7 +240,7 @@ async def test_a_suspended_or_banned_account_is_a_403_on_login_and_on_me(
 async def test_me_returns_the_profile_with_a_valid_session(
     client: AsyncClient, sub: str
 ) -> None:
-    # TG-140 / US #45 criteri 7
+    # TG-140 / US #45 criteri 7; TG-385 criteri 3 (data d'alta)
     tokens = (await login(client, sub, language="en")).json()
 
     response = await client.get("/api/users/me", headers=bearer(tokens))
@@ -248,6 +248,7 @@ async def test_me_returns_the_profile_with_a_valid_session(
     body = response.json()
     assert response.status_code == 200
     assert uuid.UUID(body.pop("id")).version == 7
+    assert datetime.fromisoformat(body.pop("created_at")).tzinfo is not None
     assert body == {
         "email": f"{sub}@example.test",
         "display_name": "Ana",
@@ -424,3 +425,165 @@ async def test_control_characters_in_the_name_do_not_break_the_login(
 
     assert response.status_code == 200
     assert me.json()["display_name"] == "Ana Lovelace"
+
+
+async def test_patch_me_changes_the_language_and_persists_it(
+    client: AsyncClient, engine: AsyncEngine, sub: str
+) -> None:
+    # TG-92 / US #92 criteri 1
+    tokens = (await login(client, sub, language="ca")).json()
+
+    response = await client.patch(
+        "/api/users/me", json={"preferred_language": "es"}, headers=bearer(tokens)
+    )
+    me = await client.get("/api/users/me", headers=bearer(tokens))
+
+    assert response.status_code == 200
+    assert response.json()["preferred_language"] == "es"
+    assert response.json()["email"] == f"{sub}@example.test"
+    assert me.json()["preferred_language"] == "es"
+    assert (
+        await scalar(
+            engine,
+            "SELECT preferred_language FROM users WHERE email = :e",
+            e=f"{sub}@example.test",
+        )
+        == "es"
+    )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param({"preferred_language": "fr"}, id="unsupported-value"),
+        pytest.param({"preferred_language": None}, id="null"),
+        pytest.param({}, id="absent"),
+    ],
+)
+async def test_patch_me_with_an_invalid_language_is_a_422_and_changes_nothing(
+    client: AsyncClient, engine: AsyncEngine, sub: str, body: dict[str, Any]
+) -> None:
+    # TG-92 / US #92 criteri 1
+    tokens = (await login(client, sub, language="en")).json()
+
+    response = await client.patch("/api/users/me", json=body, headers=bearer(tokens))
+
+    assert_problem(response, 422, "VALIDATION_ERROR")
+    assert (
+        await scalar(
+            engine,
+            "SELECT preferred_language FROM users WHERE email = :e",
+            e=f"{sub}@example.test",
+        )
+        == "en"
+    )
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        pytest.param({}, id="no-header"),
+        pytest.param({"Authorization": "Bearer forged"}, id="forged-token"),
+    ],
+)
+async def test_patch_me_without_a_valid_session_is_a_401(
+    client: AsyncClient, headers: dict[str, str]
+) -> None:
+    # TG-92 / US #92 criteri 1
+    response = await client.patch(
+        "/api/users/me", json={"preferred_language": "es"}, headers=headers
+    )
+
+    assert_problem(response, 401, INVALID_SESSION)
+
+
+@pytest.mark.parametrize(
+    ("update", "code"),
+    [
+        pytest.param("status = 'suspended'", ACCOUNT_SUSPENDED, id="suspended"),
+        pytest.param("deleted_at = now()", ACCOUNT_DELETED, id="deleted"),
+    ],
+)
+async def test_patch_me_on_an_unusable_account_is_a_403_and_changes_nothing(
+    client: AsyncClient, engine: AsyncEngine, sub: str, update: str, code: str
+) -> None:
+    # TG-92 / US #92 criteri 1
+    tokens = (await login(client, sub, language="ca")).json()
+    email = f"{sub}@example.test"
+    async with engine.begin() as connection:
+        await connection.execute(
+            text(f"UPDATE users SET {update} WHERE email = :e"), {"e": email}
+        )
+
+    response = await client.patch(
+        "/api/users/me", json={"preferred_language": "es"}, headers=bearer(tokens)
+    )
+
+    assert_problem(response, 403, code)
+    assert (
+        await scalar(
+            engine,
+            "SELECT preferred_language FROM users WHERE email = :e",
+            e=email,
+        )
+        == "ca"
+    )
+
+
+async def test_patch_me_only_changes_the_account_of_the_session(
+    client: AsyncClient, engine: AsyncEngine, sub: str
+) -> None:
+    # TG-92 / US #92 criteri 2: l'usuari surt de la sessió, no del cos
+    mine = (await login(client, sub, language="ca")).json()
+    other_sub = f"{sub}-other"
+    other = (await login(client, other_sub, language="ca")).json()
+    other_id = (await client.get("/api/users/me", headers=bearer(other))).json()["id"]
+
+    response = await client.patch(
+        "/api/users/me",
+        json={
+            "preferred_language": "en",
+            "id": other_id,
+            "email": f"{other_sub}@example.test",
+        },
+        headers=bearer(mine),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["preferred_language"] == "en"
+    assert response.json()["id"] != other_id
+    assert (
+        await scalar(
+            engine,
+            "SELECT preferred_language FROM users WHERE email = :e",
+            e=f"{other_sub}@example.test",
+        )
+        == "ca"
+    )
+    assert (await client.get("/api/users/me", headers=bearer(other))).json()[
+        "preferred_language"
+    ] == "ca"
+
+
+async def test_patch_me_ignores_extra_fields_such_as_email_and_role(
+    client: AsyncClient, engine: AsyncEngine, sub: str
+) -> None:
+    # TG-92 / US #92 criteri 2: el cos no pot canviar l'email ni el rol
+    tokens = (await login(client, sub, language="ca")).json()
+
+    response = await client.patch(
+        "/api/users/me",
+        json={
+            "preferred_language": "es",
+            "email": "hacker@example.test",
+            "role": "admin",
+        },
+        headers=bearer(tokens),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["preferred_language"] == "es"
+    assert response.json()["email"] == f"{sub}@example.test"
+    assert response.json()["role"] == "user"
+    assert await scalar(engine, "SELECT role FROM users") == "user"
+    assert await scalar(engine, "SELECT email FROM users") == f"{sub}@example.test"

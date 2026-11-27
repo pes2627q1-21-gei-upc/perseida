@@ -2,7 +2,7 @@
   "expo": {
     "name": "Perseida",
     "slug": "frontend",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "scheme": ["perseida", "app.perseida"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,7 +24,19 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "./plugins/withAndroidRelease"],
+    "experiments": {
+      "baseUrl": "/admin"
+    },
+    "plugins": [
+      "expo-router",
+      "./plugins/withAndroidRelease",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Perseida usa la teva ubicació per mostrar els esdeveniments a prop teu i per proposar el lloc de trobada d'una sortida d'observació."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "81d98cee-5819-428f-b975-d64292e97da9"

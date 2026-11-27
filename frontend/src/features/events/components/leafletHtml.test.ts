@@ -6,7 +6,7 @@ import {
   BASE_MAP_TILES,
   MAP_ATTRIBUTION_PREFIX,
   type MapMarker,
-} from './mapTiles';
+} from '../../../shared/map/mapTiles';
 
 const MARKERS: MapMarker[] = [
   {
@@ -14,6 +14,7 @@ const MARKERS: MapMarker[] = [
     latitude: 28.5618,
     longitude: -80.577,
     label: 'Falcon 9 launch',
+    kind: 'event',
     category: 'launch',
     active: true,
   },
@@ -22,6 +23,7 @@ const MARKERS: MapMarker[] = [
     latitude: 41.39,
     longitude: 2.17,
     label: 'Barcelona event',
+    kind: 'event',
     category: 'lunar',
     active: false,
   },
@@ -145,6 +147,7 @@ describe('buildLeafletHtml', () => {
         latitude: 0,
         longitude: 0,
         label: '</script><script>alert(1)</script>',
+        kind: 'event',
         category: 'launch',
         active: false,
       },

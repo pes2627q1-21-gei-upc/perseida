@@ -1,0 +1,54 @@
+---
+titol: "Sessió 2026-11-18: frontend de les sortides d'observació (TG-629, tasques #640 a #642)"
+tipus: sessio
+estat: vigent
+data: "2026-11-18"
+us: ["TG-629"]
+font: "Taiga: TG-629 i tasques #640-#642; decisions de Raquel en aquesta sessió (18/11/2026); revisió de reviewer-arquitectura; proves locals amb Jest i Stryker"
+etiquetes: [sessio, frontend, sortides]
+---
+
+# Sessió 2026-11-18 · Frontend de les sortides d'observació (TG-629)
+
+## Objectiu
+
+Implementar la part de frontend de TG-629 (tasques #640, #641 i #642) sobre el backend de la PR #101, que ja és a `develop`: formulari de crear i editar, llistes, detall i esborrat amb confirmació.
+
+## Què s'ha fet
+
+- **Dependències:** `expo-location` 58.0.19 i `@react-native-community/datetimepicker` 9.2.1, amb versió fixada. `react-hook-form`, `zod` i `@hookform/resolvers` ja hi eren.
+- **Dades (#641):** `api/outings.ts` i `hooks/useOutings.ts`, amb `authHeaders` com les publicacions.
+- **Formulari (#640):** `OutingForm` amb la validació de comoditat de `outingForm.ts`, `DateTimeField` (mòbil i web) i `LocationField` amb el mapa de mira central i la ubicació del dispositiu.
+- **Llistes, detall i esborrat (#641):** `OutingsScreen`, `OutingDetailScreen` (amb `ConfirmDialog`), `NewOutingScreen` i `EditOutingScreen`, i les quatre rutes.
+- **Entrades:** botó a l'inici temporal i botó a la fitxa de l'esdeveniment.
+- **Refactor sense canvi de comportament:** `TopBar` a `shared/ui` i `shared/map` (constants del mapa base, Leaflet, `onlyMapPage` i la lectura de la càmera), que eren dins d'`events`.
+- **i18n:** claus `outings.*`, `home.outingsLink`, `events.sheet.outings` i `errors.OUTING_*` en ca, es i en, amb els textos aprovats per Raquel.
+- **Vault (#642):** secció «Sortides d'observació (TG-629)» a [[frontend]].
+
+## Decisions
+
+Cap ADR nova. Decisions de Raquel:
+
+- El token va amb `authHeaders` a cada crida, com les publicacions. Es va provar primer un middleware al client d'API i es va revertir en veure que `develop` ja tenia aquesta manera de fer-ho.
+- El lloc es tria movent el mapa sota una mira central i prement «Tria aquest lloc», amb «Usa la meva ubicació» com a alternativa.
+- L'esdeveniment relacionat primer només es podia treure; després Raquel va demanar poder-lo triar (tasca #648): `EventField`, amb «Cap esdeveniment» i els actius i futurs del mapa. Surt preseleccionat si es crea des de la fitxa d'un esdeveniment.
+- Data i hora: control natiu a iOS, dia i hora seguits a Android i `datetime-local` a la web.
+- Esborrat amb un diàleg de vidre propi, perquè `Alert.alert` no fa res a la web.
+- Alternativa a arrossegar el mapa (WCAG 2.5.7, suggerida per la revisió): camps de latitud i longitud, a més de la ubicació del dispositiu.
+- El vel del diàleg és un token nou, `surface.scrim`, fosc a tots els temes.
+- Es deixen els dos `Revert` del middleware d'API a l'historial.
+- La mira és una icona `Crosshair`, no un `MapPin`, perquè la punta d'una agulla no marcaria el centre.
+
+## Pendent / següents passos
+
+- [ ] PR del frontend cap a `develop` quan Raquel ho demani.
+- [ ] Afegir `surface.scrim` a `.agents/skills/estetica-frutiger-cosmo/references/tokens.md` (la skill es manté a `.agents/skills/` i es sincronitza amb `node .agents/scripts/sync-skills.mjs`).
+- [ ] Mutation testing (≥ 70 %): no s'ha executat en local, perquè són uns 800 mutants i unes 3 h 30 min. El fa la CI, bloquejant, a la PR.
+- [ ] Troballes menors de la revisió que no s'han fet: la clau `outings.form.saving` no s'usa, «Cancel·la» continua actiu mentre s'esborra, el camp de text no porta `aria-invalid`, un `422 VALIDATION_ERROR` amb `fieldErrors` no va al seu camp i hi ha una mica de codi de Leaflet repetit.
+- [ ] Provar a mà el mapa del selector de lloc en un dispositiu Android i a la web (els tests no executen Leaflet).
+- [ ] Paginació keyset de `GET /api/outings` (#644, Sprint 3).
+
+## US de Taiga
+
+- TG-629 (tasques #640, #641, #642; #637-#639 ja tancades)
+- #644 (paginació, Sprint 3)

@@ -73,6 +73,29 @@ frontend/
 - **Neteja de sessió (`features/auth/session.ts`)**: `clearSession()` esborra tant els tokens desats com la memòria cau en memòria de TanStack Query. Utilitzada per `useLogout` i per la renovació de token davant 401 `INVALID_SESSION`.
 - **Renovació de sessió (`features/auth/api/refreshToken.ts`)**: `refreshSession()` renova els tokens mitjançant `POST /api/auth/refresh`. Serialitza les crides concurrents per garantir que els refresh tokens d'un sol ús no es cremin dues vegades.
 - **Guard de ruta (`app/(app)/_layout.tsx`)**: Redirigeix usuaris sense sessió a `/login`; `/login` redirigeix usuaris autenticats cap a l'aplicació (`/(app)`).
+- **Endpoints privats (`features/auth/api/authorized.ts`, TG-61)**: `withSession(request)` envia l'access token com a `Authorization: Bearer`. Davant un 401 renova la sessió un cop i ho torna a provar; si la renovació falla per una causa temporal (xarxa, 5xx) acaba en `SESSION_UNAVAILABLE` reintentable, no en sessió caducada. Sense sessió falla amb `INVALID_SESSION` sense cridar l'API (`authHeaders`).
+
+## Quiz diari (TG-61)
+
+Ruta `/(app)/quiz` (de moment, accés des de l'inici temporal). Codi a `src/features/quiz/`; contracte de l'API a `obsidian_vault/arquitectura/contracte-quiz.md`.
+
+- **Dades:** `useQuizToday(lang)` demana `GET /api/quiz/today?lang=<idioma de l'app>`; `useAnswerQuiz(lang)` envia `POST /api/quiz/today/answer` i desa el resultat a la pregunta en memòria cau. Una entrada de cache per idioma. Amb la pantalla oberta, la pregunta es torna a demanar just després de mitjanit UTC, i en tornar l'app al primer pla un altre dia.
+- **Pantalla:** la pregunta amb les 4 opcions (botons de ràdio) i un botó d'enviar desactivat fins que es tria una opció i ocupat mentre s'envia. Un cop resposta (o si ja ho estava), el resultat: si s'ha encertat, l'opció correcta i la triada amb paraules i icones, l'explicació i un enllaç a la font. Totes dues vistes tenen un botó «Torna a l'inici», així no cal el botó enrere del sistema.
+- **Errors:** els de càrrega mostren un missatge traduït amb reintent si són transitoris. Si falla l'enviament, l'opció triada es conserva. Després de `QUIZ_EXPIRED` o `QUIZ_QUESTION_MISMATCH` es carrega la pregunta nova amb un avís; després de `QUIZ_ALREADY_ANSWERED`, el resultat. Si aquesta recàrrega falla, es mostra l'error amb reintent encara que hi hagi una pregunta anterior en memòria cau.
+
+## Xat d'esdeveniment (TG-64)
+
+Codi a `src/features/chat/`; el contracte REST i el protocol WebSocket són els del backend ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md), [ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md)). Notes de disseny a `obsidian_vault/arquitectura/frontend.md`.
+
+- **Connexió en temps real compartida (`src/shared/realtime/`):** un client WebSocket genèric sense lògica de xat (`socketClient.ts`) i el seu hook `useSocket`. Hi ha una sola connexió per procés, oberta pel primer consumidor i tancada per l'últim; s'autentica amb el primer frame, reconnecta amb espera exponencial i envia els frames del xat amb reintents. `shared/` mai importa de `features/` (ho fa complir una regla d'ESLint): la sessió s'injecta (`features/auth/socketAuth.ts`).
+- **Funcionalitat de xat (`src/features/chat/`):**
+  - `api/` i `hooks/useChat.ts`: `useRooms`, `useMySubscriptions` i `useRoomMessages(eventId)` (historial amb cursor opac, 50 per pàgina).
+  - `hooks/useChatSocket.ts`: se subscriu a `chat:event:<eventId>` i envia missatges amb un `client_message_id` que es reutilitza en cada reintent.
+  - `roomList.ts`: la llista de sales es construeix al client a partir de les subscripcions de la usuària i de les sales que retorna l'API.
+  - `components/`: `ChatRoomsScreen` i `RoomListItem` (la llista) i les peces de la sala, `MessageBubble`, `MessageComposer` i `MessageList`, la pantalla `ChatRoomScreen` que les munta, i les dades pures a `chatCache.ts` i `chatItems.ts`.
+- **Què hi ha avui:** la ruta de pestanya `/(app)/chat` mostra la llista de sales de xat dels esdeveniments als quals la usuària està subscrita, cadascuna amb el darrer missatge, i cada fila obre la sala (`router.push('/chat/<eventId>')`). La sala és `ChatRoomScreen`, a la ruta `src/app/(app)/chat/[eventId].tsx`: el cel, una barra de vidre amb el títol de l'esdeveniment, els missatges al damunt i el compositor sobre el teclat. La mou el hook `useRoomLive(eventId)` (obre la sala, carrega l'historial, afegeix el que arriba en viu i envia: un missatge és pendent fins que el servidor el confirma, i un de refusat es queda a la seva bombolla amb el motiu per reintentar-lo o descartar-lo). La barra de pestanyes s'amaga dins la sala (`useSegments()` a `(app)/_layout.tsx`). Un missatge confirmat dona un impacte hàptic lleuger i un enviament refusat una hàptica d'error, amb `expo-haptics` (fixada a 58.0.7); la hàptica mai llança, així que és un extra on la plataforma no en té (p. ex. el web).
+
+**Provar-ho.** Arrenca la base de dades i la memòria cau amb `docker compose up -d db cache` a `infra/` i, a `backend/`, `uv run alembic upgrade head` i `uv run uvicorn app.main:app --reload` (detall a [`../backend/README.ca.md`](../backend/README.ca.md#xat-desdeveniment)). Arrenca l'app amb `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 pnpm web`. El teu `.env` pot apuntar a producció: aquesta variable el sobreescriu, de manera que les proves en local mai toquen producció. Inicia sessió, subscriu-te a un esdeveniment, obre la pestanya del xat i toca la seva sala.
 
 ## Executar i testejar
 
@@ -80,7 +103,7 @@ frontend/
 cd frontend                       # des de l'arrel del repositori
 pnpm install --frozen-lockfile    # instal·la les dependències exactament com a pnpm-lock.yaml
 pnpm expo start                   # arrenca el servidor de desenvolupament d'Expo (emulador Android / dispositiu; Expo Go ha de ser de l'SDK 58)
-pnpm web                          # la mateixa app al navegador (React Native Web)
+pnpm web                          # la mateixa app al navegador (React Native Web), servida sota /admin/ (p. ex. http://localhost:8081/admin/)
 pnpm lint                         # ESLint + Prettier (també comprova el format)
 pnpm typecheck                    # comprovació de tipus estricta (tsc --noEmit)
 pnpm test                         # Jest (preset jest-expo)
@@ -180,6 +203,7 @@ Ordres exactes (des de `frontend/`, les mateixes que el workflow, cada una en un
 ```bash
 cd frontend                       # des de l'arrel del repositori
 pnpm install --frozen-lockfile    # falla si pnpm-lock.yaml no està al dia
+pnpm audit --prod --audit-level=high  # dependències de producció (bloquejant a la CI)
 pnpm lint                         # ESLint + Prettier
 pnpm typecheck                    # comprovació de tipus estricta
 pnpm test --coverage --ci         # Jest + informe de cobertura
@@ -188,6 +212,7 @@ pnpm test --coverage --ci         # Jest + informe de cobertura
 - **Versions:** la CI fa servir Node 24.22.1 (fixat al workflow) i pnpm 12.15.0 (fixat a `packageManager` de `package.json`, que el workflow llegeix); fes servir les mateixes en local per reproduir un error. Per actualitzar pnpm: `pnpm self-update` (`pnpm add -g pnpm` es rebutja des de pnpm 11.10).
 - **Cobertura:** l'informe es publica com a artefacte `frontend-coverage` (`lcov.info`). Per descarregar-lo: GitHub → pestanya **Actions** → l'execució → secció **Artifacts** al final de la pàgina de resum.
 - **Requisits:** el job no necessita secrets ni serveis.
+- **`pnpm audit`:** surt amb error si hi ha alguna vulnerabilitat alta o crítica a les dependències de producció, i a la CI bloqueja la PR (decisió de l'equip, 21/11/2026). Un risc acceptat va a `auditConfig.ignoreGhsas` de `pnpm-workspace.yaml`, amb fila a la taula de riscos de `obsidian_vault/convencions/seguretat.md`.
 
 ## Testing i qualitat
 
@@ -199,7 +224,7 @@ pnpm test --coverage --ci         # Jest + informe de cobertura
 
 ## Convencions
 
-- GitFlow amb branques `feature/*` des de `develop`; PR aprovada per una persona diferent de l'autora i amb CI en verd.
+- GitFlow amb branques `feature/*` des de `develop` (en una pila de PR apilades, des de la `feature/*` anterior); PR aprovada per una persona diferent de l'autora i amb CI en verd.
 - Mateixes regles de TypeScript estricte i lint per a tot l'equip (fitxers de configuració versionats).
 - El codi generat amb assistents d'IA passa exactament per la mateixa revisió i portes de qualitat.
 

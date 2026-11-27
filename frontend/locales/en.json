@@ -1,30 +1,281 @@
 {
+  "achievements": {
+    "category": {
+      "events": "Events",
+      "minigame": "Minigame",
+      "quiz": "Quiz",
+      "social": "Social",
+      "streaks": "Streaks"
+    },
+    "completed": "Congratulations! You have completed every achievement in this category.",
+    "descriptions": {
+      "ambaixador_del_cosmos": "Share 25 achievements.",
+      "astrofisic": "Complete 100 quizzes.",
+      "astronom_aprenent": "Complete 10 quizzes.",
+      "cacador_d_eclipsis": "Subscribe to 10 events.",
+      "calendari_celeste": "Export 10 events to your calendar.",
+      "cartograf_celeste": "Complete 50 quizzes.",
+      "cel_clar": "Answer every question of a quiz correctly.",
+      "cicle_lunar": "Keep your streak going for 30 days in a row, a whole lunar cycle.",
+      "colleccionista_d_aurores": "Subscribe to 25 events.",
+      "comandant": "Win 10 games of the minigame.",
+      "cumul_estellar": "Reach 100 followers.",
+      "eclipsi_total": "Subscribe to 50 events.",
+      "efemerides": "Export an event to your calendar.",
+      "estrella_fixa": "Keep your streak going for 100 days in a row.",
+      "estrella_polar": "Reach 1,000 followers.",
+      "galaxia": "Reach 500 followers.",
+      "gran_mestre_estellar": "Win 50 games of the minigame.",
+      "llancament": "Play your first game of the minigame.",
+      "llegenda_cosmica": "Win 100 games of the minigame.",
+      "lluna_plena": "Keep your streak going for 14 days in a row.",
+      "missio_complerta": "Win a game of the minigame.",
+      "orbita_compartida": "Follow another person for the first time.",
+      "orbita_setmanal": "Keep your streak going for 7 days in a row.",
+      "perseida": "Keep your streak going for 365 days in a row, a whole year like the meteor shower.",
+      "postal_de_l_espai": "Share 10 achievements.",
+      "primer_senyal": "Share an achievement for the first time.",
+      "primera_alineacio": "Subscribe to your first event.",
+      "primera_llum": "Open the app one day and view the astronomy picture of the day.",
+      "record_galactic": "Beat your personal record 10 times.",
+      "record_orbital": "Beat your personal record.",
+      "repte_llencat": "Challenge a friend for the first time.",
+      "satellit": "Get your first follower.",
+      "senyal_de_radio": "Send your first message in the chat.",
+      "telescopi_nou": "Complete your first daily quiz."
+    },
+    "dialog": {
+      "close": "Close",
+      "share": "Share",
+      "shareHint": "Share the achievement \"{{name}}\""
+    },
+    "empty": "There are no achievements in this category yet.",
+    "gallery": {
+      "title": "Your badges"
+    },
+    "loading": "Loading achievements...",
+    "names": {
+      "ambaixador_del_cosmos": "Cosmos ambassador",
+      "astrofisic": "Astrophysicist",
+      "astronom_aprenent": "Apprentice astronomer",
+      "cacador_d_eclipsis": "Eclipse hunter",
+      "calendari_celeste": "Celestial calendar",
+      "cartograf_celeste": "Celestial cartographer",
+      "cel_clar": "Clear sky",
+      "cicle_lunar": "Lunar cycle",
+      "colleccionista_d_aurores": "Aurora collector",
+      "comandant": "Commander",
+      "cumul_estellar": "Star cluster",
+      "eclipsi_total": "Total eclipse",
+      "efemerides": "Ephemerides",
+      "estrella_fixa": "Fixed star",
+      "estrella_polar": "North Star",
+      "galaxia": "Galaxy",
+      "gran_mestre_estellar": "Grand stellar master",
+      "llancament": "Liftoff",
+      "llegenda_cosmica": "Cosmic legend",
+      "lluna_plena": "Full moon",
+      "missio_complerta": "Mission accomplished",
+      "orbita_compartida": "Shared orbit",
+      "orbita_setmanal": "Weekly orbit",
+      "perseida": "Perseid",
+      "postal_de_l_espai": "Postcard from space",
+      "primer_senyal": "First signal",
+      "primera_alineacio": "First alignment",
+      "primera_llum": "First light",
+      "record_galactic": "Galactic record",
+      "record_orbital": "Orbital record",
+      "repte_llencat": "Challenge sent",
+      "satellit": "Satellite",
+      "senyal_de_radio": "Radio signal",
+      "telescopi_nou": "New telescope"
+    },
+    "progress": "{{current}}/{{goal}}",
+    "progressA11y": "{{name}}, {{current}} of {{goal}}",
+    "progressDays_one": "{{current}}/{{count}} day",
+    "progressDays_other": "{{current}}/{{count}} days",
+    "retry": "Try again",
+    "retryHint": "Load the achievements again",
+    "shareText": "I unlocked \"{{name}}\" on Perseida!",
+    "streakStart": "Open the astronomy picture of the day to start your streak.",
+    "title": "Your next achievements",
+    "trophy": {
+      "openHint": "Opens the description",
+      "pending": "Pending achievement"
+    }
+  },
+  "admin": {
+    "home": {
+      "welcome": "Welcome to the Perseida admin panel"
+    },
+    "main": {
+      "label": "Panel content"
+    },
+    "noAccess": {
+      "message": "Your account doesn't have permission to open the admin panel.",
+      "title": "No access"
+    },
+    "skipToContent": "Skip to content",
+    "topBar": {
+      "label": "Panel top bar"
+    }
+  },
   "apod": {
     "loadingLabel": "Loading the APOD",
     "mediaError": "The image or video couldn't be loaded.",
     "retry": "Try again",
     "retryHint": "Reload the APOD",
+    "title": "Picture of the day",
     "videoLabel": "APOD video"
+  },
+  "auth": {
+    "continueWithGoogle": "Continue with Google",
+    "logout": "Sign out",
+    "logoutHint": "Signs out of this device and goes back to the sign-in screen",
+    "logoutNotConfirmed": "You have been signed out on this device, but the server could not confirm it.",
+    "tagline": "Look up"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Loading chat rooms",
+    "retry": "Try again",
+    "retryHint": "Loads the chat rooms again",
+    "refresh": "Refresh",
+    "noMessages": "No messages yet",
+    "unknownAuthor": "A Perseida user",
+    "list": {
+      "label": "Chat rooms"
+    },
+    "empty": {
+      "message": "You haven't subscribed to any event yet. Subscribe to one to chat with the community.",
+      "cta": "Explore events"
+    },
+    "you": "You",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Sending",
+      "sending": "Sending",
+      "failed": "The message could not be sent.",
+      "uncertain": "The message may have been sent already. If you retry, it won't be duplicated.",
+      "retry": "Retry",
+      "discard": "Discard"
+    },
+    "composer": {
+      "label": "Write a message",
+      "send": "Send",
+      "counter": "{{count}} of {{max}} characters",
+      "tooLong": "A message can be up to {{max}} characters long."
+    },
+    "messages": {
+      "label": "Chat messages",
+      "loadingOlder": "Loading earlier messages"
+    },
+    "room": {
+      "title": "Event chat",
+      "loading": "Loading messages",
+      "retryHint": "Opens the chat room again",
+      "empty": "No messages yet. Be the first to write!",
+      "revoked": "You are no longer part of this chat. Subscribe to the event to write here again.",
+      "backToRooms": "Back to the rooms",
+      "reconnecting": "Reconnecting…",
+      "reconnect": "Reconnect",
+      "newMessage": "New message from {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Connecting to the chat…",
+        "reconnecting": "The connection was lost. You can send once it is back.",
+        "closed": "There is no connection to the chat."
+      }
+    }
   },
   "common": {
     "back": "Back"
+  },
+  "comingSoon": {
+    "badge": "Coming soon",
+    "gamificationDesc": "Complete daily quizzes, earn achievements, and build your stargazing streak.",
+    "gamificationTitle": "Gamification & challenges"
+  },
+  "directChat": {
+    "blocked": "Blocked",
+    "conversationWith": "Conversation with {{name}}",
+    "lastMessage": "last message: {{text}}",
+    "noMessages": "No messages yet",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages",
+    "you": "You: {{text}}",
+    "list": {
+      "title": "Conversations",
+      "loading": "Loading conversations",
+      "userId": "User ID",
+      "open": "Start conversation",
+      "empty": "You have no conversations yet",
+      "unknownUser": "User"
+    },
+    "room": {
+      "loading": "Loading conversation",
+      "block": "Block",
+      "unblock": "Unblock",
+      "typing": "{{name}} is typing"
+    }
   },
   "errors": {
     "ACCOUNT_DELETED": "This account has been deleted.",
     "ACCOUNT_SUSPENDED": "Your account is suspended.",
     "APOD_UNAVAILABLE": "We couldn't load the APOD right now. Please try again in a while.",
+    "CHAT_ROOM_NOT_FOUND": "This chat room no longer exists.",
+    "CHAT_MESSAGE_EMPTY": "The message can't be empty.",
+    "CHAT_MESSAGE_TOO_LONG": "The message is too long (1000 characters max).",
+    "CHAT_MESSAGE_REJECTED": "This message can't be posted because it doesn't follow the community guidelines.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "This message already exists with different content.",
+    "DATABASE_UNAVAILABLE": "The service isn't available right now. Please try again in a while.",
     "EMAIL_ALREADY_REGISTERED": "This email is already linked to another account.",
+    "EVENT_NOT_FOUND": "This event no longer exists.",
+    "EVENT_ALREADY_ENDED": "This event has already ended.",
     "GENERIC_FINAL": "Something went wrong.",
     "GOOGLE_SIGN_IN_EXPO_GO": "Google sign-in doesn't work in Expo Go. Use the installed app (development build).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "Google sign-in isn't available yet.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google is unavailable right now. Please try again in a while.",
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "INVALID_CURSOR": "More posts could not be loaded. Try again.",
     "INVALID_GOOGLE_TOKEN": "We couldn't verify your Google account. Please sign in again.",
     "INVALID_RESPONSE": "Something went wrong. We couldn't load the content.",
     "INVALID_SESSION": "Your session has expired. Please sign in again.",
+    "MEETING_POINTS_UNAVAILABLE": "We can't recommend places right now. Please try again in a while.",
     "NETWORK_ERROR": "No connection. Check your network and try again.",
     "NOT_FOUND": "We couldn't find what you were looking for.",
-    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while."
+    "POST_FORBIDDEN": "Only the person who wrote this post can edit or delete it.",
+    "POST_NOT_FOUND": "This post no longer exists.",
+    "POST_TEXT_EMPTY": "Write something before posting.",
+    "POST_TEXT_TOO_LONG": "The text can be at most 1,000 characters long.",
+    "QUIZ_ALREADY_ANSWERED": "You have already answered today's question.",
+    "QUIZ_EXPIRED": "This question can no longer be answered: the day has changed.",
+    "QUIZ_QUESTION_MISMATCH": "This is no longer today's question.",
+    "SESSION_UNAVAILABLE": "We can't check your session right now. Please try again in a while.",
+    "TOO_MANY_CONNECTIONS": "You have too many connections open at once (on other devices or tabs). Close one and try again.",
+    "SEND_UNCERTAIN": "We couldn't confirm the message was sent. Please try again.",
+    "SHARE_FAILED": "We couldn't open the share menu. Please try again.",
+    "OUTING_TITLE_EMPTY": "Give the outing a title.",
+    "OUTING_TITLE_TOO_LONG": "The title can be at most 120 characters.",
+    "OUTING_DESCRIPTION_TOO_LONG": "The description can be at most 2,000 characters.",
+    "OUTING_PLACE_INVALID": "The chosen place is not valid: it needs a name of 1 to 120 characters and an address of at most 200.",
+    "OUTING_ENDS_BEFORE_START": "The outing can't end before it starts.",
+    "OUTING_STARTS_IN_PAST": "The outing can't start in the past.",
+    "OUTING_EVENT_NOT_FOUND": "This event no longer exists.",
+    "OUTING_NOT_FOUND": "This outing doesn't exist or was deleted.",
+    "OUTING_FORBIDDEN": "Only the person who created the outing can change it.",
+    "FORBIDDEN": "You don't have permission to do that.",
+    "RATE_LIMITED": "There is a lot of activity right now. Please wait a moment and try again.",
+    "NOT_SUBSCRIBED": "You need to join the room first.",
+    "PUBSUB_UNAVAILABLE": "Chat is unavailable right now. Please try again.",
+    "VALIDATION_ERROR": "Please check the data you entered.",
+    "CHAT_INVALID_CURSOR": "We couldn't load the history. Please reopen the room.",
+    "CHAT_INVALID_LIMIT": "We couldn't load the history. Please reopen the room.",
+    "USER_NOT_FOUND": "We couldn't find this user.",
+    "CANNOT_MESSAGE_SELF": "You can't message yourself.",
+    "CONVERSATION_NOT_FOUND": "This conversation doesn't exist.",
+    "USER_BLOCKED": "You can't send messages in this conversation right now.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "This message already exists with different content."
   },
   "events": {
     "category": {
@@ -38,13 +289,15 @@
       "all": "There are no events now or in the next 30 days.",
       "noLocation": "None of these events has a place on the map.",
       "showList": "See the list",
-      "upcoming": "There are no events in the next 30 days."
+      "upcoming": "There are no events in the next 30 days.",
+      "outings": "There are no upcoming outings."
     },
     "filter": {
       "active": "Active",
       "all": "All",
       "label": "Show",
-      "upcoming": "Upcoming"
+      "upcoming": "Upcoming",
+      "outings": "Outings"
     },
     "list": {
       "label": "Events list"
@@ -71,7 +324,9 @@
       "end": "Ends",
       "moreInfo": "More information",
       "openHint": "Opens the event details",
-      "start": "Starts"
+      "start": "Starts",
+      "outings": "Outings for this event",
+      "meetingPoints": "Meeting points"
     },
     "status": {
       "active": "Happening now"
@@ -80,10 +335,237 @@
       "label": "View",
       "list": "List",
       "map": "Map"
+    },
+    "outings": {
+      "kind": "Outing",
+      "open": "Open the outing",
+      "linkedEvent": "Related event"
+    },
+    "search": {
+      "categories": "Categories",
+      "range": {
+        "label": "Period",
+        "days7": "7 days",
+        "days30": "30 days",
+        "days90": "90 days"
+      },
+      "near": {
+        "label": "Near me",
+        "locating": "Finding your location…",
+        "denied": "Without location permission, events can't be filtered by distance. You can turn it on in your device settings.",
+        "unavailable": "Your location could not be found. Check that location services are on and try again."
+      },
+      "distance": "{{distance}} km away",
+      "results_one": "{{count}} event",
+      "results_other": "{{count}} events",
+      "empty": "No events match these filters.",
+      "openMap": "Open the map"
+    },
+    "tabs": {
+      "label": "View",
+      "all": "All",
+      "mine": "Mine"
+    },
+    "subscription": {
+      "follow": "Follow {{title}}",
+      "unavailable": "The events you follow couldn't be loaded: the stars will work again once they load."
+    },
+    "mine": {
+      "empty": "You don't follow any event yet. Tap the star of an event to follow it."
     }
   },
   "home": {
     "apodLink": "Picture of the day",
-    "mapLink": "Events map"
+    "mapLink": "Events map",
+    "quizLink": "Question of the day",
+    "outingsLink": "My outings"
+  },
+  "meetingPoints": {
+    "title": "Meeting points",
+    "loading": "Loading meeting points",
+    "empty": "No recommended places nearby.",
+    "retry": "Try again",
+    "retryHint": "Asks for the meeting points again",
+    "choose": "Choose {{name}}",
+    "list": {
+      "label": "Recommended meeting points"
+    },
+    "location": {
+      "locating": "Finding your location",
+      "denied": "Without location permission we can't recommend places. You can turn it on in your device settings.",
+      "unavailable": "We can't find your location. Check that location is turned on in your device.",
+      "retry": "Find my location again"
+    },
+    "profile": {
+      "label": "What you are meeting for",
+      "watch_party": "Watch party",
+      "study": "Study"
+    },
+    "type": {
+      "library": "Library",
+      "cafe": "Café",
+      "other": "Other space"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silent",
+        "murmur": "Murmur",
+        "noisy": "Noisy"
+      },
+      "plugs": {
+        "many": "Many plugs",
+        "few": "Few plugs",
+        "none": "No plugs"
+      },
+      "groupFriendly": "Good for groups",
+      "notGroupFriendly": "Better without groups"
+    }
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Events",
+    "gamification": "Gamification",
+    "home": "Home",
+    "profile": "Profile",
+    "short": {
+      "events": "Events",
+      "gamification": "Awards"
+    }
+  },
+  "profile": {
+    "followers": {
+      "desc": "How many people follow your observations and how many you follow.",
+      "title": "Followers"
+    },
+    "language": {
+      "ca": "Català",
+      "en": "English",
+      "es": "Español"
+    },
+    "languageMenu": {
+      "changed": "Language changed to {{name}}",
+      "error": "The language could not be saved to your account. The change stays here.",
+      "hint": "Opens the list of languages",
+      "label": "Language: {{code}}, {{name}}",
+      "saving": "Saving the language...",
+      "title": "Language"
+    },
+    "loading": "Loading profile...",
+    "memberSince": "Member since {{date}}",
+    "retry": "Try again",
+    "retryHint": "Reload profile details",
+    "role": {
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "user": "Stargazer"
+    },
+    "title": "Your profile"
+  },
+  "posts": {
+    "form": {
+      "cancel": "Cancel",
+      "counter": "{{count}} of {{max}} characters",
+      "hint": "Share observations and tips with the community.",
+      "label": "Your post",
+      "publish": "Post",
+      "save": "Save"
+    },
+    "item": {
+      "anonymous": "User #{{tag}}",
+      "confirmDelete": "Delete this post? This cannot be undone.",
+      "delete": "Delete",
+      "deleteHint": "Asks for confirmation before deleting the post",
+      "edit": "Edit",
+      "editHint": "Edits the text of your post",
+      "edited": "edited"
+    },
+    "list": {
+      "empty": "No posts yet. Share the first one!",
+      "loading": "Loading posts",
+      "more": "Load more",
+      "retry": "Try again",
+      "retryHint": "Loads the posts again",
+      "title": "Posts"
+    }
+  },
+  "quiz": {
+    "backHome": "Back to home",
+    "loadingLabel": "Loading the question of the day",
+    "optionsLabel": "Answer options",
+    "questionChanged": "The question has changed because it is a new day. This is the new one.",
+    "result": {
+      "comeBack": "There will be a new question tomorrow.",
+      "explanation": "Why",
+      "right": "You got it right!",
+      "rightAndYours": "Right answer and your answer",
+      "rightAnswer": "Right answer",
+      "source": "Read the source",
+      "sourceHint": "Opens the source in the browser",
+      "wrong": "You didn't get it right",
+      "yourAnswer": "Your answer"
+    },
+    "retry": "Try again",
+    "retryHint": "Loads the question of the day again",
+    "submit": "Send answer",
+    "submitHint": "Sends the chosen option",
+    "title": "Question of the day"
+  },
+  "outings": {
+    "myTitle": "My outings",
+    "eventTitle": "Event outings",
+    "list": {
+      "label": "List of outings"
+    },
+    "empty": {
+      "mine": "You haven't created any outing yet.",
+      "event": "There are no outings for this event yet."
+    },
+    "loading": "Loading outings",
+    "retry": "Try again",
+    "new": "Create an outing",
+    "detail": {
+      "author": "Organised by",
+      "unknownAuthor": "A Perseida user",
+      "start": "Start",
+      "end": "End",
+      "place": "Venue",
+      "where": "Place",
+      "event": "Event",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Delete this outing?",
+      "message": "This can't be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "newTitle": "New outing",
+      "editTitle": "Edit outing",
+      "title": "Title",
+      "description": "Description (optional)",
+      "startsAt": "Start",
+      "endsAt": "End",
+      "save": "Save",
+      "saving": "Saving…",
+      "linkedEvent": "Outing linked to an event",
+      "locationRequired": "Choose where you'll meet.",
+      "event": "Event (optional)",
+      "noEvent": "No event"
+    },
+    "picker": {
+      "label": "Map to choose the place",
+      "hint": "Move the map until the crosshair is over the place.",
+      "choose": "Choose this place",
+      "useMine": "Use my location",
+      "recommend": "Recommended places nearby",
+      "denied": "We couldn't get your location. Move the map to choose the place.",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "useCoordinates": "Choose these coordinates",
+      "invalidCoordinates": "Latitude must be between −90 and 90, and longitude between −180 and 180."
+    }
   }
 }

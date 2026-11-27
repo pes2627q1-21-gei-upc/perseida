@@ -1,0 +1,22 @@
+# BEGIN generated agents (sync-agents.mjs)
+[agents.backend]
+description = "Delega-hi tot el codi del backend de Perseida (Python, FastAPI, SQLModel, PostgreSQL/PostGIS, Redis, domini, services, ports i adaptadors, errors i migracions)."
+config_file = "agents/backend.toml"
+
+[agents.devops]
+description = "Delega-hi la infraestructura i el CI/CD de Perseida (Docker, Docker Compose, GitHub Actions, GHCR, servidor Virtech per SSH, nginx-proxy-manager, SonarQube Cloud, secrets i desplegament)."
+config_file = "agents/devops.toml"
+
+[agents.frontend]
+description = "Delega-hi tot el codi i el disseny del frontend de Perseida (TypeScript, React Native, Expo, UI/UX mòbil i panell d'admin, components, pàgines, formularis, crides a l'API i jocs)."
+config_file = "agents/frontend.toml"
+
+[agents.qa-tester]
+description = "Delega-hi l'escriptura i l'execució de tests de Perseida (pytest al backend, Jest + RNTL al frontend) amb TDD estricte - escriu el test en vermell abans del codi, el comita amb `test:` i el lliura a backend/frontend; cobertura 80 % global i 90 % codi nou, mutation, piràmide 60/30/10 i traçabilitat per US; no toca codi de producció."
+config_file = "agents/qa-tester.toml"
+
+[agents.reviewer-arquitectura]
+description = "Delega-hi la revisió de codi d'una US o PR de Perseida contra l'arquitectura hexagonal, la DoD i el checklist de PR (eficiència de consultes, seguretat, errors, estètica i responsive); informa de troballes sense editar res."
+config_file = "agents/reviewer-arquitectura.toml"
+
+# END generated agents (sync-agents.mjs)

@@ -1,6 +1,6 @@
 ---
 name: testing-mutation
-description: Mutation testing de Perseida - mutmut al domini del backend i Stryker al frontend, només sobre els fitxers canviats de la PR, interpretació dels mutants supervivents i llindar de score >= 70 %. Usa-la quan modifiquis lògica de domini i vulguis comprovar que els tests detecten errors de debò, o quan hagis d'interpretar un informe de mutants.
+description: Mutation testing de Perseida - mutmut al domini del backend i Stryker al frontend, només sobre els fitxers canviats de la PR (al frontend, només les seves línies canviades), interpretació dels mutants supervivents i llindar de score >= 70 %. Usa-la quan modifiquis lògica de domini i vulguis comprovar que els tests detecten errors de debò, o quan hagis d'interpretar un informe de mutants.
 ---
 
 # Testing: mutation testing
@@ -10,7 +10,7 @@ La cobertura diu quines línies s'executen, no si els tests detecten errors. El 
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció: `obsidian_vault/convencions/testing.md`.
 
 > [!info] Eines instal·lades i integrades (TG-359)
-> `mutmut` (backend) i Stryker (frontend) estan instal·lats amb versions fixades i integrats a la CI de GitHub Actions. S'executen automàticament sobre els fitxers canviats a la PR (`backend/scripts/run_mutmut_diff.py` i `frontend/scripts/run-stryker-diff.mjs` / `pnpm test:mutation`) amb llindar bloquejant de score ≥ 70 %.
+> `mutmut` (backend) i Stryker (frontend) estan instal·lats amb versions fixades i integrats a la CI de GitHub Actions. S'executen automàticament sobre els fitxers canviats a la PR (`backend/scripts/run_mutmut_diff.py` i `frontend/scripts/run-stryker-diff.mjs` / `pnpm test:mutation`) amb llindar bloquejant de score ≥ 70 %. Al frontend, dins de cada fitxer només es muten les línies afegides o canviades (rangs `fitxer:inici-final` de Stryker): els mutants del codi anterior d'un fitxer tocat no compten (esmena d'ADR-0028, TG-628).
 
 ## Quan usar-la / quan NO
 
@@ -38,6 +38,11 @@ Preguntes d'aquesta skill:
 7. Repeteix fins al llindar. Documenta a la PR el score i els equivalents.
 
 Frontend: Stryker (`@stryker-mutator/core` amb el runner `@stryker-mutator/jest-runner`) configurat a `frontend/stryker.config.json` sobre els fitxers de lògica canviats (`pnpm test:mutation` que executa `node scripts/run-stryker-diff.mjs`), mateix llindar (score >= 70 %).
+
+## Frontend en PR apilades
+
+- El diff de Stryker s'ha de calcular contra la base real de la PR (la branca anterior de la pila), no contra `develop`: una comparació contra `develop` mesura codi que no és d'aquesta PR i el score no és comparable. Abans de donar per bo un score, confirma la base.
+- Els casos límit d'una lògica de lectura/estat (llista buida, missatge en directe) s'assegren amb l'ID exacte enviat o amb l'absència de la petició, no només que "es cridi".
 
 ## Interpretar supervivents
 

@@ -10,7 +10,7 @@ Des del final de l'Sprint 1 el projecte fa **TDD estricte a tot el backend i el 
 Segueix el protocol `vault-context` (AGENTS.md) i les ADR vigents. Convenció de referència: `obsidian_vault/convencions/testing.md`.
 
 > [!note] Estat de les eines
-> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx, mutmut (backend); Jest, jest-expo, React Native Testing Library, Stryker (frontend); llindars de cobertura a la CI (80 % global, 90 % codi nou) i mutation testing sobre el diff (TG-359). Des de TG-360 són **instal·lats** i a la CI schemathesis, import-linter (`uv run lint-imports`), el test de la còpia d'OpenAPI i el de migracions. La resta d'eines que anomenen les skills `testing-*` (hypothesis, fast-check, pytest-randomly, pytest-xdist) són **previstes (US #361 i #362)**: no les facis servir ni les afegeixis sense preguntar a la persona.
+> Ja instal·lades: pytest, pytest-asyncio, pytest-cov, respx, mutmut (backend); Jest, jest-expo, React Native Testing Library, Stryker (frontend); llindars de cobertura a la CI (80 % global, 90 % codi nou) i mutation testing sobre el diff (TG-359). Des de TG-360 són **instal·lats** i a la CI schemathesis, import-linter (`uv run lint-imports`), el test de la còpia d'OpenAPI i el de migracions. Des de TG-362 són **instal·lats** pytest-randomly (ordre aleatori, llavor a la sortida), pytest-xdist (`-n auto` a la CI) i el marcador `@pytest.mark.quarantine(reason="TG-NNN ...")`. La resta d'eines que anomenen les skills `testing-*` (hypothesis, fast-check) són **previstes**: no les facis servir ni les afegeixis sense preguntar a la persona.
 
 ## Quan usar-la / quan NO
 
@@ -32,7 +32,7 @@ Preguntes d'aquesta skill:
 ## El cicle
 
 1. **Tria el criteri** i el nivell més baix de la piràmide que el pot verificar (unitari abans que integració, integració abans que E2E).
-2. **ROIG:** escriu el test; executa'l i **comprova que falla pel motiu correcte** (una assertion o l'import d'una API que encara no existeix, no un error de sintaxi ni de configuració). Un test que passa a la primera no demostra res: o el comportament ja existia o el test no comprova res.
+2. **ROIG:** escriu el test; executa'l i **comprova que falla pel motiu correcte** (una assertion o l'import d'una API que encara no existeix, no un error de sintaxi ni de configuració). Si el vermell és «mòdul inexistent», el test pot amagar errors propis que no es veuen fins al verd: crea primer un fitxer buit que exporti el nom, perquè el test falli per l'aserció i no per l'import. Un test que passa a la primera no demostra res: o el comportament ja existia o el test no comprova res.
 3. **Commit `test:`** amb el test en vermell (`TG-NN test(àmbit): resum`). Va **abans** del commit `feat:` o `fix:`.
 4. **VERD:** escriu el codi mínim perquè passi. **No toquis el test per fer-lo passar**; si el test era incorrecte, explica per què i canvia'l en un commit a part.
 5. **Commit `feat:`/`fix:`** amb el codi (el test ja és al commit anterior).
@@ -68,6 +68,10 @@ Patrons i exemples: [references/patrons-per-capa.md](references/patrons-per-capa
 2. Corregeix (commit `fix:`); el test es queda a la suite.
 3. Si el bug depèn de l'entorn (BD, hora, xarxa), escriu el test al nivell on es manifesta (vegeu `testing-integracio`).
 
+## Retroalimentació: registra els errors
+
+Tot error que trobis en testing o verificació (vermell per un motiu no previst o que passa a la primera, error de prova manual, CI o mutants, defecte de la review) es registra a `obsidian_vault/estat/errors/` amb la plantilla `plantilles/error-de-testing` (skill `obsidian-markdown`): símptoma, **causa**, correcció, test de regressió i lliçó. Procediment i fases a `obsidian_vault/convencions/retroalimentacio-de-testing.md`. Un vermell pel motiu previst no es registra. Si ets un subagent, retorna un bloc `ERRORS TROBATS` (fase, símptoma, causa, test) a l'agent principal.
+
 ## Cobertura i qualitat dels tests
 
 - Llindars de la política: **80 % global** i **90 % del codi nou**; la CI de la PR falla si no es compleixen (bloquejant des de TG-359 mitjançant `diff-cover`, `coverageThreshold` al frontend i SonarQube Cloud). En local es comproven amb `uv run pytest` i `pnpm test --coverage`.
@@ -84,6 +88,7 @@ Patrons i exemples: [references/patrons-per-capa.md](references/patrons-per-capa
 - [ ] Cap test modificat per fer-lo passar.
 - [ ] Tests unitaris de tots els components/mòduls modificats.
 - [ ] Test de regressió si és un bug.
+- [ ] Errors trobats registrats a `estat/errors/`, amb la lliçó.
 - [ ] Cobertura mesurada (80 % global, 90 % codi nou) i resultats reals reportats.
 - [ ] `ruff`, `mypy` strict, ESLint i `tsc` nets.
 - [ ] Cap secret ni dada personal a tests ni fixtures.

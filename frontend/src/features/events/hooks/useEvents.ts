@@ -2,23 +2,30 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
 import type { AppError } from '../../../shared/errors';
-import { type AstronomicalEvent, getActiveEvents, getUpcomingEvents } from '../api/getEvents';
+import {
+  type AstronomicalEvent,
+  type EventSearchFilters,
+  getActiveEvents,
+  getUpcomingEvents,
+} from '../api/getEvents';
 import { type ClassifiedEvents, classifyEvents } from '../classifyEvents';
 
 export const eventKeys = {
   all: ['events'] as const,
   active: () => [...eventKeys.all, 'active'] as const,
   upcoming: (days: number) => [...eventKeys.all, 'upcoming', days] as const,
+  search: (filters: EventSearchFilters) => [...eventKeys.all, 'search', filters] as const,
+  subscriptions: () => [...eventKeys.all, 'subscriptions'] as const,
 };
 
 /** The map shows the events of the next 30 days, the maximum the API allows. */
 export const MAP_UPCOMING_DAYS = 30;
 
 // Launch times change often, so the events stay fresh for five minutes only.
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
+export const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
 // One retry, and only when the error is transient (network, 408, 429, 5xx).
-function retryOnceIfTransient(failureCount: number, error: AppError): boolean {
+export function retryOnceIfTransient(failureCount: number, error: AppError): boolean {
   return failureCount < 1 && error.retryable;
 }
 

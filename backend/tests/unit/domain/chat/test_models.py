@@ -7,15 +7,21 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pydantic import ValidationError as PydanticValidationError
 
-from app.domain.chat.models import ChatMessage, EventChatRoom
+from app.domain.chat.models import ChatAuthor, ChatMessage, EventChatRoom
 from app.domain.shared.errors import ValidationError
 
 ROOM_ID = uuid.uuid7()
 AUTHOR_ID = uuid.uuid7()
+AUTHOR = ChatAuthor(id=AUTHOR_ID, name="Ada")
 
 
 def _message(text: str) -> ChatMessage:
-    return ChatMessage.create(room_id=ROOM_ID, author_id=AUTHOR_ID, text=text)
+    return ChatMessage.create(
+        room_id=ROOM_ID,
+        author=AUTHOR,
+        text=text,
+        client_message_id=uuid.uuid4(),
+    )
 
 
 def test_create_message_keeps_room_author_and_text() -> None:
@@ -23,7 +29,7 @@ def test_create_message_keeps_room_author_and_text() -> None:
     message = _message("Quin cel tan clar!")
 
     assert message.room_id == ROOM_ID
-    assert message.author_id == AUTHOR_ID
+    assert message.author == AUTHOR
     assert message.text == "Quin cel tan clar!"
 
 
@@ -317,3 +323,96 @@ def test_room_is_frozen() -> None:
 
     with pytest.raises(PydanticValidationError):
         room.event_id = uuid.uuid7()  # type: ignore[misc]
+
+
+# --- TG-654: client_message_id (idempotencia) ----------------------------------
+
+
+def test_tg654_create_message_keeps_the_client_message_id() -> None:
+    key = uuid.uuid4()
+
+    message = ChatMessage.create(
+        room_id=ROOM_ID, author=AUTHOR, text="hola", client_message_id=key
+    )
+
+    assert message.client_message_id == key
+
+
+def test_tg654_create_message_requires_a_client_message_id() -> None:
+    with pytest.raises(TypeError):
+        ChatMessage.create(  # type: ignore[call-arg]
+            room_id=ROOM_ID, author=AUTHOR, text="hola"
+        )
+
+
+def test_tg654_a_message_cannot_be_built_without_a_client_message_id() -> None:
+    with pytest.raises(PydanticValidationError):
+        ChatMessage(  # type: ignore[call-arg]
+            id=uuid.uuid7(),
+            room_id=ROOM_ID,
+            author=AUTHOR,
+            text="hola",
+            sent_at=datetime.now(UTC),
+        )
+
+
+def test_tg654_the_client_message_id_is_in_the_serialized_message() -> None:
+    key = uuid.uuid4()
+    message = ChatMessage.create(
+        room_id=ROOM_ID, author=AUTHOR, text="hola", client_message_id=key
+    )
+
+    assert message.model_dump(mode="json")["client_message_id"] == str(key)
+
+
+def test_tg654_the_conflict_code_is_a_stable_constant() -> None:
+    from app.domain.chat.errors import CHAT_IDEMPOTENCY_CONFLICT
+
+    assert CHAT_IDEMPOTENCY_CONFLICT == "CHAT_IDEMPOTENCY_CONFLICT"
+
+
+# --- TG-64 / TG-469: autor amb nom visible --------------------------------------
+
+
+def test_tg469_chat_author_keeps_id_and_name() -> None:
+    author = ChatAuthor(id=AUTHOR_ID, name="Ada")
+
+    assert author.id == AUTHOR_ID
+    assert author.name == "Ada"
+
+
+def test_tg469_chat_author_may_have_no_name() -> None:
+    # Sense display_name el nom public es null: mai el correu
+    assert ChatAuthor(id=AUTHOR_ID, name=None).name is None
+
+
+def test_tg469_chat_author_is_frozen() -> None:
+    author = ChatAuthor(id=AUTHOR_ID, name="Ada")
+
+    with pytest.raises(PydanticValidationError):
+        author.name = "Altre"  # type: ignore[misc]
+
+
+def test_tg469_a_message_carries_its_author_and_no_author_id() -> None:
+    message = _message("hola")
+
+    assert message.author == AUTHOR
+    assert not hasattr(message, "author_id")
+
+
+def test_tg469_the_serialized_message_has_author_id_and_name() -> None:
+    dumped = _message("hola").model_dump(mode="json")
+
+    assert dumped["author"] == {"id": str(AUTHOR_ID), "name": "Ada"}
+    assert "author_id" not in dumped
+
+
+def test_tg469_a_message_cannot_be_built_without_an_author() -> None:
+    with pytest.raises(PydanticValidationError):
+        ChatMessage(  # type: ignore[call-arg]
+            id=uuid.uuid7(),
+            room_id=ROOM_ID,
+            text="hola",
+            sent_at=datetime.now(UTC),
+            client_message_id=uuid.uuid4(),
+        )

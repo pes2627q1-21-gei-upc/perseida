@@ -1,0 +1,206 @@
+import uuid
+from collections.abc import Collection
+from datetime import datetime
+from typing import Protocol
+
+from app.domain.direct_chat.models import (
+    ConversationSummary,
+    DirectConversation,
+    DirectCursor,
+    DirectMessage,
+    DirectMessagePage,
+    UserBlock,
+)
+
+
+class DirectConversationRepository(Protocol):
+    """Durable storage of the direct conversations (PostgreSQL)."""
+
+    async def get_or_create(
+        self, user_a_id: uuid.UUID, user_b_id: uuid.UUID
+    ) -> tuple[DirectConversation, bool]:
+        """Return the conversation of the pair (any order) and whether it was created.
+
+        Two requests at once end up with the same conversation.
+
+        Raises:
+            BusinessRuleViolation: CANNOT_MESSAGE_SELF if both users are the same.
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def get(self, conversation_id: uuid.UUID) -> DirectConversation | None:
+        """Return the conversation, or None if it does not exist.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def mark_read_through(
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, message_id: uuid.UUID
+    ) -> DirectConversation:
+        """Advance through a message in this conversation, never beyond it or backwards.
+
+        Raises NotFoundError if the conversation, participant or message is invalid.
+        """
+        ...
+
+    async def list_of(self, user_id: uuid.UUID) -> list[DirectConversation]:
+        """Return the conversations ``user_id`` takes part in.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def summaries_of(self, user_id: uuid.UUID) -> list[ConversationSummary]:
+        """Return the conversations of ``user_id`` with last message and unread count.
+
+        One call, whatever the number of conversations. Newest activity first: by
+        the last message's ``sent_at`` (descending), or by the conversation's
+        ``created_at`` if it has no messages, ties broken by id descending.
+        ``unread_count`` is the number of messages of the other participant sent
+        after the read mark of ``user_id``.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+
+class DirectMessageRepository(Protocol):
+    """Durable storage of the direct messages (PostgreSQL)."""
+
+    async def find_by_client_id(
+        self, sender_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> DirectMessage | None:
+        """Return the message ``sender_id`` sent with ``client_message_id``, if any.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def add(
+        self, message: DirectMessage, *, origin: str | None = None
+    ) -> DirectMessage:
+        """Store ``message`` and its delivery intent atomically.
+
+        If the sender already stored a message with the same ``client_message_id``
+        (a concurrent retry), nothing is inserted and that one is returned.
+
+        The returned message may differ from ``message`` in ``sent_at``: the
+        repository keeps it strictly increasing per conversation, so a message
+        sent at or before the latest stored one gets a moment just after it. That
+        is what makes ``(sent_at, id)`` order, cursors and read marks unambiguous.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def page(
+        self, conversation_id: uuid.UUID, before: DirectCursor | None, limit: int
+    ) -> DirectMessagePage:
+        """Return newest first by (sent_at, id), before the exclusive key.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def count_unread(
+        self, conversation_id: uuid.UUID, user_id: uuid.UUID, since: datetime | None
+    ) -> int:
+        """Count the messages of the other participant sent after ``since``.
+
+        Without ``since`` every message of the other participant counts. ``since``
+        must be timezone-aware.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+
+class UserBlockRepository(Protocol):
+    """Durable storage of the blocks between users (PostgreSQL)."""
+
+    async def block(self, user_block: UserBlock) -> None:
+        """Record that ``user_block.blocker_id`` blocks ``user_block.blocked_id``.
+
+        Idempotent: a second block of the same pair changes nothing.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def unblock(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> None:
+        """Remove the block, if any. Idempotent.
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def is_blocked(self, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> bool:
+        """Return whether ``blocker_id`` blocks ``blocked_id`` (directional).
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+    async def blocked_among(
+        self, blocker_id: uuid.UUID, user_ids: Collection[uuid.UUID]
+    ) -> set[uuid.UUID]:
+        """Return which of ``user_ids`` are blocked by ``blocker_id`` (one query).
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+
+class ChatUserDirectory(Protocol):
+    """Which users exist, as the direct chat sees them (only ids)."""
+
+    async def exists(self, user_id: uuid.UUID) -> bool:
+        """Return whether ``user_id`` is a live user (not deleted).
+
+        Raises:
+            ExternalServiceError: if the database is unavailable.
+        """
+        ...
+
+
+class DirectMessageBroadcaster(Protocol):
+    """Fans a stored message out to the recipient's live connections."""
+
+    async def deliver(
+        self, message: DirectMessage, *, recipient_id: uuid.UUID, origin: str | None
+    ) -> int:
+        """Send ``message`` to every connection of ``recipient_id``.
+
+        ``origin`` is the id of the sender's connection, so its own session does
+        not echo it back. Return how many connections of the recipient received it
+        (0 if they are offline).
+
+        Raises:
+            ExternalServiceError: if the pub/sub bus is unavailable.
+        """
+        ...
+
+
+class PushNotifier(Protocol):
+    """Tells a recipient who is not connected that a message arrived."""
+
+    async def notify(self, recipient_id: uuid.UUID, message: DirectMessage) -> None:
+        """Notify ``recipient_id`` of ``message``.
+
+        Best effort: it must not raise to the service; if it does, the service
+        logs the error and carries on (the message is already stored).
+        """
+        ...

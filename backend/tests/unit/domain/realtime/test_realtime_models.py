@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 
 import pytest
@@ -6,8 +7,10 @@ from pydantic import ValidationError
 from app.domain.realtime.models import (
     Frame,
     FrameType,
+    chat_event_room,
     revocation_channel,
     room_channel,
+    room_revocation_channel,
 )
 
 MAX_ROOM_LENGTH = 64
@@ -22,8 +25,11 @@ def test_frame_type_values_are_the_wire_contract() -> None:
         "error",
         "ping",
         "pong",
+        "dm.send",
+        "dm.message",
+        "dm.typing",
     }
-    assert len(FrameType) == 7
+    assert len(FrameType) == 10
 
 
 def test_frame_type_is_a_str_enum() -> None:
@@ -169,6 +175,22 @@ def test_room_channel_prefixes_the_room() -> None:
 
 def test_revocation_channel_prefixes_the_google_sub() -> None:
     assert revocation_channel("google-123") == "session-revoked:google-123"
+
+
+def test_room_revocation_channel_prefixes_the_google_sub() -> None:
+    assert room_revocation_channel("google-123") == "room-revoked:google-123"
+
+
+def test_the_room_revocation_channel_is_apart_from_other_channels() -> None:
+    assert room_revocation_channel("x") != revocation_channel("x")
+    assert room_revocation_channel("x") != room_channel("x")
+    assert not room_channel("room-revoked:x").startswith("room-revoked:")
+
+
+def test_chat_event_room_names_the_room_of_an_event() -> None:
+    event_id = uuid.UUID("01a1bd9a-0000-7000-8000-000000000001")
+
+    assert chat_event_room(event_id) == f"chat:event:{event_id}"
 
 
 def test_a_room_can_never_produce_a_revocation_channel() -> None:

@@ -53,7 +53,7 @@ flowchart TB
 - **CI** en cada PR hacia `develop`/`main`, con filtros por ruta y caché de dependencias `uv`/`pnpm`: formato, linters y tipos → tests con cobertura → SonarQube Cloud → Quality Gate. Obligatorio para fusionar.
 - **CD** en cada push a `main` (fusión de release o hotfix):
   1. Construye la imagen del backend (el job `image` reutiliza `backend-docker.yml`), la etiqueta con el `git-sha` (`sha-<7 caracteres>`) y la sube a **GHCR**, aunque no haya cambiado ningún fichero del backend.
-  2. Se conecta al servidor de Virtech por **SSH**, copia `docker-compose.yml` y `deploy.sh`, renderiza el `.env` desde los secretos y variables de GitHub (`chmod 600`) y ejecuta `deploy.sh`: descarga la imagen, hace `docker compose up` y comprueba el healthcheck con un tiempo de espera.
+  2. Se conecta al servidor de Virtech por **SSH**, copia `docker-compose.yml`, `deploy.sh` y `backup-db.sh`, renderiza el `.env` desde los secretos y variables de GitHub (`chmod 600`) y ejecuta `deploy.sh`: descarga la imagen, hace `docker compose up` y comprueba el healthcheck con un tiempo de espera.
   3. Si el healthcheck falla, hace rollback automático a la versión anterior y el job termina en error.
   4. Publica el **APK** del frontend en una release de GitHub.
 - Versionado: SemVer a partir de `0.1.0`, una release por sprint, automatizado por el pipeline.
@@ -126,6 +126,8 @@ El servicio FastAPI (`perseida-api`) utiliza las siguientes variables de entorno
 | `NASA_API_KEY` | Sí | Clave de la API de la NASA para el APOD (la API no arranca sin ella); en local vale `DEMO_KEY`, con límite de peticiones | `<clave de https://api.nasa.gov>` |
 | `ACCESS_TOKEN_MINUTES` | No | Tiempo de expiración de los access tokens en minutos (por defecto: 15) | `15` |
 | `REFRESH_TOKEN_DAYS` | No | Tiempo de expiración de los refresh tokens en días (por defecto: 30) | `30` |
+| `CORS_ALLOWED_ORIGINS` | No | Orígenes del navegador que admite CORS, separados por comas (por defecto: `https://perseida.duckdns.org:40431`, `https://perseida.duckdns.org` y los puertos locales de Expo y de la API `8081`, `19006` y `8000` en `localhost`/`127.0.0.1`). Si se define, sustituye los por defecto | `https://perseida.duckdns.org:40431,http://localhost:8081` |
+| `CORS_ALLOWED_ORIGIN_REGEX` | No | Orígenes adicionales que admite CORS, como expresión regular (por defecto: ninguno) | `http://localhost:\d+` |
 
 ### Configuración inicial: hacer el paquete público (una sola vez, manual)
 
@@ -161,7 +163,9 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 | `POSTGRES_DB`, `POSTGRES_USER` | Secreto | Nombre y usuario de la base de datos de producción |
 | `JWT_SECRET` | Secreto | Clave de los JWT de sesión, como mínimo 32 caracteres (`openssl rand -hex 32`) |
 | `NASA_API_KEY` | Secreto | Clave de la API de la NASA para el APOD (<https://api.nasa.gov>) |
+| `SPOTWISE_API_TOKEN` | Secreto | Token del servicio de espacios de Spotwise para los puntos de encuentro (TG-352); Spotwise lo pasa por privado |
 | `POSTGRES_PORT` | Variable | Puerto de la base de datos |
+| `BACKUP_KEEP` | Variable | Copias de la base de datos que se conservan antes de borrar la más antigua (entero >= 1, `5`); véase *Copias de seguridad de la base de datos* |
 | `POSTGRES_HOST` | Variable | `postgres` (alias de red del servicio de base de datos) |
 | `REDIS_HOST` | Variable | `redis` (alias de red del servicio de caché) |
 | `REDIS_PORT`, `CACHE_DEFAULT_TTL_SECONDS` | Variable | Puerto de Redis y TTL por defecto de la caché |
@@ -171,7 +175,7 @@ En el primer push, GitHub vincula el paquete al repositorio mediante la etiqueta
 | `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS` | Variable | Duraciones de la sesión (`15` y `30`) |
 | `HTTP_PORT`, `HTTPS_PORT` | Variable | Puertos que publica nginx-proxy-manager en la VM (`8080` y `8081`; solo el `8080`–`8088` es accesible desde fuera) |
 
-No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `NPM_ADMIN_PORT` (por defecto `81`, solo en `127.0.0.1`), `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
+No se definen en GitHub: `API_IMAGE_TAG` (`deploy.sh` pone la imagen del commit), `BACKUP_DIR` (opcional; por defecto `~/perseida/backups`, véase *Copias de seguridad de la base de datos*), `NPM_ADMIN_PORT` (por defecto `81`, solo en `127.0.0.1`), `PORT` (solo desarrollo local) y `GITHUB_TOKEN` (automático).
 
 Requisitos del servidor: Docker Engine con Compose 2.22 o superior (`pull --policy`), `flock` (de `util-linux`), el usuario SSH en el grupo `docker` y `/opt/perseida` con permiso de escritura para ese usuario.
 
@@ -185,22 +189,24 @@ Requisitos del servidor: Docker Engine con Compose 2.22 o superior (`pull --poli
 
 El servidor descarga la imagen de GHCR con el `GITHUB_TOKEN` temporal del job (`docker login` por stdin y `docker logout` al final), de modo que el paquete puede seguir siendo privado.
 
+`BACKUP_KEEP` se renderiza en el `.env` como cualquier otra variable; `BACKUP_DIR` es opcional (`ENV_OPTIONAL` en `cd.yml`): solo se renderiza si existe una variable de GitHub con una ruta absoluta, porque GitHub no admite variables vacías. `deploy.sh` solo lee esos dos nombres del `.env`, nunca los secretos.
+
 ### Rollback automático
 
-`deploy.sh <tag>` descarga la imagen si falta, ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok` (el propio Compose puede rendirse antes, cuando se rinde el healthcheck del contenedor, unos 65 s con la configuración actual; el resultado es el mismo). Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
+`deploy.sh <tag>` descarga la imagen si falta, hace una copia de la base de datos si hay migraciones pendientes (véase *Copias de seguridad de la base de datos*), ejecuta `docker compose up -d` y espera hasta `HEALTH_TIMEOUT` segundos (120 por defecto) a que `GET /api/health` responda 200 con `status: ok` (el propio Compose puede rendirse antes, cuando se rinde el healthcheck del contenedor, unos 65 s con la configuración actual; el resultado es el mismo). Cuando lo hace, el tag se guarda en `/opt/perseida/.deployed-tag`. Cuando no:
 
 1. Se detiene la API.
 2. **Sonda:** se arranca la imagen anterior (el tag de `.deployed-tag`) **sin migraciones** y con el mismo `.env`, en un contenedor temporal.
    - Si no responde, la causa es la configuración o la infraestructura, no el código nuevo: **no se deshace nada** (los datos se conservan), la API queda parada y el job falla diciéndote que corrijas el secreto o la variable y vuelvas a ejecutar el CD.
    - Si responde, la causa es el código nuevo o sus migraciones y el rollback continúa.
    - Aunque responda, si los nombres de variable del `.env` difieren de los del último despliegue bueno (`.deployed-env`, solo nombres), tampoco se deshace nada: una variable nueva que falta o es errónea hace fallar la versión nueva pero no la sonda. La API queda parada y el job falla diciendo que revises los secretos y las variables. Sin `.deployed-env` (primer despliegue tras esta comprobación) se considera que han cambiado, que es el caso seguro.
-3. Se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
+3. Primero se hace una copia de la base de datos (véase *Copias de seguridad de la base de datos*); si falla, no se deshace nada y la API queda parada. Después se deshacen las migraciones de Alembic hasta la revisión de la imagen anterior (`alembic downgrade`, ejecutado con la imagen nueva, que es la que tiene las migraciones nuevas).
 4. Se arranca la imagen anterior con normalidad y se vuelve a comprobar el healthcheck.
 5. El job **siempre termina en error**, aunque el rollback haya funcionado.
 
 La sonda corre en un contenedor temporal llamado `perseida-probe`, con el planificador desactivado (`SCHEDULER_ENABLED=false`), y espera hasta `PROBE_TIMEOUT` segundos (60 por defecto); termina antes si el contenedor sale. Si la sonda ni siquiera se puede crear (por ejemplo, la imagen anterior ya no está en el servidor y no se puede descargar), tampoco se deshace nada y el job falla diciéndolo. Un bloqueo (`/opt/perseida/.deploy.lock`, con `flock`) evita que un `--rollback` manual coincida con un despliegue; sin `flock` el script solo avisa y continúa. Antes de arrancar una versión nueva, el script guarda su tag en `.attempted-tag`; se borra cuando un despliegue o un rollback terminan bien. Si el CD deja la API parada sin deshacer nada (configuración, sonda que no se puede crear o nombres de variable cambiados), el esquema puede ser más nuevo que `.deployed-tag`, porque la imagen nueva ya ha aplicado sus migraciones. Tienes dos salidas: corregir el secreto o la variable y volver a ejecutar el CD, o volver a la versión anterior con `./deploy.sh --rollback <tag-anterior>`, que deshace las migraciones con la imagen de `.attempted-tag` (la que las conoce) y, por tanto, borra sus datos.
 
-El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales (por tanto, el primer despliegue tras pasar `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_IDS` tampoco puede hacer rollback a una imagen anterior a ese cambio). Si un despliegue falla por un valor erróneo (por ejemplo una clave), la sonda lo detecta, porque la imagen anterior falla igual: no se deshace nada; hay que corregir el secreto o la variable y volver a ejecutar el CD. La sonda no puede distinguir una base de datos caída, porque el healthcheck no la consulta. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
+El rollback restaura la imagen y el esquema de la base de datos, **no el `.env`**: ya se ha reescrito con los secretos y variables actuales (por tanto, el primer despliegue tras pasar `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_IDS` tampoco puede hacer rollback a una imagen anterior a ese cambio). Si un despliegue falla por un valor erróneo (por ejemplo una clave), la sonda lo detecta, porque la imagen anterior falla igual: no se deshace nada; hay que corregir el secreto o la variable y volver a ejecutar el CD. El healthcheck comprueba PostgreSQL (`SELECT 1`) y Redis (`PING`) con un límite de 2 s cada uno (TG-49): si PostgreSQL está caído, `status` es `down`, así que, a partir del despliegue siguiente al que lleva TG-49 (la sonda arranca la imagen anterior), una base de datos caída también hace fallar la sonda y no se deshace nada; Redis caído solo marca `components.redis` como `down`, porque solo es caché. El primer despliegue no tiene versión anterior, así que solo falla. Los logs de los contenedores no se muestran en el workflow (son públicos); se leen en el servidor con `docker compose logs api`.
 
 ### Rollback manual a una versión concreta
 
@@ -214,7 +220,51 @@ docker images ghcr.io/pes2627q1-21-gei-upc/perseida-api    # versiones que aún 
 
 Si la imagen de destino ya no está en el servidor, hay que hacer antes `docker login ghcr.io -u <usuario-github>` con un token con `read:packages`. El script deshace las migraciones hasta la revisión de esa versión con la imagen del último intento fallido (`.attempted-tag`) si lo hay, y si no con la de `.deployed-tag`; la arranca, comprueba el healthcheck, actualiza `.deployed-tag` y borra `.attempted-tag`.
 
-> **Aviso sobre los datos:** deshacer una migración elimina las tablas y columnas que había creado, con sus datos. No hay copias de seguridad. Volver a una versión muy antigua solo debe hacerse sabiéndolo.
+> **Aviso sobre los datos:** deshacer una migración elimina las tablas y columnas que había creado, con sus datos. Antes del downgrade, el script hace una copia de la base de datos (véase *Copias de seguridad de la base de datos*) y, si falla, no deshace nada; restaurar esa copia es manual y los datos escritos después se pierden. Volver a una versión muy antigua solo debe hacerse sabiéndolo.
+
+### Copias de seguridad de la base de datos
+
+Antes de que la imagen nueva migre la base de datos, y antes de cualquier `alembic downgrade`, `deploy.sh` ejecuta `infra/scripts/backup-db.sh` (el CD lo copia a `/opt/perseida/` junto a `deploy.sh`), que hace un `pg_dump -Fc` de la base de datos de producción dentro del contenedor `db`. Decisión y alternativas descartadas: [ADR-0035](../obsidian_vault/decisions/0035-copies-de-seguretat-de-postgresql-al-cd.md).
+
+- **Dónde:** `~/perseida/backups/` del usuario del despliegue, o el directorio de `BACKUP_DIR`; debe estar fuera del volumen `perseida_pgdata`. El directorio se crea con modo 700 y los ficheros con 600.
+- **Nombre:** `perseida-<UTC AAAAMMDDTHHMMSSZ>-<git-sha sin el prefijo sha->[-<revisión de Alembic>].dump`. La revisión es la que tenía la base de datos cuando se hizo la copia.
+- **Verificación:** el dump se escribe en un fichero temporal, no debe estar vacío y `pg_restore --list` debe poder leerlo; solo entonces toma el nombre definitivo.
+- **Rotación:** se conservan las `BACKUP_KEEP` más recientes (5 por defecto) y se borran las demás, solo después de una copia buena.
+- **Cuándo se hace:**
+  - Antes de arrancar una versión nueva, **solo si hay migraciones pendientes**: la revisión actual de la base de datos (`alembic_version`) es distinta del `head` de la imagen nueva. Si no se puede saber el `head`, la copia se hace igualmente.
+  - **Siempre antes de un `alembic downgrade`**: el rollback automático y `deploy.sh --rollback`. Si la copia falla, el downgrade no se ejecuta; en el rollback manual la API no se toca (la copia se hace antes de pararla) y en el automático ya estaba parada y sigue así.
+- **Cuándo se omite (con un aviso):** si no hay ningún contenedor `db` o la tabla `alembic_version` no existe (base de datos vacía, el primer despliegue). Si el contenedor `db` **existe pero está parado**, o la revisión **no se puede leer** (psql falla: conexión, recuperación, autenticación), no es una base de datos vacía: la copia falla (arranca `db` y vuelve a ejecutar el despliegue).
+- **Si falla** (no se puede leer la revisión, `pg_dump` sale con error, el fichero está vacío, la verificación falla o no hay espacio): el despliegue se detiene **antes de arrancar la imagen nueva**; no se aplica ninguna migración, no se toca `.deployed-tag` y el job falla. Las copias anteriores se conservan.
+- **Variables:** `BACKUP_KEEP` es una variable de GitHub (`5`) que se renderiza en el `.env`. `BACKUP_DIR` es opcional: crea una variable de GitHub `BACKUP_DIR` con una **ruta absoluta** (la `~` no se expande) y el CD la renderiza en el `.env` en cada despliegue; sin ella (GitHub no admite variables vacías) el script usa el directorio por defecto. No edites el `.env` del servidor a mano: cada despliegue lo reescribe. `deploy.sh` solo lee esos dos nombres del `.env`. El script nunca imprime contraseñas ni contenido de la base de datos: los logs del workflow son públicos.
+
+Las copias están en la misma VM: no protegen contra la pérdida del servidor ni de su disco. La restauración es manual (sección siguiente).
+
+### Restaurar una copia de seguridad
+
+> **Esto es manual, nunca automático, y destructivo.** Nada restaura una copia por su cuenta. Se hace a mano en el servidor, sobre la base de datos de producción, que se borra y se vuelve a crear **vacía** antes de restaurar: todo lo escrito después de la copia se pierde. Hazlo solo cuando sepas qué copia quieres.
+
+Las copias son ficheros `pg_dump -Fc` en `~/perseida/backups` (o `BACKUP_DIR`), con el nombre `perseida-<UTC>-<git-sha>-<revisión>.dump`: fecha, versión desplegada y revisión de Alembic del esquema. La restauración se ha probado en local con Docker Compose (dump leído del host por entrada estándar, `pg_restore` en el contenedor `db`): mismas tablas, mismo número de filas y datos PostGIS intactos.
+
+1. **Conéctate y elige la copia** (`ls`), anotando la revisión de su nombre.
+2. **Para la API**, para que nada escriba mientras se cambia la base de datos.
+3. **Vuelve a crear la base de datos vacía** (`dropdb --force` y `createdb`). Las credenciales salen del entorno del contenedor `db` (`$POSTGRES_USER`, `$POSTGRES_DB`): no las escribas nunca.
+4. **Restaura** con `pg_restore --no-owner`, pasando el dump por entrada estándar.
+5. **Verifica:** la revisión que imprime `psql` debe ser la del nombre del fichero (mira también tablas y filas si puedes).
+6. **Arranca la API con una imagen concreta y comprueba el healthcheck:** `API_IMAGE_TAG=<tag> docker compose up -d api`, con un tag cuya revisión de Alembic sea igual o posterior a la del dump (el nombre del fichero lleva el git-sha, así que `sha-<git-sha>` es la imagen que se desplegaba, y la revisión). Sin `API_IMAGE_TAG`, Compose usa `latest`. El entrypoint ejecuta `alembic upgrade` al arrancar: con una imagen más nueva que la revisión del dump, actualiza el esquema restaurado; con una más antigua **falla**, así que no uses nunca una imagen anterior a la revisión del dump. **No** uses `deploy.sh --rollback` para restaurar: deshace migraciones. Después, `docker compose ps api` debe acabar en `healthy` (el check del propio contenedor, el mismo que `GET /api/health`).
+
+```bash
+ssh -p <port> <user>@<host>
+cd /opt/perseida
+ls -1 ~/perseida/backups
+docker compose stop api
+docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --force "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
+docker compose exec -T db sh -c 'pg_restore --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < ~/perseida/backups/perseida-<UTC>-<sha>-<revision>.dump
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"'
+API_IMAGE_TAG=sha-<git-sha> docker compose up -d api
+docker compose ps api
+```
+
+Para inspeccionar una copia sin tocar producción, restáurala en otra base de datos (`createdb ... perseida_restore`, y el mismo `pg_restore` con `-d perseida_restore`) y compara.
 
 ### Acceso SSH del equipo
 
@@ -253,7 +303,8 @@ infra/
 ├── nginx-proxy-manager/        # configuración del proxy
 ├── moderation/                 # imagen/configuración del servicio Kev-4B
 └── scripts/
-    ├── deploy.sh                # se ejecuta en el servidor: pull, up, healthcheck, rollback
+    ├── deploy.sh                # se ejecuta en el servidor: pull, copia, up, healthcheck, rollback
+    ├── backup-db.sh             # se ejecuta en el servidor: pg_dump -Fc antes de migrar, con rotación
     ├── render_env.py            # CD: comprueba secretos/variables y renderiza el .env
     ├── add-team-key.sh          # añade la clave SSH pública de un compañero a la VM
     └── test-backend-docker.sh   # validación local y smoke test de perseida-api
@@ -286,7 +337,7 @@ docker compose down           # detiene los contenedores preservando los volúme
 
 ## Limitaciones conocidas (asumidas en un proyecto académico)
 
-Sin escalado horizontal ni copias de seguridad automáticas; el servidor es un punto único de fallo.
+Sin escalado horizontal; el servidor es un punto único de fallo. Las únicas copias son las que hace el CD antes de migrar o de deshacer migraciones ([ADR-0035](../obsidian_vault/decisions/0035-copies-de-seguretat-de-postgresql-al-cd.md)), en la misma VM: no hay copias periódicas ni fuera del servidor.
 
 ## Relacionado
 
@@ -302,9 +353,10 @@ Un solo *proxy host* lo sirve todo desde el mismo origen:
 |---|---|
 | `/api/...` | `api:8000` (API REST; comprobación de salud en `/api/health`) |
 | `/api/ws` | `api:8000` con el upgrade de WebSocket (chat, TG-63) |
-| `/api/events/` | `api:8000` con un límite de peticiones por IP (endpoints públicos para Spotwise, TG-351) |
+| `/api/events` y `/api/events/` | `api:8000` con un límite de peticiones compartido (endpoints públicos para Spotwise, TG-351, TG-643) |
 | `/media/` | El propio NPM, desde el volumen `media_data` (multimedia de los usuarios) |
 | `/admin/` | El propio NPM, desde el volumen `admin_dist` (SPA del panel de administración) |
+| `/`, `/privacy`, `/terms` | El propio NPM, desde `nginx-proxy-manager/public` (páginas públicas para Google Auth Platform, TG-343) |
 
 ### Puertos y panel
 
@@ -352,26 +404,73 @@ El panel solo escucha en `127.0.0.1`, nunca desde fuera. La primera vez que entr
 
    Un cliente real (p. ej. `wscat -n -c wss://perseida.localhost/api/ws`) debe enviar después, como primer frame, `{"type":"auth","token":"<access token>"}`: el servidor cierra con el código 4401 si ese frame no llega en `WS_AUTH_TIMEOUT_SECONDS` (por defecto 10) o el token no es válido. Una vez autenticado, el servidor envía un `ping` cada `WS_HEARTBEAT_SECONDS` (por defecto 30). Ambas son variables opcionales de `api` (están en `.env.example`), igual que `WS_MAX_ROOMS` (por defecto 20), `WS_MAX_FRAME_BYTES` (por defecto 65536) y `WS_SEND_TIMEOUT_SECONDS` (por defecto 5) y `WS_MAX_CONNECTIONS_PER_USER` (por defecto 3). El *heartbeat* debe ser mucho menor que `proxy_read_timeout` (3600 s en `websocket.conf`) para que el proxy nunca vea la conexión como inactiva.
 
-### Límite de peticiones por IP
+### Límite de peticiones
 
-Los endpoints públicos de eventos (`/api/events/`, TG-351) admiten 60 peticiones por minuto e IP, con una ráfaga de 20 servida de golpe. Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED`, `instance` y `Retry-After: 1`, sin llegar a la API.
+Los endpoints públicos de eventos (`/api/events` y `/api/events/`, TG-351 y TG-51) admiten 600 peticiones por minuto entre todos los clientes, con una ráfaga de 100 servida de golpe. Es un solo contador compartido: en producción el NAT de la UPC reescribe la IP de origen y el proxy no distingue los clientes (TG-643). Por encima, el proxy responde `429` en `application/problem+json` con `code: RATE_LIMITED`, `instance` y `Retry-After: 1`, sin llegar a la API.
 
-- La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en `/data/nginx/custom/http_top.conf` (no en solo lectura: al arrancar, NPM hace `chown` de todo `/data` y falla con un fichero de solo lectura) (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/` con `infra/scripts/install-http-top.sh`: NPM hace el fichero de root al arrancar, así que el script lo escribe desde dentro de NPM cuando el usuario del despliegue ya no puede sobrescribirlo (hotfix 0.2.2).
+- La zona (`limit_req_zone`) debe ir en el bloque `http` de nginx, al que la pestaña *Advanced* no llega. Está en `nginx-proxy-manager/http_top.conf`, que el Compose monta en `/data/nginx/custom/http_top.conf` (no en solo lectura: al arrancar, NPM hace `chown` de todo `/data` y falla con un fichero de solo lectura) (NPM lo incluye) y el CD copia a `/opt/perseida/nginx-proxy-manager/` con `infra/scripts/install-http-top.sh`: NPM hace el fichero de root al arrancar, así que el script lo escribe con un contenedor de un solo uso de la imagen de NPM (esté el proxy en marcha o no) cuando el usuario del despliegue ya no puede sobrescribirlo (hotfix 0.2.2).
 - La ubicación que lo aplica es `nginx-proxy-manager/rate-limit.conf` (pestaña *Advanced*). Usa la zona y el map `$events_problem_instance`, ambos definidos en `http_top.conf`.
 
 > **El orden importa.** `rate-limit.conf` necesita la zona y el map de `http_top.conf`. Si no están, nginx no arranca y cae todo el proxy host.
 >
 > - **Para activarlo:** primero despliega (el CD copia `http_top.conf` y recarga nginx) y solo después pega `rate-limit.conf` en *Advanced*.
 > - **Para retirarlo** (o antes de un revert que quite el montaje de `http_top.conf`): primero borra `rate-limit.conf` de *Advanced* y guarda, y solo después despliega.
+> - **Si cambia la clave de la zona** (`$binary_remote_addr` → `$realip_remote_addr` en TG-643, o el revert de ese cambio): el reload no la aplica. nginx rechaza una zona viva con una clave distinta (`limit_req "events_per_ip" uses the "..." key while previously it used the "..." key`) y se queda con la configuración antigua, pero el paso del CD sale verde igualmente: `nginx -t` no compara con la zona viva y `nginx -s reload` solo envía la señal. Tampoco se aplica ningún guardado de *Advanced* hasta que se reinicia. Tras ese despliegue hay que reiniciar el proxy (unos segundos de corte): `cd /opt/perseida && docker compose restart reverse-proxy`. Compruébalo con `docker compose exec reverse-proxy nginx -T | grep limit_req_zone` (muestra el fichero, no la zona viva, por eso hace falta el reinicio), mira que `docker compose logs reverse-proxy` no tenga ese error, y solo después vuelve a pegar `rate-limit.conf` en *Advanced*.
 
 - `docker compose up` no recrea el proxy si solo cambia el contenido de `http_top.conf`, así que el CD valida y recarga nginx tras cada despliegue (`nginx -t && nginx -s reload`). En local: `docker compose exec reverse-proxy nginx -s reload`.
 - Test: `bash infra/scripts/test-rate-limit.sh` (requiere Docker; lo ejecuta el job `proxy` de la CI). `bash infra/scripts/test-npm-startup.sh` arranca la imagen real de NPM con el montaje de `http_top.conf` del Compose y comprueba que se levanta y carga la zona, y que con un montaje de solo lectura falla (regresión del hotfix 0.2.1).
-- El límite cuenta la IP que nginx ve como `$remote_addr`. Tras un despliegue, comprueba en el registro de accesos de NPM que es la IP pública del cliente y no una privada del NAT o de Docker: si no, todos los clientes compartirían un solo contador.
+- El límite cuenta la dirección de la conexión TCP (`$realip_remote_addr`), no la de `$remote_addr`: NPM se fía de la cabecera `X-Real-IP` cuando la petición llega de una red privada, y en producción llegan todas así (NAT de la UPC), de modo que un cliente podría elegirse la clave. El test lo comprueba con una `X-Real-IP` falsa en cada petición (TG-643).
+
+### Páginas públicas (Google Auth Platform)
+
+Para publicar la pantalla de inicio de sesión como *In production*, Google pide una página principal, una política de privacidad y unas condiciones del servicio, todas públicas (TG-343). Son HTML estático en `nginx-proxy-manager/public/` (catalán, castellano e inglés en cada página, sin scripts), que el Compose monta de solo lectura en `/public` y el CD copia a `/opt/perseida/nginx-proxy-manager/public/`. `static.conf` las sirve en `/`, `/privacy` y `/terms` (coincidencia exacta: el resto de rutas siguen yendo a la API) con una CSP sin scripts.
+
+- **Después del primer despliegue que las traiga**, vuelve a pegar el `static.conf` nuevo en *Advanced* (no se monta) y comprueba:
+
+  ```bash
+  curl -sI https://perseida.duckdns.org:40431/ | head -1          # HTTP/2 200
+  curl -sI https://perseida.duckdns.org:40431/privacy | head -1   # HTTP/2 200
+  curl -sI https://perseida.duckdns.org:40431/terms | head -1     # HTTP/2 200
+  ```
+
+- Para cambiar el texto basta con desplegar: nginx lee los ficheros en cada petición.
+- Test: `bash infra/scripts/test-public-pages.sh` (necesita Docker; lo ejecuta el job `proxy` de la CI).
+
+**Borrar una cuenta a petición** (la política de privacidad lo promete en 30 días como máximo). Aún no hay ningún endpoint: las cuentas se borran de forma lógica (`deleted_at`) y varias tablas apuntan a `users` con `RESTRICT`. En el servidor, con el correo de la petición:
+
+```bash
+cd /opt/perseida
+# 1. Identificador de Google (clave de la sesión en Redis) e id del usuario.
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -c "SELECT u.id, i.subject FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.email = '<correo>';"
+# 2. Primero las filas con RESTRICT; borrar el usuario borra en cascada publicaciones, mensajes, suscripciones y respuestas del quiz.
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' sh -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM user_achievements WHERE user_id = '<id>'; DELETE FROM daily_streaks WHERE user_id = '<id>'; DELETE FROM outings WHERE author_id = '<id>'; DELETE FROM user_identities WHERE user_id = '<id>'; DELETE FROM users WHERE id = '<id>'; COMMIT;"
+# 3. Sesiones: los miembros de user_sessions:<subject> son <sid>:<tipo>:<jti> y las claves, session:<tipo>:<jti>.
+docker compose exec cache sh -c 'for m in $(redis-cli SMEMBERS user_sessions:<subject>); do redis-cli DEL "session:${m#*:}"; done; redis-cli DEL user_sessions:<subject>'
+```
+
+Después, responde la petición desde el correo del equipo.
+
+**Consola de Google Cloud** (alguien con acceso al proyecto; no lo hace el CD):
+
+1. *Search Console*: la propiedad `https://perseida.duckdns.org:40431/` (prefijo de URL) se verifica con el método *etiqueta HTML*; la etiqueta ya está en `index.html`. Pulsa *Verificar* cuando las páginas estén desplegadas.
+2. *Google Auth Platform → Branding*: nombre de la app `Perseida`, correo de asistencia y de contacto del desarrollador (el correo del equipo, `perseida.fib@gmail.com`), *Application home page* `https://perseida.duckdns.org:40431/`, *privacy policy* `…/privacy`, *terms of service* `…/terms` y dominio autorizado `perseida.duckdns.org` (ya está). **Sin logo**: activa la verificación de marca.
+3. *Audience → Publish app*: el estado pasa a *In production*. Con los ámbitos `openid`, `email` y `profile`, Google no pide verificación.
+4. Inicia sesión en la app con una cuenta de Google que no sea usuaria de test.
+
+### Panel de administración (TG-77)
+
+El CD compila el panel y lo deja en el volumen `admin_dist`; no se hace nada a mano.
+
+1. El job `admin-bundle` de `.github/workflows/cd.yml` ejecuta `expo export --platform web` en `frontend/`, con `EXPO_PUBLIC_API_BASE_URL` y `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: variables públicas (nunca secretos) del environment `production` de GitHub: las del APK viven en `android-release` y aquí no se resuelven, así que hay que definirlas también en `production`. `frontend/app.json` tiene `experiments.baseUrl: "/admin"`, así que todos los archivos se piden bajo `/admin/`. Si no hay `index.html`, o los archivos no se piden bajo `/admin/`, el job falla y **no se despliega nada**.
+2. El job `deploy`, después de `deploy.sh` y de recargar el proxy (si el panel falla, la configuración del proxy ya se ha aplicado), envía el paquete por SSH a `install-admin-dist.sh`. Lo extrae a una carpeta temporal del volumen y cambia el contenido de golpe, con un contenedor de un solo uso de la misma imagen que el proxy (el proxy monta el volumen solo en lectura). La API y el proxy no se paran. Un paquete malo (que no es un `.tar.gz`, o sin `index.html`) se rechaza con un mensaje claro y se queda el panel que había.
+3. Compruébalo tras un despliegue: `curl -sI https://<host>/admin/` responde 200, y `curl -s https://<host>/admin/panel` devuelve el mismo `index.html` (el proxy cae en él para las rutas de la SPA).
+
+Test: `bash infra/scripts/test-admin-dist.sh` (necesita Docker; la CI lo ejecuta en el job `proxy`). Usa un volumen de prueba y nunca toca el de producción.
 
 ### Volúmenes
 
 - `media_data` es compartido: `api` escribe en él la multimedia de los usuarios y NPM lo monta en lectura en `/media`.
-- `admin_dist` contiene el panel de administración compilado (TG-77), montado en lectura en `/admin`. Como `media_data`, es un volumen nombrado: sobrevive a `docker compose down` y a los redespliegues, no depende de dónde esté el repositorio en el servidor y NPM solo puede leerlo.
+- `admin_dist` contiene el panel de administración compilado (TG-77), montado en lectura en `/admin`; el CD lo llena (véase «Panel de administración»). Como `media_data`, es un volumen nombrado: sobrevive a `docker compose down` y a los redespliegues, no depende de dónde esté el repositorio en el servidor y NPM solo puede leerlo.
 
 ## Cabeceras de seguridad
 

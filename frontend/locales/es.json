@@ -1,30 +1,281 @@
 {
+  "achievements": {
+    "category": {
+      "events": "Eventos",
+      "minigame": "Minijuego",
+      "quiz": "Quiz",
+      "social": "Social",
+      "streaks": "Rachas"
+    },
+    "completed": "¡Enhorabuena! Has completado todos los logros de esta categoría.",
+    "descriptions": {
+      "ambaixador_del_cosmos": "Comparte 25 logros.",
+      "astrofisic": "Completa 100 quizzes.",
+      "astronom_aprenent": "Completa 10 quizzes.",
+      "cacador_d_eclipsis": "Suscríbete a 10 eventos.",
+      "calendari_celeste": "Exporta 10 eventos al calendario.",
+      "cartograf_celeste": "Completa 50 quizzes.",
+      "cel_clar": "Responde bien todas las preguntas de un quiz.",
+      "cicle_lunar": "Mantén la racha 30 días seguidos, un ciclo lunar entero.",
+      "colleccionista_d_aurores": "Suscríbete a 25 eventos.",
+      "comandant": "Gana 10 partidas al minijuego.",
+      "cumul_estellar": "Llega a 100 seguidores.",
+      "eclipsi_total": "Suscríbete a 50 eventos.",
+      "efemerides": "Exporta un evento al calendario.",
+      "estrella_fixa": "Mantén la racha 100 días seguidos.",
+      "estrella_polar": "Llega a 1.000 seguidores.",
+      "galaxia": "Llega a 500 seguidores.",
+      "gran_mestre_estellar": "Gana 50 partidas al minijuego.",
+      "llancament": "Juega tu primera partida al minijuego.",
+      "llegenda_cosmica": "Gana 100 partidas al minijuego.",
+      "lluna_plena": "Mantén la racha 14 días seguidos.",
+      "missio_complerta": "Gana una partida al minijuego.",
+      "orbita_compartida": "Sigue a otra persona por primera vez.",
+      "orbita_setmanal": "Mantén la racha 7 días seguidos.",
+      "perseida": "Mantén la racha 365 días seguidos, un año entero como la lluvia de estrellas.",
+      "postal_de_l_espai": "Comparte 10 logros.",
+      "primer_senyal": "Comparte un logro por primera vez.",
+      "primera_alineacio": "Suscríbete a tu primer evento.",
+      "primera_llum": "Entra en la app un día y abre la imagen astronómica del día.",
+      "record_galactic": "Supera tu récord personal 10 veces.",
+      "record_orbital": "Supera tu récord personal.",
+      "repte_llencat": "Reta a un amigo por primera vez.",
+      "satellit": "Consigue tu primer seguidor.",
+      "senyal_de_radio": "Envía tu primer mensaje en el chat.",
+      "telescopi_nou": "Completa tu primer quiz diario."
+    },
+    "dialog": {
+      "close": "Cerrar",
+      "share": "Compartir",
+      "shareHint": "Comparte el logro \"{{name}}\""
+    },
+    "empty": "Todavía no hay logros en esta categoría.",
+    "gallery": {
+      "title": "Tus insignias"
+    },
+    "loading": "Cargando los logros...",
+    "names": {
+      "ambaixador_del_cosmos": "Embajador del cosmos",
+      "astrofisic": "Astrofísico",
+      "astronom_aprenent": "Astrónomo aprendiz",
+      "cacador_d_eclipsis": "Cazador de eclipses",
+      "calendari_celeste": "Calendario celeste",
+      "cartograf_celeste": "Cartógrafo celeste",
+      "cel_clar": "Cielo despejado",
+      "cicle_lunar": "Ciclo lunar",
+      "colleccionista_d_aurores": "Coleccionista de auroras",
+      "comandant": "Comandante",
+      "cumul_estellar": "Cúmulo estelar",
+      "eclipsi_total": "Eclipse total",
+      "efemerides": "Efemérides",
+      "estrella_fixa": "Estrella fija",
+      "estrella_polar": "Estrella polar",
+      "galaxia": "Galaxia",
+      "gran_mestre_estellar": "Gran maestro estelar",
+      "llancament": "Lanzamiento",
+      "llegenda_cosmica": "Leyenda cósmica",
+      "lluna_plena": "Luna llena",
+      "missio_complerta": "Misión cumplida",
+      "orbita_compartida": "Órbita compartida",
+      "orbita_setmanal": "Órbita semanal",
+      "perseida": "Perseida",
+      "postal_de_l_espai": "Postal del espacio",
+      "primer_senyal": "Primera señal",
+      "primera_alineacio": "Primera alineación",
+      "primera_llum": "Primera luz",
+      "record_galactic": "Récord galáctico",
+      "record_orbital": "Récord orbital",
+      "repte_llencat": "Reto lanzado",
+      "satellit": "Satélite",
+      "senyal_de_radio": "Señal de radio",
+      "telescopi_nou": "Telescopio nuevo"
+    },
+    "progress": "{{current}}/{{goal}}",
+    "progressA11y": "{{name}}, {{current}} de {{goal}}",
+    "progressDays_one": "{{current}}/{{count}} día",
+    "progressDays_other": "{{current}}/{{count}} días",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los logros",
+    "shareText": "¡He desbloqueado \"{{name}}\" en Perseida!",
+    "streakStart": "Abre la imagen astronómica del día para empezar tu racha.",
+    "title": "Tus próximos logros",
+    "trophy": {
+      "openHint": "Abre la descripción",
+      "pending": "Logro pendiente"
+    }
+  },
+  "admin": {
+    "home": {
+      "welcome": "Bienvenida al panel de administración de Perseida"
+    },
+    "main": {
+      "label": "Contenido del panel"
+    },
+    "noAccess": {
+      "message": "Tu cuenta no tiene permiso para entrar al panel de administración.",
+      "title": "Sin acceso"
+    },
+    "skipToContent": "Salta al contenido",
+    "topBar": {
+      "label": "Barra superior del panel"
+    }
+  },
   "apod": {
     "loadingLabel": "Cargando el APOD",
     "mediaError": "No se ha podido cargar la imagen o el vídeo.",
     "retry": "Vuelve a intentarlo",
     "retryHint": "Vuelve a cargar el APOD",
+    "title": "Imagen del día",
     "videoLabel": "Vídeo del APOD"
+  },
+  "auth": {
+    "continueWithGoogle": "Continúa con Google",
+    "logout": "Cierra la sesión",
+    "logoutHint": "Cierra la sesión de este dispositivo y vuelve a la pantalla de inicio de sesión",
+    "logoutNotConfirmed": "Se ha cerrado la sesión en este dispositivo, pero no se ha podido confirmar en el servidor.",
+    "tagline": "Mira hacia arriba"
+  },
+  "chat": {
+    "title": "Chat",
+    "loading": "Cargando salas de chat",
+    "retry": "Inténtalo de nuevo",
+    "retryHint": "Vuelve a cargar las salas de chat",
+    "refresh": "Actualizar",
+    "noMessages": "Todavía no hay mensajes",
+    "unknownAuthor": "Una usuaria de Perseida",
+    "list": {
+      "label": "Salas de chat"
+    },
+    "empty": {
+      "message": "Aún no te has suscrito a ningún evento. Suscríbete a uno para charlar con la comunidad.",
+      "cta": "Explora los eventos"
+    },
+    "you": "Tú",
+    "message": {
+      "label": "{{author}}, {{time}}: {{text}}",
+      "pendingLabel": "{{author}}: {{text}}",
+      "sendingLabel": "{{author}}: {{text}}. Enviando",
+      "sending": "Enviando",
+      "failed": "No se ha podido enviar el mensaje.",
+      "uncertain": "Es posible que el mensaje ya se haya enviado. Si lo reintentas, no se duplicará.",
+      "retry": "Reintentar",
+      "discard": "Descartar"
+    },
+    "composer": {
+      "label": "Escribe un mensaje",
+      "send": "Enviar",
+      "counter": "{{count}} de {{max}} caracteres",
+      "tooLong": "El mensaje puede tener como máximo {{max}} caracteres."
+    },
+    "messages": {
+      "label": "Mensajes del chat",
+      "loadingOlder": "Cargando mensajes anteriores"
+    },
+    "room": {
+      "title": "Chat del evento",
+      "loading": "Cargando mensajes",
+      "retryHint": "Vuelve a abrir la sala de chat",
+      "empty": "Aún no hay mensajes. ¡Sé la primera persona en escribir!",
+      "revoked": "Ya no formas parte de este chat. Suscríbete al evento para volver a escribir.",
+      "backToRooms": "Volver a las salas",
+      "reconnecting": "Reconectando…",
+      "reconnect": "Reconectar",
+      "newMessage": "Mensaje nuevo de {{author}}: {{text}}",
+      "connection": {
+        "connecting": "Conectando con el chat…",
+        "reconnecting": "Se ha perdido la conexión. Podrás enviar cuando se recupere.",
+        "closed": "No hay conexión con el chat."
+      }
+    }
   },
   "common": {
     "back": "Volver"
+  },
+  "comingSoon": {
+    "badge": "Próximamente",
+    "gamificationDesc": "Completa cuestionarios diarios, consigue logros y mejora tu racha de observador.",
+    "gamificationTitle": "Gamificación y retos"
+  },
+  "directChat": {
+    "blocked": "Bloqueado",
+    "conversationWith": "Conversación con {{name}}",
+    "lastMessage": "último mensaje: {{text}}",
+    "noMessages": "Aún no hay mensajes",
+    "unread_one": "{{count}} mensaje sin leer",
+    "unread_other": "{{count}} mensajes sin leer",
+    "you": "Tú: {{text}}",
+    "list": {
+      "title": "Conversaciones",
+      "loading": "Cargando conversaciones",
+      "userId": "Identificador de usuario",
+      "open": "Iniciar conversación",
+      "empty": "Aún no tienes conversaciones",
+      "unknownUser": "Usuario"
+    },
+    "room": {
+      "loading": "Cargando conversación",
+      "block": "Bloquear",
+      "unblock": "Desbloquear",
+      "typing": "{{name}} está escribiendo"
+    }
   },
   "errors": {
     "ACCOUNT_DELETED": "Esta cuenta ha sido eliminada.",
     "ACCOUNT_SUSPENDED": "Tu cuenta está suspendida.",
     "APOD_UNAVAILABLE": "Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato.",
+    "CHAT_ROOM_NOT_FOUND": "Esta sala de chat ya no existe.",
+    "CHAT_MESSAGE_EMPTY": "El mensaje no puede estar vacío.",
+    "CHAT_MESSAGE_TOO_LONG": "El mensaje es demasiado largo (máximo 1000 caracteres).",
+    "CHAT_MESSAGE_REJECTED": "Este mensaje no se puede publicar porque no cumple las normas de la comunidad.",
+    "CHAT_IDEMPOTENCY_CONFLICT": "Este mensaje ya existe con otro contenido.",
+    "DATABASE_UNAVAILABLE": "El servicio no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
     "EMAIL_ALREADY_REGISTERED": "Este correo ya está asociado a otra cuenta.",
+    "EVENT_NOT_FOUND": "Este evento ya no existe.",
+    "EVENT_ALREADY_ENDED": "Este evento ya ha terminado.",
     "GENERIC_FINAL": "Algo ha salido mal.",
     "GOOGLE_SIGN_IN_EXPO_GO": "El inicio de sesión con Google no funciona en Expo Go. Usa la app instalada (build de desarrollo).",
     "GOOGLE_SIGN_IN_UNAVAILABLE": "El inicio de sesión con Google aún no está disponible.",
     "IDENTITY_PROVIDER_UNAVAILABLE": "Google no está disponible ahora mismo. Vuelve a intentarlo en un rato.",
     "INTERNAL_ERROR": "Algo ha salido mal. Inténtalo de nuevo.",
+    "INVALID_CURSOR": "No se han podido cargar más publicaciones. Vuelve a intentarlo.",
     "INVALID_GOOGLE_TOKEN": "No hemos podido verificar tu cuenta de Google. Vuelve a iniciar sesión.",
     "INVALID_RESPONSE": "Algo ha salido mal. No se ha podido cargar el contenido.",
     "INVALID_SESSION": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+    "MEETING_POINTS_UNAVAILABLE": "Ahora no podemos recomendar locales. Vuelve a intentarlo en un rato.",
     "NETWORK_ERROR": "No hay conexión. Comprueba la red e inténtalo de nuevo.",
     "NOT_FOUND": "No se ha encontrado lo que buscas.",
-    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato."
+    "POST_FORBIDDEN": "Solo quien ha escrito esta publicación puede editarla o borrarla.",
+    "POST_NOT_FOUND": "Esta publicación ya no existe.",
+    "POST_TEXT_EMPTY": "Escribe algo antes de publicar.",
+    "POST_TEXT_TOO_LONG": "El texto puede tener como máximo 1.000 caracteres.",
+    "QUIZ_ALREADY_ANSWERED": "Ya has respondido la pregunta de hoy.",
+    "QUIZ_EXPIRED": "Esta pregunta ya no se puede responder: ha cambiado el día.",
+    "QUIZ_QUESTION_MISMATCH": "Esta ya no es la pregunta de hoy.",
+    "SESSION_UNAVAILABLE": "No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato.",
+    "TOO_MANY_CONNECTIONS": "Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo.",
+    "SEND_UNCERTAIN": "No se ha podido confirmar el envío. Vuelve a intentarlo.",
+    "SHARE_FAILED": "No se ha podido abrir el menú de compartir. Vuelve a intentarlo.",
+    "OUTING_TITLE_EMPTY": "Ponle un título a la salida.",
+    "OUTING_TITLE_TOO_LONG": "El título puede tener como máximo 120 caracteres.",
+    "OUTING_DESCRIPTION_TOO_LONG": "La descripción puede tener como máximo 2.000 caracteres.",
+    "OUTING_PLACE_INVALID": "El local elegido no es válido: hace falta un nombre de 1 a 120 caracteres y una dirección de 200 como máximo.",
+    "OUTING_ENDS_BEFORE_START": "La salida no puede terminar antes de empezar.",
+    "OUTING_STARTS_IN_PAST": "La salida no puede empezar en el pasado.",
+    "OUTING_EVENT_NOT_FOUND": "Este evento ya no existe.",
+    "OUTING_NOT_FOUND": "Esta salida no existe o se ha borrado.",
+    "OUTING_FORBIDDEN": "Solo quien ha creado la salida puede cambiarla.",
+    "FORBIDDEN": "No tienes permiso para hacer esto.",
+    "RATE_LIMITED": "Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo.",
+    "NOT_SUBSCRIBED": "Primero debes unirte a la sala.",
+    "PUBSUB_UNAVAILABLE": "El chat no está disponible ahora mismo. Inténtalo de nuevo.",
+    "VALIDATION_ERROR": "Revisa los datos introducidos.",
+    "CHAT_INVALID_CURSOR": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
+    "CHAT_INVALID_LIMIT": "No se ha podido cargar el historial. Vuelve a abrir la sala.",
+    "USER_NOT_FOUND": "No hemos encontrado a este usuario.",
+    "CANNOT_MESSAGE_SELF": "No puedes enviarte mensajes a ti mismo.",
+    "CONVERSATION_NOT_FOUND": "Esta conversación no existe.",
+    "USER_BLOCKED": "Ahora no puedes enviar mensajes en esta conversación.",
+    "DIRECT_IDEMPOTENCY_CONFLICT": "Este mensaje ya existe con otro contenido."
   },
   "events": {
     "category": {
@@ -38,13 +289,15 @@
       "all": "No hay eventos activos ni en los próximos 30 días.",
       "noLocation": "Ninguno de estos eventos tiene una ubicación en el mapa.",
       "showList": "Ver la lista",
-      "upcoming": "No hay eventos en los próximos 30 días."
+      "upcoming": "No hay eventos en los próximos 30 días.",
+      "outings": "No hay salidas próximas."
     },
     "filter": {
       "active": "Activos",
       "all": "Todos",
       "label": "Mostrar",
-      "upcoming": "Futuros"
+      "upcoming": "Futuros",
+      "outings": "Salidas"
     },
     "list": {
       "label": "Lista de eventos"
@@ -71,7 +324,9 @@
       "end": "Fin",
       "moreInfo": "Más información",
       "openHint": "Abre la ficha del evento",
-      "start": "Inicio"
+      "start": "Inicio",
+      "outings": "Salidas de este evento",
+      "meetingPoints": "Puntos de encuentro"
     },
     "status": {
       "active": "Activo ahora"
@@ -80,10 +335,237 @@
       "label": "Vista",
       "list": "Lista",
       "map": "Mapa"
+    },
+    "outings": {
+      "kind": "Salida",
+      "open": "Abre la salida",
+      "linkedEvent": "Evento relacionado"
+    },
+    "search": {
+      "categories": "Categorías",
+      "range": {
+        "label": "Período",
+        "days7": "7 días",
+        "days30": "30 días",
+        "days90": "90 días"
+      },
+      "near": {
+        "label": "Cerca de mí",
+        "locating": "Buscando tu ubicación…",
+        "denied": "Sin permiso de ubicación no se puede filtrar por proximidad. Puedes activarlo en los ajustes del dispositivo.",
+        "unavailable": "No se ha podido obtener tu ubicación. Comprueba que la localización está activada y vuelve a intentarlo."
+      },
+      "distance": "a {{distance}} km",
+      "results_one": "{{count}} evento",
+      "results_other": "{{count}} eventos",
+      "empty": "No hay eventos con estos filtros.",
+      "openMap": "Abrir el mapa"
+    },
+    "tabs": {
+      "label": "Vista",
+      "all": "Todos",
+      "mine": "Los míos"
+    },
+    "subscription": {
+      "follow": "Sigue {{title}}",
+      "unavailable": "No se han podido cargar los eventos que sigues: las estrellas se volverán a activar cuando se carguen."
+    },
+    "mine": {
+      "empty": "Aún no sigues ningún evento. Toca la estrella de un evento para seguirlo."
     }
   },
   "home": {
     "apodLink": "Imagen del día",
-    "mapLink": "Mapa de eventos"
+    "mapLink": "Mapa de eventos",
+    "quizLink": "Pregunta del día",
+    "outingsLink": "Mis salidas"
+  },
+  "meetingPoints": {
+    "title": "Puntos de encuentro",
+    "loading": "Cargando puntos de encuentro",
+    "empty": "No hay locales recomendados cerca.",
+    "retry": "Reintentar",
+    "retryHint": "Vuelve a pedir los puntos de encuentro",
+    "choose": "Elegir {{name}}",
+    "list": {
+      "label": "Puntos de encuentro recomendados"
+    },
+    "location": {
+      "locating": "Buscando tu ubicación",
+      "denied": "Sin permiso de ubicación no podemos recomendarte locales. Puedes activarlo en los ajustes del dispositivo.",
+      "unavailable": "No encontramos tu ubicación. Comprueba que la ubicación del dispositivo está activada.",
+      "retry": "Vuelve a buscar la ubicación"
+    },
+    "profile": {
+      "label": "Para qué os encontráis",
+      "watch_party": "Observación",
+      "study": "Estudio"
+    },
+    "type": {
+      "library": "Biblioteca",
+      "cafe": "Cafetería",
+      "other": "Otro espacio"
+    },
+    "attribute": {
+      "wifi": "Wi-Fi",
+      "silence": {
+        "silent": "Silencioso",
+        "murmur": "Murmullo",
+        "noisy": "Ruidoso"
+      },
+      "plugs": {
+        "many": "Muchos enchufes",
+        "few": "Pocos enchufes",
+        "none": "Sin enchufes"
+      },
+      "groupFriendly": "Bueno para grupos",
+      "notGroupFriendly": "Mejor sin grupos"
+    }
+  },
+  "nav": {
+    "chat": "Chat",
+    "events": "Eventos",
+    "gamification": "Gamificación",
+    "home": "Inicio",
+    "profile": "Perfil",
+    "short": {
+      "events": "Eventos",
+      "gamification": "Logros"
+    }
+  },
+  "profile": {
+    "followers": {
+      "desc": "Cuántas personas siguen tus observaciones y a cuántas sigues tú.",
+      "title": "Seguidores"
+    },
+    "language": {
+      "ca": "Català",
+      "en": "English",
+      "es": "Español"
+    },
+    "languageMenu": {
+      "changed": "Idioma cambiado a {{name}}",
+      "error": "No se ha podido guardar el idioma en tu cuenta. Aquí se mantiene el cambio.",
+      "hint": "Abre la lista de idiomas",
+      "label": "Idioma: {{code}}, {{name}}",
+      "saving": "Guardando el idioma...",
+      "title": "Idioma"
+    },
+    "loading": "Cargando el perfil...",
+    "memberSince": "Miembro desde {{date}}",
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar los datos del perfil",
+    "role": {
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "user": "Observador"
+    },
+    "title": "Tu perfil"
+  },
+  "posts": {
+    "form": {
+      "cancel": "Cancelar",
+      "counter": "{{count}} de {{max}} caracteres",
+      "hint": "Comparte observaciones y consejos con la comunidad.",
+      "label": "Tu publicación",
+      "publish": "Publicar",
+      "save": "Guardar"
+    },
+    "item": {
+      "anonymous": "Usuario/a #{{tag}}",
+      "confirmDelete": "¿Quieres borrar esta publicación? No se puede deshacer.",
+      "delete": "Borrar",
+      "deleteHint": "Pide confirmación antes de borrar la publicación",
+      "edit": "Editar",
+      "editHint": "Edita el texto de tu publicación",
+      "edited": "editada"
+    },
+    "list": {
+      "empty": "Todavía no hay publicaciones. ¡Comparte la primera!",
+      "loading": "Cargando las publicaciones",
+      "more": "Cargar más",
+      "retry": "Reintentar",
+      "retryHint": "Vuelve a cargar las publicaciones",
+      "title": "Publicaciones"
+    }
+  },
+  "quiz": {
+    "backHome": "Volver al inicio",
+    "loadingLabel": "Cargando la pregunta del día",
+    "optionsLabel": "Opciones de respuesta",
+    "questionChanged": "La pregunta ha cambiado porque ya es otro día. Esta es la nueva.",
+    "result": {
+      "comeBack": "Mañana habrá una pregunta nueva.",
+      "explanation": "Por qué",
+      "right": "¡La has acertado!",
+      "rightAndYours": "Respuesta correcta y tu respuesta",
+      "rightAnswer": "Respuesta correcta",
+      "source": "Lee la fuente",
+      "sourceHint": "Abre la fuente en el navegador",
+      "wrong": "No la has acertado",
+      "yourAnswer": "Tu respuesta"
+    },
+    "retry": "Vuelve a intentarlo",
+    "retryHint": "Vuelve a cargar la pregunta del día",
+    "submit": "Envía la respuesta",
+    "submitHint": "Envía la opción elegida",
+    "title": "Pregunta del día"
+  },
+  "outings": {
+    "myTitle": "Mis salidas",
+    "eventTitle": "Salidas del evento",
+    "list": {
+      "label": "Lista de salidas"
+    },
+    "empty": {
+      "mine": "Aún no has creado ninguna salida.",
+      "event": "Aún no hay ninguna salida para este evento."
+    },
+    "loading": "Cargando salidas",
+    "retry": "Vuelve a intentarlo",
+    "new": "Crea una salida",
+    "detail": {
+      "author": "Organiza",
+      "unknownAuthor": "Una usuaria de Perseida",
+      "start": "Inicio",
+      "end": "Fin",
+      "place": "Local",
+      "where": "Lugar",
+      "event": "Evento",
+      "edit": "Edita",
+      "delete": "Borra"
+    },
+    "delete": {
+      "title": "¿Quieres borrar esta salida?",
+      "message": "No se puede deshacer.",
+      "confirm": "Borrar",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "newTitle": "Nueva salida",
+      "editTitle": "Edita la salida",
+      "title": "Título",
+      "description": "Descripción (opcional)",
+      "startsAt": "Inicio",
+      "endsAt": "Fin",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "linkedEvent": "Salida ligada a un evento",
+      "locationRequired": "Elige dónde quedaréis.",
+      "event": "Evento (opcional)",
+      "noEvent": "Ningún evento"
+    },
+    "picker": {
+      "label": "Mapa para elegir el lugar",
+      "hint": "Mueve el mapa hasta que la mira quede sobre el lugar.",
+      "choose": "Elige este lugar",
+      "useMine": "Usa mi ubicación",
+      "recommend": "Locales recomendados cerca",
+      "denied": "No hemos podido obtener tu ubicación. Mueve el mapa para elegir el lugar.",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "useCoordinates": "Elige estas coordenadas",
+      "invalidCoordinates": "La latitud debe estar entre −90 y 90, y la longitud entre −180 y 180."
+    }
   }
 }

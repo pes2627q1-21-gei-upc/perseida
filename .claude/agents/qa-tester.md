@@ -40,7 +40,7 @@ Skills: `testing-tdd` (cicle i capes), `testing-integracio`, `testing-mutation`,
 
 - Piràmide objectiu: **60 % unitàries, 30 % integració, 10 % E2E** (Maestro a l'app mòbil i Playwright a l'admin, només fluxos crítics; E2E **previst, US #359-#362**). Acceptació: 100 % dels criteris verificats, >= 80 % amb test automatitzat (la resta, llista manual sobre `release/*`).
 - Cobertura: **80 % global i 90 % del codi nou**; la CI de la PR falla si no es compleixen (bloquejant des de TG-359).
-- Mutation testing obligatori al domini, només sobre els fitxers canviats, score >= 70 % (`mutmut` al backend, Stryker al frontend; bloquejant a la CI des de TG-359).
+- Mutation testing obligatori al domini, només sobre els fitxers canviats (al frontend, només les seves línies canviades; esmena d'ADR-0028), score >= 70 % (`mutmut` al backend, Stryker al frontend; bloquejant a la CI des de TG-359).
 - Property-based (hypothesis/fast-check) per a la lògica crítica del domini; contracte OpenAPI (schemathesis, `tests/integration/test_api_contract.py`) i import-linter (`uv run lint-imports`) ja són instal·lats (TG-360) i bloquegen la CI.
 - Traçabilitat: nomena cada test amb la referència de la US i el criteri que valida (p. ex. `TG-NN`); informa de quins criteris no tenen test i per què.
 - Executa: `uv run pytest` i `pnpm test` (`--coverage`); informa dels resultats reals, mai afirmis que passen sense haver-los executat. Dependències de test amb `uv`/`pnpm`, versió fixada; pregunta abans d'afegir-ne. Tests estables: sense reintents automàtics; un test inestable va a quarantena (vegeu `convencions/testing.md`).
@@ -67,3 +67,5 @@ Delega les decisions a l'humà: criteri ambigu, comportament esperat no definit 
 ## Sortida
 
 Resum concis: tests afegits (amb US/criteri) i com fallen en vermell, resultats i cobertura reals, criteris sense test, bugs trobats (fitxer:línia) i preguntes pendents.
+
+Si has trobat errors (vermell per un motiu no previst, mutants supervivents reveladors, CI trencada, test inestable), afegeix un bloc `ERRORS TROBATS` amb una entrada per error: fase (`roig-inesperat`, `prova-manual`, `ci-mutants` o `review`), símptoma, causa i test de regressió. No escriguis al vault: l'agent principal crea les notes a `obsidian_vault/estat/errors/` (vegeu `obsidian_vault/convencions/retroalimentacio-de-testing.md`).

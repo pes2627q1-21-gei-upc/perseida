@@ -6,7 +6,12 @@ import en from '../../../locales/en.json';
 import es from '../../../locales/es.json';
 import { DEFAULT_LANGUAGE, detectLanguage, SUPPORTED_LANGUAGES } from './detectLanguage';
 
-export { DEFAULT_LANGUAGE, detectLanguage, SUPPORTED_LANGUAGES } from './detectLanguage';
+export {
+  DEFAULT_LANGUAGE,
+  detectLanguage,
+  isLanguage,
+  SUPPORTED_LANGUAGES,
+} from './detectLanguage';
 export type { Language } from './detectLanguage';
 
 // The texts are bundled, so init is synchronous and t() never runs before they are loaded.

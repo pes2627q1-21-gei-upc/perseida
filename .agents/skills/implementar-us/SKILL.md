@@ -1,6 +1,6 @@
 ---
 name: implementar-us
-description: Porta una US o tasca de Taiga (enllaç, TG-NN o #ref) de cap a cap - la llegeix (MCP de Taiga), pregunta el que no se sap, planifica amb criteri d'enginyer sènior que prefereix la solució simple, espera aprovació, implementa amb les skills i subagents del repo i itera fins que els criteris d'acceptació i la DoD verificable passen. Usa-la quan la persona doni una US/tasca de Taiga per fer, planificar o implementar.
+description: Porta una US o tasca de Taiga (enllaç, TG-NN o #ref) de cap a cap - la llegeix (MCP de Taiga), pregunta el que no se sap, planifica amb criteri d'enginyer sènior que prefereix la solució simple (i, al frontend, divideix la US en PR petites perquè el mutation testing no superi el temps de la CI), espera aprovació, implementa amb les skills i subagents del repo i itera fins que els criteris d'acceptació i la DoD verificable passen. Usa-la quan la persona doni una US/tasca de Taiga per fer, planificar o implementar.
 ---
 
 # Implementar una US de Taiga
@@ -77,6 +77,21 @@ Escriu el pla amb `references/plantilla-pla.md`: criteris → canvi mínim → f
 
 Subagents especialitzats: `backend`, `frontend`, `devops`. **Ordre per a cada criteri: `qa-tester` escriu el test en vermell i el comita (`test:`); després `backend`/`frontend` implementen fins al verd (`feat:`) sense tocar el test; després refactor.** **Si la part visual de la US té aspecte nou, el pla inclou les decisions de disseny que calgui preguntar** (element memorable, motiu natural, icones, sons).
 
+#### Mida de les PR (sobretot al frontend)
+
+A la CI, el job `frontend` passa Stryker per totes les línies de lògica afegides o canviades a la PR (`pnpm test:mutation`), i el temps creix amb el nombre de mutants. A TG-646, 934 mutants van tardar uns 28 min (uns 33 mutants/min amb `concurrency: 4`) i el job es va cancel·lar per temps (TG-652). Una US de frontend gran en una sola PR vol dir CI cancel·lada i una review difícil. Per això el pla decideix, amb criteri, en quantes PR va la US:
+
+1. **Estima la mida.** Stryker muta les línies de lògica afegides o canviades a `frontend/src/`, sense tests, `.d.ts`, `index.ts` ni `src/shared/ui/`. Objectiu orientatiu: **uns 400 mutants per PR com a màxim** (uns 12 min de Stryker a la CI). Abans de tenir codi no hi ha recompte exacte: si la US porta una pantalla nova sencera amb els seus hooks, crides a l'API i components, o toca més de 3–4 fitxers de lògica, compta que passarà del límit.
+2. **No divideixis** si la PR queda per sota del límit o si les peces no es poden provar ni lliurar per separat. Dividir també té un cost (més reviews, més CI).
+3. **Divideix** si passa del límit, si barreja parts que no depenen entre elles o si la US té subtasques de Taiga que es poden lliurar soles. Criteri de tall, per ordre de preferència:
+   - **Per subtasques de Taiga:** una PR per tasca, o per grup de tasques que han d'anar juntes (ja ho preveu [gitflow](../../../obsidian_vault/convencions/gitflow.md)).
+   - **Per dependències:** primer el que no depèn de res (tipus, lògica pura com `format*`/`classify*`, crides a l'API i hooks), després els components i, al final, la pantalla o ruta que ho connecta.
+   - **Cada PR es val per si sola:** deixa `develop` en verd i l'app usable (res mig connectat que vegi l'usuari), porta els seus tests amb TDD (`test:` abans de `feat:` dins de la mateixa PR) i passa la DoD tota sola (cobertura del codi nou, mutation ≥ 70 % de les seves línies). Codi provat però encara no connectat és acceptable si la PR següent del pla el connecta; no és codi «per si de cas».
+4. **Branques:** una `feature/TG-NN-<part>` per PR, des de `develop` i en l'ordre del pla. Si una PR depèn de l'anterior, s'**apilen** com a stack natiu de GitHub (`gh stack`, guia `obsidian_vault/guies/pr-apilades-amb-gh-stack.md`): cada branca surt de l'anterior i GitHub reajusta sol la base de les de damunt quan es fusiona la de sota, així que no cal esperar el merge ni canviar bases a mà. Obrir l'stack (`gh stack submit`) i fusionar-lo és decisió de la persona (regla d'AGENTS.md sobre push, PR i merge). A la CI, Stryker, `diff-cover` i `mutmut` diffegen cada capa contra la seva branca pare (`run-stryker-diff.mjs` i `backend/scripts/pr_base.py` la consulten a l'API REST; `github.base_ref` en un stack val el tronc, no la branca pare), així que el límit de mutants es compta per capa (vegeu la guia).
+5. Al pla, taula **PR → tasques de Taiga → fitxers → mida estimada → depèn de** (secció «Divisió en PR» de `references/plantilla-pla.md`).
+
+Al backend, `mutmut` només muta `app/domain`, de manera que el risc és menor; aplica el mateix criteri si el diff de domini és gran.
+
 > **PORTA:** presenta el pla a la persona i **espera la seva aprovació explícita**. No escriguis ni una línia de codi abans. Si el canvia, actualitza'l i torna-ho a presentar.
 
 ### 6. Escriptura a Taiga (opcional, sempre amb confirmació)
@@ -87,8 +102,9 @@ Límit: **no moguis mai la US a `Done`** (requereix PR aprovada per una altra pe
 
 ### 7. Implementar
 
-- Treballa a `feature/*` (GitFlow; màxim una US per branca). **No treballis a `main`, `develop`, `release/*` ni `hotfix/*`.** Si ets en una altra branca, pregunta.
+- Treballa a `feature/*` (GitFlow; màxim una US per branca). Si el pla divideix la US en diverses PR, una branca per PR, en l'ordre del pla. **No treballis a `main`, `develop`, `release/*` ni `hotfix/*`.** Si ets en una altra branca, pregunta.
 - Delega als subagents/skills de la taula; cada skill porta el seu propi protocol de dubtes i la seva checklist.
+- **L'encàrrec al subagent porta la checklist de la skill de domini.** Abans de delegar, llegeix la skill que toca i copia a l'encàrrec els punts que s'hi apliquen: les preguntes del client extern de `backend-adaptador` (quota i límit de peticions, timeout, reintents, TTL, què fer si cau), el test d'integració quan es toquen la persistència, la cache o un servei extern, i regenerar la còpia de l'OpenAPI del frontend quan canvia un endpoint (`testing-integracio`). No limitis l'abast de l'encàrrec («no toquis el frontend») si això deixa fora un pas obligatori. Origen: [TG-352](../../../obsidian_vault/estat/errors/2026-11-22-tg-352-copia-openapi-desfasada.md).
 - **TDD estricte:** per a cada criteri, primer el test en vermell (comprova que falla pel motiu correcte) i commit `test:`; després el codi (`feat:`/`fix:`) i el refactor (`refactor:`). El `test:` va sempre abans del `feat:`; no hi ha cap script que ho verifiqui: ho comprova el revisor.
 - Commits atòmics `TG-NN tipus(àmbit): resum`, un canvi lògic per commit, seguint les instruccions de la persona sobre l'atribució. **Si no saps el `TG-NN`, pregunta-ho.** Cap secret, `.env`, token ni dada personal (regla 6).
 - **Mai push, merge ni PR** si la persona no ho demana explícitament.
@@ -104,18 +120,21 @@ Dos portes, les dues han de passar:
 - Lint, tipus i tests als directoris tocats (ordres dels README); cap test en vermell.
 - Cobertura: **≥ 90 % del codi nou i ≥ 80 % global** (bloquejant a la CI des de TG-359 via `diff-cover`, `coverageThreshold` i SonarQube Cloud) i Quality Gate local raonable: 0 bugs/vulnerabilitats, duplicació ≤ 3 % (`convencions/qualitat.md`).
 - Tests unitaris de tots els components modificats; test d'integració si toca persistència o externs; test de regressió si és un bug; mutation testing (≥ 70 %) als fitxers de domini canviats (`testing-mutation`; bloquejant a la CI des de TG-359).
+- Mida de la PR de frontend: per saber el nombre real de mutants, executa `pnpm test:mutation` i llegeix el recompte que Stryker escriu en instrumentar el codi; no cal esperar que acabi (en local pot trigar hores). Si passa clarament dels 400 mutants, torna al pla i divideix la PR abans de demanar-la.
 - L'historial mostra `test:` abans de `feat:`.
 - `reviewer-arquitectura` sobre el diff: cap troballa CRÍTICA ni ALTA oberta.
 - Vault actualitzat si cal; entrada a `obsidian_vault/estat/sessions/` (regla 4).
+- Errors trobats (vermell inesperat, prova manual, CI i mutants, review) registrats a `obsidian_vault/estat/errors/` amb la plantilla `error-de-testing`, el test de regressió i la lliçó (`convencions/retroalimentacio-de-testing.md`). Si un subagent retorna un bloc `ERRORS TROBATS`, crea tu les notes.
 - Si tens tocat skills o subagents: `node .agents/scripts/sync-skills.mjs` i `node .agents/scripts/sync-agents.mjs` (i els `--check`).
 
-**Itera:** si alguna porta falla, corregeix la causa (no el símptoma) i repeteix **les dues**. Si el mateix punt falla tres cops, **atura't i pregunta**: no martellegis. No afebleixis un test ni un criteri per fer-lo passar.
+**Itera:** si alguna porta falla, corregeix la causa (no el símptoma) i repeteix **les dues**. Si el mateix punt falla tres cops, **atura't i pregunta**: no martellegis. No afebleixis un test ni un criteri per fer-lo passar. Cada fallada que no era el roig previst és un error a registrar abans de tancar la iteració; si la mateixa causa ja hi és al registre, la lliçó passa a ser obligatòria.
 
 ### 9. Informe final
 
 Amb `references/plantilla-pla.md` (secció informe):
 - **Verd:** criteris amb evidència i DoD verificable amb el resultat real de cada ordre. Només dius «passa» si ho has executat i has vist la sortida.
 - **Pendent humà (checklist explícita, mai marcada com a feta):** PR oberta, aprovada per una persona que no sigui l'autora, CI i SonarQube Cloud Quality Gate, fusió a `develop`, subtasques tancades a Taiga, `Done`.
+- **Errors trobats:** llista amb enllaç a cada nota de `estat/errors/` i la lliçó aplicada (o «cap»).
 - Decisions preses (i qui les va aprovar), desviacions del pla i què s'ha deixat fora a propòsit.
 
 ## Què NO fer
@@ -125,5 +144,6 @@ Amb `references/plantilla-pla.md` (secció informe):
 - No escriguis a Taiga sense confirmació; no moguis la US a `Done`.
 - No implementis abans de l'aprovació del pla.
 - No sobreenginyeris: cap abstracció, flag ni dependència que cap criteri demani.
+- No portis una US de frontend gran en una sola PR si passa del límit de mutants: divideix-la segons el pla.
 - No facis push, merge ni PR sense que la persona ho demani; no treballis fora de `feature/*`.
 - No editis `.claude/skills/` ni els subagents generats; la font és `.agents/`.

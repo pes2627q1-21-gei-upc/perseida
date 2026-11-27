@@ -9,9 +9,9 @@ from app.domain.chat.models import (
     ChatRepositoryPage,
     ChatRoomSummary,
     EventChatRoom,
-    ModerationResult,
 )
 from app.domain.shared.errors import NotFoundError
+from app.domain.shared.moderation import ModerationResult
 
 
 class ChatFakes:
@@ -26,6 +26,11 @@ class ChatFakes:
         self.allowed = True
         self.approved = True
         self.fail_save = False
+        self.race_winner: ChatMessage | None = None
+        # TG-654: (author, client_message_id) published less than the cooldown ago
+        self.recent: set[tuple[uuid.UUID, uuid.UUID]] = set()
+        self.fail_recent = False
+        self.fail_mark = False
         self.fail_publish = False
         self.missing = False
         self.channels: list[str] = []
@@ -58,11 +63,43 @@ class ChatFakes:
     ) -> AbstractAsyncContextManager[AsyncIterator[str]]:
         raise NotImplementedError
 
-    async def add_message(self, message: ChatMessage) -> None:
+    async def find_by_client_id(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> ChatMessage | None:
+        self.calls.append("find")
+        return next(
+            (
+                m
+                for m in self.messages
+                if m.author.id == author_id and m.client_message_id == client_message_id
+            ),
+            None,
+        )
+
+    async def was_published_recently(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> bool:
+        self.calls.append("recent")
+        if self.fail_recent:
+            raise ExternalServiceError("REDIS_DOWN")
+        return (author_id, client_message_id) in self.recent
+
+    async def mark_published(
+        self, author_id: uuid.UUID, client_message_id: uuid.UUID
+    ) -> None:
+        self.calls.append("mark")
+        if self.fail_mark:
+            raise ExternalServiceError("REDIS_DOWN")
+        self.recent.add((author_id, client_message_id))
+
+    async def add_message(self, message: ChatMessage) -> ChatMessage:
         self.calls.append("save")
         if self.fail_save:
             raise ExternalServiceError("DATABASE_UNAVAILABLE")
-        self.messages.append(message)
+        # A concurrent retry stored its message first: that one is the stored one.
+        stored = self.race_winner or message
+        self.messages.append(stored)
+        return stored
 
     async def publish(self, channel: str, message: str) -> None:
         self.calls.append("publish")

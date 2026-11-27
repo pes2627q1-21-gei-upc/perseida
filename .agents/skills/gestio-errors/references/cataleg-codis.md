@@ -4,7 +4,7 @@ Convenció: `SCREAMING_SNAKE`, forma `<ENTITAT>_<MOTIU>` (p. ex. `EVENT_NOT_FOUN
 
 ## Codis transversals (TG-304)
 
-Els genera el handler base, no un `DomainError`. Textos aprovats per la persona responsable (TG-304).
+Els genera el handler base, no un `DomainError`. Textos aprovats per la persona responsable (TG-304). El text de `RATE_LIMITED` el va revisar Oriol Orbea (22/11/2026, TG-469): és únic per a tots els seus orígens (també el del xat).
 
 | Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
 |---|---|---|---|---|---|---|---|
@@ -13,7 +13,7 @@ Els genera el handler base, no un `DomainError`. Textos aprovats per la persona 
 | `NOT_FOUND` | 404 | Ruta inexistent | No | No s'ha trobat el que busques. | No se ha encontrado lo que buscas. | We couldn't find what you were looking for. | infrastructure/api |
 | `METHOD_NOT_ALLOWED` | 405 | Mètode HTTP no permès | No | Aquesta acció no està permesa. | Esta acción no está permitida. | This action is not allowed. | infrastructure/api |
 | `HTTP_<status>` | `<status>` | Altres errors HTTP de Starlette | Segons status | (missatge genèric) | (mensaje genérico) | (generic message) | infrastructure/api |
-| `RATE_LIMITED` | 429 | Límit de peticions per IP del proxy (no passa per l'API; amb `Retry-After`) | Sí | Has fet massa peticions. Torna-ho a provar d'aquí a una estona. | Has hecho demasiadas peticiones. Vuelve a intentarlo en un rato. | Too many requests. Please try again in a while. | infra/nginx-proxy-manager/rate-limit.conf (TG-351, `/api/events/`) |
+| `RATE_LIMITED` | 429 | Límit de peticions per IP del proxy (no passa per l'API; amb `Retry-After`) | Sí | Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar. | Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo. | There is a lot of activity right now. Please wait a moment and try again. | infra/nginx-proxy-manager/rate-limit.conf (TG-351, `/api/events/`). Text únic del client per a tots els orígens de `RATE_LIMITED` (també el del xat, TG-469): no descriu qui el provoca ni culpa la persona |
 
 ## Codis del client (TG-120)
 
@@ -25,6 +25,9 @@ Els genera el frontend, no el backend. Text en català aprovat per la persona re
 | `INVALID_RESPONSE` | 200 sense cos vàlid | `AppError` `kind: 'http'` (resposta il·legible) | No | Alguna cosa ha anat malament. No s'ha pogut carregar el contingut. | Algo ha salido mal. No se ha podido cargar el contenido. | Something went wrong. We couldn't load the content. | frontend `features/apod/api/getApodToday.ts` |
 | `GOOGLE_SIGN_IN_EXPO_GO` | — | `AppError` `kind: 'http'` (client, `status: 0`) | No | L'inici de sessió amb Google no funciona a Expo Go. Usa l'app instal·lada (build de desenvolupament). | El inicio de sesión con Google no funciona en Expo Go. Usa la app instalada (build de desarrollo). | Google sign-in doesn't work in Expo Go. Use the installed app (development build). | frontend `features/auth/googleAuth.ts` (TG-342) |
 | `GOOGLE_SIGN_IN_UNAVAILABLE` | — | `AppError` `kind: 'http'` (client, `status: 0`) | No | L'inici de sessió amb Google encara no està disponible. | El inicio de sesión con Google aún no está disponible. | Google sign-in isn't available yet. | frontend `features/auth/googleAuth.ts` (sense client id; TG-342) |
+| `TOO_MANY_CONNECTIONS` | 429 | `AppError` `kind: 'http'` (client; el servidor tanca el WebSocket amb 4429, sense frame `error`) | No | Tens massa connexions obertes alhora (en altres dispositius o pestanyes). Tanca'n alguna i torna-ho a provar. | Tienes demasiadas conexiones abiertas a la vez (en otros dispositivos o pestañas). Cierra alguna y vuelve a intentarlo. | You have too many connections open at once (on other devices or tabs). Close one and try again. | client: tancament 4429 del WebSocket, `shared/realtime` (TG-64; límit `WS_MAX_CONNECTIONS_PER_USER`, ADR-0030) |
+| `SEND_UNCERTAIN` | — | `AppError` `kind: 'network'` (client; l'últim intent d'enviament no va rebre resposta, o la connexió va acabar amb el missatge ja enviat) | Sí | No s'ha pogut confirmar l'enviament. Torna-ho a provar. | No se ha podido confirmar el envío. Vuelve a intentarlo. | We couldn't confirm the message was sent. Please try again. | client: cua de `send` de `shared/realtime` (TG-654; reintent amb el mateix `client_message_id`, ADR-0030) |
+| `SHARE_FAILED` | — | `AppError` `kind: 'http'` (client, `status: 0`; el menú de compartir del sistema falla; tancar-lo no és error) | Sí | No s'ha pogut obrir el menú de compartir. Torna-ho a provar. | No se ha podido abrir el menú de compartir. Vuelve a intentarlo. | We couldn't open the share menu. Please try again. | frontend `features/achievements/share/shareAchievement.ts` (TG-59) |
 
 Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els errors **recuperables** sense text propi fan servir `errors.INTERNAL_ERROR` (el text d'`INTERNAL_ERROR` de dalt). Els **no recuperables** sense text propi fan servir `errors.GENERIC_FINAL`: «Alguna cosa ha anat malament.» / «Algo ha salido mal.» / «Something went wrong.» (decidit per la persona responsable a TG-91; no convida a reintentar perquè no hi ha botó de reintent). `NOT_FOUND`, `APOD_UNAVAILABLE`, `INTERNAL_ERROR` i `GENERIC_FINAL` també tenen clau al frontend.
 
@@ -35,10 +38,22 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 | `APOD_DATE_IN_FUTURE` | 422 | `ValidationError` | Sí | Aquesta data encara no ha arribat. Tria la d'avui o una d'anterior. | Esta fecha aún no ha llegado. Elige la de hoy o una anterior. | This date hasn't arrived yet. Choose today or an earlier date. | domain/apod |
 | `APOD_DATE_BEFORE_START` | 422 | `ValidationError` | Sí | L'APOD només està disponible a partir del 16 de juny de 1995. | El APOD solo está disponible a partir del 16 de junio de 1995. | APOD is only available from June 16, 1995 onwards. | domain/apod |
 | `APOD_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara mateix no hem pogut carregar l'APOD. Torna-ho a provar d'aquí a una estona. | Ahora mismo no hemos podido cargar el APOD. Vuelve a intentarlo en un rato. | We couldn't load the APOD right now. Please try again in a while. | application/apod (constant `APOD_UNAVAILABLE`; l'adaptador de TG-46 la llança) |
+| `DATABASE_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | El servei no està disponible ara mateix. Torna-ho a provar d'aquí a una estona. | El servicio no está disponible ahora mismo. Vuelve a intentarlo en un rato. | The service isn't available right now. Please try again in a while. | application/shared (`error_codes.py`; els repositoris la llancen si PostgreSQL no és accessible; TG-450) |
+| `CHAT_ROOM_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta sala de xat ja no existeix. | Esta sala de chat ya no existe. | This chat room no longer exists. | application/chat (`add_message` amb una sala inexistent; TG-455) |
+| `CHAT_MESSAGE_EMPTY` | 422 | `ValidationError` | Sí | El missatge no pot estar buit. | El mensaje no puede estar vacío. | The message can't be empty. | domain/chat (TG-453, TG-455) |
+| `CHAT_MESSAGE_TOO_LONG` | 422 | `ValidationError` | Sí | El missatge és massa llarg (màxim 1000 caràcters). | El mensaje es demasiado largo (máximo 1000 caracteres). | The message is too long (1000 characters max). | application/chat (TG-453, TG-455) |
+| `CHAT_MESSAGE_REJECTED` | 422 | `BusinessRuleViolation` | Sí | Aquest missatge no es pot publicar perquè no compleix les normes de la comunitat. | Este mensaje no se puede publicar porque no cumple las normas de la comunidad. | This message can't be posted because it doesn't follow the community guidelines. | application/chat (moderació, ADR-0007; TG-453, TG-455) |
 | `USER_EMAIL_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
 | `USER_EMAIL_INVALID` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users (correu massa llarg o amb espais o caràcters de control) |
 | `APOD_MEDIA_URL_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/apod (l'URL del mitjà no és https) |
 | `USER_GOOGLE_SUB_EMPTY` | 422 | `ValidationError` | Sí | (pendent, preguntar) | (pendent) | (pendent) | domain/users |
+| `CANNOT_MESSAGE_SELF` | 422 | `BusinessRuleViolation` | Sí | No et pots enviar missatges a tu mateix. | No puedes enviarte mensajes a ti mismo. | You can't message yourself. | domain/direct_chat (conversa o bloqueig amb un mateix usuari; TG-400). Text aprovat per Oriol Orbea (22/11/2026, TG-65) |
+| `CONVERSATION_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta conversa no existeix. | Esta conversación no existe. | This conversation doesn't exist. | domain/direct_chat (conversa inexistent o usuari que no n'és participant, perquè no se'n reveli l'existència; també un `last_message_id` desconegut o d'una altra conversa en marcar com a llegit; TG-400, TG-65). Text aprovat per Oriol Orbea (22/11/2026, TG-65) |
+| `USER_NOT_FOUND` | 404 | `NotFoundError` | No | No hem trobat aquest usuari. | No hemos encontrado a este usuario. | We couldn't find this user. | application/direct_chat (obrir una conversa amb un usuari inexistent o esborrat; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
+| `USER_BLOCKED` | 403 | `ForbiddenError` | No | Ara no pots enviar missatges en aquesta conversa. | Ahora no puedes enviar mensajes en esta conversación. | You can't send messages in this conversation right now. | application/direct_chat (algun dels dos usuaris bloqueja l'altre; el text no revela qui bloqueja; TG-65). Text aprovat per Oriol Orbea (22/11/2026) |
+| `DIRECT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/direct_chat (`send_message` amb un `client_message_id` ja usat amb una altra conversa o un altre text; TG-65) |
+
+Textos de `CANNOT_MESSAGE_SELF`, `CONVERSATION_NOT_FOUND`, `USER_NOT_FOUND`, `USER_BLOCKED` i `DIRECT_IDEMPOTENCY_CONFLICT` (xat directe, TG-65) aprovats per Oriol Orbea (26/11/2026).
 
 ## Codis dels esdeveniments (TG-351)
 
@@ -46,6 +61,25 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 |---|---|---|---|---|---|---|---|
 | `EVENT_ENDS_BEFORE_START` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/events (`ends_at` anterior a `starts_at`) |
 | `EVENT_SOURCE_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | (no arriba al client) | (no arriba al client) | (no arriba al client) | infrastructure/events (TG-50; una font d'esdeveniments ha fallat: `EventService` l'absorbeix, ho registra i serveix el que hi ha a PostgreSQL, ADR-0031) |
+
+## Codis de les sortides d'observació (TG-629)
+
+Textos aprovats per Raquel (17/11/2026). Textos de `RATE_LIMITED`, `CHAT_INVALID_CURSOR` i `CHAT_INVALID_LIMIT` revisats per Oriol Orbea (22/11/2026), TG-469; `NOT_SUBSCRIBED` passa a no recuperable (un 409 no es reintenta al client) amb l'aprovació d'Oriol Orbea (22/11/2026), TG-469.
+
+| Code | Status | Classe / origen | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `OUTING_TITLE_EMPTY` | 422 | `ValidationError` | Sí | Posa un títol a la sortida. | Ponle un título a la salida. | Give the outing a title. | domain/outings (títol buit o només blancs) |
+| `OUTING_TITLE_TOO_LONG` | 422 | `ValidationError` | Sí | El títol pot tenir com a màxim 120 caràcters. | El título puede tener como máximo 120 caracteres. | The title can be at most 120 characters. | domain/outings (més de 120 caràcters un cop netejat) |
+| `OUTING_DESCRIPTION_TOO_LONG` | 422 | `ValidationError` | Sí | La descripció pot tenir com a màxim 2.000 caràcters. | La descripción puede tener como máximo 2.000 caracteres. | The description can be at most 2,000 characters. | domain/outings (més de 2.000 caràcters un cop netejada) |
+| `OUTING_PLACE_INVALID` | 422 | `ValidationError` | Sí | El local triat no és vàlid: cal un nom d'1 a 120 caràcters i una adreça de com a màxim 200. | El local elegido no es válido: hace falta un nombre de 1 a 120 caracteres y una dirección de 200 como máximo. | The chosen place is not valid: it needs a name of 1 to 120 characters and an address of at most 200. | domain/outings (nom buit o massa llarg, o adreça massa llarga, un cop netejats) |
+| `OUTING_ENDS_BEFORE_START` | 422 | `ValidationError` | Sí | La sortida no pot acabar abans de començar. | La salida no puede terminar antes de empezar. | The outing can't end before it starts. | domain/outings (`ends_at` anterior a `starts_at`) |
+| `OUTING_STARTS_IN_PAST` | 422 | `ValidationError` | Sí | La sortida no pot començar en el passat. | La salida no puede empezar en el pasado. | The outing can't start in the past. | domain/outings (en crear, o en editar si canvien les dates) |
+| `OUTING_EVENT_NOT_FOUND` | 422 | `ValidationError` | Sí | Aquest esdeveniment ja no existeix. | Este evento ya no existe. | This event no longer exists. | domain/outings (`event_id` del cos que no existeix; application/outings) |
+| `OBSERVATION_ZONE_LATITUDE_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (latitud fora de [-90, 90] o NaN; TG-70, encara sense endpoint) |
+| `OBSERVATION_ZONE_LONGITUDE_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (longitud fora de [-180, 180] o NaN; TG-70, encara sense endpoint) |
+| `OBSERVATION_ZONE_RADIUS_INVALID` | 422 | `ValidationError` | No | (pendent, preguntar) | (pendent) | (pendent) | domain/observation_zones (radi ≤ 0 km o NaN; TG-70, encara sense endpoint) |
+| `OUTING_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta sortida no existeix o s'ha esborrat. | Esta salida no existe o se ha borrado. | This outing doesn't exist or was deleted. | domain/outings (application/outings) |
+| `OUTING_FORBIDDEN` | 403 | `ForbiddenError` | No | Només qui ha creat la sortida la pot canviar. | Solo quien ha creado la salida puede cambiarla. | Only the person who created the outing can change it. | domain/outings (PATCH o DELETE d'una altra persona; application/outings) |
 
 ## Codis de les ràtxes (TG-56)
 
@@ -59,11 +93,12 @@ Missatges genèrics (TG-91, clau `errors.<CODE>` a `frontend/locales/`): els err
 |---|---|---|---|---|---|---|---|
 | `PUBSUB_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | El xat no està disponible ara mateix. Torna-ho a provar. | El chat no está disponible ahora mismo. Inténtalo de nuevo. | Chat is unavailable right now. Please try again. | infrastructure/cache |
 | `UNKNOWN_FRAME_TYPE` | 422 | frame `error` del WebSocket | Sí | No entenem aquest missatge. | No entendemos este mensaje. | We don't understand this message. | application/realtime (TG-63) |
-| `NOT_SUBSCRIBED` | 409 | frame `error` del WebSocket | Sí | Primer t'has d'unir a la sala. | Primero debes unirte a la sala. | You need to join the room first. | application/realtime (TG-63) |
+| `NOT_SUBSCRIBED` | 409 | frame `error` del WebSocket | No | Primer t'has d'unir a la sala. | Primero debes unirte a la sala. | You need to join the room first. | application/realtime (TG-63) |
 | `FORBIDDEN` | 403 | frame `error` del WebSocket | No | No tens permís per fer això. | No tienes permiso para hacer esto. | You don't have permission to do that. | application/realtime (TG-63; l'emeten #64 i #65) |
-| `RATE_LIMITED` | 429 | `RateLimitedError` (REST) i frame `error` del WebSocket | Sí | Massa missatges seguits. Espera una mica. | Demasiados mensajes seguidos. Espera un poco. | Too many messages. Please wait a moment. | application/realtime (TG-63; límit de sales) i application/chat (TG-442; límit d'enviament per REST) |
-| `CHAT_INVALID_CURSOR` | 422 | `ValidationError` | No | El cursor de l'historial no és vàlid. | El cursor del historial no es válido. | The history cursor is not valid. | application/chat (TG-442) |
-| `CHAT_INVALID_LIMIT` | 422 | `ValidationError` | No | El límit de l'historial no és vàlid. | El límite del historial no es válido. | The history limit is not valid. | application/chat (TG-442) |
+| `RATE_LIMITED` | 429 | `RateLimitedError` (REST) i frame `error` del WebSocket | Sí | Hi ha molta activitat ara mateix. Espera una mica i torna-ho a provar. | Hay mucha actividad ahora mismo. Espera un poco y vuelve a intentarlo. | There is a lot of activity right now. Please wait a moment and try again. | application/realtime (TG-63; límit de sales) i application/chat (TG-442; límit d'enviament per REST) |
+| `CHAT_INVALID_CURSOR` | 422 | `ValidationError` | No | No s'ha pogut carregar l'historial. Torna a obrir la sala. | No se ha podido cargar el historial. Vuelve a abrir la sala. | We couldn't load the history. Please reopen the room. | application/chat (TG-442) |
+| `CHAT_INVALID_LIMIT` | 422 | `ValidationError` | No | No s'ha pogut carregar l'historial. Torna a obrir la sala. | No se ha podido cargar el historial. Vuelve a abrir la sala. | We couldn't load the history. Please reopen the room. | application/chat (TG-442) |
+| `CHAT_IDEMPOTENCY_CONFLICT` | 409 | `ConflictError` (frame `error` del WebSocket) | No | Aquest missatge ja existeix amb un altre contingut. | Este mensaje ya existe con otro contenido. | This message already exists with different content. | application/chat (`send_message` amb un `client_message_id` ja usat amb un altre text; TG-654) |
 
 ## Codis d'autenticació (TG-44)
 
@@ -75,6 +110,7 @@ Textos aprovats per la persona responsable (TG-44). Un compte banejat respon `AC
 | `INVALID_SESSION` | 401 | `UnauthorizedError` | No | La teva sessió ha caducat. Torna a iniciar sessió. | Tu sesión ha caducado. Vuelve a iniciar sesión. | Your session has expired. Please sign in again. | application/auth |
 | `ACCOUNT_SUSPENDED` | 403 | `ForbiddenError` | No | El teu compte està suspès. | Tu cuenta está suspendida. | Your account is suspended. | application/auth |
 | `ACCOUNT_DELETED` | 403 | `ForbiddenError` | No | Aquest compte s'ha eliminat. | Esta cuenta ha sido eliminada. | This account has been deleted. | application/auth |
+| `INSUFFICIENT_ROLE` | 403 | `ForbiddenError` | No | No tens permís per fer aquesta acció. | No tienes permiso para hacer esto. | You don't have permission to do this. | infrastructure/users (`require_role`, TG-77) |
 | `IDENTITY_PROVIDER_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Google no està disponible ara mateix. Torna-ho a provar d'aquí a una estona. | Google no está disponible ahora mismo. Vuelve a intentarlo en un rato. | Google is unavailable right now. Please try again in a while. | application/auth |
 | `SESSION_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | No podem comprovar la teva sessió ara mateix. Torna-ho a provar d'aquí a una estona. | No podemos comprobar tu sesión ahora mismo. Vuelve a intentarlo en un rato. | We can't check your session right now. Please try again in a while. | infrastructure/auth (Redis no disponible) |
 | `EMAIL_ALREADY_REGISTERED` | 409 | `ConflictError` | No | Aquest correu ja està associat a un altre compte. | Este correo ya está asociado a otra cuenta. | This email is already linked to another account. | infrastructure/users |
@@ -88,6 +124,33 @@ Textos aprovats per la persona responsable (TG-60, 09/11/2026). Contracte a `obs
 | `QUIZ_ALREADY_ANSWERED` | 409 | `ConflictError` | No | Ja has respost la pregunta d'avui. Torna demà per a una de nova! | Ya has respondido la pregunta de hoy. ¡Vuelve mañana para una nueva! | You've already answered today's question. Come back tomorrow for a new one! | domain/quiz |
 | `QUIZ_EXPIRED` | 409 | `ConflictError` | Sí | Aquesta pregunta ja ha caducat. Carrega la d'avui. | Esta pregunta ya ha caducado. Carga la de hoy. | This question has expired. Load today's question. | domain/quiz |
 | `QUIZ_QUESTION_MISMATCH` | 422 | `ValidationError` | Sí | Aquesta no és la pregunta d'avui. Torna-ho a provar. | Esta no es la pregunta de hoy. Inténtalo de nuevo. | This isn't today's question. Please try again. | domain/quiz |
+
+## Codis de les publicacions d'esdeveniment (TG-628)
+
+Textos presentats a la persona responsable a la tasca #634 (17/11/2026). `EVENT_NOT_FOUND` i `INVALID_CURSOR` tenen clau i18n des d'aquesta US.
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `EVENT_NOT_FOUND` | 404 | `NotFoundError` | No | Aquest esdeveniment ja no existeix. | Este evento ya no existe. | This event no longer exists. | application/posts |
+| `POST_NOT_FOUND` | 404 | `NotFoundError` | No | Aquesta publicació ja no existeix. | Esta publicación ya no existe. | This post no longer exists. | application/posts |
+| `POST_FORBIDDEN` | 403 | `ForbiddenError` | No | Només qui ha escrit aquesta publicació la pot editar o esborrar. | Solo quien ha escrito esta publicación puede editarla o borrarla. | Only the person who wrote this post can edit or delete it. | application/posts |
+| `POST_TEXT_EMPTY` | 422 | `ValidationError` | No | Escriu alguna cosa abans de publicar. | Escribe algo antes de publicar. | Write something before posting. | domain/posts |
+| `POST_TEXT_TOO_LONG` | 422 | `ValidationError` | No | El text pot tenir com a màxim 1.000 caràcters. | El texto puede tener como máximo 1.000 caracteres. | The text can be at most 1,000 characters long. | domain/posts |
+| `INVALID_CURSOR` | 422 | `ValidationError` | No | No s'han pogut carregar més publicacions. Torna-ho a provar. | No se han podido cargar más publicaciones. Vuelve a intentarlo. | More posts could not be loaded. Try again. | application/posts |
+
+## Codis de les subscripcions a esdeveniments (TG-53)
+
+Textos aprovats per la persona responsable (TG-53, 17/11/2026). `EVENT_NOT_FOUND` és a la secció de TG-628 i també el llança `application/events` (subscripcions).
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `EVENT_ALREADY_ENDED` | 409 | `ConflictError` | No | Aquest esdeveniment ja ha acabat. | Este evento ya ha terminado. | This event has already ended. | domain/events |
+
+## Codis dels punts de trobada (TG-352)
+
+| Code | Status | Classe | Recuperable | ca | es | en | Origen |
+|---|---|---|---|---|---|---|---|
+| `MEETING_POINTS_UNAVAILABLE` | 503 | `ExternalServiceError` | Sí | Ara no podem recomanar locals. Torna-ho a provar d'aquí a una estona. | Ahora no podemos recomendar locales. Vuelve a intentarlo en un rato. | We can't recommend places right now. Please try again in a while. | application/meeting_points (constant; `SpotwiseSpaceClient` la llança si Spotwise no respon en 5 s, no s'hi pot connectar, respon 4xx/5xx o un cos que no és una llista JSON) |
 
 ## Taula plantilla
 
@@ -112,6 +175,7 @@ Textos aprovats per la persona responsable (TG-60, 09/11/2026). Contracte a `obs
 | NASA (APOD...) | Retorna la cache (Redis), sense 500 | `ExternalServiceError` (503) amb codi propi |
 | Google JWKS | Claus en memòria | `ExternalServiceError` `IDENTITY_PROVIDER_UNAVAILABLE` (503, US #44) |
 | Fonts d'esdeveniments (Launch Library 2, USNO, Skyfield, catàleg) | Es serveixen els esdeveniments desats a PostgreSQL; la font no es torna a cridar en 15 min | Igual: `EVENT_SOURCE_UNAVAILABLE` no arriba al client, mai un 5xx (TG-50, ADR-0031) |
-| Altres (meteo, contaminació lumínica, Spotwise, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
+| Spotwise (espais) | Només dins del TTL de 5 min (per perfil i ubicació arrodonida a 3 decimals) es retorna la recomanació desada a Redis, sense cridar Spotwise. Un cop caducada no es serveix mai: no hi ha fallback amb dades caducades (decisió de la persona, TG-352) | `ExternalServiceError` `MEETING_POINTS_UNAVAILABLE` (503), mai un 500; no es desa res. També si ja s'han fet 60 crides a Spotwise en l'últim minut (límit de sortida per procés) (TG-352) |
+| Altres (meteo, contaminació lumínica, Kev-4B, FCM) | Pregunta a l'humà | Pregunta a l'humà |
 
 Les files de NASA i Google JWKS fixen el comportament acordat per aquests proveïdors; per als altres no n'hi ha cap d'acordat: no n'inventis de nous i pregunta a l'humà.

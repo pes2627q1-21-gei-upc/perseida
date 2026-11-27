@@ -7,18 +7,19 @@ from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.application.health.health_service import HealthService
 from app.infrastructure.health.dependencies import get_health_service
 from app.infrastructure.scheduler.dependencies import (
     get_job_scheduler,
     get_scheduler_settings,
 )
 from app.main import create_app
+from tests.fakes.health import FakeHealthCheck
 
 
 def _clear_caches() -> None:
     get_scheduler_settings.cache_clear()
     get_job_scheduler.cache_clear()
-    get_health_service.cache_clear()
 
 
 @pytest.fixture(autouse=True)
@@ -71,7 +72,16 @@ async def test_health_reports_the_scheduler_while_the_app_runs(app: FastAPI) -> 
     async with app.router.lifespan_context(app):
         body = await _health(app)
 
-    assert body == {"status": "ok", "components": {"app": "ok", "scheduler": "ok"}}
+    # PostgreSQL and Redis point to a closed port here: they are reported down.
+    assert body == {
+        "status": "down",
+        "components": {
+            "app": "ok",
+            "postgres": "down",
+            "redis": "down",
+            "scheduler": "ok",
+        },
+    }
 
 
 async def test_disabled_scheduler_is_not_started_nor_reported(
@@ -83,7 +93,10 @@ async def test_disabled_scheduler_is_not_started_nor_reported(
         assert get_job_scheduler().running is False
         body = await _health(app)
 
-    assert body == {"status": "ok", "components": {"app": "ok"}}
+    assert body == {
+        "status": "down",
+        "components": {"app": "ok", "postgres": "down", "redis": "down"},
+    }
 
 
 async def test_api_keeps_responding_while_a_job_runs(app: FastAPI) -> None:
@@ -98,6 +111,11 @@ async def test_api_keeps_responding_while_a_job_runs(app: FastAPI) -> None:
         get_job_scheduler().add_interval_job("blocked", blocked, seconds=0.05)
         await asyncio.wait_for(started.wait(), 3)
 
+        # Fake checks: the point is that a running job does not block the API,
+        # not the 2 s limit of the PostgreSQL and Redis checks.
+        app.dependency_overrides[get_health_service] = lambda: HealthService(
+            [FakeHealthCheck("app")]
+        )
         body = await asyncio.wait_for(_health(app), 1)
         release.set()
 

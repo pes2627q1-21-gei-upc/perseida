@@ -28,7 +28,7 @@ PostgreSQL 18 amb l'extensió PostGIS és la font de veritat del sistema. L'esqu
 
 ### Negatives (assumides)
 
-- No hi ha còpies de seguretat automàtiques (limitació acceptada del projecte).
+- No hi ha còpies de seguretat periòdiques (limitació acceptada del projecte). Des de TG-386 el CD en fa una abans de migrar i de desfer migracions, a la mateixa VM ([[0035-copies-de-seguretat-de-postgresql-al-cd]]).
 
 ## Alternatives descartades
 

@@ -23,6 +23,12 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 |---|---|
 | <...> | <backend-service, frontend-pagina, estetica-frutiger-cosmo...> |
 
+## Divisió en PR
+<«Una sola PR» i per què (mida estimada per sota d'uns 400 mutants o peces inseparables), o la taula:>
+| PR | Branca | Tasques de Taiga | Fitxers | Mida estimada | Depèn de |
+|---|---|---|---|---|---|
+| 1 | feature/TG-<NN>-<part> | TG-<NN> | <rutes> | <fitxers/línies de lògica o mutants> | — |
+
 ## Tests (primer, en vermell, derivats dels criteris)
 <criteri → test (nivell: unitari/integració/E2E) i commit `test:` abans del `feat:`; unitaris dels components modificats; regressió si és un bug; quins queden exclosos de cobertura i per què>
 
@@ -71,6 +77,11 @@ Una pàgina com a màxim. Substitueix cada `<...>`; el que no aplica s'escriu «
 
 ## Iteracions
 <què va fallar, la causa i la correcció; cap test afeblit>
+
+## Errors trobats (retroalimentació de testing)
+| Nota a `estat/errors/` | Fase | Causa | Test de regressió | Lliçó |
+|---|---|---|---|---|
+| <[[AAAA-MM-DD-tg-nn-resum]]> | <roig-inesperat / prova-manual / ci-mutants / review> | <...> | <fitxer::nom> | <skill / convencio / cap> |
 
 ## Pendent humà (no marcat com a fet)
 - [ ] PR oberta per la persona (cap push/PR fet per l'agent)

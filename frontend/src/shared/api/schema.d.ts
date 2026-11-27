@@ -33,7 +33,7 @@ export interface paths {
     };
     /**
      * Imatge astronòmica del dia (APOD)
-     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui.
+     * @description Retorna l'APOD de la data indicada o, si no se'n dona cap, el d'avui (data UTC). La data ha d'estar entre el 16/06/1995 i avui. L'endpoint és públic: la sessió (capçalera `Authorization: Bearer`) és opcional i, si n'hi ha una de vàlida, registra l'activitat del dia de la ratxa. Una sessió absent o invàlida no és un error i no canvia la resposta.
      */
     get: operations['get_apod'];
     put?: never;
@@ -116,6 +116,60 @@ export interface paths {
      * @description Retorna les dades de l'usuari propietari de la sessió.
      */
     get: operations['get_current_user'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Actualitza l'usuari autenticat
+     * @description Canvia l'idioma preferit de l'usuari propietari de la sessió.
+     */
+    patch: operations['update_current_user'];
+    trace?: never;
+  };
+  '/api/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Llistat d'esdeveniments filtrable
+     * @description Retorna els esdeveniments que estan en curs en algun moment entre els dies `from` i `to` (dies UTC, `to` inclòs fins a les 24:00Z). Per defecte `from` és avui i `to` és 30 dies després de `from`; el rang no pot passar de 90 dies. `category` es pot repetir per demanar-ne diverses; sense cap, totes. Amb `lat` i `lon` només hi surten els esdeveniments a menys de `radius_km` quilòmetres (per defecte 500) i els que no tenen ubicació, que es veuen des de qualsevol lloc. `from` posterior a `to`, un rang de més de 90 dies, `lat` sense `lon` (o al revés) o `radius_km` sense coordenades donen 422. Endpoint públic, sense autenticació. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     *
+     *     Exemple de la forma de cada element (dades fictícies, no la resposta a uns paràmetres concrets):
+     *
+     *     ```json
+     *     [
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-8926ca81b8fe",
+     *         "title": "Falcon 9 Block 5 | Starlink Group 10-12",
+     *         "summary": "A batch of Starlink satellites launched from Cape Canaveral SLC-40.",
+     *         "category": "launch",
+     *         "starts_at": "2026-11-03T21:15:00Z",
+     *         "ends_at": "2026-11-03T23:45:00Z",
+     *         "location": {
+     *           "latitude": 28.5618,
+     *           "longitude": -80.577
+     *         },
+     *         "source_url": "https://ll.thespacedevs.com/2.3.0/launches/00000000-0000-4000-8000-000000000000/"
+     *       },
+     *       {
+     *         "id": "01a19288-a3f6-7576-a37b-89276502d574",
+     *         "title": "Full Moon",
+     *         "summary": "The Moon is fully illuminated as seen from Earth.",
+     *         "category": "lunar",
+     *         "starts_at": "2026-11-24T14:53:00Z",
+     *         "ends_at": "2026-11-24T14:53:00Z",
+     *         "location": null,
+     *         "source_url": null
+     *       }
+     *     ]
+     *     ```
+     */
+    get: operations['list_events'];
     put?: never;
     post?: never;
     delete?: never;
@@ -224,6 +278,50 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/events/{event_id}/subscription': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Subscriu-te a un esdeveniment
+     * @description Subscriu la usuària de la sessió a l'esdeveniment. És idempotent: si ja hi estava subscrita respon 200 i no canvia res, encara que l'esdeveniment ja hagi acabat. Una subscripció nova a un esdeveniment acabat (`ends_at` anterior a ara) es rebutja. Resposta sense cos.
+     */
+    put: operations['subscribe_to_event'];
+    post?: never;
+    /**
+     * Dona't de baixa d'un esdeveniment
+     * @description Esborra la subscripció de la usuària de la sessió a l'esdeveniment. És idempotent: respon 204 també si no hi estava subscrita o si l'esdeveniment no existeix.
+     */
+    delete: operations['unsubscribe_from_event'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/subscriptions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Esdeveniments als quals estàs subscrita
+     * @description Retorna els esdeveniments als quals està subscrita la usuària de la sessió, també els que ja han acabat. Resposta: array ordenat per `starts_at` i després per `id`; buit si no n'hi ha cap.
+     */
+    get: operations['list_my_subscriptions'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/quiz/today': {
     parameters: {
       query?: never;
@@ -304,10 +402,331 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/users/me/achievements': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Fites de l'usuari autenticat
+     * @description Retorna tot el catàleg de fites amb el progrés de l'usuari de la sessió, ordenat per categoria (streaks, quiz, events, social, minigame) i, dins de cada categoria, per posició.
+     */
+    get: operations['list_my_achievements'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/outings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Sortides que encara no han començat
+     * @description Retorna les sortides amb l'inici a partir d'ara, ordenades per `starts_at` i després per `id`. Es poden filtrar per esdeveniment (`event_id`) i quedar-se només amb les de la usuària de la sessió (`mine=true`).
+     */
+    get: operations['list_outings'];
+    put?: never;
+    /**
+     * Crea una sortida d'observació
+     * @description Crea una sortida de la usuària de la sessió. L'esdeveniment relacionat és opcional; si se'n dona un, ha d'existir. La capçalera `Location` porta la URL de la sortida creada.
+     */
+    post: operations['create_outing'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/outings/{outing_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Detall d'una sortida
+     * @description Retorna la sortida amb l'autora.
+     */
+    get: operations['get_outing'];
+    put?: never;
+    post?: never;
+    /**
+     * Esborra una sortida
+     * @description Només l'autora.
+     */
+    delete: operations['delete_outing'];
+    options?: never;
+    head?: never;
+    /**
+     * Edita una sortida
+     * @description Només l'autora. Canvien només els camps enviats; `event_id: null` treu l'esdeveniment. Si canvien `starts_at` o `ends_at`, l'inici no pot ser en el passat; si no, es pot editar una sortida que ja ha començat.
+     */
+    patch: operations['update_outing'];
+    trace?: never;
+  };
+  '/api/events/{event_id}/posts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Publicacions d'un esdeveniment
+     * @description Llista les publicacions de l'esdeveniment, de la més nova a la més antiga, paginades per cursor: per a la pàgina següent, envia `next_cursor` com a `cursor`.
+     */
+    get: operations['list_event_posts'];
+    put?: never;
+    /**
+     * Publica un text en un esdeveniment
+     * @description Crea una publicació de text de la usuària de la sessió.
+     */
+    post: operations['create_event_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/posts/{post_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Esborra una publicació pròpia
+     * @description Esborra la publicació. Només ho pot fer l'autora.
+     */
+    delete: operations['delete_post'];
+    options?: never;
+    head?: never;
+    /**
+     * Edita una publicació pròpia
+     * @description Substitueix el text i desa `edited_at`. Només ho pot fer l'autora.
+     */
+    patch: operations['update_post'];
+    trace?: never;
+  };
+  '/api/chat/rooms': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Sales de xat de les teves subscripcions
+     * @description Retorna les sales dels esdeveniments als quals està subscrita la usuària de la sessió, ordenades pel darrer missatge (o, si no en tenen, per creació) de més nou a més antic. Cada sala inclou el darrer missatge o `null`. Els esdeveniments sense sala encara no hi surten. Array buit si no n'hi ha cap.
+     */
+    get: operations['list_my_chat_rooms'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/{event_id}/chat/room': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Obre la sala de xat d'un esdeveniment
+     * @description Retorna la sala de l'esdeveniment, i la crea si encara no existeix. És idempotent: sempre respon 200 amb la mateixa sala. Inclou el darrer missatge o `null` si encara no en té, igual que `GET /chat/rooms`. Cal estar subscrita a l'esdeveniment; si no, 403 i no es crea res.
+     */
+    put: operations['open_event_chat_room'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/{event_id}/chat/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Historial de xat d'un esdeveniment
+     * @description Retorna una pàgina de l'historial, del missatge més nou al més antic. `limit` va de 1 a 50 (per defecte 50). `before` és el `next_cursor` de la pàgina anterior; `next_cursor` és `null` quan no hi ha missatges més antics. Cal estar subscrita a l'esdeveniment. Crea la sala si encara no existeix.
+     */
+    get: operations['list_event_chat_messages'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/direct-conversations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Direct Conversations */
+    get: operations['list_direct_conversations_api_direct_conversations_get'];
+    put?: never;
+    /** Open Direct Conversation */
+    post: operations['open_direct_conversation_api_direct_conversations_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/direct-conversations/{conversation_id}/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Direct History */
+    get: operations['direct_history_api_direct_conversations__conversation_id__messages_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/direct-conversations/{conversation_id}/read': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mark Direct Read */
+    post: operations['mark_direct_read_api_direct_conversations__conversation_id__read_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users/{user_id}/block': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Block User */
+    put: operations['block_user_api_users__user_id__block_put'];
+    post?: never;
+    /** Unblock User */
+    delete: operations['unblock_user_api_users__user_id__block_delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/meeting-points': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Punts de trobada recomanats
+     * @description Espais de Spotwise a prop de la ubicació (arrodonida a 3 decimals) que encaixen amb el perfil: `watch_party` (apte per a grups, amb wifi) o `study` (silenciós; amb endolls, si n'hi ha), a 1.500 m com a màxim. En l'ordre de Spotwise; la resposta es desa 5 minuts.
+     */
+    get: operations['list_meeting_points'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * AchievementCategory
+     * @description Catalog section an achievement is grouped under (independent of ``kind``).
+     * @enum {string}
+     */
+    AchievementCategory: 'streaks' | 'quiz' | 'events' | 'social' | 'minigame';
+    /** AchievementResponse */
+    AchievementResponse: {
+      /**
+       * Code
+       * @description Codi estable de la fita
+       */
+      code: string;
+      /**
+       * Name
+       * @description Nom de la fita
+       */
+      name: string;
+      /**
+       * Description
+       * @description Descripció de la fita
+       */
+      description: string;
+      /** @description Categoria de la fita */
+      category: components['schemas']['AchievementCategory'];
+      /**
+       * Position
+       * @description Posició dins de la categoria
+       */
+      position: number;
+      /**
+       * Current
+       * @description Progrés actual de l'usuari
+       */
+      current: number;
+      /**
+       * Goal
+       * @description Objectiu per desbloquejar la fita
+       */
+      goal: number;
+      /**
+       * Unlocked
+       * @description Si l'usuari l'ha desbloquejada
+       */
+      unlocked: boolean;
+      /**
+       * Unlocked At
+       * @description Moment de desbloqueig (UTC), o null si no ho està
+       */
+      unlocked_at: string | null;
+    };
     /** ApodResponse */
     ApodResponse: {
       /**
@@ -339,6 +758,173 @@ export interface components {
        * @description Autoria, si l'APOD no és de domini públic
        */
       copyright?: string | null;
+    };
+    /** ChatAuthorResponse */
+    ChatAuthorResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de l'autora.
+       */
+      id: string;
+      /**
+       * Name
+       * @description Nom del perfil de l'autora; `null` si no en té. Mai és el correu: l'app hi posa un nom genèric.
+       */
+      name: string | null;
+    };
+    /** ChatHistoryResponse */
+    ChatHistoryResponse: {
+      /**
+       * Messages
+       * @description Pàgina d'historial, del missatge més nou al més antic.
+       */
+      messages: components['schemas']['ChatMessageResponse'][];
+      /**
+       * Next Cursor
+       * @description Cursor opac per a `before`; null si no hi ha més antics.
+       */
+      next_cursor?: string | null;
+    };
+    /** ChatMessageResponse */
+    ChatMessageResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador del missatge (UUIDv7).
+       */
+      id: string;
+      /**
+       * Room Id
+       * Format: uuid
+       * @description Sala a la qual pertany.
+       */
+      room_id: string;
+      author: components['schemas']['ChatAuthorResponse'];
+      /**
+       * Text
+       * @description Text del missatge, ja netejat pel servidor.
+       */
+      text: string;
+      /**
+       * Sent At
+       * Format: date-time
+       * @description Instant d'enviament (el posa el servidor).
+       */
+      sent_at: string;
+    };
+    /** ChatRoomResponse */
+    ChatRoomResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de la sala.
+       */
+      id: string;
+      /**
+       * Event Id
+       * Format: uuid
+       * @description Esdeveniment de la sala (n'hi ha una per esdeveniment).
+       */
+      event_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       * @description Instant de creació de la sala.
+       */
+      created_at: string;
+      /** @description Últim missatge de la sala; null si encara no n'hi ha. */
+      last_message?: components['schemas']['ChatMessageResponse'] | null;
+    };
+    /**
+     * ConversationOverview
+     * @description One row of the conversation list of a user.
+     */
+    ConversationOverview: {
+      /**
+       * Conversation Id
+       * Format: uuid
+       */
+      conversation_id: string;
+      /**
+       * Other User Id
+       * Format: uuid
+       */
+      other_user_id: string;
+      /** Other Display Name */
+      other_display_name?: string | null;
+      /** Other Avatar Url */
+      other_avatar_url?: string | null;
+      /** Last Message Preview */
+      last_message_preview: string | null;
+      /** Last Message At */
+      last_message_at: string | null;
+      /** Last Message Sender Id */
+      last_message_sender_id: string | null;
+      /** Unread Count */
+      unread_count: number;
+      /** Blocked By Me */
+      blocked_by_me: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** DirectConversationResponse */
+    DirectConversationResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * User A Id
+       * Format: uuid
+       */
+      user_a_id: string;
+      /**
+       * User B Id
+       * Format: uuid
+       */
+      user_b_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /** DirectHistoryResponse */
+    DirectHistoryResponse: {
+      /** Messages */
+      messages: components['schemas']['DirectMessageResponse'][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /** DirectMessageResponse */
+    DirectMessageResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Conversation Id
+       * Format: uuid
+       */
+      conversation_id: string;
+      /**
+       * Sender Id
+       * Format: uuid
+       */
+      sender_id: string;
+      /** Text */
+      text: string;
+      /**
+       * Sent At
+       * Format: date-time
+       */
+      sent_at: string;
     };
     /**
      * EventCategory
@@ -441,7 +1027,9 @@ export interface components {
        * Components
        * @description Diccionari amb l'estat detallat de cada component o servei extern depenent
        * @example {
-       *       "app": "ok"
+       *       "app": "ok",
+       *       "postgres": "ok",
+       *       "redis": "ok"
        *     }
        */
       components: {
@@ -459,11 +1047,312 @@ export interface components {
      * @enum {string}
      */
     Language: 'ca' | 'es' | 'en';
+    /** MarkDirectReadRequest */
+    MarkDirectReadRequest: {
+      /**
+       * Last Message Id
+       * Format: uuid
+       */
+      last_message_id: string;
+    };
     /**
      * MediaType
      * @enum {string}
      */
     MediaType: 'image' | 'video';
+    /**
+     * MeetingPointProfile
+     * @description What the meeting is for.
+     * @enum {string}
+     */
+    MeetingPointProfile: 'watch_party' | 'study';
+    /** MeetingPointResponse */
+    MeetingPointResponse: {
+      /**
+       * Id
+       * @description Identificador estable de l'espai a Spotwise
+       */
+      id: number;
+      /**
+       * Name
+       * @description Nom de l'espai
+       */
+      name: string;
+      /** @description Tipus d'espai */
+      type: components['schemas']['SpaceType'];
+      /**
+       * Address
+       * @description Adreça; pot ser buida
+       */
+      address: string;
+      /** @description Ubicació de l'espai */
+      location: components['schemas']['EventLocation'];
+      /**
+       * Wifi
+       * @description Si té wifi públic
+       */
+      wifi: boolean;
+      /** @description Nivell de silenci més votat; null si ningú l'ha votat */
+      silence_level: components['schemas']['SilenceLevel'] | null;
+      /** @description Endolls disponibles més votats; null si ningú els ha votat */
+      plugs: components['schemas']['PlugLevel'] | null;
+      /**
+       * Group Friendly
+       * @description Si és apte per a grups; null si ningú l'ha votat
+       */
+      group_friendly: boolean | null;
+      /**
+       * Distance M
+       * @description Distància en metres des de la ubicació de la petició arrodonida a 3 decimals (fins a uns 80 m d'error)
+       */
+      distance_m: number;
+      /**
+       * Open Now
+       * @description Si és obert ara; null si no se'n sap l'horari
+       */
+      open_now: boolean | null;
+    };
+    /** OpenDirectConversationRequest */
+    OpenDirectConversationRequest: {
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string;
+    };
+    /** OutingAuthorResponse */
+    OutingAuthorResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de l'autora
+       */
+      id: string;
+      /**
+       * Display Name
+       * @description Nom del perfil de Google
+       */
+      display_name: string | null;
+      /**
+       * Avatar Url
+       * @description Avatar del perfil de Google
+       */
+      avatar_url: string | null;
+    };
+    /** OutingCreate */
+    OutingCreate: {
+      /**
+       * Title
+       * @description Títol, d'1 a 120 caràcters
+       * @example Perseides al Montsec
+       */
+      title: string;
+      /**
+       * Description
+       * @description Descripció, de 0 a 2000 caràcters
+       * @default
+       */
+      description: string;
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601 amb zona horària); no pot ser en el passat
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601 amb zona horària); no pot ser anterior a l'inici
+       */
+      ends_at: string;
+      /** @description Lloc de trobada */
+      location: components['schemas']['EventLocation'];
+      /** @description Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra. */
+      place?: components['schemas']['OutingPlaceBody'] | null;
+      /**
+       * Event Id
+       * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
+       */
+      event_id?: string | null;
+    };
+    /**
+     * OutingPlaceBody
+     * @description Name and address of a recommended local (TG-661). Like the title, the
+     *     length is measured by the domain after cleaning (OUTING_PLACE_INVALID).
+     */
+    OutingPlaceBody: {
+      /**
+       * Name
+       * @description Nom del local, d'1 a 120 caràcters
+       * @example Biblioteca Sant Pau - Santa Creu
+       */
+      name: string;
+      /**
+       * Address
+       * @description Adreça, de 0 a 200 caràcters
+       * @default
+       * @example Carrer del Carme, 47
+       */
+      address: string;
+    };
+    /** OutingResponse */
+    OutingResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de la sortida (UUIDv7)
+       */
+      id: string;
+      /**
+       * Title
+       * @description Títol, d'1 a 120 caràcters
+       */
+      title: string;
+      /**
+       * Description
+       * @description Descripció, de 0 a 2000 caràcters
+       */
+      description: string;
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601, UTC)
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601, UTC)
+       */
+      ends_at: string;
+      /** @description Lloc de trobada */
+      location: components['schemas']['EventLocation'];
+      /** @description Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra. */
+      place: components['schemas']['OutingPlaceBody'] | null;
+      /**
+       * Event Id
+       * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
+       */
+      event_id: string | null;
+      /** @description Qui ha creat la sortida */
+      author: components['schemas']['OutingAuthorResponse'];
+      /**
+       * Created At
+       * Format: date-time
+       * @description Creació (ISO 8601, UTC)
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description Última edició (ISO 8601, UTC)
+       */
+      updated_at: string;
+    };
+    /**
+     * OutingUpdate
+     * @description Only the fields sent change. ``event_id: null`` unlinks the event and
+     *     ``place: null`` clears the place; the other fields may be left out but never be
+     *     null.
+     */
+    OutingUpdate: {
+      /**
+       * Title
+       * @description Títol, d'1 a 120 caràcters
+       */
+      title?: string;
+      /**
+       * Description
+       * @description Descripció, de 0 a 2000 caràcters
+       */
+      description?: string;
+      /**
+       * Starts At
+       * Format: date-time
+       * @description Inici (ISO 8601 amb zona horària); no pot ser en el passat
+       */
+      starts_at?: string;
+      /**
+       * Ends At
+       * Format: date-time
+       * @description Fi (ISO 8601 amb zona horària); no pot ser anterior a l'inici
+       */
+      ends_at?: string;
+      /** @description Lloc de trobada */
+      location?: components['schemas']['EventLocation'];
+      /** @description Local recomanat triat com a lloc de trobada (nom i adreça); null si el lloc s'ha triat d'una altra manera. Si es canvia `location` sense `place`, s'esborra. */
+      place?: components['schemas']['OutingPlaceBody'] | null;
+      /**
+       * Event Id
+       * @description Esdeveniment astronòmic relacionat; null si no n'hi ha
+       */
+      event_id?: string | null;
+    };
+    /**
+     * PlugLevel
+     * @enum {string}
+     */
+    PlugLevel: 'many' | 'few' | 'none';
+    /** PostAuthorResponse */
+    PostAuthorResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de l'autora
+       */
+      id: string;
+      /**
+       * Name
+       * @description Nom del perfil de l'autora; `null` si no en té. Mai és el correu: l'app hi posa un nom genèric.
+       */
+      name: string | null;
+    };
+    /** PostPageResponse */
+    PostPageResponse: {
+      /**
+       * Items
+       * @description De la més nova a la més antiga
+       */
+      items: components['schemas']['PostResponse'][];
+      /**
+       * Next Cursor
+       * @description Cursor opac de la pàgina següent; `null` si no n'hi ha més
+       */
+      next_cursor: string | null;
+    };
+    /** PostResponse */
+    PostResponse: {
+      /**
+       * Id
+       * Format: uuid
+       * @description Identificador de la publicació
+       */
+      id: string;
+      author: components['schemas']['PostAuthorResponse'];
+      /**
+       * Text
+       * @description Text pla; el client no l'ha de renderitzar
+       */
+      text: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Edited At
+       * @description Última edició; `null` si no s'ha editat mai
+       */
+      edited_at: string | null;
+    };
+    /** PostTextRequest */
+    PostTextRequest: {
+      /**
+       * Text
+       * @description Text pla de la publicació: d'1 a 1000 caràcters un cop retallats els blancs dels extrems. Mai s'interpreta com a HTML.
+       */
+      text: string;
+    };
     /**
      * ProblemDetails
      * @description RFC 9457 error body, as built by ``problem_response``.
@@ -600,6 +1489,16 @@ export interface components {
      * @enum {string}
      */
     Role: 'user' | 'moderator' | 'admin';
+    /**
+     * SilenceLevel
+     * @enum {string}
+     */
+    SilenceLevel: 'silent' | 'murmur' | 'noisy';
+    /**
+     * SpaceType
+     * @enum {string}
+     */
+    SpaceType: 'library' | 'cafe' | 'other';
     /** StreakResponse */
     StreakResponse: {
       /**
@@ -634,6 +1533,11 @@ export interface components {
        */
       expires_in: number;
     };
+    /** UpdateUserRequest */
+    UpdateUserRequest: {
+      /** @description Nou idioma preferit */
+      preferred_language: components['schemas']['Language'];
+    };
     /** UserResponse */
     UserResponse: {
       /**
@@ -660,6 +1564,12 @@ export interface components {
       preferred_language: components['schemas']['Language'];
       /** @description Rol de l'usuari */
       role: components['schemas']['Role'];
+      /**
+       * Created At
+       * Format: date-time
+       * @description Data d'alta del compte (UTC)
+       */
+      created_at: string;
     };
   };
   responses: never;
@@ -689,7 +1599,9 @@ export interface operations {
            * @example {
            *       "status": "ok",
            *       "components": {
-           *         "app": "ok"
+           *         "app": "ok",
+           *         "postgres": "ok",
+           *         "redis": "ok"
            *       }
            *     }
            */
@@ -960,6 +1872,135 @@ export interface operations {
       };
     };
   };
+  update_current_user: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateUserRequest'];
+      };
+    };
+    responses: {
+      /** @description El perfil actualitzat. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cos de la petició invàlid (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_events: {
+    parameters: {
+      query?: {
+        /** @description Categoria; es pot repetir. Per defecte, totes. */
+        category?: components['schemas']['EventCategory'][];
+        /** @description Primer dia UTC (YYYY-MM-DD). Per defecte, avui. */
+        from?: string | null;
+        /** @description Darrer dia UTC, inclòs (YYYY-MM-DD). Per defecte, 30 dies després de `from`. */
+        to?: string | null;
+        /** @description Latitud en graus (WGS 84); cal amb `lon`. */
+        lat?: number | null;
+        /** @description Longitud en graus (WGS 84); cal amb `lat`. */
+        lon?: number | null;
+        /** @description Radi en km (1-20000) al voltant de `lat` i `lon`. Per defecte, 500. */
+        radius_km?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els esdeveniments que compleixen els filtres. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Paràmetre invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Error inesperat (code `INTERNAL_ERROR`). */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
   get_active_events: {
     parameters: {
       query?: {
@@ -990,7 +2031,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;
@@ -1040,7 +2081,7 @@ export interface operations {
           'application/problem+json': components['schemas']['ProblemDetails'];
         };
       };
-      /** @description Massa peticions (code `RATE_LIMITED`): més de 60 per minut i IP, amb una ràfega de 20. La capçalera `Retry-After` indica quants segons cal esperar. */
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
       429: {
         headers: {
           [name: string]: unknown;
@@ -1051,6 +2092,208 @@ export interface operations {
       };
       /** @description Error inesperat (code `INTERNAL_ERROR`). */
       500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  subscribe_to_event: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Ja hi estaves subscrita; no canvia res. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Subscripció creada. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment no existeix (`EVENT_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment ja ha acabat (`EVENT_ALREADY_ENDED`). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador d'esdeveniment invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  unsubscribe_from_event: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Ja no hi estàs subscrita. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador d'esdeveniment invàlid (code `VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (code `RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_my_subscriptions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els esdeveniments subscrits. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventResponse'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
         headers: {
           [name: string]: unknown;
         };
@@ -1284,6 +2527,1403 @@ export interface operations {
         };
       };
       /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_my_achievements: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Les fites amb progrés i data de desbloqueig. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AchievementResponse'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_outings: {
+    parameters: {
+      query?: {
+        /** @description Només les sortides d'aquest esdeveniment. */
+        event_id?: string | null;
+        /** @description Només les sortides de la usuària de la sessió. */
+        mine?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Les sortides futures; buit si no n'hi ha cap. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Paràmetre invàlid (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  create_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OutingCreate'];
+      };
+    };
+    responses: {
+      /** @description La sortida creada, amb l'autora. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  get_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Identificador de la sortida */
+        outing_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La sortida. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La sortida no existeix (`OUTING_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador mal format (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  delete_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Identificador de la sortida */
+        outing_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La sortida s'ha esborrat. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No ets l'autora de la sortida (`OUTING_FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La sortida no existeix (`OUTING_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador mal format (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  update_outing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Identificador de la sortida */
+        outing_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OutingUpdate'];
+      };
+    };
+    responses: {
+      /** @description La sortida editada. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OutingResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No ets l'autora de la sortida (`OUTING_FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La sortida no existeix (`OUTING_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Dades no vàlides: `VALIDATION_ERROR` (format) o `OUTING_TITLE_EMPTY`, `OUTING_TITLE_TOO_LONG`, `OUTING_DESCRIPTION_TOO_LONG`, `OUTING_PLACE_INVALID`, `OUTING_ENDS_BEFORE_START`, `OUTING_STARTS_IN_PAST` o `OUTING_EVENT_NOT_FOUND`. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_event_posts: {
+    parameters: {
+      query?: {
+        /** @description `next_cursor` de la pàgina anterior */
+        cursor?: string | null;
+        /** @description Publicacions per pàgina */
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Una pàgina de publicacions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PostPageResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment no existeix (`EVENT_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Cursor invàlid (`INVALID_CURSOR`) o `limit` fora de rang (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  create_event_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PostTextRequest'];
+      };
+    };
+    responses: {
+      /** @description La publicació creada. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PostResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment no existeix (`EVENT_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa peticions (`RATE_LIMITED`): més de 600 per minut entre tots els clients (comptador compartit), amb una ràfega de 100. La capçalera `Retry-After` indica quants segons cal esperar. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  delete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        post_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Publicació esborrada. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`), o la publicació no és de la usuària de la sessió (`POST_FORBIDDEN`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La publicació no existeix (`POST_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador de publicació invàlid (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`). */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  update_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        post_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PostTextRequest'];
+      };
+    };
+    responses: {
+      /** @description La publicació editada. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PostResponse'];
+        };
+      };
+      /** @description El cos de la petició no es pot llegir (codificació no vàlida). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`), o la publicació no és de la usuària de la sessió (`POST_FORBIDDEN`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description La publicació no existeix (`POST_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Text buit (`POST_TEXT_EMPTY`), de més de 1000 caràcters (`POST_TEXT_TOO_LONG`) o cos mal format (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Massa edicions o esborrats (`RATE_LIMITED`): per defecte, més de 10 per usuària cada 60 s (configurable amb `POSTS_WRITE_RATE_LIMIT` i `POSTS_WRITE_RATE_LIMIT_WINDOW_SECONDS`). */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_my_chat_rooms: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Les sales de la usuària. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChatRoomResponse'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  open_event_chat_room: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description La sala de l'esdeveniment. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChatRoomResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No estàs subscrita a l'esdeveniment (`FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment no existeix (`EVENT_NOT_FOUND`) o no té sala (`CHAT_ROOM_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Identificador d'esdeveniment invàlid. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_event_chat_messages: {
+    parameters: {
+      query?: {
+        /** @description Cursor de la pàgina anterior (opac). */
+        before?: string | null;
+        /** @description Missatges per pàgina (1 a 50). */
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Una pàgina de missatges. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChatHistoryResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No estàs subscrita a l'esdeveniment (`FORBIDDEN`), o el compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description L'esdeveniment no existeix (`EVENT_NOT_FOUND`) o no té sala (`CHAT_ROOM_NOT_FOUND`). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description `limit` fora de rang (`CHAT_INVALID_LIMIT`), cursor invàlid (`CHAT_INVALID_CURSOR`) o identificador d'esdeveniment invàlid. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description No es pot comprovar la sessió (`SESSION_UNAVAILABLE`) o la base de dades no respon (`DATABASE_UNAVAILABLE`). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_direct_conversations_api_direct_conversations_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConversationOverview'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  open_direct_conversation_api_direct_conversations_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OpenDirectConversationRequest'];
+      };
+    };
+    responses: {
+      /** @description Conversa existent. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DirectConversationResponse'];
+        };
+      };
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DirectConversationResponse'];
+        };
+      };
+      /** @description Invalid request body encoding (HTTP_400). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  direct_history_api_direct_conversations__conversation_id__messages_get: {
+    parameters: {
+      query?: {
+        /** @description Cursor opac de la pàgina anterior. */
+        before?: string | null;
+        /** @description Missatges per pàgina (1 a 50). */
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        conversation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DirectHistoryResponse'];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  mark_direct_read_api_direct_conversations__conversation_id__read_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        conversation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MarkDirectReadRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  block_user_api_users__user_id__block_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  unblock_user_api_users__user_id__block_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Sessió absent, invàlida o revocada (INVALID_SESSION). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Compte suspès o esborrat. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Usuari o conversa no trobats (USER_NOT_FOUND, CONVERSATION_NOT_FOUND). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Entrada invàlida o usuari propi (VALIDATION_ERROR, CANNOT_MESSAGE_SELF). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Servei de sessió o base de dades no disponibles. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  list_meeting_points: {
+    parameters: {
+      query: {
+        /** @description Per a què és la trobada. */
+        profile: components['schemas']['MeetingPointProfile'];
+        /** @description Latitud de la usuària (WGS 84). */
+        lat: number;
+        /** @description Longitud de la usuària (WGS 84). */
+        lon: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Els espais recomanats; buit si no n'hi ha cap. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MeetingPointResponse'][];
+        };
+      };
+      /** @description Sessió absent, invàlida o revocada (`INVALID_SESSION`). */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description El compte és suspès (`ACCOUNT_SUSPENDED`) o esborrat (`ACCOUNT_DELETED`). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Paràmetre invàlid (`VALIDATION_ERROR`). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Spotwise no respon o falla (`MEETING_POINTS_UNAVAILABLE`), o no es pot comprovar la sessió (`SESSION_UNAVAILABLE`). */
       503: {
         headers: {
           [name: string]: unknown;

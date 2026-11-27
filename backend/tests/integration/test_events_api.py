@@ -79,11 +79,11 @@ async def engine() -> AsyncIterator[AsyncEngine]:
     engine = create_async_engine(DatabaseSettings().database_url)
     try:
         async with engine.begin() as connection:
-            await connection.execute(text("TRUNCATE astronomical_events"))
+            await connection.execute(text("TRUNCATE astronomical_events CASCADE"))
         yield engine
     finally:
         async with engine.begin() as connection:
-            await connection.execute(text("TRUNCATE astronomical_events"))
+            await connection.execute(text("TRUNCATE astronomical_events CASCADE"))
         await engine.dispose()
 
 
@@ -160,5 +160,77 @@ async def test_tg351_invalid_parameters_answer_422_problem_json(
     client: AsyncClient, path: str, params: dict[str, Any]
 ) -> None:
     response = await client.get(path, params=params)
+
+    assert_problem(response, 422, "VALIDATION_ERROR")
+
+
+async def test_tg51_c1_list_is_public_and_defaults_to_the_next_30_days(
+    client: AsyncClient,
+) -> None:
+    # No Authorization header: the list is public, like /active and /upcoming.
+    response = await client.get("/api/events")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == [
+        _contract("launch"),
+        _contract("meteor_shower"),
+        _contract("lunar"),
+    ]
+
+
+async def test_tg51_c1_list_filters_by_repeated_category_and_dates(
+    client: AsyncClient,
+) -> None:
+    response = await client.get(
+        "/api/events",
+        params=[
+            ("category", "lunar"),
+            ("category", "solar"),
+            ("from", "2026-11-24"),
+            ("to", "2026-11-24"),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [_contract("lunar")]
+
+
+async def test_tg51_c4_list_near_keeps_events_without_location(
+    client: AsyncClient,
+) -> None:
+    # Barcelona: the launch at Cape Canaveral is out of 100 km; the meteor shower
+    # and the full moon have no location, so they are always listed.
+    response = await client.get(
+        "/api/events", params={"lat": 41.3874, "lon": 2.1686, "radius_km": 100}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [_contract("meteor_shower"), _contract("lunar")]
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"from": "2026-12-15", "to": "2026-12-14"},
+        {"from": "2026-11-01", "to": "2027-01-31"},
+        {"lat": 41.3874},
+        {"radius_km": 100},
+        {"category": "comet"},
+        {"lat": 91, "lon": 2},
+    ],
+    ids=[
+        "from-after-to",
+        "over-90-days",
+        "lat-without-lon",
+        "radius-without-coordinates",
+        "unknown-category",
+        "lat-out-of-range",
+    ],
+)
+async def test_tg51_c2_invalid_list_filters_answer_422_problem_json(
+    client: AsyncClient, params: dict[str, Any]
+) -> None:
+    response = await client.get("/api/events", params=params)
 
     assert_problem(response, 422, "VALIDATION_ERROR")

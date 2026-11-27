@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from typing import Annotated
 from uuid import uuid4
 
@@ -7,7 +8,9 @@ from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from app.application.auth.auth_service import AuthService
 from app.application.realtime.connection_limiter import ConnectionLimiter
+from app.application.realtime.direct_handler import DirectHandler
 from app.application.realtime.realtime_session import RealtimeConfig, RealtimeSession
+from app.application.realtime.room_handler import RoomHandler
 from app.domain.auth.ports import SessionStore
 from app.domain.realtime.ports import ConnectionClosed
 from app.domain.shared.ports import PubSub
@@ -15,7 +18,9 @@ from app.infrastructure.auth.dependencies import get_auth_service, get_session_s
 from app.infrastructure.cache.dependencies import get_pubsub
 from app.infrastructure.realtime.dependencies import (
     get_connection_limiter,
+    get_direct_handler,
     get_realtime_config,
+    get_room_handlers,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,6 +70,8 @@ async def realtime_endpoint(
     pubsub: Annotated[PubSub, Depends(get_pubsub)],
     config: Annotated[RealtimeConfig, Depends(get_realtime_config)],
     limiter: Annotated[ConnectionLimiter, Depends(get_connection_limiter)],
+    handlers: Annotated[Mapping[str, RoomHandler], Depends(get_room_handlers)],
+    direct_handler: Annotated[DirectHandler, Depends(get_direct_handler)],
 ) -> None:
     await websocket.accept()
     conn_id = str(uuid4())
@@ -79,5 +86,7 @@ async def realtime_endpoint(
         conn_id,
         correlation_id if isinstance(correlation_id, str) else None,
         limiter,
+        handlers,
+        direct_handler,
     )
     await session.run()

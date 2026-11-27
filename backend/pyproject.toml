@@ -1,12 +1,13 @@
 [project]
 name = "backend"
-version = "0.2.2"
+version = "0.3.0"
 description = "Backend de Perseida (API FastAPI)"
 requires-python = "==3.14.*"
 dependencies = [
     "alembic==1.20.0",
     "apscheduler==3.11.3",
     "asyncpg==0.32.0",
+    "defusedxml==0.7.1",
     "fastapi==0.143.1",
     "httpx==0.28.1",
     "pydantic==2.14.1",
@@ -22,18 +23,29 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "bandit[toml]==1.9.4",
     "diff-cover==11.0.1",
     "hypothesis==6.170.15",
     "import-linter==2.15",
     "mutmut==3.8.1",
     "mypy==2.4.0",
+    "pip-audit==2.10.1",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
+    "pytest-randomly==5.1.0",
+    "pytest-xdist==3.8.0",
     "respx==0.23.1",
     "ruff==0.16.10",
     "schemathesis==4.32.7",
+    "types-defusedxml==0.7.0.20260504",
 ]
+
+[tool.bandit]
+# CI: ``bandit -c pyproject.toml -r app -ll --ignore-nosec`` (TG-383). Only app code
+# is audited (``-r app``); no ``exclude_dirs``, since bandit excludes by substring.
+# A finding is justified only here, adding its test id to ``skips`` with the reason
+# in a comment; inline ``# nosec`` comments are ignored (``--ignore-nosec``).
 
 [tool.ruff]
 target-version = "py314"
@@ -80,6 +92,9 @@ disable_error_code = ["attr-defined"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "--cov=app --cov-report=term-missing"
+markers = [
+    "quarantine(reason): test inestable en quarantena; reason ha de referenciar la tasca de Taiga TG-NNN que el soluciona",
+]
 
 [tool.coverage.report]
 show_missing = true
@@ -143,6 +158,33 @@ forbidden_modules = [
     "app.application.users",
 ]
 [[tool.importlinter.contracts]]
+# TG-629: an outing points to an event by id only; it checks that the event exists
+# through its own port (EventLookup), and Location lives in app.domain.shared.
+name = "The outings do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.outings", "app.application.outings"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.chat",
+    "app.domain.auth",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.chat",
+    "app.application.auth",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
+    "app.application.users",
+]
+[[tool.importlinter.contracts]]
 name = "The chat does not import other features"
 type = "forbidden"
 source_modules = ["app.domain.chat"]
@@ -161,5 +203,104 @@ forbidden_modules = [
     "app.application.health",
     "app.application.quiz",
     "app.application.realtime",
+    "app.application.users",
+]
+
+[[tool.importlinter.contracts]]
+# The posts only need to know whether an event exists: they ask through their own
+# port (EventLookup), wired to the events repository in infrastructure (TG-628).
+name = "The posts do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.posts", "app.application.posts"]
+forbidden_modules = [
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.chat",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.chat",
+    "app.application.events",
+    "app.application.health",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
+    "app.application.users",
+]
+
+[[tool.importlinter.contracts]]
+# TG-400: the direct chat only knows user ids; nothing is imported from the chat
+# of the events or from users.
+name = "The direct chat does not import other features"
+type = "forbidden"
+source_modules = ["app.domain.direct_chat", "app.application.direct_chat"]
+forbidden_modules = [
+    "app.domain.achievements",
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.chat",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.outings",
+    "app.domain.posts",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.achievements",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.chat",
+    "app.application.events",
+    "app.application.health",
+    "app.application.outings",
+    "app.application.posts",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
+    "app.application.users",
+]
+[[tool.importlinter.contracts]]
+# TG-70: the observation zones keep their own entity; Location lives in
+# app.domain.shared. TG-71 will add app.application.observation_zones here.
+name = "The observation zones do not import other features"
+type = "forbidden"
+source_modules = ["app.domain.observation_zones"]
+forbidden_modules = [
+    "app.domain.achievements",
+    "app.domain.apod",
+    "app.domain.auth",
+    "app.domain.chat",
+    "app.domain.direct_chat",
+    "app.domain.events",
+    "app.domain.health",
+    "app.domain.meeting_points",
+    "app.domain.outings",
+    "app.domain.posts",
+    "app.domain.quiz",
+    "app.domain.realtime",
+    "app.domain.scheduler",
+    "app.domain.streaks",
+    "app.domain.users",
+    "app.application.achievements",
+    "app.application.apod",
+    "app.application.auth",
+    "app.application.chat",
+    "app.application.direct_chat",
+    "app.application.events",
+    "app.application.health",
+    "app.application.meeting_points",
+    "app.application.outings",
+    "app.application.posts",
+    "app.application.quiz",
+    "app.application.realtime",
+    "app.application.streaks",
     "app.application.users",
 ]

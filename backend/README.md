@@ -29,8 +29,8 @@ Main functional areas: astronomical events (catalog, filters, map, subscriptions
 | Auth | Google OAuth2 + PKCE · Google token validation via JWKS · own backend session (JWT) |
 | Moderation | Kev-4B microservice (local model, synchronous call) |
 | Dependencies | `uv` (`uv.lock` committed) |
-| Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud |
-| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `respx` |
+| Quality | `ruff` (lint + format, max complexity 10), `mypy` strict, SonarQube Cloud, `bandit` (code security), `pip-audit` (dependency vulnerabilities, OSV) |
+| Tests | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `pytest-xdist`, `httpx`, `respx` |
 
 ## Architecture: hexagonal
 
@@ -117,7 +117,7 @@ The `health` module is the reference example. For a new module `<name>`:
 
 1. **Domain** (`app/domain/<name>/`): entities/value objects in `models.py` and the ports in `ports.py` (e.g. `HealthReport` and the `HealthCheck` protocol).
 2. **Application** (`app/application/<name>/`): the service that uses the ports (`HealthService`), with no FastAPI.
-3. **Infrastructure** (`app/infrastructure/<name>/`): the adapters implementing the ports (`checks.py`), the provider `get_<name>_service` with `@lru_cache` and `<Name>ServiceDep` (`dependencies.py`), and the router with its response model (`router.py`).
+3. **Infrastructure** (`app/infrastructure/<name>/`): the adapters implementing the ports (`checks.py`), the provider `get_<name>_service` with `@lru_cache` and `<Name>ServiceDep` (`dependencies.py`); if the service needs a resource created in the lifespan (engine, Redis, HTTP client), the provider takes an `HTTPConnection` and reads it from `app.state` instead, as `health` and `auth` do (ADR-0017), and the router with its response model (`router.py`).
 4. Register the router in `create_app()` (`app/main.py`).
 5. **Tests** first (strict TDD, red `test:` commit before `feat:`): unit tests with fakes (`tests/fakes/`), API integration tests with `dependency_overrides`; the architecture test keeps checking the layers.
 
@@ -205,7 +205,13 @@ uv run ruff check .           # lint
 uv run ruff format --check .   # check formatting without modifying files
 uv run mypy .                 # strict type checking
 uv run lint-imports           # architecture contracts (import-linter)
+uv run bandit -c pyproject.toml -r app -ll --ignore-nosec  # code security (fails on medium or high severity)
+uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt  # production dependencies (with hashes and ==, which --require-hashes checks)
+uv run pip-audit -r /tmp/requirements.txt -s osv --require-hashes --disable-pip  # known vulnerabilities (OSV)
 uv run pytest                 # tests (with coverage)
+uv run pytest -n auto         # same, in parallel (one database and Redis index per worker)
+uv run pytest -p randomly --randomly-seed=<seed>  # reproduce an order-dependent failure (seed on the first output line)
+uv run pytest -m quarantine   # only the quarantined tests (@pytest.mark.quarantine(reason="TG-NNN ..."))
 uv run uvicorn app.main:app --reload  # start the API (http://127.0.0.1:8000/api/docs)
 ```
 
@@ -262,7 +268,8 @@ The engine uses lazy connections: creating it does not immediately establish a c
 
 Redis is only a TTL cache and the pub/sub bus for the WebSocket chat; nothing that must survive lives here (PostgreSQL is the source of truth). The asynchronous client is created in FastAPI's lifespan and closed on shutdown. Configuration (see `.env.example`):
 
-- `REDIS_HOST`, `REDIS_PORT`: server address (`redis://host:port`).
+- `REDIS_HOST`, `REDIS_PORT`: server address (`redis://host:port/db`).
+- `REDIS_DB` (optional, 0..15, default 0): logical database. The tests use 15 and, under pytest-xdist, one per worker (15, 14...).
 - `CACHE_DEFAULT_TTL_SECONDS`: default TTL in seconds (3600 if unset).
 - `REDIS_SOCKET_TIMEOUT_SECONDS`: connect and socket timeout in seconds (2 if unset), so a hung Redis behaves as a cache miss.
 
@@ -273,6 +280,8 @@ To run a local Redis: `docker run -d --name perseida-redis -p 6379:6379 redis:8`
 **Lazy cache:** `get_or_load(cache, key, load, adapter, ttl_seconds=None)` (`app/application/shared/cache.py`) returns the cached value or calls `load`, stores the result and returns it. If Redis is down, `RedisCache` logs a warning and behaves as a miss, so the data still comes from the source (no HTTP 500).
 
 **Key convention:** callers use `<domain>:<id>` and the adapter stores it as `cache:<domain>:<id>`, e.g. `cache:apod:2026-10-05`. Each feature chooses its own TTL.
+
+**Chat keys:** `ratelimit:chat:<user_id>` and `chat:republished:<author_id>:<client_message_id>`, and channel `room:chat:event:<event_id>` (see [Event chat](#event-chat)).
 
 **Pub/sub:** `async with pubsub.subscribe(channel) as messages:` yields the messages published after entering the block; every subscriber of the channel receives each message and other channels do not. A Redis failure raises `ExternalServiceError` (`PUBSUB_UNAVAILABLE`, HTTP 503).
 
@@ -305,6 +314,22 @@ The API does not start without `NASA_API_KEY`. In production it comes from the `
 > NASA's API currently answers with a placeholder instead of the APOD (the NASA Science logo and a generic text, seen on 2026-10-21; APOD moved to science.nasa.gov). That is why the RSS feed goes first. The client still rejects the placeholder (also in the feed), so it is never stored.
 >
 > Feed limits: only images (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`) are kept; a video entry is discarded (`APOD_UNAVAILABLE` if the API cannot answer either). The date of an entry is the UTC day of its publication, and the text of `explanation` and `copyright` is converted from HTML to plain text. The failure of a call is cached 15 minutes only when the feed **and** the API fail.
+
+## Meeting points (Spotwise)
+
+`GET /api/meeting-points?profile=watch_party|study&lat=…&lon=…` recommends Spotwise spaces (libraries and cafés) near the user (TG-352). Contract: `obsidian_vault/arquitectura/contracte-spotwise.md`. Needs a session (401 `INVALID_SESSION`, 403 for a suspended or deleted account).
+
+- The location is rounded to 3 decimals (about 100 m). Spotwise is asked with the profile (`watch_party`: `grup=true`; `study`: `silenci=silencios`, `endolls=molts`, `endolls=pocs`), and Perseida keeps the spaces at most 1,500 m away that confirm the profile: group-friendly with wifi for `watch_party`, silent for `study` (plugs are only a preference). Unvoted values (`null`) do not count as confirmed; Spotwise's order is kept.
+- The result is cached in Redis for **5 minutes** per profile and rounded location (`cache:meeting_points:<profile>:<lat>:<lon>`).
+- If Spotwise fails (timeout, connection, 4xx/5xx or a body that is not a JSON list) the answer is 503 `MEETING_POINTS_UNAVAILABLE`, never a 500, and nothing is cached. An invalid space is dropped and logged.
+- At most 60 calls per minute reach Spotwise (sliding window, per process: one client built in the lifespan, ADR-0003); beyond that the answer is 503 `MEETING_POINTS_UNAVAILABLE` without calling it.
+- Without `SPOTWISE_API_TOKEN` the example answer of the Spotwise document is served (mock, `app/infrastructure/meeting_points/spotwise_examples.json`), so local runs and CI never call Spotwise.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SPOTWISE_API_TOKEN` | (empty: mock) | Token Spotwise hands out privately. Sent in the `Authorization: Token …` header, never in the URL or the logs. In production it comes from the `SPOTWISE_API_TOKEN` GitHub secret; never commit it. |
+| `SPOTWISE_URL` | `http://nattech.fib.upc.edu:40420` | Spotwise base URL (Spotwise serves HTTP only) |
+| `SPOTWISE_TIMEOUT_SECONDS` | `5` | Timeout of each request (recommended by Spotwise) |
 
 ## Daily quiz
 
@@ -376,7 +401,7 @@ The error codes (`INVALID_GOOGLE_TOKEN`, `INVALID_SESSION`, `ACCOUNT_SUSPENDED`,
 
 ## WebSocket (real time)
 
-`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The concrete rooms belong to the features that use it (US #64 and #65).
+`/api/ws` (`wss://` behind nginx-proxy-manager) is the real-time endpoint for chat and events, in the same FastAPI process and on top of Redis pub/sub ([ADR-0030](../obsidian_vault/decisions/0030-protocol-websocket-i-revocacio-per-pub-sub.md)). The event chat rooms are described in [Event chat](#event-chat); direct messages are described in [Direct chat](#direct-chat-tg-65).
 
 **Handshake and auth.** The handshake takes no token or query parameter. The first frame must be `{"type":"auth","token":"<access token>"}`; if it is valid and not revoked, the server answers `{"type":"auth","payload":{}}`. Any other first frame, an invalid, expired, refresh or revoked token, or no frame within `WS_AUTH_TIMEOUT_SECONDS` closes with 4401. The token never appears in the URL or the logs. The endpoint calls `AuthService.authenticate` directly (`CurrentSessionDep` uses `HTTPBearer`, which does not work over WebSocket).
 
@@ -409,6 +434,62 @@ Subscribing to a new room past `WS_MAX_ROOMS` is answered with the `RATE_LIMITED
 In the container, uvicorn enforces `WS_MAX_FRAME_BYTES` before the application receives a message and closes oversized messages with code 1009; the application-level errors described above apply when a server does not enforce that limit first.
 
 `uvicorn` needs a WebSocket library (`websockets`, pinned in `pyproject.toml`); without one it answers the handshake with 404. `tests/integration/test_websocket_uvicorn.py` checks the 101 against a real server. Other tests: `tests/unit/application/test_realtime_session.py` (fakes), `tests/unit/infrastructure/realtime/` (TestClient) and `tests/integration/test_websocket_redis.py` (real Redis, two clients, revocation and Redis down through a cuttable TCP proxy).
+
+## Event chat
+
+Chat per astronomical event ([ADR-0033](../obsidian_vault/decisions/0033-xat-per-esdeveniment-sala-missatge-i-flux.md), component note [chat](../obsidian_vault/arquitectura/components/chat.md)): one room per event (0..1, created on demand), only for users subscribed to the event. Messages are stored in PostgreSQL and fanned out in real time over the WebSocket. Sending goes through the WebSocket; the REST API gives the rooms and the history. All endpoints need a session; without a subscription to the event they answer `403 FORBIDDEN`.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/chat/rooms` | Rooms of the events the user is subscribed to, each with its latest message (or `null`), newest first. The app builds its room list from this plus `GET /api/me/subscriptions` |
+| `PUT /api/events/{event_id}/chat/room` | Opens the room of the event (creates it if needed); idempotent, always 200. 404 `EVENT_NOT_FOUND` |
+| `GET /api/events/{event_id}/chat/messages` | History page, newest first. `limit` 1 to 50 (50 by default) and `before` (the opaque `next_cursor` of the previous page). 422 `CHAT_INVALID_LIMIT` or `CHAT_INVALID_CURSOR` |
+
+Every message has `id`, `room_id`, `author {id, name}`, `text` (already cleaned by the server) and `sent_at`; `author.name` is the profile name (it may be `null`) and never the email.
+
+**WebSocket room.** `chat:event:<event_id>` (the UUID in canonical form), on Redis channel `room:chat:event:<event_id>`. The client sends `subscribe` and then `message` with `payload {"text": "...", "client_message_id": "<UUID>"}`; the `client_message_id` (canonical UUID, generated once per message and reused in every retry) is required. The server answers with the ack `{id, sent_at}` of the stored message and sends the full message to the other subscribers of the room (the sender does not receive it again). Errors: `VALIDATION_ERROR`, `NOT_SUBSCRIBED`, `FORBIDDEN`, `RATE_LIMITED`, `CHAT_MESSAGE_EMPTY`, `CHAT_MESSAGE_TOO_LONG` (max 1000 characters once cleaned), `CHAT_MESSAGE_REJECTED`, `CHAT_IDEMPOTENCY_CONFLICT` (same key with another room or text) and `PUBSUB_UNAVAILABLE` (the message is stored but could not be published; retrying with the same key publishes it again). When the user unsubscribes from the event, the server sends an `unsubscribe` frame for the room.
+
+**Flow of a message.** Event and subscription check, text cleaning, idempotency check, rate limit, moderation, storage, publication, ack; it stops at the first failure. The moderator is provisional (it approves everything) until #81.
+
+| Variable | Meaning |
+|---|---|
+| `CHAT_RATE_LIMIT_MESSAGES` | Messages allowed per user and window (10 by default) |
+| `CHAT_RATE_LIMIT_WINDOW_SECONDS` | Window in seconds (10 by default) |
+| `CHAT_MESSAGE_MAX_LENGTH` | Maximum length of a message, 1 to 1000 (1000 by default) |
+
+**Redis keys and channels.** `ratelimit:chat:<user_id>` (fixed-window counter, TTL = the window), `chat:republished:<author_id>:<client_message_id>` (10 s, so a retry of a stored message is not fanned out again in a loop) and channel `room:chat:event:<event_id>`.
+
+**Try it locally.**
+
+```bash
+cd infra && docker compose up -d db cache   # PostgreSQL and Redis (ports published by docker-compose.override.yml)
+cd ../backend
+cp .env.example .env                        # POSTGRES_HOST and REDIS_HOST are localhost; fill in the secrets
+uv run alembic upgrade head                 # create the tables (event_chat_rooms, chat_messages, ...)
+uv run uvicorn app.main:app --reload        # API at http://127.0.0.1:8000/api/docs, WebSocket at ws://127.0.0.1:8000/api/ws
+```
+
+Sign in (`POST /api/auth/google`), subscribe to an event (`PUT /api/events/{event_id}/subscription`), open the room (`PUT /api/events/{event_id}/chat/room`) and connect a WebSocket client to `/api/ws`: first frame `{"type":"auth","token":"<access token>"}`, then `{"type":"subscribe","room":"chat:event:<event_id>","payload":{},"id":"1"}` and a `message` frame in the same room with `payload {"text":"Hello","client_message_id":"<UUID>"}` and a new `id`.
+
+## Direct chat (TG-65)
+
+The direct chat has a persistent conversation for each ordered pair of users, without a follow requirement. Endpoints require a session and return errors as RFC 9457 problem details with a stable `code`.
+
+| Endpoint | Behaviour |
+|---|---|
+| `POST /api/direct-conversations` | Body `{ "user_id": "<UUID>" }`; 201 when created, 200 for the existing conversation. |
+| `GET /api/direct-conversations` | Conversations with the other user's id, display name and avatar URL, last-message preview, unread count and whether the current user blocked the other. |
+| `GET /api/direct-conversations/{id}/messages` | History in descending order; `limit` 1 to 50 (default 50), `before` is the previous opaque `next_cursor`. |
+| `POST /api/direct-conversations/{id}/read` | Advance the participant's read mark; 204. |
+| `PUT /api/users/{id}/block` / `DELETE /api/users/{id}/block` | Idempotently block or unblock; 204. History is preserved. |
+
+**WebSocket.** After the normal `/api/ws` authentication, a client sends `dm.send` with an `id` and payload `{ "conversation_id": "<UUID>", "text": "...", "client_message_id": "<UUID>" }`. UUIDs use canonical form. The `dm.send` ack carries the request `id` and payload `{ "id": "<message UUID>", "sent_at": "<timestamp>" }`: it confirms durable acceptance, not delivery. A `dm.message` frame carries the message to the recipient's connected sessions and the sender's other sessions; it omits `client_message_id`. The authenticated client does not choose its private Redis channel. The ephemeral `dm.typing` frame carries `{ "conversation_id": "<UUID>", "is_typing": true }` (or `false`); it reaches the other participant only and is not stored. Errors use the shared `error` frame and preserve the request id.
+
+The service checks participation, blocking, text, idempotency, rate limit and moderation. Text is limited to 1000 cleaned characters. An unknown or deleted user returns `USER_NOT_FOUND`; messaging oneself returns `CANNOT_MESSAGE_SELF`; a nonparticipant sees `CONVERSATION_NOT_FOUND`; either direction of blocking prevents sending with `USER_BLOCKED`. Retrying the same sender/key with different content returns `DIRECT_IDEMPOTENCY_CONFLICT`. The provisional moderator approves all messages until TG-81.
+
+**Durability.** PostgreSQL commits the message and its outbox entry in one transaction. A dispatcher started with the app retries pending entries after a failed publication; delivery is at least once, so clients deduplicate by stable message id. A completed block before dispatch cancels publication of a pending entry while preserving history. Redis failure at the rate limiter rejects a new send before persistence; a publication failure or timeout after acceptance leaves the outbox pending. These semantics and their difference from the original literal TG-65 criterion are recorded in [ADR-0034](../obsidian_vault/decisions/0034-outbox-xat-directe.md), currently proposed.
+
+`CHAT_RATE_LIMIT_MESSAGES` and `CHAT_RATE_LIMIT_WINDOW_SECONDS` configure the message limit (defaults 10 per 10 seconds), using the shared chat counter. Typing uses a separate Redis counter with the same configured limit and window. `REDIS_SOCKET_TIMEOUT_SECONDS` (default 2) bounds the combined Redis publication for a direct message. Redis `PUBLISH` returns the number of recipient-channel subscribers at publication time: when it is zero, the dispatcher calls `PushNotifier`. This is an instantaneous estimate, not a delivery receipt. `NoopPushNotifier` performs no notification and is best effort; **TODO(TG-73)**: replace it with real push support, without adding FCM here.
 
 ## Testing and quality
 

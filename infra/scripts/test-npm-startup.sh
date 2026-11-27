@@ -10,9 +10,9 @@
 # Comprova, amb la imatge real d'NPM i el muntatge tal com surt de `docker compose config`:
 #   1. NPM arrenca, `nginx -t` és correcte i la zona `events_per_ip` d'`http_top.conf` és
 #      carregada al bloc `http`.
-#   2. El CD pot actualitzar el fitxer amb `install-http-top.sh` encara que NPM n'hagi fet
-#      `chown` a root en arrencar: nginx en veu el contingut nou (hotfix 0.2.2; al primer
-#      desplegament de la 0.2.1, `scp` no el podia sobreescriure).
+#   2. El CD pot actualitzar el fitxer amb `install-http-top.sh`, amb NPM en marxa o aturat,
+#      encara que NPM n'hagi fet `chown` a root en arrencar: nginx en veu el contingut nou
+#      (hotfix 0.2.2; al primer desplegament de la 0.2.1, `scp` no el podia sobreescriure).
 #   3. Control: amb el mateix fitxer muntat de només lectura, NPM no arrenca. Així el test
 #      demostra que reprodueix el defecte i no passa per casualitat.
 #
@@ -44,13 +44,15 @@ fail() {
 
 # Imatge i muntatge d'`http_top.conf` del servei `reverse-proxy`, tal com els resol el Compose.
 # `POSTGRES_PASSWORD` és obligatòria al Compose; aquí només cal perquè `config` no falli.
-read -r IMAGE SOURCE MODE < <(
-  POSTGRES_PASSWORD=test docker compose -f "$COMPOSE" config --format json | python3 -c '
+# Separats per tabulador: el camí del repo pot tenir espais. `MSYS_NO_PATHCONV` evita que Git
+# Bash a Windows converteixi `$TARGET` en un camí de Windows en passar-lo a Python.
+IFS=$'\t' read -r IMAGE SOURCE MODE < <(
+  POSTGRES_PASSWORD=test docker compose -f "$COMPOSE" config --format json | MSYS_NO_PATHCONV=1 python3 -c '
 import json, sys
 service = json.load(sys.stdin)["services"]["reverse-proxy"]
 for volume in service.get("volumes", []):
     if volume.get("target") == sys.argv[1]:
-        print(service["image"], volume["source"], "ro" if volume.get("read_only") else "rw")
+        print(service["image"], volume["source"], "ro" if volume.get("read_only") else "rw", sep="\t")
         break
 else:
     sys.exit("el Compose no munta " + sys.argv[1] + " al reverse-proxy")
@@ -78,8 +80,11 @@ start_npm() {
   MSYS_NO_PATHCONV=1 docker run -d --name "$NAME" -v /data -v /etc/letsencrypt -v "$mount" "$IMAGE" >/dev/null
   local waited=0
   while [ "$waited" -lt "$STARTUP_TIMEOUT" ]; do
-    # NPM genera `resolvers.conf` en acabar d'arrencar; abans, `nginx -t` falla.
-    if MSYS_NO_PATHCONV=1 docker exec "$NAME" test -f /etc/nginx/conf.d/include/resolvers.conf 2>/dev/null \
+    # Arrencat del tot = l'API d'NPM respon (`check-health`, el healthcheck de la imatge). No n'hi
+    # ha prou amb `resolvers.conf` + `nginx -t`: el pas `50-ipv6.sh` de `prepare`, que va després,
+    # reescriu cada `.conf` de /data/nginx (`echo "$(sed ... "$FILE")" > $FILE`), i una còpia del CD
+    # feta mentrestant es perd (fallada intermitent del pas 2a a la CI).
+    if MSYS_NO_PATHCONV=1 docker exec "$NAME" /usr/bin/check-health >/dev/null 2>&1 \
       && docker exec "$NAME" nginx -t >/dev/null 2>&1; then
       return 0
     fi
@@ -97,13 +102,35 @@ start_npm "$MODE" || fail "NPM no arrenca amb el muntatge del Compose ($MODE)"
 docker exec "$NAME" nginx -T 2>/dev/null | grep -q "zone=events_per_ip" \
   || fail "nginx no carrega la zona events_per_ip d'http_top.conf"
 
-# 2. Pas de còpia del CD amb el fitxer ja de root: nginx carrega el contingut nou.
+# Pas de còpia del CD: escriu `$1` com a contingut nou d'`http_top.conf` amb `install-http-top.sh`.
+# `NPM_RUN` fa el paper del contenidor d'un sol ús del Compose: la imatge d'NPM amb el mateix
+# muntatge, sense arrencar-la.
+install_http_top() {
+  { cat "$SOURCE"; printf '\n# %s\n' "$1"; } >"$WORK_DIR/http_top.conf.new"
+  (cd "$WORK_DIR" \
+    && NPM_RUN="docker run --rm -i -v $(host_path "$MOUNTED"):$TARGET --entrypoint /bin/sh $IMAGE" \
+      MSYS_NO_PATHCONV=1 sh "$ROOT_DIR/infra/scripts/install-http-top.sh" http_top.conf.new)
+}
+
+# 2a. Amb NPM en marxa i el fitxer ja de root: nginx carrega el contingut nou.
 MARKER="perseida-http-top-$$"
-{ cat "$SOURCE"; printf '\n# %s\n' "$MARKER"; } >"$WORK_DIR/http_top.conf.new"
-(cd "$WORK_DIR" && NPM_EXEC="docker exec -i $NAME" sh "$ROOT_DIR/infra/scripts/install-http-top.sh" http_top.conf.new) \
-  || fail "install-http-top.sh no ha pogut actualitzar http_top.conf"
+install_http_top "$MARKER" || fail "install-http-top.sh no ha pogut actualitzar http_top.conf amb NPM en marxa"
 docker exec "$NAME" nginx -T 2>/dev/null | grep -q "$MARKER" \
   || fail "nginx no veu l'http_top.conf actualitzat pel pas de còpia del CD"
+
+# 2b. Amb NPM aturat (el CD copia abans de `deploy.sh`, que és qui l'aixeca): la còpia no
+# pot dependre del proxy, i en tornar-lo a arrencar nginx veu el contingut nou.
+docker stop "$NAME" >/dev/null
+MARKER_STOPPED="perseida-http-top-aturat-$$"
+install_http_top "$MARKER_STOPPED" || fail "install-http-top.sh no ha pogut actualitzar http_top.conf amb NPM aturat"
+docker start "$NAME" >/dev/null
+waited=0
+until docker exec "$NAME" nginx -T 2>/dev/null | grep -q "$MARKER_STOPPED"; do
+  [ "$waited" -lt "$STARTUP_TIMEOUT" ] \
+    || fail "nginx no veu l'http_top.conf actualitzat amb NPM aturat"
+  sleep 3
+  waited=$((waited + 3))
+done
 
 # 3. Control: de només lectura, NPM no arrenca (el defecte del primer desplegament de la 0.2.0).
 if start_npm ro; then

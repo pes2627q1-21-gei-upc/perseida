@@ -1,12 +1,11 @@
 import uuid
 
-from app.domain.chat.models import ChatMessage
+from app.domain.chat.models import ChatAuthor, ChatMessage
 from app.domain.chat.ports import (
     ChatRepository,
     EventSubscriptions,
-    MessageModerator,
-    SendRateLimiter,
 )
+from app.domain.shared.ports import MessageModerator, SendRateLimiter
 from tests.unit.domain.chat.fakes import (
     ApprovingModerator,
     CountingRateLimiter,
@@ -15,6 +14,7 @@ from tests.unit.domain.chat.fakes import (
 )
 
 USER_ID = uuid.uuid7()
+AUTHOR = ChatAuthor(id=USER_ID, name=None)
 EVENT_ID = uuid.uuid7()
 
 
@@ -34,7 +34,12 @@ async def test_history_pages_are_newest_first_without_gaps_or_repeats() -> None:
     repository: ChatRepository = InMemoryChatRepository()
     room = await repository.get_or_create_room(EVENT_ID)
     sent = [
-        ChatMessage.create(room_id=room.id, author_id=USER_ID, text=f"missatge {n}")
+        ChatMessage.create(
+            room_id=room.id,
+            author=AUTHOR,
+            text=f"missatge {n}",
+            client_message_id=uuid.uuid4(),
+        )
         for n in range(5)
     ]
     for message in sent:
@@ -65,8 +70,18 @@ async def test_the_room_list_carries_the_latest_message() -> None:
     # TG-64 criteri 13
     repository: ChatRepository = InMemoryChatRepository()
     room = await repository.get_or_create_room(EVENT_ID)
-    older = ChatMessage.create(room_id=room.id, author_id=USER_ID, text="primer")
-    newer = ChatMessage.create(room_id=room.id, author_id=USER_ID, text="segon")
+    older = ChatMessage.create(
+        room_id=room.id,
+        author=AUTHOR,
+        text="primer",
+        client_message_id=uuid.uuid4(),
+    )
+    newer = ChatMessage.create(
+        room_id=room.id,
+        author=AUTHOR,
+        text="segon",
+        client_message_id=uuid.uuid4(),
+    )
     await repository.add_message(older)
     await repository.add_message(newer)
 

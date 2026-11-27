@@ -20,6 +20,7 @@ from app.infrastructure.auth.dependencies import get_auth_service
 from app.infrastructure.streaks.dependencies import get_streak_service
 from app.infrastructure.streaks.router import router
 from app.infrastructure.users.dependencies import get_user_service
+from tests.fakes.activity_log import FakeActivityLog
 from tests.fakes.auth import (
     FakeAccountGateway,
     FakeGoogleTokenVerifier,
@@ -61,7 +62,7 @@ async def _client(
         InMemoryUserRepository(ME, OTHER)
     )
     app.dependency_overrides[get_streak_service] = lambda: StreakService(
-        repo, now=lambda: NOW
+        repo, FakeActivityLog(), now=lambda: NOW
     )
     tokens = await auth.login("google-id-token")
     async with AsyncClient(

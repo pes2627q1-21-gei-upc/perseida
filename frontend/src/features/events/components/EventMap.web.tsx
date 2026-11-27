@@ -25,7 +25,7 @@ import {
   type MapMarker,
   WORLD_CENTER,
   WORLD_ZOOM,
-} from './mapTiles';
+} from '../../../shared/map/mapTiles';
 
 /**
  * Brings the first markers into view; with none, the world stays in view. Later markers (a new
@@ -42,6 +42,21 @@ function FitToMarkers({ markers }: { markers: MapMarker[] }) {
       FIT_BOUNDS_OPTIONS,
     );
   }, [map, markers]);
+  return null;
+}
+
+/**
+ * Leaflet only measures its container on load and on window resize: when the container changes
+ * size by itself (the side panel opens beside the map) it has to be told to measure it again.
+ */
+function InvalidateOnResize() {
+  const map = useMap();
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
   return null;
 }
 
@@ -115,6 +130,7 @@ export function EventMap({ markers, label, onSelect }: EventMapProps) {
           zoomOutTitle={t('events.map.zoomOut')}
         />
         <FitToMarkers markers={markers} />
+        <InvalidateOnResize />
       </MapContainer>
     </div>
   );

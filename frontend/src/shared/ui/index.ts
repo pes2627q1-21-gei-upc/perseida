@@ -1,6 +1,11 @@
 export { GelButton } from './GelButton';
+export { GelChip } from './GelChip';
+export { GelIconButton } from './GelIconButton';
 export { GelSegmented, type SegmentOption } from './GelSegmented';
 export { GlassPanel } from './GlassPanel';
 export { QuietButton } from './QuietButton';
 export { SkyBackground } from './SkyBackground';
+export { StatusPanel, type StatusPanelProps, type StatusTexts } from './StatusPanel';
+export { TopBar } from './TopBar';
 export { useReduceTransparency } from './useReduceTransparency';
+export { ConfirmDialog } from './ConfirmDialog';

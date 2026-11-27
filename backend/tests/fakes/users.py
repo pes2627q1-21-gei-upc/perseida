@@ -9,6 +9,7 @@ class InMemoryUserRepository:
     def __init__(self, *users: User) -> None:
         self.users: dict[str, User] = {user.google_sub: user for user in users}
         self.saved_logins: list[User] = []
+        self.saved_languages: list[User] = []
 
     async def get_by_google_sub(self, google_sub: str) -> User | None:
         return self.users.get(google_sub)
@@ -24,3 +25,7 @@ class InMemoryUserRepository:
     async def save_last_login(self, user: User) -> None:
         self.users[user.google_sub] = user
         self.saved_logins.append(user)
+
+    async def save_preferred_language(self, user: User) -> None:
+        self.users[user.google_sub] = user
+        self.saved_languages.append(user)

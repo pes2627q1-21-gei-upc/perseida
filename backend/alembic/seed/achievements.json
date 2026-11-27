@@ -1,0 +1,342 @@
+[
+  {
+    "id": "01a1ef84-844e-7f1d-b2b5-590e929de2e1",
+    "code": "primera_llum",
+    "name": "Primera llum",
+    "description": "Entra a l'app un dia i obre la imatge astronòmica del dia.",
+    "kind": "streak_days",
+    "threshold": 1,
+    "category": "streaks",
+    "position": 1
+  },
+  {
+    "id": "01a1ef84-8450-749a-a450-7045c174f01a",
+    "code": "orbita_setmanal",
+    "name": "Òrbita setmanal",
+    "description": "Mantén la ratxa 7 dies seguits.",
+    "kind": "streak_days",
+    "threshold": 7,
+    "category": "streaks",
+    "position": 2
+  },
+  {
+    "id": "01a1ef84-8453-758d-8a10-16c3b9ab57a4",
+    "code": "lluna_plena",
+    "name": "Lluna plena",
+    "description": "Mantén la ratxa 14 dies seguits.",
+    "kind": "streak_days",
+    "threshold": 14,
+    "category": "streaks",
+    "position": 3
+  },
+  {
+    "id": "01a1ef84-8455-7a31-ab95-4c8f5d8645fd",
+    "code": "cicle_lunar",
+    "name": "Cicle lunar",
+    "description": "Mantén la ratxa 30 dies seguits, un cicle lunar sencer.",
+    "kind": "streak_days",
+    "threshold": 30,
+    "category": "streaks",
+    "position": 4
+  },
+  {
+    "id": "01a1ef84-8457-7150-b1d3-6503d55fbdd4",
+    "code": "estrella_fixa",
+    "name": "Estrella fixa",
+    "description": "Mantén la ratxa 100 dies seguits.",
+    "kind": "streak_days",
+    "threshold": 100,
+    "category": "streaks",
+    "position": 5
+  },
+  {
+    "id": "01a1ef84-8459-76b7-a973-d684226dc7fc",
+    "code": "perseida",
+    "name": "Perseida",
+    "description": "Mantén la ratxa 365 dies seguits, un any sencer com la pluja d'estels.",
+    "kind": "streak_days",
+    "threshold": 365,
+    "category": "streaks",
+    "position": 6
+  },
+  {
+    "id": "01a1ef84-845b-7629-9ccb-411d70ad8d97",
+    "code": "telescopi_nou",
+    "name": "Telescopi nou",
+    "description": "Completa el teu primer quiz diari.",
+    "kind": "quiz_completed",
+    "threshold": 1,
+    "category": "quiz",
+    "position": 1
+  },
+  {
+    "id": "01a1ef84-845d-77bf-aba8-682b9f644745",
+    "code": "cel_clar",
+    "name": "Cel clar",
+    "description": "Respon bé totes les preguntes d'un quiz.",
+    "kind": "quiz_perfect",
+    "threshold": 1,
+    "category": "quiz",
+    "position": 2
+  },
+  {
+    "id": "01a1ef84-845f-7bb7-b97c-4d67bd49bf9e",
+    "code": "astronom_aprenent",
+    "name": "Astrònom aprenent",
+    "description": "Completa 10 quizzes.",
+    "kind": "quiz_completed",
+    "threshold": 10,
+    "category": "quiz",
+    "position": 3
+  },
+  {
+    "id": "01a1ef84-8461-7d5d-b007-785a06c14377",
+    "code": "cartograf_celeste",
+    "name": "Cartògraf celeste",
+    "description": "Completa 50 quizzes.",
+    "kind": "quiz_completed",
+    "threshold": 50,
+    "category": "quiz",
+    "position": 4
+  },
+  {
+    "id": "01a1ef84-8464-73f2-b508-3941f31e887f",
+    "code": "astrofisic",
+    "name": "Astrofísic",
+    "description": "Completa 100 quizzes.",
+    "kind": "quiz_completed",
+    "threshold": 100,
+    "category": "quiz",
+    "position": 5
+  },
+  {
+    "id": "01a1ef84-8466-795d-8136-61b0fa518ddd",
+    "code": "primera_alineacio",
+    "name": "Primera alineació",
+    "description": "Subscriu-te al teu primer esdeveniment.",
+    "kind": "event_subscription",
+    "threshold": 1,
+    "category": "events",
+    "position": 1
+  },
+  {
+    "id": "01a1ef84-8468-79d4-a8d3-4f598536d7f9",
+    "code": "cacador_d_eclipsis",
+    "name": "Caçador d'eclipsis",
+    "description": "Subscriu-te a 10 esdeveniments.",
+    "kind": "event_subscription",
+    "threshold": 10,
+    "category": "events",
+    "position": 2
+  },
+  {
+    "id": "01a1ef84-846a-798b-904b-339e7b80bd39",
+    "code": "colleccionista_d_aurores",
+    "name": "Col·leccionista d'aurores",
+    "description": "Subscriu-te a 25 esdeveniments.",
+    "kind": "event_subscription",
+    "threshold": 25,
+    "category": "events",
+    "position": 3
+  },
+  {
+    "id": "01a1ef84-846c-795a-abe5-b145aeb4de83",
+    "code": "efemerides",
+    "name": "Efemèrides",
+    "description": "Exporta un esdeveniment al calendari.",
+    "kind": "event_exported",
+    "threshold": 1,
+    "category": "events",
+    "position": 4
+  },
+  {
+    "id": "01a1ef84-846e-7e14-9de6-859a3e85f24f",
+    "code": "calendari_celeste",
+    "name": "Calendari celeste",
+    "description": "Exporta 10 esdeveniments al calendari.",
+    "kind": "event_exported",
+    "threshold": 10,
+    "category": "events",
+    "position": 5
+  },
+  {
+    "id": "01a1ef84-8471-7219-80a1-b3e463bc0173",
+    "code": "eclipsi_total",
+    "name": "Eclipsi total",
+    "description": "Subscriu-te a 50 esdeveniments.",
+    "kind": "event_subscription",
+    "threshold": 50,
+    "category": "events",
+    "position": 6
+  },
+  {
+    "id": "01a1ef84-8473-7202-b3d1-57d77879f9ac",
+    "code": "satellit",
+    "name": "Satèl·lit",
+    "description": "Aconsegueix el teu primer seguidor.",
+    "kind": "followers",
+    "threshold": 1,
+    "category": "social",
+    "position": 1
+  },
+  {
+    "id": "01a1ef84-8475-7ef9-a9d3-3b86cfa8b54c",
+    "code": "orbita_compartida",
+    "name": "Òrbita compartida",
+    "description": "Segueix una altra persona per primer cop.",
+    "kind": "following",
+    "threshold": 1,
+    "category": "social",
+    "position": 2
+  },
+  {
+    "id": "01a1ef84-8477-77ef-baab-da0abbf1ada7",
+    "code": "senyal_de_radio",
+    "name": "Senyal de ràdio",
+    "description": "Envia el teu primer missatge al xat.",
+    "kind": "message_sent",
+    "threshold": 1,
+    "category": "social",
+    "position": 3
+  },
+  {
+    "id": "01a1ef84-8479-7c54-87c4-c8d29285a78e",
+    "code": "cumul_estellar",
+    "name": "Cúmul estel·lar",
+    "description": "Arriba a 100 seguidors.",
+    "kind": "followers",
+    "threshold": 100,
+    "category": "social",
+    "position": 4
+  },
+  {
+    "id": "01a1ef84-847b-7627-add2-6a31ebc71856",
+    "code": "galaxia",
+    "name": "Galàxia",
+    "description": "Arriba a 500 seguidors.",
+    "kind": "followers",
+    "threshold": 500,
+    "category": "social",
+    "position": 5
+  },
+  {
+    "id": "01a1ef84-847d-7c94-9e19-0d92fade0416",
+    "code": "estrella_polar",
+    "name": "Estrella polar",
+    "description": "Arriba a 1.000 seguidors.",
+    "kind": "followers",
+    "threshold": 1000,
+    "category": "social",
+    "position": 6
+  },
+  {
+    "id": "01a1ef84-8480-7186-972e-b566336de10a",
+    "code": "primer_senyal",
+    "name": "Primer senyal",
+    "description": "Comparteix una fita per primer cop.",
+    "kind": "achievement_shared",
+    "threshold": 1,
+    "category": "social",
+    "position": 7
+  },
+  {
+    "id": "01a1ef84-8482-7159-9086-03f74f0ddc50",
+    "code": "postal_de_l_espai",
+    "name": "Postal de l'espai",
+    "description": "Comparteix 10 fites.",
+    "kind": "achievement_shared",
+    "threshold": 10,
+    "category": "social",
+    "position": 8
+  },
+  {
+    "id": "01a1ef84-8484-714b-928c-10ff40d1f61d",
+    "code": "ambaixador_del_cosmos",
+    "name": "Ambaixador del cosmos",
+    "description": "Comparteix 25 fites.",
+    "kind": "achievement_shared",
+    "threshold": 25,
+    "category": "social",
+    "position": 9
+  },
+  {
+    "id": "01a1ef84-8486-7706-95c1-15ca5c87b35f",
+    "code": "llancament",
+    "name": "Llançament",
+    "description": "Juga la teva primera partida al minijoc.",
+    "kind": "minigame_played",
+    "threshold": 1,
+    "category": "minigame",
+    "position": 1
+  },
+  {
+    "id": "01a1ef84-8488-7e77-893f-bceec636f787",
+    "code": "missio_complerta",
+    "name": "Missió complerta",
+    "description": "Guanya una partida al minijoc.",
+    "kind": "minigame_won",
+    "threshold": 1,
+    "category": "minigame",
+    "position": 2
+  },
+  {
+    "id": "01a1ef84-848a-7275-93bc-0b376b1e34db",
+    "code": "record_orbital",
+    "name": "Rècord orbital",
+    "description": "Supera el teu rècord personal.",
+    "kind": "minigame_record_beaten",
+    "threshold": 1,
+    "category": "minigame",
+    "position": 3
+  },
+  {
+    "id": "01a1ef84-848d-7d53-9e95-fa39f853475b",
+    "code": "record_galactic",
+    "name": "Rècord galàctic",
+    "description": "Supera el teu rècord personal 10 cops.",
+    "kind": "minigame_record_beaten",
+    "threshold": 10,
+    "category": "minigame",
+    "position": 4
+  },
+  {
+    "id": "01a1ef84-848f-7d19-ac91-b64709f09557",
+    "code": "repte_llencat",
+    "name": "Repte llençat",
+    "description": "Repta un amic per primer cop.",
+    "kind": "minigame_challenge_sent",
+    "threshold": 1,
+    "category": "minigame",
+    "position": 5
+  },
+  {
+    "id": "01a1ef84-8491-7bea-868f-33b4338447cf",
+    "code": "comandant",
+    "name": "Comandant",
+    "description": "Guanya 10 partides al minijoc.",
+    "kind": "minigame_won",
+    "threshold": 10,
+    "category": "minigame",
+    "position": 6
+  },
+  {
+    "id": "01a1ef84-8493-7cce-b1aa-5f1bb59d4046",
+    "code": "gran_mestre_estellar",
+    "name": "Gran mestre estel·lar",
+    "description": "Guanya 50 partides al minijoc.",
+    "kind": "minigame_won",
+    "threshold": 50,
+    "category": "minigame",
+    "position": 7
+  },
+  {
+    "id": "01a1ef84-8495-7eff-933e-cdc803cf3580",
+    "code": "llegenda_cosmica",
+    "name": "Llegenda còsmica",
+    "description": "Guanya 100 partides al minijoc.",
+    "kind": "minigame_won",
+    "threshold": 100,
+    "category": "minigame",
+    "position": 8
+  }
+]

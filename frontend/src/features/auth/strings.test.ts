@@ -1,4 +1,5 @@
 import { AppError, networkError } from '../../shared/errors';
+import * as strings from './strings';
 import { authErrorMessage, toAuthErrorMessage } from './strings';
 
 describe('Auth error messages mapping', () => {
@@ -96,5 +97,11 @@ describe('Auth error messages mapping', () => {
         'Alguna cosa ha anat malament. Torna-ho a provar.',
       );
     });
+  });
+});
+
+describe('fixed texts (US #93)', () => {
+  it('TG-93 c4 no longer keeps the sign-in texts in code: they live in locales/', () => {
+    expect('authStrings' in strings).toBe(false);
   });
 });

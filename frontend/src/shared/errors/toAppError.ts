@@ -32,11 +32,19 @@ async function readProblemBody(response: Response): Promise<Record<string, unkno
 
 /** Converts a non-ok response (RFC 9457 problem+json when available) into an AppError. */
 export async function toAppError(response: Response): Promise<AppError> {
-  const problem = await readProblemBody(response);
+  return problemToAppError(await readProblemBody(response), response.status);
+}
+
+/**
+ * Converts an already parsed RFC 9457 problem (the body of an HTTP response or the payload of a
+ * WebSocket `error` frame, ADR-0030) into an AppError.
+ */
+export function problemToAppError(
+  problem: Record<string, unknown> | undefined,
+  status: number,
+): AppError {
   const code =
-    typeof problem?.code === 'string' && problem.code.length > 0
-      ? problem.code
-      : `HTTP_${response.status}`;
+    typeof problem?.code === 'string' && problem.code.length > 0 ? problem.code : `HTTP_${status}`;
   const correlationId =
     typeof problem?.correlation_id === 'string' ? problem.correlation_id : undefined;
   const fieldErrors = Array.isArray(problem?.errors)
@@ -46,10 +54,10 @@ export async function toAppError(response: Response): Promise<AppError> {
   return new AppError({
     kind: 'http',
     code,
-    status: response.status,
+    status,
     correlationId,
     fieldErrors,
-    retryable: isRetryableStatus(response.status),
+    retryable: isRetryableStatus(status),
   });
 }
 

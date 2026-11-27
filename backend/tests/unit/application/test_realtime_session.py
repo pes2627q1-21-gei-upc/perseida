@@ -1032,7 +1032,8 @@ async def test_client_disconnect_ends_run_and_releases_every_subscription(
     client = await connect(env)
     await request(client, {"type": "subscribe", "room": "sala-a", "id": "s1"})
     await request(client, {"type": "subscribe", "room": "sala-b", "id": "s2"})
-    assert len(env.pubsub.active_channels()) == 3  # two rooms + revocation
+    # two rooms + session revocation + room revocation (TG-459)
+    assert len(env.pubsub.active_channels()) == 4
 
     client.conn.disconnect()
     await client.finished()

@@ -6,7 +6,10 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import pytest
+from fastapi import APIRouter, FastAPI
 from fastapi.exceptions import RequestValidationError
+from httpx import ASGITransport, AsyncClient
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -243,3 +246,103 @@ def test_trim_union_segments(
     expected: tuple[int | str, ...],
 ) -> None:
     assert error_handlers._trim_union_segments(loc, body, error_type) == expected
+
+
+async def test_405_allow_lists_every_method_of_the_path() -> None:
+    # TG-629: /api/outings té GET i POST; Starlette només posa el de la primera ruta.
+    # Les rutes van en un router inclòs amb prefix, com a l'app (include_router).
+    app = FastAPI()
+    error_handlers.register_error_handlers(app)
+    router = APIRouter(prefix="/things")
+
+    @router.get("")
+    async def list_things() -> list[str]:
+        return []
+
+    @router.post("")
+    async def create_thing() -> str:
+        return "ok"
+
+    @router.delete("/{thing_id}")
+    async def delete_thing(thing_id: str) -> None:
+        return None
+
+    app.include_router(router, prefix="/api")
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        collection = await client.put("/api/things")
+        item = await client.get("/api/things/1")
+
+    assert collection.status_code == 405
+    assert collection.headers["allow"] == "GET, POST"
+    assert item.status_code == 405
+    assert item.headers["allow"] == "DELETE"
+
+
+async def test_405_keeps_its_own_allow_when_no_route_matches() -> None:
+    # Un 405 llançat a mà per a un camí sense rutes conserva l'Allow que porta
+    request = make_request("/nowhere")
+    request.scope["app"] = FastAPI()
+
+    response = await error_handlers._handle_http_exception(
+        request, StarletteHTTPException(405, headers={"Allow": "GET"})
+    )
+
+    assert response.headers["Allow"] == "GET"
+
+
+async def test_unexpected_error_middleware_passes_through_non_http_scopes() -> None:
+    seen: list[str] = []
+
+    async def inner(scope: Any, receive: Any, send: Any) -> None:
+        seen.append(scope["type"])
+
+    middleware = error_handlers.UnexpectedErrorMiddleware(inner)
+    await middleware({"type": "lifespan"}, None, None)  # type: ignore[arg-type]
+
+    assert seen == ["lifespan"]
+
+
+async def test_unexpected_error_middleware_answers_500_problem() -> None:
+    sent: list[dict[str, Any]] = []
+
+    async def inner(scope: Any, receive: Any, send: Any) -> None:
+        raise RuntimeError("secret")
+
+    async def send(message: Any) -> None:
+        sent.append(message)
+
+    scope: dict[str, Any] = {
+        "type": "http",
+        "method": "GET",
+        "path": "/x",
+        "headers": [],
+        "query_string": b"",
+    }
+    middleware = error_handlers.UnexpectedErrorMiddleware(inner)
+    await middleware(scope, None, send)  # type: ignore[arg-type]
+
+    assert sent[0]["status"] == 500
+    body = json.loads(sent[1]["body"])
+    assert body["code"] == "INTERNAL_ERROR"
+    assert "secret" not in sent[1]["body"].decode()
+
+
+async def test_unexpected_error_middleware_reraises_once_the_response_started() -> None:
+    sent: list[dict[str, Any]] = []
+
+    async def inner(scope: Any, receive: Any, send: Any) -> None:
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        raise RuntimeError("mid-stream")
+
+    async def send(message: Any) -> None:
+        sent.append(message)
+
+    scope: dict[str, Any] = {"type": "http", "path": "/x", "headers": []}
+    middleware = error_handlers.UnexpectedErrorMiddleware(inner)
+    with pytest.raises(RuntimeError, match="mid-stream"):
+        await middleware(scope, None, send)  # type: ignore[arg-type]
+
+    assert [message["status"] for message in sent] == [200]
