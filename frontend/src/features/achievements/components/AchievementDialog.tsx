@@ -5,7 +5,7 @@ import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { errorMessage } from '../../../shared/errors';
 import { readingMaxWidth, type Theme, touch, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, QuietButton } from '../../../shared/ui';
-import { useAnnounceOnIos } from '../../chat/useAnnounceOnIos';
+import { useAnnounceOnIos } from '../../../shared/a11y/useAnnounceOnIos';
 import type { Achievement } from '../api/getMyAchievements';
 import { shareAchievement } from '../share/shareAchievement';
 import { CATEGORY_ICONS } from './categoryIcons';

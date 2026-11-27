@@ -35,7 +35,7 @@ import { arrivedKeys, type ChatListItem } from '../chatItems';
 import { useMySubscriptions } from '../../events/hooks/useSubscriptions';
 import { useRoomLive } from '../hooks/useRoomLive';
 import { rowSurface } from '../rowSurface';
-import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { useAnnounceOnIos } from '../../../shared/a11y/useAnnounceOnIos';
 import { MessageComposer } from './MessageComposer';
 import { MessageList } from './MessageList';
 

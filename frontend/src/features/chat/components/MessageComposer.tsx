@@ -7,7 +7,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { readingMaxWidth, type Theme, useTheme } from '../../../shared/theme';
 import { GelIconButton, useReduceTransparency } from '../../../shared/ui';
 import { type ComposerSurface, composerSurface } from '../composerSurface';
-import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { useAnnounceOnIos } from '../../../shared/a11y/useAnnounceOnIos';
 
 /**
  * Same limit as the server for a chat message; the server stays the real check. Not shared with

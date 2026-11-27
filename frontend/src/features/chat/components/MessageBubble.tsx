@@ -19,7 +19,7 @@ import { type BubbleSurface, bubbleSurface } from '../bubbleSurface';
 import type { MessageItem, PendingItem } from '../chatItems';
 import { dateTimeFormat } from '../dateFormat';
 import { rowSurface } from '../rowSurface';
-import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { useAnnounceOnIos } from '../../../shared/a11y/useAnnounceOnIos';
 import { ActionSurface } from './ActionSurface';
 
 interface Props {

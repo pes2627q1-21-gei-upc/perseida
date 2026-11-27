@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { errorMessage } from '../../../shared/errors';
 import { type Theme, useTheme } from '../../../shared/theme';
 import { GlassPanel, QuietButton } from '../../../shared/ui';
-import { useAnnounceOnIos } from '../useAnnounceOnIos';
+import { useAnnounceOnIos } from '../../../shared/a11y/useAnnounceOnIos';
 
 interface Props {
   /** The code of the error of the reload, which says what to tell the person. */
