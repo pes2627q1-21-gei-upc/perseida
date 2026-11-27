@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../shared/errors';
 import { readingMaxWidth, type Theme, touch, useTheme } from '../../../shared/theme';
 import { GelButton, GlassPanel, QuietButton } from '../../../shared/ui';
+import { useAnnounceOnIos } from '../../chat/useAnnounceOnIos';
 import type { Achievement } from '../api/getMyAchievements';
 import { shareAchievement } from '../share/shareAchievement';
 import { CATEGORY_ICONS } from './categoryIcons';
@@ -61,6 +62,9 @@ function DialogContent({
   const [failed, setFailed] = useState(false);
   const CategoryIcon = CATEGORY_ICONS[achievement.category];
   const name = achievementName(achievement);
+  const shareError = failed ? errorMessage(t, 'SHARE_FAILED', true) : undefined;
+  // Android reads the live region; iOS needs the announcement; the web reads role=alert once.
+  useAnnounceOnIos(shareError);
 
   const share = async () => {
     setSharing(true);
@@ -96,8 +100,12 @@ function DialogContent({
         </Text>
         <Text style={styles.description}>{achievementDescription(achievement)}</Text>
         {failed ? (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {errorMessage(t, 'SHARE_FAILED', false)}
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion={Platform.OS === 'android' ? 'polite' : undefined}
+            style={styles.error}
+          >
+            {shareError}
           </Text>
         ) : null}
         <View style={styles.actions}>
