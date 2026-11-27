@@ -43,9 +43,9 @@ Totes acordades amb la Simona durant la sessió.
 
 | Comprovació | Resultat |
 |---|---|
-| Tests de tot el frontend | 178 suites, 2.353 tests, tots passen |
-| Cobertura global | 98,3 % de sentències |
-| Mutation testing (diff) | 89,0 % sobre 132 mutants (81 morts, 9 supervivents, 1 sense cobertura) |
+| Tests de tot el frontend | 215 suites, 2.693 tests, tots passen (27/11/2026, després de la review) |
+| Cobertura global | 98,34 % de sentències (27/11/2026) |
+| Mutation testing (diff), anterior als fixos de la review | 89,0 % sobre 132 mutants (81 morts, 9 supervivents, 1 sense cobertura) |
 | Tipus (`tsc`) i ESLint | sense errors |
 | Contrast (`contrast.py`) | candau pendent 5,3 a 9,3:1 als quatre temes; nom sobre el cel 2,33:1 a la posta (corregit amb el vidre) |
 
@@ -69,7 +69,7 @@ Totes acordades amb la Simona durant la sessió.
 - [ ] Prova manual a mòbil i web.
 - [ ] Obrir la PR, CI verda i aprovació d'una persona que no sigui l'autora.
 - [x] `AppErrorKind` de `SHARE_FAILED`: `http` amb `status: 0`.
-- [ ] Decidir què fer al web sense `navigator.share`.
+- [x] Web sense `navigator.share`: es documenta com a límit conegut (vegeu `arquitectura/frontend.md`); l'alternativa seria una subtasca nova.
 - [x] Portar la lliçó de «test en vermell per motiu correcte» a la skill `testing-tdd`.
 - [ ] Icones pròpies per a les fites (ara es fa servir la de la categoria).
 
