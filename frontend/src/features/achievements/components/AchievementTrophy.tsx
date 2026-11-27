@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { type Theme, touch, useTheme } from '../../../shared/theme';
+import { focusRingShadow, type Theme, touch, useTheme } from '../../../shared/theme';
 import type { Achievement } from '../api/getMyAchievements';
 import { CATEGORY_ICONS } from './categoryIcons';
 import { useAchievementName } from './useAchievementName';
@@ -102,7 +102,7 @@ function createStyles({ colors, radii, spacing, typography }: Theme) {
     circleUnlocked: { backgroundColor: colors.surface.glassSolid },
     circlePending: { backgroundColor: colors.surface.onGlass },
     circlePressed: { backgroundColor: colors.surface.onGlass },
-    circleFocused: { boxShadow: `0 0 0 2px ${colors.focusRing}` },
+    circleFocused: { boxShadow: focusRingShadow(colors.focusRing) },
     name: { ...typography.caption, color: colors.text.primary, textAlign: 'center' },
   });
 }
