@@ -14,6 +14,6 @@ export async function shareAchievement(name: string, t: TFunction): Promise<void
     await Share.share({ message: t('achievements.shareText', { name }) });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') return;
-    throw new AppError({ kind: 'network', code: 'SHARE_FAILED', retryable: false });
+    throw new AppError({ kind: 'http', code: 'SHARE_FAILED', status: 0, retryable: true });
   }
 }
